@@ -1,6 +1,6 @@
 <div style="margin-bottom: 10px; position: relative">
     <div id="graphContainer" style="height: 70vh; border: 1px solid #ddd; "></div>
-    <div id="tooltipContainer" style="max-height: 400px; min-width: 200px; max-width:300px; position: absolute; top: 10px; right: 10px; border: 1px solid #999; border-radius: 3px; background-color: #f5f5f5ee; overflow: auto;"></div>
+    <div id="tooltipContainer" style="max-height: 450px; min-width: 200px; max-width:300px; position: absolute; top: 10px; right: 10px; border: 1px solid #999; border-radius: 3px; background-color: #f5f5f5ee; overflow: auto;"></div>
 </div>
 
 <?php
@@ -10,6 +10,7 @@ echo $this->element('genericElements/assetLoader', array(
 ?>
 
 <script>
+var distributionLevels = <?= json_encode($distributionLevels) ?>;
 var hexagonPoints = '30,15 22.5,28 7.5,28 0,15 7.5,2.0 22.5,2'
 var hexagonPointsSmaller = '21,10.5 15.75,19.6 5.25,19.6 0,10.5 5.25,1.4 15.75,1.4'
 var hexagonTranslate = -10.5;
@@ -322,7 +323,11 @@ function generateTooltip(d, type) {
         tableArray = [
             {label: '<?= __('Name') ?>', value: d.value, url: {path: '<?= sprintf('%s/galaxy_clusters/view/', $baseurl) ?>', id: d.id}},
             {label: '<?= __('Galaxy') ?>', value: d.type, url: {path: '<?= sprintf('%s/galaxies/view/', $baseurl) ?>', id: d.galaxy_id}},
+            {label: '<?= __('Description') ?>', value: d.description},
             {label: '<?= __('Default') ?>', value: d.default},
+            {label: '<?= __('Distribution') ?>', value: getReadableDistribution(d), url: {path: d.distribution == 4 ? '<?= sprintf('%s/sharing_groups/view/', $baseurl) ?>' : undefined, id: d.distribution == 4 ? d.SharingGroup.id : ''}},
+            {label: '<?= __('Owner Org.') ?>', value: d.Org.name, url: {path: '<?= sprintf('%s/organisations/view/', $baseurl) ?>', id: d.Org.id}},
+            {label: '<?= __('Creator Org.') ?>',value: d.Orgc.name, url: {path: '<?= sprintf('%s/organisations/view/', $baseurl) ?>', id: d.Orgc.id}},
             {label: '<?= __('Tag name') ?>', value: d.tag_name},
             {label: '<?= __('Version') ?>', value: d.version},
             {label: '<?= __('UUID') ?>', value: d.uuid}
@@ -353,7 +358,7 @@ function generateTooltip(d, type) {
         tableArray.forEach(function(row) {
             var $cell1 = $('<td></td>').text(row.label);
             var $cell2 = $('<td></td>');
-            if (row.url !== undefined) {
+            if (row.url !== undefined && row.url.path !== undefined) {
                 var completeUrl = row.url.path + (row.url.id !== undefined ? row.url.id : '');
                 $cell2.append($('<a></a>').attr('href', completeUrl).attr('target', '_blank').text(row.value));
             } else {
@@ -420,6 +425,14 @@ function drawLabels() {
         .attr('width', legendBB.width + pad)
         .attr('height', legendBB.height + pad)
         .style('stroke', '#eee');
+}
+
+function getReadableDistribution(d) {
+    if (d.distribution != 4) {
+        return distributionLevels[d.distribution];
+    } else {
+        return d.SharingGroup.name;
+    }
 }
 </script>
 

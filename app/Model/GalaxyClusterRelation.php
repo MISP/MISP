@@ -287,14 +287,21 @@ class GalaxyClusterRelation extends AppModel
             $lookup[$cluster['GalaxyCluster']['id']] = $cluster;
         }
         foreach ($clusters as $cluster) {
+            $cluster = $this->attachOwnerInsideCluster($cluster);
             if (!empty($cluster['GalaxyClusterRelation'])) {
                 foreach($cluster['GalaxyClusterRelation'] as $relation) {
                     $referencedClusterId = $relation['referenced_galaxy_cluster_id'];
                     if (!isset($lookup[$referencedClusterId])) {
                         $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array(
-                            'conditions' => array('GalaxyCluster.id' => $referencedClusterId)
+                            'conditions' => array('GalaxyCluster.id' => $referencedClusterId),
+                            'contain' => array('Org', 'Orgc', 'SharingGroup'),
                         ));
-                        $lookup[$referencedClusterId] = !empty($referencedCluster) ? $referencedCluster[0] : array();
+                        if (!empty($referencedCluster)) {
+                            $referencedCluster[0] = $this->attachOwnerInsideCluster($referencedCluster[0]);
+                            $lookup[$referencedClusterId] = $referencedCluster[0];
+                        } else {
+                            $lookup[$referencedClusterId] = array();
+                        }
                     }
                     $referencedCluster = $lookup[$referencedClusterId];
                     if (!empty($referencedCluster)) {
@@ -340,6 +347,7 @@ class GalaxyClusterRelation extends AppModel
                         }
                         $referencingCluster = $lookup[$referencingClusterId];
                         if (!empty($referencingCluster)) {
+                            $referencingCluster = $this->attachOwnerInsideCluster($referencingCluster);
                             $nodes[$referencingClusterId] = $referencingCluster['GalaxyCluster'];
                             $nodes[$referencingClusterId]['group'] = $referencingCluster['GalaxyCluster']['type'];
                             $links[] = array(
@@ -354,5 +362,29 @@ class GalaxyClusterRelation extends AppModel
             }
         }
         return array('nodes' => array_values($nodes), 'links' => $links, 'invalid' => $invalid);
+    }
+
+    private function attachOwnerInsideCluster($cluster)
+    {
+        if (!empty($cluster['Org']) && !isset($cluster['GalaxyCluster']['Org'])) {
+            $cluster['GalaxyCluster']['Org'] = array(
+                'id' => $cluster['Org']['id'],
+                'name' => $cluster['Org']['name'],
+            );
+        }
+        if (!empty($cluster['Orgc']) && !isset($cluster['GalaxyCluster']['Orgc'])) {
+            $cluster['GalaxyCluster']['Orgc'] = array(
+                'id' => $cluster['Orgc']['id'],
+                'name' => $cluster['Orgc']['name'],
+            );
+        }
+        if (!empty($cluster['SharingGroup']) && !isset($cluster['GalaxyCluster']['SharingGroup'])) {
+            $cluster['GalaxyCluster']['SharingGroup'] = array(
+                'id' => $cluster['SharingGroup']['id'],
+                'name' => $cluster['SharingGroup']['name'],
+                'description' => $cluster['SharingGroup']['description'],
+            );
+        }
+        return $cluster;
     }
 }

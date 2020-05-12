@@ -544,5 +544,8 @@ class GalaxiesController extends AppController
         $this->set('relations', $relations);
         $this->set('galaxy', $galaxy);
         $this->set('galaxy_id', $galaxyId);
+        $this->loadModel('Attribute');
+        $distributionLevels = $this->Attribute->distributionLevels;
+        $this->set('distributionLevels', $distributionLevels);
     }
 }
