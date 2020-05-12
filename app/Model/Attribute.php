@@ -659,20 +659,10 @@ class Attribute extends AppModel
 
     private function __alterAttributeCount($event_id, $increment = true)
     {
-        $event = $this->Event->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Event.id' => $event_id)
-        ));
-        if (!empty($event)) {
-            if ($increment) {
-                $event['Event']['attribute_count'] = $event['Event']['attribute_count'] + 1;
-            } else {
-                $event['Event']['attribute_count'] = $event['Event']['attribute_count'] - 1;
-            }
-            if ($event['Event']['attribute_count'] >= 0) {
-                $this->Event->save($event, array('callbacks' => false));
-            }
-        }
+        return $this->Event->updateAll(
+            array('Event.attribute_count' => $increment ? 'Event.attribute_count+1' : 'GREATEST(Event.attribute_count-1, 0)'),
+            array('Event.id' => $event_id)
+        );
     }
 
     public function afterSave($created, $options = array())
@@ -692,7 +682,7 @@ class Attribute extends AppModel
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
             $this->__beforeSaveCorrelation($this->data['Attribute']);
             if (isset($this->data['Attribute']['event_id'])) {
-                $this->__alterAttributeCount($this->data['Attribute']['event_id'], false, $passedEvent);
+                $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
             }
         } else {
             /*
