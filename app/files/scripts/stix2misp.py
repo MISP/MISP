@@ -771,6 +771,15 @@ class StixParser():
     ##              GALAXY PARSING FUNCTIONS USED BY BOTH SUBCLASSES              ##
     ################################################################################
 
+    @staticmethod
+    def _get_galaxy_name(galaxy, feature):
+        if hasattr(galaxy, feature) and getattr(galaxy, feature):
+            return getattr(galaxy, feature)
+        for name in ('name', 'names'):
+            if hasattr(galaxy, name) and getattr(galaxy, name):
+                return list(value.value for value in getattr(galaxy, name))
+        return
+
     def _parse_courses_of_action(self, courses_of_action):
         for course_of_action in courses_of_action:
             self.parse_galaxy(course_of_action, 'title', 'mitre-course-of-action')
@@ -800,7 +809,15 @@ class StixParser():
                     self.parse_galaxy(tool, 'name', 'tool')
 
     def parse_galaxy(self, galaxy, feature, default_value):
-        name = getattr(galaxy, feature)
+        names = self._get_galaxy_name(galaxy, feature)
+        if names:
+            if isinstance(names, list):
+                for name in names:
+                    self._resolve_galaxy(name, default_value)
+            else:
+                self._resolve_galaxy(names, default_value)
+
+    def _resolve_galaxy(self, name, default_value):
         if name in self.synonyms_to_tag_names:
             self.galaxies.update(self.synonyms_to_tag_names[name])
         else:
