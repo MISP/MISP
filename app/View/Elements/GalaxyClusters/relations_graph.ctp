@@ -10,6 +10,7 @@ echo $this->element('genericElements/assetLoader', array(
 ?>
 
 <script>
+(function(){
 var distributionLevels = <?= json_encode($distributionLevels) ?>;
 var hexagonPoints = '30,15 22.5,28 7.5,28 0,15 7.5,2.0 22.5,2'
 var hexagonPointsSmaller = '21,10.5 15.75,19.6 5.25,19.6 0,10.5 5.25,1.4 15.75,1.4'
@@ -434,6 +435,7 @@ function getReadableDistribution(d) {
         return d.SharingGroup.name;
     }
 }
+}());
 </script>
 
 <style>

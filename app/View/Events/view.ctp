@@ -587,9 +587,11 @@ function enable_attack_matrix() {
 }
 
 function enable_galaxy_relations() {
-    $.get("<?= $baseurl ?>/events/viewClusterRelations/<?php echo h($event['Event']['id']); ?>", function(data) {
-        $("#clusterrelation_div").html(data);
-    });
+    if ($("#clusterrelation_div").find('svg').length == 0) {
+        $.get("<?= $baseurl ?>/events/viewClusterRelations/<?php echo h($event['Event']['id']); ?>", function(data) {
+            $("#clusterrelation_div").html(data);
+        });
+    }
 }
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />
