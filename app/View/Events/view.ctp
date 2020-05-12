@@ -587,7 +587,7 @@ function enable_attack_matrix() {
 }
 
 function enable_galaxy_relations() {
-    $.get("<?= $baseurl ?>/events/viewGalaxyRelations/<?php echo h($event['Event']['id']); ?>", function(data) {
+    $.get("<?= $baseurl ?>/events/viewClusterRelations/<?php echo h($event['Event']['id']); ?>", function(data) {
         $("#clusterrelation_div").html(data);
     });
 }

@@ -4783,7 +4783,7 @@ class EventsController extends AppController
             $this->render('/Elements/view_galaxy_matrix');
         }
     }
-    public function viewGalaxyRelations($eventId)
+    public function viewClusterRelations($eventId)
     {
         $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'flatten' => true));
         if (empty($event)) {
@@ -4811,6 +4811,7 @@ class EventsController extends AppController
             return $this->RestResponse->viewData($relations, $this->response->type());
         }
         $this->set('relations', $relations);
+        $this->set('distributionLevels', $this->Event->distributionLevels);
     }
 
     public function delegation_index()
