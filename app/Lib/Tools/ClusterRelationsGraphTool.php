@@ -74,7 +74,8 @@
                             $referencingClusterId = $relation['GalaxyClusterRelation']['galaxy_cluster_id'];
                             if (!isset($this->lookup[$referencingClusterId])) {
                                 $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->user, array(
-                                    'conditions' => array('GalaxyCluster.id' => $referencingClusterId)
+                                    'conditions' => array('GalaxyCluster.id' => $referencingClusterId),
+                                    'contain' => array('Org', 'Orgc', 'SharingGroup'),
                                 ));
                                 $this->lookup[$referencingClusterId] = !empty($referencedCluster) ? $referencedCluster[0] : array();
                             }
