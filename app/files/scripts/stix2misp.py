@@ -1210,7 +1210,7 @@ class ExternalStixParser(StixParser):
             self.parse_external_observable(self.event.observables.observables)
         if any(getattr(self.event, feature) for feature in ('ttps', 'courses_of_action', 'threat_actors')):
             if self.event.ttps:
-                self.parse_ttps(self.event.ttps.ttps)
+                self.parse_ttps(self.event.ttps.ttp)
             if self.event.courses_of_action:
                 self.parse_coa(self.event.courses_of_action)
             if self.event.threat_actors:
