@@ -34,14 +34,16 @@
 </div>
 
 <script>
-    var originalElements = <?= json_encode($elements) ?>;
+    var currentElements = <?= json_encode($elements) ?>;
     $(document).ready(function() {
         $('#injectElements').click(function() {
-            $('#GalaxyClusterElements').text(JSON.stringify(parseTable()))
+            currentElements = parseTable();
+            $('#GalaxyClusterElements').text(JSON.stringify(currentElements))
         });
         $('#toggleElementUI').click(function() {
             $('#genericModal').modal();
-            fillTable(originalElements);
+            deleteAllRows();
+            fillTable(currentElements);
         });
     });
 
@@ -53,6 +55,10 @@
             $('<td></td>').append($('<input type="text" class="elementValue"></input>').val(value)),
             $('<td></td>').append('<buton type="button" class="btn btn-danger btn-small" onclick="deleteCurrentRow(this)">&times;</buton>'),
         ))
+    }
+
+    function deleteAllRows() {
+        $('#elementTableBody tr').remove();
     }
 
     function deleteCurrentRow(clicked) {
