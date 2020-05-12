@@ -4806,7 +4806,10 @@ class EventsController extends AppController
         $rootNodeIds = $clusterIds; 
         $this->loadModel('GalaxyCluster');
         $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.id' => $clusterIds)), $full=true);
-        $relations = $this->GalaxyCluster->GalaxyClusterRelation->generateRelationsGraph($this->Auth->user(), $clusters, $rootNodeIds=$rootNodeIds, $keepNotLinkedClusters=true, $includeReferencingRelation=true);
+        App::uses('ClusterRelationsGraphTool', 'Tools');
+        $grapher = new ClusterRelationsGraphTool();
+        $grapher->construct($this->Auth->user(), $this->GalaxyCluster);
+        $relations = $grapher->getNetwork($clusters, $rootNodeIds=$rootNodeIds, $keepNotLinkedClusters=true, $includeReferencingRelation=true);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->type());
         }
