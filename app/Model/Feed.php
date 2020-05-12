@@ -963,6 +963,15 @@ class Feed extends AppModel
                 if (isset($existsAttributesValueToId[$dataPoint['value']])) {
                     unset($data[$k]);
                     unset($existsAttributesValueToId[$dataPoint['value']]);
+                    continue;
+                }
+
+                // Because some types can be saved in modified version (for example, IPv6 address is convert to compressed
+                // format, we should also check if current event contains modified value.
+                $modifiedValue = $this->Event->Attribute->modifyBeforeValidation($dataPoint['type'], $dataPoint['value']);
+                if (isset($existsAttributesValueToId[$modifiedValue])) {
+                    unset($data[$k]);
+                    unset($existsAttributesValueToId[$modifiedValue]);
                 }
             }
             if ($feed['Feed']['delta_merge'] && !empty($existsAttributesValueToId)) {
