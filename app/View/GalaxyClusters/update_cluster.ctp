@@ -1,5 +1,5 @@
 <div class='form'>
-    <h2><?= __('Update forked cluster') ?></h2>
+    <h2><?= __('Merge updates from parent cluster') ?></h2>
     <?php if(!$newVersionAvailable): ?>
         <div class="alert alert-warning"><?= __('No new version available') ?></div>
     <?php else: ?>
