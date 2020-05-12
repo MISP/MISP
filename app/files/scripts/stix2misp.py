@@ -786,7 +786,7 @@ class StixParser():
                     self.parse_galaxy(attack_pattern, 'title', 'misp-attack-pattern')
             if ttp.behavior.malware_instances:
                 for malware_instance in ttp.behavior.malware_instances:
-                    if 'stix-maec' not in malware_instance._XSI_TYPE:
+                    if not malware_instance._XSI_TYPE or 'stix-maec' not in malware_instance._XSI_TYPE:
                         self.parse_galaxy(malware_instance, 'title', 'ransomware')
         elif ttp.exploit_targets:
             if ttp.exploit_targets.exploit_target:
