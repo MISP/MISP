@@ -8,7 +8,7 @@ App::uses('File', 'Utility');
  */
 class AttributesController extends AppController
 {
-    public $components = array('Security', 'RequestHandler', 'Cidr');
+    public $components = array('Security', 'RequestHandler');
 
     public $paginate = array(
             'limit' => 60,

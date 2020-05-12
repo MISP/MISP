@@ -12,7 +12,6 @@ class EventsController extends AppController
             'Email',
             'RequestHandler',
             'IOCImport',
-            'Cidr'
     );
 
     public $paginate = array(
