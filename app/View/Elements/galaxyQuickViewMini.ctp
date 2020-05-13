@@ -138,7 +138,7 @@
 
 <script type="text/javascript">
 $(document).ready(function () {
-    $('.expandable').popover({
+    $('<?= isset($rowId) ? '#'.$rowId : '' ?> .expandable').popover({
         html: true,
         trigger: 'hover'
     });
