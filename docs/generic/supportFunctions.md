@@ -494,14 +494,14 @@ kaliSpaceSaver () {
   echo "${RED}Not implement${NC}"
 }
 
-# Because Kali is l33t we make sure we run as root
-kaliOnRootR0ckz () {
-  if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root"
+# Because Kali is l33t we make sure we DO NOT run as root
+kaliOnTheR0ckz () {
+  if [[ $EUID == 0 ]]; then
+   echo "This script must NOT be run as root"
    exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-    useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
-    echo $MISP_USER:$MISP_PASSWORD | chpasswd
+    sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
+    echo $MISP_USER:$MISP_PASSWORD | sudo chpasswd
   else
     # TODO: Make sure we consider this further down the road
     echo "User ${MISP_USER} exists, skipping creation"

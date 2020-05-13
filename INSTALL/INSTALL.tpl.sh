@@ -16,6 +16,7 @@
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
+#    20200513: Ubuntu 20.04 tested and working. -- sCl
 #    20200412: Ubuntu 18.04.4 tested and working. -- sCl
 #    20190302: Ubuntu 18.04.2 tested and working. -- sCl
 #    20190208: Kali Linux tested and working. -- sCl
@@ -36,8 +37,9 @@
 # 2/ For Kali, download and run Installer Script        |
 #-------------------------------------------------------|
 #
-# To install MISP on Kali copy paste the following to your r00t shell:
+# To install MISP on Kali copy paste the following to your shell:
 # # wget --no-cache -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
+# NO other version then 2020.x supported, kthxbai.
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 #
@@ -115,7 +117,7 @@
 ### END AUTOMATED SECTION ###
 
 # This function will generate the main installer.
-# It is a helper function for the maintainers for the installer.
+# It is a helper function for the maintainers of the installer.
 
 colors () {
   # Some colors for easier debug and better UX (not colorblind compatible, PR welcome)
@@ -901,7 +903,7 @@ fi
 # If Kali Linux is detected, run the acccording scripts
 if [ "${FLAVOUR}" == "kali" ]; then
   KALI=1
-  kaliOnRootR0ckz
+  kaliOnTheR0ckz
   installMISPonKali
   echo "Installation done!"
   exit
