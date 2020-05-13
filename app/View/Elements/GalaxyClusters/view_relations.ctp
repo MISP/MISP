@@ -82,9 +82,10 @@ echo $this->element('genericElements/assetLoader', array(
             tags: $('#RelationshipTags').val(),
             distribution: $('#RelationshipDistribution').val(),
             tags: $('#RelationshipTags').val(),
+            freetext_relation: $('#RelationshipTypeFreetext').val(),
         };
-        if (data.referenced_galaxy_cluster_type === 'custom') {
-            data['referenced_galaxy_cluster_type'] = freeTextVal;
+        if (data.type === 'custom') {
+            data.type = data.freetext_relation;
         }
         toggleLoadingButton(true);
         fetchFormDataAjax(url,
