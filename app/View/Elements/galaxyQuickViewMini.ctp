@@ -64,8 +64,9 @@
             echo sprintf(
                 '<div class="large-left-margin">%s %s %s %s</div>',
                 sprintf(
-                    '<span class="bold blue expandable useCursorPointer" data-toggle="popover" data-content="%s">%s</span>',
+                    '<span class="bold blue expandable useCursorPointer" data-content="%s" data-clusterid="%s">%s</span>',
                     h($popover_data),
+                    h($cluster['id']),
                     sprintf(
                         '<span><i class="fas fa-%s"></i> %s</span>',
                         $cluster['local'] ? 'user' : 'globe-americas',
@@ -138,9 +139,31 @@
 
 <script type="text/javascript">
 $(document).ready(function () {
-    $('<?= isset($rowId) ? '#'.$rowId : '' ?> .expandable').popover({
+    $('<?= isset($rowId) ? '#'.$rowId : '' ?> .expandable')
+    .on('click', function() {
+        loadClusterRelations($(this).data('clusterid'));
+    })
+    .popover({
         html: true,
         trigger: 'hover'
     });
 });
+
+function loadClusterRelations(clusterId) {
+    if (clusterId !== undefined) {
+        openGenericModal(
+            '<?= $baseurl ?>/GalaxyClusters/viewRelationTree/' + clusterId,
+            {
+                header: "<?= __('Cluster relation tree') ?>",
+                classes: "modal-xl",
+                bodyStyle: {"min-height": "500px"}
+            },
+            function() {
+                if (window.buildTree !== undefined) {
+                    buildTree();
+                }
+            }
+        );
+    }
+}
 </script>

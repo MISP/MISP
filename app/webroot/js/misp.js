@@ -1170,14 +1170,44 @@ function clickCreateButton(event, type) {
     simplePopup("/" + destination + "/add/" + event);
 }
 
-function openGenericModal(url) {
+function openGenericModal(url, modalData, callback) {
     $.ajax({
         type: "get",
         url: url,
         success: function (data) {
             $('#genericModal').remove();
-            $('body').append(data);
-            $('#genericModal').modal();
+            if (modalData !== undefined) {
+                $modal = $('<div id="genericModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true"></div>');
+                if (modalData.classes !== undefined) {
+                    $modal.addClass(modalData.classes);
+                }
+                $modalHeaderText = $('<h3 id="genericModalLabel"></h3>');
+                if (modalData.header !== undefined) {
+                    $modalHeaderText.text(modalData.header)
+                }
+                $modalHeader = $('<div class="modal-header"></div>').append(
+                    $('<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>'),
+                    $modalHeaderText
+                );
+                $modalBody = $('<div class="modal-body"></div>').html(data);
+                if (modalData.bodyStyle !== undefined) {
+                    $modalBody.css(modalData.bodyStyle);
+                }
+                $modal.append(
+                    $modalHeader,
+                    $modalBody
+                );
+                htmlData = $modal[0].outerHTML;
+            } else {
+                htmlData = data;
+            }
+            $('body').append(htmlData);
+            $('#genericModal').modal().on('shown', function() {
+                if (callback !== undefined) {
+                    callback();
+                }
+            });
+            
         },
         error: function (data, textStatus, errorThrown) {
             showMessage('fail', textStatus + ": " + errorThrown);

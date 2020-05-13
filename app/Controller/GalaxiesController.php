@@ -517,7 +517,7 @@ class GalaxiesController extends AppController
             'recursive' => -1,
             'conditions' => array('Galaxy.id' => $galaxyId)
         ));
-        $tree = $this->Galaxy->generateForkTree($clusters, $galaxy, $pruneRootLeaves=true); // moved this to Lib/Tool
+        $tree = $this->Galaxy->generateForkTree($clusters, $galaxy, $pruneRootLeaves=true);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($tree, $this->response->type());
         }

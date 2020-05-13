@@ -834,41 +834,11 @@ class GalaxyClustersController extends AppController
         $cluster = $this->GalaxyCluster->attachReferencingRelations($this->Auth->user(), $cluster);
         $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
 
-        $treeRight = array(array(
-            'GalaxyCluster' => $cluster['GalaxyCluster'],
-            'children' => array()
-        ));
-        // add relation info between the two clusters
-        foreach($cluster['GalaxyClusterRelation'] as $relation) {
-            $tmp = array(
-                'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),
-                'children' => array(
-                    array('GalaxyCluster' => $relation['GalaxyCluster']),
-                )
-            );
-            $treeRight[0]['children'][] = $tmp;
-        }
+        App::uses('ClusterRelationsTreeTool', 'Tools');
+        $grapher = new ClusterRelationsTreeTool();
+        $grapher->construct($this->Auth->user(), $this->GalaxyCluster);
+        $tree = $grapher->getTree($cluster);
 
-        $treeLeft = array(array(
-            'GalaxyCluster' => $cluster['GalaxyCluster'],
-            'children' => array()
-        ));
-        if (!empty($cluster['ReferencingGalaxyClusterRelation'])) {
-            foreach($cluster['ReferencingGalaxyClusterRelation'] as $relation) {
-                $tmp = array(
-                    'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),
-                    'children' => array(
-                        array('GalaxyCluster' => $relation['GalaxyCluster']),
-                    )
-                );
-                $treeLeft[0]['children'][] = $tmp;
-            }
-        }
-
-        $tree = array(
-            'right' => $treeRight,
-            'left' => $treeLeft,
-        );
         $this->set('existingRelations', $existingRelations);
         $this->set('cluster', $cluster);
         $relations = $this->GalaxyCluster->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array(
@@ -884,5 +854,23 @@ class GalaxyClustersController extends AppController
         unset($distributionLevels[4]);
         unset($distributionLevels[5]);
         $this->set('distributionLevels', $distributionLevels);
+    }
+
+    public function viewRelationTree($clusterId)
+    {
+        $options = array('conditions' => array('GalaxyCluster.id' => $clusterId));
+        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $options, true);
+        if (empty($cluster)) {
+            throw new NotFoundException('Invalid galaxy cluster');
+        }
+        $cluster = $cluster[0];
+        $cluster = $this->GalaxyCluster->attachReferencingRelations($this->Auth->user(), $cluster);
+        $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
+        App::uses('ClusterRelationsTreeTool', 'Tools');
+        $grapher = new ClusterRelationsTreeTool();
+        $grapher->construct($this->Auth->user(), $this->GalaxyCluster);
+        $tree = $grapher->getTree($cluster);
+        $this->set('tree', $tree);
+        $this->render('/Elements/GalaxyClusters/view_relation_tree');
     }
 }

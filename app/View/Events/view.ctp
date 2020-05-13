@@ -517,9 +517,6 @@
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attackmatrix_toggle" data-toggle-type="attackmatrix" onclick="enable_attack_matrix();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>" style="vertical-align:top;"></span><?php echo __('ATT&CK matrix');?>
         </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="clusterrelation_toggle" data-toggle-type="clusterrelation" onclick="enable_galaxy_relations();">
-            <span class="icon-plus icon-white" title="<?php echo __('Toggle Cluster relationships');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Cluster relationships');?>" style="vertical-align:top;"></span><?php echo __('Cluster relations');?>
-        </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
             <span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
         </button>
@@ -584,14 +581,6 @@ function enable_attack_matrix() {
     $.get("<?= $baseurl ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
         $("#attackmatrix_div").html(data);
     });
-}
-
-function enable_galaxy_relations() {
-    if ($("#clusterrelation_div").find('svg').length == 0) {
-        $.get("<?= $baseurl ?>/events/viewClusterRelations/<?php echo h($event['Event']['id']); ?>", function(data) {
-            $("#clusterrelation_div").html(data);
-        });
-    }
 }
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />

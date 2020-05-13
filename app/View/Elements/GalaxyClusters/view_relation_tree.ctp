@@ -4,8 +4,8 @@ echo $this->element('genericElements/assetLoader', array(
 ));
 ?>
 
-<div style="padding: 5px; min-height: 600px;">
-    <svg id="treeSVG" style="width: 100%; height: 100%; min-height: 500px;"></svg>
+<div style="padding: 5px; display: flex; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
+    <svg id="treeSVG" style="width: 100%; height: 100%;"></svg>
 </div>
 
 <script>

@@ -151,7 +151,9 @@
             </form>
         </div>
     </div>
-    <?php echo $this->element('GalaxyClusters/view_relation_tree'); ?>
+    <div style="min-height: 600px; position: relative;">
+        <?php echo $this->element('GalaxyClusters/view_relation_tree'); ?>
+    </div>
 </div>
 <div id="referencesTable_div" style="position: relative;" class="statistics_attack_matrix hidden">
     <?= $relationTable ?>
@@ -163,7 +165,7 @@ function toggleClusterRelations() {
         duration: 300,
         complete: function() {
             if (window.buildTree !== undefined) {
-                buildTree();
+                ();
             }
         }
     });
