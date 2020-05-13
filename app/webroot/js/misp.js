@@ -5064,3 +5064,21 @@ function changeLocationFromIndexDblclick(row_index) {
     var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
     window.location = href;
 }
+
+function loadClusterRelations(clusterId) {
+    if (clusterId !== undefined) {
+        openGenericModal(
+            baseurl + '/GalaxyClusters/viewRelationTree/' + clusterId,
+            {
+                header: "Cluster relation tree",
+                classes: "modal-xl",
+                bodyStyle: {"min-height": "700px"}
+            },
+            function() {
+                if (window.buildTree !== undefined) {
+                    buildTree();
+                }
+            }
+        );
+    }
+}

@@ -941,6 +941,7 @@ a.proposal_link_red:hover {
 .modal-body-long {
     max-height: 600px;
 }
+
 .modal-xl {
     width: 1000px;
     margin-left: -500px;

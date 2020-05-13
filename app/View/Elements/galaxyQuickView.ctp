@@ -65,7 +65,8 @@
                 '<div class="large-left-margin"><span class="bold blue expandContainer">%s %s %s %s %s %s</span></div>',
                 '<span class="collapse-status-container useCursorPointer"><span class="collapse-status">+</span></span>',
                 sprintf(
-                    '<span><i class="fas fa-%s"></i> %s</span>',
+                    '<span class="clusterName useCursorPointer" data-clusterid="%s"><i class="fas fa-%s"></i> %s</span>',
+                    h($cluster['id']),
                     $cluster['local'] ? 'user' : 'globe-americas',
                     h($cluster['value'])
                 ),
@@ -151,5 +152,9 @@
                 $(this).parent().children('.collapse-status-container').children('.collapse-status').html('+');
             }
         });
+
+        $('.clusterName').on('click', function() {
+            loadClusterRelations($(this).data('clusterid'));
+        })
     });
 </script>

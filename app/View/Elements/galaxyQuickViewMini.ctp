@@ -148,22 +148,4 @@ $(document).ready(function () {
         trigger: 'hover'
     });
 });
-
-function loadClusterRelations(clusterId) {
-    if (clusterId !== undefined) {
-        openGenericModal(
-            '<?= $baseurl ?>/GalaxyClusters/viewRelationTree/' + clusterId,
-            {
-                header: "<?= __('Cluster relation tree') ?>",
-                classes: "modal-xl",
-                bodyStyle: {"min-height": "500px"}
-            },
-            function() {
-                if (window.buildTree !== undefined) {
-                    buildTree();
-                }
-            }
-        );
-    }
-}
 </script>
