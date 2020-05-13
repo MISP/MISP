@@ -196,9 +196,6 @@ $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.
 cd $PATH_TO_MISP/app/files/scripts/mixbox
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
-# FIXME: Remove once stix-fixed
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
-
 # install STIX2.0 library to support STIX 2.0 export:
 cd $PATH_TO_MISP/cti-python-stix2
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
@@ -206,6 +203,25 @@ $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
 $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+# FIXME: Remove libfaup etc once the egg has the library baked-in
+# BROKEN: This needs to be tested on RHEL/CentOS
+##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+cd /tmp
+[[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+[[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+cd gtcaca
+$SUDO_CMD mkdir -p build
+cd build
+$SUDO_CMD cmake .. && $SUDO_CMD make
+sudo make install
+cd ../../faup
+$SUDO_CMD mkdir -p build
+cd build
+$SUDO_CMD cmake .. && $SUDO_CMD make
+sudo make install
+sudo ldconfig
 
 # Enable dependencies detection in the diagnostics page
 # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.

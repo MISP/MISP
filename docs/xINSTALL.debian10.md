@@ -1,16 +1,12 @@
 # INSTALLATION INSTRUCTIONS
-## for Debian 10.2 "buster"
+## for Debian 10.3 "buster"
 
 ### 0/ MISP debian stable install - Status
 ------------------------------------
 
 !!! notice
     This is mostly the install [@SteveClement](https://twitter.com/SteveClement) uses for testing, qc and random development.
-    Maintained and tested by @SteveClement on 20191122
-
-!!! warning
-    PHP 7.3.4-2 is not working at the moment with the packaged composer.phar<br />
-    You need to manually update composer.phar as outlined below.
+    Maintained and tested by @SteveClement on 20200405
 
 {!generic/known-issues-debian.md!}
 
@@ -64,7 +60,7 @@ sudo postfix reload
 #### Install all the dependencies (some might already be installed)
 
 ```bash
-sudo apt install -y \
+sudo apt install \
 curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev \
 python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv \
 mariadb-client \
@@ -158,8 +154,6 @@ cd $PATH_TO_MISP/app/files/scripts/python-stix
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
-# FIXME: Remove once stix-fixed
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
 # install STIX2.0 library to support STIX 2.0 export:
 cd ${PATH_TO_MISP}/cti-python-stix2
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
@@ -167,6 +161,23 @@ $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+# FIXME: Remove libfaup etc once the egg has the library baked-in
+sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+cd /tmp
+[[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+[[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+cd gtcaca
+$SUDO_CMD mkdir -p build
+cd build
+$SUDO_CMD cmake .. && $SUDO_CMD make
+sudo make install
+cd ../../faup
+$SUDO_CMD mkdir -p build
+cd build
+$SUDO_CMD cmake .. && $SUDO_CMD make
+sudo make install
+sudo ldconfig
 
 # install pydeep
 $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
@@ -199,10 +210,10 @@ cd $PATH_TO_MISP/app
 # Make composer cache happy
 sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
 # Update composer.phar
-$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-$SUDO_WWW php composer-setup.php
-$SUDO_WWW php -r "unlink('composer-setup.php');"
+#$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+#$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+#$SUDO_WWW php composer-setup.php
+#$SUDO_WWW php -r "unlink('composer-setup.php');"
 $SUDO_WWW php composer.phar install
 # The following is potentially not needed, but just here in case of Keyboard/Chair failures
 $SUDO_WWW php composer.phar update
