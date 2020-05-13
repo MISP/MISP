@@ -110,15 +110,24 @@
                     'name' => __('Description'),
                     'sort' => 'description',
                     'data_path' => 'GalaxyCluster.description',
-                    'element' => 'extended_generic',
+                    'element' => 'extended',
                     'fields' => array(
-                        'extendby_data_path' => 'GalaxyCluster.extended_by',
-                        'extendby_link_path' => 'GalaxyCluster.uuid',
-                        'extendby_link_title' => 'GalaxyCluster.value',
-                        'extendfrom_data_path' => 'GalaxyCluster.extended_from',
-                        'extendfrom_link_path' => 'GalaxyCluster.uuid',
-                        'extendfrom_link_title' => 'GalaxyCluster.value',
-                        'extendfrom_original_value' => 'GalaxyCluster.value'
+                        'extend_data' => array(
+                            0 => array(
+                                'extend_root_data_path' => 'GalaxyCluster.extended_from',
+                                'extend_link_path' => 'GalaxyCluster.uuid',
+                                'extend_link_title' => 'GalaxyCluster.value',
+                            ),
+                            1 => array(
+                                'extend_root_data_path' => 'GalaxyCluster',
+                                'extend_link_title' => 'value',
+                            ),
+                            2 => array(
+                                'extend_root_data_path' => 'GalaxyCluster.extended_by',
+                                'extend_link_path' => 'GalaxyCluster.uuid',
+                                'extend_link_title' => 'GalaxyCluster.value',
+                            ),
+                        )
                     )
                 ),
                 array(
