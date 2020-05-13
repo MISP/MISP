@@ -17,7 +17,7 @@
         h($data['model']);
     $fieldsString = '';
     $simpleFieldWhitelist = array(
-        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required'
+        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'checked', 'multiple', 'selected', 'legend'
     );
     $fieldsArrayForPersistence = array();
     $formCreate = $this->Form->create($modelForForm);
@@ -51,7 +51,7 @@
                     $params['class'] = '';
                 }
                 foreach ($simpleFieldWhitelist as $f) {
-                    if (!empty($fieldData[$f])) {
+                    if (isset($fieldData[$f])) {
                         $params[$f] = $fieldData[$f];
                     }
                 }

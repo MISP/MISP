@@ -1170,7 +1170,7 @@
                             'url' => '/galaxies/import',
                             'text' => __('Import Galaxy Clusters')
                         ));
-                        if ($menuItem === 'view') {
+                        if ($menuItem === 'view' || $menuItem === 'export') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'export',
                                 'url' => '/galaxies/export/' . h($galaxy['Galaxy']['id']),
@@ -1212,10 +1212,11 @@
                             'text' => __('View Correlation Graph')
                         ));
                     }
-                    if ($menuItem === 'view') {
+                    if ($menuItem === 'view' || $menuItem === 'export') {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
+                            'url' => '/galaxies/view/' . h($galaxy['Galaxy']['id']),
                             'text' => __('View Galaxy')
                         ));
                     }

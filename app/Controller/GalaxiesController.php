@@ -214,22 +214,49 @@ class GalaxiesController extends AppController
 
     public function export($galaxyId)
     {
-        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(),
-            array('conditions' => array(
-                'GalaxyCluster.galaxy_id' => $galaxyId,
-                'GalaxyCluster.distribution' => array(1, 2, 3),
-                'GalaxyCluster.default' => false
-            )),
-            $full=true
-        );
-        foreach ($clusters as $k => $cluster) {
-            unset($clusters[$k]['GalaxyCluster']['id']);
-            unset($clusters[$k]['GalaxyCluster']['galaxy_id']);
+        $galaxy = $this->Galaxy->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Galaxy.id' => $galaxyId)
+        ));
+        if (empty($galaxy) && $galaxyId !== null) {
+            throw new NotFoundException('Galaxy not found.');
         }
-        $this->response->body(json_encode($clusters));
-        // $this->response->download(sprintf('galaxy_%s_%s.json', $galaxy['Galaxy']['uuid'], time()));
-        // Return response object to prevent controller from trying to render a view
-        return $this->response;
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $this->request->data = $this->request->data['Galaxy'];
+            $clusterType = array();
+            if ($this->request->data['default']) {
+                $clusterType[] = true;
+            }
+            if ($this->request->data['custom']) {
+                $clusterType[] = false;
+            }
+            $options = array(
+                'conditions' => array(
+                    'GalaxyCluster.galaxy_id' => $galaxyId,
+                    'GalaxyCluster.distribution' => $this->request->data['distribution'],
+                    'GalaxyCluster.default' => $clusterType
+                )
+            );
+            $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(),$options, $full=true);
+            foreach ($clusters as $k => $cluster) {
+                unset($clusters[$k]['GalaxyCluster']['id']);
+                unset($clusters[$k]['GalaxyCluster']['galaxy_id']);
+            }
+            if ($this->request->data['download'] == 'download') {
+                $this->response->download(sprintf('galaxy_%s_%s.json', $galaxy['Galaxy']['uuid'], time()));
+            } else {
+                $this->response->body(json_encode($clusters));
+            }
+            return $this->response;
+        } else {
+            $this->set('galaxy', $galaxy);
+            $this->loadModel('Attribute');
+            $distributionLevels = $this->Attribute->distributionLevels;
+            unset($distributionLevels[5]);
+            $distributionLevels[4] = __('All sharing groups');
+            $this->set('distributionLevels', $distributionLevels);
+            $this->set('action', 'export');
+        }
     }
 
     public function selectGalaxy($target_id, $target_type='event', $namespace='misp')

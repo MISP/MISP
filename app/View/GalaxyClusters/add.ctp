@@ -75,7 +75,7 @@
                 ),
             ),
             'metaFields' => array(
-                $this->element('/GalaxyClusters/clusterElementUI', array('elements' => $this->request->data['GalaxyCluster']['elementsDict']))
+                $this->element('/GalaxyClusters/clusterElementUI', array('elements' => isset($this->request->data['GalaxyCluster']['elementsDict']) ? $this->request->data['GalaxyCluster']['elementsDict'] : array()))
             )
         )
     ));
