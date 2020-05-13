@@ -2230,6 +2230,8 @@ class Event extends AppModel
                 }
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
                 $event['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Attribute'], $sharingGroupData);
+
+                $proposalBlockAttributes = Configure::read('MISP.proposals_block_attributes');
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
                 foreach ($event['Attribute'] as $key => $attribute) {
@@ -2284,10 +2286,7 @@ class Event extends AppModel
                             }
                         }
                     }
-                    if (
-                        Configure::read('MISP.proposals_block_attributes') &&
-                        !empty($options['allow_proposal_blocking'])
-                    ) {
+                    if ($proposalBlockAttributes && !empty($options['allow_proposal_blocking'])) {
                         foreach ($results[$eventKey]['Attribute'][$key]['ShadowAttribute'] as $sa) {
                             if ($sa['proposal_to_delete'] || $sa['to_ids'] == 0) {
                                 unset($results[$eventKey]['Attribute'][$key]);
