@@ -621,7 +621,7 @@ class StixBuilder():
             @CustomObject(custom_object_type, [
                 ('id', StringProperty(required=True)),
                 ('labels', ListProperty(labels, required=True)),
-                ('x_misp_value', StringProperty(required=True)),
+                ('x_misp_values', DictionaryProperty(required=True)),
                 ('created', TimestampProperty(required=True, precision='millisecond')),
                 ('modified', TimestampProperty(required=True, precision='millisecond')),
                 ('created_by_ref', StringProperty(required=True)),
