@@ -750,7 +750,7 @@ class Attribute extends AppModel
                 }
             }
         }
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst')) && strpos($this->data['Attribute']['value'], '/')) {
             $this->setCIDRList();
         }
         if ($created && isset($this->data['Attribute']['event_id']) && empty($this->data['Attribute']['skip_auto_increment'])) {
@@ -803,7 +803,7 @@ class Attribute extends AppModel
 
     public function afterDelete()
     {
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst')) && strpos($this->data['Attribute']['value'], '/')) {
             $this->setCIDRList();
         }
         if (isset($this->data['Attribute']['event_id'])) {
@@ -1490,8 +1490,8 @@ class Attribute extends AppModel
                 if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                     // convert IPv6 address to compressed format
                     $parts[1] = inet_ntop(inet_pton($value));
-                    $value = implode('|', $parts);
                 }
+                $value = implode('|', $parts);
                 break;
             case 'filename|md5':
             case 'filename|sha1':
@@ -1925,67 +1925,46 @@ class Attribute extends AppModel
         return ($ip & $mask) == $subnet;
     }
 
-    // using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
+    // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
     private function __ipv6InCidr($ip, $cidr)
     {
-        $ip = $this->__expandIPv6Notation($ip);
-        $binaryip = $this->__inet_to_bits($ip);
-        list($net, $maskbits) = explode('/', $cidr);
-        $net = $this->__expandIPv6Notation($net);
-        if (substr($net, -1) == ':') {
-            $net .= '0';
-        }
-        $binarynet = $this->__inet_to_bits($net);
-        $ip_net_bits = substr($binaryip, 0, $maskbits);
-        $net_bits = substr($binarynet, 0, $maskbits);
-        return ($ip_net_bits === $net_bits);
-    }
+        list($address, $netmask) = explode('/', $cidr);
 
-    private function __expandIPv6Notation($ip)
-    {
-        if (strpos($ip, '::') !== false) {
-            $ip = str_replace('::', str_repeat(':0', 8 - substr_count($ip, ':')).':', $ip);
-        }
-        if (strpos($ip, ':') === 0) {
-            $ip = '0'.$ip;
-        }
-        return $ip;
-    }
+        $bytesAddr = unpack('n*', inet_pton($address));
+        $bytesTest = unpack('n*', inet_pton($ip));
 
-    private function __inet_to_bits($inet)
-    {
-        $unpacked = unpack('A16', $inet);
-        $unpacked = str_split($unpacked[1]);
-        $binaryip = '';
-        foreach ($unpacked as $char) {
-            $binaryip .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+        for ($i = 1, $ceil = ceil($netmask / 16); $i <= $ceil; ++$i) {
+            $left = $netmask - 16 * ($i - 1);
+            $left = ($left <= 16) ? $left : 16;
+            $mask = ~(0xffff >> $left) & 0xffff;
+            if (($bytesAddr[$i] & $mask) != ($bytesTest[$i] & $mask)) {
+                return false;
+            }
         }
-        return $binaryip;
+
+        return true;
     }
 
     private function __cidrCorrelation($a)
     {
         $ipValues = array();
-        $ip = $a['type'] == 'domain-ip' ? $a['value2'] : $a['value1'];
-        if (strpos($ip, '/') !== false) {
+        $ip = $a['value1'];
+        if (strpos($ip, '/') !== false) { // IP is CIDR
             $ip_array = explode('/', $ip);
             $ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $ipList = $this->find('list', array(
                 'conditions' => array(
-                    'type' => array('ip-src', 'ip-dst', 'domain_ip'),
+                    'type' => array('ip-src', 'ip-dst'),
+                    'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
                 ),
-                'fields' => array('value1', 'value2'),
+                'group' => 'value1', // return just unique values
+                'fields' => array('value1'),
                 'order' => false
             ));
-            $ipList = array_merge(array_keys($ipList), array_values($ipList));
-            foreach ($ipList as $key => $value) {
-                if ($value == '') {
-                    unset($ipList[$key]);
-                }
-            }
             foreach ($ipList as $ipToCheck) {
-                if (filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && $ip_version == 4) {
-                    if ($ip_version == 4) {
+                $ipToCheckVersion = filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+                if ($ipToCheckVersion === $ip_version) {
+                    if ($ip_version === 4) {
                         if ($this->__ipv4InCidr($ipToCheck, $ip)) {
                             $ipValues[] = $ipToCheck;
                         }
@@ -1997,19 +1976,18 @@ class Attribute extends AppModel
                 }
             }
         } else {
-            $ip = $a['value1'];
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $cidrList = $this->getSetCIDRList();
             foreach ($cidrList as $cidr) {
                 $cidr_ip = explode('/', $cidr)[0];
                 if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    if ($ip_version == 4) {
+                    if ($ip_version === 4) {
                         if ($this->__ipv4InCidr($ip, $cidr)) {
                             $ipValues[] = $cidr;
                         }
                     }
                 } else {
-                    if ($ip_version == 6) {
+                    if ($ip_version === 6) {
                         if ($this->__ipv6InCidr($ip, $cidr)) {
                             $ipValues[] = $cidr;
                         }
@@ -2045,7 +2023,7 @@ class Attribute extends AppModel
             if (!empty($event['Event']['disable_correlation']) && $event['Event']['disable_correlation']) {
                 return true;
             }
-            if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'domain-ip'))) {
+            if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst'))) {
                 $extraConditions = $this->__cidrCorrelation($a);
             }
             if ($a['type'] == 'ssdeep') {
@@ -3835,6 +3813,7 @@ class Attribute extends AppModel
                 'value1 LIKE' => '%/%'
             ),
             'fields' => array('value1'),
+            'group' => 'value1', // return just unique value
             'order' => false
         ));
     }
@@ -3846,12 +3825,15 @@ class Attribute extends AppModel
         if ($redis) {
             $redis->del('misp:cidr_cache_list');
             $cidrList = $this->__getCIDRList();
-            $pipeline = $redis->multi(Redis::PIPELINE);
-            foreach ($cidrList as $cidr) {
-                $pipeline->sadd('misp:cidr_cache_list', $cidr);
+            if (method_exists($redis, 'saddArray')) {
+                $redis->sAddArray('misp:cidr_cache_list', $cidrList);
+            } else {
+                $pipeline = $redis->multi(Redis::PIPELINE);
+                foreach ($cidrList as $cidr) {
+                    $pipeline->sadd('misp:cidr_cache_list', $cidr);
+                }
+                $pipeline->exec();
             }
-            $pipeline->exec();
-            $redis->smembers('misp:cidr_cache_list');
         }
         return $cidrList;
     }
@@ -3860,8 +3842,8 @@ class Attribute extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis) {
-            if (!$redis->exists('misp:cidr_cache_list') || $redis->sCard('misp:cidr_cache_list') == 0) {
-                $cidrList = $this->setCIDRList($redis);
+            if ($redis->sCard('misp:cidr_cache_list') === 0) {
+                $cidrList = $this->setCIDRList();
             } else {
                 $cidrList = $redis->smembers('misp:cidr_cache_list');
             }
