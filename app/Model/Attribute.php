@@ -4123,7 +4123,7 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false)
+    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false, $force = false)
     {
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId;
@@ -4167,7 +4167,7 @@ class Attribute extends AppModel
                 // If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
                 // Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
                 if (isset($attribute['timestamp'])) {
-                    if ($attribute['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
+                    if (!$force && $attribute['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
                         return true;
                     }
                 } else {
