@@ -793,7 +793,7 @@ class StixParser():
     @staticmethod
     def fetch_uuid(object_id):
         try:
-            return "-".join(object_id.split("-")[-5:])
+            return uuid.UUID('-'.join(object_id.split("-")[1:]))
         except Exception:
             return str(uuid.uuid4())
 
@@ -1205,7 +1205,7 @@ class ExternalStixParser(StixParser):
         if self.event.observables:
             self.parse_external_observable(self.event.observables.observables)
         if self.event.ttps:
-            self.parse_ttps(self.event.ttps.ttps)
+            self.parse_ttps(self.event.ttps.ttp)
         if self.event.courses_of_action:
             self.parse_coa(self.event.courses_of_action)
         if self.dns_objects:

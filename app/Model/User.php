@@ -910,7 +910,21 @@ class User extends AppModel
             }
         }
         $Email->attachments($attachments);
-        $result = $Email->send($body);
+        try {
+            $result = $Email->send($body);
+        } catch (Exception $e) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'User',
+                'model_id' => $user['User']['id'],
+                'email' => $user['User']['email'],
+                'action' => 'send_mail',
+                'title' => sprintf(__('Could not send mail. Reasons: %s'), $e->getMessage()),
+                'change' => null,
+            ));
+            $result = false;
+        }
         $Email->reset();
         return $result;
     }

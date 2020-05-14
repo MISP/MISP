@@ -57,6 +57,7 @@ class Log extends AppModel
                     'request',
                     'request_delegation',
                     'reset_auth_key',
+                    'send_mail',
                     'security',
                     'serverSettingsEdit',
                     'tag',
