@@ -81,7 +81,7 @@ class AppModel extends Model
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
-        51 => false, 52 => false, 53 => false
+        51 => false, 52 => false, 53 => false, 54 => false
     );
 
     public $advanced_updates_description = array(
@@ -1391,6 +1391,9 @@ class AppModel extends Model
                     $sqlArray[] = "ALTER TABLE user_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
                     $this->__addIndex('user_settings', 'setting');
                 }
+                break;
+            case 54:
+                $sqlArray[] = "ALTER TABLE `sightingdbs` MODIFY `timestamp` int(11) NOT NULL DEFAULT 0;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
