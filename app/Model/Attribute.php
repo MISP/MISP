@@ -1169,22 +1169,28 @@ class Attribute extends AppModel
                 break;
             case 'ip-src':
             case 'ip-dst':
-                $returnValue = true;
                 if (strpos($value, '/') !== false) {
                     $parts = explode("/", $value);
-                    // [0] = the IP
-                    // [1] = the network address
-                    if (count($parts) != 2 || (!is_numeric($parts[1]) || !($parts[1] < 129 && $parts[1] > 0))) {
-                        $returnValue = __('Invalid CIDR notation value found.');
+                    if (count($parts) !== 2 || intval($parts[1]) != $parts[1] || $parts[1] < 0) {
+                        return __('Invalid CIDR notation value found.');
                     }
-                    $ip = $parts[0];
-                } else {
-                    $ip = $value;
+
+                    if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                        if ($parts[1] > 32) {
+                            return __('Invalid CIDR notation value found.');
+                        }
+                    } else if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                        if ($parts[1] > 128) {
+                            return __('Invalid CIDR notation value found.');
+                        }
+                    } else {
+                        return __('IP address has an invalid format.');
+                    }
+                } else if (!filter_var($value, FILTER_VALIDATE_IP)) {
+                    return  __('IP address has an invalid format.');
                 }
-                if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-                    $returnValue = __('IP address has an invalid format.');
-                }
-                break;
+                return true;
+
             case 'port':
                 if (!is_numeric($value) || $value < 1 || $value > 65535) {
                     $returnValue = __('Port numbers have to be positive integers between 1 and 65535.');
