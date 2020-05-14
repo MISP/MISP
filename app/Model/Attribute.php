@@ -3883,7 +3883,7 @@ class Attribute extends AppModel
             'size-in-bytes' => array('type' => 'size-in-bytes', 'category' => 'Other', 'to_ids' => 0, 'disable_correlation' => 1, 'object_relation' => 'size-in-bytes')
         );
         $hashes = array('md5', 'sha1', 'sha256');
-        $this->Object = ClassRegistry::init('Object');
+        $this->Object = ClassRegistry::init('MispObject');
         $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
         $current = $this->ObjectTemplate->find('first', array(
             'fields' => array('MAX(version) AS version', 'uuid'),
