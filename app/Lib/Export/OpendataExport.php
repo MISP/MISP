@@ -39,7 +39,8 @@ class OpendataExport
             $this->__url = $this->__default_filters['url'];
             unset($this->__default_filters['url']);
         } else {
-            $baseurl = Configure::read('MISP.baseurl');
+            $external_baseurl = Configure::read('MISP.external_baseurl');
+            $baseurl = !empty($external_baseurl) ? $external_baseurl : Configure::read('MISP.baseurl');
             if (empty($baseurl)) {
                 throw new Exception(__('Missing url of the MISP instance, and baseurl is not set.'));
             }
