@@ -36,13 +36,17 @@ my $create=0;
 my $apply=0;
 my %CATEGORIES_CREATED = ();
 
-if ($#ARGV < 0) {
+sub print_help_exit {
     print "\nUsage: misp-config --user www-data
             \t   --misp-path /usr/share/misp
             \t   --prefix /usr/local
             \t   --apply: Applies configuration from $misp_config_path
             \t   --create: Create configuration from all available options\n\n";
     exit;
+}
+
+if ($#ARGV < 0) {
+    print_help_exit();
 }
 
 sub replace_inplace_content {
@@ -76,6 +80,9 @@ while (my ($i, $arg) = each @ARGV) {
     }
     if ($arg eq "--apply") {
 	$apply = 1;
+    }    
+    if ($arg eq "--help") {
+	print_help_exit();
     }    
 }
 
@@ -154,7 +161,7 @@ if ($create) {
 	    }
 	    $CATEGORIES_CREATED{"$category"} = 1;
 	    open(my $fh, ">>", "$conf_to_write");
-	    print $fh "$key $value\n";
+	    print $fh "#$key $value\n";
 	    close $fh;
 	    
 	    # Unset those two variables to be filled again!
@@ -182,20 +189,32 @@ if ($apply) {
 	    $line =~ /(\S+) (.*)/;
 	    my $key = "";
 
+	    my $config_el = $1;
+	    my $first_config_char = substr($config_el, 0, 1);
+	    my $is_comment = 0;
+	    if ($first_config_char eq "#") {
+		$is_comment = 1;
+	    }
+	    
+	    # print("config element: $config_el\n");
+
 	    if ($category eq "Debug") {
 	    	# The Debug category does not... have a category
-		$key = $1;
+		$key = $config_el;
 	    } elsif ($category eq "Internal") {
 		# Internal means we are patching portions of the code to configure
-		if ($1 eq "redis_host") {
+		if ($config_el eq "redis_host") {
 		    replace_inplace_content("$misp_path/app/Lib/Tools/PubSubTool.php", "localhost", $2);
 		    replace_inplace_content("$misp_path/app/Plugin/CakeResque/Config/config.php", "localhost", $2);
+		    replace_inplace_content("$misp_path/app/Vendor/kamisama/php-resque-ex/lib/Resque.php", "localhost", $2);
+		    replace_inplace_content("$misp_path/app/Vendor/monolog/monolog/src/Monolog/Handler/RedisHandler.php", "localhost", $2);
 		}
 	    } else {
-		$key = "$category.$1";
+		$key = "$category.$config_el";
 	    }
 
-	    if ($cake_config) {
+	    if ($cake_config && !$is_comment) {
+#		print("sudo -u $misp_user $misp_path/app/Console/cake admin setSetting $key $2\n");
 		system("sudo -u $misp_user $misp_path/app/Console/cake admin setSetting $key $2");
 	    }
 	    
