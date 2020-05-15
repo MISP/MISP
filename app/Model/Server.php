@@ -4621,26 +4621,28 @@ class Server extends AppModel
                 switch($field['error_type']) {
                     case 'missing_column':
                         $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s;',
+                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s %s;',
                             $table,
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
                             isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
+                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
+                            empty($field['expected']['extra']) ? '' : $field['expected']['extra']
                         );
                         break;
                     case 'column_different':
                         $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` MODIFY COLUMN `%s` %s%s %s %s %s;',
+                            'ALTER TABLE `%s` MODIFY COLUMN `%s` %s%s %s %s %s %s;',
                             $table,
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
                             isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
+                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
+                            empty($field['expected']['extra']) ? '' : $field['expected']['extra']
                         );
                         break;
                 }
@@ -4657,13 +4659,14 @@ class Server extends AppModel
                     } elseif ($expectedField['data_type'] === 'text') {
                         $length = null;
                     }
-                    $fieldSql = sprintf('`%s` %s%s %s %s %s',
+                    $fieldSql = sprintf('`%s` %s%s %s %s %s %s',
                         $expectedField['column_name'],
                         $expectedField['data_type'],
                         $length !== null ? sprintf('(%d)', $length) : '',
                         isset($expectedField['column_default']) ? 'DEFAULT "' . $expectedField['column_default'] . '"' : '',
                         $expectedField['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                        empty($expectedField['collation_name']) ? '' : 'COLLATE ' . $expectedField['collation_name']
+                        empty($expectedField['collation_name']) ? '' : 'COLLATE ' . $expectedField['collation_name'],
+                        empty($field['expected']['extra']) ? '' : $field['expected']['extra']
                     );
                     $allFields[] = $fieldSql;
                 }
@@ -4714,7 +4717,8 @@ class Server extends AppModel
             // 'datetime_precision',    -- Only available on MySQL 5.6+
             'collation_name',
             'column_type',
-            'column_default'
+            'column_default',
+            'extra',
         )
     ){
         $dbActualSchema = array();
