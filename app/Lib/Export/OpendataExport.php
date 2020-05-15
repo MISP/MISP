@@ -33,7 +33,7 @@ class OpendataExport
             $this->__check_setup_filter();
             unset($this->__default_filters['setup']);
         } else {
-            throw new Exception('Missing "setup" filter containing the dataset and resource(s) information.');
+            throw new Exception(__('Missing "setup" filter containing the dataset and resource(s) information.'));
         }
         if (isset($this->__default_filters['url'])) {
             $this->__url = $this->__default_filters['url'];
@@ -41,7 +41,7 @@ class OpendataExport
         } else {
             $baseurl = Configure::read('MISP.baseurl');
             if (empty($baseurl)) {
-                throw new Exception('Missing url of the MISP instance, and baseurl is not set.');
+                throw new Exception(__('Missing url of the MISP instance, and baseurl is not set.'));
             }
             $this->__url = $baseurl;
         }
@@ -87,10 +87,10 @@ class OpendataExport
     private function __check_setup_filter()
     {
         if (empty($this->__setup['dataset'])) {
-            throw new Exception('Missing dataset filter in the setup filter. Please provide the dataset setup.');
+            throw new Exception(__('Missing dataset filter in the setup filter. Please provide the dataset setup.'));
         }
         if (!empty($this->__setup['resources']) && !empty($this->__setup['resource'])) {
-            throw new Exception('Please provide the resource setup in a single field called "resources".');
+            throw new Exception(__('Please provide the resource setup in a single field called "resources".'));
         }
         if (!empty($this->__setup['resource']) && empty($this->__setup['resources'])) {
             $this->__setup['resources'] = $this->__setup['resource'];
