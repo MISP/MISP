@@ -6723,7 +6723,7 @@ class Event extends AppModel
         $subqueryElements = $this->harvestSubqueryElements($filters);
         $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements);
 
-        if (empty($exportTool->only_metadata_export)) {
+        if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
             $eventid = $this->filterEventIds($user, $filters, $elementCounter);
             $eventCount = count($eventid);

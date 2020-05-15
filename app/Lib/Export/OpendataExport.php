@@ -4,7 +4,7 @@ class OpendataExport
 {
     public $non_restrictive_export = true;
     public $use_default_filters = true;
-    public $only_metadata_export = true;
+    public $mock_query_only = true;
     private $__default_filters = null;
 
     private $__auth = null;

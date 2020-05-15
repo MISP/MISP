@@ -4534,7 +4534,7 @@ class Attribute extends AppModel
             $loop = true;
             $params['page'] = 1;
         }
-        if (empty($exportTool->only_metadata_export)) {
+        if (empty($exportTool->mock_query_only)) {
             $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
         }
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
