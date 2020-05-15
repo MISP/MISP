@@ -173,24 +173,25 @@ class Event extends AppModel
     );
 
     public $validFormats = array(
-        'json' => array('json', 'JsonExport', 'json'),
-        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
-        'xml' => array('xml', 'XmlExport', 'xml'),
-        'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
-        'snort' => array('txt', 'NidsSnortExport', 'rules'),
-        'rpz' => array('txt', 'RPZExport', 'rpz'),
-        'text' => array('text', 'TextExport', 'txt'),
-        'hashes' => array('txt', 'HashesExport', 'txt'),
+        'attack' => array('html', 'AttackExport', 'html'),
+        'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
+        'cache' => array('txt', 'CacheExport', 'cache'),
         'csv' => array('csv', 'CsvExport', 'csv'),
+        'hashes' => array('txt', 'HashesExport', 'txt'),
+        'json' => array('json', 'JsonExport', 'json'),
+        'netfilter' => array('txt', 'NetfilterExport', 'sh'),
+        'opendata' => array('txt', 'OpendataExport', 'txt'),
+        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
+        'rpz' => array('txt', 'RPZExport', 'rpz'),
+        'snort' => array('txt', 'NidsSnortExport', 'rules'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
         'stix-json' => array('json', 'Stix1Export', 'json'),
         'stix2' => array('json', 'Stix2Export', 'json'),
+        'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
+        'text' => array('text', 'TextExport', 'txt'),
+        'xml' => array('xml', 'XmlExport', 'xml'),
         'yara' => array('txt', 'YaraExport', 'yara'),
-        'yara-json' => array('json', 'YaraExport', 'json'),
-        'cache' => array('txt', 'CacheExport', 'cache'),
-        'attack' => array('html', 'AttackExport', 'html'),
-        'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
-        'netfilter' => array('txt', 'NetfilterExport', 'sh')
+        'yara-json' => array('json', 'YaraExport', 'json')
     );
 
     public $csv_event_context_fields_to_fetch = array(
@@ -6679,6 +6680,10 @@ class Event extends AppModel
             $this->Job->id = $jobId;
         }
 
+        if (!empty($exportTool->use_default_filters)) {
+            $exportTool->setDefaultFilters($filters);
+        }
+
         if (empty($exportTool->non_restrictive_export)) {
             if (!isset($filters['to_ids'])) {
                 $filters['to_ids'] = 1;
@@ -6718,11 +6723,15 @@ class Event extends AppModel
         $subqueryElements = $this->harvestSubqueryElements($filters);
         $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements);
 
-        $filters['include_attribute_count'] = 1;
-        $eventid = $this->filterEventIds($user, $filters, $elementCounter);
-        $eventCount = count($eventid);
-        $eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
-        unset($eventid);
+        if (empty($exportTool->mock_query_only)) {
+            $filters['include_attribute_count'] = 1;
+            $eventid = $this->filterEventIds($user, $filters, $elementCounter);
+            $eventCount = count($eventid);
+            $eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
+            unset($eventid);
+        } else {
+            $eventids_chunked = array();
+        }
         if (!empty($exportTool->additional_params)) {
             $filters = array_merge($filters, $exportTool->additional_params);
         }

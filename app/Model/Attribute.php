@@ -401,20 +401,21 @@ class Attribute extends AppModel
     );
 
     public $validFormats = array(
-        'json' => array('json', 'JsonExport', 'json'),
-        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
-        'xml' => array('xml', 'XmlExport', 'xml'),
-        'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
-        'snort' => array('txt', 'NidsSnortExport', 'rules'),
-        'text' => array('txt', 'TextExport', 'txt'),
-        'hashes' => array('txt', 'HashesExport', 'txt'),
-        'yara' => array('txt', 'YaraExport', 'yara'),
-        'yara-json' => array('json', 'YaraExport', 'json'),
-        'rpz' => array('txt', 'RPZExport', 'rpz'),
-        'csv' => array('csv', 'CsvExport', 'csv'),
-        'cache' => array('txt', 'CacheExport', 'cache'),
         'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
-        'netfilter' => array('txt', 'NetfilterExport', 'sh')
+        'cache' => array('txt', 'CacheExport', 'cache'),
+        'csv' => array('csv', 'CsvExport', 'csv'),
+        'hashes' => array('txt', 'HashesExport', 'txt'),
+        'json' => array('json', 'JsonExport', 'json'),
+        'netfilter' => array('txt', 'NetfilterExport', 'sh'),
+        'opendata' => array('txt', 'OpendataExport', 'txt'),
+        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
+        'rpz' => array('txt', 'RPZExport', 'rpz'),
+        'snort' => array('txt', 'NidsSnortExport', 'rules'),
+        'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
+        'text' => array('txt', 'TextExport', 'txt'),
+        'xml' => array('xml', 'XmlExport', 'xml'),
+        'yara' => array('txt', 'YaraExport', 'yara'),
+        'yara-json' => array('json', 'YaraExport', 'json')
     );
 
     // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
@@ -4420,6 +4421,9 @@ class Attribute extends AppModel
         }
         App::uses($this->validFormats[$returnFormat][1], 'Export');
         $exportTool = new $this->validFormats[$returnFormat][1]();
+        if (!empty($exportTool->use_default_filters)) {
+            $exportTool->setDefaultFilters($filters);
+        }
         if (empty($exportTool->non_restrictive_export)) {
             if (!isset($filters['to_ids'])) {
                 $filters['to_ids'] = 1;
@@ -4530,7 +4534,9 @@ class Attribute extends AppModel
             $loop = true;
             $params['page'] = 1;
         }
-        $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+        if (empty($exportTool->mock_query_only)) {
+            $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+        }
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
         fseek($tmpfile, 0);
         if (fstat($tmpfile)['size']) {
