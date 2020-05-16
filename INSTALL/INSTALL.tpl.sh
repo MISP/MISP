@@ -16,6 +16,7 @@
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
+#    20200513: Ubuntu 20.04 tested and working. -- sCl
 #    20200412: Ubuntu 18.04.4 tested and working. -- sCl
 #    20190302: Ubuntu 18.04.2 tested and working. -- sCl
 #    20190208: Kali Linux tested and working. -- sCl
@@ -36,8 +37,9 @@
 # 2/ For Kali, download and run Installer Script        |
 #-------------------------------------------------------|
 #
-# To install MISP on Kali copy paste the following to your r00t shell:
+# To install MISP on Kali copy paste the following to your shell:
 # # wget --no-cache -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh && bash /tmp/misp-kali.sh
+# NO other version then 2020.x supported, kthxbai.
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 #
@@ -115,7 +117,7 @@
 ### END AUTOMATED SECTION ###
 
 # This function will generate the main installer.
-# It is a helper function for the maintainers for the installer.
+# It is a helper function for the maintainers of the installer.
 
 colors () {
   # Some colors for easier debug and better UX (not colorblind compatible, PR welcome)
@@ -415,25 +417,25 @@ installMISPonKali () {
   installCoreDeps
 
   debug "Enabling redis and gnupg modules"
-  phpenmod -v 7.3 redis
-  phpenmod -v 7.3 gnupg
+  sudo phpenmod -v 7.3 redis
+  sudo phpenmod -v 7.3 gnupg
 
   debug "Apache2 ops: dismod: status php7.2 - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
-  a2dismod status 2> /dev/null > /dev/null
-  a2dismod php7.2 2> /dev/null > /dev/null
-  a2enmod ssl rewrite headers php7.3 2> /dev/null > /dev/null
-  a2dissite 000-default 2> /dev/null > /dev/null
-  a2ensite default-ssl 2> /dev/null > /dev/null
+  sudo a2dismod status 2> /dev/null > /dev/null
+  sudo a2dismod php7.2 2> /dev/null > /dev/null
+  sudo a2enmod ssl rewrite headers php7.3 2> /dev/null > /dev/null
+  sudo a2dissite 000-default 2> /dev/null > /dev/null
+  sudo a2ensite default-ssl 2> /dev/null > /dev/null
 
   debug "Restarting mysql.service"
-  systemctl restart mysql.service 2> /dev/null > /dev/null
+  sudo systemctl restart mysql.service 2> /dev/null > /dev/null
 
   debug "Fixing redis rc script on Kali"
   fixRedis 2> /dev/null > /dev/null
 
   debug "git clone, submodule update everything"
-  mkdir $PATH_TO_MISP
-  chown $WWW_USER:$WWW_USER $PATH_TO_MISP
+  sudo mkdir $PATH_TO_MISP
+  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP
   cd $PATH_TO_MISP
   $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
 
@@ -451,12 +453,12 @@ installMISPonKali () {
   $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git 2> /dev/null > /dev/null
 
 
-  mkdir /var/www/.cache/
+  sudo mkdir /var/www/.cache/
 
   MISP_USER_HOME=$(sudo -Hiu $MISP_USER env | grep HOME |cut -f 2 -d=)
-  mkdir $MISP_USER_HOME/.cache
-  chown $MISP_USER:$MISP_USER $MISP_USER_HOME/.cache
-  chown $WWW_USER:$WWW_USER /var/www/.cache
+  sudo mkdir $MISP_USER_HOME/.cache
+  sudo chown $MISP_USER:$MISP_USER $MISP_USER_HOME/.cache
+  sudo chown $WWW_USER:$WWW_USER /var/www/.cache
 
   debug "Generating rc.local"
   genRCLOCAL
@@ -513,21 +515,21 @@ installMISPonKali () {
 
   # Install Crypt_GPG and Console_CommandLine
   debug "Installing pear Console_CommandLine"
-  pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
   debug "Installing pear Crypt_GPG"
-  pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
+  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 
 
-  debug "Installing composer with php 7.3 updates"
-  composer73
+  ##debug "Installing composer with php 7.3 updates"
+  ##composer73
 
   $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 
-  chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
-  chmod -R 750 $PATH_TO_MISP
-  chmod -R g+ws $PATH_TO_MISP/app/tmp
-  chmod -R g+ws $PATH_TO_MISP/app/files
-  chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
+  sudo chmod -R 750 $PATH_TO_MISP
+  sudo chmod -R g+ws $PATH_TO_MISP/app/tmp
+  sudo chmod -R g+ws $PATH_TO_MISP/app/files
+  sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
   debug "Setting up database"
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
@@ -584,43 +586,43 @@ installMISPonKali () {
   fi
 
   debug "Generating Certificate"
-  openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
+  sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
   -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
   -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
   debug "Generating Apache Conf"
   genApacheConf
 
-  echo "127.0.0.1 misp.local" | tee -a /etc/hosts
+  echo "127.0.0.1 misp.local" | sudo tee -a /etc/hosts
 
   debug "Disabling site default-ssl, enabling misp-ssl"
-  a2dissite default-ssl
-  a2ensite misp-ssl
+  sudo a2dissite default-ssl
+  sudo a2ensite misp-ssl
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
-      sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
 
   debug "Restarting Apache2"
-  systemctl restart apache2
+  sudo systemctl restart apache2
 
   debug "Setting up logrotate"
-  cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
-  chmod 0640 /etc/logrotate.d/misp
+  sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+  sudo chmod 0640 /etc/logrotate.d/misp
 
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
 
-  chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
-  chmod -R 750 $PATH_TO_MISP/app/Config
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
+  sudo chmod -R 750 $PATH_TO_MISP/app/Config
 
   debug "Setting up GnuPG"
   setupGnuPG 2> /dev/null > /dev/null
 
   debug "Adding workers to systemd"
-  chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
   sudo cp $PATH_TO_MISP/INSTALL/misp-workers.service /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now misp-workers
@@ -646,7 +648,7 @@ installMISPonKali () {
 
   debug "Installing ssdeep"
   ssdeep
-  phpenmod -v 7.3 ssdeep
+  sudo phpenmod -v 7.3 ssdeep
 
   debug "Setting permissions"
   permissions
@@ -901,7 +903,7 @@ fi
 # If Kali Linux is detected, run the acccording scripts
 if [ "${FLAVOUR}" == "kali" ]; then
   KALI=1
-  kaliOnRootR0ckz
+  kaliOnTheR0ckz
   installMISPonKali
   echo "Installation done!"
   exit
