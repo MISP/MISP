@@ -1000,7 +1000,7 @@ gitPullAllRCLOCAL () {
 # Main composer function
 composer () {
   sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
-  ${SUDO_WWW} sh -c 'cd ${PATH_TO_MISP}/app ; php composer.phar install'
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install"
 }
 
 
