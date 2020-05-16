@@ -849,9 +849,8 @@ alias composer73='composer'
 
 # Main composer function
 composer () {
-  cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar install
+  sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  ${SUDO_WWW} sh -c 'cd ${PATH_TO_MISP}/app ; php composer.phar install'
 }
 
 # TODO: this is probably a useless function

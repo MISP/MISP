@@ -553,6 +553,7 @@ installMISPonKali () {
 
     enableServices
 
+    debug "Populating database"
     $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 
     echo "<?php
