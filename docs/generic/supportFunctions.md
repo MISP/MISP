@@ -497,12 +497,23 @@ kaliSpaceSaver () {
 
 # Because Kali is l33t we make sure we DO NOT run as root
 kaliOnTheR0ckz () {
-  if [[ $EUID -eq 0 ]]; then
-   echo "This script must NOT be run as root"
-   exit 1
-  elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-    sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
-    echo $MISP_USER:$MISP_PASSWORD | sudo chpasswd
+  totalRoot=$(df -k | grep /$ |awk '{ print $2 }')
+  totalMem=$(cat /proc/meminfo|grep MemTotal |grep -Eo '[0-9]{1,}')
+  overlay=$(df -kh |grep overlay; echo $?) # if 1 overlay NOT present
+
+  if [[ ${totalRoot} -lt 3059034 ]]; then
+    echo "(If?) You run Kali in LiveCD mode and we need more overlay disk space."
+    echo "This is defined by the total memory, you have: ${totalMem}kB which is not enough."
+    echo "6-8Gb should be fine. (need >3Gb overlayFS)"
+    exit 1
+  fi
+
+  if [[ ${EUID} -eq 0 ]]; then
+    echo "This script must NOT be run as root"
+    exit 1
+  elif [[ $(id ${MISP_USER} >/dev/null; echo $?) -ne 0 ]]; then
+    sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff ${MISP_USER}
+    echo ${MISP_USER}:${MISP_PASSWORD} | sudo chpasswd
   else
     # TODO: Make sure we consider this further down the road
     echo "User ${MISP_USER} exists, skipping creation"
@@ -648,13 +659,26 @@ installDepsPhp73 () {
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   sudo apt update
   checkAptLock
-  sudo apt install -qy \
-  libapache2-mod-php7.3 \
-  php7.3 php7.3-cli \
-  php7.3-dev \
-  php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-redis php-gnupg \
-  php-gd
+  if [[ ! -n ${KALI} ]]; then
+    sudo apt install -qy \
+      libapache2-mod-php7.3 \
+      php7.3 php7.3-cli \
+      php7.3-dev \
+      php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+      php-redis php-gnupg \
+      php-gd
+  else
+      sudo apt install -qy \
+        libapache2-mod-php7.3 \
+        libgpgme-dev \
+        php7.3 php7.3-cli \
+        php7.3-dev \
+        php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+        php7.3-gd
+      sudo pecl channel-update pecl.php.net
+      echo "" |sudo pecl install redis
+      sudo pecl install gnupg
+  fi
 }
 # <snippet-end 0_installDepsPhp73.sh>
 
