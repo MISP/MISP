@@ -229,7 +229,7 @@ checkInstaller () {
   else
     # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
     if [[ $(which shasum > /dev/null 2>&1 ; echo $?) -ne 0 ]]; then
-      sudo apt update
+      checkAptLock
       sudo apt install libdigest-sha-perl -qyy
     fi
     # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
@@ -252,7 +252,7 @@ checkInstaller () {
 
 # Extract manufacturer
 checkManufacturer () {
-  if [ -z $(which dmidecode) ]; then
+  if [[ -z $(which dmidecode) ]]; then
     checkAptLock
     sudo apt install dmidecode -qy
   fi
@@ -522,20 +522,25 @@ kaliOnTheR0ckz () {
 
 setBaseURL () {
   debug "Setting Base URL"
+
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
-  IFACE=`echo $CONN |awk {'print $1'}`
-  IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
-  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]] && [[ "$(checkManufacturer)" != "QEMU" ]]; then
-    debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
-    if [[ "$UNATTENDED" != "1" ]]; then 
+  IFACE=$(echo $CONN |awk {'print $1'})
+  IP=$(echo $CONN |awk {'print $2'}| cut -f1 -d/)
+
+  [[ -n ${MANUFACTURER} ]] || checkManufacturer
+
+  if [[ "${MANUFACTURER}" != "innotek GmbH" ]] && [[ "$MANUFACTURER" != "VMware, Inc." ]] && [[ "$MANUFACTURER" != "QEMU" ]]; then
+    debug "We guess that this is a physical machine and cannot reliably guess what the MISP_BASEURL might be."
+
+    if [[ "${UNATTENDED}" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
-      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
-      if [[ "$ANSWER" -eq "y" ]]; then
-        if [[ ! -z $IP ]]; then
-          echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
-          echo "Thus your Base URL could be: https://$IP"
+      ANSWER=$(echo ${ANSWER} |tr '[:upper:]' '[:lower:]')
+      if [[ "${ANSWER}" == "y" ]]; then
+        if [[ ! -z ${IP} ]]; then
+          echo "It seems you have an interface called ${IFACE} UP with the following IP: ${IP} - FYI"
+          echo "Thus your Base URL could be: https://${IP}"
         fi
         echo "Please enter the Base URL, e.g: 'https://example.org'"
         echo ""
@@ -549,17 +554,17 @@ setBaseURL () {
         # Webserver configuration
         FQDN='misp.local'
     fi
-  elif [[ $KALI == "1" ]]; then
+  elif [[ "${KALI}" == "1" ]]; then
     MISP_BASEURL="https://misp.local"
     # Webserver configuration
     FQDN='misp.local'
-  elif [[ "$(checkManufacturer)" == "innotek GmbH" ]]; then
+  elif [[ "${MANUFACTURER}" == "innotek GmbH" ]]; then
     MISP_BASEURL='https://localhost:8443'
     IP=$(ip addr show | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}' |grep -v "127.0.0.1" |tail -1)
     sudo iptables -t nat -A OUTPUT -p tcp --dport 8443 -j DNAT --to ${IP}:443
     # Webserver configuration
     FQDN='localhost.localdomain'
-  elif [[ "$(checkManufacturer)" == "VMware, Inc." ]]; then
+  elif [[ "${MANUFACTURER}" == "VMware, Inc." ]]; then
     MISP_BASEURL='""'
     # Webserver configuration
     FQDN='misp.local'
@@ -590,7 +595,6 @@ installRNG () {
 # Kali upgrade
 kaliUpgrade () {
   debug "Running various Kali upgrade tasks"
-  sudo apt update
   checkAptLock
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
   sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
@@ -620,6 +624,9 @@ if [[ $(type -t checkAptLock) == "alias" ]]; then unalias checkAptLock; fi
 # Simple function to make sure APT is not locked
 checkAptLock () {
   SLEEP=3
+  if [[ -n ${APT_UPDATED} ]]; then
+    sudo apt update && APT_UPDATED=1
+  fi
   while [ "$DONE" != "0" ]; do
     sudo apt-get check 2> /dev/null > /dev/null && DONE=0
     echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds." > /dev/tty
@@ -635,7 +642,7 @@ installDepsPhp70 () {
   debug "Installing PHP 7.0 dependencies"
   PHP_ETC_BASE=/etc/php/7.0
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
+  checkAptLock
   sudo apt install -qy \
   libapache2-mod-php \
   php php-cli \
@@ -657,7 +664,6 @@ installDepsPhp73 () {
   debug "Installing PHP 7.3 dependencies"
   PHP_ETC_BASE=/etc/php/7.3
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
   checkAptLock
   if [[ ! -n ${KALI} ]]; then
     sudo apt install -qy \
@@ -676,8 +682,11 @@ installDepsPhp73 () {
         php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
         php7.3-gd
       sudo pecl channel-update pecl.php.net
+      #sudo pear config-set php_ini ${PHP_INI}
       echo "" |sudo pecl install redis
       sudo pecl install gnupg
+      echo extension=gnupg.so | sudo tee ${PHP_ETC_BASE}/mods-available/gnupg.ini
+      echo extension=redis.so | sudo tee ${PHP_ETC_BASE}/mods-available/redis.ini
   fi
 }
 # <snippet-end 0_installDepsPhp73.sh>
@@ -686,7 +695,6 @@ installDepsPhp73 () {
 installDeps () {
   debug "Installing core dependencies"
   checkAptLock
-  sudo apt update
   sudo apt install -qy etckeeper
   # Skip dist-upgrade for now, pulls in 500+ updated packages
   #sudo apt -y dist-upgrade
@@ -818,7 +826,7 @@ genApacheConf () {
           ServerSignature Off
           Header set X-Content-Type-Options nosniff
           Header set X-Frame-Options DENY
-  </VirtualHost>" | tee /etc/apache2/sites-available/misp-ssl.conf
+  </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-ssl.conf
 }
 
 # Add git pull update mechanism to rc.local - TODO: Make this better
