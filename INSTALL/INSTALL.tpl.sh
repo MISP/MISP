@@ -242,7 +242,7 @@ installSupported () {
   progress 4
 
   # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper
   [[ ! -z ${MISP_USER} ]] && [[ ! -f /etc/sudoers.d/misp ]] && echo "%${MISP_USER} ALL=(ALL:ALL) NOPASSWD:ALL" |sudo tee /etc/sudoers.d/misp
   progress 4
 
@@ -250,7 +250,7 @@ installSupported () {
   checkLocale
 
   # Upgrade system to make sure we install  the latest packages - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade
   progress 4
 
   # TODO: Double check how the user is added and subsequently used during the install.
@@ -308,40 +308,40 @@ installSupported () {
   progress 4
 
   # Make sure permissions are sane - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions
   progress 4
 
   # TODO: Mysql install functions, make it upgrade safe, double check
   # Setup Databse - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB
   progress 4
 
   # Roll Apache Config - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig
   progress 4
 
   # Setup log logrotate - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation
   progress 4
 
   # Generate MISP Config files - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP
   progress 4
 
   # Generate GnuPG key - functionLocation('generic/gnupg.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG
   progress 4
 
   # Setup and start background workers - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers
   progress 4
 
   # Run cake CLI for the core installation - functionLocation('generic/MISP_CAKE_init.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE
   progress 4
 
   # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT
   progress 4
 
   # Disable spinner
@@ -372,7 +372,7 @@ installSupported () {
 
   # Install misp-dashboard - functionLocation('generic/misp-dashboard-debian.md')
   ## FIXME: The current state of misp-dashboard is broken, disabling any use.
-  ##[[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
+  ##[[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE
   ##progress 4
 
   # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
@@ -390,7 +390,7 @@ installSupported () {
 # Main Kali Install function
 installMISPonKali () {
   # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
-  kaliUpgrade 2> /dev/null > /dev/null
+  kaliUpgrade
 
   # Set locale if not set - functionLocation('generic/supportFunctions.md')
   checkLocale
@@ -399,13 +399,13 @@ installMISPonKali () {
   setBaseURL
 
   # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
-  installDepsPhp73 2> /dev/null > /dev/null
+  installDepsPhp73
 
   # Set custom Kali only variables and tweaks
   space
   # The following disables sleep on kali/gnome
   ### FIXME: Disabling for now, maybe source of some issues.
-  ##disableSleep 2> /dev/null > /dev/null
+  ##disableSleep
   ##debug "Sleeping 3 seconds to make sure the disable sleep does not confuse the execution of the script."
   ##sleep 3
 
@@ -421,17 +421,17 @@ installMISPonKali () {
   sudo phpenmod -v 7.3 gnupg
 
   debug "Apache2 ops: dismod: status php7.2 - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
-  sudo a2dismod status 2> /dev/null > /dev/null
-  sudo a2dismod php7.2 2> /dev/null > /dev/null
-  sudo a2enmod ssl rewrite headers php7.3 2> /dev/null > /dev/null
-  sudo a2dissite 000-default 2> /dev/null > /dev/null
-  sudo a2ensite default-ssl 2> /dev/null > /dev/null
+  sudo a2dismod status
+  sudo a2dismod php7.2
+  sudo a2enmod ssl rewrite headers php7.3
+  sudo a2dissite 000-default
+  sudo a2ensite default-ssl
 
   debug "Restarting mysql.service"
-  sudo systemctl restart mysql.service 2> /dev/null > /dev/null
+  sudo systemctl restart mysql.service
 
   debug "Fixing redis rc script on Kali"
-  fixRedis 2> /dev/null > /dev/null
+  fixRedis
 
   debug "git clone, submodule update everything"
   sudo mkdir $PATH_TO_MISP
@@ -442,15 +442,15 @@ installMISPonKali () {
   $SUDO_WWW git config core.filemode false
 
   cd $PATH_TO_MISP
-  $SUDO_WWW git submodule update --init --recursive 2> /dev/null > /dev/null
+  $SUDO_WWW git submodule update --init --recursive
   # Make git ignore filesystem permission differences for submodules
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git 2> /dev/null > /dev/null
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git 2> /dev/null > /dev/null
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git 2> /dev/null > /dev/null
-  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git 2> /dev/null > /dev/null
+  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
+  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
+  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git
 
 
   sudo mkdir /var/www/.cache/
@@ -473,45 +473,45 @@ installMISPonKali () {
 
   debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Installing python-stix"
   cd $PATH_TO_MISP/app/files/scripts/python-stix
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Install maec"
   cd $PATH_TO_MISP/app/files/scripts/python-maec
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I antlr4-python3-runtime==4.7.2 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
   cd ${PATH_TO_MISP}/cti-python-stix2
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
 
   debug "Installing mixbox"
   cd $PATH_TO_MISP/app/files/scripts/mixbox
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install PyMISP
   debug "Installing PyMISP"
   cd $PATH_TO_MISP/PyMISP
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install pydeep
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
 
   # install python-magic
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
 
   # install plyara
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
 
   # install zmq needed by mispzmq
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq 2> /dev/null > /dev/null
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
 
   # Install Crypt_GPG and Console_CommandLine
   debug "Installing pear Console_CommandLine"
@@ -578,7 +578,7 @@ installMISPonKali () {
                   'prefix' => '',
                   'encoding' => 'utf8',
           );
-  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php 2> /dev/null > /dev/null
+  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
   else
     echo "There might be a database already existing here: /var/lib/mysql/misp/users.ibd"
     echo "Skipping any creations…"
@@ -619,7 +619,7 @@ installMISPonKali () {
   sudo chmod -R 750 $PATH_TO_MISP/app/Config
 
   debug "Setting up GnuPG"
-  setupGnuPG 2> /dev/null > /dev/null
+  setupGnuPG
 
   debug "Adding workers to systemd"
   sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
@@ -628,12 +628,12 @@ installMISPonKali () {
   sudo systemctl enable --now misp-workers
 
   debug "Running Core Cake commands"
-  coreCAKE 2> /dev/null > /dev/null
+  coreCAKE
   ## FIXME: The current state of misp-dashboard is broken, disabling any use.
-  ##dashboardCAKE 2> /dev/null > /dev/null
+  ##dashboardCAKE
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
-  updateGOWNT 2> /dev/null > /dev/null
+  updateGOWNT
 
   gitPullAllRCLOCAL
 

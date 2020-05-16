@@ -841,7 +841,7 @@ class StixFromMISPParser(StixParser):
                 for reference in self.event.information_source.references:
                     self.misp_event.add_attribute(**{'type': 'link', 'value': reference})
             if package.ttps:
-                for ttp in package.ttps.ttps:
+                for ttp in package.ttps.ttp:
                     ttp_id = '-'.join((part for part in ttp.id_.split('-')[-5:]))
                     ttp_type = 'galaxy' if ttp_id in self.galaxies_references else 'object'
                     self.parse_ttp(ttp, ttp_type, ttp_id)
