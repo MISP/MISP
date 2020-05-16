@@ -838,20 +838,20 @@ gitPullAllRCLOCAL () {
   sudo sed -i -e '$i \done\n' /etc/rc.local
 }
 
-# Composer on php 7.0 does not need any special treatment the provided phar works well
-alias composer70='composer'
-
-# Composer on php 7.2 does not need any special treatment the provided phar works well
-alias composer72='composer'
-
-# Composer on php 7.3 does not need any special treatment the provided phar works well
-alias composer73='composer'
-
 # Main composer function
 composer () {
   sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
   ${SUDO_WWW} sh -c 'cd ${PATH_TO_MISP}/app ; php composer.phar install'
 }
+
+# Composer on php 7.0 does not need any special treatment the provided phar works well
+alias composer70=composer
+
+# Composer on php 7.2 does not need any special treatment the provided phar works well
+alias composer72=composer
+
+# Composer on php 7.3 does not need any special treatment the provided phar works well
+alias composer73=composer
 
 # TODO: this is probably a useless function
 # Enable various core services
