@@ -996,18 +996,19 @@ gitPullAllRCLOCAL () {
   sudo sed -i -e '$i \done\n' /etc/rc.local
 }
 
+
 # Main composer function
 composer () {
   sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
   ${SUDO_WWW} sh -c 'cd ${PATH_TO_MISP}/app ; php composer.phar install'
 }
 
+
+# TODO: FIX somehow the alias of the function does not work
 # Composer on php 7.0 does not need any special treatment the provided phar works well
 alias composer70=composer
-
 # Composer on php 7.2 does not need any special treatment the provided phar works well
 alias composer72=composer
-
 # Composer on php 7.3 does not need any special treatment the provided phar works well
 alias composer73=composer
 
@@ -2980,7 +2981,7 @@ installMISPonKali () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
 
   debug "Installing cake"
-  composer73
+  composer
 
   $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 
