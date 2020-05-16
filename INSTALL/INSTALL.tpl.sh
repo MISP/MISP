@@ -436,20 +436,20 @@ installMISPonKali () {
   sudo mkdir $PATH_TO_MISP
   sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP
   cd $PATH_TO_MISP
-  while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP; done
 
   $SUDO_WWW git config core.filemode false
 
   cd $PATH_TO_MISP
-  while [[ $? -ne 0 ]]; do $SUDO_WWW git submodule update --init --recursive; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git submodule update --init --recursive; done
   # Make git ignore filesystem permission differences for submodules
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   cd $PATH_TO_MISP/app/files/scripts
-  while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git; done
-  while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git; done
-  while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git; done
-  while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git; done
 
   sudo mkdir /var/www/.cache/
 
@@ -497,7 +497,7 @@ installMISPonKali () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install pydeep
-  while [[ $? -ne 0 ]]; do $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
 
   # install lief
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
