@@ -831,59 +831,51 @@ genApacheConf () {
 
 # Add git pull update mechanism to rc.local - TODO: Make this better
 gitPullAllRCLOCAL () {
-  sed -i -e '$i \git_dirs="/usr/local/src/misp-modules/ /var/www/misp-dashboard /usr/local/src/faup /usr/local/src/mail_to_misp /usr/local/src/misp-modules /usr/local/src/viper /var/www/misp-dashboard"\n' /etc/rc.local
-  sed -i -e '$i \for d in $git_dirs; do\n' /etc/rc.local
-  sed -i -e '$i \    echo "Updating ${d}"\n' /etc/rc.local
-  sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
-  sed -i -e '$i \done\n' /etc/rc.local
+  sudo sed -i -e '$i \git_dirs="/usr/local/src/misp-modules /var/www/misp-dashboard /usr/local/src/faup /usr/local/src/mail_to_misp /usr/local/src/misp-modules /usr/local/src/viper /var/www/misp-dashboard"\n' /etc/rc.local
+  sudo sed -i -e '$i \for d in $git_dirs; do\n' /etc/rc.local
+  sudo sed -i -e '$i \    echo "Updating ${d}"\n' /etc/rc.local
+  sudo sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
+  sudo sed -i -e '$i \done\n' /etc/rc.local
 }
 
 # Composer on php 7.0 does not need any special treatment the provided phar works well
-alias composer70='composer72'
+alias composer70='composer'
 
 # Composer on php 7.2 does not need any special treatment the provided phar works well
-composer72 () {
+alias composer72='composer'
+
+# Composer on php 7.3 does not need any special treatment the provided phar works well
+alias composer73='composer'
+
+# Main composer function
+composer () {
   cd $PATH_TO_MISP/app
   mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
   $SUDO_WWW php composer.phar install
 }
 
-# Composer on php 7.3 needs a recent version of composer.phar
-composer73 () {
-  cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
-  # Update composer.phar
-  # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
-  # Current Sum for: v1.8.3
-  SHA384_SUM="$(wget -q -O - https://composer.github.io/installer.sig)"
-php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
-  checkFail "composer.phar checksum failed, please investigate manually. " $?
-  $SUDO_WWW php composer-setup.php
-  $SUDO_WWW php -r "unlink('composer-setup.php');"
-  $SUDO_WWW php composer.phar install
-}
-
+# TODO: this is probably a useless function
 # Enable various core services
 enableServices () {
-    update-rc.d mysql enable
-    update-rc.d apache2 enable
-    update-rc.d redis-server enable
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now  mysql
+    sudo systemctl enable --now  apache2
+    sudo systemctl enable --now  redis-server
 }
 
+# TODO: check if this makes sense
 # Generate rc.local
 genRCLOCAL () {
-  if [ ! -e /etc/rc.local ]; then
+  if [[ ! -e /etc/rc.local ]]; then
       echo '#!/bin/sh -e' | tee -a /etc/rc.local
-      echo 'exit 0' | tee -a /etc/rc.local
+      echo 'exit 0' | sudo tee -a /etc/rc.local
       chmod u+x /etc/rc.local
   fi
 
-  sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
-  sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
-  sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-  sed -i -e '$i \[ -f /etc/init.d/firstBoot ] && bash /etc/init.d/firstBoot\n' /etc/rc.local
+  sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
+  sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
+  sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+  sudo sed -i -e '$i \[ -f /etc/init.d/firstBoot ] && bash /etc/init.d/firstBoot\n' /etc/rc.local
 }
 
 # Run PyMISP tests
@@ -892,9 +884,9 @@ runTests () {
 key = \"${AUTH_KEY}\"" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
-  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
-  sudo -H -u $WWW_USER ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
-  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
+  ${SUDO_WWW} sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
+  ${SUDO_WWW} sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
 }
 
 # Nuke the install, meaning remove all MISP data but no packages, this makes testing the installer faster

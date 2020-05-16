@@ -458,8 +458,9 @@ installMISPonKali () {
   sudo chown $MISP_USER:$MISP_USER $MISP_USER_HOME/.cache
   sudo chown $WWW_USER:$WWW_USER /var/www/.cache
 
-  debug "Generating rc.local"
-  genRCLOCAL
+  ## Not really needed...
+  ## debug "Generating rc.local"
+  ## genRCLOCAL
 
   debug "Setting up main MISP virtualenv"
   # Needs virtualenv
@@ -483,9 +484,9 @@ installMISPonKali () {
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+  # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Installing mixbox"
   cd $PATH_TO_MISP/app/files/scripts/mixbox
@@ -511,15 +512,8 @@ installMISPonKali () {
   # install zmq needed by mispzmq
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
 
-  # Install Crypt_GPG and Console_CommandLine
-  debug "Installing pear Console_CommandLine"
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-  debug "Installing pear Crypt_GPG"
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
-
-
-  ##debug "Installing composer with php 7.3 updates"
-  ##composer73
+  debug "Installing cake"
+  composer73
 
   $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 
@@ -627,13 +621,15 @@ installMISPonKali () {
 
   debug "Running Core Cake commands"
   coreCAKE
+
   ## FIXME: The current state of misp-dashboard is broken, disabling any use.
   ##dashboardCAKE
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT
 
-  gitPullAllRCLOCAL
+  # This is not needed atm...
+  ##gitPullAllRCLOCAL
 
   checkUsrLocalSrc
 
