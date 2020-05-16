@@ -114,7 +114,7 @@ checkFlavour () {
     FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
   fi
 
-  case "$FLAVOUR" in
+  case "${FLAVOUR}" in
     ubuntu)
       if command_exists lsb_release; then
         dist_version="$(lsb_release --codename | cut -f2)"
@@ -139,7 +139,7 @@ checkFlavour () {
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
         dist_version=${dist_version:0:1}
       fi
-      echo "$FLAVOUR support is experimental at the moment"
+      echo "${FLAVOUR} support is experimental at the moment"
     ;;
     rhel|ol|sles)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
@@ -147,7 +147,7 @@ checkFlavour () {
 	dist_version=${dist_version:0:1}  # Only interested about major version
       fi
       # Only tested for RHEL 7 so far 
-      echo "$FLAVOUR support is experimental at the moment"
+      echo "${FLAVOUR} support is experimental at the moment"
     ;;
     *)
       if command_exists lsb_release; then
@@ -160,7 +160,7 @@ checkFlavour () {
   esac
 
   # FIXME: The below want to be refactored
-  if [ "$FLAVOUR" == "ubuntu" ]; then
+  if [ "${FLAVOUR}" == "ubuntu" ]; then
     RELEASE=$(lsb_release -s -r)
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
   else
@@ -183,7 +183,7 @@ check_forked () {
     if [ "$lsb_release_exit_code" = "0" ]; then
       # Print info about current distro
       cat <<-EOF
-      You're using '$FLAVOUR' version '$dist_version'.
+      You're using '${FLAVOUR}' version '${dist_version}'.
 EOF
       # Get the upstream release info
       FLAVOUR=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
@@ -191,10 +191,10 @@ EOF
 
       # Print info about upstream distro
       cat <<-EOF
-      Upstream release is '$FLAVOUR' version '$dist_version'.
+      Upstream release is '${FLAVOUR}' version '$dist_version'.
 EOF
     else
-      if [ -r /etc/debian_version ] && [ "$FLAVOUR" != "ubuntu" ] && [ "$FLAVOUR" != "raspbian" ]; then
+      if [[ -r /etc/debian_version ]] && [[ "${FLAVOUR}" != "ubuntu" ]] && [[ "${FLAVOUR}" != "raspbian" ]]; then
         # We're Debian and don't even know it!
         FLAVOUR=debian
         dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
@@ -216,7 +216,7 @@ EOF
 
 checkInstaller () {
   # Workaround: shasum is not available on RHEL, only checking sha512
-  if [[ $FLAVOUR == "rhel" ]] || [[ $FLAVOUR == "centos" ]]; then
+  if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
   INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
   /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
         chsum=$(cat /tmp/INSTALL.sh.sha512)
@@ -228,7 +228,7 @@ checkInstaller () {
   fi
   else
     # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
-    if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
+    if [[ $(which shasum > /dev/null 2>&1 ; echo $?) -ne 0 ]]; then
       sudo apt update
       sudo apt install libdigest-sha-perl -qyy
     fi
@@ -257,7 +257,7 @@ checkManufacturer () {
     sudo apt install dmidecode -qy
   fi
   MANUFACTURER=$(sudo dmidecode -s system-manufacturer)
-  echo $MANUFACTURER
+  debug ${MANUFACTURER}
 }
 
 # Dynamic horizontal spacer if needed, for autonomeous an no progress bar install, we are static.
@@ -319,7 +319,7 @@ progress () {
 checkLocale () {
   debug "Checking Locale"
   # If locale is missing, generate and install a common UTF-8
-  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) == "1" ]]; then
+  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) -eq "1" ]]; then
     checkAptLock
     sudo DEBIAN_FRONTEND=noninteractive apt install locales -qy
     sudo sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
@@ -330,6 +330,7 @@ checkLocale () {
 
 # Simple function to check command exit code
 checkFail () {
+  # '-ne' checks for numerical differences, '==' used for strings
   if [[ $2 -ne 0 ]]; then
     echo "iAmError: $1"
     echo "The last command exited with error code: $2"
@@ -366,7 +367,7 @@ clean () {
 # Check if misp user is present and if run as root
 checkID () {
   debug "Checking if run as root and $MISP_USER is present"
-  if [[ $EUID == 0 ]]; then
+  if [[ $EUID -eq 0 ]]; then
     echo "This script cannot be run as a root"
     clean > /dev/null 2>&1
     exit 1
@@ -496,7 +497,7 @@ kaliSpaceSaver () {
 
 # Because Kali is l33t we make sure we DO NOT run as root
 kaliOnTheR0ckz () {
-  if [[ $EUID == 0 ]]; then
+  if [[ $EUID -eq 0 ]]; then
    echo "This script must NOT be run as root"
    exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
@@ -520,7 +521,7 @@ setBaseURL () {
       echo "Do you want to change it now? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
-      if [[ "$ANSWER" == "y" ]]; then
+      if [[ "$ANSWER" -eq "y" ]]; then
         if [[ ! -z $IP ]]; then
           echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
           echo "Thus your Base URL could be: https://$IP"

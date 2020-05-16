@@ -130,13 +130,13 @@ colors () {
 }
 
 generateInstaller () {
-  if [ ! -f $(which xsnippet) ]; then
+  if [[ ! -f $(which xsnippet) ]]; then
     echo 'xsnippet is NOT installed. Clone the repository below and copy the xsnippet shell script somehwere in your $PATH'
     echo "git clone https://github.com/SteveClement/xsnippet.git"
     exit 1
   fi
 
-  if [[ $(echo $0 |grep -e '^\.\/') != "./INSTALL.tpl.sh" ]]; then
+  if [[ "$(echo $0 |grep -e '^\.\/')" != "./INSTALL.tpl.sh" ]]; then
     echo -e "${RED}iAmError!${NC}"
     echo -e "To generate the installer call it with './INSTALL.tpl.sh' otherwise things will break."
     echo -e "You called: ${RED}$0${NC}"
@@ -220,7 +220,7 @@ generateInstaller () {
 [[ $(type -t debug) == "alias" ]] && unalias debug
 debug () {
   echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}" > /dev/tty
-  if [ ! -z $DEBUG ]; then
+  if [[ ! -z ${DEBUG} ]]; then
     NO_PROGRESS=1
     echo -e "${RED}Debug Mode${NC}, press ${LBLUE}enter${NC} to continue..." > /dev/tty
     exec 3>&1
@@ -667,17 +667,17 @@ installMISPRHEL () {
 
   if [[ -n $CORE ]] || [[ -n $ALL ]]; then
     space
-    echo "Proceeding with MISP core installation on RHEL $dist_version"
+    echo "Proceeding with MISP core installation on RHEL ${dist_version}"
     space
  
-    id -u "$MISP_USER" > /dev/null
-    if [ $? -eq 1 ]; then
+    id -u "${MISP_USER}" > /dev/null
+    if [[ $? -eq 1 ]]; then
       debug "Creating MISP user"
-      sudo useradd -r "$MISP_USER"
+      sudo useradd -r "${MISP_USER}"
     fi 
     
     debug "Enabling Extras Repos (SCL)"
-    if [[ $FLAVOUR == "rhel" ]]; then
+    if [[ "${FLAVOUR}" == "rhel" ]]; then
       sudo subscription-manager register --auto-attach
       enableReposRHEL
       enableEPEL
@@ -758,7 +758,7 @@ debug "Setting MISP variables"
 MISPvars
 
 debug "Checking for parameters or Unattended Kali Install"
-if [[ $# == 0 && $0 != "/tmp/misp-kali.sh" ]]; then
+if [[ $# -eq 0 && "$0" != "/tmp/misp-kali.sh" ]]; then
   usage
   exit 
 else
@@ -832,30 +832,30 @@ EOF
 fi
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
-if [ "${FLAVOUR}" == "ubuntu" ]; then
+if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   RELEASE=$(lsb_release -s -r| tr '[:upper:]' '[:lower:]')
-  if [ "${RELEASE}" == "18.04" ]; then
+  if [[ "${RELEASE}" == "18.04" ]]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
   fi
-  if [ "${RELEASE}" == "20.04" ]; then
+  if [[ "${RELEASE}" == "20.04" ]]; then
     echo "Install on Ubuntu 20.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP="7.4" && exit || exit
   fi
-  if [ "${RELEASE}" == "18.10" ]; then
+  if [[ "${RELEASE}" == "18.10" ]]; then
     echo "Install on Ubuntu 18.10 partially supported, bye."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
   fi
-  if [ "${RELEASE}" == "19.04" ]; then
+  if [[ "${RELEASE}" == "19.04" ]]; then
     echo "Install on Ubuntu 19.04 partially supported bye."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
     exit 1
   fi
-  if [ "${RELEASE}" == "19.10" ]; then
+  if [[ "${RELEASE}" == "19.10" ]]; then
     echo "Install on Ubuntu 19.10 not supported, bye"
     exit 1
   fi
@@ -864,19 +864,19 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
 fi
 
 # If Debian is detected, figure out which release it is and run the according scripts
-if [ "${FLAVOUR}" == "debian" ]; then
+if [[ "${FLAVOUR}" == "debian" ]]; then
   CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
-  if [ "${CODE}" == "buster" ]; then
+  if [[ "${CODE}" == "buster" ]]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP=7.3 && exit || exit
   fi
-  if [ "${CODE}" == "sid" ]; then
+  if [[ "${CODE}" == "sid" ]]; then
     echo "Install on Debian unstable not fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP=7.3 && exit || exit
   fi
-  if [ "${CODE}" == "stretch" ]; then
+  if [[ "${CODE}" == "stretch" ]]; then
     echo "Install on Debian stable fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP=7.0 && exit || exit
@@ -886,13 +886,13 @@ if [ "${FLAVOUR}" == "debian" ]; then
 fi
 
 # If Tsurugi is detected, figure out which release it is and run the according scripts
-if [ "${FLAVOUR}" == "tsurugi" ]; then
+if [[ "${FLAVOUR}" == "tsurugi" ]]; then
   CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
-  if [ "${CODE}" == "bamboo" ]; then
+  if [[ "${CODE}" == "bamboo" ]]; then
     echo "Install on Tsurugi Lab partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
   fi
-  if [ "${CODE}" == "soy sauce" ]; then
+  if [[ "${CODE}" == "soy sauce" ]]; then
     echo "Install on Tsurugi Acquire partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
   fi
@@ -901,7 +901,7 @@ if [ "${FLAVOUR}" == "tsurugi" ]; then
 fi
 
 # If Kali Linux is detected, run the acccording scripts
-if [ "${FLAVOUR}" == "kali" ]; then
+if [[ "${FLAVOUR}" == "kali" ]]; then
   KALI=1
   kaliOnTheR0ckz
   installMISPonKali
@@ -910,7 +910,7 @@ if [ "${FLAVOUR}" == "kali" ]; then
 fi
 
 # If RHEL/CentOS is detected, run appropriate script
-if [ "${FLAVOUR}" == "rhel" ] || [ "${FLAVOUR}" == "centos" ]; then
+if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
   installMISPRHEL
   echo "Installation done !"
   exit
