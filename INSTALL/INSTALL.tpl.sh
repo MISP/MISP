@@ -441,7 +441,7 @@ installMISPonKali () {
   $SUDO_WWW git config core.filemode false
 
   cd $PATH_TO_MISP
-  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git submodule update --init --recursive; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git submodule update --progress --init --recursive; done
   # Make git ignore filesystem permission differences for submodules
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
@@ -527,7 +527,7 @@ installMISPonKali () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     echo "
       set timeout 10
-      spawn mysql_secure_installation
+      spawn sudo mysql_secure_installation
       expect \"Enter current password for root (enter for none):\"
       send -- \"\r\"
       expect \"Set root password?\"
@@ -546,10 +546,10 @@ installMISPonKali () {
       send -- \"y\r\"
       expect eof" | expect -f -
 
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
+    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
+    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
+    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
+    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
 
     enableServices
 
@@ -614,10 +614,7 @@ installMISPonKali () {
   setupGnuPG
 
   debug "Adding workers to systemd"
-  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-  sudo cp $PATH_TO_MISP/INSTALL/misp-workers.service /etc/systemd/system/
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now misp-workers
+  backgroundWorkers
 
   debug "Running Core Cake commands"
   coreCAKE
