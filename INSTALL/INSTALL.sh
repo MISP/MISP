@@ -276,7 +276,7 @@ checkFlavour () {
     FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
   fi
 
-  case "$FLAVOUR" in
+  case "${FLAVOUR}" in
     ubuntu)
       if command_exists lsb_release; then
         dist_version="$(lsb_release --codename | cut -f2)"
@@ -301,7 +301,7 @@ checkFlavour () {
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
         dist_version=${dist_version:0:1}
       fi
-      echo "$FLAVOUR support is experimental at the moment"
+      echo "${FLAVOUR} support is experimental at the moment"
     ;;
     rhel|ol|sles)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
@@ -309,7 +309,7 @@ checkFlavour () {
 	dist_version=${dist_version:0:1}  # Only interested about major version
       fi
       # Only tested for RHEL 7 so far 
-      echo "$FLAVOUR support is experimental at the moment"
+      echo "${FLAVOUR} support is experimental at the moment"
     ;;
     *)
       if command_exists lsb_release; then
@@ -322,7 +322,7 @@ checkFlavour () {
   esac
 
   # FIXME: The below want to be refactored
-  if [ "$FLAVOUR" == "ubuntu" ]; then
+  if [ "${FLAVOUR}" == "ubuntu" ]; then
     RELEASE=$(lsb_release -s -r)
     debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
   else
@@ -345,7 +345,7 @@ check_forked () {
     if [ "$lsb_release_exit_code" = "0" ]; then
       # Print info about current distro
       cat <<-EOF
-      You're using '$FLAVOUR' version '$dist_version'.
+      You're using '${FLAVOUR}' version '${dist_version}'.
 EOF
       # Get the upstream release info
       FLAVOUR=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
@@ -353,10 +353,10 @@ EOF
 
       # Print info about upstream distro
       cat <<-EOF
-      Upstream release is '$FLAVOUR' version '$dist_version'.
+      Upstream release is '${FLAVOUR}' version '$dist_version'.
 EOF
     else
-      if [ -r /etc/debian_version ] && [ "$FLAVOUR" != "ubuntu" ] && [ "$FLAVOUR" != "raspbian" ]; then
+      if [[ -r /etc/debian_version ]] && [[ "${FLAVOUR}" != "ubuntu" ]] && [[ "${FLAVOUR}" != "raspbian" ]]; then
         # We're Debian and don't even know it!
         FLAVOUR=debian
         dist_version="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
@@ -378,7 +378,7 @@ EOF
 
 checkInstaller () {
   # Workaround: shasum is not available on RHEL, only checking sha512
-  if [[ $FLAVOUR == "rhel" ]] || [[ $FLAVOUR == "centos" ]]; then
+  if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
   INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
   /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
         chsum=$(cat /tmp/INSTALL.sh.sha512)
@@ -390,8 +390,8 @@ checkInstaller () {
   fi
   else
     # TODO: Implement $FLAVOUR checks and install depending on the platform we are on
-    if [[ $(which shasum > /dev/null 2>&1 ; echo $?) != 0 ]]; then
-      sudo apt update
+    if [[ $(which shasum > /dev/null 2>&1 ; echo $?) -ne 0 ]]; then
+      checkAptLock
       sudo apt install libdigest-sha-perl -qyy
     fi
     # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
@@ -414,12 +414,12 @@ checkInstaller () {
 
 # Extract manufacturer
 checkManufacturer () {
-  if [ -z $(which dmidecode) ]; then
+  if [[ -z $(which dmidecode) ]]; then
     checkAptLock
     sudo apt install dmidecode -qy
   fi
   MANUFACTURER=$(sudo dmidecode -s system-manufacturer)
-  echo $MANUFACTURER
+  debug ${MANUFACTURER}
 }
 
 # Dynamic horizontal spacer if needed, for autonomeous an no progress bar install, we are static.
@@ -481,7 +481,7 @@ progress () {
 checkLocale () {
   debug "Checking Locale"
   # If locale is missing, generate and install a common UTF-8
-  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) == "1" ]]; then
+  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) -eq "1" ]]; then
     checkAptLock
     sudo DEBIAN_FRONTEND=noninteractive apt install locales -qy
     sudo sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
@@ -492,6 +492,7 @@ checkLocale () {
 
 # Simple function to check command exit code
 checkFail () {
+  # '-ne' checks for numerical differences, '==' used for strings
   if [[ $2 -ne 0 ]]; then
     echo "iAmError: $1"
     echo "The last command exited with error code: $2"
@@ -528,7 +529,7 @@ clean () {
 # Check if misp user is present and if run as root
 checkID () {
   debug "Checking if run as root and $MISP_USER is present"
-  if [[ $EUID == 0 ]]; then
+  if [[ $EUID -eq 0 ]]; then
     echo "This script cannot be run as a root"
     clean > /dev/null 2>&1
     exit 1
@@ -658,12 +659,23 @@ kaliSpaceSaver () {
 
 # Because Kali is l33t we make sure we DO NOT run as root
 kaliOnTheR0ckz () {
-  if [[ $EUID == 0 ]]; then
-   echo "This script must NOT be run as root"
-   exit 1
-  elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-    sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
-    echo $MISP_USER:$MISP_PASSWORD | sudo chpasswd
+  totalRoot=$(df -k | grep /$ |awk '{ print $2 }')
+  totalMem=$(cat /proc/meminfo|grep MemTotal |grep -Eo '[0-9]{1,}')
+  overlay=$(df -kh |grep overlay; echo $?) # if 1 overlay NOT present
+
+  if [[ ${totalRoot} -lt 3059034 ]]; then
+    echo "(If?) You run Kali in LiveCD mode and we need more overlay disk space."
+    echo "This is defined by the total memory, you have: ${totalMem}kB which is not enough."
+    echo "6-8Gb should be fine. (need >3Gb overlayFS)"
+    exit 1
+  fi
+
+  if [[ ${EUID} -eq 0 ]]; then
+    echo "This script must NOT be run as root"
+    exit 1
+  elif [[ $(id ${MISP_USER} >/dev/null; echo $?) -ne 0 ]]; then
+    sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff ${MISP_USER}
+    echo ${MISP_USER}:${MISP_PASSWORD} | sudo chpasswd
   else
     # TODO: Make sure we consider this further down the road
     echo "User ${MISP_USER} exists, skipping creation"
@@ -672,20 +684,25 @@ kaliOnTheR0ckz () {
 
 setBaseURL () {
   debug "Setting Base URL"
+
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
-  IFACE=`echo $CONN |awk {'print $1'}`
-  IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
-  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]] && [[ "$(checkManufacturer)" != "QEMU" ]]; then
-    debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
-    if [[ "$UNATTENDED" != "1" ]]; then 
+  IFACE=$(echo $CONN |awk {'print $1'})
+  IP=$(echo $CONN |awk {'print $2'}| cut -f1 -d/)
+
+  [[ -n ${MANUFACTURER} ]] || checkManufacturer
+
+  if [[ "${MANUFACTURER}" != "innotek GmbH" ]] && [[ "$MANUFACTURER" != "VMware, Inc." ]] && [[ "$MANUFACTURER" != "QEMU" ]]; then
+    debug "We guess that this is a physical machine and cannot reliably guess what the MISP_BASEURL might be."
+
+    if [[ "${UNATTENDED}" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
-      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
-      if [[ "$ANSWER" == "y" ]]; then
-        if [[ ! -z $IP ]]; then
-          echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
-          echo "Thus your Base URL could be: https://$IP"
+      ANSWER=$(echo ${ANSWER} |tr '[:upper:]' '[:lower:]')
+      if [[ "${ANSWER}" == "y" ]]; then
+        if [[ ! -z ${IP} ]]; then
+          echo "It seems you have an interface called ${IFACE} UP with the following IP: ${IP} - FYI"
+          echo "Thus your Base URL could be: https://${IP}"
         fi
         echo "Please enter the Base URL, e.g: 'https://example.org'"
         echo ""
@@ -699,17 +716,17 @@ setBaseURL () {
         # Webserver configuration
         FQDN='misp.local'
     fi
-  elif [[ $KALI == "1" ]]; then
+  elif [[ "${KALI}" == "1" ]]; then
     MISP_BASEURL="https://misp.local"
     # Webserver configuration
     FQDN='misp.local'
-  elif [[ "$(checkManufacturer)" == "innotek GmbH" ]]; then
+  elif [[ "${MANUFACTURER}" == "innotek GmbH" ]]; then
     MISP_BASEURL='https://localhost:8443'
     IP=$(ip addr show | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}' |grep -v "127.0.0.1" |tail -1)
     sudo iptables -t nat -A OUTPUT -p tcp --dport 8443 -j DNAT --to ${IP}:443
     # Webserver configuration
     FQDN='localhost.localdomain'
-  elif [[ "$(checkManufacturer)" == "VMware, Inc." ]]; then
+  elif [[ "${MANUFACTURER}" == "VMware, Inc." ]]; then
     MISP_BASEURL='""'
     # Webserver configuration
     FQDN='misp.local'
@@ -740,7 +757,6 @@ installRNG () {
 # Kali upgrade
 kaliUpgrade () {
   debug "Running various Kali upgrade tasks"
-  sudo apt update
   checkAptLock
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
   sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
@@ -770,6 +786,9 @@ if [[ $(type -t checkAptLock) == "alias" ]]; then unalias checkAptLock; fi
 # Simple function to make sure APT is not locked
 checkAptLock () {
   SLEEP=3
+  if [[ -n ${APT_UPDATED} ]]; then
+    sudo apt update && APT_UPDATED=1
+  fi
   while [ "$DONE" != "0" ]; do
     sudo apt-get check 2> /dev/null > /dev/null && DONE=0
     echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds." > /dev/tty
@@ -784,7 +803,7 @@ installDepsPhp70 () {
   debug "Installing PHP 7.0 dependencies"
   PHP_ETC_BASE=/etc/php/7.0
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
+  checkAptLock
   sudo apt install -qy \
   libapache2-mod-php \
   php php-cli \
@@ -804,22 +823,36 @@ installDepsPhp73 () {
   debug "Installing PHP 7.3 dependencies"
   PHP_ETC_BASE=/etc/php/7.3
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
   checkAptLock
-  sudo apt install -qy \
-  libapache2-mod-php7.3 \
-  php7.3 php7.3-cli \
-  php7.3-dev \
-  php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-redis php-gnupg \
-  php-gd
+  if [[ ! -n ${KALI} ]]; then
+    sudo apt install -qy \
+      libapache2-mod-php7.3 \
+      php7.3 php7.3-cli \
+      php7.3-dev \
+      php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+      php-redis php-gnupg \
+      php-gd
+  else
+      sudo apt install -qy \
+        libapache2-mod-php7.3 \
+        libgpgme-dev \
+        php7.3 php7.3-cli \
+        php7.3-dev \
+        php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+        php7.3-gd
+      sudo pecl channel-update pecl.php.net
+      #sudo pear config-set php_ini ${PHP_INI}
+      echo "" |sudo pecl install redis
+      sudo pecl install gnupg
+      echo extension=gnupg.so | sudo tee ${PHP_ETC_BASE}/mods-available/gnupg.ini
+      echo extension=redis.so | sudo tee ${PHP_ETC_BASE}/mods-available/redis.ini
+  fi
 }
 
 # Installing core dependencies
 installDeps () {
   debug "Installing core dependencies"
   checkAptLock
-  sudo apt update
   sudo apt install -qy etckeeper
   # Skip dist-upgrade for now, pulls in 500+ updated packages
   #sudo apt -y dist-upgrade
@@ -951,64 +984,55 @@ genApacheConf () {
           ServerSignature Off
           Header set X-Content-Type-Options nosniff
           Header set X-Frame-Options DENY
-  </VirtualHost>" | tee /etc/apache2/sites-available/misp-ssl.conf
+  </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-ssl.conf
 }
 
 # Add git pull update mechanism to rc.local - TODO: Make this better
 gitPullAllRCLOCAL () {
-  sed -i -e '$i \git_dirs="/usr/local/src/misp-modules/ /var/www/misp-dashboard /usr/local/src/faup /usr/local/src/mail_to_misp /usr/local/src/misp-modules /usr/local/src/viper /var/www/misp-dashboard"\n' /etc/rc.local
-  sed -i -e '$i \for d in $git_dirs; do\n' /etc/rc.local
-  sed -i -e '$i \    echo "Updating ${d}"\n' /etc/rc.local
-  sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
-  sed -i -e '$i \done\n' /etc/rc.local
+  sudo sed -i -e '$i \git_dirs="/usr/local/src/misp-modules /var/www/misp-dashboard /usr/local/src/faup /usr/local/src/mail_to_misp /usr/local/src/misp-modules /usr/local/src/viper /var/www/misp-dashboard"\n' /etc/rc.local
+  sudo sed -i -e '$i \for d in $git_dirs; do\n' /etc/rc.local
+  sudo sed -i -e '$i \    echo "Updating ${d}"\n' /etc/rc.local
+  sudo sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
+  sudo sed -i -e '$i \done\n' /etc/rc.local
+}
+
+# Main composer function
+composer () {
+  sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  ${SUDO_WWW} sh -c 'cd ${PATH_TO_MISP}/app ; php composer.phar install'
 }
 
 # Composer on php 7.0 does not need any special treatment the provided phar works well
-alias composer70='composer72'
+alias composer70=composer
 
 # Composer on php 7.2 does not need any special treatment the provided phar works well
-composer72 () {
-  cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar install
-}
+alias composer72=composer
 
-# Composer on php 7.3 needs a recent version of composer.phar
-composer73 () {
-  cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown $WWW_USER:$WWW_USER /var/www/.composer
-  # Update composer.phar
-  # If hash changes, check here: https://getcomposer.org/download/ and replace with the correct one
-  # Current Sum for: v1.8.3
-  SHA384_SUM="$(wget -q -O - https://composer.github.io/installer.sig)"
-php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$SHA384_SUM') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(137); } echo PHP_EOL;"
-  checkFail "composer.phar checksum failed, please investigate manually. " $?
-  $SUDO_WWW php composer-setup.php
-  $SUDO_WWW php -r "unlink('composer-setup.php');"
-  $SUDO_WWW php composer.phar install
-}
+# Composer on php 7.3 does not need any special treatment the provided phar works well
+alias composer73=composer
 
+# TODO: this is probably a useless function
 # Enable various core services
 enableServices () {
-    update-rc.d mysql enable
-    update-rc.d apache2 enable
-    update-rc.d redis-server enable
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now  mysql
+    sudo systemctl enable --now  apache2
+    sudo systemctl enable --now  redis-server
 }
 
+# TODO: check if this makes sense
 # Generate rc.local
 genRCLOCAL () {
-  if [ ! -e /etc/rc.local ]; then
+  if [[ ! -e /etc/rc.local ]]; then
       echo '#!/bin/sh -e' | tee -a /etc/rc.local
-      echo 'exit 0' | tee -a /etc/rc.local
+      echo 'exit 0' | sudo tee -a /etc/rc.local
       chmod u+x /etc/rc.local
   fi
 
-  sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
-  sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
-  sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-  sed -i -e '$i \[ -f /etc/init.d/firstBoot ] && bash /etc/init.d/firstBoot\n' /etc/rc.local
+  sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
+  sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
+  sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+  sudo sed -i -e '$i \[ -f /etc/init.d/firstBoot ] && bash /etc/init.d/firstBoot\n' /etc/rc.local
 }
 
 # Run PyMISP tests
@@ -1017,9 +1041,9 @@ runTests () {
 key = \"${AUTH_KEY}\"" |sudo tee ${PATH_TO_MISP}/PyMISP/tests/keys.py
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
 
-  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
-  sudo -H -u $WWW_USER ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
-  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
+  ${SUDO_WWW} sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
+  ${SUDO_WWW} sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
 }
 
 # Nuke the install, meaning remove all MISP data but no packages, this makes testing the installer faster
@@ -1097,7 +1121,6 @@ theEnd () {
 aptUpgrade () {
   debug "Upgrading system"
   checkAptLock
-  sudo apt-get update
 
   # If we run in non-interactive mode, make sure we do not stop all of a sudden
   if [[ "${PACKER}" == "1" || "${UNATTENDED}" == "1" ]]; then
@@ -1152,7 +1175,7 @@ installDepsPhp74 () {
   debug "Installing PHP 7.4 dependencies"
   PHP_ETC_BASE=/etc/php/7.4
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
+  checkAptLock
   sudo apt install -qy \
   libapache2-mod-php \
   php php-cli \
@@ -1172,15 +1195,30 @@ installDepsPhp73 () {
   debug "Installing PHP 7.3 dependencies"
   PHP_ETC_BASE=/etc/php/7.3
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
   checkAptLock
-  sudo apt install -qy \
-  libapache2-mod-php7.3 \
-  php7.3 php7.3-cli \
-  php7.3-dev \
-  php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-redis php-gnupg \
-  php-gd
+  if [[ ! -n ${KALI} ]]; then
+    sudo apt install -qy \
+      libapache2-mod-php7.3 \
+      php7.3 php7.3-cli \
+      php7.3-dev \
+      php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+      php-redis php-gnupg \
+      php-gd
+  else
+      sudo apt install -qy \
+        libapache2-mod-php7.3 \
+        libgpgme-dev \
+        php7.3 php7.3-cli \
+        php7.3-dev \
+        php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+        php7.3-gd
+      sudo pecl channel-update pecl.php.net
+      #sudo pear config-set php_ini ${PHP_INI}
+      echo "" |sudo pecl install redis
+      sudo pecl install gnupg
+      echo extension=gnupg.so | sudo tee ${PHP_ETC_BASE}/mods-available/gnupg.ini
+      echo extension=redis.so | sudo tee ${PHP_ETC_BASE}/mods-available/redis.ini
+  fi
 }
 
 # Install Php 7.2 dependencies
@@ -1188,7 +1226,7 @@ installDepsPhp72 () {
   debug "Installing PHP 7.2 dependencies"
   PHP_ETC_BASE=/etc/php/7.2
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
+  checkAptLock
   sudo apt install -qy \
   libapache2-mod-php \
   php php-cli \
@@ -1208,7 +1246,7 @@ installDepsPhp70 () {
   debug "Installing PHP 7.0 dependencies"
   PHP_ETC_BASE=/etc/php/7.0
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
+  checkAptLock
   sudo apt install -qy \
   libapache2-mod-php \
   php php-cli \
@@ -2559,13 +2597,13 @@ colors () {
 }
 
 generateInstaller () {
-  if [ ! -f $(which xsnippet) ]; then
+  if [[ ! -f $(which xsnippet) ]]; then
     echo 'xsnippet is NOT installed. Clone the repository below and copy the xsnippet shell script somehwere in your $PATH'
     echo "git clone https://github.com/SteveClement/xsnippet.git"
     exit 1
   fi
 
-  if [[ $(echo $0 |grep -e '^\.\/') != "./INSTALL.tpl.sh" ]]; then
+  if [[ "$(echo $0 |grep -e '^\.\/')" != "./INSTALL.tpl.sh" ]]; then
     echo -e "${RED}iAmError!${NC}"
     echo -e "To generate the installer call it with './INSTALL.tpl.sh' otherwise things will break."
     echo -e "You called: ${RED}$0${NC}"
@@ -2649,7 +2687,7 @@ generateInstaller () {
 [[ $(type -t debug) == "alias" ]] && unalias debug
 debug () {
   echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}" > /dev/tty
-  if [ ! -z $DEBUG ]; then
+  if [[ ! -z ${DEBUG} ]]; then
     NO_PROGRESS=1
     echo -e "${RED}Debug Mode${NC}, press ${LBLUE}enter${NC} to continue..." > /dev/tty
     exec 3>&1
@@ -2849,9 +2887,8 @@ installMISPonKali () {
   sudo phpenmod -v 7.3 redis
   sudo phpenmod -v 7.3 gnupg
 
-  debug "Apache2 ops: dismod: status php7.2 - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
+  debug "Apache2 ops: dismod: status - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
   sudo a2dismod status
-  sudo a2dismod php7.2
   sudo a2enmod ssl rewrite headers php7.3
   sudo a2dissite 000-default
   sudo a2ensite default-ssl
@@ -2866,21 +2903,20 @@ installMISPonKali () {
   sudo mkdir $PATH_TO_MISP
   sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP
   cd $PATH_TO_MISP
-  $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP; done
 
   $SUDO_WWW git config core.filemode false
 
   cd $PATH_TO_MISP
-  $SUDO_WWW git submodule update --init --recursive
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git submodule update --progress --init --recursive; done
   # Make git ignore filesystem permission differences for submodules
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
-  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git
-
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git; done
 
   sudo mkdir /var/www/.cache/
 
@@ -2889,8 +2925,9 @@ installMISPonKali () {
   sudo chown $MISP_USER:$MISP_USER $MISP_USER_HOME/.cache
   sudo chown $WWW_USER:$WWW_USER /var/www/.cache
 
-  debug "Generating rc.local"
-  genRCLOCAL
+  ## Not really needed...
+  ## debug "Generating rc.local"
+  ## genRCLOCAL
 
   debug "Setting up main MISP virtualenv"
   # Needs virtualenv
@@ -2914,9 +2951,9 @@ installMISPonKali () {
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+  # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Installing mixbox"
   cd $PATH_TO_MISP/app/files/scripts/mixbox
@@ -2928,7 +2965,7 @@ installMISPonKali () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install pydeep
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
 
   # install lief
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
@@ -2942,15 +2979,8 @@ installMISPonKali () {
   # install zmq needed by mispzmq
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
 
-  # Install Crypt_GPG and Console_CommandLine
-  debug "Installing pear Console_CommandLine"
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-  debug "Installing pear Crypt_GPG"
-  sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
-
-
-  ##debug "Installing composer with php 7.3 updates"
-  ##composer73
+  debug "Installing cake"
+  composer73
 
   $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 
@@ -2964,7 +2994,7 @@ installMISPonKali () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     echo "
       set timeout 10
-      spawn mysql_secure_installation
+      spawn sudo mysql_secure_installation
       expect \"Enter current password for root (enter for none):\"
       send -- \"\r\"
       expect \"Set root password?\"
@@ -2983,13 +3013,14 @@ installMISPonKali () {
       send -- \"y\r\"
       expect eof" | expect -f -
 
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
+    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
+    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
+    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
+    sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
 
     enableServices
 
+    debug "Populating database"
     $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 
     echo "<?php
@@ -3051,20 +3082,19 @@ installMISPonKali () {
   setupGnuPG
 
   debug "Adding workers to systemd"
-  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-  sudo cp $PATH_TO_MISP/INSTALL/misp-workers.service /etc/systemd/system/
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now misp-workers
+  backgroundWorkers
 
   debug "Running Core Cake commands"
   coreCAKE
+
   ## FIXME: The current state of misp-dashboard is broken, disabling any use.
   ##dashboardCAKE
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT
 
-  gitPullAllRCLOCAL
+  # This is not needed atm...
+  ##gitPullAllRCLOCAL
 
   checkUsrLocalSrc
 
@@ -3096,17 +3126,17 @@ installMISPRHEL () {
 
   if [[ -n $CORE ]] || [[ -n $ALL ]]; then
     space
-    echo "Proceeding with MISP core installation on RHEL $dist_version"
+    echo "Proceeding with MISP core installation on RHEL ${dist_version}"
     space
  
-    id -u "$MISP_USER" > /dev/null
-    if [ $? -eq 1 ]; then
+    id -u "${MISP_USER}" > /dev/null
+    if [[ $? -eq 1 ]]; then
       debug "Creating MISP user"
-      sudo useradd -r "$MISP_USER"
+      sudo useradd -r "${MISP_USER}"
     fi 
     
     debug "Enabling Extras Repos (SCL)"
-    if [[ $FLAVOUR == "rhel" ]]; then
+    if [[ "${FLAVOUR}" == "rhel" ]]; then
       sudo subscription-manager register --auto-attach
       enableReposRHEL
       enableEPEL
@@ -3187,7 +3217,7 @@ debug "Setting MISP variables"
 MISPvars
 
 debug "Checking for parameters or Unattended Kali Install"
-if [[ $# == 0 && $0 != "/tmp/misp-kali.sh" ]]; then
+if [[ $# -eq 0 && "$0" != "/tmp/misp-kali.sh" ]]; then
   usage
   exit 
 else
@@ -3232,10 +3262,6 @@ x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
-x86_64-kali-2019.1
-x86_64-kali-2019.2
-x86_64-kali-2019.3
-x86_64-kali-2019.4
 x86_64-kali-2020.1
 x86_64-kali-2020.2
 x86_64-kali-2020.3
@@ -3261,30 +3287,30 @@ EOF
 fi
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
-if [ "${FLAVOUR}" == "ubuntu" ]; then
+if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   RELEASE=$(lsb_release -s -r| tr '[:upper:]' '[:lower:]')
-  if [ "${RELEASE}" == "18.04" ]; then
+  if [[ "${RELEASE}" == "18.04" ]]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
   fi
-  if [ "${RELEASE}" == "20.04" ]; then
+  if [[ "${RELEASE}" == "20.04" ]]; then
     echo "Install on Ubuntu 20.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP="7.4" && exit || exit
   fi
-  if [ "${RELEASE}" == "18.10" ]; then
+  if [[ "${RELEASE}" == "18.10" ]]; then
     echo "Install on Ubuntu 18.10 partially supported, bye."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
   fi
-  if [ "${RELEASE}" == "19.04" ]; then
+  if [[ "${RELEASE}" == "19.04" ]]; then
     echo "Install on Ubuntu 19.04 partially supported bye."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported && exit || exit
     exit 1
   fi
-  if [ "${RELEASE}" == "19.10" ]; then
+  if [[ "${RELEASE}" == "19.10" ]]; then
     echo "Install on Ubuntu 19.10 not supported, bye"
     exit 1
   fi
@@ -3293,19 +3319,19 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
 fi
 
 # If Debian is detected, figure out which release it is and run the according scripts
-if [ "${FLAVOUR}" == "debian" ]; then
+if [[ "${FLAVOUR}" == "debian" ]]; then
   CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
-  if [ "${CODE}" == "buster" ]; then
+  if [[ "${CODE}" == "buster" ]]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP=7.3 && exit || exit
   fi
-  if [ "${CODE}" == "sid" ]; then
+  if [[ "${CODE}" == "sid" ]]; then
     echo "Install on Debian unstable not fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP=7.3 && exit || exit
   fi
-  if [ "${CODE}" == "stretch" ]; then
+  if [[ "${CODE}" == "stretch" ]]; then
     echo "Install on Debian stable fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
     installSupported PHP=7.0 && exit || exit
@@ -3315,13 +3341,13 @@ if [ "${FLAVOUR}" == "debian" ]; then
 fi
 
 # If Tsurugi is detected, figure out which release it is and run the according scripts
-if [ "${FLAVOUR}" == "tsurugi" ]; then
+if [[ "${FLAVOUR}" == "tsurugi" ]]; then
   CODE=$(lsb_release -s -c| tr '[:upper:]' '[:lower:]')
-  if [ "${CODE}" == "bamboo" ]; then
+  if [[ "${CODE}" == "bamboo" ]]; then
     echo "Install on Tsurugi Lab partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
   fi
-  if [ "${CODE}" == "soy sauce" ]; then
+  if [[ "${CODE}" == "soy sauce" ]]; then
     echo "Install on Tsurugi Acquire partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
   fi
@@ -3330,7 +3356,7 @@ if [ "${FLAVOUR}" == "tsurugi" ]; then
 fi
 
 # If Kali Linux is detected, run the acccording scripts
-if [ "${FLAVOUR}" == "kali" ]; then
+if [[ "${FLAVOUR}" == "kali" ]]; then
   KALI=1
   kaliOnTheR0ckz
   installMISPonKali
@@ -3339,7 +3365,7 @@ if [ "${FLAVOUR}" == "kali" ]; then
 fi
 
 # If RHEL/CentOS is detected, run appropriate script
-if [ "${FLAVOUR}" == "rhel" ] || [ "${FLAVOUR}" == "centos" ]; then
+if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
   installMISPRHEL
   echo "Installation done !"
   exit
