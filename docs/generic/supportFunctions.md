@@ -252,7 +252,7 @@ checkInstaller () {
 
 # Extract manufacturer
 checkManufacturer () {
-  if [ -z $(which dmidecode) ]; then
+  if [[ -z $(which dmidecode) ]]; then
     checkAptLock
     sudo apt install dmidecode -qy
   fi
@@ -522,20 +522,25 @@ kaliOnTheR0ckz () {
 
 setBaseURL () {
   debug "Setting Base URL"
+
   CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
-  IFACE=`echo $CONN |awk {'print $1'}`
-  IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
-  if [[ "$(checkManufacturer)" != "innotek GmbH" ]] && [[ "$(checkManufacturer)" != "VMware, Inc." ]] && [[ "$(checkManufacturer)" != "QEMU" ]]; then
-    debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
-    if [[ "$UNATTENDED" != "1" ]]; then 
+  IFACE=$(echo $CONN |awk {'print $1'})
+  IP=$(echo $CONN |awk {'print $2'}| cut -f1 -d/)
+
+  [[ -n ${MANUFACTURER} ]] || checkManufacturer
+
+  if [[ "${MANUFACTURER}" != "innotek GmbH" ]] && [[ "$MANUFACTURER" != "VMware, Inc." ]] && [[ "$MANUFACTURER" != "QEMU" ]]; then
+    debug "We guess that this is a physical machine and cannot reliably guess what the MISP_BASEURL might be."
+
+    if [[ "${UNATTENDED}" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
-      ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
-      if [[ "$ANSWER" -eq "y" ]]; then
-        if [[ ! -z $IP ]]; then
-          echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
-          echo "Thus your Base URL could be: https://$IP"
+      ANSWER=$(echo ${ANSWER} |tr '[:upper:]' '[:lower:]')
+      if [[ "${ANSWER}" == "y" ]]; then
+        if [[ ! -z ${IP} ]]; then
+          echo "It seems you have an interface called ${IFACE} UP with the following IP: ${IP} - FYI"
+          echo "Thus your Base URL could be: https://${IP}"
         fi
         echo "Please enter the Base URL, e.g: 'https://example.org'"
         echo ""
@@ -549,17 +554,17 @@ setBaseURL () {
         # Webserver configuration
         FQDN='misp.local'
     fi
-  elif [[ $KALI == "1" ]]; then
+  elif [[ "${KALI}" == "1" ]]; then
     MISP_BASEURL="https://misp.local"
     # Webserver configuration
     FQDN='misp.local'
-  elif [[ "$(checkManufacturer)" == "innotek GmbH" ]]; then
+  elif [[ "${MANUFACTURER}" == "innotek GmbH" ]]; then
     MISP_BASEURL='https://localhost:8443'
     IP=$(ip addr show | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}' |grep -v "127.0.0.1" |tail -1)
     sudo iptables -t nat -A OUTPUT -p tcp --dport 8443 -j DNAT --to ${IP}:443
     # Webserver configuration
     FQDN='localhost.localdomain'
-  elif [[ "$(checkManufacturer)" == "VMware, Inc." ]]; then
+  elif [[ "${MANUFACTURER}" == "VMware, Inc." ]]; then
     MISP_BASEURL='""'
     # Webserver configuration
     FQDN='misp.local'
