@@ -420,9 +420,8 @@ installMISPonKali () {
   sudo phpenmod -v 7.3 redis
   sudo phpenmod -v 7.3 gnupg
 
-  debug "Apache2 ops: dismod: status php7.2 - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
+  debug "Apache2 ops: dismod: status - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
   sudo a2dismod status
-  sudo a2dismod php7.2
   sudo a2enmod ssl rewrite headers php7.3
   sudo a2dissite 000-default
   sudo a2ensite default-ssl
@@ -437,21 +436,20 @@ installMISPonKali () {
   sudo mkdir $PATH_TO_MISP
   sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP
   cd $PATH_TO_MISP
-  $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
+  while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP; done
 
   $SUDO_WWW git config core.filemode false
 
   cd $PATH_TO_MISP
-  $SUDO_WWW git submodule update --init --recursive
+  while [[ $? -ne 0 ]]; do $SUDO_WWW git submodule update --init --recursive; done
   # Make git ignore filesystem permission differences for submodules
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
-  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git
-
+  while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git; done
+  while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git; done
+  while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git; done
+  while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git; done
 
   sudo mkdir /var/www/.cache/
 
@@ -499,7 +497,7 @@ installMISPonKali () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install pydeep
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+  while [[ $? -ne 0 ]]; do $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
 
   # install lief
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
@@ -803,10 +801,6 @@ x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
-x86_64-kali-2019.1
-x86_64-kali-2019.2
-x86_64-kali-2019.3
-x86_64-kali-2019.4
 x86_64-kali-2020.1
 x86_64-kali-2020.2
 x86_64-kali-2020.3
