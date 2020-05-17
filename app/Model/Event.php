@@ -992,34 +992,42 @@ class Event extends AppModel
                 'order' => false,
                 'limit' => $max_correlations
         ));
+        if (empty($correlations)) {
+            return array();
+        }
+
+        $eventIds = [];
+        foreach ($correlations as $correlation) {
+            $eventIds[] = $correlation[$settings[$context]['correlationModel']]['event_id'];
+        }
+
+        $temp = $this->find('all', array(
+            'recursive' => -1,
+            'conditions' => array('Event.id' => $eventIds),
+            'fields' => array('Event.id', 'Event.orgc_id', 'Event.info')
+        ));
+
+        $eventInfo = array();
+        foreach ($temp as $event) {
+            $eventInfo[$event['Event']['id']] = $event['Event'];
+        }
+
         $relatedAttributes = array();
-        $orgc_ids = array();
-        foreach ($correlations as $k => $correlation) {
-            if (empty($orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']])) {
-                $temp = $this->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('Event.id' => $correlation[$settings[$context]['correlationModel']]['event_id']),
-                    'fields' => array('Event.orgc_id')
-                ));
-                if (!empty($temp)) {
-                    $orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']] = $temp['Event']['orgc_id'];
-                }
-            }
+        foreach ($correlations as $correlation) {
+            $correlation = $correlation[$settings[$context]['correlationModel']];
+
             $current = array(
-                    'id' => $correlation[$settings[$context]['correlationModel']]['event_id'],
-                    'attribute_id' => $correlation[$settings[$context]['correlationModel']]['attribute_id'],
-                    'info' => $correlation[$settings[$context]['correlationModel']]['info'],
-                    'value' => $correlation[$settings[$context]['correlationModel']]['value'],
+                'id' => $correlation['event_id'],
+                'attribute_id' => $correlation['attribute_id'],
+                'value' => $correlation['value'],
             );
-            if (!empty($orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']])) {
-                $current['org_id'] = $orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']];
+            if (isset($eventInfo[$correlation['event_id']])) {
+                $current['org_id'] = $eventInfo[$correlation['event_id']]['orgc_id'];
+                $current['info'] = $eventInfo[$correlation['event_id']]['info'];
             } else {
-                $current['org_id'] = 'unknown';
+                $current['org_id'] = 'Unknown';
             }
-            if (empty($relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]]) || !in_array($current, $relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]])) {
-                $relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]][] = $current;
-            }
-            unset($correlations[$k]);
+            $relatedAttributes[$correlation[$settings[$context]['parentIdField']]][] = $current;
         }
         return $relatedAttributes;
     }

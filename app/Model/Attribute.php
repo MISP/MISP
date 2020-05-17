@@ -2095,7 +2095,7 @@ class Attribute extends AppModel
                     'Attribute.value1',
                     'Attribute.value2',
                 ),
-                'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
+                'contain' => array('Event' => array('fields' => array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
                 'order' => array(),
             ));
         }
@@ -2114,8 +2114,6 @@ class Attribute extends AppModel
                         'a_distribution' => $corr['Attribute']['distribution'],
                         'sharing_group_id' => $corr['Event']['sharing_group_id'],
                         'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
-                        'date' => $corr['Event']['date'],
-                        'info' => $corr['Event']['info']
                     );
                     $correlations[] = array(
                         'value' => $correlatingValues[$k],
@@ -2128,8 +2126,6 @@ class Attribute extends AppModel
                         'a_distribution' => $a['distribution'],
                         'sharing_group_id' => $event['Event']['sharing_group_id'],
                         'a_sharing_group_id' => $a['sharing_group_id'],
-                        'date' => $event['Event']['date'],
-                        'info' => $event['Event']['info']
                     );
                 } else {
                     $correlations[] = array(
@@ -2143,8 +2139,6 @@ class Attribute extends AppModel
                         $corr['Attribute']['distribution'],
                         $corr['Event']['sharing_group_id'],
                         $corr['Attribute']['sharing_group_id'],
-                        $corr['Event']['date'],
-                        $corr['Event']['info']
                     );
                     $correlations[] = array(
                         $correlatingValues[$k],
@@ -2157,8 +2151,6 @@ class Attribute extends AppModel
                         $a['distribution'],
                         $event['Event']['sharing_group_id'],
                         $a['sharing_group_id'],
-                        $event['Event']['date'],
-                        $event['Event']['info']
                     );
                 }
             }
@@ -2179,8 +2171,6 @@ class Attribute extends AppModel
             'a_distribution',
             'sharing_group_id',
             'a_sharing_group_id',
-            'date',
-            'info'
         );
         if (Configure::read('MISP.deadlock_avoidance')) {
             $this->Correlation = ClassRegistry::init('Correlation');
@@ -2780,7 +2770,7 @@ class Attribute extends AppModel
             }
             $event = $this->Event->find('first', array(
                     'recursive' => -1,
-                    'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
+                    'fields' => array('Event.distribution', 'Event.id', 'Event.org_id', 'Event.sharing_group_id', 'Event.disable_correlation'),
                     'conditions' => array('id' => $id),
                     'order' => array()
             ));
