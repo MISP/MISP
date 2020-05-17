@@ -1963,11 +1963,29 @@ class Attribute extends AppModel
         if (strpos($ip, '/') !== false) { // IP is CIDR
             $ip_array = explode('/', $ip);
             $ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+            
+            $conditions = array(
+                'type' => array('ip-src', 'ip-dst'),
+                'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
+                'disable_correlation' => 0,
+                'deleted' => 0,
+            );
+
+            if (in_array($this->getDataSource()->config['datasource'], array('Database/Mysql', 'Database/MysqlObserver'))) {
+                // Massive speed up for CIDR correlation. Instead of testing all in PHP, database can do that work much
+                // faster. But these methods are just supported by MySQL.
+                if ($ip_version === 4) {
+                    $startIp = ip2long($ip_array[0]) & ((-1 << (32 - $ip_array[1])));
+                    $endIp = $startIp + pow(2, (32 - $ip_array[1])) - 1;
+                    // Just fetch IP address that fit in CIDR range.
+                    $conditions['INET_ATON(value1) BETWEEN ? AND ?'] = array($startIp, $endIp);
+                } else {
+                    $conditions[] = 'IS_IPV6(value1)';
+                }
+            }
+
             $ipList = $this->find('list', array(
-                'conditions' => array(
-                    'type' => array('ip-src', 'ip-dst'),
-                    'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
-                ),
+                'conditions' => $conditions,
                 'group' => 'value1', // return just unique values
                 'fields' => array('value1'),
                 'order' => false
