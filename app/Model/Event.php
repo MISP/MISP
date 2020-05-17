@@ -635,12 +635,6 @@ class Event extends AppModel
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
             $this->Correlation = ClassRegistry::init('Correlation');
             $db = $this->getDataSource();
-            if (isset($this->data['Event']['date'])) {
-                $this->Correlation->updateAll(array('Correlation.date' => $db->value($this->data['Event']['date'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
-            }
-            if (isset($this->data['Event']['info'])) {
-                $this->Correlation->updateAll(array('Correlation.info' => $db->value($this->data['Event']['info'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
-            }
             if (isset($this->data['Event']['distribution'])) {
                 $this->Correlation->updateAll(array('Correlation.distribution' => $db->value($this->data['Event']['distribution'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
             }
