@@ -45,7 +45,6 @@ bash /tmp/INSTALL.sh -c
 aptUpgrade () {
   debug "Upgrading system"
   checkAptLock
-  sudo apt-get update
 
   # If we run in non-interactive mode, make sure we do not stop all of a sudden
   if [[ "${PACKER}" == "1" || "${UNATTENDED}" == "1" ]]; then
@@ -110,7 +109,7 @@ installDepsPhp72 () {
   debug "Installing PHP 7.2 dependencies"
   PHP_ETC_BASE=/etc/php/7.2
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
+  checkAptLock
   sudo apt install -qy \
   libapache2-mod-php \
   php php-cli \
