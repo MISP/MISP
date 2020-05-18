@@ -957,7 +957,7 @@ class MispObject extends AppModel
         return 'fail';
     }
 
-    public function editObject($object, $eventId, $user, $log)
+    public function editObject($object, $eventId, $user, $log, $force = false)
     {
         $object['event_id'] = $eventId;
         if (isset($object['uuid'])) {
@@ -983,7 +983,7 @@ class MispObject extends AppModel
                     return true;
                 }
                 if (isset($object['timestamp'])) {
-                    if ($existingObject['Object']['timestamp'] >= $object['timestamp']) {
+                    if ($force || $existingObject['Object']['timestamp'] >= $object['timestamp']) {
                         return true;
                     }
                 } else {
@@ -1033,7 +1033,7 @@ class MispObject extends AppModel
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
-                $result = $this->Attribute->editAttribute($attribute, $eventId, $user, $object['id'], $log);
+                $result = $this->Attribute->editAttribute($attribute, $eventId, $user, $object['id'], $log, $force);
             }
         }
         return true;

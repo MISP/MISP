@@ -99,7 +99,7 @@
                         );
                         $popoverHTML = '';
                         foreach ($popover as $key => $popoverElement) {
-                            $popoverHTML .= '<span class=\'bold\'>' . $key . '</span>: <span class=\'blue bold\'>' . $popoverElement . '</span><br />';
+                            $popoverHTML .= '<span class=\'bold\'>' . $key . '</span>: <span class=\'blue bold\'>' . h($popoverElement) . '</span><br />';
                         }
                 ?>
                         <a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
