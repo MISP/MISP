@@ -191,7 +191,7 @@ class Feed extends AppModel
     private function downloadManifest($feed, $HttpSocket)
     {
         $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
-        $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket);
+        $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket, true);
 
         $manifest = json_decode($data, true);
         if ($manifest === null) {

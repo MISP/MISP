@@ -1261,6 +1261,15 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                        'do_not_log_authkeys' => array(
+                            'level' => 0,
+                            'description' => __('If enabled, any authkey will be replaced by asterisks in Audit log.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'email_otp_enabled' => array(
                                 'level'=> 2,
                                 'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
