@@ -139,8 +139,8 @@ class StixParser():
         return {feature: value}
 
     def parse_relationships(self):
-        attribute_uuids = (attribute.uuid for attribute in self.misp_event.attributes)
-        object_uuids = (object.uuid for object in self.misp_event.objects)
+        attribute_uuids = tuple(attribute.uuid for attribute in self.misp_event.attributes)
+        object_uuids = tuple(object.uuid for object in self.misp_event.objects)
         for source, references in self.relationship.items():
             if source in self.galaxy:
                 continue
