@@ -5245,7 +5245,7 @@ class EventsController extends AppController
 
     public function toggleCorrelation($id)
     {
-        if (!$this->_isSiteAdmin() && Configure.read('MISP.allow_disabling_correlation')) {
+        if (!$this->_isSiteAdmin() && !Configure::read('MISP.allow_disabling_correlation')) {
             throw new MethodNotAllowedException(__('Disabling the correlation is not permitted on this instance.'));
         }
         $this->Event->id = $id;
