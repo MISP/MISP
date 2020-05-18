@@ -992,13 +992,15 @@ class ServersController extends AppController
             if ($tab == 'diagnostics' || $tab == 'download' || $this->_isRest()) {
                 $php_ini = php_ini_loaded_file();
                 $this->set('php_ini', $php_ini);
-                $advanced_attachments = shell_exec($this->Server->getPythonVersion() . ' ' . APP . 'files/scripts/generate_file_objects.py -c');
 
+                $malwareTool = new MalwareTool();
                 try {
-                    $advanced_attachments = json_decode($advanced_attachments, true);
+                    $advanced_attachments = $malwareTool->checkAdvancedExtractionStatus($this->Server->getPythonVersion());
                 } catch (Exception $e) {
+                    $this->log($e->getMessage(), LOG_NOTICE);
                     $advanced_attachments = false;
                 }
+
                 $this->set('advanced_attachments', $advanced_attachments);
                 // check if the current version of MISP is outdated or not
                 $version = $this->__checkVersion();
@@ -1622,6 +1624,7 @@ class ServersController extends AppController
         $result = $pubSubTool->statusCheck();
         if (!empty($result)) {
             $this->set('events', $result['publishCount']);
+            $this->set('messages', $result['messageCount']);
             $this->set('time', date('Y/m/d H:i:s', $result['timestamp']));
             $this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
         }

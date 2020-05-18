@@ -20,7 +20,7 @@ bash /tmp/INSTALL.sh -c
 ### 0/ MISP Ubuntu 20.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20200427
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20200501
 
 !!! notice
     This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
@@ -167,8 +167,6 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd $PATH_TO_MISP/app/files/scripts/python-maec
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
-  # FIXME: Remove once stix-fixed
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
@@ -176,6 +174,23 @@ installCore () {
   # install PyMISP
   cd ${PATH_TO_MISP}/PyMISP
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  # FIXME: Remove libfaup etc once the egg has the library baked-in
+  sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+  cd /tmp
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+  cd gtcaca
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  cd ../../faup
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  sudo ldconfig
 
   # install pydeep
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git

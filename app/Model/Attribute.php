@@ -5,6 +5,7 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FinancialTool', 'Tools');
 App::uses('RandomTool', 'Tools');
+App::uses('MalwareTool', 'Tools');
 
 class Attribute extends AppModel
 {
@@ -400,20 +401,21 @@ class Attribute extends AppModel
     );
 
     public $validFormats = array(
-        'json' => array('json', 'JsonExport', 'json'),
-        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
-        'xml' => array('xml', 'XmlExport', 'xml'),
-        'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
-        'snort' => array('txt', 'NidsSnortExport', 'rules'),
-        'text' => array('txt', 'TextExport', 'txt'),
-        'hashes' => array('txt', 'HashesExport', 'txt'),
-        'yara' => array('txt', 'YaraExport', 'yara'),
-        'yara-json' => array('json', 'YaraExport', 'json'),
-        'rpz' => array('txt', 'RPZExport', 'rpz'),
-        'csv' => array('csv', 'CsvExport', 'csv'),
-        'cache' => array('txt', 'CacheExport', 'cache'),
         'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
-        'netfilter' => array('txt', 'NetfilterExport', 'sh')
+        'cache' => array('txt', 'CacheExport', 'cache'),
+        'csv' => array('csv', 'CsvExport', 'csv'),
+        'hashes' => array('txt', 'HashesExport', 'txt'),
+        'json' => array('json', 'JsonExport', 'json'),
+        'netfilter' => array('txt', 'NetfilterExport', 'sh'),
+        'opendata' => array('txt', 'OpendataExport', 'txt'),
+        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
+        'rpz' => array('txt', 'RPZExport', 'rpz'),
+        'snort' => array('txt', 'NidsSnortExport', 'rules'),
+        'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
+        'text' => array('txt', 'TextExport', 'txt'),
+        'xml' => array('xml', 'XmlExport', 'xml'),
+        'yara' => array('txt', 'YaraExport', 'yara'),
+        'yara-json' => array('json', 'YaraExport', 'json')
     );
 
     // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
@@ -658,20 +660,10 @@ class Attribute extends AppModel
 
     private function __alterAttributeCount($event_id, $increment = true)
     {
-        $event = $this->Event->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Event.id' => $event_id)
-        ));
-        if (!empty($event)) {
-            if ($increment) {
-                $event['Event']['attribute_count'] = $event['Event']['attribute_count'] + 1;
-            } else {
-                $event['Event']['attribute_count'] = $event['Event']['attribute_count'] - 1;
-            }
-            if ($event['Event']['attribute_count'] >= 0) {
-                $this->Event->save($event, array('callbacks' => false));
-            }
-        }
+        return $this->Event->updateAll(
+            array('Event.attribute_count' => $increment ? 'Event.attribute_count+1' : 'GREATEST(Event.attribute_count-1, 0)'),
+            array('Event.id' => $event_id)
+        );
     }
 
     public function afterSave($created, $options = array())
@@ -691,14 +683,14 @@ class Attribute extends AppModel
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
             $this->__beforeSaveCorrelation($this->data['Attribute']);
             if (isset($this->data['Attribute']['event_id'])) {
-                $this->__alterAttributeCount($this->data['Attribute']['event_id'], false, $passedEvent);
+                $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
             }
         } else {
             /*
              * Only recorrelate if:
              * - We are dealing with a new attribute OR
              * - The existing attribute's previous state is known AND
-             *   value, type or disable correlation have changed
+             *   value, type, disable correlation or distribution have changed
              * This will avoid recorrelations when it's not really needed, such as adding a tag
              */
             if (!$created) {
@@ -706,7 +698,9 @@ class Attribute extends AppModel
                     empty($this->old) ||
                     $this->data['Attribute']['value'] != $this->old['Attribute']['value'] ||
                     $this->data['Attribute']['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
-                    $this->data['Attribute']['type'] != $this->old['Attribute']['type']
+                    $this->data['Attribute']['type'] != $this->old['Attribute']['type'] ||
+                    $this->data['Attribute']['distribution'] != $this->old['Attribute']['distribution'] ||
+                    $this->data['Attribute']['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
                 ) {
                     $this->__beforeSaveCorrelation($this->data['Attribute']);
                     $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
@@ -757,7 +751,7 @@ class Attribute extends AppModel
                 }
             }
         }
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst')) && strpos($this->data['Attribute']['value'], '/')) {
             $this->setCIDRList();
         }
         if ($created && isset($this->data['Attribute']['event_id']) && empty($this->data['Attribute']['skip_auto_increment'])) {
@@ -810,7 +804,7 @@ class Attribute extends AppModel
 
     public function afterDelete()
     {
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst')) && strpos($this->data['Attribute']['value'], '/')) {
             $this->setCIDRList();
         }
         if (isset($this->data['Attribute']['event_id'])) {
@@ -1497,8 +1491,8 @@ class Attribute extends AppModel
                 if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                     // convert IPv6 address to compressed format
                     $parts[1] = inet_ntop(inet_pton($value));
-                    $value = implode('|', $parts);
                 }
+                $value = implode('|', $parts);
                 break;
             case 'filename|md5':
             case 'filename|sha1':
@@ -1932,67 +1926,46 @@ class Attribute extends AppModel
         return ($ip & $mask) == $subnet;
     }
 
-    // using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
+    // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
     private function __ipv6InCidr($ip, $cidr)
     {
-        $ip = $this->__expandIPv6Notation($ip);
-        $binaryip = $this->__inet_to_bits($ip);
-        list($net, $maskbits) = explode('/', $cidr);
-        $net = $this->__expandIPv6Notation($net);
-        if (substr($net, -1) == ':') {
-            $net .= '0';
-        }
-        $binarynet = $this->__inet_to_bits($net);
-        $ip_net_bits = substr($binaryip, 0, $maskbits);
-        $net_bits = substr($binarynet, 0, $maskbits);
-        return ($ip_net_bits === $net_bits);
-    }
+        list($address, $netmask) = explode('/', $cidr);
 
-    private function __expandIPv6Notation($ip)
-    {
-        if (strpos($ip, '::') !== false) {
-            $ip = str_replace('::', str_repeat(':0', 8 - substr_count($ip, ':')).':', $ip);
-        }
-        if (strpos($ip, ':') === 0) {
-            $ip = '0'.$ip;
-        }
-        return $ip;
-    }
+        $bytesAddr = unpack('n*', inet_pton($address));
+        $bytesTest = unpack('n*', inet_pton($ip));
 
-    private function __inet_to_bits($inet)
-    {
-        $unpacked = unpack('A16', $inet);
-        $unpacked = str_split($unpacked[1]);
-        $binaryip = '';
-        foreach ($unpacked as $char) {
-            $binaryip .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+        for ($i = 1, $ceil = ceil($netmask / 16); $i <= $ceil; ++$i) {
+            $left = $netmask - 16 * ($i - 1);
+            $left = ($left <= 16) ? $left : 16;
+            $mask = ~(0xffff >> $left) & 0xffff;
+            if (($bytesAddr[$i] & $mask) != ($bytesTest[$i] & $mask)) {
+                return false;
+            }
         }
-        return $binaryip;
+
+        return true;
     }
 
     private function __cidrCorrelation($a)
     {
         $ipValues = array();
-        $ip = $a['type'] == 'domain-ip' ? $a['value2'] : $a['value1'];
-        if (strpos($ip, '/') !== false) {
+        $ip = $a['value1'];
+        if (strpos($ip, '/') !== false) { // IP is CIDR
             $ip_array = explode('/', $ip);
             $ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $ipList = $this->find('list', array(
                 'conditions' => array(
-                    'type' => array('ip-src', 'ip-dst', 'domain_ip'),
+                    'type' => array('ip-src', 'ip-dst'),
+                    'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
                 ),
-                'fields' => array('value1', 'value2'),
+                'group' => 'value1', // return just unique values
+                'fields' => array('value1'),
                 'order' => false
             ));
-            $ipList = array_merge(array_keys($ipList), array_values($ipList));
-            foreach ($ipList as $key => $value) {
-                if ($value == '') {
-                    unset($ipList[$key]);
-                }
-            }
             foreach ($ipList as $ipToCheck) {
-                if (filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && $ip_version == 4) {
-                    if ($ip_version == 4) {
+                $ipToCheckVersion = filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+                if ($ipToCheckVersion === $ip_version) {
+                    if ($ip_version === 4) {
                         if ($this->__ipv4InCidr($ipToCheck, $ip)) {
                             $ipValues[] = $ipToCheck;
                         }
@@ -2004,19 +1977,18 @@ class Attribute extends AppModel
                 }
             }
         } else {
-            $ip = $a['value1'];
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $cidrList = $this->getSetCIDRList();
             foreach ($cidrList as $cidr) {
                 $cidr_ip = explode('/', $cidr)[0];
                 if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    if ($ip_version == 4) {
+                    if ($ip_version === 4) {
                         if ($this->__ipv4InCidr($ip, $cidr)) {
                             $ipValues[] = $cidr;
                         }
                     }
                 } else {
-                    if ($ip_version == 6) {
+                    if ($ip_version === 6) {
                         if ($this->__ipv6InCidr($ip, $cidr)) {
                             $ipValues[] = $cidr;
                         }
@@ -2052,7 +2024,7 @@ class Attribute extends AppModel
             if (!empty($event['Event']['disable_correlation']) && $event['Event']['disable_correlation']) {
                 return true;
             }
-            if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'domain-ip'))) {
+            if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst'))) {
                 $extraConditions = $this->__cidrCorrelation($a);
             }
             if ($a['type'] == 'ssdeep') {
@@ -3567,63 +3539,40 @@ class Attribute extends AppModel
         if (!is_numeric($event_id)) {
             throw new Exception(__('Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample.'));
         }
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->getDefaultAttachments_dir();
+
+        $content = base64_decode($base64);
+
+        $malwareTool = new MalwareTool();
+        $hashes = $malwareTool->computeHashes($content, $hash_types);
+        try {
+            $encrypted = $malwareTool->encrypt($original_filename, $content, $hashes['md5']);
+        } catch (Exception $e) {
+            $this->logException("Could not create encrypted malware sample.", $e);
+            return array('success' => false);
         }
 
-        // If we've set attachments to S3, we can't write there
-        if ($this->attachmentDirIsS3()) {
-            $attachments_dir = Configure::read('MISP.tmpdir');
-            // Sometimes it's not set?
-            if (empty($attachments_dir)) {
-                // Get a default tmpdir
-                $attachments_dir = $this->getDefaultTmp_dir();
-            }
-        }
-
-        if ($proposal) {
-            $dir = new Folder($attachments_dir . DS . $event_id . DS . 'shadow', true);
-        } else {
-            $dir = new Folder($attachments_dir . DS . $event_id, true);
-        }
-        $tmpFile = new File($dir->path . DS . $this->generateRandomFileName(), true, 0600);
-        $tmpFile->write(base64_decode($base64));
-        $hashes = array();
-        foreach ($hash_types as $hash) {
-            $hashes[$hash] = $this->__hashRouter($hash, $tmpFile->path);
-        }
-        $contentsFile = new File($dir->path . DS . $hashes['md5']);
-        rename($tmpFile->path, $contentsFile->path);
-        $fileNameFile = new File($dir->path . DS . $hashes['md5'] . '.filename.txt');
-        $fileNameFile->write($original_filename);
-        $fileNameFile->close();
-        $zipFile = new File($dir->path . DS . $hashes['md5'] . '.zip');
-        exec('zip -j -P infected ' . escapeshellarg($zipFile->path) . ' ' . escapeshellarg($contentsFile->path) . ' ' . escapeshellarg($fileNameFile->path), $execOutput, $execRetval);
-        if ($execRetval != 0) {
-            $result = array('success' => false);
-        } else {
-            $result = array_merge(array('data' => base64_encode($zipFile->read()), 'success' => true), $hashes);
-        }
-        $fileNameFile->delete();
-        $zipFile->delete();
-        $contentsFile->delete();
+        $result = array_merge(array('data' => base64_encode($encrypted), 'success' => true), $hashes);
         return $result;
     }
 
-    private function __hashRouter($hashType, $file)
+    /**
+     * @return bool Return true if at least one advanced extraction tool is available
+     */
+    public function isAdvancedExtractionAvailable()
     {
-        $validHashes = array('md5', 'sha1', 'sha256');
-        if (!in_array($hashType, $validHashes)) {
+        $malwareTool = new MalwareTool();
+        try {
+            $types = $malwareTool->checkAdvancedExtractionStatus($this->getPythonVersion());
+        } catch (Exception $e) {
             return false;
         }
-        switch ($hashType) {
-            case 'md5':
-            case 'sha1':
-            case 'sha256':
-                return hash_file($hashType, $file);
-                break;
+
+        foreach ($types as $type => $missing) {
+            if ($missing === false) {
+                return true;
+            }
         }
+
         return false;
     }
 
@@ -3865,6 +3814,7 @@ class Attribute extends AppModel
                 'value1 LIKE' => '%/%'
             ),
             'fields' => array('value1'),
+            'group' => 'value1', // return just unique value
             'order' => false
         ));
     }
@@ -3876,12 +3826,15 @@ class Attribute extends AppModel
         if ($redis) {
             $redis->del('misp:cidr_cache_list');
             $cidrList = $this->__getCIDRList();
-            $pipeline = $redis->multi(Redis::PIPELINE);
-            foreach ($cidrList as $cidr) {
-                $pipeline->sadd('misp:cidr_cache_list', $cidr);
+            if (method_exists($redis, 'saddArray')) {
+                $redis->sAddArray('misp:cidr_cache_list', $cidrList);
+            } else {
+                $pipeline = $redis->multi(Redis::PIPELINE);
+                foreach ($cidrList as $cidr) {
+                    $pipeline->sadd('misp:cidr_cache_list', $cidr);
+                }
+                $pipeline->exec();
             }
-            $pipeline->exec();
-            $redis->smembers('misp:cidr_cache_list');
         }
         return $cidrList;
     }
@@ -3890,8 +3843,8 @@ class Attribute extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis) {
-            if (!$redis->exists('misp:cidr_cache_list') || $redis->sCard('misp:cidr_cache_list') == 0) {
-                $cidrList = $this->setCIDRList($redis);
+            if ($redis->sCard('misp:cidr_cache_list') === 0) {
+                $cidrList = $this->setCIDRList();
             } else {
                 $cidrList = $redis->smembers('misp:cidr_cache_list');
             }
@@ -3931,7 +3884,7 @@ class Attribute extends AppModel
             'size-in-bytes' => array('type' => 'size-in-bytes', 'category' => 'Other', 'to_ids' => 0, 'disable_correlation' => 1, 'object_relation' => 'size-in-bytes')
         );
         $hashes = array('md5', 'sha1', 'sha256');
-        $this->Object = ClassRegistry::init('Object');
+        $this->Object = ClassRegistry::init('MispObject');
         $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
         $current = $this->ObjectTemplate->find('first', array(
             'fields' => array('MAX(version) AS version', 'uuid'),
@@ -3970,7 +3923,7 @@ class Attribute extends AppModel
             'event_id' => $event_id,
             'comment' => !empty($attribute_settings['comment']) ? $attribute_settings['comment'] : ''
         );
-        $result = $this->Event->Attribute->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
+        $result = $this->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
         foreach ($attributes as $k => $v) {
             $attribute = array(
                 'distribution' => 5,
@@ -4001,33 +3954,34 @@ class Attribute extends AppModel
 
     public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile)
     {
-        $execRetval = '';
-        $execOutput = array();
-        $result = shell_exec($this->getPythonVersion() . ' ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
-        if (!empty($result)) {
-            $result = json_decode($result, true);
-            if (isset($result['objects'])) {
-                $result['Object'] = $result['objects'];
-                unset($result['objects']);
-            }
-            if (isset($result['references'])) {
-                $result['ObjectReference'] = $result['references'];
-                unset($result['references']);
-            }
-            foreach ($result['Object'] as $k => $object) {
-                $result['Object'][$k]['distribution'] = $attribute_settings['distribution'];
-                $result['Object'][$k]['sharing_group_id'] = isset($attribute_settings['distribution']) ? $attribute_settings['distribution'] : 0;
-                if (!empty($result['Object'][$k]['Attribute'])) {
-                    foreach ($result['Object'][$k]['Attribute'] as $k2 => $attribute) {
-                        if ($attribute['value'] == $tmpfile->name) {
-                            $result['Object'][$k]['Attribute'][$k2]['value'] = $filename;
-                        }
+        $malwareTool = new MalwareTool();
+        try {
+            $result = $malwareTool->advancedExtraction($this->getPythonVersion(), $tmpfile->path);
+        } catch (Exception $e) {
+            $this->logException("Could not finish advanced extraction", $e);
+            return $this->simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile);
+        }
+
+        if (isset($result['objects'])) {
+            $result['Object'] = $result['objects'];
+            unset($result['objects']);
+        }
+        if (isset($result['references'])) {
+            $result['ObjectReference'] = $result['references'];
+            unset($result['references']);
+        }
+        foreach ($result['Object'] as $k => $object) {
+            $result['Object'][$k]['distribution'] = $attribute_settings['distribution'];
+            $result['Object'][$k]['sharing_group_id'] = isset($attribute_settings['distribution']) ? $attribute_settings['distribution'] : 0;
+            if (!empty($result['Object'][$k]['Attribute'])) {
+                foreach ($result['Object'][$k]['Attribute'] as $k2 => $attribute) {
+                    if ($attribute['value'] == $tmpfile->name) {
+                        $result['Object'][$k]['Attribute'][$k2]['value'] = $filename;
                     }
                 }
             }
-        } else {
-            $result = $this->simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile);
         }
+
         return $result;
     }
 
@@ -4142,7 +4096,7 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false)
+    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false, $force = false)
     {
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId;
@@ -4186,7 +4140,7 @@ class Attribute extends AppModel
                 // If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
                 // Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
                 if (isset($attribute['timestamp'])) {
-                    if ($attribute['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
+                    if (!$force && $attribute['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
                         return true;
                     }
                 } else {
@@ -4435,7 +4389,8 @@ class Attribute extends AppModel
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
-                    'published' => array('function' => 'set_filter_published')
+                    'published' => array('function' => 'set_filter_published'),
+                    'threat_level_id' => array('function' => 'set_filter_threat_level_id')
                 ),
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),
@@ -4466,6 +4421,9 @@ class Attribute extends AppModel
         }
         App::uses($this->validFormats[$returnFormat][1], 'Export');
         $exportTool = new $this->validFormats[$returnFormat][1]();
+        if (!empty($exportTool->use_default_filters)) {
+            $exportTool->setDefaultFilters($filters);
+        }
         if (empty($exportTool->non_restrictive_export)) {
             if (!isset($filters['to_ids'])) {
                 $filters['to_ids'] = 1;
@@ -4576,7 +4534,9 @@ class Attribute extends AppModel
             $loop = true;
             $params['page'] = 1;
         }
-        $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+        if (empty($exportTool->mock_query_only)) {
+            $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+        }
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
         fseek($tmpfile, 0);
         if (fstat($tmpfile)['size']) {
@@ -4647,5 +4607,29 @@ class Attribute extends AppModel
             }
         }
         return $conditions;
+    }
+
+    /**
+     * @param array $attribute
+     */
+    public function removeGalaxyClusterTags(array &$attribute)
+    {
+        $galaxyTagIds = array();
+        foreach ($attribute['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
+                $galaxyTagIds[$galaxyCluster['tag_id']] = true;
+            }
+        }
+
+        if (empty($galaxyTagIds)) {
+            return;
+        }
+
+        foreach ($attribute['AttributeTag'] as $k => $attributeTag) {
+            $tagId = $attributeTag['Tag']['id'];
+            if (isset($galaxyTagIds[$tagId])) {
+                unset($attribute['AttributeTag'][$k]);
+            }
+        }
     }
 }
