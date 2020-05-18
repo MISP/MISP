@@ -307,23 +307,21 @@ class ServerShell extends AppShell
             $result = false;
         }
 
-        $this->Job->id = $jobId;
-        if ($result !== true) {
-            $message = 'Job failed. See logs for more details.';
-            $this->Job->save(array(
-                    'id' => $jobId,
-                    'message' => $message,
-                    'progress' => 0,
-                    'status' => 3
-            ));
+        if ($result === false) {
+            $message = __('Job failed. See error logs for more details.');
+            $this->saveJobStatus($jobId, true, $message);
+
         } else {
-            $message = 'Job done.';
-            $this->Job->save(array(
-                    'id' => $jobId,
-                    'message' => $message,
-                    'progress' => 100,
-                    'status' => 4
-            ));
+            $total = $result['successes'] + $result['fails'];
+            $message = __n(
+                '%s feed from %s cached. Failed: %s',
+                '%s feeds from %s cached. Failed: %s',
+                $result['successes'], $total, $result['fails']
+            );
+            if ($result['fails'] > 0) {
+                $message .= ' ' . __('See error logs for more details.');
+            }
+            $this->saveJobStatus($jobId, false, $message);
         }
         echo $message . PHP_EOL;
     }
@@ -466,18 +464,22 @@ class ServerShell extends AppShell
             CakeLog::error($e->getMessage());
             $result = false;
         }
-        if ($result) {
-            $this->Job->save(array(
-                'message' => 'Job done.',
-                'progress' => 100,
-                'status' => 4
-            ));
+
+        if ($result === false) {
+            $message = __('Job failed. See error logs for more details.');
+            $this->saveJobStatus($jobId, true, $message);
+
         } else {
-            $this->Job->save(array(
-                'message' => 'Job failed. See logs for more details.',
-                'progress' => 100,
-                'status' => 3,
-            ));
+            $total = $result['successes'] + $result['fails'];
+            $message = __n(
+                '%s feed from %s cached. Failed: %s',
+                '%s feeds from %s cached. Failed: %s',
+                $result['successes'], $total, $result['fails']
+            );
+            if ($result['fails'] > 0) {
+                $message .= ' ' . __('See error logs for more details.');
+            }
+            $this->saveJobStatus($jobId, false, $message);
         }
 
         $this->Task->id = $task['Task']['id'];
@@ -521,5 +523,22 @@ class ServerShell extends AppShell
         }
         $this->Task->id = $task['Task']['id'];
         $this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');
+    }
+
+    /**
+     * @param int $jobId
+     * @param bool $failed
+     * @param string $message
+     * @return mixed
+     */
+    private function saveJobStatus($jobId, $failed, $message)
+    {
+        $this->Job->id = $jobId;
+        return $this->Job->save(array(
+            'id' => $jobId,
+            'message' => $message,
+            'progress' => $failed ? 0 : 100,
+            'status' => $failed ? 3 : 4,
+        ));
     }
 }
