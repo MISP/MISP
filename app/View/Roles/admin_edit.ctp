@@ -41,7 +41,11 @@
         <?php
                     echo $this->Form->input($k, array(
                         'type' => 'checkbox',
-                        'class' => 'checkbox ' . ($flag['readonlyenabled'] ? 'readonlyenabled' : 'readonlydisabled'),
+                        'class' => sprintf(
+                            'checkbox %s %s',
+                            ($flag['readonlyenabled'] ? 'readonlyenabled' : 'readonlydisabled'),
+                            empty($flag['site_admin_optional']) ? 'site_admin_enforced' : 'site_admin_optional'
+                        ),
                         'label' => Inflector::humanize(substr($k, 5))
                     ));
                     if ($counter%3 == 0) echo "<div class = 'input clear'></div>";

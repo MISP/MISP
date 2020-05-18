@@ -364,7 +364,11 @@ class FeedsController extends AppController
                 }
             }
             if (!isset($this->request->data['Feed']['settings'])) {
-                $this->request->data['Feed']['settings'] = array();
+                if (!empty($this->Feed->data['Feed']['settings'])) {
+                    $this->request->data['Feed']['settings'] = $this->Feed->data['Feed']['settings'];
+                } else {
+                    $this->request->data['Feed']['settings'] = array();
+                }
             } else {
                 if (!empty($this->request->data['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($this->request->data['Feed']['settings']['common']['excluderegex'])) {
                     $this->Flash->error('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');

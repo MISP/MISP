@@ -2374,7 +2374,7 @@ class UsersController extends AppController
                 $requestObject['message'] = '';
             }
             if (empty($requestObject['email'])) {
-                throw new InvalidArgumentException(__('We require at least the email field to be filled.'));
+                throw new BadRequestException(__('We require at least the email field to be filled.'));
             }
             $this->loadModel('Inbox');
             $this->Inbox->create();
@@ -2473,8 +2473,13 @@ class UsersController extends AppController
                 $id = $this->params['named']['id'];
             }
             $this->loadModel('Inbox');
-            if (Validation::uuid($id)) {
-                $id = $this->Toolbox->findIdByUuid($this->Inbox, $id);
+            if (!is_array($id)) {
+                $id = array($id);
+            }
+            foreach ($id as $k => $v) {
+                if (Validation::uuid($v)) {
+                    $id[$k] = $this->Toolbox->findIdByUuid($this->Inbox, $v);
+                }
             }
             $registrations = $this->Inbox->find('all', array(
                 'recursive' => -1,
@@ -2499,7 +2504,7 @@ class UsersController extends AppController
                 $this->Log->save(array(
                     'org' => $this->Auth->user('Organisation')['name'],
                     'model' => 'User',
-                    'model_id' => $id,
+                    'model_id' => 0,
                     'email' => $this->Auth->user('email'),
                     'action' => 'discardRegistrations',
                     'title' => $message,
@@ -2565,6 +2570,9 @@ class UsersController extends AppController
                     'perm_admin' => $role['Role']['perm_admin']
                 );
             }
+            if (empty($this->request->data['User'])) {
+                $this->request->data = array('User' => $this->request->data);
+            }
             if (!empty($default_role)) {
                 $this->request->data['User']['role_id'] = $default_role['Role']['id'];
             }
@@ -2591,11 +2599,11 @@ class UsersController extends AppController
                 if (!empty($default_role)) {
                     $this->request->data['User']['role_id'] = $default_role['Role']['id'];
                 } else {
-                    throw new InvalidArgumentException(__('Role ID not provided and no default role exist on the instance'));
+                    throw new BadRequestException(__('Role ID not provided and no default role exist on the instance'));
                 }
             }
             if (!isset($this->request->data['User']['org_id'])) {
-                throw new InvalidArgumentException(__('No organisation selected. Supply an Organisation ID'));
+                throw new BadRequestException(__('No organisation selected. Supply an Organisation ID'));
             } else {
                 if (Validation::uuid($this->request->data['User']['org_id'])) {
                     $id = $this->Toolbox->findIdByUuid($this->User->Organisation, $this->request->data['User']['org_id']);

@@ -1261,6 +1261,15 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                        'do_not_log_authkeys' => array(
+                            'level' => 0,
+                            'description' => __('If enabled, any authkey will be replaced by asterisks in Audit log.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'email_otp_enabled' => array(
                                 'level'=> 2,
                                 'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
@@ -1804,6 +1813,24 @@ class Server extends AppModel
                             'errorMessage' => '',
                             'test' => 'testForZMQPortNumber',
                             'type' => 'numeric',
+                            'afterHook' => 'zmqAfterHook',
+                        ),
+                        'ZeroMQ_username' => array(
+                            'level' => 2,
+                            'description' => __('The username that client need to use to connect to ZeroMQ.'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
+                            'afterHook' => 'zmqAfterHook',
+                        ),
+                        'ZeroMQ_password' => array(
+                            'level' => 2,
+                            'description' => __('The password that client need to use to connect to ZeroMQ.'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
                             'afterHook' => 'zmqAfterHook',
                         ),
                         'ZeroMQ_redis_host' => array(
@@ -2364,11 +2391,11 @@ class Server extends AppModel
         return true;
     }
 
-    private function __getEventIdListBasedOnPullTechnique($technique, $server)
+    private function __getEventIdListBasedOnPullTechnique($technique, $server, $force = false)
     {
         if ("full" === $technique) {
             // get a list of the event_ids on the server
-            $eventIds = $this->getEventIdsFromServer($server);
+            $eventIds = $this->getEventIdsFromServer($server, false, null, false, false, 'events', $force);
             if ($eventIds === 403) {
                 return array('error' => array(1, null));
             } elseif (is_string($eventIds)) {
@@ -2380,7 +2407,7 @@ class Server extends AppModel
                 $eventIds = array_reverse($eventIds);
             }
         } elseif ("update" === $technique) {
-            $eventIds = $this->getEventIdsFromServer($server, false, null, true, true);
+            $eventIds = $this->getEventIdsFromServer($server, false, null, true, true, 'events', $force);
             if ($eventIds === 403) {
                 return array('error' => array(1, null));
             } elseif (is_string($eventIds)) {
@@ -2475,7 +2502,7 @@ class Server extends AppModel
         return false;
     }
 
-    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId)
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
     {
         // check if the event already exist (using the uuid)
         $existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
@@ -2492,7 +2519,7 @@ class Server extends AppModel
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
-                $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong);
+                $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
                     $successes[] = $eventId;
                 } elseif (isset($result['error'])) {
@@ -2504,7 +2531,7 @@ class Server extends AppModel
         }
     }
 
-    private function __pullEvent($eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId)
+    private function __pullEvent($eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
     {
         $event = $eventModel->downloadEventFromServer(
                 $eventId,
@@ -2519,7 +2546,7 @@ class Server extends AppModel
             if (!$this->__checkIfEventSaveAble($event)) {
                 $fails[$eventId] = __('Empty event detected.');
             } else {
-                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+                $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
             }
         } else {
             // error
@@ -2584,7 +2611,7 @@ class Server extends AppModel
         return $pulledProposals;
     }
 
-    public function pull($user, $id = null, $technique=false, $server, $jobId = false)
+    public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
     {
         if ($jobId) {
             $job = ClassRegistry::init('Job');
@@ -2598,7 +2625,7 @@ class Server extends AppModel
         $eventIds = array();
         // if we are downloading a single event, don't fetch all proposals
         $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
-        $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
+        $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
         $server['Server']['version'] = $this->getRemoteVersion($id);
         if (!empty($eventIds['error'])) {
             $errors = array(
@@ -2627,7 +2654,7 @@ class Server extends AppModel
         if (!empty($eventIds)) {
             // download each event
             foreach ($eventIds as $k => $eventId) {
-                $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+                $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
                 if ($jobId) {
                     if ($k % 10 == 0) {
                         $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
@@ -2740,7 +2767,7 @@ class Server extends AppModel
     }
 
     // Get an array of event_ids that are present on the remote server
-    public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false, $scope = 'events')
+    public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false, $scope = 'events', $force = false)
     {
         $url = $server['Server']['url'];
         if ($ignoreFilterRules) {
@@ -2824,7 +2851,9 @@ class Server extends AppModel
                             }
                         }
                     }
-                    $this->Event->removeOlder($eventArray, $scope);
+                    if (!$force) {
+                        $this->Event->removeOlder($eventArray, $scope);
+                    }
                     if (!empty($eventArray)) {
                         foreach ($eventArray as $event) {
                             if ($force_uuid) {
@@ -4601,26 +4630,28 @@ class Server extends AppModel
                 switch($field['error_type']) {
                     case 'missing_column':
                         $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s;',
+                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s %s;',
                             $table,
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
                             isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
+                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
+                            empty($field['expected']['extra']) ? '' : $field['expected']['extra']
                         );
                         break;
                     case 'column_different':
                         $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` MODIFY COLUMN `%s` %s%s %s %s %s;',
+                            'ALTER TABLE `%s` MODIFY COLUMN `%s` %s%s %s %s %s %s;',
                             $table,
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
                             isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name']
+                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
+                            empty($field['expected']['extra']) ? '' : $field['expected']['extra']
                         );
                         break;
                 }
@@ -4637,13 +4668,14 @@ class Server extends AppModel
                     } elseif ($expectedField['data_type'] === 'text') {
                         $length = null;
                     }
-                    $fieldSql = sprintf('`%s` %s%s %s %s %s',
+                    $fieldSql = sprintf('`%s` %s%s %s %s %s %s',
                         $expectedField['column_name'],
                         $expectedField['data_type'],
                         $length !== null ? sprintf('(%d)', $length) : '',
                         isset($expectedField['column_default']) ? 'DEFAULT "' . $expectedField['column_default'] . '"' : '',
                         $expectedField['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                        empty($expectedField['collation_name']) ? '' : 'COLLATE ' . $expectedField['collation_name']
+                        empty($expectedField['collation_name']) ? '' : 'COLLATE ' . $expectedField['collation_name'],
+                        empty($field['expected']['extra']) ? '' : $field['expected']['extra']
                     );
                     $allFields[] = $fieldSql;
                 }
@@ -4694,7 +4726,8 @@ class Server extends AppModel
             // 'datetime_precision',    -- Only available on MySQL 5.6+
             'collation_name',
             'column_type',
-            'column_default'
+            'column_default',
+            'extra',
         )
     ){
         $dbActualSchema = array();
@@ -4976,7 +5009,7 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '>1.2.0.6', 'cybox' => '>2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>1.2.0', 'pymisp' => '>2.4.120');
+        $expected = array('stix' => '>1.2.0.9', 'cybox' => '>2.1.0.21', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>1.2.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);

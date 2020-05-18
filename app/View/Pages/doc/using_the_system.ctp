@@ -201,7 +201,7 @@ Templates are devided into sections, with each section having a title and a desc
 <b><?php echo __('General Event Information');?></b>
 <ul>
     <li><b><?php echo __('ID');?>:</b> <?php echo __('The ID of the event.');?></li>
-    <li><b><?php echo __('Uuid');?>:</b> <?php echo __('In order to avoid collisions between events and attributes (during for example a sync) a Uuid is assigned that uniquely identifies each of them.');?></li>
+    <li><b><?php echo __('UUID');?>:</b> <?php echo __('In order to avoid collisions between events and attributes (during for example a sync) a Uuid is assigned that uniquely identifies each of them.');?></li>
     <li><b><?php echo __('Org');?></b> <?php echo __('The organisation that has originally created the event. The logo (if it exists on the server, alternatively a string) representing the organisation is also shown int he right upper corner.');?></li>
     <li><b><?php echo __('Contributors');?>:</b> <?php echo __('Shows a list of the organisations that have contributed to the event via proposals. If you click any of the logos listed here, you\'ll get redirected to a filtered event history view, including only the changes made by the organisation.');?></li>
     <li><b><?php echo __('Tags');?>:</b> <?php echo __('A list of tags associated with the event. Clicking a tag will show a list of events with the same tag attached. The little cross next to each tag allows you to remove the tag from the event, whilst the \'+\' button allows you to assign a tag. For the latter two options to be visible, you have to have tagging permission.');?></li>

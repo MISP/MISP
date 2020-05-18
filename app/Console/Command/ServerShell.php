@@ -70,9 +70,13 @@ class ServerShell extends AppShell
             $this->Job->save($data);
             $jobId = $this->Job->id;
         }
+        $force = false;
+        if (!empty($this->args[4]) && $this->args[4] === 'force') {
+            $force = true;
+        }
         $this->Server->id = $serverId;
         $server = $this->Server->read(null, $serverId);
-        $result = $this->Server->pull($user, $serverId, $technique, $server, $jobId);
+        $result = $this->Server->pull($user, $serverId, $technique, $server, $jobId, $force);
         $this->Job->id = $jobId;
         $this->Job->save(array(
                 'id' => $jobId,

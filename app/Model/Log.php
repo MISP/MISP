@@ -37,7 +37,6 @@ class Log extends AppModel
                     'enable',
                     'error',
                     'export',
-                    'failed_registration',
                     'file_upload',
                     'galaxy',
                     'include_formula',
@@ -52,13 +51,15 @@ class Log extends AppModel
                     'pull',
                     'purge_events',
                     'push',
+                    'registration',
+                    'registration_error',
                     'remove_dead_workers',
                     'request',
                     'request_delegation',
                     'reset_auth_key',
+                    'send_mail',
                     'security',
                     'serverSettingsEdit',
-                    'succeeded_registration',
                     'tag',
                     'undelete',
                     'update',
@@ -195,7 +196,8 @@ class Log extends AppModel
         if (is_array($change)) {
             $output = array();
             foreach ($change as $field => $values) {
-                if (strpos($field, 'password') !== false) { // if field name contains password, replace value with asterisk
+                $isSecret = strpos($field, 'password') !== false || ($field === 'authkey' && Configure::read('Security.do_not_log_authkeys'));
+                if ($isSecret) {
                     $oldValue = $newValue = "*****";
                 } else {
                     list($oldValue, $newValue) = $values;

@@ -907,7 +907,7 @@
       "id": "46",
       "name": "All current domains belonging to known malicious DGAs",
       "provider": "osint.bambenekconsulting.com",
-      "url": "http://osint.bambenekconsulting.com/feeds/dga-feed-high.csv",
+      "url": "https://osint.bambenekconsulting.com/feeds/dga-feed-high.csv",
       "rules": "",
       "enabled": true,
       "distribution": "3",
