@@ -433,6 +433,10 @@ class LogableBehavior extends ModelBehavior {
 					$old = '';
 				}
 				if ($key != 'modified' && !in_array($key, $this->settings[$Model->alias]['ignore']) && $value != $old && in_array($key, $db_fields)) {
+				    if ($key === 'authkey' && Configure::read('Security.do_not_log_authkeys')) {
+				        $old = $value = '*****';
+                    }
+
 					if ($this->settings[$Model->alias]['change'] == 'full') {
 						$changed_fields[] = $key . ' (' . $old . ') => (' . $value . ')';
 					} else if ($this->settings[$Model->alias]['change'] == 'serialize') {
