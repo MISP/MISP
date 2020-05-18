@@ -25,16 +25,8 @@ class AuthkeyShell extends AppShell {
             $this->User->id = $user['User']['id'];
             $newkey = $this->User->generateAuthKey();
             if ($this->User->saveField('authkey', $newkey)) {
-                $this->Log->create();
-                $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'User',
-                    'model_id' => $user['User']['id'],
-                    'email' => 'SYSTEM',
-                    'action' => 'reset_auth_key',
-                    'title' => 'Authentication key for user ' . $user['User']['id'] . ' (' . $user['User']['email'] . ')',
-                    'change' => 'authkey(' . $user['User']['authkey'] . ') => (' . $newkey . ')'
-                ));
+                $logTitle = 'Authentication key for user ' . $user['User']['id'] . ' (' . $user['User']['email'] . ')';
+                $this->Log->createLogEntry('SYSTEM', 'reset_auth_key', 'User', $user['User']['id'], $logTitle, array('authkey' => array($user['User']['authkey'], $newkey)));
                 echo $newkey . PHP_EOL;
             } else {
                 echo 'Could not update account for User.id = ', $user['User']['id'], PHP_EOL;
