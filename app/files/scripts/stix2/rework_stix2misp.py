@@ -110,8 +110,8 @@ class StixParser():
 
     def save_file(self):
         event = self.misp_event.to_json()
-        event = json.loads(event)
-        # print(json.dumps(event, indent=4))
+        with open(f'{self.filename}.stix2', 'wt', encoding='utf-8') as f:
+            f.write(event)
 
     ################################################################################
     ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##
