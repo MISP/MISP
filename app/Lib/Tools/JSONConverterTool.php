@@ -45,10 +45,12 @@ class JSONConverterTool
                 unset($event['Event']['SharingGroup']);
             }
             if ($object == 'Galaxy') {
-                foreach ($event['Event']['Galaxy'] as $k => $galaxy) {
-                    foreach ($galaxy['GalaxyCluster'] as $k2 => $cluster) {
-                        if (empty($cluster['meta'])) {
-                            $event['Event']['Galaxy'][$k]['GalaxyCluster'][$k2]['meta'] = new stdclass();
+                if (!empty($event['Event']['Galaxy'])) {
+                    foreach ($event['Event']['Galaxy'] as $k => $galaxy) {
+                        foreach ($galaxy['GalaxyCluster'] as $k2 => $cluster) {
+                            if (empty($cluster['meta'])) {
+                                $event['Event']['Galaxy'][$k]['GalaxyCluster'][$k2]['meta'] = new stdclass();
+                            }
                         }
                     }
                 }
