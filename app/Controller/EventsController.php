@@ -1507,20 +1507,6 @@ class EventsController extends AppController
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
-        $dataForView = array(
-                'Attribute' => array('attrDescriptions', 'typeDefinitions', 'categoryDefinitions', 'distributionDescriptions', 'distributionLevels'),
-                'Event' => array('fieldDescriptions')
-        );
-        foreach ($dataForView as $m => $variables) {
-            if ($m === 'Event') {
-                $currentModel = $this->Event;
-            } elseif ($m === 'Attribute') {
-                $currentModel = $this->Event->Attribute;
-            }
-            foreach ($variables as $variable) {
-                $this->set($variable, $currentModel->{$variable});
-            }
-        }
         $extensionParams = array(
             'conditions' => array(
                 'Event.extends_uuid' => $event['Event']['uuid']
