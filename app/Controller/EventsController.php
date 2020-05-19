@@ -1602,6 +1602,7 @@ class EventsController extends AppController
         $this->set('defaultFilteringRules', $this->defaultFilteringRules);
         $this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
         $this->set('modificationMapCSV', $modificationMapCSV);
+        $this->set('title_for_layout', __('Event #%s', $event['Event']['id']));
     }
 
     public function view($id = null, $continue=false, $fromEvent=null)
