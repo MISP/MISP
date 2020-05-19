@@ -436,7 +436,7 @@ class StixFromMISPParser(StixParser):
         attribute = self.create_attribute_dict(observable)
         attribute['to_ids'] = False
         objects = observable.objects
-        value = stix2misp_mapping.misp_types_mapping[attribute['type']](objects, attribute['type'])
+        value = self.parse_single_attribute_observable(objects, attribute['type'])
         if isinstance(value, tuple):
             value, data = value
             attribute['data'] = io.BytesIO(data.encode())
@@ -479,6 +479,12 @@ class StixFromMISPParser(StixParser):
     ################################################################################
     ##                        OBSERVABLE PARSING FUNCTIONS                        ##
     ################################################################################
+
+    @staticmethod
+    def _define_hash_type(hash_type):
+        if 'sha' in hash_type:
+            return f'SHA-{hash_type.split("sha")[1]}'
+        return hash_type.upper() if hash_type == 'md5' else hash_type
 
     @staticmethod
     def _fetch_file_observable(observable_objects):
@@ -546,8 +552,16 @@ class StixFromMISPParser(StixParser):
                     attributes.append(attribute)
         return attributes
 
+    def _parse_attachment(self, observable):
+        if len(observable) > 1:
+            return self._parse_name(observable, index='1'), self._parse_payload(observable)
+        return self._parse_name(observable)
+
     def parse_credential_observable(self, observable):
         return self.fill_observable_attributes(observable['0'], 'credential_mapping')
+
+    def _parse_domain_ip_attribute(self, observable):
+        return f'{self._parse_value(observable)}|{self._parse_value(observable, index="1")}'
 
     @staticmethod
     def parse_domain_ip_observable(observable):
@@ -557,6 +571,10 @@ class StixFromMISPParser(StixParser):
             attribute.update({'value': object.value, 'to_ids': False})
             attributes.append(attribute)
         return attributes
+
+    @staticmethod
+    def _parse_email_message(observable, attribute_type):
+        return observable['0'].get(attribute_type.split('-')[1])
 
     def parse_email_observable(self, observable):
         email, references = self.filter_main_object(observable, 'EmailMessage')
@@ -615,6 +633,16 @@ class StixFromMISPParser(StixParser):
                 })
         return attributes
 
+    def _parse_filename_hash(self, observable, attribute_type, index='0'):
+        hash_type = attribute_type.split('|')[1]
+        filename = self._parse_name(observable, index=index)
+        hash_value = self._parse_hash(observable, hash_type, index=index)
+        return f'{filename}|{hash_value}'
+
+    def _parse_hash(self, observable, attribute_type, index='0'):
+        hash_type = self._define_hash_type(attribute_type)
+        return observable[index]['hashes'].get(hash_type)
+
     def parse_ip_port_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
         references = {key: {'object': value, 'used': False} for key, value in references.items()}
@@ -634,6 +662,20 @@ class StixFromMISPParser(StixParser):
                 attribute.update({'value': reference['object'].value, 'to_ids': False})
                 attributes.append(attribute)
         return attributes
+
+    def _parse_malware_sample(self, observable):
+        if len(observable) > 1:
+            value = self._parse_filename_hash(observable, 'filename|md5', '1')
+            return value, self._parse_payload(observable)
+        return self._parse_filename_hash(observable, 'filename|md5')
+
+    @staticmethod
+    def _parse_name(observable, index='0'):
+        return observable[index].get('name')
+
+    def _parse_network_attribute(self, observable):
+        port = self._parse_port(observable, index='1')
+        return f'{self._parse_value(observable)}|{port}'
 
     def parse_network_connection_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
@@ -693,6 +735,14 @@ class StixFromMISPParser(StixParser):
                 attributes.append(attribute)
         return attributes
 
+    @staticmethod
+    def _parse_number(observable):
+        return observable['0'].get('number')
+
+    @staticmethod
+    def _parse_payload(observable):
+        return observable['0'].get('payload_bin')
+
     def parse_pe_observable(self, observable):
         pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
         key = self._fetch_file_observable(observable)
@@ -707,6 +757,11 @@ class StixFromMISPParser(StixParser):
             self.misp_event.add_object(**section_object)
         self.misp_event.add_object(**pe_object)
         return self.parse_file_observable(observable), pe_object.uuid
+
+    @staticmethod
+    def _parse_port(observable, index='0'):
+        port_observable = observable[index]
+        return port_observable['src_port'] if 'src_port' in port_observable else port_observable['dst_port']
 
     def parse_process_observable(self, observable):
         references = {}
@@ -734,6 +789,10 @@ class StixFromMISPParser(StixParser):
         attribute.update({'object_relation': f'{feature}-pid', 'value': reference.pid, 'to_ids': False})
         return attribute
 
+    @staticmethod
+    def _parse_regkey_attribute(observable):
+        return observable['0'].get('key')
+
     def parse_regkey_observable(self, observable):
         attributes = []
         for key, value in observable['0'].items():
@@ -744,6 +803,15 @@ class StixFromMISPParser(StixParser):
         if 'values' in observable['0']:
             attributes.extend(self.fill_observable_attributes(observable['0']['values'][0], 'regkey_mapping'))
         return attributes
+
+    def _parse_regkey_value(self, observable):
+        regkey = self._parse_regkey_attribute(observable)
+        return f'{regkey}|{observable["0"]["values"][0].get("name")}'
+
+    def parse_single_attribute_observable(self, observable, attribute_type):
+        if attribute_type in stix2misp_mapping.attributes_type_mapping:
+            return getattr(self, stix2misp_mapping.attributes_type_mapping[attribute_type])(observable, attribute_type)
+        return getattr(self, stix2misp_mapping.attributes_mapping[attribute_type])(observable)
 
     def _parse_socket_extension(self, extension):
         attributes = []
@@ -786,6 +854,14 @@ class StixFromMISPParser(StixParser):
                                        'value': group})
             attributes.extend(self.fill_observable_attributes(extension, 'user_account_mapping'))
         return attributes
+
+    @staticmethod
+    def _parse_value(observable, index='0'):
+        return observable[index].get('value')
+
+    def _parse_x509_attribute(self, observable, attribute_type):
+        hash_type = attribute_type.split('-')[-1]
+        return self._parse_hash(observable, hash_type)
 
     def parse_x509_observable(self, observable):
         attributes = self.fill_observable_attributes(observable['0'], 'x509_mapping')

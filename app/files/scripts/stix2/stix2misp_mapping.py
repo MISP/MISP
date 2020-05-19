@@ -15,9 +15,9 @@ attributes_mapping = {
     'mutex': '_parse_name',
     'uri': '_parse_value',
     'port': '_parse_port',
-    'ip-dst|port': '_parse_ip_port',
-    'ip-src|port': '_parse_ip_port',
-    'hostname|port': '_parse_hostname_port',
+    'ip-dst|port': '_parse_network_attribute',
+    'ip-src|port': '_parse_network_attribute',
+    'hostname|port': '_parse_network_attribute',
     'email-reply-to': '_parse_value',
     'attachment': '_parse_attachment',
     'mac-address': '_parse_value',
@@ -55,7 +55,10 @@ attributes_type_mapping = {
     'filename|sha512': '_parse_filename_hash',
     'filename|sha512/224': '_parse_filename_hash',
     'filename|sha512/256': '_parse_filename_hash',
-    'filename|tlsh': '_parse_filename_hash'
+    'filename|tlsh': '_parse_filename_hash',
+    'x509-fingerprint-md5': '_parse_x509_attribute',
+    'x509-fingerprint-sha1': '_parse_x509_attribute',
+    'x509-fingerprint-sha256': '_parse_x509_attribute'
 }
 
 address_family_attribute_mapping = {'type': 'text','object_relation': 'address-family'}
