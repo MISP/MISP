@@ -508,9 +508,8 @@ class AppController extends Controller
         } else {
             $this->set('me', false);
         }
-        $this->set('br', '<br />');
-        $this->set('bold', array('<span class="bold">', '</span>'));
-        if ($this->_isSiteAdmin()) {
+
+        if ($this->Auth->user() && $this->_isSiteAdmin()) {
             if (Configure::read('Session.defaults') == 'database') {
                 $db = ConnectionManager::getDataSource('default');
                 $sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
