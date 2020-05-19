@@ -462,6 +462,15 @@ class AppController extends Controller
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
             $this->userRole = $role;
+
+            $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
+            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+            } else {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+            }
+            $this->set('notifications', $notifications);
+
             if (
                 Configure::read('MISP.log_paranoid') ||
                 !empty(Configure::read('Security.monitored'))
@@ -515,13 +524,6 @@ class AppController extends Controller
             }
         }
 
-        $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-        if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
-        } else {
-            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
-        }
-        $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
         if ($this->_isRest()) {
             $this->__rateLimitCheck();
