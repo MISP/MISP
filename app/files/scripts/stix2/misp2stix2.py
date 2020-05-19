@@ -1065,7 +1065,6 @@ class StixBuilder():
         patterns = []
         pattern = objectsMapping['file']['pattern']
         attributes_dict = self.create_file_attributes_dict(attributes, object_id)
-        attributes_dict.update({'path': ['/home/chrisr3d/git/'], 'fullpath': ['/home/chrisr3d/git/MISP/cleanMISP/app/files/scripts/stix2']})
         for key, feature in fileMapping.items():
             if key in attributes_dict:
                 if key in hash_types:
