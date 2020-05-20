@@ -3228,7 +3228,7 @@ class Event extends AppModel
         return array($bodyevent, $body);
     }
 
-    private function __captureSGForElement($element, $user)
+    public function __captureSGForElement($element, $user)
     {
         if (isset($element['SharingGroup'])) {
             $sg = $this->SharingGroup->captureSG($element['SharingGroup'], $user);

@@ -80,4 +80,17 @@ class GalaxyElement extends AppModel
         }
         $this->saveMany($elementsToSave);
     }
+
+    public function captureElements($user, $elements, $clusterId)
+    {
+        $tempElements = array();
+        foreach ($elements as $k => $element) {
+            $tempElements[] = array(
+                'key' => $element['key'],
+                'value' => $element['value'],
+                'galaxy_cluster_id' => $clusterId,
+            );
+        }
+        $this->saveMany($tempElements);
+    }
 }

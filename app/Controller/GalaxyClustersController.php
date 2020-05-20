@@ -214,7 +214,7 @@ class GalaxyClustersController extends AppController
             $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
             $this->set('cluster', $cluster);
             $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
-            if (isset($cluster['GalaxyCluster']['extended_from'])) {
+            if (!empty($cluster['GalaxyCluster']['extended_from'])) {
                 $newVersionAvailable = $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['version'] > $cluster['GalaxyCluster']['extends_version'];
             } else {
                 $newVersionAvailable = false;

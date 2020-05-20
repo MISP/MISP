@@ -20,7 +20,8 @@
         'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'checked', 'multiple', 'selected', 'legend'
     );
     $fieldsArrayForPersistence = array();
-    $formCreate = $this->Form->create($modelForForm);
+    $formOptions = isset($formOptions) ? $formOptions : array();
+    $formCreate = $this->Form->create($modelForForm, $formOptions);
     if (!empty($data['fields'])) {
         foreach ($data['fields'] as $fieldData) {
             if (isset($fieldData['requirements']) && !$fieldData['requirements']) {

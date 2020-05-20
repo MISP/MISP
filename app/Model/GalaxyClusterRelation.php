@@ -276,4 +276,105 @@ class GalaxyClusterRelation extends AppModel
         }
         return $errors;
     }
+
+    /**
+     * Gets a relation then save it.
+     *
+     * @param $user
+     * @param array $relation Relation to be saved
+     * @param bool $fromPull If the current capture is performed from a PULL sync
+     * @param int $orgId The organisation id that should own the cluster
+     * @return array
+     */
+    public function captureRelations($user, $clusterId, $relations, $fromPull=false, $orgId=0)
+    {
+        $results = array('success' => false, 'imported' => 0, 'failed' => 0);
+        $this->Log = ClassRegistry::init('Log');
+
+        foreach ($relations as $k => $relation) {
+            if (!isset($relation['GalaxyClusterRelation'])) {
+                $relation = array('GalaxyClusterRelation' => $relation);
+            }
+            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterId;
+            if ($fromPull) {
+                $relation['GalaxyClusterRelation']['org_id'] = $orgId;
+            } else {
+                $relation['GalaxyClusterRelation']['org_id'] = $user['Organisation']['id'];
+            }
+
+            if (!empty($relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'])) {
+                $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('No referenced cluster UUID provided'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
+                $results['failed']++;
+                continue;
+            } else {
+                $options = array(
+                    'conditions' => array(
+                        'GalaxyCluster.uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
+                    )
+                );
+                $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($user, $options);
+                if (empty($referencedCluster)) {
+                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Referenced cluster not found'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
+                    $results['failed']++;
+                    continue;
+                } else {
+                    $referencedCluster = $referencedCluster[0];
+                    $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $referencedCluster['GalaxyCluster']['id'];
+                }
+            }
+
+            if (!isset($relation['GalaxyClusterRelation']['orgc_id']) && !isset($relation['Orgc'])) {
+                $relation['GalaxyClusterRelation']['orgc_id'] = $relation['GalaxyClusterRelation']['org_id'];
+            } else {
+                if (!isset($relation['GalaxyClusterRelation']['Orgc'])) {
+                    if (isset($relation['GalaxyClusterRelation']['orgc_id']) && $relation['GalaxyClusterRelation']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                        $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Only sync user can create cluster on behalf of other users'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
+                        $results['failed']++;
+                        continue;
+                    }
+                } else {
+                    if ($relation['GalaxyClusterRelation']['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                        $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Only sync user can create galaxy on behalf of other users'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
+                        $results['failed']++;
+                        continue;
+                    }
+                }
+                if (isset($relation['GalaxyClusterRelation']['orgc_id']) && $relation['GalaxyClusterRelation']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Only sync user can create galaxy on behalf of other users'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
+                    $results['failed']++;
+                    continue;
+                }
+            }
+
+            if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false) {
+                $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
+                if (!isset($relation['GalaxyClusterRelation']['Orgc']['uuid'])) {
+                    $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $relation['GalaxyClusterRelation']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
+                } else {
+                    $orgc = array('Orgc' => array('uuid' => $relation['GalaxyClusterRelation']['Orgc']['uuid']));
+                }
+                if ($this->OrgBlacklist->hasAny(array('OrgBlacklist.org_uuid' => $orgc['Orgc']['uuid']))) {
+                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Organisation blacklisted'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
+                    $results['failed']++;
+                    continue;
+                }
+            }
+            $relation = $this->GalaxyCluster->captureOrganisationAndSG($relation, 'GalaxyClusterRelation', $user);
+
+            $this->create();
+            $saveSuccess = $this->save($relation);
+            if ($saveSuccess) {
+                $results['imported']++;
+                $tagNames = Hash::extract($relation['GalaxyClusterRelationTag'], '{n}.name');
+                $this->GalaxyClusterRelationTag->attachTags($user, $this->id, $tagNames);
+            } else {
+                $results['failed']++;
+                foreach($this->validationErrors as $validationError) {
+                }
+            }
+        }
+
+        $results['success'] = $results['imported'] > 0;
+        return $results;
+    }
 }

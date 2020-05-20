@@ -147,15 +147,8 @@ class GalaxiesController extends AppController
     // TODO: revise import strategy. Instead of asking in which galaxy to import data
     // Based the decision on data contained in the clusters
     // If Galaxy do not exist, add possibility to create it on the fly
-    public function import($galaxyId=null)
+    public function import()
     {
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.id' => $galaxyId)
-        ));
-        if (empty($galaxy) && $galaxyId !== null) {
-            throw new NotFoundException('Galaxy not found.');
-        }
         if ($this->request->is('post') || $this->request->is('put')) {
             $data = $this->request->data['Galaxy'];
             if ($data['submittedjson']['name'] != '' && $data['json'] != '') {
@@ -175,23 +168,22 @@ class GalaxiesController extends AppController
             } else {
                 $text = $data['json'];
             }
-            $json = json_decode($text, true);
-            if ($json === null) {
+            $clusters = json_decode($text, true);
+            if ($clusters === null) {
                 throw new MethodNotAllowedException(__('Error while decoding JSON'));
             }
-            $galaxyId = $this->request->data['Galaxy']['galaxy_id'];
-            $updateExisting = $this->request->data['Galaxy']['update_existing'];
-            $saveResult = $this->Galaxy->GalaxyCluster->importClusters($this->Auth->user(), $galaxy, $json, $updateExisting=$updateExisting);
+            $forceUpdate = $this->request->data['Galaxy']['force_update'];
+            $saveResult = $this->Galaxy->importGalaxyAndClusters($this->Auth->user(), $clusters, $forceUpdate=$forceUpdate);
             if ($saveResult['success']) {
-                $message = sprintf(__('Galaxy clusters imported. %s imported, %s ignored'), $saveResult['imported'], $saveResult['ignored']);
+                $message = sprintf(__('Galaxy clusters imported. %s imported, %s ignored, %s failed. %s'), $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('Galaxy', 'import', false, $this->response->type(), $message);
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect(array('controller' => 'galaxy', 'action' => 'view', $galaxyId));
+                    $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
                 }
             } else {
-                $message = sprintf(__('Could not import galaxy clusters. %s imported, %s ignored'), $saveResult['imported'], $saveResult['ignored']);
+                $message = sprintf(__('Could not import galaxy clusters. %s imported, %s ignored, %s failed. %s'), $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Galaxy', 'import', false, $message);
                 } else {
@@ -199,17 +191,7 @@ class GalaxiesController extends AppController
                 }
             }
         }
-        $galaxies = $this->Galaxy->find('all', array(
-            'recursive' => -1,
-            'conditions' => array()
-        ));
-        $galaxiesList = array();
-        foreach($galaxies as $g) {
-            $galaxiesList[$g['Galaxy']['namespace']][$g['Galaxy']['id']] = $g['Galaxy']['name'];
-        }
-        $this->set('galaxies', $galaxiesList);
-        $this->set('galaxyId', $galaxyId);
-        $this->set('galaxy', $galaxy);
+        $this->set('action', 'import');
     }
 
     public function export($galaxyId)
@@ -239,8 +221,11 @@ class GalaxiesController extends AppController
             );
             $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(),$options, $full=true);
             foreach ($clusters as $k => $cluster) {
-                unset($clusters[$k]['GalaxyCluster']['id']);
                 unset($clusters[$k]['GalaxyCluster']['galaxy_id']);
+                $modelsToUnset = array('GalaxyCluster', 'Galaxy', 'GalaxyElement', 'GalaxyClusterRelation');
+                forEach($modelsToUnset as $modelName) {
+                    unset($clusters[$k][$modelName]['id']);
+                }
             }
             if ($this->request->data['download'] == 'download') {
                 $this->response->download(sprintf('galaxy_%s_%s.json', $galaxy['Galaxy']['uuid'], time()));

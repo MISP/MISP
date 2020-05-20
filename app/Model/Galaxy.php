@@ -216,6 +216,76 @@ class Galaxy extends AppModel
         return true;
     }
 
+    /**
+     * Capture the Galaxy
+     *
+     * @param $user
+     * @param array $galaxy
+     * @return array the captured galaxy
+     */
+    public function captureGalaxy($user, $galaxy)
+    {
+        $existingGalaxy = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Galaxy.uuid' => $galaxy['uuid'])
+        ));
+        if (empty($existingGalaxy)) {
+            if ($user['Role']['perm_site_admin'] || $user['Role']['perm_galaxy_editor']) {
+                $this->create();
+                unset($galaxy['id']);
+                $this->save($galaxy);
+                $existingGalaxy = $this->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('Galaxy.id' => $this->id)
+                ));
+            } else {
+                return false;
+            }
+        }
+        return $existingGalaxy;
+    }
+
+    /**
+     * Import all clusters into the Galaxy they are shipped with, creating the galaxy if it doesn't exists.
+     *
+     * @param $user
+     * @param array $clusters clusters to import
+     * @param bool $forceUpdate update clusters regardless of their version
+     * @return array
+     */
+    public function importGalaxyAndClusters($user, $clusters, $forceUpdate=false)
+    {
+        $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
+        foreach ($clusters as $k => $cluster) {
+            $conditions = array();
+            if (!empty($cluster['Galaxy'])) {
+                $existingGalaxy = $this->captureGalaxy($user, $cluster['Galaxy']);
+            } elseif ($cluster['type']) {
+                $existingGalaxy = $this->find('first', array(
+                    'recursive' => -1,
+                    'fields' => array('id', 'version'),
+                    'conditions' => array('Galaxy.type' => $cluster['Galaxy']['type']),
+                ));
+                if (empty($existingGalaxy)) { // We don't have enough info to create the galaxy
+                    $results['failed']++;
+                    $results['errors'][] = __('Galaxy not found');
+                    continue;
+                }
+            } else { // We don't have the galaxy nor can create it
+                $results['failed']++;
+                $results['errors'][] = __('Galaxy not found');
+                continue;
+            }
+            $saveResult = $this->GalaxyCluster->captureClusters($user, $existingGalaxy, $clusters, $forceUpdate=$forceUpdate, $orgId=$user['org_id']);
+            $results['imported'] += $saveResult['imported'];
+            $results['ignored'] += $saveResult['ignored'];
+            $results['errors'] = array_merge($results['errors'], $saveResult['errors']);
+        }
+        $results['success'] = $results['imported'] > 0;
+        debug($results);
+        return $results;
+    }
+
     public function attachCluster($user, $target_type, $target_id, $cluster_id, $local = false)
     {
         $connectorModel = Inflector::camelize($target_type) . 'Tag';

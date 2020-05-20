@@ -75,6 +75,12 @@ class GalaxyCluster extends AppModel
         if (!isset($this->data['GalaxyCluster']['description'])) {
             $this->data['GalaxyCluster']['description'] = '';
         }
+        if ($this->data['GalaxyCluster']['distribution'] != 4) {
+            $this->data['GalaxyCluster']['sharing_group_id'] = null;
+        }
+        if (is_array($this->data['GalaxyCluster']['authors'])) {
+            $this->data['GalaxyCluster']['authors'] = json_encode($this->data['GalaxyCluster']['authors']);
+        }
         return true;
     }
 
@@ -91,6 +97,7 @@ class GalaxyCluster extends AppModel
     public function beforeDelete($cascade = true)
     {
         $this->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $this->id));
+        $this->GalaxyClusterRelations->deleteAll(array('GalaxyClusterRelations.galaxy_cluster_id' => $this->id));
     }
 
     // Respecting ACL, save a cluster, its elements and set correct fields
@@ -130,7 +137,6 @@ class GalaxyCluster extends AppModel
         if (!empty($forkedCluster) && $forkedCluster['GalaxyCluster']['galaxy_id'] != $galaxy['id']) {
             return false; // cluster forks always have to belong to the same galaxy as the parent
         }
-        $cluster['GalaxyCluster']['org_id'] = $user['org_id'];
         if (!isset($cluster['GalaxyCluster']['orgc_id'])) {
             if (isset($cluster['Orgc']['uuid'])) {
                 $orgc_id = $this->Orgc->find('first', array('conditions' => array('Orgc.uuid' => $user['Orgc']['uuid']), 'fields' => array('Orgc.id'), 'recursive' => -1));
@@ -212,15 +218,12 @@ class GalaxyCluster extends AppModel
         return $errors;
     }
 
-    public function importClusters($user, $galaxy, $clusters, $updateExisting=false)
+    public function captureClusters($user, $galaxy, $clusters, $forceUpdate=false, $orgId=0)
     {
-        $importResult = array('success' => false, 'imported' => 0, 'ignored' => 0);
+        $importResult = array('success' => false, 'imported' => 0, 'ignored' => 0, 'errors' => array());
         foreach ($clusters as $k => $cluster) {
-            if ($cluster['GalaxyCluster']['distribution'] != 4) {
-                $cluster['GalaxyCluster']['sharing_group_id'] = null;
-            }
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
-            $saveResult = $this->saveCluster($user, $cluster, $fromPull=false, $allowEdit=$updateExisting);
+            $saveResult = $this->captureCluster($user, $cluster, $fromPull=true, $orgId=$orgId);
             if ($saveResult) {
                 $importResult['imported'] += 1;
             } else {
@@ -230,7 +233,108 @@ class GalaxyCluster extends AppModel
         if ($importResult['imported'] > 0) {
             $importResult['success'] = true;
         }
+        $importResult['errors'] = array_merge($importResult['errors'], $saveResult['errors']);
+        debug($importResult);
         return $importResult;
+    }
+
+    /**
+     * Gets a cluster then save it.
+     *
+     * @param $user
+     * @param array $cluster Cluster to be saved
+     * @param bool $fromPull If the current capture is performed from a PULL sync
+     * @param int $orgId The organisation id that should own the cluster
+     * @return array
+     */
+    public function captureCluster($user, $cluster, $fromPull=false, $orgId=0)
+    {
+        $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
+
+        if ($fromPull) {
+            $cluster['GalaxyCluster']['org_id'] = $orgId;
+        } else {
+            $cluster['GalaxyCluster']['org_id'] = $user['Organisation']['id'];
+        }
+
+        if (!isset($cluster['GalaxyCluster']['orgc_id']) && !isset($cluster['Orgc'])) {
+            $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id'];
+        } else {
+            if (!isset($cluster['GalaxyCluster']['Orgc'])) {
+                if (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                    $results['errors'][] = __('Only sync user can create cluster on behalf of other users');
+                    $results['failed']++;
+                    return $results;
+                }
+            } else {
+                if ($cluster['GalaxyCluster']['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                    $results['errors'][] = __('Only sync user can create galaxy on behalf of other users');
+                    $results['failed']++;
+                    return $results;
+                }
+            }
+            if (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                $results['errors'][] = __('Only sync user can create galaxy on behalf of other users');
+                $results['failed']++;
+                return $results;
+            }
+        }
+
+        if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false) {
+            $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
+            if (!isset($cluster['GalaxyCluster']['Orgc']['uuid'])) {
+                $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $cluster['GalaxyCluster']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
+            } else {
+                $orgc = array('Orgc' => array('uuid' => $cluster['GalaxyCluster']['Orgc']['uuid']));
+            }
+            if ($this->OrgBlacklist->hasAny(array('OrgBlacklist.org_uuid' => $orgc['Orgc']['uuid']))) {
+                $results['failed']++; // Organisation blacklisted
+                return $results;
+            }
+        }
+
+        $cluster = $this->captureOrganisationAndSG($cluster, 'GalaxyCluster', $user);
+        $this->create();
+        $saveSuccess = $this->save($cluster);
+        if ($saveSuccess) {
+            $savedCluster = $this->find('first', array(
+                'conditions' => array('id' =>  $this->id),
+                'recursive' => -1
+            ));
+            if (!empty($cluster['GalaxyElement'])) {
+                $this->GalaxyElement->captureElements($user, $cluster['GalaxyElement'],  $savedCluster['GalaxyCluster']['id']);
+            }
+            if (!empty($cluster['GalaxyClusterRelation'])) {
+                $saveResult = $this->GalaxyClusterRelation->captureRelations($user, $savedCluster['GalaxyCluster']['id'], $cluster['GalaxyClusterRelation'],  $fromPull=true, $orgId=$orgId);
+                if ($saveResult['failed'] > 0) {
+                    $results['errors'][] = __('Issues while capturing relations have been logged.');
+                }
+            }
+        } else {
+            $results['failed']++;
+            foreach($this->validationErrors as $validationError) {
+                $results['errors'][] = $validationError[0];
+            }
+        }
+        return $results;
+    }
+
+    public function captureOrganisationAndSG($element, $model, $user)
+    {
+        $this->Event = ClassRegistry::init('Event');
+        if (isset($element[$model]['distribution']) && $element[$model]['distribution'] == 4) {
+            $element[$model] = $this->Event->__captureSGForElement($element[$model], $user);
+        }
+        // first we want to see how the creator organisation is encoded
+        // The options here are either by passing an organisation object along or simply passing a string along
+        if (isset($element['Orgc'])) {
+            $element[$model]['orgc_id'] = $this->Orgc->captureOrg($element['Orgc'], $user);
+            unset($element['Orgc']);
+        } else {
+            // Can't capture the Orgc, default to the current user
+            $element[$model]['orgc_id'] = $user['org_id'];
+        }
+        return $element;
     }
 
     public function attachExtendByInfo($user, $cluster)
@@ -426,7 +530,7 @@ class GalaxyCluster extends AppModel
             $params['contain'] = array(
                 'Galaxy',
                 'GalaxyElement',
-                'GalaxyClusterRelation' => array('GalaxyClusterRelationTag' => array('Tag')),
+                'GalaxyClusterRelation' => array('GalaxyClusterRelationTag' => array('Tag'), 'Org', 'Orgc', 'SharingGroup'),
                 'Orgc',
                 'Org',
                 'SharingGroup'

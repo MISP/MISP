@@ -163,11 +163,6 @@ function toggleClusterRelations() {
     $('#references_div').toggle({
         effect: 'blind',
         duration: 300,
-        complete: function() {
-            if (window.buildTree !== undefined) {
-                ();
-            }
-        }
     });
 }
 

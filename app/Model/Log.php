@@ -27,6 +27,7 @@ class Log extends AppModel
                     'auth',
                     'auth_fail',
                     'blacklisted',
+                    'captureRelations',
                     'change_pw',
                     'delete',
                     'disable',
