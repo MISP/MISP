@@ -66,7 +66,6 @@ class StixBuilder():
 
     def buildEvent(self):
         try:
-            self.initialize_misp_types()
             stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event['Event'])
             outputfile = "{}.out".format(self.filename)
             with open(outputfile, 'wt', encoding='utf-8') as f:
@@ -151,13 +150,6 @@ class StixBuilder():
             self.orgs.append(org_uuid)
             return 1
         return 0
-
-    def initialize_misp_types(self):
-        describe_types_filename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
-        describe_types = open(describe_types_filename, 'r')
-        categories_mapping = json.loads(describe_types.read())['result']['category_type_mappings']
-        for category in categories_mapping:
-            mispTypesMapping[category] = {'to_call': 'handle_person'}
 
     def handler(self, event):
         self.misp_event = event
