@@ -24,6 +24,7 @@ class Log extends AppModel
                     'acceptRegistrations',
                     'add',
                     'admin_email',
+                    'attachTags',
                     'auth',
                     'auth_fail',
                     'blacklisted',

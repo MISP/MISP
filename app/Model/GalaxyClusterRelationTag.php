@@ -60,7 +60,7 @@ class GalaxyClusterRelationTag extends AppModel
                 $saveResult = $this->save(array('galaxy_cluster_relation_id' => $galaxyClusterRelationId, 'tag_id' => $tagId));
                 $allSaved = $allSaved && $saveResult;
                 if (!$saveResult) {
-                    debug($saveResult);
+                    $this->Log->createLogEntry($user, 'attachTags', 'GalaxyClusterRelationTag', 0, __('Could not attach tag %s', $tagName), __('relation (%s)', $galaxyClusterRelationId));
                 }
             }
         }

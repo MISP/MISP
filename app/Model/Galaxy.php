@@ -279,10 +279,10 @@ class Galaxy extends AppModel
             $saveResult = $this->GalaxyCluster->captureClusters($user, $existingGalaxy, $clusters, $forceUpdate=$forceUpdate, $orgId=$user['org_id']);
             $results['imported'] += $saveResult['imported'];
             $results['ignored'] += $saveResult['ignored'];
+            $results['failed'] += $saveResult['failed'];
             $results['errors'] = array_merge($results['errors'], $saveResult['errors']);
         }
         $results['success'] = $results['imported'] > 0;
-        debug($results);
         return $results;
     }
 

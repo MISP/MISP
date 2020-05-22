@@ -220,21 +220,18 @@ class GalaxyCluster extends AppModel
 
     public function captureClusters($user, $galaxy, $clusters, $forceUpdate=false, $orgId=0)
     {
-        $importResult = array('success' => false, 'imported' => 0, 'ignored' => 0, 'errors' => array());
+        $importResult = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0,'errors' => array());
         foreach ($clusters as $k => $cluster) {
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
             $saveResult = $this->captureCluster($user, $cluster, $fromPull=true, $orgId=$orgId);
-            if ($saveResult) {
-                $importResult['imported'] += 1;
-            } else {
-                $importResult['ignored'] += 1;
-            }
+            $importResult['imported'] += $saveResult['imported'];
+            $importResult['ignored'] += $saveResult['ignored'];
+            $importResult['failed'] += $saveResult['failed'];
+            $importResult['errors'] = array_merge($importResult['errors'], $saveResult['errors']);
         }
         if ($importResult['imported'] > 0) {
             $importResult['success'] = true;
         }
-        $importResult['errors'] = array_merge($importResult['errors'], $saveResult['errors']);
-        debug($importResult);
         return $importResult;
     }
 
@@ -287,7 +284,7 @@ class GalaxyCluster extends AppModel
             } else {
                 $orgc = array('Orgc' => array('uuid' => $cluster['GalaxyCluster']['Orgc']['uuid']));
             }
-            if ($this->OrgBlacklist->hasAny(array('OrgBlacklist.org_uuid' => $orgc['Orgc']['uuid']))) {
+            if ($cluster['GalaxyCluster']['orgc_id'] != 0 && $this->OrgBlacklist->hasAny(array('OrgBlacklist.org_uuid' => $orgc['Orgc']['uuid']))) {
                 $results['failed']++; // Organisation blacklisted
                 return $results;
             }
