@@ -433,30 +433,30 @@ installMISPonKali () {
   fixRedis
 
   debug "git clone, submodule update everything"
-  sudo mkdir $PATH_TO_MISP
-  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP
-  cd $PATH_TO_MISP
-  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP; done
+  sudo mkdir ${PATH_TO_MISP}
+  sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
+  cd ${PATH_TO_MISP}
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}; done
 
-  $SUDO_WWW git config core.filemode false
+  ${SUDO_WWW} git config core.filemode false
 
-  cd $PATH_TO_MISP
-  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git submodule update --progress --init --recursive; done
+  cd ${PATH_TO_MISP}
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git submodule update --progress --init --recursive; done
   # Make git ignore filesystem permission differences for submodules
-  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+  ${SUDO_WWW} git submodule foreach --recursive git config core.filemode false
 
-  cd $PATH_TO_MISP/app/files/scripts
-  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git; done
-  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git; done
-  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git; done
-  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git; done
+  cd ${PATH_TO_MISP}/app/files/scripts
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git; done
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git; done
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git; done
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git; done
 
   sudo mkdir /var/www/.cache/
 
   MISP_USER_HOME=$(sudo -Hiu $MISP_USER env | grep HOME |cut -f 2 -d=)
   sudo mkdir $MISP_USER_HOME/.cache
   sudo chown $MISP_USER:$MISP_USER $MISP_USER_HOME/.cache
-  sudo chown $WWW_USER:$WWW_USER /var/www/.cache
+  sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
 
   ## Not really needed...
   ## debug "Generating rc.local"
@@ -464,64 +464,64 @@ installMISPonKali () {
 
   debug "Setting up main MISP virtualenv"
   # Needs virtualenv
-  $SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
+  ${SUDO_WWW} virtualenv -p python3 ${PATH_TO_MISP}/venv
 
   ## FIXME: The current stat of misp-dashboard is broken, disabling any use.
   ##debug "Installing MISP dashboard"
   ##mispDashboard
 
   debug "Installing python-cybox"
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Installing python-stix"
-  cd $PATH_TO_MISP/app/files/scripts/python-stix
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  cd ${PATH_TO_MISP}/app/files/scripts/python-stix
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Install maec"
-  cd $PATH_TO_MISP/app/files/scripts/python-maec
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  cd ${PATH_TO_MISP}/app/files/scripts/python-maec
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   debug "Installing mixbox"
-  cd $PATH_TO_MISP/app/files/scripts/mixbox
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  cd ${PATH_TO_MISP}/app/files/scripts/mixbox
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install PyMISP
   debug "Installing PyMISP"
-  cd $PATH_TO_MISP/PyMISP
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  cd ${PATH_TO_MISP}/PyMISP
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install pydeep
-  false; while [[ $? -ne 0 ]]; do $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install lief
 
   # install python-magic
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install python-magic
 
   # install plyara
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install plyara
 
   # install zmq needed by mispzmq
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq
 
   debug "Installing cake"
   composer
 
-  $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
+  ${SUDO_WWW} cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 
-  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
-  sudo chmod -R 750 $PATH_TO_MISP
-  sudo chmod -R g+ws $PATH_TO_MISP/app/tmp
-  sudo chmod -R g+ws $PATH_TO_MISP/app/files
-  sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chown -R ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
+  sudo chmod -R 750 ${PATH_TO_MISP}
+  sudo chmod -R g+ws ${PATH_TO_MISP}/app/tmp
+  sudo chmod -R g+ws ${PATH_TO_MISP}/app/files
+  sudo chmod -R g+ws ${PATH_TO_MISP}/app/files/scripts/tmp
 
   debug "Setting up database"
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
@@ -554,7 +554,7 @@ installMISPonKali () {
     enableServices
 
     debug "Populating database"
-    $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 
     echo "<?php
   class DATABASE_CONFIG {
@@ -571,7 +571,7 @@ installMISPonKali () {
                   'prefix' => '',
                   'encoding' => 'utf8',
           );
-  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
+  }" | ${SUDO_WWW} tee ${PATH_TO_MISP}/app/Config/database.php
   else
     echo "There might be a database already existing here: /var/lib/mysql/misp/users.ibd"
     echo "Skipping any creations…"
@@ -601,15 +601,15 @@ installMISPonKali () {
   sudo systemctl restart apache2
 
   debug "Setting up logrotate"
-  sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+  sudo cp ${PATH_TO_MISP}/INSTALL/misp.logrotate /etc/logrotate.d/misp
   sudo chmod 0640 /etc/logrotate.d/misp
 
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
 
-  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config
-  sudo chmod -R 750 $PATH_TO_MISP/app/Config
+  sudo chown -R ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}/app/Config
+  sudo chmod -R 750 ${PATH_TO_MISP}/app/Config
 
   debug "Setting up GnuPG"
   setupGnuPG

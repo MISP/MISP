@@ -134,45 +134,44 @@ installCore () {
   debug "Installing ${LBLUE}MISP${NC} core"
   # Download MISP using git in the /var/www/ directory.
   sudo mkdir ${PATH_TO_MISP}
-  sudo chown $WWW_USER:$WWW_USER ${PATH_TO_MISP}
+  sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
   cd ${PATH_TO_MISP}
-  $SUDO_WWW git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}
-  $SUDO_WWW git submodule update --init --recursive
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}; done
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git submodule update --progress --init --recursive; done
   # Make git ignore filesystem permission differences for submodules
-  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+  ${SUDO_WWW} git submodule foreach --recursive git config core.filemode false
 
   # Make git ignore filesystem permission differences
-  $SUDO_WWW git config core.filemode false
+  ${SUDO_WWW} git config core.filemode false
 
   # Create a python3 virtualenv
-  $SUDO_WWW virtualenv -p python3 ${PATH_TO_MISP}/venv
+  ${SUDO_WWW} virtualenv -p python3 ${PATH_TO_MISP}/venv
 
   # make pip happy
   sudo mkdir /var/www/.cache/
-  sudo chown $WWW_USER:$WWW_USER /var/www/.cache
+  sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
 
   cd ${PATH_TO_MISP}/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git; done
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git; done
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git; done
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git; done
 
-  # install mixbox to accommodate the new STIX dependencies:
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
   cd ${PATH_TO_MISP}/app/files/scripts/mixbox
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
   cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
   cd ${PATH_TO_MISP}/app/files/scripts/python-stix
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
-  cd $PATH_TO_MISP/app/files/scripts/python-maec
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
+  cd ${PATH_TO_MISP}/app/files/scripts/python-maec
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
   # install PyMISP
   cd ${PATH_TO_MISP}/PyMISP
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   cd /tmp
@@ -192,19 +191,19 @@ installCore () {
   sudo ldconfig
 
   # install pydeep
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+  false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install lief
 
   # install zmq needed by mispzmq
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq redis
 
   # install python-magic
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install python-magic
 
   # install plyara
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
+  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install plyara
 }
 # <snippet-end 1_mispCoreInstall.sh>
 ```
@@ -221,15 +220,15 @@ installCake () {
   cd ${PATH_TO_MISP}/app
   # Make composer cache happy
   # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
-  sudo mkdir /var/www/.composer ; sudo chown $WWW_USER:$WWW_USER /var/www/.composer
-  $SUDO_WWW php composer.phar install
+  sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  ${SUDO_WWW} php composer.phar install
 
   # Enable CakeResque with php-redis
   sudo phpenmod redis
   sudo phpenmod gnupg
 
   # To use the scheduler worker for scheduled tasks, do the following:
-  $SUDO_WWW cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
+  ${SUDO_WWW} cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 
   # If you have multiple MISP instances on the same system, don't forget to have a different Redis per MISP instance for the CakeResque workers
   # The default Redis port can be updated in Plugin/CakeResque/Config/config.php
@@ -249,7 +248,7 @@ permissions () {
   sudo chmod -R 750 ${PATH_TO_MISP}
   sudo chmod -R g+ws ${PATH_TO_MISP}/app/tmp
   sudo chmod -R g+ws ${PATH_TO_MISP}/app/files
-  sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chmod -R g+ws ${PATH_TO_MISP}/app/files/scripts/tmp
 }
 # <snippet-end 2_permissions.sh>
 ```
@@ -423,10 +422,10 @@ logRotation () {
 configMISP () {
   debug "Generating ${LBLUE}MISP${NC} config files"
   # There are 4 sample configuration files in ${PATH_TO_MISP}/app/Config that need to be copied
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
 
   echo "<?php
   class DATABASE_CONFIG {
@@ -443,7 +442,7 @@ configMISP () {
                   'prefix' => '',
                   'encoding' => 'utf8',
           );
-  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
+  }" | ${SUDO_WWW} tee ${PATH_TO_MISP}/app/Config/database.php
 
   # Important! Change the salt key in ${PATH_TO_MISP}/app/Config/config.php
   # The salt key must be a string at least 32 bytes long.
@@ -452,7 +451,7 @@ configMISP () {
   # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
   # and make sure the file permissions are still OK
-  sudo chown -R $WWW_USER:$WWW_USER ${PATH_TO_MISP}/app/Config
+  sudo chown -R ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}/app/Config
   sudo chmod -R 750 ${PATH_TO_MISP}/app/Config
 }
 # <snippet-end 2_configMISP.sh>
@@ -472,7 +471,7 @@ configMISP () {
 backgroundWorkers () {
   debug "Setting up background workers"
   # To make the background workers start on boot
-  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+  sudo chmod +x ${PATH_TO_MISP}/app/Console/worker/start.sh
 
   if [ ! -e /etc/rc.local ]
   then
@@ -524,7 +523,7 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 -----------------
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 ```bash
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
