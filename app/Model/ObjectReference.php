@@ -1,6 +1,6 @@
 <?php
-
 App::uses('AppModel', 'Model');
+App::uses('UuidTool', 'Tools');
 
 class ObjectReference extends AppModel
 {
@@ -43,7 +43,7 @@ class ObjectReference extends AppModel
     {
         parent::beforeValidate();
         if (empty($this->data['ObjectReference']['uuid'])) {
-            $this->data['ObjectReference']['uuid'] = CakeText::uuid();
+            $this->data['ObjectReference']['uuid'] = UuidTool::v4();
         }
         $date = new DateTime();
         $this->data['ObjectReference']['timestamp'] = $date->getTimestamp();

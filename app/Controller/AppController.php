@@ -26,6 +26,7 @@ App::uses('ConnectionManager', 'Model');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
+App::uses('UuidTool', 'Tools');
 
 /**
  * Application Controller
@@ -165,7 +166,7 @@ class AppController extends Controller
         // Check if the instance has a UUID, if not assign one.
         if (!Configure::read('MISP.uuid')) {
             $this->loadModel('Server');
-            $this->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
+            $this->Server->serverSettingsSaveValue('MISP.uuid', UuidTool::v4());
         }
         // check if Apache provides kerberos authentication data
         $envvar = Configure::read('ApacheSecureAuth.apacheEnv');

@@ -1,6 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
+App::uses('UuidTool', 'Tools');
 
 class EventsController extends AppController
 {
@@ -3177,7 +3178,7 @@ class EventsController extends AppController
             // add the original openIOC file as an attachment
             $saveEvent['Attribute'][] = array(
                 'category' => 'External analysis',
-                'uuid' =>  CakeText::uuid(),
+                'uuid' =>  UuidTool::v4(),
                 'type' => 'attachment',
                 'value' => $this->data['Event']['submittedioc']['name'],
                 'to_ids' => false,

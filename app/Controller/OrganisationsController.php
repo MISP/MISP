@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('UuidTool', 'Tools');
 
 class OrganisationsController extends AppController
 {
@@ -284,7 +285,7 @@ class OrganisationsController extends AppController
 
     public function admin_generateuuid()
     {
-        $this->set('uuid', CakeText::uuid());
+        $this->set('uuid', UuidTool::v4());
         $this->set('_serialize', array('uuid'));
     }
 

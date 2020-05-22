@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
+App::uses('UuidTool', 'Tools');
 
 class Sighting extends AppModel
 {
@@ -52,7 +53,7 @@ class Sighting extends AppModel
             $this->data['Sighting']['date_sighting'] = $date;
         }
         if (empty($this->data['Sighting']['uuid'])) {
-            $this->data['Sighting']['uuid'] = CakeText::uuid();
+            $this->data['Sighting']['uuid'] = UuidTool::v4();
         }
         return true;
     }

@@ -1,6 +1,6 @@
 <?php
-
 App::uses('AppController', 'Controller');
+App::uses('UuidTool', 'Tools');
 
 class ObjectReferencesController extends AppController
 {
@@ -68,8 +68,7 @@ class ObjectReferencesController extends AppController
                 'event_id' => $object['Event']['id'],
                 'object_uuid' => $object['Object']['uuid'],
                 'object_id' => $objectId,
-                'referenced_type' => $referenced_type,
-                'uuid' => CakeText::uuid()
+                'uuid' => UuidTool::v4()
             );
             $object_uuid = $object['Object']['uuid'];
             $this->ObjectReference->create();

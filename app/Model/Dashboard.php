@@ -1,5 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('UuidTool', 'Tools');
+
 class Dashboard extends AppModel
 {
     public $recursive = -1;
@@ -244,7 +246,7 @@ class Dashboard extends AppModel
             $this->create();
             $data = array(
                 'user_id' => $user['id'],
-                'uuid' => CakeText::uuid()
+                'uuid' => UuidTool::v4(),
             );
             if (empty($user['role']['perm_site_admin'])) {
                 $data['restrict_to_org_id'] = $user['org_id'];

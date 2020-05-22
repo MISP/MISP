@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('UuidTool', 'Tools');
 
 class UsersController extends AppController
 {
@@ -1178,7 +1179,7 @@ class UsersController extends AppController
                         'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
                         'description' => 'Automatically generated admin organisation',
                         'type' => 'ADMIN',
-                        'uuid' => CakeText::uuid(),
+                        'uuid' => UuidTool::v4(),
                         'local' => 1,
                         'date_created' => $date,
                         'sector' => '',

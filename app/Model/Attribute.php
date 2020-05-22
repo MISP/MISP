@@ -1,11 +1,11 @@
 <?php
-
 App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FinancialTool', 'Tools');
 App::uses('RandomTool', 'Tools');
 App::uses('MalwareTool', 'Tools');
+App::uses('UuidTool', 'Tools');
 
 class Attribute extends AppModel
 {
@@ -857,7 +857,7 @@ class Attribute extends AppModel
         }
         // generate UUID if it doesn't exist
         if (empty($this->data['Attribute']['uuid'])) {
-            $this->data['Attribute']['uuid'] = CakeText::uuid();
+            $this->data['Attribute']['uuid'] = UuidTool::v4();
         }
         // generate timestamp if it doesn't exist
         if (empty($this->data['Attribute']['timestamp'])) {

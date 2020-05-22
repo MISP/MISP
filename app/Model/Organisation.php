@@ -1,6 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ConnectionManager', 'Model');
+App::uses('UuidTool', 'Tools');
+
 class Organisation extends AppModel
 {
     public $useTable = 'organisations';
@@ -86,7 +88,7 @@ class Organisation extends AppModel
     {
         parent::beforeValidate();
         if (empty($this->data['Organisation']['uuid'])) {
-            $this->data['Organisation']['uuid'] = CakeText::uuid();
+            $this->data['Organisation']['uuid'] = UuidTool::v4();
         } else {
             $this->data['Organisation']['uuid'] = trim($this->data['Organisation']['uuid']);
         }
@@ -227,7 +229,7 @@ class Organisation extends AppModel
         if (empty($existingOrg)) {
             $this->create();
             $organisation = array(
-                    'uuid' =>CakeText::uuid(),
+                    'uuid' => UuidTool::v4(),
                     'name' => $name,
                     'local' => $local,
                     'created_by' => $user_id

@@ -1,4 +1,5 @@
 <?php
+App::uses('UuidTool', 'Tools');
 
 class IOCImportComponent extends Component
 {
@@ -196,7 +197,7 @@ class IOCImportComponent extends Component
                 if (!in_array($condensed, $duplicateFilter)) {
                     $this->saved_uuids[] = $attribute['uuid'];
                     $duplicateFilter[] = $condensed;
-                    $event['Attribute'][$k]['uuid'] = CakeText::uuid();
+                    $event['Attribute'][$k]['uuid'] = UuidTool::v4();
                 } else {
                     unset($event['Attribute'][$k]);
                 }
@@ -211,7 +212,7 @@ class IOCImportComponent extends Component
         // Define the fields used in the global iocinfo variable.
         foreach ($this->iocinfo as $k => $v) {
             if (isset($event[$v])) {
-                $event['Attribute'][] = array('uuid' => CakeText::uuid(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => $this->typeToIdsSettings['comment'], 'distribution' => $this->distribution, 'comment' => 'OpenIOC import from file ' . $filename);
+                $event['Attribute'][] = array('uuid' => UuidTool::v4(), 'category' => 'Other', 'type' => 'comment', 'event_id' => $id, 'value' => $v . ': ' . $event[$v], 'to_ids' => $this->typeToIdsSettings['comment'], 'distribution' => $this->distribution, 'comment' => 'OpenIOC import from file ' . $filename);
             }
         }
 

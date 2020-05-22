@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('RandomTool', 'Tools');
+App::uses('UuidTool', 'Tools');
 
 class Event extends AppModel
 {
@@ -599,7 +600,7 @@ class Event extends AppModel
 
         // generate UUID if it doesn't exist
         if (empty($this->data['Event']['uuid'])) {
-            $this->data['Event']['uuid'] = CakeText::uuid();
+            $this->data['Event']['uuid'] = UuidTool::v4();
         }
 
         // Convert event ID to uuid if needed

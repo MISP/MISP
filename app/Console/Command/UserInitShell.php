@@ -1,4 +1,6 @@
 <?php
+App::uses('UuidTool', 'Tools');
+
 class UserInitShell extends AppShell {
 	public $uses = array('User', 'Role', 'Organisation', 'Server', 'ConnectionManager');
 	public function main() {
@@ -46,7 +48,7 @@ class UserInitShell extends AppShell {
 					'description' => 'Automatically generated admin organisation',
 					'type' => 'ADMIN',
 					'date_created' => $date,
-					'uuid' => CakeText::uuid(),
+					'uuid' => UuidTool::v4(),
 					'local' => 1
 			));
 			$this->Organisation->save($org);

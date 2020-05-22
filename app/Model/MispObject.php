@@ -1,6 +1,6 @@
 <?php
-
 App::uses('AppModel', 'Model');
+App::uses('UuidTool', 'Tools');
 
 class MispObject extends AppModel
 {
@@ -185,7 +185,7 @@ class MispObject extends AppModel
         }
         // generate UUID if it doesn't exist
         if (empty($this->data[$this->alias]['uuid'])) {
-            $this->data[$this->alias]['uuid'] = CakeText::uuid();
+            $this->data[$this->alias]['uuid'] = UuidTool::v4();
         }
         // generate timestamp if it doesn't exist
         if (empty($this->data[$this->alias]['timestamp'])) {

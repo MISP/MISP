@@ -1,6 +1,6 @@
 <?php
-
 App::uses('StixExport', 'Export');
+App::uses('UuidTool', 'Tools');
 
 class Stix2Export extends StixExport
 {
@@ -11,7 +11,7 @@ class Stix2Export extends StixExport
     {
         $framing_file = $this->__scripts_dir . 'misp_framing.py ';
         $my_server = ClassRegistry::init('Server');
-        return $my_server->getPythonVersion() . ' ' . $framing_file . $this->__return_type . ' ' . escapeshellarg(CakeText::uuid()) . $this->__end_of_cmd;
+        return $my_server->getPythonVersion() . ' ' . $framing_file . $this->__return_type . ' ' . escapeshellarg(UuidTool::v4()) . $this->__end_of_cmd;
     }
 
     protected function __parse_misp_events($filename)

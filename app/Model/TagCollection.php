@@ -1,6 +1,6 @@
 <?php
-
 App::uses('AppModel', 'Model');
+App::uses('UuidTool', 'Tools');
 
 class TagCollection extends AppModel
 {
@@ -50,7 +50,7 @@ class TagCollection extends AppModel
         parent::beforeValidate();
         // generate UUID if it doesn't exist
         if (empty($this->data['TagCollection']['uuid'])) {
-            $this->data['TagCollection']['uuid'] = CakeText::uuid();
+            $this->data['TagCollection']['uuid'] = UuidTool::v4();
         }
         return true;
     }

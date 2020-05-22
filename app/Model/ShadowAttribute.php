@@ -1,8 +1,8 @@
 <?php
-
 App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('UuidTool', 'Tools');
 
 class ShadowAttribute extends AppModel
 {
@@ -360,7 +360,7 @@ class ShadowAttribute extends AppModel
 
         // generate UUID if it doesn't exist
         if (empty($this->data['ShadowAttribute']['uuid'])) {
-            $this->data['ShadowAttribute']['uuid'] = CakeText::uuid();
+            $this->data['ShadowAttribute']['uuid'] = UuidTool::v4();
         }
 
         if (!empty($this->data['ShadowAttribute']['type']) && empty($this->data['ShadowAttribute']['category'])) {

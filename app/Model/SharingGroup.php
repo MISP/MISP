@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('UuidTool', 'Tools');
 
 class SharingGroup extends AppModel
 {
@@ -64,7 +65,7 @@ class SharingGroup extends AppModel
     {
         parent::beforeValidate();
         if (empty($this->data['SharingGroup']['uuid'])) {
-            $this->data['SharingGroup']['uuid'] = CakeText::uuid();
+            $this->data['SharingGroup']['uuid'] = UuidTool::v4();
         }
         $date = date('Y-m-d H:i:s');
         if (empty($this->data['SharingGroup']['created'])) {
@@ -544,7 +545,7 @@ class SharingGroup extends AppModel
                 'name' => array(),
                 'releasability' => array(),
                 'description' => array('default' => ''),
-                'uuid' => array('default' => CakeText::uuid()),
+                'uuid' => array('default' => UuidTool::v4()),
                 'organisation_uuid' => array('default' => $user['Organisation']['uuid']),
                 'created' => array('default' => $date = date('Y-m-d H:i:s')),
                 'modified' => array('default' => $date = date('Y-m-d H:i:s')),
