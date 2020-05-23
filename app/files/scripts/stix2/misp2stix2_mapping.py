@@ -205,6 +205,27 @@ def pattern_x509(_, attribute_value):
 
 def return_vulnerability(name):
     return {'source_name': 'cve', 'external_id': name}
+misp_hash_types = ("authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
+                   "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh")
+attack_pattern_galaxies_list = ('mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
+                                'mitre-mobile-attack-attack-pattern', 'mitre-pre-attack-attack-pattern')
+course_of_action_galaxies_list = ('mitre-course-of-action', 'mitre-enterprise-attack-course-of-action',
+                                  'mitre-mobile-attack-course-of-action')
+intrusion_set_galaxies_list = ('mitre-enterprise-attack-intrusion-set', 'mitre-mobile-attack-intrusion-set',
+                               'mitre-pre-attack-intrusion-set', 'mitre-intrusion-set')
+malware_galaxies_list = ('android', 'banker', 'stealer', 'backdoor', 'ransomware', 'mitre-malware',
+                         'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware')
+threat_actor_galaxies_list = ('threat-actor', 'microsoft-activity-group')
+tool_galaxies_list = ('botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool',
+                      'mitre-enterprise-attack-tool', 'mitre-mobile-attack-tool')
+
+galaxies_mapping = {'branded-vulnerability': ['vulnerability', 'add_vulnerability_from_galaxy']}
+galaxies_mapping.update(dict.fromkeys(attack_pattern_galaxies_list, ['attack-pattern', 'add_attack_pattern']))
+galaxies_mapping.update(dict.fromkeys(course_of_action_galaxies_list, ['course-of-action', 'add_course_of_action']))
+galaxies_mapping.update(dict.fromkeys(intrusion_set_galaxies_list, ['intrusion-set', 'add_intrusion_set']))
+galaxies_mapping.update(dict.fromkeys(malware_galaxies_list, ['malware', 'add_malware']))
+galaxies_mapping.update(dict.fromkeys(threat_actor_galaxies_list, ['threat-actor', 'add_threat_actor']))
+galaxies_mapping.update(dict.fromkeys(tool_galaxies_list, ['tool', 'add_tool']))
 
 mispTypesMapping = {
     'link': {'to_call': 'handle_link'},
@@ -268,6 +289,36 @@ mispTypesMapping = {
     #                           'pattern': 'email-addr:display_name = \'{0}\''},
     #'email-src-display-name': {'observable': {'0': {'type': 'email-addr', 'display_name': ''}},
     #                           'pattern': 'email-addr:display_name = \'{0}\''}
+}
+
+objects_mapping = {
+    'asn': {'observable': 'resolve_asn_observable',
+            'pattern': 'resolve_asn_pattern'},
+    'credential': {'observable': 'resolve_credential_observable',
+                   'pattern': 'resolve_credential_pattern'},
+    'domain-ip': {'observable': 'resolve_domain_ip_observable',
+                  'pattern': 'resolve_domain_ip_pattern'},
+    'email': {'observable': 'resolve_email_object_observable',
+              'pattern': 'resolve_email_object_pattern'},
+    'file': {'observable': 'resolve_file_observable',
+             'pattern': 'resolve_file_pattern'},
+    'ip-port': {'observable': 'resolve_ip_port_observable',
+                'pattern': 'resolve_ip_port_pattern'},
+    'network-connection': {'observable': 'resolve_network_connection_observable',
+                           'pattern': 'resolve_network_connection_pattern'},
+    'network-socket': {'observable': 'resolve_network_socket_observable',
+                       'pattern': 'resolve_network_socket_pattern'},
+    'process': {'observable': 'resolve_process_observable',
+                'pattern': 'resolve_process_pattern'},
+    'registry-key': {'observable': 'resolve_regkey_observable',
+                     'pattern': 'resolve_regkey_pattern'},
+    'stix2-pattern': {'pattern': 'resolve_stix2_pattern'},
+    'url': {'observable': 'resolve_url_observable',
+            'pattern': 'resolve_url_pattern'},
+    'user-account': {'observable': 'resolve_user_account_observable',
+                     'pattern': 'resolve_user_account_pattern'},
+    'x509': {'observable': 'resolve_x509_observable',
+             'pattern': 'resolve_x509_pattern'}
 }
 
 network_traffic_pattern = "network-traffic:{0} = '{1}'"
