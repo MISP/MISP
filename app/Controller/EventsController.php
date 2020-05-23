@@ -1167,17 +1167,12 @@ class EventsController extends AppController
         $this->set('emptyEvent', $emptyEvent);
 
         // remove galaxies tags
-        $this->loadModel('GalaxyCluster');
         $this->loadModel('Taxonomy');
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
         foreach ($event['Object'] as $k => $object) {
             if (isset($object['Attribute'])) {
                 foreach ($object['Attribute'] as $k2 => $attribute) {
-                    foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
-                        if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                            unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
-                        }
-                    }
+                    $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
+
                     $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
                     foreach ($tagConflicts['global'] as $tagConflict) {
                         $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
@@ -1190,11 +1185,8 @@ class EventsController extends AppController
             }
         }
         foreach ($event['Attribute'] as $k => $attribute) {
-            foreach ($attribute['AttributeTag'] as $k2 => $attributeTag) {
-                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                    unset($event['Attribute'][$k]['AttributeTag'][$k2]);
-                }
-            }
+            $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
+
             $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
             foreach ($tagConflicts['global'] as $tagConflict) {
                 $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
