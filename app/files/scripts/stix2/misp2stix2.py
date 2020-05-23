@@ -739,6 +739,293 @@ class StixBuilder():
                 marking_ids.append(marking_id)
         return marking_ids
 
+    ################################################################################
+    ##                     MISP ATTRIBUTES PARSING FUNCTIONS.                     ##
+    ################################################################################
+
+    @staticmethod
+    def _get_artifact_observable(data):
+        return {'type': 'artifact', 'payload_bin': data}
+
+    @staticmethod
+    def _get_artifact_pattern(data):
+        return f"file:content_ref.payload_bin = '{data}'"
+
+    def _get_as_observable(self, _, attribute_value):
+        stix_type = 'number'
+        return {'0': {'type': 'autonomous-system', stix_type: self._parse_as_attribute(stix_type, attribute_value)}}
+
+    def _get_as_pattern(self, _, attribute_value):
+        stix_type = 'number'
+        return f"autonomous-system:{stix_type} = '{self._parse_as_attribute(stix_type, attribute_value)}'"
+
+    def _get_attachment_observable(self, _, attribute_value, data=None):
+        observable = self._get_file_observable(_, attribute_value)
+        if data is not None:
+            observable['0']['content_ref'] = '0'
+            return {'0': self._get_artifact_observable(data), '1': observable['0']}
+        return observable
+
+    def _get_attachment_pattern(self, _, attribute_value, data=None):
+        pattern = self._get_file_pattern(_, attribute_value)
+        if data is not None:
+            pattern = f'{pattern} AND {self._get_artifact_pattern(data)}'
+        return pattern
+
+    def _get_domain_ip_observable(self, _, attribute_value):
+        domain_value, ip_value = attribute_value.split('|')
+        address_type = self._define_address_type(ip_value)
+        observable = self._get_domain_observable(None, domain_value)
+        observable['0']['resolves_to_refs'] = ['1']
+        observable['1'] = {'type': address_type, 'value': ip_value}
+        return observable
+
+    def _get_domain_ip_pattern(self, _, attribute_value):
+        domain_value, ip_value = attribute_value.split('|')
+        return f"{self._get_domain_pattern(None, domain_value)} AND domain-name:resolves_to_refs[*].value = '{ip_value}'"
+
+    @staticmethod
+    def _get_domain_observable(_, attribute_value):
+        return {'0': {'type': 'domain-name', 'value': attribute_value}}
+
+    @staticmethod
+    def _get_domain_pattern(_, attribute_value):
+        return f"domain-name:value = '{attribute_value}'"
+
+    @staticmethod
+    def _get_email_address_observable(attribute_type, attribute_value):
+        observable = {
+            '0': {
+                'type': 'email-addr',
+                'value': attribute_value
+            },
+            '1': {
+                'type': 'email-message',
+                'is_multipart': 'false'
+            }
+        }
+        if 'src' in attribute_type:
+            observable['1']['from_ref'] = '0'
+        else:
+            observable['1']['to_refs'] = ['0']
+        return observable
+
+    @staticmethod
+    def _get_email_address_pattern(attribute_type, attribute_value):
+        email_type = 'from_ref' if 'src' in attribute_type else 'to_refs[*]'
+        return f"email-message:{email_type}.value = '{attribute_value}'"
+
+    def _get_email_attachment_observable(self, _, attribute_value):
+        observable = self._get_file_observable(None, attribute_value)
+        observable[1] = {
+            'type': 'email-message',
+            'is_multipart': 'false',
+            'body_multipart': [{
+                'content_disposition': f"attachment; filename='{attribute_value}'",
+                'body_raw_ref': '0'
+            }]
+        }
+        return observable
+
+    @staticmethod
+    def _get_email_attachment_pattern(_, attribute_value):
+        return f"email-message:body_multipart[*].body_raw_ref.name = '{attribute_value}'"
+
+    @staticmethod
+    def _get_email_message_observable(attribute_type, attribute_value):
+        email_type = attribute_type.split('-')[1]
+        observable = {
+            '0': {
+                'type': 'email-message',
+                email_type: attribute_value,
+                'is_multipart': 'false'
+            }
+        }
+        return observable
+
+    @staticmethod
+    def _get_email_message_pattern(attribute_type, attribute_value):
+        email_type = attribute_type.split('-')[1]
+        return f"email-message:{email_type} = '{attribute_value}'"
+
+    @staticmethod
+    def _get_file_observable(_, attribute_value):
+        return {'0': {'type': 'file', 'name': attribute_value}}
+
+    @staticmethod
+    def _get_file_pattern(_, attribute_value):
+        return f"file:name = '{attribute_value}'"
+
+    def _get_file_hash_observable(self, attribute_type, attribute_value):
+        filename, hash_type, hash_value = self._split_composite_attribute(attribute_type, attribute_value, 1)
+        return {'0': {'type': 'file', 'name': filename, 'hashes': {hash_type: hash_value}}}
+
+    def _get_file_hash_pattern(self, attribute_type, attribute_value):
+        filename, hash_type, hash_value = self._split_composite_attribute(attribute_type, attribute_value, 1)
+        return f'{self._get_file_pattern(None, filename)} AND {self._get_hash_pattern(hash_type, hash_value)}'
+
+    @staticmethod
+    def _get_hash_observable(attribute_type, attribute_value):
+        return {'0': {'type': 'file', 'hashes': {attribute_type: attribute_value}}}
+
+    @staticmethod
+    def _get_hash_pattern(attribute_type, attribute_value):
+        return f"file:hashes.'{attribute_type}' = '{attribute_value}'"
+
+    def _get_hostname_port_observable(self, _, attribute_value):
+        hostname_value, port_value = attribute_value.split('|')
+        observable = self._get_domain_observable(None, hostname_value)
+        observable['1'] = self._get_port_observable(None, port_value)[0]
+        return observable
+
+    def _get_hostname_port_pattern(self, _, attribute_value):
+        hostname_value, port_value = attribute_value.split('|')
+        return f'{self._get_domain_pattern(None, hostname_value)} AND {self._get_port_pattern(None, port_value)}'
+
+    def _get_ip_observable(self, attribute_type, attribute_value):
+        address_type = self._define_address_type(attribute_value)
+        observable = {
+            '0': {
+                'type': address_type,
+                'value': attribute_value
+            },
+            '1': {
+                'type': 'network-traffic',
+                f'{attribute_type.split("-")[1]}_ref': '0',
+                'protocols': [address_type.split('-')[0]]
+            }
+        }
+        return observable
+
+    def _get_ip_pattern(self, attribute_type, attribute_value):
+        ip_type = attribute_type.split('-')[1]
+        address_type = self._define_address_type(attribute_value)
+        return f"network-traffic:{ip_type}_ref.type = '{address_type}' AND network-traffic:{ip_type}_ref.value = '{attribute_value}'"
+
+    def _get_ip_port_observable(self, attribute_type, attribute_value):
+        ip_value, ip_type, port_value = self._split_composite_attribute(attribute_type, attribute_value, 0)
+        observable = self._get_ip_observable(ip_type, ip_value)
+        observable['1'][f'{ip_type.split("-")[1]}_port'] = port_value
+        return observable
+
+    def _get_ip_port_pattern(self, attribute_type, attribute_value):
+        ip_value, ip_type, port_value = self._split_composite_attribute(attribute_type, attribute_value, 0)
+        port_type = f'{ip_type.split("-")[1]}_port'
+        return f"network-traffic:{port_type} = '{port_value}' AND {self._get_ip_pattern(ip_type, ip_value)}"
+
+    @staticmethod
+    def _get_mac_address_observable(_, attribute_value):
+        return {'0': {'type': 'mac-addr', 'value': attribute_value.lower()}}
+
+    @staticmethod
+    def _get_mac_address_pattern(_, attribute_value):
+        return f"mac-addr:value = '{attribute_value.lower()}'"
+
+    def _get_malware_sample_observable(self, _, attribute_value, data=None):
+        observable = self._get_file_hash_observable('filename|md5', attribute_value)
+        if data is not None:
+            observable['0']['content_ref'] = '0'
+            return {'0': self._get_artifact_observable(data), '1': observable['0']}
+        return observable
+
+    def _get_malware_sample_pattern(self, _, attribute_value, data=None):
+        pattern = self._get_file_hash_pattern('filename|md5', attribute_value)
+        if data is not None:
+            pattern = f'{pattern} AND {self._get_artifact_pattern(data)}'
+        return pattern
+
+    @staticmethod
+    def _get_mutex_observable(_, attribute_value):
+        return {'0': {'type': 'mutex', 'name': attribute_value}}
+
+    @staticmethod
+    def _get_mutex_pattern(_, attribute_value):
+        return f"mutex:name = '{attribute_value}'"
+
+    # Usually broken and replaced by a custom object, because the network-traffic
+    # object requires the protocols fields, and either a src or dst ref
+    @staticmethod
+    def _get_port_observable(_, attribute_value):
+        return {'0': {'type': 'network-traffic', 'dst_port': attribute_value, 'protocols': []}}
+
+    @staticmethod
+    def _get_port_pattern(_, attribute_value):
+        return f"network-traffic:dst_port = '{attribute_value}'"
+
+    @staticmethod
+    def _get_regkey_observable(_, attribute_value):
+        return {'0': {'type': 'windows-registry-key', 'key': attribute_value.strip()}}
+
+    @staticmethod
+    def _get_regkey_pattern(_, attribute_value):
+        if '\\\\' not in attribute_value:
+            attribute_value = attribute_value.replace('\\', '\\\\')
+        return f"windows-registry-key:key = '{attribute_value.strip()}'"
+
+    def _get_regkey_value_observable(self, _, attribute_value):
+        regkey, value = attribute_value.split('|')
+        observable = self._get_regkey_observable(None, regkey)
+        observable['0']['values'] = WindowsRegistryValueType(**{'name': value.strip()})
+        return observable
+
+    def _get_regkey_value_pattern(self, _, attribute_value):
+        if '\\\\' not in attribute_value:
+            attribute_value = attribute_value.replace('\\', '\\\\')
+        regkey, value = attribute_value.split('|')
+        return f"{self._get_regkey_pattern(None, regkey)} AND windows-registry-key:values.name = '{value.strip()}'"
+
+    @staticmethod
+    def _get_reply_to_observable(_, attribute_value):
+        observable = {
+            '0': {
+                'type': 'email-addr',
+                'value': attribute_value
+            },
+            '1': {
+                'type': 'email-message',
+                'is_multipart': 'false',
+                'additional_header_fields': {
+                    'Reply-To': '0'
+                }
+            }
+        }
+        return observable
+
+    @staticmethod
+    def _get_reply_to_pattern(_, attribute_value):
+        return f"email-message:additional_header_fields.reply_to = '{attribute_value}'"
+
+    @staticmethod
+    def _get_url_observable(_, attribute_value):
+        return {'0': {'type': 'url', 'value': attribute_value}}
+
+    @staticmethod
+    def _get_url_pattern(_, attribute_value):
+        return f"url:value = '{attribute_value}'"
+
+    @staticmethod
+    def _get_vulnerability_data(vulnerability_name):
+        return {'source_name': 'cve', 'external_id': vulnerability_name}
+
+    @staticmethod
+    def _get_x509_observable(attribute_type, attribute_value):
+        hash_type = attribute_type.split('-')[-1]
+        return {'0': {'type': 'x509-certificate', 'hashes': {hash_type: attribute_value}}}
+
+    @staticmethod
+    def _get_x509_pattern(attribute_type, attribute_value):
+        hash_type = attribute_type.split('-')[-1]
+        return f"x509-certificate:hashes.'{hash_type}' = '{attribute_value}'"
+
+    @staticmethod
+    def _split_composite_attribute(attribute_type, attribute_value, index):
+        value1, value2 = attribute_value.split('|')
+        return value1, attribute_type.split('|')[index], value2
+
+    ################################################################################
+    ##                       MISP OBJECTS PARSING FUNCTIONS                       ##
+    ################################################################################
+
     def parse_attack_pattern_fields(self, attributes):
         attack_pattern = {}
         weaknesses = []
