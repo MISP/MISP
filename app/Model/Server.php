@@ -156,7 +156,7 @@ class Server extends AppModel
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
-                    'Run enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]',
+                    'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
                     'Test' => 'MISP/app/Console/cake Server test [server_id]',
                     'List' => 'MISP/app/Console/cake Server list'
                 ),

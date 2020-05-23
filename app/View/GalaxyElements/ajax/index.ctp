@@ -14,9 +14,7 @@
     ?>
     </ul>
 </div>
-    <div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
-    <span id="filter_header" class="attribute_filter_header">Filters: </span>AAA
-</div>
+
 <table class="table table-striped table-hover table-condensed">
     <tr>
         <th class="short"><?php echo $this->Paginator->sort('key', __('Key'));?></th>
@@ -26,8 +24,13 @@
     foreach ($list as $item):
 ?>
         <tr>
-            <td class="short"><?php echo h($item['GalaxyElement']['key']); ?>&nbsp;
-            </td><td class="short"><?php echo h($item['GalaxyElement']['value']); ?>&nbsp;</td>
+            <td class="short"><?= h($item['GalaxyElement']['key']); ?></td>
+            <td class="short"><?php if ($item['GalaxyElement']['key'] === 'refs') {
+                echo '<a href="' . h($item['GalaxyElement']['value']) . '" rel="noreferrer">' . h($item['GalaxyElement']['value']) . '</a>';
+            } else {
+                echo h($item['GalaxyElement']['value']);
+            }
+            ?></td>
         </tr>
     <?php
         endforeach; 
