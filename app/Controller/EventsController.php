@@ -1232,8 +1232,8 @@ class EventsController extends AppController
         }
         $this->set('event', $event);
         $dataForView = array(
-                'Attribute' => array('attrDescriptions', 'typeDefinitions', 'categoryDefinitions', 'distributionDescriptions', 'distributionLevels', 'shortDist'),
-                'Event' => array('fieldDescriptions')
+            'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),
+            'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
         );
         foreach ($dataForView as $m => $variables) {
             if ($m === 'Event') {
@@ -1241,8 +1241,8 @@ class EventsController extends AppController
             } elseif ($m === 'Attribute') {
                 $currentModel = $this->Event->Attribute;
             }
-            foreach ($variables as $variable) {
-                $this->set($variable, $currentModel->{$variable});
+            foreach ($variables as $alias => $variable) {
+                $this->set($alias, $currentModel->{$variable});
             }
         }
         if (Configure::read('Plugin.Enrichment_services_enable')) {
