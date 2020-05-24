@@ -18,8 +18,8 @@ viper () {
     fi
   fi
   echo "Cloning Viper"
-  $SUDO_CMD git clone https://github.com/viper-framework/viper.git
-  $SUDO_CMD git clone https://github.com/viper-framework/viper-web.git
+  false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/viper-framework/viper.git; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/viper-framework/viper-web.git; done
   sudo chown -R $MISP_USER:$MISP_USER viper
   sudo chown -R $MISP_USER:$MISP_USER viper-web
   cd viper

@@ -173,25 +173,25 @@ git submodule foreach --recursive git config core.filemode false
 # Create a python3 virtualenv
 virtualenv -p python3 ${PATH_TO_MISP}/venv
 
-cd $PATH_TO_MISP/app/files/scripts
+cd ${PATH_TO_MISP}/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
 git clone https://github.com/MAECProject/python-maec.git
-cd $PATH_TO_MISP/app/files/scripts/python-cybox
+cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
 ${PATH_TO_MISP}/venv/bin/pip install .
-cd $PATH_TO_MISP/app/files/scripts/python-stix
+cd ${PATH_TO_MISP}/app/files/scripts/python-stix
 ${PATH_TO_MISP}/venv/bin/pip install .
-cd $PATH_TO_MISP/app/files/scripts/python-maec
+cd ${PATH_TO_MISP}/app/files/scripts/python-maec
 ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install mixbox to accommodate the new STIX dependencies:
-cd $PATH_TO_MISP/app/files/scripts/
+cd ${PATH_TO_MISP}/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
-cd $PATH_TO_MISP/app/files/scripts/mixbox
+cd ${PATH_TO_MISP}/app/files/scripts/mixbox
 ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
-cd $PATH_TO_MISP/PyMISP
+cd ${PATH_TO_MISP}/PyMISP
 ${PATH_TO_MISP}/venv/bin/pip install .
 ```
 
@@ -243,7 +243,7 @@ flush privileges;
 exit
 
 # Import the empty MISP database from MYSQL.sql
-sudo -u ${VIRT_USER} cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+sudo -u ${VIRT_USER} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 ```
 
 
@@ -344,11 +344,11 @@ cat >/tmp/gen-key-script <<EOF
     %echo done
 EOF
 
-gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
+gpg --homedir ${PATH_TO_MISP}/.gnupg --batch --gen-key /tmp/gen-key-script
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
 # And export the public key to the webroot
-sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | tee $PATH_TO_MISP/app/webroot/gpg.asc
+sh -c "gpg --homedir ${PATH_TO_MISP}/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | tee ${PATH_TO_MISP}/app/webroot/gpg.asc
 
 # If you get no satisfaction with your entropy install this:
 sudo apt-get install haveged pv

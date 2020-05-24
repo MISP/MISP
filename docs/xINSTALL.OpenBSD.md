@@ -350,8 +350,8 @@ doas mysql_secure_installation
 doas mkdir /var/www/htdocs/MISP
 doas chown www:www /var/www/htdocs/MISP
 cd /var/www/htdocs/MISP
-doas -u www git clone https://github.com/MISP/MISP.git /var/www/htdocs/MISP
-doas -u www git submodule update --progress --init --recursive
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MISP/MISP.git /var/www/htdocs/MISP; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git submodule update --progress --init --recursive; done
 # Make git ignore filesystem permission differences for submodules
 doas -u www git submodule foreach --recursive git config core.filemode false
 
@@ -362,10 +362,10 @@ doas pkg_add py3-pip libxml libxslt py3-jsonschema
 doas /usr/local/virtualenvs/MISP/bin/pip install -U pip
 
 cd /var/www/htdocs/MISP/app/files/scripts
-doas -u www git clone https://github.com/CybOXProject/mixbox.git
-doas -u www git clone https://github.com/CybOXProject/python-cybox.git
-doas -u www git clone https://github.com/STIXProject/python-stix.git
-doas -u www git clone https://github.com/MAECProject/python-maec.git
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git; done
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-cybox
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
@@ -673,7 +673,7 @@ doas $CAKE Admin setSetting "Session.cookie_timeout" 3600
 
 # Enable GnuPG
 doas $CAKE Admin setSetting "GnuPG.email" "admin@admin.test"
-doas $CAKE Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
+doas $CAKE Admin setSetting "GnuPG.homedir" "${PATH_TO_MISP}/.gnupg"
 doas $CAKE Admin setSetting "GnuPG.password" "Password1234"
 
 # Enable Enrichment set better timeouts
