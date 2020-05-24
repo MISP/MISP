@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for OpenBSD 6.5-amd64
+## for OpenBSD 6.7-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
@@ -86,16 +86,17 @@ doas pkg_add -v mariadb-server
 #### Install misc dependencies
 
 !!! notice
-    You need to install python 3.x when asked, option 2.
+    install python 3.x when asked, option 2
     autoconf wants to be version 2.69, option 16
-    automake wants to be version 1.16, option 7
+    automake wants to be version 1.16, option 10
+    unzip can be whatever
 
 ```bash
 doas pkg_add -v curl git python redis libmagic autoconf automake libtool unzip
 ```
 
 !!! notice
-    GnuPG 2.x is best, option 3.
+    GnuPG 2.x is best, option 2
 
 ```bash
 doas pkg_add -v gnupg
@@ -104,7 +105,7 @@ doas ln -s /usr/local/bin/gpg2 /usr/local/bin/gpg
 
 #### Install postfix (optional)
 !!! notice
-    When asked, the standard postfix will be enough for a basic setup, option 9.
+    When asked, the standard postfix 3.5 will be enough for a basic setup, option 1
 
 ```bash
 doas pkg_add -v postfix
@@ -242,11 +243,11 @@ doas rcctl enable httpd
 
 #### Install Python virtualenv
 ```bash
-doas ln -sf /usr/local/bin/pip3.6 /usr/local/bin/pip
-doas ln -s /usr/local/bin/python3.6 /usr/local/bin/python
-doas pkg_add -v py-virtualenv
+doas pkg_add -v py3-virtualenv py3-pip
+doas ln -sf /usr/local/bin/pip3.7 /usr/local/bin/pip
+doas ln -s /usr/local/bin/python3.7 /usr/local/bin/python
 doas mkdir /usr/local/virtualenvs
-doas virtualenv -ppython3 /usr/local/virtualenvs/MISP
+doas virtualenv-3 /usr/local/virtualenvs/MISP
 ```
 
 #### Install ssdeep
@@ -264,33 +265,33 @@ doas pkg_add -v fcgi-cgi fcgi
 !!! notice
     php-5.6 is marked as end-of-life starting December 2018, use php 7.0 instead.
     Option 2.
-    If on OpenBSD 6.3, upgrade to 6.5 to make your life much easier.
+    If on OpenBSD 6.3, upgrade to 6.7 to make your life much easier.
 
 ```
-doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl73-redis php-gd
+doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl74-redis php-gd
 ```
 
-#### /etc/php-7.3.ini 
+#### /etc/php-7.4.ini 
 ```
 ## TODO: sed foo as .ini exists
 allow_url_fopen = On
 ```
 
 ```bash
-cd /etc/php-7.3
-doas cp ../php-7.3.sample/* .
+cd /etc/php-7.4
+doas cp ../php-7.4.sample/* .
 ```
 
 #### php symlinks
 ```bash
-doas ln -s /usr/local/bin/php-7.3 /usr/local/bin/php
-doas ln -s /usr/local/bin/phpize-7.3 /usr/local/bin/phpize
-doas ln -s /usr/local/bin/php-config-7.3 /usr/local/bin/php-config
+doas ln -s /usr/local/bin/php-7.4 /usr/local/bin/php
+doas ln -s /usr/local/bin/phpize-7.4 /usr/local/bin/phpize
+doas ln -s /usr/local/bin/php-config-7.4 /usr/local/bin/php-config
 ```
 
 #### Enable php fpm 
 ```bash
-doas rcctl enable php73_fpm
+doas rcctl enable php74_fpm
 ```
 
 #### Configure fpm
@@ -320,7 +321,7 @@ pm.min_spare_servers = 1
 pm.max_spare_servers = 3
 chroot = /var/www" | doas tee /etc/php-fpm.d/default.conf
 
-doas /etc/rc.d/php73_fpm start 
+doas /etc/rc.d/php74_fpm start 
 ```
 
 !!! notice
@@ -349,22 +350,22 @@ doas mysql_secure_installation
 doas mkdir /var/www/htdocs/MISP
 doas chown www:www /var/www/htdocs/MISP
 cd /var/www/htdocs/MISP
-doas -u www git clone https://github.com/MISP/MISP.git /var/www/htdocs/MISP
-doas -u www git submodule update --init --recursive
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MISP/MISP.git /var/www/htdocs/MISP; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git submodule update --progress --init --recursive; done
 # Make git ignore filesystem permission differences for submodules
 doas -u www git submodule foreach --recursive git config core.filemode false
 
 # Make git ignore filesystem permission differences
 doas -u www git config core.filemode false
 
-doas pkg_add py-pip py3-pip libxml libxslt py3-jsonschema
+doas pkg_add py3-pip libxml libxslt py3-jsonschema
 doas /usr/local/virtualenvs/MISP/bin/pip install -U pip
 
 cd /var/www/htdocs/MISP/app/files/scripts
-doas -u www git clone https://github.com/CybOXProject/mixbox.git
-doas -u www git clone https://github.com/CybOXProject/python-cybox.git
-doas -u www git clone https://github.com/STIXProject/python-stix.git
-doas -u www git clone https://github.com/MAECProject/python-maec.git
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git; done
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-cybox
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
@@ -399,11 +400,6 @@ doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
 doas mkdir /var/www/.composer ; doas chown www:www /var/www/.composer
-#EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
-#doas -u www php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-#doas -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-#doas -u www env HOME=/var/www php composer-setup.php
-#doas -u www php -r "unlink('composer-setup.php');"
 doas -u www env HOME=/var/www php composer.phar install
 
 # To use the scheduler worker for scheduled tasks, do the following:
@@ -677,7 +673,7 @@ doas $CAKE Admin setSetting "Session.cookie_timeout" 3600
 
 # Enable GnuPG
 doas $CAKE Admin setSetting "GnuPG.email" "admin@admin.test"
-doas $CAKE Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
+doas $CAKE Admin setSetting "GnuPG.homedir" "${PATH_TO_MISP}/.gnupg"
 doas $CAKE Admin setSetting "GnuPG.password" "Password1234"
 
 # Enable Enrichment set better timeouts
