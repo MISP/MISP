@@ -695,12 +695,23 @@ class ACLComponent extends Component
         }
     }
 
-    // The check works like this:
-    // If the user is a site admin, return true
-    // If the requested action has an OR-d list, iterate through the list. If any of the permissions are set for the user, return true
-    // If the requested action has an AND-ed list, iterate through the list. If any of the permissions for the user are not set, turn the check to false. Otherwise return true.
-    // If the requested action has a permission, check if the user's role has it flagged. If yes, return true
-    // If we fall through all of the checks, return an exception.
+    /**
+     * The check works like this:
+     * - If the user is a site admin, return true
+     * - If the requested action has an OR-d list, iterate through the list. If any of the permissions are set for the user, return true
+     * - If the requested action has an AND-ed list, iterate through the list. If any of the permissions for the user are not set, turn the check to false. Otherwise return true.
+     * - If the requested action has a permission, check if the user's role has it flagged. If yes, return true
+     * - If we fall through all of the checks, return an exception.
+     *
+     * @param array|null $user
+     * @param string $controller
+     * @param string $action
+     * @param bool $soft If true, instead of exception, HTTP error code is retuned as int.
+     * @return bool|int
+     * @throws NotFoundException
+     * @throws MethodNotAllowedException
+     * @throws InternalErrorException
+     */
     public function checkAccess($user, $controller, $action, $soft = false)
     {
         $controller = lcfirst(Inflector::camelize($controller));
@@ -710,14 +721,11 @@ class ACLComponent extends Component
             $aclList[$k] = array_change_key_case($v);
         }
         $this->__checkLoggedActions($user, $controller, $action);
-        if ($user['Role']['perm_site_admin']) {
+        if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
         if (!isset($aclList[$controller])) {
             return $this->__error(404, 'Invalid controller.', $soft);
-        }
-        if ($user['Role']['perm_site_admin']) {
-            return true;
         }
         if (isset($aclList[$controller][$action]) && !empty($aclList[$controller][$action])) {
             if (in_array('*', $aclList[$controller][$action])) {
