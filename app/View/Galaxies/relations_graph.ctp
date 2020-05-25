@@ -4,6 +4,7 @@
         <?= __('Back to galaxy') ?>
     </a>
 </h6>
+<h2><?= sprintf(__('%s galaxy cluster relationships'), h($galaxy['Galaxy']['name'])) ?></h2>
 <?php if (empty($relations)): ?>
     <div class="alert alert-info">
         <?= __('There are no relations in this Galaxy'); ?>

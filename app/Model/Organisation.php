@@ -82,6 +82,23 @@ class Organisation extends AppModel
             'User' => array('table' => 'users', 'fields' => array('org_id'))
     );
 
+    public $genericMISPOrganisation = array(
+        'id' => '0',
+        'name' => 'MISP',
+        'date_created' => '',
+        'date_modified' => '',
+        'description' => 'Automatically generated MISP organisation',
+        'type' => '',
+        'nationality' => 'Not specified',
+        'sector' => '',
+        'created_by' => '0',
+        'uuid' => '0',
+        'contacts' => '',
+        'local' => true,
+        'restricted_to_domain' => '',
+        'landingpage' => null
+    );
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();

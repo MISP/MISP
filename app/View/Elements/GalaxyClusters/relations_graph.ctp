@@ -327,8 +327,14 @@ function generateTooltip(d, type) {
             {label: '<?= __('Description') ?>', value: d.description},
             {label: '<?= __('Default') ?>', value: d.default},
             {label: '<?= __('Distribution') ?>', value: getReadableDistribution(d), url: {path: d.distribution == 4 ? '<?= sprintf('%s/sharing_groups/view/', $baseurl) ?>' : undefined, id: d.distribution == 4 ? d.SharingGroup.id : ''}},
-            {label: '<?= __('Owner Org.') ?>', value: d.Org.name, url: {path: '<?= sprintf('%s/organisations/view/', $baseurl) ?>', id: d.Org.id}},
-            {label: '<?= __('Creator Org.') ?>',value: d.Orgc.name, url: {path: '<?= sprintf('%s/organisations/view/', $baseurl) ?>', id: d.Orgc.id}},
+            (d.Org.id == 0 ?
+                {label: '<?= __('Owner Org.') ?>', value: d.Org.name} :
+                {label: '<?= __('Owner Org.') ?>', value: d.Org.name, url: {path: '<?= sprintf('%s/organisations/view/', $baseurl) ?>', id: d.Org.id}}
+            ),
+            (d.Orgc.id == 0 ?
+                {label: '<?= __('Creator Org.') ?>', value: d.Org.name} :
+                {label: '<?= __('Creator Org.') ?>', value: d.Orgc.name, url: {path: '<?= sprintf('%s/organisations/view/', $baseurl) ?>', id: d.Orgc.id}}
+            ),
             {label: '<?= __('Tag name') ?>', value: d.tag_name},
             {label: '<?= __('Version') ?>', value: d.version},
             {label: '<?= __('UUID') ?>', value: d.uuid}

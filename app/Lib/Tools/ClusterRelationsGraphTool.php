@@ -37,6 +37,7 @@
                             }
                         }
                         $referencedCluster = $this->lookup[$referencedClusterUuid];
+                        $referencedCluster = $this->attachOwnerInsideCluster($referencedCluster);
                         if (!empty($referencedCluster)) {
                             $nodes[$referencedClusterUuid] = $referencedCluster['GalaxyCluster'];
                             $nodes[$referencedClusterUuid]['group'] = $referencedCluster['GalaxyCluster']['type'];

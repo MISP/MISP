@@ -99,13 +99,17 @@ class GalaxyCluster extends AppModel
                 $results[$k][$this->alias]['authors'] = json_decode($results[$k][$this->alias]['authors'], true);
             }
             if (isset($results[$k][$this->alias]['distribution']) && $results[$k][$this->alias]['distribution'] != 4) {
-                unset($results[$k][$this->alias]['SharingGroup']);
+                unset($results[$k]['SharingGroup']);
             }
-            if (isset($results[$k][$this->alias]['org_id']) && $results[$k][$this->alias]['org_id'] != 4) {
-                unset($results[$k][$this->alias]['Org']);
+            if (isset($results[$k][$this->alias]['org_id']) && $results[$k][$this->alias]['org_id'] == 0) {
+                if (isset($results[$k]['Org'])) {
+                    $results[$k]['Org'] = $this->Org->genericMISPOrganisation;
+                }
             }
-            if (isset($results[$k][$this->alias]['orgc_id']) && $results[$k][$this->alias]['orgc_id'] != 4) {
-                unset($results[$k][$this->alias]['Orgc']);
+            if (isset($results[$k][$this->alias]['orgc_id']) && $results[$k][$this->alias]['orgc_id'] == 0) {
+                if (isset($results[$k]['Orgc'])) {
+                    $results[$k]['Orgc'] = $this->Org->genericMISPOrganisation;
+                }
             }
         }
         return $results;
