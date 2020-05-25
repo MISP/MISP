@@ -122,7 +122,8 @@ class Galaxy extends AppModel
             foreach ($temp as $k => $v) {
                 $existingClusters[$v['GalaxyCluster']['value']] = $v;
             }
-            $clusters_to_delete = array();
+            $cluster_ids_to_delete = array();
+            $cluster_uuids_to_delete = array();
 
             // Delete all existing outdated clusters
             foreach ($cluster_package['values'] as $k => $cluster) {
@@ -137,16 +138,17 @@ class Galaxy extends AppModel
                 }
                 if (!empty($existingClusters[$cluster['value']])) {
                     if ($force || $existingClusters[$cluster['value']]['GalaxyCluster']['version'] < $cluster_package['values'][$k]['version']) {
-                        $clusters_to_delete[] = $existingClusters[$cluster['value']]['GalaxyCluster']['id'];
+                        $cluster_ids_to_delete[] = $existingClusters[$cluster['value']]['GalaxyCluster']['id'];
+                        $cluster_uuids_to_delete[] = $existingClusters[$cluster['value']]['GalaxyCluster']['uuid'];
                     } else {
                         unset($cluster_package['values'][$k]);
                     }
                 }
             }
-            if (!empty($clusters_to_delete)) {
-                $this->GalaxyCluster->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $clusters_to_delete), false, false);
-                $this->GalaxyCluster->GalaxyClusterRelation->deleteRelations(array('GalaxyClusterRelation.galaxy_cluster_id' => $clusters_to_delete));
-                $this->GalaxyCluster->delete($clusters_to_delete, false, false);
+            if (!empty($cluster_ids_to_delete)) {
+                $this->GalaxyCluster->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $cluster_ids_to_delete), false, false);
+                $this->GalaxyCluster->GalaxyClusterRelation->deleteRelations(array('GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster_uuids_to_delete));
+                $this->GalaxyCluster->delete($cluster_ids_to_delete, false, false);
             }
 
             // create all clusters
@@ -194,9 +196,8 @@ class Galaxy extends AppModel
                 }
                 if (isset($cluster['related'])) {
                     foreach ($cluster['related'] as $key => $relation) {
-                        array('', 'referenced_galaxy_cluster_id');
+                        array('', 'referenced_galaxy_cluster_uuid');
                         $relations[] = array(
-                            'galaxy_cluster_id' => $this->GalaxyCluster->id,
                             'galaxy_cluster_uuid' => $cluster['uuid'],
                             'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
                             'referenced_galaxy_cluster_type' => $relation['type'],

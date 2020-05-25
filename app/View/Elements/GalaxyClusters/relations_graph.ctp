@@ -41,13 +41,13 @@ function initGraph() {
     var groupDomain = {};
     graph.links.forEach(function(link) {
         var tmpNode = graph.nodes.filter(function(node) {
-            return node.id == link.source;
+            return node.uuid == link.source;
         })
         link.source = tmpNode[0]
         tmpNode = graph.nodes.filter(function(node) {
-            return node.id == link.target;
+            return node.uuid == link.target;
         })
-        link.target = tmpNode[0]
+        link.target = tmpNode[0];
         groupDomain[link.source.group] = 1;
         groupDomain[link.target.group] = 1;
         correctLink.push(link)

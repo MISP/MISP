@@ -17,15 +17,11 @@ class GalaxyClusterRelation extends AppModel
                 'rule' => array('stringNotEmpty')
             )
         ),
-        'galaxy_cluster_id' => array(
-            'stringNotEmpty' => array(
-                'rule' => array('stringNotEmpty')
-            )
-        ),
-        'referenced_galaxy_cluster_id' => array(
-            'stringNotEmpty' => array(
-                'rule' => array('stringNotEmpty')
-            )
+        'galaxy_cluster_uuid' => array(
+            'uuid' => array(
+                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'message' => 'Please provide a valid UUID'
+            ),
         ),
         'referenced_galaxy_cluster_uuid' => array(
             'uuid' => array(
@@ -41,28 +37,18 @@ class GalaxyClusterRelation extends AppModel
     );
 
     public $belongsTo = array(
-            'GalaxyCluster' => array(
+            'SourceCluster' => array(
                 'className' => 'GalaxyCluster',
                 'foreignKey' => 'galaxy_cluster_id',
             ),
-            'ReferencedGalaxyCluster' => array(
+            'TargetCluster' => array(
                 'className' => 'GalaxyCluster',
                 'foreignKey' => 'referenced_galaxy_cluster_id',
-            ),
-            'Org' => array(
-                'className' => 'Organisation',
-                'foreignKey' => 'org_id',
-                'conditions' => array('GalaxyClusterRelation.org_id !=' => 0),
-            ),
-            'Orgc' => array(
-                'className' => 'Organisation',
-                'foreignKey' => 'orgc_id',
-                'conditions' => array('GalaxyClusterRelation.orgc_id !=' => 0),
             ),
             'SharingGroup' => array(
                     'className' => 'SharingGroup',
                     'foreignKey' => 'sharing_group_id'
-            )
+            ),
     );
 
     public $hasMany = array(
@@ -82,7 +68,6 @@ class GalaxyClusterRelation extends AppModel
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->Event->cacheSgids($user, true);
             $conditions['AND']['OR'] = array(
-                'GalaxyClusterRelation.org_id' => $user['org_id'],
                 array(
                     'AND' => array(
                         'GalaxyClusterRelation.distribution >' => 0,
@@ -109,7 +94,7 @@ class GalaxyClusterRelation extends AppModel
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
         } elseif($full) {
-            $params['contain'] = array('Org', 'Orgc', 'SharingGroup', 'GalaxyCluster', 'ReferencedGalaxyCluster');
+            $params['contain'] = array('SharingGroup', 'SourceCluster', 'TargetCluster');
         }
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];
@@ -125,13 +110,7 @@ class GalaxyClusterRelation extends AppModel
             if ($relation['GalaxyClusterRelation']['distribution'] != 4) {
                 unset($relation[$i]['SharingGroup']);
             }
-            // if ($cluster['GalaxyCluster']['org_id'] == 0) {
-            //     unset($clusters[$i]['Org']);
-            // }
-            // if ($cluster['GalaxyCluster']['orgc_id'] == 0) {
-            //     unset($clusters[$i]['Orgc']);
-            // }
-            // $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
+            $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
         }
         return $relations;
     }
@@ -154,18 +133,18 @@ class GalaxyClusterRelation extends AppModel
     public function addRelations($user, $relations)
     {
         $fieldList = array(
-            'galaxy_cluster_id',
             'galaxy_cluster_uuid',
-            'referenced_galaxy_cluster_id',
             'referenced_galaxy_cluster_uuid',
-            'referenced_galaxy_cluster_type'
+            'referenced_galaxy_cluster_type',
+            'distribution',
+            'sharing_group_id',
         );
         foreach ($relations as $k => $relation) {
-            if (!isset($relation['referenced_galaxy_cluster_id'])) {
-                $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array('conditions' => array('GalaxyCluster.uuid' => $relation['referenced_galaxy_cluster_uuid'])));
+            if (!isset($relation['referenced_galaxy_cluster_uuid'])) {
+                $referencedCluster = $this->TargetCluster->fetchGalaxyClusters($user, array('conditions' => array('uuid' => $relation['referenced_galaxy_cluster_uuid'])));
                 if (!empty($referencedCluster)) { // do not save the relation if referenced cluster does not exists
                     $referencedCluster = $referencedCluster[0];
-                    $relation['referenced_galaxy_cluster_id'] = $referencedCluster['GalaxyCluster']['id'];
+                    $relation['referenced_galaxy_cluster_uuid'] = $referencedCluster['GalaxyCluster']['uuid'];
                     $this->create();
                     $saveResult = $this->save($relation, array('fieldList' => $fieldList));
                     if ($saveResult) {
@@ -199,20 +178,10 @@ class GalaxyClusterRelation extends AppModel
             $errors[] = __('Incorrect permission');
             return $errors;
         }
-        $relation['GalaxyClusterRelation']['org_id'] = $user['org_id'];
-        if (!isset($relation['GalaxyClusterRelation']['orgc_id'])) {
-            if (isset($relation['Orgc']['uuid'])) {
-                $orgc_id = $this->Orgc->find('first', array('conditions' => array('Orgc.uuid' => $user['Orgc']['uuid']), 'fields' => array('Orgc.id'), 'recursive' => -1));
-            } else {
-                $orgc_id = $user['org_id'];
-            }
-            $relation['GalaxyClusterRelation']['orgc_id'] = $orgc_id;
-        }
         $existingRelation = $this->find('first', array('conditions' => array(
-            'GalaxyClusterRelation.galaxy_cluster_id' => $relation['GalaxyClusterRelation']['galaxy_cluster_id'],
-            'GalaxyClusterRelation.referenced_galaxy_cluster_id' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'],
+            'GalaxyClusterRelation.galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'],
+            'GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
             'GalaxyClusterRelation.referenced_galaxy_cluster_type' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_type'],
-            'GalaxyClusterRelation.org_id' => $relation['GalaxyClusterRelation']['org_id'],
         )));
         if (!empty($existingRelation)) {
             $errors[] = __('Relation already exists');
@@ -247,24 +216,24 @@ class GalaxyClusterRelation extends AppModel
         if (empty($existingRelation)) {
             $errors[] = __('Unkown ID');
         } else {
-            // For users that are of the creating org of the cluster, always allow the edit
-            // For users that are sync users, only allow the edit if the cluster is locked
-            if ($existingRelation['GalaxyClusterRelation']['orgc_id'] === $user['org_id']
-            || ($user['Role']['perm_sync'] && $existingRelation['GalaxyClusterRelation']['locked']) || $user['Role']['perm_site_admin']) {
-                if ($user['Role']['perm_sync']) {
-                    if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $relation['GalaxyClusterRelation']['sharing_group_id'])) {
-                        $errors[] = array(__('Galaxy Cluster Relation could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.'));
-                    }
-                }
-            } else {
-                $errors[] = array(__('Galaxy Cluster Relation could not be saved: The user used to edit the cluster relation is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the cluster relation whilst also not being a site administrator.'));
+            $options = array('conditions' => array(
+                'GalaxyCluster.uuid' => $relations['GalaxyClusterRelation']['galaxy_cluster_uuid']
+            ));
+            $cluster = $this->SourceCluster->fetchGalaxyClusters($user, $options);
+            if (empty($cluster)) {
+                $errors[] = __('Source cluster not found');
             }
+            $cluster = $cluster[0];
             $relation['GalaxyClusterRelation']['id'] = $existingRelation['GalaxyClusterRelation']['id'];
+
+            if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $relation['GalaxyClusterRelation']['sharing_group_id'])) {
+                $errors[] = array(__('Galaxy Cluster Relation could not be saved: The user has to have access to the sharing group in order to be able to edit it.'));
+            }
             
             if (empty($errors)) {
                 $relation['GalaxyClusterRelation']['default'] = false;
                 if (empty($fieldList)) {
-                    $fieldList = array('galaxy_cluster_id', 'referenced_galaxy_cluster_id', 'referenced_galaxy_cluster_type', 'distribution', 'sharing_group_id');
+                    $fieldList = array('galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type', 'distribution', 'sharing_group_id');
                 }
                 $saveSuccess = $this->save($relation, array('fieldList' => $fieldList));
                 if (!$saveSuccess) {
@@ -283,90 +252,63 @@ class GalaxyClusterRelation extends AppModel
      * @param $user
      * @param array $relation Relation to be saved
      * @param bool $fromPull If the current capture is performed from a PULL sync
-     * @param int $orgId The organisation id that should own the cluster
      * @return array
      */
-    public function captureRelations($user, $clusterId, $relations, $fromPull=false, $orgId=0)
+    public function captureRelations($user, $cluster, $relations, $fromPull=false)
     {
         $results = array('success' => false, 'imported' => 0, 'failed' => 0);
         $this->Log = ClassRegistry::init('Log');
+        $clusterUuid = $cluster['GalaxyCluster']['uuid'];
 
         foreach ($relations as $k => $relation) {
             if (!isset($relation['GalaxyClusterRelation'])) {
                 $relation = array('GalaxyClusterRelation' => $relation);
             }
-            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterId;
-            if ($fromPull) {
-                $relation['GalaxyClusterRelation']['org_id'] = $orgId;
-            } else {
-                $relation['GalaxyClusterRelation']['org_id'] = $user['Organisation']['id'];
-            }
-
-            if (!empty($relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'])) {
-                $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('No referenced cluster UUID provided'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
+            $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $clusterUuid;
+            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $cluster['GalaxyCluster']['id'];
+            
+            if (empty($relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'])) {
+                $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('No referenced cluster UUID provided'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterUuid));
                 $results['failed']++;
                 continue;
             } else {
                 $options = array(
                     'conditions' => array(
-                        'GalaxyCluster.uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
+                        'uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
+                    ),
+                    'fields' => array(
+                        'id', 'uuid',
                     )
                 );
-                $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($user, $options);
+                $referencedCluster = $this->SourceCluster->fetchGalaxyClusters($user, $options);
                 if (empty($referencedCluster)) {
-                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Referenced cluster not found'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
-                    $results['failed']++;
-                    continue;
+                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Referenced cluster not found'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterUuid));
+                    unset($relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id']);
                 } else {
                     $referencedCluster = $referencedCluster[0];
-                    $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $referencedCluster['GalaxyCluster']['id'];
+                    $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $referencedCluster['SourceCluster']['id'];
                 }
             }
 
-            if (!isset($relation['GalaxyClusterRelation']['orgc_id']) && !isset($relation['Orgc'])) {
-                $relation['GalaxyClusterRelation']['orgc_id'] = $relation['GalaxyClusterRelation']['org_id'];
-            } else {
-                if (!isset($relation['GalaxyClusterRelation']['Orgc'])) {
-                    if (isset($relation['GalaxyClusterRelation']['orgc_id']) && $relation['GalaxyClusterRelation']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                        $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Only sync user can create cluster on behalf of other users'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
-                        $results['failed']++;
-                        continue;
-                    }
-                } else {
-                    if ($relation['GalaxyClusterRelation']['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                        $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Only sync user can create galaxy on behalf of other users'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
-                        $results['failed']++;
-                        continue;
-                    }
-                }
-                if (isset($relation['GalaxyClusterRelation']['orgc_id']) && $relation['GalaxyClusterRelation']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Only sync user can create galaxy on behalf of other users'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
-                    $results['failed']++;
-                    continue;
-                }
+            if ($cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Only sync user can create galaxy on behalf of other users'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterUuid));
+                $results['failed']++;
+                continue;
             }
 
-            if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false) {
-                $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
-                if (!isset($relation['GalaxyClusterRelation']['Orgc']['uuid'])) {
-                    $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $relation['GalaxyClusterRelation']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
-                } else {
-                    $orgc = array('Orgc' => array('uuid' => $relation['GalaxyClusterRelation']['Orgc']['uuid']));
-                }
-                if ($this->OrgBlacklist->hasAny(array('OrgBlacklist.org_uuid' => $orgc['Orgc']['uuid']))) {
-                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Organisation blacklisted'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterId));
-                    $results['failed']++;
-                    continue;
-                }
+            $this->Event = ClassRegistry::init('Event');
+            if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4) {
+                $relation['GalaxyClusterRelation'] = $this->Event->__captureSGForElement($relation['GalaxyClusterRelation'], $user);
             }
-            $relation = $this->GalaxyCluster->captureOrganisationAndSG($relation, 'GalaxyClusterRelation', $user);
 
             $this->create();
             $saveSuccess = $this->save($relation);
             if ($saveSuccess) {
                 $results['imported']++;
-                $tagNames = Hash::extract($relation['GalaxyClusterRelationTag'], '{n}.name');
-                $this->GalaxyClusterRelationTag->attachTags($user, $this->id, $tagNames);
+                if (!empty($relation['GalaxyClusterRelationTag'])) {
+                    $tagNames = Hash::extract($relation['GalaxyClusterRelationTag'], '{n}.name');
+                    $this->GalaxyClusterRelationTag->attachTags($user, $this->id, $tagNames);
+                }
             } else {
                 $results['failed']++;
                 foreach($this->validationErrors as $validationError) {

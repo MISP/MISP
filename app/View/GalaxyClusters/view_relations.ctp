@@ -174,71 +174,78 @@ function toggleRelationTable() {
 }
 
 $(document).ready(function() {
-        $('#relationsQuickAddForm #RelationshipType').change(function() {
-            if (this.value === 'custom') {
-                $('#relationsQuickAddForm #RelationshipTypeFreetext').show();
-            } else {
-                $('#relationsQuickAddForm #RelationshipTypeFreetext').hide();
-            }
-        });
-        $('#relationsQuickAddForm #RelationshipTypeFreetext').hide();
-    })
+    $('#relationsQuickAddForm #RelationshipType').change(function() {
+        toggleFreeText();
+    });
+    toggleFreeText();
+
     $('#buttonAddRelationship').click(function() {
         submitRelationshipForm();
     })
+});
 
-    function submitRelationshipForm() {
-        var url = "<?= $baseurl ?>/galaxy_cluster_relations/add/";
-        var data = {
-            source_id: $('#RelationshipSource').val(),
-            target_id: $('#RelationshipTarget').val(),
-            type: $('#RelationshipType').val(),
-            tags: $('#RelationshipTags').val(),
-            distribution: $('#RelationshipDistribution').val(),
-            tags: $('#RelationshipTags').val(),
-            freetext_relation: $('#RelationshipTypeFreetext').val(),
-        };
-        if (data.type === 'custom') {
-            data.type = data.freetext_relation;
-        }
-        toggleLoadingButton(true);
-        fetchFormDataAjax(url,
-            function(formData) {
-                $('body').append($('<div id="temp"/>').html(formData));
-                $('#temp #GalaxyClusterRelationSourceId').val(data.source_id);
-                $('#temp #GalaxyClusterRelationTargetId').val(data.target_id);
-                $('#temp #GalaxyClusterRelationReferencedGalaxyClusterType').val(data.type);
-                $('#temp #GalaxyClusterRelationDistribution').val(data.distribution);
-                $('#temp #GalaxyClusterRelationTags').val(data.tags);
-                $.ajax({
-                    data: $('#GalaxyClusterRelationAddForm').serialize(),
-                    success:function (data) {
-                        $.get("/galaxy_clusters/viewRelations/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
-                            $("#relations_container").html(data);
-                        });
-                    },
-                    error:function(jqXHR, textStatus, errorThrown) {
-                        showMessage('fail', textStatus + ": " + errorThrown);
-                    },
-                    complete:function() {
-                        toggleLoadingButton(false);
-                        $('#temp').remove();
-                    },
-                    type:"post",
-                    url: $('#GalaxyClusterRelationAddForm').attr('action')
-                });
-            },
-            function() {
-                toggleLoadingButton(false);
-            }
-        )
-    }
 
-    function toggleLoadingButton(loading) {
-        if (loading) {
-            $('#buttonAddRelationship > i').removeClass('fa-plus').addClass('fa-spinner fa-spin');
-        } else {
-            $('#buttonAddRelationship > i').removeClass('fa-spinner fa-spin').addClass('fa-plus');
-        }
+function toggleFreeText() {
+    if ($('#relationsQuickAddForm #RelationshipType').val() === 'custom') {
+        $('#relationsQuickAddForm #RelationshipTypeFreetext').show();
+    } else {
+        $('#relationsQuickAddForm #RelationshipTypeFreetext').hide();
     }
+}
+
+function submitRelationshipForm() {
+    var url = "<?= $baseurl ?>/galaxy_cluster_relations/add/";
+    var data = {
+        source_id: $('#RelationshipSource').val(),
+        target_id: $('#RelationshipTarget').val(),
+        type: $('#RelationshipType').val(),
+        tags: $('#RelationshipTags').val(),
+        distribution: $('#RelationshipDistribution').val(),
+        tags: $('#RelationshipTags').val(),
+        freetext_relation: $('#RelationshipTypeFreetext').val(),
+    };
+    if (data.type === 'custom') {
+        data.type = data.freetext_relation;
+    }
+    toggleLoadingButton(true);
+    fetchFormDataAjax(url,
+        function(formData) {
+            $('body').append($('<div id="temp"/>').html(formData));
+            $('#temp #GalaxyClusterRelationGalaxyClusterUuid').val(data.source_id);
+            $('#temp #GalaxyClusterRelationReferencedGalaxyClusterUuid').val(data.target_id);
+            $('#temp #GalaxyClusterRelationReferencedGalaxyClusterType').val(data.type);
+            $('#temp #GalaxyClusterRelationDistribution').val(data.distribution);
+            $('#temp #GalaxyClusterRelationTags').val(data.tags);
+            $.ajax({
+                data: $('#GalaxyClusterRelationAddForm').serialize(),
+                success:function (data) {
+                    $.get("/galaxy_clusters/viewRelations/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
+                        $("#relations_container").html(data);
+                        $("#relations_container").show();
+                    });
+                },
+                error:function(jqXHR, textStatus, errorThrown) {
+                    showMessage('fail', textStatus + ": " + errorThrown);
+                },
+                complete:function() {
+                    toggleLoadingButton(false);
+                    $('#temp').remove();
+                },
+                type:"post",
+                url: $('#GalaxyClusterRelationAddForm').attr('action')
+            });
+        },
+        function() {
+            toggleLoadingButton(false);
+        }
+    )
+}
+
+function toggleLoadingButton(loading) {
+    if (loading) {
+        $('#buttonAddRelationship > i').removeClass('fa-plus').addClass('fa-spinner fa-spin');
+    } else {
+        $('#buttonAddRelationship > i').removeClass('fa-spinner fa-spin').addClass('fa-plus');
+    }
+}
 </script>

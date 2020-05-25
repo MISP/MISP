@@ -5,8 +5,8 @@
             'title' => $action == 'add' ? __('Add Galaxy Cluster Relationships') : __('Edit Galaxy Cluster Relationships'),
             'fields' => array(
                 array(
-                    'field' => 'source_id',
-                    'label' => __('Source ID/UUID'),
+                    'field' => 'galaxy_cluster_uuid',
+                    'label' => __('Source UUID'),
                     'type' => 'text',
                     'stayInLine' => true
                 ),
@@ -23,8 +23,8 @@
                     'label' => __("Sharing Group")
                 ),
                 array(
-                    'field' => 'target_id',
-                    'label' => __('Target ID/UUID'),
+                    'field' => 'referenced_galaxy_cluster_uuid',
+                    'label' => __('Target UUID'),
                     'type' => 'text',
                 ),
                 array(

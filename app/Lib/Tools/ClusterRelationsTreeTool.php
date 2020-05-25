@@ -33,15 +33,17 @@
                 'GalaxyCluster' => $cluster['GalaxyCluster'],
                 'children' => array()
             ));
-            if (!empty($cluster['ReferencingGalaxyClusterRelation'])) {
-                foreach($cluster['ReferencingGalaxyClusterRelation'] as $relation) {
-                    $tmp = array(
-                        'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),
-                        'children' => array(
-                            array('GalaxyCluster' => $relation['GalaxyCluster']),
-                        )
-                    );
-                    $treeLeft[0]['children'][] = $tmp;
+            if (!empty($cluster['TargettingClusterRelation'])) {
+                foreach($cluster['TargettingClusterRelation'] as $relation) {
+                    if (isset($relation['GalaxyCluster'])) { // not set if Cluster is unkown
+                        $tmp = array(
+                            'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),
+                            'children' => array(
+                                array('GalaxyCluster' => $relation['GalaxyCluster']),
+                            )
+                        );
+                        $treeLeft[0]['children'][] = $tmp;
+                    }
                 }
             }
     

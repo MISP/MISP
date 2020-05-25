@@ -1386,12 +1386,14 @@ class AppModel extends Model
                 $sqlArray[] = "UPDATE `roles` SET `perm_galaxy_editor`=1 WHERE `perm_tag_editor`=1;";
                 $sqlArray[] = "UPDATE `galaxy_clusters` SET `distribution`=3, `default`=1 WHERE `org_id`=0;";
                 $sqlArray[] = "ALTER TABLE `galaxy_reference` RENAME `galaxy_cluster_relations`;";
+                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` DROP `galaxy_cluster_id`;";
+                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `galaxy_cluster_uuid` varchar(40) COLLATE utf8_bin NOT NULL;";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `sharing_group_id` int(11);";
-                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `org_id` int(11) NOT NULL;";
-                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `orgc_id` int(11) NOT NULL;";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `locked` tinyint(1) NOT NULL DEFAULT 0;";
+                // $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `org_id` int(11) NOT NULL;";
+                // $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `orgc_id` int(11) NOT NULL;";
+                // $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `locked` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "UPDATE `galaxy_cluster_relations` SET `distribution`=3, `default`=1 WHERE `org_id`=0;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_relation_tags` (
                     `id` int(11) NOT NULL AUTO_INCREMENT,

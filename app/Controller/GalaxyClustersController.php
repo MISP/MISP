@@ -181,7 +181,7 @@ class GalaxyClustersController extends AppController
         }
         $options = array(
             'conditions' => $conditions,
-            'contain' => $contain
+            // 'contain' => $contain
         );
         $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $options, $full=true);
         if (!empty($cluster)) {
@@ -206,7 +206,8 @@ class GalaxyClustersController extends AppController
         if ($this->_isRest()) {
             $cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];
             $cluster['GalaxyCluster']['GalaxyElement'] = $cluster['GalaxyElement'];
-            return $this->RestResponse->viewData(array('GalaxyCluster' => $cluster['GalaxyCluster']), $this->response->type());
+            return $this->RestResponse->viewData($cluster, $this->response->type());
+            // return $this->RestResponse->viewData(array('GalaxyCluster' => $cluster['GalaxyCluster']), $this->response->type());
         } else {
             $cluster = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $cluster);
             $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);
@@ -831,7 +832,7 @@ class GalaxyClustersController extends AppController
         }
         $cluster = $cluster[0];
         $existingRelations = $this->GalaxyCluster->GalaxyClusterRelation->getExistingRelationships();
-        $cluster = $this->GalaxyCluster->attachReferencingRelations($this->Auth->user(), $cluster);
+        $cluster = $this->GalaxyCluster->attachTargettingRelations($this->Auth->user(), $cluster);
         $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
 
         App::uses('ClusterRelationsTreeTool', 'Tools');
@@ -843,9 +844,9 @@ class GalaxyClustersController extends AppController
         $this->set('cluster', $cluster);
         $relations = $this->GalaxyCluster->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array(
             'conditions' => array(
-                'GalaxyClusterRelation.galaxy_cluster_id' => $cluster['GalaxyCluster']['id']
+                'GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster['GalaxyCluster']['uuid']
             ),
-            'contain' => array('Org', 'Orgc', 'SharingGroup', 'ReferencedGalaxyCluster')
+            'contain' => array('SharingGroup', 'TargetCluster')
         ));
         $this->set('relations', $relations);
         $this->set('tree', $tree);
@@ -864,7 +865,7 @@ class GalaxyClustersController extends AppController
             throw new NotFoundException('Invalid galaxy cluster');
         }
         $cluster = $cluster[0];
-        $cluster = $this->GalaxyCluster->attachReferencingRelations($this->Auth->user(), $cluster);
+        $cluster = $this->GalaxyCluster->attachTargettingRelations($this->Auth->user(), $cluster);
         $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
         App::uses('ClusterRelationsTreeTool', 'Tools');
         $grapher = new ClusterRelationsTreeTool();

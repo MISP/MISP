@@ -23,11 +23,6 @@
                                 'url' => sprintf('%s/galaxy_cluster_relations/index/context:custom', $baseurl),
                                 'text' => __('Custom Galaxy Cluster Relations'),
                             ),
-                            array(
-                                'active' => $context === 'org',
-                                'url' => sprintf('%s/galaxy_cluster_relations/index/context:org', $baseurl),
-                                'text' => __('My Galaxy Clusters Relations'),
-                            ),
                         )
                     ),
                     array(
@@ -47,28 +42,6 @@
                     'data_path' => 'GalaxyClusterRelation.id',
                 ),
                 array(
-                    'name' => __('Owner Org'),
-                    'class' => 'short',
-                    'element' => 'org',
-                    'data_path' => 'Org',
-                    'fields' => array(
-                        'allow_picture' => true,
-                        'default_org' => 'MISP'
-                    ),
-                    'requirement' => $isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))
-                ),
-                array(
-                    'name' => __('Creator Org'),
-                    'class' => 'short',
-                    'element' => 'org',
-                    'data_path' => 'Orgc',
-                    'fields' => array(
-                        'allow_picture' => true,
-                        'default_org' => 'MISP'
-                    ),
-                    'requirement' => (Configure::read('MISP.showorg') || $isAdmin) || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))
-                ),
-                array(
                     'name' => __('Default'),
                     'class' => 'short',
                     'element' => 'boolean',
@@ -76,18 +49,18 @@
                 ),
                 array(
                     'name' => __('Galaxy Cluster Source'),
-                    'sort' => 'GalaxyCluster.tag_name',
+                    'sort' => 'SourceCluster.tag_name',
                     'element' => 'links',
-                    'data_path' => 'GalaxyCluster.tag_name',
-                    'url_params_data_paths' => 'GalaxyCluster.id',
+                    'data_path' => 'SourceCluster.tag_name',
+                    'url_params_data_paths' => 'SourceCluster.id',
                     'url' => $baseurl . '/galaxy_clusters/view'
                 ),
                 array(
                     'name' => __('Galaxy Cluster Target'),
-                    'sort' => 'ReferencedGalaxyCluster.tag_name',
+                    'sort' => 'TargetCluster.tag_name',
                     'element' => 'links',
-                    'data_path' => 'ReferencedGalaxyCluster.tag_name',
-                    'url_params_data_paths' => 'ReferencedGalaxyCluster.id',
+                    'data_path' => 'TargetCluster.tag_name',
+                    'url_params_data_paths' => 'TargetCluster.id',
                     'url' => $baseurl . '/galaxy_clusters/view'
                 ),
                 array(
@@ -126,7 +99,7 @@
                         'options' => array(
                             'me' => $me,
                             'datapath' => array(
-                                'org' => 'GalaxyClusterRelation.org_id'
+                                'org' => 'SourceCluster.org_id'
                             )
                         )
                     ),
