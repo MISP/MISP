@@ -1503,6 +1503,8 @@ class StixBuilder():
             else:
                 observable[stix_type] = attribute['value']
         if values:
+            if 'name' not in values:
+                values['name'] = ''
             observable['values'] = [values]
         return {'0': observable}
 
