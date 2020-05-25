@@ -173,6 +173,7 @@ class Galaxy extends AppModel
                     $cluster_to_save['description'] = '';
                 }
                 $cluster_to_save['distribution'] = 3;
+                $cluster_to_save['default'] = true;
                 $result = $this->GalaxyCluster->save($cluster_to_save, false);
                 $galaxyClusterId = $this->GalaxyCluster->id;
                 if (isset($cluster['meta'])) {
@@ -201,6 +202,7 @@ class Galaxy extends AppModel
                             'galaxy_cluster_uuid' => $cluster['uuid'],
                             'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
                             'referenced_galaxy_cluster_type' => $relation['type'],
+                            'default' => true,
                             'tags' => $relation['tags'],
                         );
                     }

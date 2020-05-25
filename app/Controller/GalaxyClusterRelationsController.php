@@ -178,11 +178,11 @@ class GalaxyClusterRelationsController extends AppController
             $clusterSource = $clusters['clusterSource'];
 
             $errors = array();
-            if (!$user['Role']['perm_galaxy_editor']) {
+            if (!$this->Auth->user()['Role']['perm_galaxy_editor']) {
                 $errors = array(__('Invalid permssions'));
             }
 
-            if ($user['Role']['perm_site_admin'] || $clusterSource['GalaxyCluster']['org_id'] != $this->Auth->user()['org_id']) {
+            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['GalaxyCluster']['org_id'] != $this->Auth->user()['org_id']) {
                 $errors = $this->GalaxyClusterRelation->editRelation($this->Auth->user(), $relation);
             } else {
                 $errors = array(__('Only the owner organisation of the source cluster can use it as a source'));
@@ -203,7 +203,7 @@ class GalaxyClusterRelationsController extends AppController
                     // $this->redirect(array('action' => 'index'));
                     $this->redirect($this->referer());
                 } else {
-                    $message .= __(' Reason: %s', json_encode($this->GalaxyClusterRelation->validationErrors, true));
+                    $message .= __(' Reason: %s', json_encode(array_merge($errors, $this->GalaxyClusterRelation->validationErrors), true));
                     $this->Flash->error($message);
                 }
             }
@@ -248,16 +248,16 @@ class GalaxyClusterRelationsController extends AppController
     {
         // Fetch cluster source and adapt IDs
         $conditions = array();
-        $conditions['GalaxyCluster.uuid'] = $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'];
-        $clusterSource = $this->GalaxyClusterRelation->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
+        $conditions['uuid'] = $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'];
+        $clusterSource = $this->GalaxyClusterRelation->SourceCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
         if (empty($clusterSource)) {
             throw new NotFoundException('Source cluster not found.');
         }
         $clusterSource = $clusterSource[0];
 
         // Fetch cluster target and adapt IDs
-        $conditions['GalaxyCluster.uuid'] = $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'];
-        $clusterTarget = $this->GalaxyClusterRelation->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
+        $conditions['uuid'] = $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'];
+        $clusterTarget = $this->GalaxyClusterRelation->TargetCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
         if (empty($clusterTarget)) {
             throw new NotFoundException('Target cluster not found.');
         }

@@ -110,7 +110,6 @@ class GalaxyClusterRelation extends AppModel
             if ($relation['GalaxyClusterRelation']['distribution'] != 4) {
                 unset($relation[$i]['SharingGroup']);
             }
-            $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
         }
         return $relations;
     }
@@ -136,21 +135,30 @@ class GalaxyClusterRelation extends AppModel
             'galaxy_cluster_uuid',
             'referenced_galaxy_cluster_uuid',
             'referenced_galaxy_cluster_type',
+            'default',
             'distribution',
             'sharing_group_id',
         );
         foreach ($relations as $k => $relation) {
+            $sourceCluster = $this->SourceCluster->fetchGalaxyClusters($user, array('conditions' => array('uuid' => $relation['galaxy_cluster_uuid'])));
+            if (empty($sourceCluster)) {
+                throw new NotFoundException(__('Invalid galaxy cluster'));
+            }
+            $relation['galaxy_cluster_id'] = $sourceCluster['GalaxyCluster']['id'];
             if (!isset($relation['referenced_galaxy_cluster_uuid'])) {
-                $referencedCluster = $this->TargetCluster->fetchGalaxyClusters($user, array('conditions' => array('uuid' => $relation['referenced_galaxy_cluster_uuid'])));
-                if (!empty($referencedCluster)) { // do not save the relation if referenced cluster does not exists
-                    $referencedCluster = $referencedCluster[0];
-                    $relation['referenced_galaxy_cluster_uuid'] = $referencedCluster['GalaxyCluster']['uuid'];
+                $targetCluster = $this->TargetCluster->fetchGalaxyClusters($user, array('conditions' => array('uuid' => $relation['referenced_galaxy_cluster_uuid'])));
+                if (!empty($targetCluster)) { // do not save the relation if referenced cluster does not exists
+                    $targetCluster = $targetCluster[0];
+                    $relation['referenced_galaxy_cluster_uuid'] = $targetCluster['GalaxyCluster']['uuid'];
+                    $relation['referenced_galaxy_cluster_id'] = $targetCluster['GalaxyCluster']['id'];
                     $this->create();
                     $saveResult = $this->save($relation, array('fieldList' => $fieldList));
                     if ($saveResult) {
                         $savedId = $this->id;
                         $this->GalaxyClusterRelationTag->attachTags($user, $savedId, $relation['tags']);
                     }
+                } else {
+                    throw new NotFoundException(__('Invalid referenced galaxy cluster'));
                 }
             }
         }
@@ -217,28 +225,43 @@ class GalaxyClusterRelation extends AppModel
             $errors[] = __('Unkown ID');
         } else {
             $options = array('conditions' => array(
-                'GalaxyCluster.uuid' => $relations['GalaxyClusterRelation']['galaxy_cluster_uuid']
+                'uuid' => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid']
             ));
             $cluster = $this->SourceCluster->fetchGalaxyClusters($user, $options);
             if (empty($cluster)) {
-                $errors[] = __('Source cluster not found');
+                $errors[] = __('Invalid source galaxy cluster');
             }
             $cluster = $cluster[0];
             $relation['GalaxyClusterRelation']['id'] = $existingRelation['GalaxyClusterRelation']['id'];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $cluster['SourceCluster']['id'];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $cluster['SourceCluster']['uuid'];
 
             if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $relation['GalaxyClusterRelation']['sharing_group_id'])) {
                 $errors[] = array(__('Galaxy Cluster Relation could not be saved: The user has to have access to the sharing group in order to be able to edit it.'));
             }
-            
+
+            if ($cluster['SourceCluster']['org_id'] != $user['org_id'] && !$user['Role']['perm_site_admin']) {
+                $errors[] = array(__('Relations can only be created by cluster\'s owner organisation'));
+            }
+
             if (empty($errors)) {
-                $relation['GalaxyClusterRelation']['default'] = false;
-                if (empty($fieldList)) {
-                    $fieldList = array('galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type', 'distribution', 'sharing_group_id');
-                }
-                $saveSuccess = $this->save($relation, array('fieldList' => $fieldList));
-                if (!$saveSuccess) {
-                    foreach($this->validationErrors as $validationError) {
-                        $errors[] = $validationError[0];
+                $targetCluster = $this->TargetCluster->fetchGalaxyClusters($user, array('conditions' => array('uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'])));
+                if (empty($targetCluster)) { // do not save the relation if referenced cluster does not exists
+                    $errors[] = array(__('Invalid referenced galaxy cluster'));
+                } else {
+                    $targetCluster = $targetCluster[0];
+                    $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $targetCluster['TargetCluster']['id'];
+                    $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'] = $targetCluster['TargetCluster']['uuid'];
+                    $relation['GalaxyClusterRelation']['default'] = false;
+                    if (empty($fieldList)) {
+                        $fieldList = array('galaxy_cluster_id', 'galaxy_cluster_uuid', 'referenced_galaxy_cluster_id', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type', 'distribution', 'sharing_group_id', 'default');
+                    }
+
+                    $saveSuccess = $this->save($relation, array('fieldList' => $fieldList));
+                    if (!$saveSuccess) {
+                        foreach($this->validationErrors as $validationError) {
+                            $errors[] = $validationError[0];
+                        }
                     }
                 }
             }
