@@ -965,14 +965,14 @@ class StixBuilder():
     def _get_regkey_value_observable(self, _, attribute_value):
         regkey, value = attribute_value.split('|')
         observable = self._get_regkey_observable(None, regkey)
-        observable['0']['values'] = WindowsRegistryValueType(**{'name': value.strip()})
+        observable['0']['values'] = WindowsRegistryValueType(**{'data': value.strip(), 'name': ''})
         return observable
 
     def _get_regkey_value_pattern(self, _, attribute_value):
         if '\\\\' not in attribute_value:
             attribute_value = attribute_value.replace('\\', '\\\\')
         regkey, value = attribute_value.split('|')
-        return f"{self._get_regkey_pattern(None, regkey)} AND windows-registry-key:values.name = '{value.strip()}'"
+        return f"{self._get_regkey_pattern(None, regkey)} AND windows-registry-key:values.data = '{value.strip()}'"
 
     @staticmethod
     def _get_reply_to_observable(_, attribute_value):
