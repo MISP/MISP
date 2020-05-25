@@ -3285,18 +3285,15 @@ function testConnection(id) {
         },
         success: function(result) {
             function line(name, value, valid) {
-                var output = name + ": ";
+                var $value = $('<span></span>').text(value);
                 if (valid === true) {
-                    output += '<span class="green">';
+                    $value.addClass('green');
                 } else if (valid === false) {
-                    output += '<span class="red">';
+                    $value.addClass('red');
+                } else if (valid) {
+                    $value.addClass(valid);
                 }
-                output += value;
-                if (valid === true || valid === false) {
-                    output += "</span>";
-                }
-                output += "<br>";
-                return output;
+                return $('<div></div>').text(name + ': ').append($value).html() + '<br>';
             }
 
             var html = '';
@@ -3338,11 +3335,11 @@ function testConnection(id) {
                 var status_message = "OK";
                 var compatibility = "Compatible";
                 var compatibility_colour = "green";
-                var colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
+                var colours = {'local': 'green', 'remote': 'green', 'status': 'green'};
                 var issue_colour = "red";
                 if (result.mismatch === "hotfix") issue_colour = "orange";
                 if (result.newer === "local") {
-                    colours.remote = 'class="' + issue_colour + '"';
+                    colours.remote = issue_colour;
                     if (result.mismatch === "minor") {
                         compatibility = "Pull only";
                         compatibility_colour = "orange";
@@ -3351,7 +3348,7 @@ function testConnection(id) {
                         compatibility_colour = "red";
                     }
                 } else if (result.newer === "remote") {
-                    colours.local = 'class="' + issue_colour + '"';
+                    colours.local = issue_colour;
                     if (result.mismatch !== "hotfix") {
                         compatibility = "Incompatible";
                         compatibility_colour = "red";
@@ -3363,10 +3360,11 @@ function testConnection(id) {
                 if (result.mismatch !== false && result.mismatch !== "proposal") {
                     if (result.newer === "remote") status_message = "Local instance outdated, please update!";
                     else status_message = "Remote outdated, please notify admin!"
-                    colours.status = 'class="' + issue_colour + '"';
+                    colours.status = issue_colour;
                 }
                 if (result.post !== false) {
                     var post_colour = "red";
+                    var post_result;
                     if (result.post === 1) {
                         post_colour = "green";
                         post_result = "Received sent package";
@@ -3381,11 +3379,12 @@ function testConnection(id) {
                         post_result = "Remote too old for this test";
                     }
                 }
-                html += 'Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
-                html += 'Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
-                html += 'Status: <span ' + colours.status + '>' + status_message + '</span><br />';
-                html += 'Compatibility: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
-                html += 'POST test: <span class="' + post_colour + '">' + post_result + '</span><br />';
+
+                html += line('Local version', result.local_version, colours.local);
+                html += line('Remote version', result.version, colours.remote);
+                html += line('Status', status_message, colours.status);
+                html += line('Compatibility', compatibility, compatibility_colour);
+                html += line('POST test', post_result, post_colour);
                 break;
             case 2:
                 html += '<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable, check audit logs for more details</span>';
