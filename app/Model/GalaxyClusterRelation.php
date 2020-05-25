@@ -196,6 +196,7 @@ class GalaxyClusterRelation extends AppModel
             return $errors;
         }
         if (empty($errors)) {
+            $relation = $this->syncUUIDsAndIDs($user, $relation);
             $this->create();
             $saveSuccess = $this->save($relation);
             if ($saveSuccess) {
@@ -341,5 +342,28 @@ class GalaxyClusterRelation extends AppModel
 
         $results['success'] = $results['imported'] > 0;
         return $results;
+    }
+
+    private function syncUUIDsAndIDs($user, $relation)
+    {
+        $options = array('conditions' => array(
+            'uuid' => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid']
+        ));
+        $sourceCluster = $this->SourceCluster->fetchGalaxyClusters($user, $options);
+        if (!empty($sourceCluster)) {
+            $sourceCluster = $sourceCluster[0];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $sourceCluster['SourceCluster']['id'];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $sourceCluster['SourceCluster']['uuid'];
+        }
+        $options = array('conditions' => array(
+            'uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid']
+        ));
+        $targetCluster = $this->TargetCluster->fetchGalaxyClusters($user, $options);
+        if (!empty($targetCluster)) {
+            $targetCluster = $targetCluster[0];
+            $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $targetCluster['TargetCluster']['id'];
+            $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'] = $targetCluster['TargetCluster']['uuid'];
+        }
+        return $relation;
     }
 }

@@ -11,28 +11,6 @@
                     'data_path' => 'GalaxyClusterRelation.id',
                 ),
                 array(
-                    'name' => __('Owner Org'),
-                    'class' => 'short',
-                    'element' => 'org',
-                    'data_path' => 'Org',
-                    'fields' => array(
-                        'allow_picture' => true,
-                        'default_org' => 'MISP'
-                    ),
-                    'requirement' => $isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))
-                ),
-                array(
-                    'name' => __('Creator Org'),
-                    'class' => 'short',
-                    'element' => 'org',
-                    'data_path' => 'Orgc',
-                    'fields' => array(
-                        'allow_picture' => true,
-                        'default_org' => 'MISP'
-                    ),
-                    'requirement' => (Configure::read('MISP.showorg') || $isAdmin) || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))
-                ),
-                array(
                     'name' => __('Default'),
                     'class' => 'short',
                     'element' => 'boolean',
@@ -40,10 +18,10 @@
                 ),
                 array(
                     'name' => __('Galaxy Cluster Target'),
-                    'sort' => 'ReferencedGalaxyCluster.tag_name',
+                    'sort' => 'TargetCluster.tag_name',
                     'element' => 'links',
-                    'data_path' => 'ReferencedGalaxyCluster.tag_name',
-                    'url_params_data_paths' => 'ReferencedGalaxyCluster.id',
+                    'data_path' => 'TargetCluster.tag_name',
+                    'url_params_data_paths' => 'TargetCluster.id',
                     'url' => $baseurl . '/galaxy_clusters/view'
                 ),
                 array(
@@ -76,13 +54,11 @@
                     'icon' => 'edit',
                     'complex_requirement' => array(
                         'function' => function($row, $options) {
-                            return ($options['me']['org_id'] == $options['datapath']['org']);
+                            return ($options['me']['org_id'] == $options['cluster']['GalaxyCluster']['org_id']);
                         },
                         'options' => array(
                             'me' => $me,
-                            'datapath' => array(
-                                'org' => 'GalaxyClusterRelation.org_id'
-                            )
+                            'cluster' => $cluster
                         )
                     ),
                 ),
@@ -163,6 +139,7 @@ function toggleClusterRelations() {
     $('#references_div').toggle({
         effect: 'blind',
         duration: 300,
+        complete: buildTree
     });
 }
 
