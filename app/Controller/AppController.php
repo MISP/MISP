@@ -462,6 +462,15 @@ class AppController extends Controller
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
             $this->userRole = $role;
+
+            $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
+            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+            } else {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+            }
+            $this->set('notifications', $notifications);
+
             if (
                 Configure::read('MISP.log_paranoid') ||
                 !empty(Configure::read('Security.monitored'))
@@ -499,9 +508,8 @@ class AppController extends Controller
         } else {
             $this->set('me', false);
         }
-        $this->set('br', '<br />');
-        $this->set('bold', array('<span class="bold">', '</span>'));
-        if ($this->_isSiteAdmin()) {
+
+        if ($this->Auth->user() && $this->_isSiteAdmin()) {
             if (Configure::read('Session.defaults') == 'database') {
                 $db = ConnectionManager::getDataSource('default');
                 $sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
@@ -515,13 +523,6 @@ class AppController extends Controller
             }
         }
 
-        $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-        if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
-        } else {
-            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
-        }
-        $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
         if ($this->_isRest()) {
             $this->__rateLimitCheck();

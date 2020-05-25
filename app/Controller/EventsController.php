@@ -1167,17 +1167,12 @@ class EventsController extends AppController
         $this->set('emptyEvent', $emptyEvent);
 
         // remove galaxies tags
-        $this->loadModel('GalaxyCluster');
         $this->loadModel('Taxonomy');
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
         foreach ($event['Object'] as $k => $object) {
             if (isset($object['Attribute'])) {
                 foreach ($object['Attribute'] as $k2 => $attribute) {
-                    foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
-                        if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                            unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
-                        }
-                    }
+                    $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
+
                     $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
                     foreach ($tagConflicts['global'] as $tagConflict) {
                         $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
@@ -1190,11 +1185,8 @@ class EventsController extends AppController
             }
         }
         foreach ($event['Attribute'] as $k => $attribute) {
-            foreach ($attribute['AttributeTag'] as $k2 => $attributeTag) {
-                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                    unset($event['Attribute'][$k]['AttributeTag'][$k2]);
-                }
-            }
+            $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
+
             $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
             foreach ($tagConflicts['global'] as $tagConflict) {
                 $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
@@ -1232,8 +1224,8 @@ class EventsController extends AppController
         }
         $this->set('event', $event);
         $dataForView = array(
-                'Attribute' => array('attrDescriptions', 'typeDefinitions', 'categoryDefinitions', 'distributionDescriptions', 'distributionLevels', 'shortDist'),
-                'Event' => array('fieldDescriptions')
+            'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),
+            'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
         );
         foreach ($dataForView as $m => $variables) {
             if ($m === 'Event') {
@@ -1241,8 +1233,8 @@ class EventsController extends AppController
             } elseif ($m === 'Attribute') {
                 $currentModel = $this->Event->Attribute;
             }
-            foreach ($variables as $variable) {
-                $this->set($variable, $currentModel->{$variable});
+            foreach ($variables as $alias => $variable) {
+                $this->set($alias, $currentModel->{$variable});
             }
         }
         if (Configure::read('Plugin.Enrichment_services_enable')) {
@@ -1507,20 +1499,6 @@ class EventsController extends AppController
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
-        $dataForView = array(
-                'Attribute' => array('attrDescriptions', 'typeDefinitions', 'categoryDefinitions', 'distributionDescriptions', 'distributionLevels'),
-                'Event' => array('fieldDescriptions')
-        );
-        foreach ($dataForView as $m => $variables) {
-            if ($m === 'Event') {
-                $currentModel = $this->Event;
-            } elseif ($m === 'Attribute') {
-                $currentModel = $this->Event->Attribute;
-            }
-            foreach ($variables as $variable) {
-                $this->set($variable, $currentModel->{$variable});
-            }
-        }
         $extensionParams = array(
             'conditions' => array(
                 'Event.extends_uuid' => $event['Event']['uuid']

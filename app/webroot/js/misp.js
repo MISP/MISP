@@ -1834,7 +1834,6 @@ function popoverConfirm(clicked, message, placement) {
         popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;" onclick=submitPopover(this)>Yes</button>';
         popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</button>';
     popoverContent += '</div>';
-    placement = placement === undefined ? 'auto' : placement;
     openPopover($clicked, popoverContent, undefined, placement);
     $("#popoverConfirmOK")
     .focus()

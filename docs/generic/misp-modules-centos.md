@@ -8,7 +8,7 @@ mispmodulesRHEL () {
   sudo chmod 2777 /usr/local/src
   sudo chown root:users /usr/local/src
   cd /usr/local/src/
-  $SUDO_WWW git clone https://github.com/MISP/misp-modules.git
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/misp-modules.git; done
   cd misp-modules
   # pip install
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
