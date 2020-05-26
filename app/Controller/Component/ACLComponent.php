@@ -245,6 +245,7 @@ class ACLComponent extends Component
                 'detach' => array('perm_tagger'),
                 'edit' => array('perm_galaxy_editor'),
                 'index' => array('*'),
+                'pushCluster' => array('perm_sync'),
                 'view' => array('*'),
                 'viewGalaxyMatrix' => array('*')
             ),

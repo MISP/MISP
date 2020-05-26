@@ -2682,6 +2682,51 @@ class Server extends AppModel
         return $filter_rules;
     }
 
+    // Get an array of cluster_ids that are present on the remote server
+    public function getClusterIdsFromServer($server, $HttpSocket=null)
+    {
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $uri = $url . '/galaxy_clusters/restSearch';
+        $filter_rules['minimal'] = 1;
+        $filter_rules['custom'] = 1;
+
+        try {
+            $response = $HttpSocket->post($uri, json_encode($filter_rules), $request);
+            if ($response->isOk()) {
+                $clusterArray = json_decode($response->body, true);
+                // correct $eventArray if just one event
+                $clusterIds = array();
+                if (isset($clusterArray['response'])) {
+                    $clusterArray = $clusterArray['response'];
+                }
+                if (!empty($clusterArray)) {
+                    foreach ($clusterArray as $cluster) {
+                        $localCluster = $this->GalaxyCluster->find('first', array(
+                            'recursive' => -1,
+                            'fields' => array('GalaxyCluster.uuid', 'GalaxyCluster.version'),
+                            'conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid'])
+                        ));
+                        if (!empty($localCluster) && $localCluster['GalaxyCluster']['version'] > $cluster['GalaxyCluster']['version']) { // FIXME: TO UNCOMMENT
+                            $clusterIds[] = $localCluster['GalaxyCluster']['uuid'];
+                        }
+                    }
+                }
+                return $clusterIds;
+            }
+
+            if ($response->code == '403') {
+                return 403;
+            }
+        } catch (SocketException $e) {
+            return $e->getMessage();
+        }
+
+        // error, so return error message, since that is handled and everything is expecting an array
+        return "Error: got response code " . $response->code;
+    }
+
     // Get an array of event_ids that are present on the remote server
     public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false, $scope = 'events')
     {
@@ -2948,6 +2993,14 @@ class Server extends AppModel
         if (!isset($fails)) {
             $fails = array();
         }
+
+        if ($push['canPush'] || $push['canEditGalaxyCluster']) {
+            $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user);
+        } else {
+            $clustersSuccesses = array();
+        }
+        $successes = array_merge($successes, $clustersSuccesses);
+
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
@@ -2994,6 +3047,34 @@ class Server extends AppModel
             return false;
         }
         return $uuidList;
+    }
+
+    public function syncGalaxyClusters($HttpSocket, $server, $user)
+    {
+        $successes = array();
+        if (!$server['Server']['push_galaxy_clusters']) {
+            return $successes;
+        }
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $clusterIds = $this->getClusterIdsFromServer($server, $HttpSocket);
+        if (!empty($clusterIds)) {
+            // check each cluster push it when needed
+            foreach ($clusterIds as $k => $clusterId) {
+                $options = array('conditions' => array(
+                    'GalaxyCluster.uuid' => $clusterId
+                ));
+                $cluster = $this->GalaxyCluster->fetchGalaxyClusters($user, $options, $full=true);
+                if (!empty($cluster)) {
+                    $cluster = $cluster[0];
+                    $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $HttpSocket, $user);
+                    if ($result === 'Success') {
+                        $successes[] = __('GalaxyCluster %s', $cluster['GalaxyCluster']['uuid']);
+                    }
+                }
+            }
+        }
+        return $successes;
     }
 
     public function syncSightings($HttpSocket, $server, $user, $eventModel)
@@ -4319,6 +4400,7 @@ class Server extends AppModel
         $remoteVersion = json_decode($response->body, true);
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
+        $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
             $this->Log = ClassRegistry::init('Log');
@@ -4380,7 +4462,7 @@ class Server extends AppModel
                     'title' => ucfirst($issueLevel) . ': ' . $response,
             ));
         }
-        return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'canSight' => $canSight, 'version' => $remoteVersion);
+        return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'canSight' => $canSight, 'canEditGalaxyCluster' => $canEditGalaxyCluster, 'version' => $remoteVersion);
     }
 
     public function isJson($string)

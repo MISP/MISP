@@ -144,9 +144,6 @@ class GalaxiesController extends AppController
         }
     }
 
-    // TODO: revise import strategy. Instead of asking in which galaxy to import data
-    // Based the decision on data contained in the clusters
-    // If Galaxy do not exist, add possibility to create it on the fly
     public function import()
     {
         if ($this->request->is('post') || $this->request->is('put')) {
@@ -192,6 +189,25 @@ class GalaxiesController extends AppController
             }
         }
         $this->set('action', 'import');
+    }
+
+    public function pushCluster()
+    {
+        if (!$this->Auth->user()['Role']['perm_sync'] || !$this->Auth->user()['Role']['perm_galaxy_editor'] ) {
+            throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
+        }
+        if ($this->request->is('post')) {
+            $clusters = $this->request->data;
+            $saveResult = $this->Galaxy->importGalaxyAndClusters($this->Auth->user(), $clusters);
+            $messageInfo = __('%s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
+            if ($saveResult['success']) {
+                $message = __('Galaxy clusters imported. ') . $messageInfo;
+                return $this->RestResponse->saveSuccessResponse('Galaxy', 'pushCluster', false, $this->response->type(), $message);
+            } else {
+                $message = __('Could not import galaxy clusters. ') . $messageInfo;
+                return $this->RestResponse->saveFailResponse('Galaxy', 'pushCluster', false, $message);
+            }
+        }
     }
 
     public function export($galaxyId)

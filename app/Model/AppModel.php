@@ -1391,9 +1391,6 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `sharing_group_id` int(11);";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
-                // $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `org_id` int(11) NOT NULL;";
-                // $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `orgc_id` int(11) NOT NULL;";
-                // $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `locked` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "UPDATE `galaxy_cluster_relations` SET `distribution`=3, `default`=1 WHERE `org_id`=0;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_relation_tags` (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -1401,6 +1398,7 @@ class AppModel extends Model
                     `tag_id` int(11) NOT NULL,
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                $sqlArray[] = "ALTER TABLE `servers` ADD `push_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_sightings`;";
                 // TODO: ADD INDEXES
                 break;
             case 'fixNonEmptySharingGroupID':

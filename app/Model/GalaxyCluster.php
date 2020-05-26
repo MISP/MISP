@@ -251,7 +251,7 @@ class GalaxyCluster extends AppModel
 
     public function captureClusters($user, $galaxy, $clusters, $forceUpdate=false, $orgId=0)
     {
-        $importResult = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0,'errors' => array());
+        $importResult = array('success' => true, 'imported' => 0, 'ignored' => 0, 'failed' => 0,'errors' => array());
         foreach ($clusters as $k => $cluster) {
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
             $saveResult = $this->captureCluster($user, $cluster, $fromPull=true, $orgId=$orgId);
@@ -260,8 +260,8 @@ class GalaxyCluster extends AppModel
             $importResult['failed'] += $saveResult['failed'];
             $importResult['errors'] = array_merge($importResult['errors'], $saveResult['errors']);
         }
-        if ($importResult['imported'] > 0) {
-            $importResult['success'] = true;
+        if ($importResult['failed'] > 0 && $importResult['imported'] == 0 && $importResult['ignored'] == 0) {
+            $importResult['success'] = false;
         }
         return $importResult;
     }
@@ -322,8 +322,27 @@ class GalaxyCluster extends AppModel
         }
 
         $cluster = $this->captureOrganisationAndSG($cluster, 'GalaxyCluster', $user);
-        $this->create();
-        $saveSuccess = $this->save($cluster);
+        $existingGalaxyCluster = $this->find('first', array('conditions' => array(
+            'GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid']
+        )));
+        if (empty($existingGalaxyCluster)) {
+            $this->create();
+            $saveSuccess = $this->save($cluster);
+        } else {
+            if ($cluster['GalaxyCluster']['default']) {
+                $results['errors'][] = __('Can only save non default clusters');
+                $results['failed']++;
+                return $results;
+            }
+            if ($cluster['GalaxyCluster']['version'] > $existingGalaxyCluster['GalaxyCluster']['version']) {
+                $cluster['GalaxyCluster']['id'] = $existingGalaxyCluster['GalaxyCluster']['id'];
+                $saveSuccess = $this->save($cluster);
+            } else {
+                $results['errors'][] = __('Remote version is not newer than local one');
+                $results['ignored']++;
+                return $results;
+            }
+        }
         if ($saveSuccess) {
             $results['imported']++;
             $savedCluster = $this->find('first', array(
@@ -869,6 +888,122 @@ class GalaxyCluster extends AppModel
             // TODO: Apply ACL
         }
         return array_values($clusterTags);
+    }
+
+    public function uploadClusterToServer($cluster, $server, $HttpSocket, $user)
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $this->Log = ClassRegistry::init('Log');
+        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
+        if (empty($push['canPush']) && empty($push['canPushGalaxyCluster'])) {
+            return 'The remote user is not a sightings user - the upload of the galaxy clusters has been blocked.';
+        }
+        $updated = null;
+        $newLocation = $newTextBody = '';
+        $result = $this->__executeRestfulGalaxyClusterToServer($cluster, $server, null, $newLocation, $newTextBody, $HttpSocket, $user);
+        if ($result !== true) {
+            return $result;
+        }
+        if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+            $result = $this->__executeRestfulGalaxyClusterToServer($cluster, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket, $user);
+            if ($result !== true) {
+                return $result;
+            }
+        }
+        $uploadFailed = false;
+        try {
+            $json = json_decode($newTextBody, true);
+        } catch (Exception $e) {
+            $uploadFailed = true;
+        }
+        if (!is_array($json) || $uploadFailed) {
+            $this->Log->createLogEntry($user, 'push', 'GalaxyCluster', $cluster['GalaxyCluster']['id'], 'push', $newTextBody);
+        }
+        return 'Success';
+    }
+
+    private function __executeRestfulGalaxyClusterToServer($cluster, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket, $user)
+    {
+        $result = $this->restfulGalaxyClusterToServer($cluster, $server, $resourceId, $newLocation, $newTextBody, $HttpSocket);
+        if (is_numeric($result)) {
+            $error = $this->__resolveErrorCode($result, $cluster, $server, $user);
+            if ($error) {
+                return $error . ' Error code: ' . $result;
+            }
+        }
+        return true;
+    }
+
+    public function restfulGalaxyClusterToServer($cluster, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
+    {
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $scope = 'galaxies/pushCluster';
+        $uri = $url . '/' . $scope;
+        $clusters = array($cluster);
+        $data = json_encode($clusters);
+        if (!empty(Configure::read('Security.sync_audit'))) {
+            $pushLogEntry = sprintf(
+                "==============================================================\n\n[%s] Pushing Galaxy Cluster #%d to Server #%d:\n\n%s\n\n",
+                date("Y-m-d H:i:s"),
+                $cluster['GalaxyCluster']['id'],
+                $server['Server']['id'],
+                $data
+            );
+            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
+        }
+        $response = $HttpSocket->post($uri, $data, $request);
+        return $this->__handleRestfulGalaxyClusterToServerResponse($response, $newLocation, $newTextBody);
+    }
+
+    private function __handleRestfulGalaxyClusterToServerResponse($response, &$newLocation, &$newTextBody)
+    {
+        switch ($response->code) {
+            case '200': // 200 (OK) + entity-action-result
+                if ($response->isOk()) {
+                    $newTextBody = $response->body();
+                    return true;
+                } else {
+                    try {
+                        $jsonArray = json_decode($response->body, true);
+                    } catch (Exception $e) {
+                        return true;
+                    }
+                    return $jsonArray['name'];
+                }
+                // no break
+            case '302': // Found
+                $newLocation = $response->headers['Location'];
+                $newTextBody = $response->body();
+                return true;
+            case '404': // Not Found
+                $newLocation = $response->headers['Location'];
+                $newTextBody = $response->body();
+                return 404;
+            case '405':
+                return 405;
+            case '403': // Not authorised
+                return 403;
+        }
+    }
+
+    private function __resolveErrorCode($code, &$cluster, &$server, $user)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $error = false;
+        switch ($code) {
+            case 403:
+                return 'The distribution level of the cluster blocks it from being pushed.';
+            case 405:
+                $error = 'The sync user on the remote instance does not have the required privileges to handle this cluster.';
+                break;
+        }
+        if ($error) {
+            $newTextBody = 'Uploading GalaxyCluster (' . $cluster['GalaxyCluster']['id'] . ') to Server (' . $server['Server']['id'] . ')';
+            $this->Log->createLogEntry($user, 'push', 'GalaxyCluster', $cluster['GalaxyCluster']['id'], 'push', $newTextBody);
+        }
+        return $error;
     }
 
     public function attachClusterToRelations($user, $cluster)

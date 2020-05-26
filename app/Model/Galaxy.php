@@ -285,7 +285,7 @@ class Galaxy extends AppModel
             $results['failed'] += $saveResult['failed'];
             $results['errors'] = array_merge($results['errors'], $saveResult['errors']);
         }
-        $results['success'] = $results['imported'] > 0;
+        $results['success'] = !($results['failed'] > 0 && $results['imported'] == 0 && $results['ignored'] == 0);
         return $results;
     }
 
