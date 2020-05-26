@@ -1256,7 +1256,7 @@ class Event extends AppModel
     }
 
     // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
-    private function __removeNonExportableTags($data, $dataType)
+    public function __removeNonExportableTags($data, $dataType)
     {
         if (!empty($data[$dataType . 'Tag'])) {
             foreach ($data[$dataType . 'Tag'] as $k => $tag) {
@@ -1362,7 +1362,7 @@ class Event extends AppModel
         return $object;
     }
 
-    private function __getAnnounceBaseurl()
+    public function __getAnnounceBaseurl()
     {
         $baseurl = '';
         if (!empty(Configure::read('MISP.external_baseurl'))) {

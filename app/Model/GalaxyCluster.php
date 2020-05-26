@@ -952,6 +952,10 @@ class GalaxyCluster extends AppModel
 
     public function restfulGalaxyClusterToServer($cluster, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
     {
+        $cluster = $this->__prepareForPushToServer($cluster, $server);
+        if (is_numeric($cluster)) {
+            return $cluster;
+        }
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
@@ -971,6 +975,130 @@ class GalaxyCluster extends AppModel
         }
         $response = $HttpSocket->post($uri, $data, $request);
         return $this->__handleRestfulGalaxyClusterToServerResponse($response, $newLocation, $newTextBody);
+    }
+
+    private function __prepareForPushToServer($cluster, $server)
+    {
+        if ($cluster['GalaxyCluster']['distribution'] == 4) {
+            if (!empty($cluster['SharingGroup']['SharingGroupServer'])) {
+                $found = false;
+                foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
+                    if ($sgs['server_id'] == $server['Server']['id']) {
+                        $found = true;
+                    }
+                }
+                if (!$found) {
+                    return 403;
+                }
+            } else if (empty($cluster['SharingGroup']['roaming'])) {
+                return 403;
+            }
+        }
+        $this->Event = ClassRegistry::init('Event');
+        if ($this->Event->checkDistributionForPush($cluster, $server, 'GalaxyCluster')) {
+            $cluster = $this->__updateClusterForSync($cluster, $server);
+        } else {
+            return 403;
+        }
+        return $cluster;
+    }
+
+    private function __updateClusterForSync($cluster, $server)
+    {
+        $this->Event = ClassRegistry::init('Event');
+        // cleanup the array from things we do not want to expose
+        foreach (array('org_id', 'orgc_id', 'id', 'galaxy_id') as $field) {
+            unset($cluster['GalaxyCluster'][$field]);
+        }
+        // Add the local server to the list of instances in the SG
+        if (isset($cluster['SharingGroup']) && isset($cluster['SharingGroup']['SharingGroupServer'])) {
+            foreach ($cluster['SharingGroup']['SharingGroupServer'] as &$s) {
+                if ($s['server_id'] == 0) {
+                    $s['Server'] = array(
+                        'id' => 0,
+                        'url' => $this->Event->__getAnnounceBaseurl(),
+                        'name' => $this->Event->__getAnnounceBaseurl()
+                    );
+                }
+            }
+        }
+        $cluster = $this->__prepareElementsForSync($cluster, $server);
+        $cluster = $this->__prepareRelationsForSync($cluster, $server);
+
+        // Downgrade the event from connected communities to community only
+        if (!$server['Server']['internal'] && $cluster['GalaxyCluster']['distribution'] == 2) {
+            $cluster['GalaxyCluster']['distribution'] = 1;
+        }
+        return $cluster;
+    }
+
+    private function __prepareElementsForSync($cluster, $server)
+    {
+        if (!empty($cluster['GalaxyElement'])) {
+            foreach($cluster['GalaxyElement'] as $k => $element) {
+                $cluster['GalaxyElement'][$k] = $this->__updateElementForSync($element, $server);
+            }
+        }
+        return $cluster;
+    }
+
+    private function __prepareRelationsForSync($cluster, $server)
+    {
+        $this->Event = ClassRegistry::init('Event');
+        if (!empty($cluster['GalaxyClusterRelation'])) {
+            foreach($cluster['GalaxyClusterRelation'] as $k => $relation) {
+                $cluster['GalaxyClusterRelation'][$k] = $this->__updateRelationsForSync($relation, $server);
+                if (empty($cluster['GalaxyClusterRelation'][$k])) {
+                    unset($cluster['GalaxyClusterRelation'][$k]);
+                } else {
+                    $cluster['GalaxyClusterRelation'][$k] = $this->Event->__removeNonExportableTags($cluster['GalaxyClusterRelation'][$k], 'GalaxyClusterRelation');
+                }
+            }
+            $cluster['GalaxyClusterRelation'] = array_values($cluster['GalaxyClusterRelation']);
+        }
+        return $cluster;
+    }
+
+    private function __updateElementForSync($element, $server)
+    {
+        unset($element['id']);
+        unset($element['galaxy_cluster_id']);
+        return $element;
+    }
+
+    private function __updateRelationsForSync($relation, $server)
+    {
+        // do not keep attributes that are private, nor cluster
+        if (!$server['Server']['internal'] && $relation['distribution'] < 2) {
+            return false;
+        }
+        // Downgrade the attribute from connected communities to community only
+        if (!$server['Server']['internal'] && $relation['distribution'] == 2) {
+            $relation['distribution'] = 1;
+        }
+
+        // If the attribute has a sharing group attached, make sure it can be transferred
+        if ($relation['distribution'] == 4) {
+            if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('GalaxyClusterRelation' => $relation), $server, 'GalaxyClusterRelation') === false) {
+                return false;
+            }
+            // Add the local server to the list of instances in the SG
+            if (!empty($relation['SharingGroup']['SharingGroupServer'])) {
+                foreach ($relation['SharingGroup']['SharingGroupServer'] as &$s) {
+                    if ($s['server_id'] == 0) {
+                        $s['Server'] = array(
+                            'id' => 0,
+                            'url' => $this->__getAnnounceBaseurl(),
+                            'name' => $this->__getAnnounceBaseurl()
+                        );
+                    }
+                }
+            }
+        }
+        unset($relation['id']);
+        unset($relation['galaxy_cluster_id']);
+        unset($relation['referenced_galaxy_cluster_id']);
+        return $relation;
     }
 
     private function __handleRestfulGalaxyClusterToServerResponse($response, &$newLocation, &$newTextBody)
