@@ -77,6 +77,10 @@ class GalaxyCluster extends AppModel
         ),
     );
 
+    public $validFormats = array(
+        'json' => array('json', 'JsonExport', 'json'),
+    );
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -574,11 +578,179 @@ class GalaxyCluster extends AppModel
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
         }
+        if (isset($options['page'])) {
+            $params['page'] = $options['page'];
+        }
+        if (isset($options['limit'])) {
+            $params['limit'] = $options['limit'];
+        }
         $clusters = $this->find('all', $params);
         foreach ($clusters as $i => $cluster) {
             $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
         }
         return $clusters;
+    }
+
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly=false)
+    {
+        if (!isset($this->validFormats[$returnFormat][1])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        App::uses($this->validFormats[$returnFormat][1], 'Export');
+        $exportTool = new $this->validFormats[$returnFormat][1]();
+        $conditions = $this->buildFilterConditions($user, $filters);
+        $params = array(
+            'conditions' => $conditions,
+        );
+
+        if (isset($filters['limit'])) {
+            $params['limit'] = $filters['limit'];
+            if (!isset($filters['page'])) {
+                $filters['page'] = 1;
+            }
+        }
+        if (isset($filters['page'])) {
+            $params['page'] = $filters['page'];
+        }
+
+        $default_cluster_memory_coefficient = 80;
+        $params['full'] = false;
+        if (!empty($filters['full'])) {
+            $params['full'] = $filters['full'];
+            $filters['minimal'] = false;
+            $default_cluster_memory_coefficient = 1;
+        }
+        if (!empty($filters['minimal'])) {
+            $default_cluster_memory_coefficient = 100;
+            $params['fields'] = array('uuid', 'version');
+        }
+
+        if ($paramsOnly) {
+            return $params;
+        }
+        if (method_exists($exportTool, 'modify_params')) {
+            $params = $exportTool->modify_params($user, $params);
+        }
+        $exportToolParams = array(
+            'user' => $user,
+            'params' => $params,
+            'returnFormat' => $returnFormat,
+            'scope' => 'GalaxyCluster',
+            'filters' => $filters
+        );
+        if (!empty($exportTool->additional_params)) {
+            $params = array_merge_recursive(
+                $params,
+                $exportTool->additional_params
+            );
+        }
+        
+        $tmpfile = tmpfile();
+        fwrite($tmpfile, $exportTool->header($exportToolParams));
+        if (empty($params['limit'])) {
+            $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+            $memory_scaling_factor = $default_cluster_memory_coefficient / 10;
+            $params['limit'] = intval($memory_in_mb * $memory_scaling_factor);
+            $params['page'] = 1;
+        }
+        $this->__iteratedFetch($user, $params, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+        fwrite($tmpfile, $exportTool->footer($exportToolParams));
+        fseek($tmpfile, 0);
+        if (fstat($tmpfile)['size']) {
+            $final = fread($tmpfile, fstat($tmpfile)['size']);
+        } else {
+            $final = '';
+        }
+        fclose($tmpfile);
+        return $final;
+    }
+
+    private function __iteratedFetch($user, &$params, &$tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
+    {
+        $params['limit'] = 10; // FIXME: Actually use an interated fetch
+        $results = $this->fetchGalaxyClusters($user, $params, $full=$params['full']);
+        $params['page'] += 1;
+        $i = 0;
+        $temp = '';
+        foreach ($results as $cluster) {
+            $elementCounter++;
+            $handlerResult = $exportTool->handler($cluster, $exportToolParams);
+            $temp .= $handlerResult;
+            if ($handlerResult !== '') {
+                if ($i != count($results) -1) {
+                    $temp .= $exportTool->separator($exportToolParams);
+                }
+            }
+            $i++;
+        }
+        fwrite($tmpfile, $temp);
+        return true;
+    }
+
+    public function buildFilterConditions($user, $filters)
+    {
+        $conditions = array();
+        if (isset($filters['org_id'])) {
+            $this->Organisation = ClassRegistry::init('Organisation');
+            if (!is_array($filters['org_id'])) {
+                $filters['org_id'] = array($filters['org_id']);
+            }
+            foreach ($filters['org_id'] as $k => $org_id) {
+                if (Validation::uuid($org_id)) {
+                    $org = $this->Organisation->find('first', array('conditions' => array('Organisation.uuid' => $org_id), 'recursive' => -1, 'fields' => array('Organisation.id')));
+                    if (empty($org)) {
+                        $filters['org_id'][$k] = -1;
+                    } else {
+                        $filters['org_id'][$k] = $org['Organisation']['id'];
+                    }
+                }
+            }
+            $conditions['GalaxyCluster.org_id'] = $filters['org_id'];
+        }
+        if (isset($filters['orgc_id'])) {
+            $this->Organisation = ClassRegistry::init('Organisation');
+            if (!is_array($filters['orgc_id'])) {
+                $filters['orgc_id'] = array($filters['orgc_id']);
+            }
+            foreach ($filters['orgc_id'] as $k => $orgc_id) {
+                if (Validation::uuid($orgc_id)) {
+                    $org = $this->Organisation->find('first', array('conditions' => array('Organisation.uuid' => $orgc_id), 'recursive' => -1, 'fields' => array('Organisation.id')));
+                    if (empty($org)) {
+                        $filters['orgc_id'][$k] = -1;
+                    } else {
+                        $filters['orgc_id'][$k] = $org['Organisation']['id'];
+                    }
+                }
+            }
+            $conditions['GalaxyCluster.orgc_id'] = $filters['orgc_id'];
+        }
+
+        if (isset($filters['galaxy_uuid'])) {
+            $galaxy = $this->Galaxy->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Galaxy.uuid' => $filters['galaxy_uuid']),
+                'fields' => array('uuid', 'id')
+            ));
+            if (!empty($galaxy)) {
+                $filters['galaxy_id'] = $galaxy[0]['id'];
+            } else {
+                $filters['galaxy_id'] = -1;
+            }
+        }
+
+        $simpleParams = array(
+            'id', 'uuid', 'galaxy_id', 'version', 'distribution', 'tag',
+        );
+        foreach ($simpleParams as $k => $simpleParam) {
+            if (isset($filters[$simpleParam])) {
+                $conditions["GalaxyCluster.${$simpleParam}"] = $filters[$simpleParam];
+            }
+        }
+
+        if (isset($filters['custom'])) {
+            $conditions['GalaxyCluster.default'] = !$filters['custom'];
+        }
+        return $conditions;
     }
 
     /**

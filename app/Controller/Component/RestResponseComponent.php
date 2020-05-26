@@ -104,6 +104,16 @@ class RestResponseComponent extends Component
                 'http_method' => 'GET'
             )
         ),
+        'GalaxyCluster' => array(
+            // 'add' => array(),
+            // 'edit' => array(),
+            'restSearch' => array(
+                'description' => "Search MISP using a list of filter parameters and return the data in the selected format. This API allows pagination via the page and limit parameters.",
+                'mandatory' => array('returnFormat'),
+                'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org', 'orgc', 'tag', 'custom', 'minimal',),
+                'params' => array()
+            ),
+        ),
         'Log' => array(
             'admin_index' => array(
                 'description' => "POST a filter object to receive a JSON with the log entries matching the query. A simple get request will return the entire DB. You can use the filter parameters as url parameters with a GET request such as: https://path.to.my.misp/admin/logs/page:1/limit:200 - to run substring queries simply append/prepend/encapsulate the search term with %. All restSearch rules apply.",
