@@ -3055,7 +3055,7 @@ class Server extends AppModel
         }
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $elligibleClusters = $this->GalaxyCluster->getElligibleClusterForPush($user);
+        $elligibleClusters = $this->GalaxyCluster->getElligibleClustersToPush($user);
         $clusterIds = $this->getClusterIdsFromServer($server, $HttpSocket, $elligibleClusters);
         if (!empty($clusterIds)) {
             // check each cluster push it when needed

@@ -890,7 +890,7 @@ class GalaxyCluster extends AppModel
         return array_values($clusterTags);
     }
 
-    public function getElligibleClusterForPush($user)
+    public function getElligibleClustersToPush($user)
     {
         $options = array(
             'conditions' => array(
