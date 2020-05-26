@@ -890,6 +890,22 @@ class GalaxyCluster extends AppModel
         return array_values($clusterTags);
     }
 
+    public function getElligibleClusterForPush($user)
+    {
+        $options = array(
+            'conditions' => array(
+                'GalaxyCluster.default' => 0,
+            ),
+            'fields' => array('uuid', 'version')
+        );
+        $clusters = $this->fetchGalaxyClusters($user, $options, $full=false);
+        $clusterUuids = array();
+        foreach($clusters as $cluster) {
+            $clusterUuids[$cluster['GalaxyCluster']['uuid']] = $cluster['GalaxyCluster']['version'];
+        }
+        return $clusterUuids;
+    }
+
     public function uploadClusterToServer($cluster, $server, $HttpSocket, $user)
     {
         $this->Server = ClassRegistry::init('Server');

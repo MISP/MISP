@@ -2682,8 +2682,8 @@ class Server extends AppModel
         return $filter_rules;
     }
 
-    // Get an array of cluster_ids that are present on the remote server
-    public function getClusterIdsFromServer($server, $HttpSocket=null)
+    // Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed
+    public function getClusterIdsFromServer($server, $HttpSocket=null, $elligibleClusters=array())
     {
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
@@ -2703,17 +2703,15 @@ class Server extends AppModel
                 }
                 if (!empty($clusterArray)) {
                     foreach ($clusterArray as $cluster) {
-                        $localCluster = $this->GalaxyCluster->find('first', array(
-                            'recursive' => -1,
-                            'fields' => array('GalaxyCluster.uuid', 'GalaxyCluster.version'),
-                            'conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid'])
-                        ));
-                        if (!empty($localCluster) && $localCluster['GalaxyCluster']['version'] > $cluster['GalaxyCluster']['version']) { // FIXME: TO UNCOMMENT
-                            $clusterIds[] = $localCluster['GalaxyCluster']['uuid'];
+                        if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
+                            $localVersion = $elligibleClusters[$cluster['GalaxyCluster']['uuid']];
+                            if ($localVersion >= $cluster['GalaxyCluster']['version']) {
+                                unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                            }
                         }
                     }
                 }
-                return $clusterIds;
+                return array_keys($elligibleClusters);
             }
 
             if ($response->code == '403') {
@@ -3057,7 +3055,8 @@ class Server extends AppModel
         }
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $clusterIds = $this->getClusterIdsFromServer($server, $HttpSocket);
+        $elligibleClusters = $this->GalaxyCluster->getElligibleClusterForPush($user);
+        $clusterIds = $this->getClusterIdsFromServer($server, $HttpSocket, $elligibleClusters);
         if (!empty($clusterIds)) {
             // check each cluster push it when needed
             foreach ($clusterIds as $k => $clusterId) {
