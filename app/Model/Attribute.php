@@ -75,7 +75,7 @@ class Attribute extends AppModel
         $this->categoryDefinitions = array(
             'Internal reference' => array(
                     'desc' => __('Reference used by the publishing party (e.g. ticket number)'),
-                    'types' => array('text', 'link', 'comment', 'other', 'hex', 'anonymised')
+                    'types' => array('text', 'link', 'comment', 'other', 'hex', 'anonymised', 'git-commit-id')
                     ),
             'Targeting data' => array(
                     'desc' => __('Internal Attack Targeting and Compromise Information'),
@@ -172,6 +172,7 @@ class Attribute extends AppModel
             'email-attachment' => array('desc' => __("File name of the email attachment."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'email-body' => array('desc' => __('Email body'), 'default_category' => 'Payload delivery', 'to_ids' => 0),
             'float' => array('desc' => __("A floating point value."), 'default_category' => 'Other', 'to_ids' => 0),
+            'git-commit-id' => array('desc' => __("A git commit ID."), 'default_category' => 'Internal reference', 'to_ids' => 0),
             'url' => array('desc' => __('url'), 'default_category' => 'Network activity', 'to_ids' => 1),
             'http-method' => array('desc' => __("HTTP method used by the malware (e.g. POST, GET, ...)."), 'default_category' => 'Network activity', 'to_ids' => 0),
             'user-agent' => array('desc' => __("The user-agent used by the malware in the HTTP request."), 'default_category' => 'Network activity', 'to_ids' => 0),
@@ -446,6 +447,7 @@ class Attribute extends AppModel
             'hostname' => 'Network activity',
             'domain' => 'Network activity',
             'eppn' => 'Network activity',
+            'git-commit-id' => 'Internal reference',
             'url' => 'Network activity',
             'ja3-fingerprint-md5' => 'Network activity',
             'hassh-md5' => 'Network activity',
@@ -1025,6 +1027,7 @@ class Attribute extends AppModel
         'md5' => 32,
         'imphash' => 32,
         'sha1' => 40,
+        'git-commit-id' => 40,
         'x509-fingerprint-md5' => 32,
         'x509-fingerprint-sha1' => 40,
         'x509-fingerprint-sha256' => 64,
@@ -1061,6 +1064,7 @@ class Attribute extends AppModel
             case 'x509-fingerprint-md5':
             case 'x509-fingerprint-sha256':
             case 'x509-fingerprint-sha1':
+            case 'git-commit-id':
                 $length = $this->__hexHashLengths[$type];
                 if (preg_match("#^[0-9a-f]{" . $length . "}$#", $value)) {
                     $returnValue = true;
