@@ -21,6 +21,8 @@ App::uses('AppHelper', 'View/Helper');
                 return '<span class="bold white">Mr STIX</span> ';
             } else if ($lower_email === 'sami.mokaddem@circl.lu') {
                 return '<span class="bold white">Graphman</span> ';
+            } else if (strpos($lower_email, 'm.j.nassette') !== false) {
+                return '<i class="fas fa-cheese white"></i>&nbsp;';
             }
             return '';
         }
