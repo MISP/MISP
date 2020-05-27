@@ -928,13 +928,9 @@ class StixFromMISPParser(StixParser):
     def parse_file_pattern(self, pattern):
         attributes = []
         attachment = {}
-        attachment_types = ('file:content_ref.name', 'file:content_ref.payload_bin',
-                            'artifact:x_misp_text_name', 'artifact:payload_bin',
-                            "file:hashes.'MD5'", "file:content_ref.hashes.'MD5'",
-                            'file:name')
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
-            if pattern_type in attachment_types:
+            if pattern_type in stix2misp_mapping.attachment_types:
                 attachment[pattern_type] = pattern_value.strip("'")
             if pattern_type not in stix2misp_mapping.file_mapping:
                 continue

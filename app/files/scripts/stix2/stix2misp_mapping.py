@@ -301,17 +301,10 @@ x509_mapping = {'issuer': issuer_attribute_mapping,
                 "x509-certificate:hashes.'md5'": x509_md5_attribute_mapping,
                 }
 
-domain_pattern_mapping = {'value': {'type': 'domain'}}
-ip_pattern_mapping = {'value': {'type': 'ip-dst'}}
-
-external_pattern_mapping = {'domain-name': domain_pattern_mapping,
-                            'email-addr': {'value': {'type': 'email-dst'}},
-                            'file': file_mapping,
-                            'ipv4-addr': ip_pattern_mapping,
-                            'ipv6-addr': ip_pattern_mapping,
-                            'url': {'value':{'type': 'url'}},
-                            'x509-certificate': x509_mapping
-                            }
+attachment_types = ('file:content_ref.name', 'file:content_ref.payload_bin',
+                    'artifact:x_misp_text_name', 'artifact:payload_bin',
+                    "file:hashes.'MD5'", "file:content_ref.hashes.'MD5'",
+                    'file:name')
 
 connection_protocols = {"IP": "3", "ICMP": "3", "ARP": "3",
                         "TCP": "4", "UDP": "4",
