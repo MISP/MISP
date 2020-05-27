@@ -2605,6 +2605,12 @@ class Server extends AppModel
         }
         $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
         if ($jobId) {
+            $job->saveField('progress', 90);
+            $job->saveField('message', 'Pulling galaxy clusters.');
+        }
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server);
+        if ($jobId) {
             $job->saveField('progress', 100);
             $job->saveField('message', 'Pull completed.');
             $job->saveField('status', 4);
@@ -2620,10 +2626,11 @@ class Server extends AppModel
             'user_id' => $user['id'],
             'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
             'change' => sprintf(
-                '%s events, %s proposals and %s sightings pulled or updated. %s events failed or didn\'t need an update.',
+                '%s events, %s proposals, %s sightings and %s galaxyClusters pulled or updated. %s events failed or didn\'t need an update.',
                 count($successes),
                 $pulledProposals,
                 $pulledSightings,
+                $pulledClusters,
                 count($fails)
             )
         ));
@@ -2683,7 +2690,7 @@ class Server extends AppModel
     }
 
     // Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed
-    public function getClusterIdsFromServer($server, $HttpSocket=null, $elligibleClusters=array())
+    public function getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=true, $elligibleClusters=array())
     {
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
@@ -2702,13 +2709,17 @@ class Server extends AppModel
                     $clusterArray = $clusterArray['response'];
                 }
                 if (!empty($clusterArray)) {
-                    foreach ($clusterArray as $cluster) {
-                        if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
-                            $localVersion = $elligibleClusters[$cluster['GalaxyCluster']['uuid']];
-                            if ($localVersion >= $cluster['GalaxyCluster']['version']) {
-                                unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                    if ($performLocalDelta) {
+                        foreach ($clusterArray as $cluster) {
+                            if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
+                                $localVersion = $elligibleClusters[$cluster['GalaxyCluster']['uuid']];
+                                if ($localVersion >= $cluster['GalaxyCluster']['version']) {
+                                    unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                                }
                             }
                         }
+                    } else {
+                        $elligibleClusters = Hash::extract($clusterArray, '{n}.GalaxyCluster.uuid');
                     }
                 }
                 return array_keys($elligibleClusters);

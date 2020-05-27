@@ -115,6 +115,14 @@ class GalaxyCluster extends AppModel
                     $results[$k]['Orgc'] = $this->Org->genericMISPOrganisation;
                 }
             }
+
+            if (!empty($results[$k]['GalaxyClusterRelation'])) {
+                foreach ($results[$k]['GalaxyClusterRelation'] as $i => $relation) {
+                    if (isset($relation['distribution']) && $relation['distribution'] != 4) {
+                        unset($results[$k]['GalaxyClusterRelation'][$i]['SharingGroup']);
+                    }
+                }
+            }
         }
         return $results;
     }
@@ -254,7 +262,7 @@ class GalaxyCluster extends AppModel
         $importResult = array('success' => true, 'imported' => 0, 'ignored' => 0, 'failed' => 0,'errors' => array());
         foreach ($clusters as $k => $cluster) {
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
-            $saveResult = $this->captureCluster($user, $cluster, $fromPull=true, $orgId=$orgId);
+            $saveResult = $this->captureCluster($user, $cluster, $fromPull=false);
             $importResult['imported'] += $saveResult['imported'];
             $importResult['ignored'] += $saveResult['ignored'];
             $importResult['failed'] += $saveResult['failed'];
@@ -273,9 +281,10 @@ class GalaxyCluster extends AppModel
      * @param array $cluster Cluster to be saved
      * @param bool $fromPull If the current capture is performed from a PULL sync
      * @param int $orgId The organisation id that should own the cluster
+     * @param array $server The server for which to capture is ongoing
      * @return array
      */
-    public function captureCluster($user, $cluster, $fromPull=false, $orgId=0)
+    public function captureCluster($user, $cluster, $fromPull=false, $orgId=0, $server=false)
     {
         $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
 
@@ -331,6 +340,11 @@ class GalaxyCluster extends AppModel
         } else {
             if ($cluster['GalaxyCluster']['default']) {
                 $results['errors'][] = __('Can only save non default clusters');
+                $results['failed']++;
+                return $results;
+            }
+            if ($fromPull && !$existingGalaxyCluster['GalaxyCluster']['locked'] && !$server['Server']['internal']) {
+                $results['errors'][] = __('Blocked an edit to an cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
                 $results['failed']++;
                 return $results;
             }
@@ -906,6 +920,23 @@ class GalaxyCluster extends AppModel
         return $clusterUuids;
     }
 
+    public function getElligibleClustersToPull($user)
+    {
+        $options = array(
+            'conditions' => array(
+                'GalaxyCluster.default' => 0,
+                'GalaxyCluster.locked' => 1,
+            ),
+            'fields' => array('uuid', 'version')
+        );
+        $clusters = $this->fetchGalaxyClusters($user, $options, $full=false);
+        $clusterUuids = array();
+        foreach($clusters as $cluster) {
+            $clusterUuids[$cluster['GalaxyCluster']['uuid']] = $cluster['GalaxyCluster']['version'];
+        }
+        return $clusterUuids;
+    }
+
     public function uploadClusterToServer($cluster, $server, $HttpSocket, $user)
     {
         $this->Server = ClassRegistry::init('Server');
@@ -1148,6 +1179,103 @@ class GalaxyCluster extends AppModel
             $this->Log->createLogEntry($user, 'push', 'GalaxyCluster', $cluster['GalaxyCluster']['id'], 'push', $newTextBody);
         }
         return $error;
+    }
+
+    public function pullGalaxyClusters($user, $server)
+    {
+        $version = explode('.', $server['Server']['version']);
+        if (
+            ($version[0] == 2 && $version[1] == 4 && $version[2] < 111) // FIXME: Use correct version
+        ) {
+            return 0;
+        }
+        $clusterIds = $this->__getClusterIdListBasedOnPullTechnique($technique, $server, $serverModel);
+        $server['Server']['version'] = $this->getRemoteVersion($id);
+        $successes = array();
+        $fails = array();
+        // now process the $clusterIds to pull each of the events sequentially
+        if (!empty($clusterIds)) {
+            // download each cluster
+            foreach ($clusterIds as $k => $clusterId) {
+                $this->__pullGalaxyCluster($clusterId, $successes, $fails, $server, $user);
+            }
+        }
+    }
+
+    private function __getClusterIdListBasedOnPullTechnique($technique, $server)
+    {
+        $this->Server = ClassRegistry::init('Server');
+        if ("full" === $technique) {
+            $clusterIds = $this->Server->getClusterIdsFromServer($server, $performLocalDelta=false);
+            if ($clusterIds === 403) {
+                return array('error' => array(1, null));
+            } elseif (is_string($clusterIds)) {
+                return array('error' => array(2, $clusterIds));
+            }
+        } elseif ("update" === $technique) {
+            $elligibleClusters = $this->GalaxyCluster->getElligibleClustersToPull($user);
+            $clusterIds = $this->Server->getClusterIdsFromServer($server, $performLocalDelta=true, $elligibleClusters);
+            if ($clusterIds === 403) {
+                return array('error' => array(1, null));
+            } elseif (is_string($clusterIds)) {
+                return array('error' => array(2, $clusterIds));
+            }
+        } else {
+            return array('error' => array(4, null));
+        }
+        return $clusterIds;
+    }
+
+    private function __pullGalaxyCluster($clusterId, &$successes, &$fails, $server, $user)
+    {
+        $cluster = $eventModel->downloadGalaxyClusterFromServer($clusterId, $server);
+
+        if (!empty($cluster)) {
+            $cluster = $this->__updatePulledClusterBeforeInsert($cluster, $server, $user);
+            $result = $this->captureCluster($user, $cluster, $fromPull=true, $orgId=$server['Server']['org_id']);
+            if ($result['success']) {
+                $successes[] = $clusterId;
+            } else {
+                $fails[$clusterId] = __('Failed because of errors: ') . json_encode($result['errors']);
+            }
+        } else {
+            $fails[$clusterId] = __('failed downloading the galaxy cluster');
+        }
+        return true;
+    }
+
+    private function __updatePulledClusterBeforeInsert($cluster, $server, $user)
+    {
+        // The cluster came from a pull, so it should be locked and distribution should be adapted.
+        $cluster['GalaxyCluster']['locked'] = true;
+        if (!isset($cluster['GalaxyCluster']['distribution'])) {
+            $cluster['GalaxyCluster']['distribution'] = '1';
+        }
+
+        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] || Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+            switch ($cluster['GalaxyCluster']['distribution']) {
+                case 1:
+                    $cluster['GalaxyCluster']['distribution'] = 0; // if community only, downgrade to org only after pull
+                    break;
+                case 2:
+                    $cluster['GalaxyCluster']['distribution'] = 1; // if connected communities downgrade to community only
+                    break;
+            }
+
+            if (!empty($cluster['GalaxyClusterRelation'])) {
+                foreach ($cluster['GalaxyClusterRelation'] as $k => $relation) {
+                    switch ($relation['distribution']) {
+                        case 1:
+                            $cluster['GalaxyClusterRelation'][$k]['distribution'] = 0;
+                            break;
+                        case 2:
+                            $cluster['GalaxyClusterRelation'][$k]['distribution'] = 1;
+                            break;
+                    }
+                }
+            }
+        }
+        return $cluster;
     }
 
     public function attachClusterToRelations($user, $cluster)
