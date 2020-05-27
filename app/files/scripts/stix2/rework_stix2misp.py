@@ -806,7 +806,7 @@ class StixFromMISPParser(StixParser):
 
     def _parse_regkey_value(self, observable):
         regkey = self._parse_regkey_attribute(observable)
-        return f'{regkey}|{observable["0"]["values"][0].get("name")}'
+        return f'{regkey}|{observable["0"]["values"][0].get("data")}'
 
     def parse_single_attribute_observable(self, observable, attribute_type):
         if attribute_type in stix2misp_mapping.attributes_type_mapping:
@@ -1146,7 +1146,7 @@ class StixFromMISPParser(StixParser):
             return pattern.split(' = ')[1].strip("]'")
 
     def parse_attribute_pattern_with_data(self, pattern):
-        if 'artifact:payload_bin' not in pattern:
+        if 'file:content_ref.payload_bin' not in pattern:
             return self.parse_attribute_pattern(pattern)
         pattern_parts = pattern.strip('[]').split(' AND ')
         if len(pattern_parts) == 3:
