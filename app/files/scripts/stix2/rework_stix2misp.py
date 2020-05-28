@@ -191,6 +191,10 @@ class StixParser():
     ##                             UTILITY FUNCTIONS.                             ##
     ################################################################################
 
+    @staticmethod
+    def _choose_with_priority(container, first_choice, second_choice):
+        return first_choice if first_choice in container else second_choice
+
     def _get_tag_names_from_synonym(self, name):
         try:
             return self._synonyms_to_tag_names[name]
@@ -938,12 +942,12 @@ class StixFromMISPParser(StixParser):
             attribute['value'] = pattern_value.strip("'")
             attributes.append(attribute)
         if 'file:content_ref.payload_bin' in attachment:
-            filename = attachment['file:content_ref.name'] if 'file:content_ref.name' in attachment else attachment['file:name']
-            md5 = attachment["file:content_ref.hashes.'MD5'"] if "file:content_ref.hashes.'MD5'" in attachment else attachment["file:hashes.'MD5'"]
+            filename = self._choose_with_priority(attachment, 'file:content_ref.name', 'file:name')
+            md5 = self._choose_with_priority(attachment, "file:content_ref.hashes.'MD5'", "file:hashes.'MD5'")
             attributes.append({
                 'type': 'malware-sample',
                 'object_relation': 'malware-sample',
-                'value': '|'.join((filename, md5)),
+                'value': f'{attachment[filename]}|{attachment[md5]}',
                 'data': attachment['file:content_ref.payload_bin']
             })
         if 'artifact:payload_bin' in attachment:
@@ -1335,6 +1339,16 @@ class ExternalStixParser(StixParser):
     ##                         PATTERN PARSING FUNCTIONS.                         ##
     ################################################################################
 
+    def get_attachment(self, attachment, filename):
+        attribute = {
+            'type': 'attachment',
+            'object_relation': 'attachment',
+            'value': attachment.pop(filename)
+        }
+        data_feature = self._choose_with_priority(attachment, 'file:content_ref.payload_bin', 'artifact:payload_bin')
+        attribute['data'] = attachment.pop(data_feature)
+        return attribute
+
     def get_attributes_from_pattern(self, pattern, mapping):
         attributes = []
         for pattern_part in pattern.strip('[]').split(' AND '):
@@ -1347,6 +1361,17 @@ class ExternalStixParser(StixParser):
             attribute['value'] = pattern_value
             attributes.append(attribute)
         return attributes
+
+    def get_malware_sample(self, attachment, filename):
+        md5_feature = self._choose_with_priority(attachment, "file:content_ref.hashes.'MD5'", "file:hashes.'MD5'")
+        attribute = {
+            'type': 'malware-sample',
+            'object_relation': 'malware-sample',
+            'value': f'{attachment.pop(filename)}|{attachment.pop(md5_feature)}'
+        }
+        data_feature = self._choose_with_priority(attachment, 'file:content_ref.payload_bin', 'artifact:payload_bin')
+        attribute['data'] = attachment.pop(data_feature)
+        return attribute
 
     def parse_artifact_pattern(self, indicator):
         attributes = defaultdict(list)
@@ -1405,9 +1430,13 @@ class ExternalStixParser(StixParser):
 
     def parse_file_pattern(self, indicator):
         attributes = []
+        attachment = {}
         extensions = defaultdict(lambda: defaultdict(dict))
         for pattern_part in indicator.pattern.strip('[]').split(' AND '):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
+            if pattern_type in stix2misp_mapping.attachment_types:
+                attachment[pattern_type] = pattern_value.strip("'")
+                continue
             if pattern_type not in stix2misp_mapping.file_mapping:
                 if 'extensions' in pattern_type:
                     features = pattern_type.split('.')[1:]
@@ -1421,6 +1450,17 @@ class ExternalStixParser(StixParser):
             attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
             attribute['value'] = pattern_value
             attributes.append(attribute)
+        while any(key.endswith('payload_bin') for key in attachment.keys()):
+            filename = self._choose_with_priority(attachment, 'file:content_ref.name', 'file:name')
+            is_malware_sample = any(key.endswith("hashes.'MD5'") for key in attachment.keys())
+            attribute = self.get_malware_sample(attachment, filename) if is_malware_sample else self.get_attachment(attachment, filename)
+            attributes.append(attribute)
+        if attachment:
+            for pattern_type, value in attachment.items():
+                if pattern_type in stix2misp_mapping.file_mapping:
+                    attribute = deepcopy(stix2misp_mapping.file_mapping[pattern_type])
+                    attribute['value'] = value
+                    attributes.append(attribute)
         if extensions:
             file_object = self.create_misp_object(indicator, 'file')
             self.parse_file_extension(file_object, attributes, extensions)
