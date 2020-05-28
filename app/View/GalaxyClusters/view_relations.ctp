@@ -19,8 +19,8 @@
                 array(
                     'name' => __('Galaxy Cluster Target'),
                     'sort' => 'TargetCluster.tag_name',
-                    'element' => 'links',
-                    'data_path' => 'TargetCluster.tag_name',
+                    'element' => 'cluster_link',
+                    'data_path' => 'TargetCluster',
                     'url_params_data_paths' => 'TargetCluster.id',
                     'url' => $baseurl . '/galaxy_clusters/view'
                 ),

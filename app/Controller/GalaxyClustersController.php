@@ -221,6 +221,9 @@ class GalaxyClustersController extends AppController
                 $newVersionAvailable = false;
             }
             $this->set('newVersionAvailable', $newVersionAvailable);
+            $this->loadModel('Attribute');
+            $distributionLevels = $this->Attribute->distributionLevels;
+            $this->set('distributionLevels', $distributionLevels);
         }
     }
 
