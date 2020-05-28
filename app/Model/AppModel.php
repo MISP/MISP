@@ -1408,12 +1408,10 @@ class AppModel extends Model
                 $sqlArray[] = "UPDATE `roles` SET `perm_galaxy_editor`=1 WHERE `perm_tag_editor`=1;";
                 $sqlArray[] = "UPDATE `galaxy_clusters` SET `distribution`=3, `default`=1 WHERE `org_id`=0;";
                 $sqlArray[] = "ALTER TABLE `galaxy_reference` RENAME `galaxy_cluster_relations`;";
-                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` DROP `galaxy_cluster_id`;";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `galaxy_cluster_uuid` varchar(40) COLLATE utf8_bin NOT NULL;";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `sharing_group_id` int(11);";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
-                $sqlArray[] = "UPDATE `galaxy_cluster_relations` SET `distribution`=3, `default`=1 WHERE `org_id`=0;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_relation_tags` (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `galaxy_cluster_relation_id` int(11) NOT NULL,
@@ -1421,7 +1419,17 @@ class AppModel extends Model
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "ALTER TABLE `servers` ADD `push_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_sightings`;";
-                // TODO: ADD INDEXES
+                $indexArray[] = array('galaxy_clusters', 'org_id');
+                $indexArray[] = array('galaxy_clusters', 'orgc_id');
+                $indexArray[] = array('galaxy_clusters', 'sharing_group_id');
+                $indexArray[] = array('galaxy_clusters', 'extends_uuid');
+                $indexArray[] = array('galaxy_clusters', 'extends_version');
+                $indexArray[] = array('galaxy_clusters', 'default');
+                $indexArray[] = array('galaxy_cluster_relations', 'galaxy_cluster_uuid');
+                $indexArray[] = array('galaxy_cluster_relations', 'sharing_group_id');
+                $indexArray[] = array('galaxy_cluster_relations', 'default');
+                $indexArray[] = array('galaxy_cluster_relation_tags', 'galaxy_cluster_relation_id');
+                $indexArray[] = array('galaxy_cluster_relation_tags', 'tag_id');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
