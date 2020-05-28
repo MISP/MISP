@@ -1,3 +1,4 @@
+<h3><?= __('Discussion') ?></h3>
 <div id="top">
     <div class="pagination">
         <?php
@@ -18,12 +19,11 @@
             ?>
             </ul>
         </div>
-        <div id = "posts">
+        <div id="posts">
             <?php
                 foreach ($posts as $post) {
             ?>
-                    <a name="message_<?php echo h($post['id']);?>"></a>
-                    <table class="discussionBox" id=<?php echo '"' . h($post['id']) . '"';?> >
+                    <table class="discussionBox" id="message_<?= h($post['id']) ?>">
                         <tr>
                             <td class="discussionBoxTD discussionBoxTDtop" colspan="2">
                             <div>
@@ -36,7 +36,7 @@
                                         </td>
                                         <td style="text-align:right">
                                             <a href="#top" class="whitelink">Top</a> |
-                                            <a href="<?php echo "#".$post['id']; ?>" class="whitelink">#<?php echo h($post['id'])?></a>
+                                            <a href="#message_<?php echo h($post['id']); ?>" class="whitelink">#<?php echo h($post['id'])?></a>
                                         </td>
                                     </tr>
                                 </table>
@@ -58,14 +58,14 @@
                                     echo $this->Command->convertQuotes(nl2br(h($post['contents'])));
                                     if ($post['post_id'] !=0 || ($post['date_created'] != $post['date_modified'])) {
             ?>
-                                        <br /><br />
+                                        <br><br>
             <?php
                                     }
                                     if ($post['post_id'] != 0) {
             ?>
                                         <span style="font-style:italic">
                                             In reply to post
-                                            <a href="<?php echo "#".h($post['post_id']); ?>">#<?php echo h($post['post_id'])?></a>
+                                            <a href="#message_<?php echo h($post['post_id']); ?>">#<?php echo h($post['post_id'])?></a>
                                         </span>
             <?php
                                     }
@@ -76,7 +76,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="discussionBoxTD discussionBoxTDbottom" colspan = "2">
+                            <td class="discussionBoxTD discussionBoxTDbottom" colspan="2">
                                 <table style="width:100%">
                                     <tr>
                                         <td>
@@ -90,14 +90,14 @@
                                                 echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete this post?'));
                                             } else {
             ?>
-                                                <a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "<?php echo __('Reply');?>" aria-label = "<?php echo __('Reply');?>"></a>
+                                                <a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title="<?php echo __('Reply');?>" aria-label="<?php echo __('Reply');?>"></a>
             <?php
                                             }
                                         } else {
                                             echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit')));
                                             echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete this post?'));
             ?>
-                                                <a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "<?php echo __('Reply');?>" aria-label = "<?php echo __('Reply');?>"></a>
+                                                <a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title="<?php echo __('Reply');?>" aria-label="<?php echo __('Reply');?>"></a>
             <?php
 
                                         }
@@ -108,7 +108,7 @@
                             </td>
                         </tr>
                     </table>
-                    <br />
+                    <br>
             <?php
                 }
             ?>
@@ -139,11 +139,11 @@
     ?>
         <fieldset>
         <div class="input clear">
-            <button type="button" title="<?php echo __('Insert a quote - just paste your quote between the [quote][/quote] tags.');?>" class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()"><?php echo __('Quote');?></button>
-            <button type="button" title="<?php echo __('Insert a link to an event - just enter the event ID between the [event][/event] tags.');?>" class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()"><?php echo __('Event');?></button>
-            <button type="button" title="<?php echo __('Insert a link to a discussion thread - enter the thread\'s ID between the [thread][/thread] tags.');?>" class="toggle btn btn-inverse qet" id = "thread"  onclick="insertThread()"><?php echo __('Thread');?></button>
-            <button type="button" title="<?php echo __('Insert a link [link][/link] tags.');?>" class="toggle btn btn-inverse qet" id = "link"  onclick="insertLink()"><?php echo __('Link');?></button>
-            <button type="button" title="<?php echo __('Insert a code [code][/code] tags.');?>" class="toggle-right btn btn-inverse qet" id = "code"  onclick="insertCode()"><?php echo __('Code');?></button>
+            <button type="button" title="<?php echo __('Insert a quote - just paste your quote between the [quote][/quote] tags.');?>" class="toggle-left btn btn-inverse qet" id="quote"  onclick="insertQuote()"><?php echo __('Quote');?></button>
+            <button type="button" title="<?php echo __('Insert a link to an event - just enter the event ID between the [event][/event] tags.');?>" class="toggle btn btn-inverse qet" id="event"  onclick="insertEvent()"><?php echo __('Event');?></button>
+            <button type="button" title="<?php echo __('Insert a link to a discussion thread - enter the thread\'s ID between the [thread][/thread] tags.');?>" class="toggle btn btn-inverse qet" id="thread"  onclick="insertThread()"><?php echo __('Thread');?></button>
+            <button type="button" title="<?php echo __('Insert a link [link][/link] tags.');?>" class="toggle btn btn-inverse qet" id="link"  onclick="insertLink()"><?php echo __('Link');?></button>
+            <button type="button" title="<?php echo __('Insert a code [code][/code] tags.');?>" class="toggle-right btn btn-inverse qet" id="code"  onclick="insertCode()"><?php echo __('Code');?></button>
         </div>
         <?php
             echo $this->Form->input('message', array(
@@ -154,7 +154,7 @@
             ));
         ?>
         </fieldset>
-        <button class="btn btn-primary" onClick="submitMessageForm('<?php echo $url;?>', 'PostViewForm', 'top'); return false;"><?php echo __('Send');?></button>
+        <button class="btn btn-primary" onclick="submitMessageForm('<?php echo $url;?>', 'PostViewForm', 'top'); return false;"><?php echo __('Send comment');?></button>
     <?php
         echo $this->Form->end();
     ?>
@@ -177,7 +177,7 @@
         document.getElementById("PostMessage").value+="[Code][/Code]";
     }
     <?php if (isset($post_id) && $post_id): ?>
-        $(document).ready(function() {
+        $(function() {
             location.hash = "#message_<?php echo h($post_id); ?>";
         });
     <?php endif; ?>

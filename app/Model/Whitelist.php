@@ -68,7 +68,7 @@ class Whitelist extends AppModel
 
     public function getBlockedValues()
     {
-        if ($this->whitelistedItems !== false) {
+        if ($this->whitelistedItems === false) {
             $Whitelists = $this->find('all', array('fields' => array('name')));
             $this->whitelistedItems = array();
             foreach ($Whitelists as $item) {

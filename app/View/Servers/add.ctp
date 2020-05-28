@@ -64,7 +64,7 @@
             <input type="text" id="ServerExternalName" <?php if (isset($this->request->data['Server']['external_name'])) echo 'value="' . $this->request->data['Server']['external_name'] . '"';?>>
         </div>
         <div id="ServerExternalUuidContainer" class="input select hiddenField" style="display:none;">
-            <label for="ServerExternalUuid"><?php echo __('Remote Organisation\'s Uuid');?></label>
+            <label for="ServerExternalUuid"><?php echo __('Remote Organisation\'s UUID');?></label>
             <input type="text" id="ServerExternalUuid" <?php if (isset($this->request->data['Server']['external_uuid'])) echo 'value="' . $this->request->data['Server']['external_uuid'] . '"';?>>
         </div>
         <div class = "input clear"></div>

@@ -14,7 +14,7 @@ edit_uri: ""
 #dev_addr: "192.168.10.34:8000"
 
 # Copyright
-copyright: "Copyright &copy; 2019 MISP Project"
+copyright: "Copyright &copy; 2020 MISP Project"
 
 # Options
 extra:
@@ -38,8 +38,7 @@ theme:
 markdown_extensions:
   - markdown_include.include:
       base_path: docs
-  # mkdcomments is buggy atm, see: https://github.com/ryneeverett/python-markdown-comments/issues/3
-  #- mkdcomments
+  - mkdcomments
   - markdown.extensions.admonition
   - markdown.extensions.codehilite:
       guess_lang: false
@@ -69,17 +68,16 @@ nav:
     - Home: 'index.md'
     - Install Guides:
       - 'Ubuntu 18.04': 'INSTALL.ubuntu1804.md'
+      - 'Ubuntu 20.04': 'INSTALL.ubuntu2004.md'
       - 'Kali Linux': 'INSTALL.kali.md'
       - 'RHEL7/CentOS7': 'INSTALL.rhel7.md'
       - 'RHEL8/CentOS8': 'INSTALL.rhel8.md'
     - xInstall Guides: 
       - 'Warning': 'xINSTALL.md'
-      - 'Centos 6': 'xINSTALL.centos6.md'
       - 'Debian 10': 'xINSTALL.debian10.md'
-      - 'Debian 9.9': 'xINSTALL.debian9.md'
       - 'Ubuntu 18.04 \w webmin': 'xINSTALL.ubuntu1804.with.webmin.md'
       - 'Tsurugi Linux': 'xINSTALL.tsurugi.md'
-      - 'OpenBSD 6.5': 'xINSTALL.OpenBSD.md'
+      - 'OpenBSD 6.7': 'xINSTALL.OpenBSD.md'
     - Config Guides:
       - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
       - 'Amazon S3 attachments': 'CONFIG.s3-attachments.md'
@@ -89,6 +87,8 @@ nav:
     - Old guides:
       - '2.3 to 2.4 upgrade': 'archive/old-2_3to2_4-UPGRADE.md'
       - 'Ubuntu 16.04': 'archive/INSTALL.ubuntu1604.md'
+      - 'Debian 9': 'xINSTALL.debian9.md'
+      - 'Centos 6': 'xINSTALL.centos6.md'
       - 'FreeBSD': 'archive/xINSTALL.FreeBSD.md'
     - About:
       - 'MISP Release Notes': 'Changelog.md'

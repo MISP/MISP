@@ -910,7 +910,21 @@ class User extends AppModel
             }
         }
         $Email->attachments($attachments);
-        $result = $Email->send($body);
+        try {
+            $result = $Email->send($body);
+        } catch (Exception $e) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'User',
+                'model_id' => $user['User']['id'],
+                'email' => $user['User']['email'],
+                'action' => 'send_mail',
+                'title' => sprintf(__('Could not send mail. Reasons: %s'), $e->getMessage()),
+                'change' => null,
+            ));
+            $result = false;
+        }
         $Email->reset();
         return $result;
     }
@@ -1540,7 +1554,7 @@ class User extends AppModel
                     'model' => 'User',
                     'model_id' => $added_by['id'],
                     'email' => $added_by['email'],
-                    'action' => 'failed_registration',
+                    'action' => 'registration_error',
                     'title' => 'User registration failed for ' . $user['email'] . '. Reason(s): ' . $error,
                     'change' => null,
             ));
@@ -1549,6 +1563,15 @@ class User extends AppModel
             $user = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('id' => $this->id)
+            ));
+            $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'User',
+                'model_id' => $added_by['id'],
+                'email' => $added_by['email'],
+                'action' => 'registration',
+                'title' => sprintf('User registration success for %s (id=%s)', $user['User']['email'], $user['User']['id']),
+                'change' => null,
             ));
             $this->initiatePasswordReset($user, true, true, false);
             $this->Inbox = ClassRegistry::init('Inbox');

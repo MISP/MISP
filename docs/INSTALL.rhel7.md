@@ -229,19 +229,19 @@ installCoreRHEL () {
   $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
+  
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+  
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
   # install mixbox to accommodate the new STIX dependencies:
   cd $PATH_TO_MISP/app/files/scripts/mixbox
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # FIXME: Remove once stix-fixed
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
 
   # install STIX2.0 library to support STIX 2.0 export:
   cd $PATH_TO_MISP/cti-python-stix2
@@ -257,7 +257,7 @@ installCoreRHEL () {
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
   # lief needs manual compilation
-  sudo yum install devtoolset-7 cmake3 cppcheck -y
+  sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
 
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW mkdir build
@@ -293,6 +293,25 @@ installCoreRHEL () {
   # install PyMISP
   cd $PATH_TO_MISP/PyMISP
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
+
+  # FIXME: Remove libfaup etc once the egg has the library baked-in
+  # BROKEN: This needs to be tested on RHEL/CentOS
+  ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+  cd /tmp
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+  cd gtcaca
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  cd ../../faup
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  sudo ldconfig
 
   # Enable dependencies detection in the diagnostics page
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
@@ -506,6 +525,7 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
   sudo chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*
   find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
   # Only run these if you want to be able to update MISP from the web interface

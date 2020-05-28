@@ -20,7 +20,13 @@ import sys, json, os, datetime
 import pymisp
 import re
 import uuid
-from stix2 import *
+from stix2.base import STIXJSONEncoder
+from stix2.exceptions import InvalidValueError, TLPMarkingDefinitionError
+from stix2.properties import DictionaryProperty, ListProperty, StringProperty, TimestampProperty
+from stix2.v20.common import MarkingDefinition, TLP_WHITE, TLP_GREEN, TLP_AMBER, TLP_RED
+from stix2.v20.observables import WindowsPESection
+from stix2.v20.sdo import AttackPattern, CourseOfAction, CustomObject, Identity, Indicator, IntrusionSet, Malware, ObservedData, Report, ThreatActor, Tool, Vulnerability
+from stix2.v20.sro import Relationship
 from misp2stix2_mapping import *
 from collections import defaultdict
 from copy import deepcopy
@@ -47,6 +53,7 @@ class StixBuilder():
         self.orgs = []
         self.galaxies = []
         self.ids = {}
+        self.custom_objects = {}
 
     def loadEvent(self, args):
         pathname = os.path.dirname(args[0])
@@ -63,7 +70,7 @@ class StixBuilder():
             stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event['Event'])
             outputfile = "{}.out".format(self.filename)
             with open(outputfile, 'wt', encoding='utf-8') as f:
-                f.write(json.dumps(stix_packages, cls=base.STIXJSONEncoder))
+                f.write(json.dumps(stix_packages, cls=STIXJSONEncoder))
             print(json.dumps({'success': 1}))
         except Exception as e:
             print(json.dumps({'error': e.__str__()}))
@@ -464,19 +471,24 @@ class StixBuilder():
         if markings:
             markings = self.handle_tags(markings)
             custom_object_args['object_marking_refs'] = markings
-        @CustomObject(custom_object_type, [('id', properties.StringProperty(required=True)),
-                                           ('labels', properties.ListProperty(labels, required=True)),
-                                           ('x_misp_value', properties.StringProperty(required=True)),
-                                           ('created', properties.TimestampProperty(required=True, precision='millisecond')),
-                                           ('modified', properties.TimestampProperty(required=True, precision='millisecond')),
-                                           ('created_by_ref', properties.StringProperty(required=True)),
-                                           ('object_marking_refs', properties.ListProperty(markings)),
-                                           ('x_misp_comment', properties.StringProperty()),
-                                           ('x_misp_category', properties.StringProperty())
-                                          ])
-        class Custom(object):
-            def __init__(self, **kwargs):
-                return
+        if custom_object_type not in self.custom_objects:
+            @CustomObject(custom_object_type, [
+                ('id', StringProperty(required=True)),
+                ('labels', ListProperty(labels, required=True)),
+                ('x_misp_value', StringProperty(required=True)),
+                ('created', TimestampProperty(required=True, precision='millisecond')),
+                ('modified', TimestampProperty(required=True, precision='millisecond')),
+                ('created_by_ref', StringProperty(required=True)),
+                ('object_marking_refs', ListProperty(markings)),
+                ('x_misp_comment', StringProperty()),
+                ('x_misp_category', StringProperty())
+            ])
+            class Custom(object):
+                def __init__(self, **kwargs):
+                    return
+            self.custom_objects[custom_object_type] = Custom
+        else:
+            Custom = self.custom_objects[custom_object_type]
         custom_object = Custom(**custom_object_args)
         self.append_object(custom_object)
 
@@ -602,18 +614,23 @@ class StixBuilder():
                               'x_misp_category': category, 'created_by_ref': self.identity_id}
         if hasattr(misp_object, 'comment') and misp_object.get('comment'):
             custom_object_args['x_misp_comment'] = misp_object['comment']
-        @CustomObject(custom_object_type, [('id', properties.StringProperty(required=True)),
-                                           ('labels', properties.ListProperty(labels, required=True)),
-                                           ('x_misp_values', properties.DictionaryProperty(required=True)),
-                                           ('created', properties.TimestampProperty(required=True, precision='millisecond')),
-                                           ('modified', properties.TimestampProperty(required=True, precision='millisecond')),
-                                           ('created_by_ref', properties.StringProperty(required=True)),
-                                           ('x_misp_comment', properties.StringProperty()),
-                                           ('x_misp_category', properties.StringProperty())
-                                          ])
-        class Custom(object):
-            def __init__(self, **kwargs):
-                return
+        if custom_object_type not in self.custom_objects:
+            @CustomObject(custom_object_type, [
+                ('id', StringProperty(required=True)),
+                ('labels', ListProperty(labels, required=True)),
+                ('x_misp_values', DictionaryProperty(required=True)),
+                ('created', TimestampProperty(required=True, precision='millisecond')),
+                ('modified', TimestampProperty(required=True, precision='millisecond')),
+                ('created_by_ref', StringProperty(required=True)),
+                ('x_misp_comment', StringProperty()),
+                ('x_misp_category', StringProperty())
+            ])
+            class Custom(object):
+                def __init__(self, **kwargs):
+                    return
+            self.custom_objects[custom_object_type] = Custom
+        else:
+            Custom = self.custom_objects[custom_object_type]
         custom_object = Custom(**custom_object_args)
         self.append_object(custom_object)
 
@@ -655,7 +672,7 @@ class StixBuilder():
         observed_data_args.update(self.handle_time_fields(misp_object, timestamp, 'observed-data'))
         try:
             observed_data = ObservedData(**observed_data_args)
-        except exceptions.InvalidValueError:
+        except InvalidValueError:
             observed_data = self.fix_enumeration_issues(name, observed_data_args)
         self.append_object(observed_data)
 
@@ -732,7 +749,7 @@ class StixBuilder():
                               'definition': {definition_type: definition}}
         try:
             self.markings[tag] = MarkingDefinition(**marking_definition)
-        except exceptions.TLPMarkingDefinitionError:
+        except (TLPMarkingDefinitionError, ValueError):
             return
         return marking_id
 

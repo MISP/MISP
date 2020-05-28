@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 18.04.3-server
+## for Ubuntu 18.04.4-server
 
 ### -1/ Installer and Manual install instructions
 
@@ -20,7 +20,7 @@ bash /tmp/INSTALL.sh -c
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190513 (works with **Ubuntu 18.10/19.04** too)
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20200501 (works with **Ubuntu 18.10/19.04** too)
 
 !!! notice
     This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
@@ -45,7 +45,6 @@ bash /tmp/INSTALL.sh -c
 aptUpgrade () {
   debug "Upgrading system"
   checkAptLock
-  sudo apt-get update
 
   # If we run in non-interactive mode, make sure we do not stop all of a sudden
   if [[ "${PACKER}" == "1" || "${UNATTENDED}" == "1" ]]; then
@@ -110,7 +109,7 @@ installDepsPhp72 () {
   debug "Installing PHP 7.2 dependencies"
   PHP_ETC_BASE=/etc/php/7.2
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt update
+  checkAptLock
   sudo apt install -qy \
   libapache2-mod-php \
   php php-cli \
@@ -167,8 +166,6 @@ installCore () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
   cd $PATH_TO_MISP/app/files/scripts/python-maec
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
-  # FIXME: Remove once stix-fixed
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
@@ -176,12 +173,29 @@ installCore () {
   # install PyMISP
   cd ${PATH_TO_MISP}/PyMISP
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install .
+  # FIXME: Remove libfaup etc once the egg has the library baked-in
+  sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+  cd /tmp
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+  cd gtcaca
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  cd ../../faup
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  sudo ldconfig
 
   # install pydeep
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
 
   # install zmq needed by mispzmq
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis

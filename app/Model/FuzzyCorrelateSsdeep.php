@@ -67,26 +67,19 @@ class FuzzyCorrelateSsdeep extends AppModel
 
     public function query_ssdeep_chunks($hash, $attribute_id)
     {
-        //'12288:CeqW86Tf7xglFIV/4Zf8FkKBPFrmtJxv/znLABkeGevRcAqn9LqgqmlrexDvBIRF:CV6fxg7IeEOKXrmtJx3rLABk1eFElree'
         $chunks = $this->ssdeep_prepare($hash);
-        // if chunk_size == chunk_size_1 OR 2*chunk_size == chunk_size
-        // SELECT * from ssdeep_chunks where (chunk_size = $chunk_size OR chunk_size*2 = $chunk_size)
-        //   AND chunk_size
+        
+        // Original algo from article https://www.virusbulletin.com/virusbulletin/2015/11/optimizing-ssdeep-use-scale
+        // also propose to insert chunk size to database, but current database schema doesn't contain that column.
+        // This optimisation can be add in future versions.
         $result = $this->find('list', array(
             'conditions' => array(
-                'AND' => array(
-                    'OR' => array(
-                        'FuzzyCorrelateSsdeep.chunk_size' => $chunks[0],
-                        'FuzzyCorrelateSsdeep.chunk_size' => $chunks[0] * 2,
-                    ),
-                    'OR' => array(
-                        'FuzzyCorrelateSsdeep.chunk' => $chunks[1],
-                        'FuzzyCorrelateSsdeep.chunk' => $chunks[2]
-                    )
-                )
+                'FuzzyCorrelateSsdeep.chunk' => array_merge($chunks[1], $chunks[2]),
             ),
-            'fields' => array('FuzzyCorrelateSsdeep.attribute_id', 'FuzzyCorrelateSsdeep.attribute_id')
+            'fields' => array('FuzzyCorrelateSsdeep.attribute_id', 'FuzzyCorrelateSsdeep.attribute_id'),
+            'group' => 'FuzzyCorrelateSsdeep.attribute_id', // remove duplicates at database side
         ));
+        
         $to_save = array();
         foreach (array(1, 2) as $type) {
             foreach ($chunks[$type] as $chunk) {

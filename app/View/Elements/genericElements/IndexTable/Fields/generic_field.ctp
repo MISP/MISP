@@ -12,6 +12,12 @@
         }
     } else {
         $data = h($data);
+        if (!empty($field['privacy'])) {
+            $data = sprintf(
+                '<span class="privacy-value" data-hidden-value="%s">****************************************</span> <i class="privacy-toggle fas fa-eye useCursorPointer"></i>',
+                $data
+            );
+        }
     }
     if (!empty($field['onClick'])) {
         $data = sprintf(

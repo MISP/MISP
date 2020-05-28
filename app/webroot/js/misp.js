@@ -1864,7 +1864,6 @@ function popoverConfirm(clicked, message, placement) {
         popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;" onclick=submitPopover(this)>Yes</button>';
         popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</button>';
     popoverContent += '</div>';
-    placement = placement === undefined ? 'auto' : placement;
     openPopover($clicked, popoverContent, undefined, placement);
     $("#popoverConfirmOK")
     .focus()
@@ -2143,7 +2142,7 @@ function quickFilter(passedArgs, url) {
         var passedArgs = [];
     }
     if( $('#quickFilterField').val().trim().length > 0){
-        passedArgs["searchall"] = $('#quickFilterField').val().trim();
+        passedArgs["searchall"] = encodeURIComponent($('#quickFilterField').val().trim());
         for (var key in passedArgs) {
             if (key !== 'page') {
                 url += "/" + key + ":" + passedArgs[key];
@@ -2178,7 +2177,7 @@ function runIndexQuickFilter(preserveParams) {
         searchKey = $('#quickFilterField').data('searchkey');
     }
     if ( $('#quickFilterField').val().trim().length > 0){
-        passedArgsArray[searchKey] = $('#quickFilterField').val().trim();
+        passedArgsArray[searchKey] = encodeURIComponent($('#quickFilterField').val().trim());
     }
     url = here;
     if (typeof preserveParams !== "undefined") {
@@ -2198,7 +2197,7 @@ function executeFilter(passedArgs, url) {
 }
 
 function quickFilterTaxonomy(taxonomy_id, passedArgs) {
-    var url = "/taxonomies/view/" + taxonomy_id + "/filter:" + $('#quickFilterField').val();
+    var url = "/taxonomies/view/" + taxonomy_id + "/filter:" + encodeURIComponent($('#quickFilterField').val());
     window.location.href=url;
 }
 
@@ -2206,7 +2205,7 @@ function quickFilterRemoteEvents(passedArgs, id) {
     passedArgs["searchall"] = $('#quickFilterField').val();
     var url = "/servers/previewIndex/" + id;
     for (var key in passedArgs) {
-        url += "/" + key + ":" + passedArgs[key];
+        url += "/" + key + ":" + encodeURIComponent(passedArgs[key]);
     }
     window.location.href=url;
 }
@@ -2327,28 +2326,28 @@ function indexAddRule(param) {
     var found = false;
     if (filterContext == 'event') {
         if (param.data.param1 == "date") {
-            var val1 = escape($('#EventSearch' + param.data.param1 + 'from').val());
-            var val2 = escape($('#EventSearch' + param.data.param1 + 'until').val());
+            var val1 = encodeURIComponent($('#EventSearch' + param.data.param1 + 'from').val());
+            var val2 = encodeURIComponent($('#EventSearch' + param.data.param1 + 'until').val());
             if (val1 != "") filtering.date.from = val1;
             if (val2 != "") filtering.date.until = val2;
         } else if (param.data.param1 == "published") {
-            var value = escape($('#EventSearchpublished').val());
+            var value = encodeURIComponent($('#EventSearchpublished').val());
             if (value != "") filtering.published = value;
         } else if (param.data.param1 == "hasproposal") {
-            var value = escape($('#EventSearchhasproposal').val());
+            var value = encodeURIComponent($('#EventSearchhasproposal').val());
             if (value != "") filtering.hasproposal = value;
         } else {
-            var value = escape($('#EventSearch' + param.data.param1).val());
-            var operator = operators[escape($('#EventSearchbool').val())];
+            var value = encodeURIComponent($('#EventSearch' + param.data.param1).val());
+            var operator = operators[encodeURIComponent($('#EventSearchbool').val())];
             if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
         }
     } else if (filterContext == 'user') {
         if (differentFilters.indexOf(param.data.param1) != -1) {
-            var value = escape($('#UserSearch' + param.data.param1).val());
+            var value = encodeURIComponent($('#UserSearch' + param.data.param1).val());
             if (value != "") filtering[param.data.param1] = value;
         } else {
-            var value = escape($('#UserSearch' + param.data.param1).val());
-            var operator = operators[escape($('#UserSearchbool').val())];
+            var value = encodeURIComponent($('#UserSearch' + param.data.param1).val());
+            var operator = operators[encodeURIComponent($('#UserSearchbool').val())];
             if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
         }
     }
@@ -2567,7 +2566,7 @@ function serverSettingSubmitForm(name, setting, id) {
 }
 
 function updateOrgCreateImageField(string) {
-    string = escape(string);
+    string = encodeURIComponent(string);
     $.ajax({
         url:'/img/orgs/' + string + '.png',
         type:'HEAD',
@@ -3635,11 +3634,11 @@ function syncUserSelected() {
 function filterAttributes(filter, id) {
     url = "/events/viewEventAttributes/" + id;
     if(filter === 'value'){
-        filter = $('#quickFilterField').val().trim();
+        filter = encodeURIComponent($('#quickFilterField').val().trim());
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     } else if(filter !== 'all') {
         url += "/attributeFilter:" + filter
-        filter = $('#quickFilterField').val().trim();
+        filter = encodeURIComponent($('#quickFilterField').val().trim());
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     }
     if (deleted) url += '/deleted:true';
@@ -3969,6 +3968,7 @@ function feedFormUpdate() {
     switch($('#FeedSourceFormat').val()) {
         case 'freetext':
             $('#TargetDiv').show();
+            $('#OrgcDiv').show();
             $('#OverrideIdsDiv').show();
             $('#PublishDiv').show();
             if ($('#FeedTarget').val() != 0) {
@@ -3979,6 +3979,7 @@ function feedFormUpdate() {
             break;
         case 'csv':
             $('#TargetDiv').show();
+            $('#OrgcDiv').show();
             $('#OverrideIdsDiv').show();
             $('#PublishDiv').show();
             if ($('#FeedTarget').val() != 0) {
@@ -4243,7 +4244,7 @@ function checkRolePerms() {
         $('.permFlags').show();
     }
     if ($("#RolePermSiteAdmin").prop('checked')) {
-        $('.checkbox').prop('checked', true);
+        $('.site_admin_enforced').prop('checked', true);
     }
 }
 
@@ -4501,6 +4502,16 @@ function quickSelect(target) {
 }
 
 $(document).ready(function() {
+    // Show popover for disabled input that contains `data-disabled-reason`.
+    $('input:disabled[data-disabled-reason]').popover("destroy").popover({
+        placement: 'right',
+        html: 'true',
+        trigger: 'hover',
+        content: function () {
+            return $(this).data('disabled-reason');
+        }
+    });
+
     $('#quickFilterField').bind("enterKey",function(e){
         $('#quickFilterButton').trigger("click");
     });

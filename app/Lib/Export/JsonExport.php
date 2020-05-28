@@ -12,7 +12,7 @@ class JsonExport
 		} else if($options['scope'] === 'Event') {
 			return $this->__eventHandler($data, $options);
         } else if($options['scope'] === 'Object') {
-            return $this->__eventHandler($data, $options);
+            return $this->__objectHandler($data, $options);
 		} else if($options['scope'] === 'Sighting') {
 			return $this->__sightingsHandler($data, $options);
 		} else if($options['scope'] === 'GalaxyCluster') {

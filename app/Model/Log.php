@@ -39,7 +39,6 @@ class Log extends AppModel
                     'enable',
                     'error',
                     'export',
-                    'failed_registration',
                     'file_upload',
                     'galaxy',
                     'include_formula',
@@ -54,10 +53,13 @@ class Log extends AppModel
                     'pull',
                     'purge_events',
                     'push',
+                    'registration',
+                    'registration_error',
                     'remove_dead_workers',
                     'request',
                     'request_delegation',
                     'reset_auth_key',
+                    'send_mail',
                     'security',
                     'serverSettingsEdit',
                     'tag',
@@ -97,18 +99,6 @@ class Log extends AppModel
         'email' => array('values' => array('admin_email'))
     );
 
-    public function beforeValidete()
-    {
-        parent::beforeValidate();
-        if (!isset($this->data['Log']['org']) || empty($this->data['Log']['org'])) {
-            $this->data['Log']['org'] = 'SYSTEM';
-        }
-        // truncate the description if it would exceed the allowed size in mysql
-        if (!empty($this->data['Log']['description'] && strlen($this->data['Log']['description']) > 65536)) {
-            $this->data['Log']['description'] = substr($this->data['Log']['description'], 0, 65535);
-        }
-    }
-
     public function beforeSave($options = array())
     {
         if (!empty(Configure::read('MISP.log_skip_db_logs_completely'))) {
@@ -126,7 +116,7 @@ class Log extends AppModel
         if (!isset($this->data['Log']['created'])) {
             $this->data['Log']['created'] = date('Y-m-d H:i:s');
         }
-        if (!isset($this->data['Log']['org'])) {
+        if (!isset($this->data['Log']['org']) || empty($this->data['Log']['org'])) {
             $this->data['Log']['org'] = 'SYSTEM';
         }
         $truncate_fields = array('title', 'change', 'description');
@@ -156,7 +146,7 @@ class Log extends AppModel
             $conditions['org'] = $org['Organisation']['name'];
         }
         $conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $validDates = $this->find('all', array(
                     'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
                     'conditions' => $conditions,
@@ -208,7 +198,8 @@ class Log extends AppModel
         if (is_array($change)) {
             $output = array();
             foreach ($change as $field => $values) {
-                if (strpos($field, 'password') !== false) { // if field name contains password, replace value with asterisk
+                $isSecret = strpos($field, 'password') !== false || ($field === 'authkey' && Configure::read('Security.do_not_log_authkeys'));
+                if ($isSecret) {
                     $oldValue = $newValue = "*****";
                 } else {
                     list($oldValue, $newValue) = $values;

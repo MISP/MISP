@@ -793,7 +793,7 @@ class StixParser():
     @staticmethod
     def fetch_uuid(object_id):
         try:
-            return "-".join(object_id.split("-")[-5:])
+            return uuid.UUID('-'.join(object_id.split("-")[1:]))
         except Exception:
             return str(uuid.uuid4())
 
@@ -841,7 +841,7 @@ class StixFromMISPParser(StixParser):
                 for reference in self.event.information_source.references:
                     self.misp_event.add_attribute(**{'type': 'link', 'value': reference})
             if package.ttps:
-                for ttp in package.ttps.ttps:
+                for ttp in package.ttps.ttp:
                     ttp_id = '-'.join((part for part in ttp.id_.split('-')[-5:]))
                     ttp_type = 'galaxy' if ttp_id in self.galaxies_references else 'object'
                     self.parse_ttp(ttp, ttp_type, ttp_id)
@@ -1065,7 +1065,7 @@ class StixFromMISPParser(StixParser):
     # Parse STIX object that we know will give MISP objects
     def parse_misp_object_indicator(self, indicator):
         item = indicator.item
-        name = item.title.split(' ')[0]
+        name = item.title.split(': ')[0]
         if name not in ('passive-dns'):
             self.fill_misp_object(item, name, to_ids=True)
         else:
@@ -1205,7 +1205,7 @@ class ExternalStixParser(StixParser):
         if self.event.observables:
             self.parse_external_observable(self.event.observables.observables)
         if self.event.ttps:
-            self.parse_ttps(self.event.ttps.ttps)
+            self.parse_ttps(self.event.ttps.ttp)
         if self.event.courses_of_action:
             self.parse_coa(self.event.courses_of_action)
         if self.dns_objects:

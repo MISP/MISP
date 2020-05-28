@@ -76,6 +76,7 @@ install:
     - sudo cp travis/database.php app/Config/database.php
     - sudo cp app/Config/core.default.php app/Config/core.php
     - sudo cp app/Config/config.default.php app/Config/config.php
+    - sudo cp travis/email.php app/Config/email.php
     # Ensure the perms
     - sudo chown -R $USER:www-data `pwd`/app/Config
     - sudo chmod -R 770 `pwd`/app/Config
@@ -107,6 +108,8 @@ install:
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_database" 13'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_password" ""'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.homedir" "`pwd`/.gnupg"'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.password" "travistest"'
     - sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
     - sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
     - sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'

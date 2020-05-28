@@ -309,7 +309,7 @@ class Organisation extends AppModel
         $success = true;
         foreach ($this->organisationAssociations as $model => $data) {
             foreach ($data['fields'] as $field) {
-                if ($dataSource == 'Database/Mysql') {
+                if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
                     $sql = 'SELECT `id` FROM `' . $data['table'] . '` WHERE `' . $field . '` = "' . $currentOrg['Organisation']['id'] . '"';
                 } elseif ($dataSource == 'Database/Postgres') {
                     $sql = 'SELECT "id" FROM "' . $data['table'] . '" WHERE "' . $field . '" = "' . $currentOrg['Organisation']['id'] . '"';
@@ -320,13 +320,13 @@ class Organisation extends AppModel
                     if (!empty($dataMoved['values_changed'][$model][$field])) {
                         $this->Log->create();
                         try {
-                            if ($dataSource == 'Database/Mysql') {
+                            if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
                                 $sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $targetOrg['Organisation']['id'] . ' WHERE `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ';';
                             } elseif ($dataSource == 'Database/Postgres') {
                                 $sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $targetOrg['Organisation']['id'] . ' WHERE "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ';';
                             }
                             $result = $this->query($sql);
-                            if ($dataSource == 'Database/Mysql') {
+                            if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
                                 $sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ' WHERE `id` IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
                             } elseif ($dataSource == 'Database/Postgres') {
                                 $sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ' WHERE "id" IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
