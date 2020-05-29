@@ -624,7 +624,7 @@ class GalaxyCluster extends AppModel
         return $clusters;
     }
 
-    public function restSearch($user, $returnFormat, $filters, $paramsOnly=false)
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly=false, $jobId = false, &$elementCounter = 0)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
@@ -651,7 +651,7 @@ class GalaxyCluster extends AppModel
         if (!empty($filters['full'])) {
             $params['full'] = $filters['full'];
             $filters['minimal'] = false;
-            $default_cluster_memory_coefficient = 1;
+            $default_cluster_memory_coefficient = 0.5;
         }
         if (!empty($filters['minimal'])) {
             $default_cluster_memory_coefficient = 100;
@@ -680,13 +680,15 @@ class GalaxyCluster extends AppModel
         
         $tmpfile = tmpfile();
         fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $loop = false;
         if (empty($params['limit'])) {
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
             $memory_scaling_factor = $default_cluster_memory_coefficient / 10;
             $params['limit'] = intval($memory_in_mb * $memory_scaling_factor);
+            $loop = true;
             $params['page'] = 1;
         }
-        $this->__iteratedFetch($user, $params, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+        $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
         fwrite($tmpfile, $exportTool->footer($exportToolParams));
         fseek($tmpfile, 0);
         if (fstat($tmpfile)['size']) {
@@ -698,25 +700,37 @@ class GalaxyCluster extends AppModel
         return $final;
     }
 
-    private function __iteratedFetch($user, &$params, &$tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
+    private function __iteratedFetch($user, &$params, &$loop, &$tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
     {
-        $params['limit'] = 10; // FIXME: Actually use an interated fetch
-        $results = $this->fetchGalaxyClusters($user, $params, $full=$params['full']);
-        $params['page'] += 1;
-        $i = 0;
-        $temp = '';
-        foreach ($results as $cluster) {
-            $elementCounter++;
-            $handlerResult = $exportTool->handler($cluster, $exportToolParams);
-            $temp .= $handlerResult;
-            if ($handlerResult !== '') {
-                if ($i != count($results) -1) {
-                    $temp .= $exportTool->separator($exportToolParams);
-                }
+        $continue = true;
+        while ($continue) {
+            $temp = '';
+            $results = $this->fetchGalaxyClusters($user, $params, $full=$params['full']);
+            if (empty($results)) {
+                $loop = false;
+                return true;
             }
-            $i++;
+            if ($elementCounter !== 0 && !empty($results)) {
+                $temp .= $exportTool->separator($exportToolParams);
+            }
+            $params['page'] += 1;
+            $i = 0;
+            foreach ($results as $cluster) {
+                $elementCounter++;
+                $handlerResult = $exportTool->handler($cluster, $exportToolParams);
+                $temp .= $handlerResult;
+                if ($handlerResult !== '') {
+                    if ($i != count($results) -1) {
+                        $temp .= $exportTool->separator($exportToolParams);
+                    }
+                }
+                $i++;
+            }
+            if (!$loop) {
+                $continue = false;
+            }
+            fwrite($tmpfile, $temp);
         }
-        fwrite($tmpfile, $temp);
         return true;
     }
 
