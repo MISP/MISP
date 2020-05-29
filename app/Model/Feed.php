@@ -996,8 +996,9 @@ class Feed extends AppModel
                 }
             }
             if ($feed['Feed']['delta_merge'] && !empty($existsAttributesValueToId)) {
-                $to_delete = array_values($existsAttributesValueToId);
-                $this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete, 'Attribute.deleted' => 0));
+                $toDelete = array_values($existsAttributesValueToId);
+                // Callbacks are necessary to update `Event.attribute_count`
+                $this->Event->Attribute->deleteAll(array('Attribute.id' => $toDelete, 'Attribute.deleted' => 0), true, true);
             }
         }
         if (empty($data)) {
