@@ -67,7 +67,26 @@ class UserSetting extends AppModel
         ),
         'homepage' => array(
             'path' => '/events/index'
-        )
+        ),
+        'default_restsearch_parameters' => array(
+            'placeholder' => array(
+                'AND' => array(
+                    'NOT' => array(
+                        'EventTag.name' => array(
+                            '%osint%'
+                        )
+                    ),
+                    'OR' => array(
+                        'Tag.name' => array(
+                            'tlp:green',
+                            'tlp:amber',
+                            'tlp:red',
+                            '%privint%'
+                        )
+                    )
+                )
+            )
+        ),
     );
 
     // massage the data before we send it off for validation before saving anything
@@ -173,6 +192,22 @@ class UserSetting extends AppModel
              }
          }
          return false;
+     }
+
+     public function getDefaulRestSearchParameters($user)
+     {
+        $setting = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'UserSetting.user_id' => $user['id'],
+                'UserSetting.setting' => 'default_restsearch_parameters'
+            )
+        ));
+        $parameters = array();
+        if (!empty($setting)) {
+            $parameters = $setting['UserSetting']['value'];
+        }
+        return $parameters;
      }
 
     /*

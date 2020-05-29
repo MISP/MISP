@@ -6690,6 +6690,7 @@ class Event extends AppModel
 
         $subqueryElements = $this->harvestSubqueryElements($filters);
         $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements);
+        $filters = $this->addFiltersFromUserSettings($user, $filters);
 
         if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
@@ -6966,6 +6967,14 @@ class Event extends AppModel
                 $filters['org'] = $orgcIdsFromMeta;
             }
         }
+        return $filters;
+    }
+
+    public function addFiltersFromUserSettings($user, $filters)
+    {
+        $this->UserSetting = ClassRegistry::init('UserSetting');
+        $defaultParameters = $this->UserSetting->getDefaulRestSearchParameters($user);
+        $filters = array_replace_recursive($defaultParameters, $filters);
         return $filters;
     }
 
