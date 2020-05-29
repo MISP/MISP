@@ -129,40 +129,40 @@ class GalaxyClusterRelation extends AppModel
         $this->deleteAll($conditions, false, false);
     }
 
-    public function addRelations($user, $relations, $capture=false)
-    {
-        $fieldList = array(
-            'galaxy_cluster_uuid',
-            'referenced_galaxy_cluster_uuid',
-            'referenced_galaxy_cluster_type',
-            'default',
-            'distribution',
-            'sharing_group_id',
-        );
-        foreach ($relations as $k => $relation) {
-            $sourceCluster = $this->SourceCluster->fetchGalaxyClusters($user, array('conditions' => array('uuid' => $relation['galaxy_cluster_uuid'])));
-            if (empty($sourceCluster)) {
-                throw new NotFoundException(__('Invalid galaxy cluster'));
-            }
-            $relation['galaxy_cluster_id'] = $sourceCluster['GalaxyCluster']['id'];
-            if (!isset($relation['referenced_galaxy_cluster_uuid'])) {
-                $targetCluster = $this->TargetCluster->fetchGalaxyClusters($user, array('conditions' => array('uuid' => $relation['referenced_galaxy_cluster_uuid'])));
-                if (!empty($targetCluster)) { // do not save the relation if referenced cluster does not exists
-                    $targetCluster = $targetCluster[0];
-                    $relation['referenced_galaxy_cluster_uuid'] = $targetCluster['GalaxyCluster']['uuid'];
-                    $relation['referenced_galaxy_cluster_id'] = $targetCluster['GalaxyCluster']['id'];
-                    $this->create();
-                    $saveResult = $this->save($relation, array('fieldList' => $fieldList));
-                    if ($saveResult) {
-                        $savedId = $this->id;
-                        $this->GalaxyClusterRelationTag->attachTags($user, $savedId, $relation['tags'], $capture=$capture);
-                    }
-                } else {
-                    throw new NotFoundException(__('Invalid referenced galaxy cluster'));
-                }
-            }
-        }
-    }
+    // public function addRelations($user, $relations, $capture=false)
+    // {
+    //     $fieldList = array(
+    //         'galaxy_cluster_uuid',
+    //         'referenced_galaxy_cluster_uuid',
+    //         'referenced_galaxy_cluster_type',
+    //         'default',
+    //         'distribution',
+    //         'sharing_group_id',
+    //     );
+    //     foreach ($relations as $k => $relation) {
+    //         $sourceCluster = $this->SourceCluster->fetchGalaxyClusters($user, array('conditions' => array('uuid' => $relation['galaxy_cluster_uuid'])));
+    //         if (empty($sourceCluster)) {
+    //             throw new NotFoundException(__('Invalid galaxy cluster'));
+    //         }
+    //         $relation['galaxy_cluster_id'] = $sourceCluster['GalaxyCluster']['id'];
+    //         if (!isset($relation['referenced_galaxy_cluster_uuid'])) {
+    //             $targetCluster = $this->TargetCluster->fetchGalaxyClusters($user, array('conditions' => array('uuid' => $relation['referenced_galaxy_cluster_uuid'])));
+    //             if (!empty($targetCluster)) { // do not save the relation if referenced cluster does not exists
+    //                 $targetCluster = $targetCluster[0];
+    //                 $relation['referenced_galaxy_cluster_uuid'] = $targetCluster['GalaxyCluster']['uuid'];
+    //                 $relation['referenced_galaxy_cluster_id'] = $targetCluster['GalaxyCluster']['id'];
+    //                 $this->create();
+    //                 $saveResult = $this->save($relation, array('fieldList' => $fieldList));
+    //                 if ($saveResult) {
+    //                     $savedId = $this->id;
+    //                     $this->GalaxyClusterRelationTag->attachTags($user, $savedId, $relation['tags'], $capture=$capture);
+    //                 }
+    //             } else {
+    //                 throw new NotFoundException(__('Invalid referenced galaxy cluster'));
+    //             }
+    //         }
+    //     }
+    // }
 
     public function massageRelationTag($cluster)
     {
@@ -179,32 +179,47 @@ class GalaxyClusterRelation extends AppModel
         return $cluster;
     }
 
-    public function saveRelation($user, $relation)
+    public function saveRelation($user, $relation, $capture=false, $force=false)
     {
         $errors = array();
         if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
             $errors[] = __('Incorrect permission');
             return $errors;
         }
+
+        if (!empty($relation['GalaxyClusterRelation']['tags'])) {
+            $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
+            $tags = array_map('trim', $tags);
+            $relation['GalaxyClusterRelation' ]['tags'] = $tags;
+        }
+
         $existingRelation = $this->find('first', array('conditions' => array(
             'GalaxyClusterRelation.galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'],
             'GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
             'GalaxyClusterRelation.referenced_galaxy_cluster_type' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_type'],
         )));
         if (!empty($existingRelation)) {
-            $errors[] = __('Relation already exists');
-            return $errors;
+            if (!$force) {
+                $errors[] = __('Relation already exists');
+                return $errors;
+            } else {
+                $relation['GalaxyClusterRelation']['id'] = $existingRelation['GalaxyClusterRelation']['id'];
+            }
+        } else {
+            $this->create();
         }
         if (empty($errors)) {
             $relation = $this->syncUUIDsAndIDs($user, $relation);
-            $this->create();
             $saveSuccess = $this->save($relation);
             if ($saveSuccess) {
                 $savedRelation = $this->find('first', array(
                     'conditions' => array('id' =>  $this->id),
                     'recursive' => -1
                 ));
-                // TODO: save tags as well
+                $tagSaveResults = $this->GalaxyClusterRelationTag->attachTags($user, $this->id, $relation['GalaxyClusterRelation']['tags'], $capture=$capture);
+                if (!$tagSaveSuccess) {
+                    $errors[] = __('Tags could not be saved');
+                }
             }
         }
         return $errors;
@@ -323,17 +338,34 @@ class GalaxyClusterRelation extends AppModel
                 continue;
             }
 
+            $existingRelation = $this->find('first', array('conditions' => array(
+                'GalaxyClusterRelation.galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'],
+                'GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
+                'GalaxyClusterRelation.referenced_galaxy_cluster_type' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_type'],
+            )));
+            if (!empty($existingRelation)) {
+                if (!$fromPull) {
+                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Relation already exists'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterUuid));
+                    $results['failed']++;
+                    continue;
+                } else {
+                    $relation['GalaxyClusterRelation']['id'] = $existingRelation['GalaxyClusterRelation']['id'];
+                }
+            } else {
+                $this->create();
+            }
+
             $this->Event = ClassRegistry::init('Event');
             if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4) {
                 $relation['GalaxyClusterRelation'] = $this->Event->__captureSGForElement($relation['GalaxyClusterRelation'], $user);
             }
 
-            $this->create();
             $saveSuccess = $this->save($relation);
             if ($saveSuccess) {
                 $results['imported']++;
                 if (!empty($relation['GalaxyClusterRelationTag'])) {
                     $tagNames = Hash::extract($relation['GalaxyClusterRelationTag'], '{n}.name');
+                    // Here we only attach tags. If they were removed at some point it's not taken into account. Since we don't have tag soft-deletion, tags added by users will be kept.
                     $this->GalaxyClusterRelationTag->attachTags($user, $this->id, $tagNames, $capture=true);
                 }
             } else {

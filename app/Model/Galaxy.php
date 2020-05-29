@@ -213,8 +213,9 @@ class Galaxy extends AppModel
             if (!empty($elements)) {
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
-            $tempUser = array('Role' => array('perm_tag_editor' => 1, 'perm_site_admin' => 1)); // only site-admin are authorized to update galaxies
-            $this->GalaxyCluster->GalaxyClusterRelation->addRelations($tempUser, $relations, $capture=true);
+            $tempUser = array('Role' => array('perm_galaxy_editor' => 1, 'perm_tag_editor' => 1, 'perm_site_admin' => 1)); // only site-admin are authorized to update galaxies
+            // $this->GalaxyCluster->GalaxyClusterRelation->addRelations($tempUser, $relations, $capture=true);
+            $this->GalaxyCluster->GalaxyClusterRelation->saveRelation($tempUser, $relations, $capture=true, $force=true);
         }
         return true;
     }
