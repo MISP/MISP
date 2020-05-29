@@ -170,7 +170,7 @@ class GalaxyClusterRelation extends AppModel
             foreach ($cluster['GalaxyClusterRelation'] as $k => $relation) {
                 if (!empty($relation['GalaxyClusterRelationTag'])) {
                     foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
-                        $cluster['GalaxyClusterRelation'][$k]['Tag'] = $relationTag['Tag'];
+                        $cluster['GalaxyClusterRelation'][$k]['Tag'][] = $relationTag['Tag'];
                     }
                     unset($cluster['GalaxyClusterRelation'][$k]['GalaxyClusterRelationTag']);
                 }
@@ -180,7 +180,7 @@ class GalaxyClusterRelation extends AppModel
             foreach ($cluster['TargettingClusterRelation'] as $k => $relation) {
                 if (!empty($relation['GalaxyClusterRelationTag'])) {
                     foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
-                        $cluster['TargettingClusterRelation'][$k]['Tag'] = $relationTag['Tag'];
+                        $cluster['TargettingClusterRelation'][$k]['Tag'][] = $relationTag['Tag'];
                     }
                     unset($cluster['TargettingClusterRelation'][$k]['GalaxyClusterRelationTag']);
                 }

@@ -272,23 +272,30 @@ echo $this->element('genericElements/assetLoader', array(
             .append("div")
             .attr("class", "well well-small")
             .style('padding', '4px 9px')
-            // .attr("title", function(d) { return d.children ? "Version" : "<?= __('Latest version of the parent cluster') ?>" })
             .html(function(d) { return d.Relation.referenced_galaxy_cluster_type; })
             
-        paddingX = 6;
+        paddingX = 8;
         gEnter.append("foreignObject")
             .attr("height", 18)
             .attr("y", 20)
-            .attr("x", function(d) { return  -(d.Relation.Tag !== undefined ? getTextWidth(d.Relation.Tag.name, {'white-space': 'nowrap', 'font-weight': 'bold'}) - 2*paddingX : 0)/2 + 'px'; })
-            .attr("width", function(d) { return  (d.Relation.Tag !== undefined ? getTextWidth(d.Relation.Tag.name, {'white-space': 'nowrap', 'font-weight': 'bold'}) + 2*paddingX : 0) + 'px'; })
+            .attr("x", function(d) { return  -(d.Relation.Tag !== undefined ? getTextWidth(d.Relation.Tag, {'white-space': 'nowrap', 'font-weight': 'bold'}, 'name') - 2*paddingX : 0)/2 + 'px'; })
+            .attr("width", function(d) { return  (d.Relation.Tag !== undefined ? getTextWidth(d.Relation.Tag, {'white-space': 'nowrap', 'font-weight': 'bold'}, 'name') + 2*paddingX : 0) + 'px'; })
             .append("xhtml:div")
-            .append("span")
-            .attr("class", "tag")
-            .style('white-space', 'nowrap')
-            .style('background-color', function(d) {return d.Relation.Tag !== undefined ? d.Relation.Tag.colour : '';})
-            .style('color', function(d) {return d.Relation.Tag !== undefined ? getTextColour(d.Relation.Tag.colour) : 'white';})
-            // .attr("title", function(d) { return d.children ? "Version" : "<?= __('Latest version of the parent cluster') ?>" })
-            .html(function(d) { return d.Relation.Tag !== undefined ? d.Relation.Tag.name : ''; })
+            .each(function(d) {
+                if (d.Relation.Tag !== undefined) {
+                    d.Relation.Tag.forEach(tag => {
+                        d3.select(this)
+                            .append("span")
+                            .attr("class", "tag")
+                            .style('white-space', 'nowrap')
+                            .style('background-color', tag.colour)
+                            .style('color', getTextColour(tag.colour))
+                            .style('display', 'inline')
+                            .html(tag.name)
+                    });
+                }
+            });
+
     }
 
     function drawLabel(gEnter, options) {
@@ -342,16 +349,31 @@ echo $this->element('genericElements/assetLoader', array(
         }
     }
 
-    function getTextWidth(text, additionalStyle) {
+    function getTextWidth(text, additionalStyle, pathKey) {
         var style = {visibility: 'hidden'};
         if (additionalStyle !== undefined) {
             style = $.extend(style, additionalStyle);
         }
-        var tmp = $('<span></span>').text(text).css(style)
-        $('body').append(tmp);
-        var bcr = tmp[0].getBoundingClientRect()
-        tmp.remove();
-        return bcr.width;
+        var total = 0;
+        if (Array.isArray(text)) {
+            text.forEach(element => {
+                if (pathKey !== undefined) {
+                    element = element[pathKey];
+                }
+                var tmp = $('<span></span>').text(element).css(style)
+                $('body').append(tmp);
+                var bcr = tmp[0].getBoundingClientRect()
+                tmp.remove();
+                total += bcr.width;
+            });
+        } else {
+            var tmp = $('<span></span>').text(text).css(style)
+            $('body').append(tmp);
+            var bcr = tmp[0].getBoundingClientRect()
+            tmp.remove();
+            total += bcr.width;
+        }
+        return total;
     }
 
     function nodeDbclick(d) {
