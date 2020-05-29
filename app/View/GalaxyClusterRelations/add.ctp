@@ -34,8 +34,9 @@
                 ),
                 array(
                     'field' => 'tags',
-                    'label' => __('Tags'),
-                    'type' => 'text',
+                    'label' => __('Tag list'),
+                    'type' => 'textarea',
+                    'placeholder' => __('estimative-language:likelihood-probability="very-likely", false-positive:risk="low"')
                 ),
             ),
             'submit' => array(

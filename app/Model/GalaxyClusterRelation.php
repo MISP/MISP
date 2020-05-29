@@ -129,7 +129,7 @@ class GalaxyClusterRelation extends AppModel
         $this->deleteAll($conditions, false, false);
     }
 
-    public function addRelations($user, $relations)
+    public function addRelations($user, $relations, $capture=false)
     {
         $fieldList = array(
             'galaxy_cluster_uuid',
@@ -155,7 +155,7 @@ class GalaxyClusterRelation extends AppModel
                     $saveResult = $this->save($relation, array('fieldList' => $fieldList));
                     if ($saveResult) {
                         $savedId = $this->id;
-                        $this->GalaxyClusterRelationTag->attachTags($user, $savedId, $relation['tags']);
+                        $this->GalaxyClusterRelationTag->attachTags($user, $savedId, $relation['tags'], $capture=$capture);
                     }
                 } else {
                     throw new NotFoundException(__('Invalid referenced galaxy cluster'));
@@ -210,7 +210,7 @@ class GalaxyClusterRelation extends AppModel
         return $errors;
     }
 
-    public function editRelation($user, $relation, $fieldList=array())
+    public function editRelation($user, $relation, $fieldList=array(), $capture=false)
     {
         $this->SharingGroup = ClassRegistry::init('SharingGroup');
         $errors = array();
@@ -263,6 +263,9 @@ class GalaxyClusterRelation extends AppModel
                         foreach($this->validationErrors as $validationError) {
                             $errors[] = $validationError[0];
                         }
+                    } else {
+                        $this->GalaxyClusterRelationTag->deleteAll(array('GalaxyClusterRelationTag.galaxy_cluster_relation_id' => $relation['GalaxyClusterRelation']['id']));
+                        $this->GalaxyClusterRelationTag->attachTags($user, $relation['GalaxyClusterRelation']['id'], $relation['GalaxyClusterRelation']['tags'], $capture=$capture);
                     }
                 }
             }
@@ -331,7 +334,7 @@ class GalaxyClusterRelation extends AppModel
                 $results['imported']++;
                 if (!empty($relation['GalaxyClusterRelationTag'])) {
                     $tagNames = Hash::extract($relation['GalaxyClusterRelationTag'], '{n}.name');
-                    $this->GalaxyClusterRelationTag->attachTags($user, $this->id, $tagNames);
+                    $this->GalaxyClusterRelationTag->attachTags($user, $this->id, $tagNames, $capture=true);
                 }
             } else {
                 $results['failed']++;

@@ -43,11 +43,16 @@ class GalaxyClusterRelationTag extends AppModel
         $this->delete($id);
     }
 
-    public function attachTags($user, $galaxyClusterRelationId, $tags)
+    public function attachTags($user, $galaxyClusterRelationId, $tags, $capture=false)
     {
         $allSaved = true;
+        $saveResult = false;
         foreach ($tags as $tagName) {
-            $tagId = $this->Tag->captureTag(array('name' => $tagName), $user);
+            if ($capture) {
+                $tagId = $this->Tag->captureTag(array('name' => $tagName), $user);
+            } else {
+                $tagId = $this->Tag->lookupTagIdFromName($tagName);
+            }
             $existingAssociation = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array(
@@ -55,7 +60,7 @@ class GalaxyClusterRelationTag extends AppModel
                     'galaxy_cluster_relation_id' => $galaxyClusterRelationId
                 )
             ));
-            if (empty($existingAssociation)) {
+            if (empty($existingAssociation) && $tagId != -1) {
                 $this->create();
                 $saveResult = $this->save(array('galaxy_cluster_relation_id' => $galaxyClusterRelationId, 'tag_id' => $tagId));
                 $allSaved = $allSaved && $saveResult;
@@ -64,6 +69,11 @@ class GalaxyClusterRelationTag extends AppModel
                 }
             }
         }
-        return $saveResult;
+        return $allSaved;
+    }
+
+    public function detachTag($user, $relationTagId)
+    {
+        $this->delete(array('GalaxyClusterRelationTag.relationTagId' => $relationTagId));
     }
 }

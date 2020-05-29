@@ -214,7 +214,7 @@ class Galaxy extends AppModel
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
             $tempUser = array('Role' => array('perm_tag_editor' => 1, 'perm_site_admin' => 1)); // only site-admin are authorized to update galaxies
-            $this->GalaxyCluster->GalaxyClusterRelation->addRelations($tempUser, $relations);
+            $this->GalaxyCluster->GalaxyClusterRelation->addRelations($tempUser, $relations, $capture=true);
         }
         return true;
     }

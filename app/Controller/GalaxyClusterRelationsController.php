@@ -145,7 +145,7 @@ class GalaxyClusterRelationsController extends AppController
 
     public function edit($id)
     {
-        $conditions = array('conditions' => array('GalaxyClusterRelation.id' => $id));
+        $conditions = array('conditions' => array('GalaxyClusterRelation.id' => $id), 'contain' => array('GalaxyClusterRelationTag' => 'Tag'));
         $existingRelation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), $conditions);
         if (empty($existingRelation)) {
             throw new NotFoundException(__('Invalid cluster relation'));
@@ -155,6 +155,9 @@ class GalaxyClusterRelationsController extends AppController
         if ($existingRelation['GalaxyClusterRelation']['default']) {
             throw new MethodNotAllowedException(__('Default cluster relation cannot be edited'));
         }
+
+        $existingRelation['GalaxyClusterRelation']['tags'] = Hash::extract($existingRelation['GalaxyClusterRelationTag'], '{n}.Tag.name');
+        $existingRelation['GalaxyClusterRelation']['tags'] = implode(', ', $existingRelation['GalaxyClusterRelation']['tags']);
 
         $this->loadModel('Attribute');
         $distributionLevels = $this->Attribute->distributionLevels;
@@ -180,6 +183,12 @@ class GalaxyClusterRelationsController extends AppController
             $errors = array();
             if (!$this->Auth->user()['Role']['perm_galaxy_editor']) {
                 $errors = array(__('Invalid permssions'));
+            }
+
+            if (!empty($relation['GalaxyClusterRelation']['tags'])) {
+                $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
+                $tags = array_map('trim', $tags);
+                $relation['GalaxyClusterRelation' ]['tags'] = $tags;
             }
 
             if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['GalaxyCluster']['org_id'] != $this->Auth->user()['org_id']) {
