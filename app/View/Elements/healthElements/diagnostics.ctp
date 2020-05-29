@@ -385,14 +385,14 @@
     ?>
         <div style="background-color:#f7f7f9;width:400px;">
             <?php
-                $colour = 'green';
+                $colour = 'red';
                 if (isset($moduleErrors[$moduleStatus[$type]])) {
                     $message = $moduleErrors[$moduleStatus[$type]];
                 } else {
                     $message = h($moduleStatus[$type]);
                 }
-                if ($moduleStatus[$type] > 0) {
-                    $colour = 'red';
+                if ($moduleStatus[$type] === 0) {
+                    $colour = 'green';
                 }
                 echo $type . __(' module system') . '…<span style="color:' . $colour . ';">' . $message . '</span>';
             ?>
