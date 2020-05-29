@@ -91,7 +91,6 @@ class GalaxyClustersController extends AppController
                     'conditions' => array(
                         'AND' => array($contextConditions, $searchConditions, $aclConditions)
                     ),
-                    // 'contain' => array('Org', 'Orgc')
                 )
             );
             return $this->RestResponse->viewData($galaxies, $this->response->type());
@@ -99,7 +98,7 @@ class GalaxyClustersController extends AppController
             $this->paginate['conditions']['AND'][] = $contextConditions;
             $this->paginate['conditions']['AND'][] = $searchConditions;
             $this->paginate['conditions']['AND'][] = $aclConditions;
-            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup'));
+            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup', 'GalaxyClusterRelation', 'TargettingClusterRelation'));
             $clusters = $this->paginate();
             foreach ($clusters as $k => $cluster) {
                 $clusters[$k] = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
@@ -112,6 +111,10 @@ class GalaxyClustersController extends AppController
                 } else {
                     $clusters[$k]['GalaxyCluster']['event_count'] = 0;
                 }
+                $clusters[$k]['GalaxyCluster']['relation_counts'] = array(
+                    'out' => count($clusters[$k]['GalaxyClusterRelation']),
+                    'in' => count($clusters[$k]['TargettingClusterRelation']),
+                );
             }
             $tagIds = array();
             $sightings = array();
@@ -848,7 +851,7 @@ class GalaxyClustersController extends AppController
             'conditions' => array(
                 'GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster['GalaxyCluster']['uuid']
             ),
-            'contain' => array('SharingGroup', 'TargetCluster')
+            'contain' => array('SharingGroup', 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'))
         ));
         $this->set('relations', $relations);
         $this->set('tree', $tree);

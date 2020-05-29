@@ -30,12 +30,15 @@
                     'class' => 'short',
                     'data_path' => 'GalaxyClusterRelation.referenced_galaxy_cluster_type',
                 ),
-                // array(
-                //     'name' => __('Relationship Tag'),
-                //     'class' => 'short',
-                //     'data_path' => 'Tag',
-                //     'element' => 'GalaxyClusterRelationTag'
-                // ),
+                array(
+                    'name' => __('Relationship Tag'),
+                    'class' => 'short',
+                    'data_path' => 'GalaxyClusterRelationTag.{n}.Tag',
+                    'element' => 'tags',
+                    'elementParams' => array(
+                        'searchScope' => 'taxonomy'
+                    )
+                ),
                 array(
                     'name' => __('Distribution'),
                     'sort' => 'distribution',

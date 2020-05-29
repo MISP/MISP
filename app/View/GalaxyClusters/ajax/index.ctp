@@ -107,6 +107,12 @@
                     'data_path' => 'GalaxyCluster.event_count',
                 ),
                 array(
+                    'name' => __('#Relations'),
+                    'class' => 'short',
+                    'data_path' => 'GalaxyCluster.relation_counts',
+                    'element' => 'relation_counts'
+                ),
+                array(
                     'name' => __('Description'),
                     'sort' => 'description',
                     'data_path' => 'GalaxyCluster.description',
