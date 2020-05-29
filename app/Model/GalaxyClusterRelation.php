@@ -176,6 +176,16 @@ class GalaxyClusterRelation extends AppModel
                 }
             }
         }
+        if (!empty($cluster['TargettingClusterRelation'])) {
+            foreach ($cluster['TargettingClusterRelation'] as $k => $relation) {
+                if (!empty($relation['GalaxyClusterRelationTag'])) {
+                    foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
+                        $cluster['TargettingClusterRelation'][$k]['Tag'] = $relationTag['Tag'];
+                    }
+                    unset($cluster['TargettingClusterRelation'][$k]['GalaxyClusterRelationTag']);
+                }
+            }
+        }
         return $cluster;
     }
 
