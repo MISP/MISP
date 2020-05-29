@@ -153,15 +153,19 @@ function update() {
         .attr("stroke-width", function(d) {
             var linkWidth = 1;
             var linkMaxWidth = 5;
-            if (d.tag !== undefined && d.tag.numerical_value !== undefined) {
-                linkWidth = d.tag.numerical_value / 100 * linkMaxWidth;
+            if (d.tag !== undefined) {
+                var avg = getAverageNumericalValue(d.tag);
+                d.numerical_avg = avg;
+                linkWidth = avg / 100 * linkMaxWidth;
             }
+            linkWidth = Math.max(linkWidth, 1);
             return linkWidth + 'px';
         })
         .attr("stroke-opacity", function(d) {
             var opacity = 0.6;
-            if (d.tag !== undefined && d.tag.numerical_value !== undefined) {
-                opacity = Math.min(0.8, Math.max(0.2, d.tag.numerical_value / 100));
+            if (d.tag !== undefined) {
+                var avg = d.numerical_avg;
+                opacity = Math.min(0.8, Math.max(0.2, d.numerical_avg / 100));
             }
             return opacity;
         })
@@ -313,6 +317,18 @@ function clickHandlerLink(d, i) {
     generateTooltip(d, 'link');
 }
 
+function getAverageNumericalValue(tags) {
+    var total = 0;
+    var validTagCount = 0;
+    tags.forEach(function(tag) {
+        if (tag.numerical_value !== undefined) {
+            total += parseInt(tag.numerical_value);
+            validTagCount++;
+        }
+    });
+    return validTagCount > 0 ? total / validTagCount : 0;
+}
+
 function generateTooltip(d, type) {
     $div =  $('#tooltipContainer');
     $div.empty();
@@ -347,10 +363,27 @@ function generateTooltip(d, type) {
             {label: '<?= __('Type') ?>', value: d.type},
         ]
         if (d.tag !== undefined) {
-            tableArray.push({label: '<?= __('Tag name') ?>', value: (d.tag.name !== undefined ? d.tag.name : '- none -')});
-            if (d.tag.numerical_value !== undefined) {
-                tableArray.push({label: '<?= __('Numerical value') ?>', value: d.tag.numerical_value});
+            var row = {label: '<?= __('Tags') ?>', htmlEnabled: true, html: '- none -'};
+            if (d.tag.length > 0) {
+                row['html'] = '';
             }
+            var $tagDiv = $('<div></div>');
+            d.tag.forEach(function(tag) {
+                $tagDiv.append(
+                    $('<span></span>')
+                        .addClass('tag')
+                        .text(tag.name)
+                        .attr('title', '<?= __('Numerical value: ') ?>' + (tag.numerical_value !== undefined ? tag.numerical_value : '- none -'))
+                        .css({
+                            'white-space': 'nowrap',
+                            'background-color': tag.colour,
+                            'color': getTextColour(tag.colour)
+                        })
+                );
+            });
+            row['html'] += $tagDiv[0].outerHTML;
+            tableArray.push(row);
+            tableArray.push( {label: '<?= __('Average value') ?>', value: d.numerical_avg});
         }
     } else if (type == 'hide') {
         $div.hide();
@@ -368,6 +401,8 @@ function generateTooltip(d, type) {
             if (row.url !== undefined && row.url.path !== undefined) {
                 var completeUrl = row.url.path + (row.url.id !== undefined ? row.url.id : '');
                 $cell2.append($('<a></a>').attr('href', completeUrl).attr('target', '_blank').text(row.value));
+            } else if (row.htmlEnabled) {
+                $cell2.html(row.html)
             } else {
                 $cell2.text(row.value);
             }

@@ -283,7 +283,7 @@ echo $this->element('genericElements/assetLoader', array(
             .append("xhtml:div")
             .each(function(d) {
                 if (d.Relation.Tag !== undefined) {
-                    d.Relation.Tag.forEach(tag => {
+                    d.Relation.Tag.forEach(function(tag) {
                         d3.select(this)
                             .append("span")
                             .attr("class", "tag")
