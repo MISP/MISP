@@ -489,27 +489,44 @@ class DecayingModel extends AppModel
         $this->Sighting = ClassRegistry::init('Sighting');
         $sightings = $this->Sighting->listSightings($user, $attribute_id, 'attribute', false, 0, false);
         if (empty($sightings)) {
-            $sightings = array(array('Sighting' => array('date_sighting' => $attribute['Attribute']['timestamp']))); // simulate a Sighting nonetheless
+            if (!is_null($attribute['Attribute']['last_seen'])) {
+                $falseSighting = (new DateTime($attribute['Attribute']['last_seen']))->format('U');
+            } else {
+                $falseSighting = $attribute['Attribute']['timestamp'];
+            }
+            $sightings = array(array('Sighting' => array('date_sighting' => $falseSighting))); // simulate a Sighting nonetheless
         }
         foreach ($sightings as $i => $sighting) {
             $sightings[$i]['Sighting']['rounded_timestamp'] = $this->round_timestamp_to_hour($sighting['Sighting']['date_sighting']);
         }
         // get start time
         $start_time = $attribute['Attribute']['timestamp'];
+        if (!is_null($attribute['Attribute']['last_seen'])) {
+            $start_time = (new DateTime($attribute['Attribute']['last_seen']))->format('U');
+        }
         $start_time = $sightings[0]['Sighting']['date_sighting'] < $start_time ? $sightings[0]['Sighting']['date_sighting'] : $start_time;
         $start_time = intval($start_time);
         $start_time = $this->round_timestamp_to_hour($start_time);
         // get end time
         $last_sighting_timestamp = $sightings[count($sightings)-1]['Sighting']['date_sighting'];
         if ($attribute['Attribute']['timestamp'] > $last_sighting_timestamp) { // The attribute was modified after the last sighting, simulate a Sighting
+            if (!is_null($attribute['Attribute']['timestamp'])) {
+                $falseSighting = (new DateTime($attribute['Attribute']['last_seen']))->format('U');
+            } else {
+                $falseSighting = $attribute['timestamp'];
+            }
             $sightings[count($sightings)] = array(
                 'Sighting' => array(
-                    'date_sighting' => $attribute['Attribute']['timestamp'],
+                    'date_sighting' => $falseSighting,
                     'type' => 0, 
-                    'rounded_timestamp' => $this->round_timestamp_to_hour($attribute['Attribute']['timestamp'])
+                    'rounded_timestamp' => $this->round_timestamp_to_hour($falseSighting)
                 )
             );
-            $last_sighting_timestamp = $attribute['Attribute']['timestamp'];
+            if (!is_null($attribute['Attribute']['timestamp'])) {
+                $last_sighting_timestamp = (new DateTime($attribute['Attribute']['last_seen']))->format('U');
+            } else {
+                $last_sighting_timestamp = $attribute['Attribute']['timestamp'];
+            }
         }
         $end_time = $last_sighting_timestamp + $model['DecayingModel']['parameters']['lifetime']*24*60*60;
         $end_time = $this->round_timestamp_to_hour($end_time);
