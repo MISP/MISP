@@ -16,7 +16,7 @@ var hexagonPoints = '30,15 22.5,28 7.5,28 0,15 7.5,2.0 22.5,2'
 var hexagonPointsSmaller = '21,10.5 15.75,19.6 5.25,19.6 0,10.5 5.25,1.4 15.75,1.4'
 var hexagonTranslate = -10.5;
 var graph = <?= json_encode($relations) ?>;
-var nodes, links, edgepaths, edgelabels;
+var nodes, links, edgepaths, edgelabels, edgetags;
 var width, height, margin;
 var vis, svg, plotting_area, force, container, zoom;
 var legendLabels, labels;
@@ -203,7 +203,46 @@ function update() {
             .attr("startOffset", "50%")
             .attr('class', 'useCursorPointer')
             .on('click', clickHandlerLink)
-            .text(d => d.type);
+            .text(function(d) { return d.type});
+
+        edgetags = container.append("g")
+            .attr("class", "edgetags")
+            .selectAll(".edgetagContainer")
+            .data(graph.links)
+        edgetags.exit().remove();
+        edgetags.enter()
+            .append('g')
+            .attr('id', function (d, i) {return 'edgetagId_' + i})
+            .attr('class', 'edgetagContainer useCursorPointer')
+            .on('click', clickHandlerLink)
+            .each(function(d) {
+                var tagContainer = d3.select(this);
+                var width = 10;
+                var margin = 1;
+                var offset = width/2 + margin;
+                if (d.tag !== undefined) {
+                    var centeredOffset = [];
+                    if (d.tag.length == 0) {
+                        centeredOffset.push(0);
+                    } else {
+                        for (var i = -offset*(d.tag.length-1); i <= offset*(d.tag.length-1); i += 2*offset) {
+                            centeredOffset.push(i);
+                        }
+                    }
+                    d.tag.forEach(function(tag, i) {
+                        tagContainer
+                            .append("rect")
+                            .attr("x", centeredOffset[i])
+                            .attr("y", "3")
+                            .attr("width", width)
+                            .attr("height", "16")
+                            .attr("rx", "4")
+                            .attr('title', tag.name)
+                            .attr("fill", tag.colour)
+                            .attr("color", getTextColour(tag.colour));
+                    });
+                }
+            });
 
     nodes = container.append("g")
         .attr("class", "nodes")
@@ -247,12 +286,44 @@ function tick() {
         .attr("y2", function(d) { return d.target.y; });
 
     nodes.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
-    edgepaths.attr('d', d => 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y);
+    edgepaths.attr('d', function(d) { return 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y});
+
+    edgetags.attr("transform", function(d) {
+        var bbox = this.getBBox();
+        var rx = bbox.width/2;
+        var ry = bbox.y+bbox.height/2;
+        var angle = Math.atan((d.source.y - d.target.y) / (d.source.x - d.target.x)) * 180 / Math.PI;
+        var angle2 = 0;
+        if (d.target.x > d.source.x && d.target.y < d.source.y) { // quad 1
+            angle2 = Math.abs(Math.atan((d.source.y - d.target.y) / (d.source.x - d.target.x)) * 180 / Math.PI);
+        } else if (d.target.x < d.source.x && d.target.y < d.source.y) { // quad 2
+            angle2 = 90 + Math.atan((d.source.x - d.target.x) / (d.source.y - d.target.y)) * 180 / Math.PI;
+        } else if (d.target.x < d.source.x && d.target.y > d.source.y) { // quad 3
+            angle2 = 180 - Math.atan((d.source.y - d.target.y) / (d.source.x - d.target.x)) * 180 / Math.PI;
+        } else { // quad 4
+            angle2 = 360 - Math.atan((d.source.y - d.target.y) / (d.source.x - d.target.x)) * 180 / Math.PI;
+        }
+        var angle2Rad = angle2/180 * Math.PI;
+        var sinX = Math.sin(angle2Rad);
+        var cosY = Math.cos(angle2Rad);
+        var dx = sinX * (bbox.height/2);
+        var dy = cosY * bbox.height/2;
+        if (sinX > 0.5 || sinX < -0.5) { // increase distance. #magic
+            dx *= 1.4;
+        }
+        if (cosY < 0) {
+            dy *= 1.7;
+        }
+        var newX = (d.source.x + d.target.x) / 2 - bbox.width/2 + dx;
+        var newY = (d.source.y + d.target.y) / 2 - bbox.height/2 + dy;
+        return 'translate(' + [newX, newY] + ') rotate(' + angle + ' ' + rx + ' ' + ry + ')';
+    });
+
     edgelabels.attr("transform", function(d) {
         if (d.target.x < d.source.x){
-            bbox = this.getBBox();
-            rx = bbox.x+bbox.width/2;
-            ry = bbox.y+bbox.height/2;
+            var bbox = this.getBBox();
+            var rx = bbox.x+bbox.width/2;
+            var ry = bbox.y+bbox.height/2;
             return 'rotate(180 '+rx+' '+ry+')';
         } else {
             return 'rotate(0)';
