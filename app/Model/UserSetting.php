@@ -87,6 +87,11 @@ class UserSetting extends AppModel
                 )
             )
         ),
+        'tag_numerical_value_override' => array(
+            'placeholder' => array(
+                'false-positive:risk="medium"' => 99
+            )
+        ),
     );
 
     // massage the data before we send it off for validation before saving anything
@@ -201,6 +206,22 @@ class UserSetting extends AppModel
             'conditions' => array(
                 'UserSetting.user_id' => $user['id'],
                 'UserSetting.setting' => 'default_restsearch_parameters'
+            )
+        ));
+        $parameters = array();
+        if (!empty($setting)) {
+            $parameters = $setting['UserSetting']['value'];
+        }
+        return $parameters;
+     }
+
+     public function getTagNumericalValueOverride($userId)
+     {
+        $setting = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'UserSetting.user_id' => $userId,
+                'UserSetting.setting' => 'tag_numerical_value_override'
             )
         ));
         $parameters = array();

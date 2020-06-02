@@ -319,7 +319,15 @@ class DecayingModel extends AppModel
                                     );
                                 }
                                 $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
-                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag']['numerical_value'] = $entry['numerical_value'];
+                                // Take care of numerical_value override
+                                if (isset($tags[strtoupper($tag_name)]['Tag']['original_numerical_value']) && is_numeric($tags[strtoupper($tag_name)]['Tag']['original_numerical_value'])) {
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['original_numerical_value'] = $tags[strtoupper($tag_name)]['Tag']['original_numerical_value'];
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['numerical_value'] = $tags[strtoupper($tag_name)]['Tag']['numerical_value'];
+                                }
+                                // In some cases, tags may not have a numerical_value. Make sure it has one.
+                                if (empty($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag']['numerical_value']) && !empty($entry['numerical_value'])) {
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag']['numerical_value'] = $entry['numerical_value'];
+                                }
                             }
                         }
                         if (empty($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'])) {
@@ -341,8 +349,17 @@ class DecayingModel extends AppModel
                                     'colour' => 'grey',
                                 );
                             }
-                            $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag']['numerical_value'] = $predicate['numerical_value'];
                             $taxonomies[$namespace]['TaxonomyPredicate'][$p]['numerical_predicate'] = true;
+                            $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag']['numerical_value'] = $predicate['numerical_value'];
+                            // Take care of numerical_value override
+                            if (isset($tags[strtoupper($tag_name)]['Tag']['original_numerical_value']) && is_numeric($tags[strtoupper($tag_name)]['Tag']['original_numerical_value'])) {
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['original_numerical_value'] = $tags[strtoupper($tag_name)]['Tag']['original_numerical_value'];
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['numerical_value'] = $tags[strtoupper($tag_name)]['Tag']['numerical_value'];
+                            }
+                            // In some cases, tags may not have a numerical_value. Make sure it has one.
+                            if (empty($taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag']['numerical_value']) && !empty($predicate['numerical_value'])) {
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag']['numerical_value'] = $predicate['numerical_value'];
+                            }
                         }
                     }
                     
@@ -358,7 +375,6 @@ class DecayingModel extends AppModel
                 $excluded_taxonomies[$namespace] = array('taxonomy' => $taxonomies[$namespace], 'reason' => __('No predicate'));
             }
         }
-
         return array(
             'taxonomies' => $taxonomies,
             'excluded_taxonomies' => $excluded_taxonomies,
