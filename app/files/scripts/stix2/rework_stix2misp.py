@@ -195,6 +195,17 @@ class StixParser():
     def _choose_with_priority(container, first_choice, second_choice):
         return first_choice if first_choice in container else second_choice
 
+    @staticmethod
+    def filter_main_object(observable, main_type):
+        references = {}
+        main_objects = []
+        for key, value in observable.items():
+            if isinstance(value, getattr(stix2, main_type)):
+                main_objects.append(value)
+            else:
+                references[key] = value
+        return main_objects[0], references
+
     def _get_tag_names_from_synonym(self, name):
         try:
             return self._synonyms_to_tag_names[name]
@@ -522,17 +533,6 @@ class StixFromMISPParser(StixParser):
             attribute.update({'value': value, 'to_ids': False})
             attributes.append(attribute)
         return attributes
-
-    @staticmethod
-    def filter_main_object(observable, main_type):
-        references = {}
-        main_objects = []
-        for key, value in observable.items():
-            if isinstance(value, getattr(stix2, main_type)):
-                main_objects.append(value)
-            else:
-                references[key] = value
-        return main_objects[0], references
 
     def _handle_multiple_file_fields(self, file):
         attributes = []
@@ -1164,11 +1164,12 @@ class StixFromMISPParser(StixParser):
 class ExternalStixParser(StixParser):
     _object_from_refs = {'course-of-action': 'parse_course_of_action', 'vulnerability': 'parse_external_vulnerability',
                           'indicator': 'parse_external_indicator', 'observed-data': 'parse_external_observable'}
-    _observable_mapping = {('artifact', 'file'): 'parse_file_object_observable',
+    _observable_mapping = {('artifact', 'file'): 'parse_file_observable',
                             ('autonomous-system',): 'parse_asn_observable',
                             ('autonomous-system', 'ipv4-addr'): 'parse_asn_observable',
                             ('autonomous-system', 'ipv6-addr'): 'parse_asn_observable',
                             ('autonomous-system', 'ipv4-addr', 'ipv6-addr'): 'parse_asn_observable',
+                            ('directory', 'file'): 'parse_file_observable',
                             ('domain-name',): 'parse_domain_ip_observable',
                             ('domain-name', 'ipv4-addr'): 'parse_domain_ip_observable',
                             ('domain-name', 'ipv6-addr'): 'parse_domain_ip_observable',
@@ -1226,6 +1227,10 @@ class ExternalStixParser(StixParser):
                                         'course-of-action': 'parse_course_of_action',
                                         'vulnerability': 'parse_vulnerability'})
 
+    ################################################################################
+    ##                             PARSING FUNCTIONS.                             ##
+    ################################################################################
+
     def parse_event(self, stix_objects):
         for stix_object in stix_objects:
             object_type = stix_object['type']
@@ -1260,17 +1265,18 @@ class ExternalStixParser(StixParser):
             self.parse_usual_indicator(indicator)
 
     def _parse_observable(self, observable):
+        types = self._parse_observable_types(observable.objects)
         print(f'has marking refs: {hasattr(observable, "object_marking_refs")}')
+        try:
+            getattr(self, self._observable_mapping[types])(observable)
+        except KeyError:
+            print(f'Type(s) not supported at the moment: {types}\n', file=sys.stderr)
 
     def _parse_undefined(self, stix_object):
         try:
             self.objects_to_parse[stix_object['id'].split('--')[1]] = stix_object
         except AttributeError:
             self.objects_to_parse = {stix_object['id'].split('--')[1]: stix_object}
-
-    ################################################################################
-    ##                             PARSING FUNCTIONS.                             ##
-    ################################################################################
 
     def add_stix2_pattern_object(self, indicator):
         misp_object = MISPObject('stix2-pattern', misp_objects_path_custom=self._misp_objects_path)
@@ -1317,7 +1323,7 @@ class ExternalStixParser(StixParser):
 
     def parse_usual_indicator(self, indicator):
         pattern = tuple(part.strip() for part in indicator.pattern.strip('[]').split(' AND '))
-        types = self.parse_pattern_types(pattern)
+        types = self._parse_pattern_types(pattern)
         try:
             getattr(self, self._pattern_mapping[types])(indicator)
         except KeyError:
@@ -1334,6 +1340,56 @@ class ExternalStixParser(StixParser):
                     attribute['value'] = reference['url']
                     misp_object.add_attribute(**attribute)
         self.misp_event.add_object(**misp_object)
+
+    ################################################################################
+    ##                        OBSERVABLE PARSING FUNCTIONS                        ##
+    ################################################################################
+
+    @staticmethod
+    def _get_attributes_from_observable(stix_object, mapping):
+        attributes = []
+        for key, value in stix_object.items():
+            if key in getattr(stix2misp_mapping, mapping):
+                attribute = deepcopy(getattr(stix2misp_mapping, mapping)[key])
+                attribute.update({'value': value, 'to_ids': False})
+                attributes.append(attribute)
+        return attributes
+
+    @staticmethod
+    def _handle_attachment_type(stix_object, is_reference, filename):
+        _has_md5 = hasattr(stix_object, 'hashes') and 'MD5' in stix_object.hashes
+        if is_reference and _has_md5:
+            return 'malware-sample', f'{filename}|{stix_object.hashes["MD5"]}'
+        return 'attachment', filename
+
+    def parse_file_observable(self, observable):
+        file, references = self.filter_main_object(observable.objects, 'File')
+        attributes = self._get_attributes_from_observable(file, 'file_mapping')
+        if 'hashes' in file:
+            attributes.extend(self._get_attributes_from_observable(file.hashes, 'file_mapping'))
+        if references:
+            filename = file.name if hasattr(file, 'name') else 'unknown_filename'
+            for key, reference in references.items():
+                if isinstance(reference, stix2.Artifact):
+                    _is_content_ref = 'content_ref' in file and file.content_ref == key
+                    attribute_type, value = self._handle_attachment_type(reference, _is_content_ref, filename)
+                    attribute = {
+                        'type': attribute_type,
+                        'object_relation': attribute_type,
+                        'value': value,
+                        'to_ids': False
+                    }
+                    if hasattr(reference, 'payload_bin'):
+                        attribute['data'] = reference.payload_bin
+                    attributes.append(attribute)
+                elif isinstance(reference, stix2.Directory):
+                    attribute = {
+                        'type': 'text',
+                        'object_relation': 'path',
+                        'value': reference.path,
+                        'to_ids': False
+                    }
+                    attributes.append(attribute)
 
     ################################################################################
     ##                         PATTERN PARSING FUNCTIONS.                         ##
@@ -1601,7 +1657,12 @@ class ExternalStixParser(StixParser):
             self.misp_event.add_object(**file_object)
 
     @staticmethod
-    def parse_pattern_types(pattern):
+    def _parse_observable_types(observable_objects):
+        types = {observable_object._type for observable_object in observable_objects.values()}
+        return tuple(sorted(types))
+
+    @staticmethod
+    def _parse_pattern_types(pattern):
         types = {part.split('=')[0].split(':')[0] for part in pattern}
         return tuple(sorted(types))
 
