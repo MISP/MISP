@@ -205,7 +205,8 @@
                     'data_path' => 'Feed.cache_timestamp',
                     'enabled_path' => 'Feed.caching_enabled',
                     'element' => 'caching',
-                    'sort' => 'Feed.cache_timestamp'
+                    'sort' => 'Feed.cache_timestamp',
+                    'requirement' => $isSiteAdmin,
                 )
             ),
             'title' => __('Feeds'),

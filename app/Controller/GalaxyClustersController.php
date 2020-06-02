@@ -189,15 +189,14 @@ class GalaxyClustersController extends AppController
         $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $options, $full=true);
         if (!empty($cluster)) {
             $cluster = $cluster[0];
-            $galaxyType = $cluster['GalaxyCluster']['type'];
             $this->loadModel('Tag');
             $tag = $this->Tag->find('first', array(
-                    'conditions' => array(
-                            'name' => $cluster['GalaxyCluster']['tag_name']
-                    ),
-                    'fields' => array('id'),
-                    'recursive' => -1,
-                    'contain' => array('EventTag.tag_id')
+                'conditions' => array(
+                    'LOWER(name)' => strtolower($cluster['GalaxyCluster']['tag_name']),
+                ),
+                'fields' => array('id'),
+                'recursive' => -1,
+                'contain' => array('EventTag.tag_id')
             ));
             if (!empty($tag)) {
                 $cluster['GalaxyCluster']['tag_count'] = count($tag['EventTag']);
