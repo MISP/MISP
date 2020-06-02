@@ -83,14 +83,12 @@ install:
     # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
     - sudo cp -a /dev/urandom /dev/random
     - sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
-    - sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
-    - sudo chown $USER:www-data `pwd`/.gnupg
-    - sudo chmod 700 `pwd`/.gnupg
     # change perms
     - sudo chown -R $USER:www-data `pwd`
     - sudo chmod +x /home/travis/build
     - sudo chmod +x /home/travis
     - sudo chmod +x /home
+    - sudo chmod -R 770 `pwd`/.gnupg
     # Get authkey
     - sudo usermod -a -G www-data $USER
     - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
@@ -166,7 +164,7 @@ script:
     - popd
 
 after_failure:
-    - ls -Rl `pwd`/app
+    - ls -aRl `pwd`
     - curl http://misp.local
     - cat /etc/apache2/sites-available/misp.local.conf
     - sudo tail -n +1 `pwd`/app/tmp/logs/*
