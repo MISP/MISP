@@ -61,7 +61,7 @@ function initGraph() {
         .friction(0.3)
         .theta(0.3)
         // .theta(0.9)
-        .linkDistance(100)
+        .linkDistance(120)
         // .linkStrength(0.7)
         .on("tick", tick)
 
@@ -217,7 +217,7 @@ function update() {
             .on('click', clickHandlerLink)
             .each(function(d) {
                 var tagContainer = d3.select(this);
-                var width = 10;
+                var width = 7;
                 var margin = 1;
                 var offset = width/2 + margin;
                 if (d.tag !== undefined) {
@@ -235,8 +235,8 @@ function update() {
                             .attr("x", centeredOffset[i])
                             .attr("y", "3")
                             .attr("width", width)
-                            .attr("height", "16")
-                            .attr("rx", "4")
+                            .attr("height", "12")
+                            .attr("rx", "2")
                             .attr('title', tag.name)
                             .attr("fill", tag.colour)
                             .attr("color", getTextColour(tag.colour));
@@ -561,10 +561,12 @@ function getReadableDistribution(d) {
 }
 
 #graphContainer line.link.selected {
-    stroke-width: 3;
+    stroke: steelblue;
+    stroke-opacity: 1;
 }
 
 #graphContainer g.edgelabels text.selected {
+    fill: steelblue;
     font-weight: bold;
 }
 </style>
