@@ -1893,5 +1893,37 @@
       "org_id": "0",
       "hide_tag": false
     }
+  },
+  {
+    "Feed": {
+      "id": "117",
+      "name": "PhishScore",
+      "provider": "PhishStats",
+      "url": "https://phishstats.info/phish_score.csv",
+      "rules": "",
+      "enabled": true,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "tag_id": "615",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": true,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"2\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
   }
 ]
