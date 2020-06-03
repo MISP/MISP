@@ -306,7 +306,11 @@ class UsersController extends AppController
                     $this->Flash->error($message);
                 }
             } else {
-                $this->Flash->error($message);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
             }
         }
         if ($this->_isRest()) {
