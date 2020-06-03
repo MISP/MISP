@@ -182,7 +182,7 @@ emailObjectMapping = {'email-body': {'email_type': 'message', 'stix_type': 'body
                       'send-date': {'email_type': 'message', 'stix_type': 'date'},
                       'x-mailer': {'email_type': 'message', 'stix_type': 'additional_header_fields.x_mailer'}}
 
-fileMapping = {'size-in-bytes': 'size', 'mime-type': 'mime_type'}
+fileMapping = {'size-in-bytes': 'size', 'mime-type': 'mime_type', 'file-encoding': 'name_enc'}
 hash_types = ('MD5', 'SHA-1', 'SHA-256', 'SHA-224', 'SHA-384', 'SHA-512', 'ssdeep', 'tlsh')
 fileMapping.update({hash_type.replace('-', '').lower(): hash_type for hash_type in hash_types})
 hash_types = tuple(hash_type.replace('-', '').lower() for hash_type in hash_types)

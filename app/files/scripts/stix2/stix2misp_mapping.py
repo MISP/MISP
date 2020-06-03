@@ -74,6 +74,7 @@ domain_family_attribute_mapping = {'type': 'text', 'object_relation': 'domain-fa
 dst_port_attribute_mapping = {'type': 'port', 'object_relation': 'dst-port'}
 email_date_attribute_mapping = {'type': 'datetime', 'object_relation': 'send-date'}
 email_subject_attribute_mapping = {'type': 'email-subject', 'object_relation': 'subject'}
+encoding_attribute_mapping = {'type': 'text', 'object_relation': 'file-encoding'}
 end_datetime_attribute_mapping = {'type': 'datetime', 'object_relation': 'last-seen'}
 entropy_mapping = {'type': 'float', 'object_relation': 'entropy'}
 filename_attribute_mapping = {'type': 'filename', 'object_relation': 'filename'}
@@ -173,6 +174,8 @@ file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'file:mime_type': mime_type_attribute_mapping,
                 'name': filename_attribute_mapping,
                 'file:name': filename_attribute_mapping,
+                'name_enc': encoding_attribute_mapping,
+                'file:name_enc': encoding_attribute_mapping,
                 'file:parent_directory_ref.path': {'type': 'text', 'object_relation': 'path'},
                 'size': size_attribute_mapping,
                 'file:size': size_attribute_mapping}
