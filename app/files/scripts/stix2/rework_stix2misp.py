@@ -1409,6 +1409,23 @@ class ExternalStixParser(StixParser):
             print(f'File extension type(s) not supported at the moment: {", ".join(extension_types)}', file=sys.stderr)
         self.handle_import_case(observable, attributes, 'file')
 
+    def parse_ip_network_traffic_observable(self, observable):
+        network_traffic, references = self.filter_main_object(observable.objects, 'NetworkTraffic')
+        attributes = self._get_attributes_from_observable(network_traffic, 'network_traffic_mapping')
+        mapping = 'ip_port_references_mapping'
+        for feature in ('src', 'dst'):
+            ref = f'{feature}_ref'
+            if hasattr(network_traffic, ref):
+                reference = getattr(network_traffic, ref)
+                attributes.append(self._parse_observable_reference(references.pop(reference), mapping, feature))
+            if hasattr(network_traffic, f'{ref}s'):
+                for reference in getattr(network_traffic, f'{ref}s'):
+                    attributes.append(self._parse_observable_reference(references.pop(reference), mapping, feature))
+        if references:
+            for reference in references.values():
+                attributes.append(self._parse_observable_reference(reference, 'domain_ip_mapping'))
+        self.handle_import_case(observable, attributes, 'ip-port')
+
     ################################################################################
     ##                         PATTERN PARSING FUNCTIONS.                         ##
     ################################################################################
