@@ -2549,7 +2549,7 @@ function serverSettingSubmitForm(name, setting, id) {
 
 function updateOrgCreateImageField(string) {
     string = encodeURIComponent(string);
-    imgsrc = baseurl + '/img/orgs/' + string + '.png';
+    var imgsrc = baseurl + '/img/orgs/' + string + '.png';
     $.ajax({
         url: imgsrc,
         type:'HEAD',
