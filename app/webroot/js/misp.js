@@ -1,3 +1,6 @@
+/* Codacy comment to notify that baseurl is a read-only global variable. */
+/* global baseurl */
+
 String.prototype.ucfirst = function() {
     return this.charAt(0).toUpperCase() + this.slice(1);
 }
