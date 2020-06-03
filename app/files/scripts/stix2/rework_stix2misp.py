@@ -138,6 +138,18 @@ class StixParser():
             return {type: value.format(feature_type) for type, value in stix2misp_mapping.network_traffic_references_mapping[value].items()}
         return {feature: value}
 
+    @staticmethod
+    def _parse_observable_reference(reference, mapping, feature=None):
+        attribute = {
+            'value': reference.value,
+            'to_ids': False
+        }
+        if feature is not None:
+            attribute.update({key: value.format(feature) for key, value in getattr(stix2misp_mapping, mapping)[reference._type].items()})
+            return attribute
+        attribute.update({key: value for key, value in getattr(stix2misp_mapping, mapping)[reference._type].items()})
+        return attribute
+
     def parse_pe(self, extension):
         pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
         self.fill_misp_object(pe_object, extension, 'pe_mapping')
@@ -662,7 +674,6 @@ class StixFromMISPParser(StixParser):
 
     def parse_ip_port_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
-        references = {key: {'object': value, 'used': False} for key, value in references.items()}
         attributes = []
         for feature in ('src', 'dst'):
             port = f'{feature}_port'
@@ -672,12 +683,11 @@ class StixFromMISPParser(StixParser):
                 attributes.append(attribute)
             ref = f'{feature}_ref'
             if hasattr(network_traffic, ref):
-                attributes.append(self._parse_network_traffic_reference(references[getattr(network_traffic, ref)], feature, 'ip_port_references_mapping'))
+                attributes.append(self._parse_observable_reference(references.pop(getattr(network_traffic, ref)), 'ip_port_references_mapping', feature))
         for reference in references.values():
-            if not reference['used']:
-                attribute = deepcopy(stix2misp_mapping.ip_port_references_mapping[reference['object']._type])
-                attribute.update({'value': reference['object'].value, 'to_ids': False})
-                attributes.append(attribute)
+            attribute = deepcopy(stix2misp_mapping.ip_port_references_mapping[reference._type])
+            attribute.update({'value': reference.value, 'to_ids': False})
+            attributes.append(attribute)
         return attributes
 
     def _parse_malware_sample(self, observable):
@@ -696,27 +706,30 @@ class StixFromMISPParser(StixParser):
 
     def parse_network_connection_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
-        references = {key: {'object': value, 'used': False} for key, value in references.items()}
         attributes = self._parse_network_traffic(network_traffic, references)
         if hasattr(network_traffic, 'protocols'):
             attributes.extend(self._parse_network_traffic_protocol(protocol) for protocol in network_traffic.protocols if protocol in stix2misp_mapping.connection_protocols)
-        attributes.extend(self._parse_network_traffic_references(references))
+        if references:
+            for reference in references.values():
+                attributes.append(self._parse_observable_reference(reference, 'domain_ip_mapping'))
         return attributes
 
     def parse_network_socket_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable, 'NetworkTraffic')
-        references = {key: {'object': value, 'used': False} for key, value in references.items()}
         attributes = self._parse_network_traffic(network_traffic, references)
         if hasattr(network_traffic, 'protocols'):
             attributes.append({'type': 'text', 'object_relation': 'protocol', 'to_ids': False,
                                'value': network_traffic.protocols[0].strip("'")})
         if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
             attributes.extend(self._parse_socket_extension(network_traffic.extensions['socket-ext']))
-        attributes.extend(self._parse_network_traffic_references(references))
+        if references:
+            for reference in references.values():
+                attributes.append(self._parse_observable_reference(reference, 'domain_ip_mapping'))
         return attributes
 
     def _parse_network_traffic(self, network_traffic, references):
         attributes = []
+        mapping = 'network_traffic_references_mapping'
         for feature in ('src', 'dst'):
             port = f'{feature}_port'
             if hasattr(network_traffic, port):
@@ -725,32 +738,16 @@ class StixFromMISPParser(StixParser):
                 attributes.append(attribute)
             ref = f'{feature}_ref'
             if hasattr(network_traffic, ref):
-                attributes.append(self._parse_network_traffic_reference(references[getattr(network_traffic, ref)], feature, 'network_traffic_references_mapping'))
+                attributes.append(self._parse_observable_reference(references.pop(getattr(network_traffic, ref)), mapping, feature))
             if hasattr(network_traffic, f'{ref}s'):
-                attributes.extend(self._parse_network_traffic_reference(references[ref], feature, 'network_traffic_references_mapping') for ref in getattr(network_traffic, f'{ref}s'))
+                for ref in getattr(network_traffic, f'{ref}s'):
+                    attributes.append(self._parse_observable_reference(references.pop(ref), mapping, feature))
         return attributes
 
     @staticmethod
     def _parse_network_traffic_protocol(protocol):
         return {'type': 'text', 'value': protocol, 'to_ids': False,
                 'object_relation': f'layer{stix2misp_mapping.connection_protocols[protocol]}-protocol'}
-
-    @staticmethod
-    def _parse_network_traffic_reference(reference, feature, mapping):
-        attribute = {key: value.format(feature) for key, value in getattr(stix2misp_mapping, mapping)[reference['object']._type].items()}
-        attribute.update({'value': reference['object'].value, 'to_ids': False})
-        reference['used'] = True
-        return attribute
-
-    @staticmethod
-    def _parse_network_traffic_references(references):
-        attributes = []
-        for reference in references.values():
-            if not reference['used']:
-                attribute = {key: value.format('dst') for key, value in stix2misp_mapping.network_connection_mapping[reference['object']._type.items()]}
-                attribute.update({'value': reference['object'].value, 'to_ids': False})
-                attributes.append(attribute)
-        return attributes
 
     @staticmethod
     def _parse_number(observable):
