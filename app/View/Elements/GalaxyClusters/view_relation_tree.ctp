@@ -282,9 +282,10 @@ echo $this->element('genericElements/assetLoader', array(
             .attr("width", function(d) { return  (d.Relation.Tag !== undefined ? getTextWidth(d.Relation.Tag, {'white-space': 'nowrap', 'font-weight': 'bold'}, 'name') + 2*paddingX : 0) + 'px'; })
             .append("xhtml:div")
             .each(function(d) {
+                var tagContainer = d3.select(this);
                 if (d.Relation.Tag !== undefined) {
                     d.Relation.Tag.forEach(function(tag) {
-                        d3.select(this)
+                        tagContainer
                             .append("span")
                             .attr("class", "tag")
                             .style('white-space', 'nowrap')
