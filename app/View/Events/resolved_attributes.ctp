@@ -46,8 +46,8 @@
                 <th><?php echo __('Similar Attributes');?></th>
                 <th><?php echo __('Category');?></th>
                 <th><?php echo __('Type');?></th>
-                <th><?php echo __('IDS');?><input type="checkbox" id="checkAllIDS" style="margin-top:23px;margin-left:3px;"/></th>
-                <th style="text-align:center;"><?php echo __('Disable Correlation');?><input type="checkbox" id="checkAllDC" style="margin:0px;"/></th>
+                <th><?php echo __('IDS');?><input type="checkbox" id="checkAllIDS" style="margin-top:0;margin-left:.3em"></th>
+                <th style="text-align:center;"><?php echo __('Disable Correlation');?><input type="checkbox" id="checkAllDC" style="margin-top:0;margin-left:.3em"></th>
                 <th><?php echo __('Distribution');?></th>
                 <th><?php echo __('Comment');?></th>
                 <th><?php echo __('Tags');?></th>
