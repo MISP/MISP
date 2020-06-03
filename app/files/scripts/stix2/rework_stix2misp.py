@@ -138,6 +138,19 @@ class StixParser():
             return {type: value.format(feature_type) for type, value in stix2misp_mapping.network_traffic_references_mapping[value].items()}
         return {feature: value}
 
+    def parse_pe(self, extension):
+        pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
+        self.fill_misp_object(pe_object, extension, 'pe_mapping')
+        for section in extension['sections']:
+            section_object = MISPObject('pe-section', misp_objects_path_custom=self._misp_objects_path)
+            self.fill_misp_object(section_object, section, 'pe_section_mapping')
+            if hasattr(section, 'hashes'):
+                self.fill_misp_object(section_object, section.hashes, 'pe_section_mapping')
+            pe_object.add_reference(section_object.uuid, 'includes')
+            self.misp_event.add_object(**section_object)
+        self.misp_event.add_object(**pe_object)
+        return pe_object.uuid
+
     def parse_relationships(self):
         attribute_uuids = tuple(attribute.uuid for attribute in self.misp_event.attributes)
         object_uuids = tuple(object.uuid for object in self.misp_event.objects)
@@ -748,19 +761,10 @@ class StixFromMISPParser(StixParser):
         return observable['0'].get('payload_bin')
 
     def parse_pe_observable(self, observable):
-        pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
         key = self._fetch_file_observable(observable)
         extension = observable[key]['extensions']['windows-pebinary-ext']
-        self.fill_misp_object(pe_object, extension, 'pe_mapping')
-        for section in extension['sections']:
-            section_object = MISPObject('pe-section', misp_objects_path_custom=self._misp_objects_path)
-            self.fill_misp_object(section_object, section, 'pe_section_mapping')
-            if hasattr(section, 'hashes'):
-                self.fill_misp_object(section_object, section.hashes, 'pe_section_mapping')
-            pe_object.add_reference(section_object.uuid, 'includes')
-            self.misp_event.add_object(**section_object)
-        self.misp_event.add_object(**pe_object)
-        return self.parse_file_observable(observable), pe_object.uuid
+        pe_uuid = self.parse_pe(extension)
+        return self.parse_file_observable(observable), pe_uuid
 
     @staticmethod
     def _parse_port(observable, index='0'):
@@ -1362,6 +1366,14 @@ class ExternalStixParser(StixParser):
             return 'malware-sample', f'{filename}|{stix_object.hashes["MD5"]}'
         return 'attachment', filename
 
+    def handle_pe_observable(self, attributes, extension, observable):
+        pe_uuid = self.parse_pe(extension)
+        file = self.create_misp_object(observable, 'file')
+        file.add_reference(pe_uuid, 'includes')
+        for attribute in attributes:
+            file.add_attribute(**attribute)
+        self.misp_event.add_object(**file)
+
     def parse_file_observable(self, observable):
         file, references = self.filter_main_object(observable.objects, 'File')
         attributes = self._get_attributes_from_observable(file, 'file_mapping')
@@ -1390,6 +1402,15 @@ class ExternalStixParser(StixParser):
                         'to_ids': False
                     }
                     attributes.append(attribute)
+        if hasattr(file, 'extensions'):
+            # Support of more extension types probably in the future
+            if 'windows-pebinary-ext' in file.extensions:
+                # Here we do not go to the standard route of "handle_import_case"
+                # because we want to make sure a file object is created
+                return self.handle_pe_observable(attributes, file.extensions['windows-pebinary-ext'], observable)
+            extension_types = (extension_type for extension_type in file.extensions.keys())
+            print(f'File extension type(s) not supported at the moment: {", ".join(extension_types)}', file=sys.stderr)
+        self.handle_import_case(observable, attributes, 'file')
 
     ################################################################################
     ##                         PATTERN PARSING FUNCTIONS.                         ##
@@ -1651,10 +1672,10 @@ class ExternalStixParser(StixParser):
             attribute['uuid'] = stix_object.id.split('--')[1]
             self.misp_event.add_attribute(**attribute)
         else:
-            file_object = self.create_misp_object(stix_object, 'file')
+            misp_object = self.create_misp_object(stix_object, name)
             for attribute in attributes:
-                file_object.add_attribute(**attribute)
-            self.misp_event.add_object(**file_object)
+                misp_object.add_attribute(**attribute)
+            self.misp_event.add_object(**misp_object)
 
     @staticmethod
     def _parse_observable_types(observable_objects):
