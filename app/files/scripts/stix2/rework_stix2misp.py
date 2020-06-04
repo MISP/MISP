@@ -27,22 +27,22 @@ import stix2misp_mapping
 from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
+_misp_dir = Path(os.path.realpath(__file__)).parents[4]
+_misp_objects_path = _misp_dir / 'app' / 'files' / 'misp-objects' / 'objects'
+_pymisp_dir = _misp_dir / 'PyMISP'
+with open(_pymisp_dir / 'pymisp' / 'data' / 'describeTypes.json', 'r') as f:
+    _misp_types = json.loads(f.read())['result'].get('types')
 from pymisp import MISPEvent, MISPObject, MISPAttribute, PyMISPInvalidFormat
 
 
 class StixParser():
-    _misp_dir = Path(os.path.realpath(__file__)).parents[4]
-    _misp_objects_path = _misp_dir / 'app' / 'files' / 'misp-objects' / 'objects'
-    _pymisp_dir = _misp_dir / 'PyMISP'
-    with open(_pymisp_dir / 'pymisp' / 'data' / 'describeTypes.json', 'r') as f:
-        _misp_types = json.loads(f.read())['result'].get('types')
     _galaxy_types = ('intrusion-set', 'malware', 'threat-actor', 'tool')
     _stix2misp_mapping = {'marking-definition': '_load_marking',
-                             'relationship': '_load_relationship',
-                             'report': '_load_report',
-                             'indicator': '_parse_indicator',
-                             'observed-data': '_parse_observable',
-                             'identity': '_load_identity'}
+                          'relationship': '_load_relationship',
+                          'report': '_load_report',
+                          'indicator': '_parse_indicator',
+                          'observed-data': '_parse_observable',
+                          'identity': '_load_identity'}
     _stix2misp_mapping.update({galaxy_type: '_load_galaxy' for galaxy_type in _galaxy_types})
     _special_mapping = {'attack-pattern': 'parse_attack_pattern',
                         'course-of-action': 'parse_course_of_action',
@@ -151,10 +151,10 @@ class StixParser():
         return attribute
 
     def parse_pe(self, extension):
-        pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
+        pe_object = MISPObject('pe', misp_objects_path_custom=_misp_objects_path)
         self.fill_misp_object(pe_object, extension, 'pe_mapping')
         for section in extension['sections']:
-            section_object = MISPObject('pe-section', misp_objects_path_custom=self._misp_objects_path)
+            section_object = MISPObject('pe-section', misp_objects_path_custom=_misp_objects_path)
             self.fill_misp_object(section_object, section, 'pe_section_mapping')
             if hasattr(section, 'hashes'):
                 self.fill_misp_object(section_object, section.hashes, 'pe_section_mapping')
@@ -401,7 +401,7 @@ class StixFromMISPParser(StixParser):
 
     def parse_custom_attribute(self, custom):
         attribute_type = custom['type'].split('x-misp-object-')[1]
-        if attribute_type not in self._misp_types:
+        if attribute_type not in _misp_types:
             replacement = ' ' if attribute_type == 'named-pipe' else '|'
             attribute_type = attribute_type.replace('-', replacement)
         attribute = {'type': attribute_type,
@@ -416,7 +416,7 @@ class StixFromMISPParser(StixParser):
 
     def parse_custom_object(self, custom):
         name = custom['type'].split('x-misp-object-')[1]
-        misp_object = MISPObject(name, misp_objects_path_custom=self._misp_objects_path)
+        misp_object = MISPObject(name, misp_objects_path_custom=_misp_objects_path)
         misp_object.timestamp = self.getTimestampfromDate(custom['modified'])
         misp_object.uuid = custom['id'].split('--')[1]
         try:
@@ -1019,7 +1019,7 @@ class StixFromMISPParser(StixParser):
     def parse_pe_pattern(self, pattern):
         attributes = []
         sections = defaultdict(dict)
-        pe = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
+        pe = MISPObject('pe', misp_objects_path_custom=_misp_objects_path)
         for pattern_part in pattern:
             pattern_type, pattern_value = pattern_part.split(' = ')
             if ':extensions.' in pattern_type:
@@ -1050,7 +1050,7 @@ class StixFromMISPParser(StixParser):
                 attribute['value'] = pattern_value.strip("'")
                 attributes.append(attribute)
         for section in sections.values():
-            pe_section = MISPObject('pe-section', misp_objects_path_custom=self._misp_objects_path)
+            pe_section = MISPObject('pe-section', misp_objects_path_custom=_misp_objects_path)
             for feature, value in section.items():
                 attribute = deepcopy(stix2misp_mapping.pe_section_mapping[feature])
                 attribute['value'] = value
@@ -1107,7 +1107,7 @@ class StixFromMISPParser(StixParser):
         labels = stix_object['labels']
         object_type = self.get_misp_type(labels)
         misp_object = MISPObject('file' if object_type == 'WindowsPEBinaryFile' else object_type,
-                                 misp_objects_path_custom=self._misp_objects_path)
+                                 misp_objects_path_custom=_misp_objects_path)
         misp_object.uuid = stix_object.id.split('--')[1]
         misp_object.update(self.parse_timeline(stix_object))
         return misp_object, object_type
@@ -1280,7 +1280,7 @@ class ExternalStixParser(StixParser):
             self.objects_to_parse = {stix_object['id'].split('--')[1]: stix_object}
 
     def add_stix2_pattern_object(self, indicator):
-        misp_object = MISPObject('stix2-pattern', misp_objects_path_custom=self._misp_objects_path)
+        misp_object = MISPObject('stix2-pattern', misp_objects_path_custom=_misp_objects_path)
         misp_object.uuid = indicator.id.split('--')[1]
         misp_object.update(self.parse_timeline(indicator))
         version = f'STIX {indicator.pattern_version}' if hasattr(indicator, 'pattern_version') else 'STIX 2.0'
@@ -1572,7 +1572,7 @@ class ExternalStixParser(StixParser):
             file_object.add_attribute(**attribute)
         if 'windows-pebinary-ext' in extensions:
             pe_extension = extensions['windows-pebinary-ext']
-            pe_object = MISPObject('pe', misp_objects_path_custom=self._misp_objects_path)
+            pe_object = MISPObject('pe', misp_objects_path_custom=_misp_objects_path)
             sections = self._get_sections(pe_extension)
             self.fill_misp_object_from_dict(pe_object, pe_extension, 'pe_mapping')
             file_object.add_reference(pe_object.uuid, 'includes')
@@ -1662,7 +1662,7 @@ class ExternalStixParser(StixParser):
 
     def create_misp_object(self, stix_object, name=None):
         misp_object = MISPObject(name if name is not None else stix_object.type,
-                                 misp_objects_path_custom=self._misp_objects_path)
+                                 misp_objects_path_custom=_misp_objects_path)
         misp_object.uuid = stix_object.id.split('--')[1]
         misp_object.update(self.parse_timeline(stix_object))
         return misp_object
