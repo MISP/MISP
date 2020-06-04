@@ -126,6 +126,54 @@ class StixParser():
             self.marking_refs = {attribute.uuid: (marking.split('--')[1] for marking in marking_refs)}
         return attribute
 
+    @staticmethod
+    def _parse_email_body(body, references):
+        attributes = []
+        for body_multipart in body:
+            reference = references.pop(body_multipart['body_raw_ref'])
+            feature = body_multipart['content_disposition'].split(';')[0]
+            if feature in stix2misp_mapping.email_references_mapping:
+                attribute = deepcopy(stix2misp_mapping.email_references_mapping[feature])
+            else:
+                print(f'Unknown content disposition in the following email body: {body_multipart}', file=sys.stderr)
+                continue
+            if isinstance(reference, stix2.Artifact):
+                attribute.update({
+                    'value': body_multipart['content_disposition'].split('=')[-1].strip("'"),
+                    'data': reference.payload_bin,
+                    'to_ids': False
+                })
+            else:
+                attribute.update({
+                    'value': reference.name,
+                    'to_ids': False
+                })
+            attributes.append(attribute)
+        return attributes
+
+    @staticmethod
+    def _parse_email_references(email_message, references):
+        attributes = []
+        if hasattr(email_message, 'from_ref'):
+            reference = references.pop(email_message.from_ref)
+            attribute = {
+                'value': reference.value,
+                'to_ids': False
+            }
+            attribute.update(stix2misp_mapping.email_references_mapping['from_ref'])
+            attributes.append(attribute)
+        for feature in ('to_refs', 'cc_refs'):
+            if hasattr(email_message, feature):
+                for ref_id in getattr(email_message, feature):
+                    reference = references.pop(ref_id)
+                    attribute = {
+                        'value': reference.value,
+                        'to_ids': False
+                    }
+                    attribute.update(stix2misp_mapping.email_references_mapping[feature])
+                    attributes.append(attribute)
+        return attributes
+
     def parse_galaxies(self):
         for galaxy in self.galaxy.values():
             if not galaxy['used']:
@@ -608,28 +656,11 @@ class StixFromMISPParser(StixParser):
     def parse_email_observable(self, observable):
         email, references = self.filter_main_object(observable, 'EmailMessage')
         attributes = self.fill_observable_attributes(email, 'email_mapping')
-        if hasattr(email, 'from_ref'):
-            reference = references[email.from_ref]
-            attributes.append({'type': 'email-src', 'object_relation': 'from',
-                               'value': reference.value, 'to_ids': False})
-        for feature in ('to_refs', 'cc_refs'):
-            if hasattr(email, feature):
-                for ref_id in getattr(email, feature):
-                    reference = references[ref_id]
-                    attributes.append({'type': 'email-dst', 'object_relation': feature.split('_')[0],
-                                       'value': reference.value, 'to_ids': False})
         if hasattr(email, 'additional_header_fields'):
             attributes.extend(self.fill_observable_attributes(email.additional_header_fields, 'email_mapping'))
-        if hasattr(email, 'body_multipart'):
-            for body_multipart in email.body_multipart:
-                reference = references[body_multipart['body_raw_ref']]
-                value = body_multipart['content_disposition'].split('=')[-1].strip("'")
-                if 'screenshot' in body_multipart['content_disposition']:
-                    attributes.append({'type': 'attachment', 'object_relation': 'screenshot', 'to_ids': False,
-                                       'value': value, 'data': reference.payload_bin})
-                else:
-                    attributes.append({'type': 'email-attachment', 'object_relation': 'attachment',
-                                       'value': value, 'to_ids': False})
+        attributes.extend(self._parse_email_references(email, references))
+        if hasattr(email, 'body_multipart') and email.body_multipart:
+            attributes.extend(self._parse_email_body(email.body_multipart, references))
         return attributes
 
     def parse_file_observable(self, observable):
@@ -1166,35 +1197,36 @@ class ExternalStixParser(StixParser):
     _object_from_refs = {'course-of-action': 'parse_course_of_action', 'vulnerability': 'parse_external_vulnerability',
                           'indicator': 'parse_external_indicator', 'observed-data': 'parse_external_observable'}
     _observable_mapping = {('artifact', 'file'): 'parse_file_observable',
-                            ('autonomous-system',): 'parse_asn_observable',
-                            ('autonomous-system', 'ipv4-addr'): 'parse_asn_observable',
-                            ('autonomous-system', 'ipv6-addr'): 'parse_asn_observable',
-                            ('autonomous-system', 'ipv4-addr', 'ipv6-addr'): 'parse_asn_observable',
-                            ('directory', 'file'): 'parse_file_observable',
-                            ('domain-name',): 'parse_domain_ip_observable',
-                            ('domain-name', 'ipv4-addr'): 'parse_domain_ip_observable',
-                            ('domain-name', 'ipv6-addr'): 'parse_domain_ip_observable',
-                            ('domain-name', 'ipv4-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
-                            ('domain-name', 'ipv6-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
-                            ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
-                            ('domain-name', 'network-traffic'): 'parse_network_socket_observable',
-                            ('domain-name', 'network-traffic', 'url'): 'parse_url_object_observable',
-                            ('email-addr',): 'parse_email_address_observable',
-                            ('email-addr', 'email-message'): 'parse_email_observable',
-                            ('email-addr', 'email-message', 'file'): 'parse_email_observable',
-                            ('email-message',): 'parse_email_observable',
-                            ('file',): 'parse_file_observable',
-                            ('ipv4-addr',): 'parse_ip_address_observable',
-                            ('ipv6-addr',): 'parse_ip_address_observable',
-                            ('ipv4-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
-                            ('ipv6-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
-                            ('mac-addr',): 'parse_mac_address_observable',
-                            ('mutex',): 'parse_mutex_observable',
-                            ('process',): 'parse_process_observable',
-                            ('x509-certificate',): 'parse_x509_observable',
-                            ('url',): 'parse_url_observable',
-                            ('user-account',): 'parse_user_account_observable',
-                            ('windows-registry-key',): 'parse_regkey_observable'}
+                           ('artifact', 'email-addr', 'email-message', 'file'): 'parse_email_observable',
+                           ('autonomous-system',): 'parse_asn_observable',
+                           ('autonomous-system', 'ipv4-addr'): 'parse_asn_observable',
+                           ('autonomous-system', 'ipv6-addr'): 'parse_asn_observable',
+                           ('autonomous-system', 'ipv4-addr', 'ipv6-addr'): 'parse_asn_observable',
+                           ('directory', 'file'): 'parse_file_observable',
+                           ('domain-name',): 'parse_domain_ip_observable',
+                           ('domain-name', 'ipv4-addr'): 'parse_domain_ip_observable',
+                           ('domain-name', 'ipv6-addr'): 'parse_domain_ip_observable',
+                           ('domain-name', 'ipv4-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
+                           ('domain-name', 'ipv6-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
+                           ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
+                           ('domain-name', 'network-traffic'): 'parse_network_socket_observable',
+                           ('domain-name', 'network-traffic', 'url'): 'parse_url_object_observable',
+                           ('email-addr',): 'parse_email_address_observable',
+                           ('email-addr', 'email-message'): 'parse_email_observable',
+                           ('email-addr', 'email-message', 'file'): 'parse_email_observable',
+                           ('email-message',): 'parse_email_observable',
+                           ('file',): 'parse_file_observable',
+                           ('ipv4-addr',): 'parse_ip_address_observable',
+                           ('ipv6-addr',): 'parse_ip_address_observable',
+                           ('ipv4-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
+                           ('ipv6-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
+                           ('mac-addr',): 'parse_mac_address_observable',
+                           ('mutex',): 'parse_mutex_observable',
+                           ('process',): 'parse_process_observable',
+                           ('x509-certificate',): 'parse_x509_observable',
+                           ('url',): 'parse_url_observable',
+                           ('user-account',): 'parse_user_account_observable',
+                           ('windows-registry-key',): 'parse_regkey_observable'}
     _pattern_mapping = {('artifact', 'file'): 'parse_file_pattern',
                         ('autonomous-system', ): 'parse_as_pattern',
                         ('autonomous-system', 'ipv4-addr'): 'parse_as_pattern',
@@ -1372,13 +1404,24 @@ class ExternalStixParser(StixParser):
         self.misp_event.add_object(**file)
 
     def parse_domain_ip_observable(self, observable):
-        mapping = 'domain_ip_mapping'
         domain, references = self.filter_main_object(observable.objects, 'DomainName')
+        mapping = 'domain_ip_mapping'
         attributes = [self._parse_observable_reference(domain, mapping)]
         if references:
             for reference in references.values():
                 attributes.append(self._parse_observable_reference(reference, mapping))
         self.handle_import_case(observable, attributes, 'domain-ip')
+
+    def parse_email_observable(self, observable):
+        email_message, references = self.filter_main_object(observable.objects, 'EmailMessage')
+        ordered_references = '\n'.join(f'{key}: {value}' for key, value in references.items())
+        attributes = self._get_attributes_from_observable(email_message, 'email_mapping')
+        if hasattr(email_message, 'additional_header_fields'):
+            attributes.extend(self._get_attributes_from_observable(email_message.additional_header_fields, 'email_mapping'))
+        attributes.extend(self._parse_email_references(email_message, references))
+        if hasattr(email_message, 'body_multipart') and email_message.body_multipart:
+            attributes.extend(self._parse_email_body(email_message.body_multipart, references))
+        self.handle_import_case(observable, attributes, 'email')
 
     def parse_file_observable(self, observable):
         file, references = self.filter_main_object(observable.objects, 'File')

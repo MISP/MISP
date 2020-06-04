@@ -72,6 +72,7 @@ data_type_attribute_mapping = {'type': 'text', 'object_relation': 'data-type'}
 domain_attribute_mapping = {'type': 'domain', 'object_relation': 'domain'}
 domain_family_attribute_mapping = {'type': 'text', 'object_relation': 'domain-family'}
 dst_port_attribute_mapping = {'type': 'port', 'object_relation': 'dst-port'}
+email_attachment_attribute_mapping = {'type': 'email-attachment', 'object_relation': 'attachment'}
 email_date_attribute_mapping = {'type': 'datetime', 'object_relation': 'send-date'}
 email_subject_attribute_mapping = {'type': 'email-subject', 'object_relation': 'subject'}
 encoding_attribute_mapping = {'type': 'text', 'object_relation': 'file-encoding'}
@@ -100,6 +101,7 @@ process_name_mapping = {'type': 'text', 'object_relation': 'name'}
 regkey_name_attribute_mapping = {'type': 'text', 'object_relation': 'name'}
 references_attribute_mapping = {'type': 'link', 'object_relation': 'references'}
 reply_to_attribute_mapping = {'type': 'email-reply-to', 'object_relation': 'reply-to'}
+screenshot_attribute_mapping = {'type': 'attachment', 'object_relation': 'screenshot'}
 section_name_mapping = {'type': 'text', 'object_relation': 'name'}
 serial_number_attribute_mapping = {'type': 'text', 'object_relation': 'serial-number'}
 size_attribute_mapping = {'type': 'size-in-bytes', 'object_relation': 'size-in-bytes'}
@@ -169,6 +171,12 @@ email_mapping = {'date': email_date_attribute_mapping,
                  'email-message:additional_header_fields.reply_to': reply_to_attribute_mapping,
                  'email-message:from_ref': from_attribute_mapping,
                  'email-addr:value': to_attribute_mapping}
+
+email_references_mapping = {'attachment': email_attachment_attribute_mapping,
+                            'cc_refs': cc_attribute_mapping,
+                            'from_ref': from_attribute_mapping,
+                            'screenshot': screenshot_attribute_mapping,
+                            'to_refs': to_attribute_mapping}
 
 file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'file:mime_type': mime_type_attribute_mapping,
