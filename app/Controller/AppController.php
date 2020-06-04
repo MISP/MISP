@@ -552,7 +552,6 @@ class AppController extends Controller
         if (!empty($homepage)) {
             $this->set('homepage', $homepage['UserSetting']['value']);
         }
-        Configure::write('user_id', $this->Auth->user('id'));
     }
 
     private function __rateLimitCheck()
