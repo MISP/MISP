@@ -274,32 +274,32 @@ class StixParser():
 class StixFromMISPParser(StixParser):
     _objects_mapping = {'asn': {'observable': 'parse_asn_observable',
                                 'pattern': 'parse_asn_pattern'},
-                         'credential': {'observable': 'parse_credential_observable',
-                                        'pattern': 'parse_credential_pattern'},
-                         'domain-ip': {'observable': 'parse_domain_ip_observable',
-                                       'pattern': 'parse_domain_ip_pattern'},
-                         'email': {'observable': 'parse_email_observable',
-                                   'pattern': 'parse_email_pattern'},
-                         'file': {'observable': 'parse_file_observable',
-                                  'pattern': 'parse_file_pattern'},
-                         'ip-port': {'observable': 'parse_ip_port_observable',
-                                     'pattern': 'parse_ip_port_pattern'},
-                         'network-connection': {'observable': 'parse_network_connection_observable',
-                                                'pattern': 'parse_network_connection_pattern'},
-                         'network-socket': {'observable': 'parse_network_socket_observable',
-                                            'pattern': 'parse_network_socket_pattern'},
-                         'process': {'observable': 'parse_process_observable',
-                                     'pattern': 'parse_process_pattern'},
-                         'registry-key': {'observable': 'parse_regkey_observable',
-                                          'pattern': 'parse_regkey_pattern'},
-                         'url': {'observable': 'parse_url_observable',
-                                 'pattern': 'parse_url_pattern'},
-                         'user-account': {'observable': 'parse_user_account_observable',
-                                          'pattern': 'parse_user_account_pattern'},
-                         'WindowsPEBinaryFile': {'observable': 'parse_pe_observable',
-                                                 'pattern': 'parse_pe_pattern'},
-                         'x509': {'observable': 'parse_x509_observable',
-                                  'pattern': 'parse_x509_pattern'}}
+                        'credential': {'observable': 'parse_credential_observable',
+                                       'pattern': 'parse_credential_pattern'},
+                        'domain-ip': {'observable': 'parse_domain_ip_observable',
+                                      'pattern': 'parse_domain_ip_pattern'},
+                        'email': {'observable': 'parse_email_observable',
+                                  'pattern': 'parse_email_pattern'},
+                        'file': {'observable': 'parse_file_observable',
+                                 'pattern': 'parse_file_pattern'},
+                        'ip-port': {'observable': 'parse_ip_port_observable',
+                                    'pattern': 'parse_ip_port_pattern'},
+                        'network-connection': {'observable': 'parse_network_connection_observable',
+                                               'pattern': 'parse_network_connection_pattern'},
+                        'network-socket': {'observable': 'parse_network_socket_observable',
+                                           'pattern': 'parse_network_socket_pattern'},
+                        'process': {'observable': 'parse_process_observable',
+                                    'pattern': 'parse_process_pattern'},
+                        'registry-key': {'observable': 'parse_regkey_observable',
+                                         'pattern': 'parse_regkey_pattern'},
+                        'url': {'observable': 'parse_url_observable',
+                                'pattern': 'parse_url_pattern'},
+                        'user-account': {'observable': 'parse_user_account_observable',
+                                         'pattern': 'parse_user_account_pattern'},
+                        'WindowsPEBinaryFile': {'observable': 'parse_pe_observable',
+                                                'pattern': 'parse_pe_pattern'},
+                        'x509': {'observable': 'parse_x509_observable',
+                                 'pattern': 'parse_x509_pattern'}}
 
     def __init__(self):
         super().__init__()
@@ -1370,6 +1370,15 @@ class ExternalStixParser(StixParser):
         for attribute in attributes:
             file.add_attribute(**attribute)
         self.misp_event.add_object(**file)
+
+    def parse_domain_ip_observable(self, observable):
+        mapping = 'domain_ip_mapping'
+        domain, references = self.filter_main_object(observable.objects, 'DomainName')
+        attributes = [self._parse_observable_reference(domain, mapping)]
+        if references:
+            for reference in references.values():
+                attributes.append(self._parse_observable_reference(reference, mapping))
+        self.handle_import_case(observable, attributes, 'domain-ip')
 
     def parse_file_observable(self, observable):
         file, references = self.filter_main_object(observable.objects, 'File')
