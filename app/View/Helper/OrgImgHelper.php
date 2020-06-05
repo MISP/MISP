@@ -19,7 +19,7 @@ App::uses('AppHelper', 'View/Helper');
                 foreach ($imgOptions as $field => $imgOption) {
                     $result = sprintf(
                         '<img src="%s/img/orgs/%s" title="%s" width="%s" height="%s">',
-                        $baseurl,
+                        $this->baseurl,
                         $imgOption,
                         isset($options['name']) ? h($options['name']) : h($options['id']),
                         (int)$size,
@@ -29,7 +29,7 @@ App::uses('AppHelper', 'View/Helper');
                     if (!$raw) {
                         $result = sprintf(
                             '<a href="%s/organisations/view/%s">%s</a>',
-                            $baseurl,
+                            $this->baseurl,
                             (empty($options['id']) ? h($options['name']) : h($options['id'])),
                             $result
                         );
@@ -45,7 +45,7 @@ App::uses('AppHelper', 'View/Helper');
                 } else {
                     $result = sprintf(
                         '<a href="%s/organisations/view/%s"><span class="welcome">%s</span></a>',
-                        $baseurl,
+                        $this->baseurl,
                         (empty($options['id']) ? h($options['name']) : h($options['id'])),
                         h($options['name'])
                     );
