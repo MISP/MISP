@@ -59,7 +59,7 @@ echo $this->element('genericElements/assetLoader', array(
             rootRight.y0 = 0;
             var nodesRight = treeRight.nodes(rootRight).reverse();
             var linksRight = treeRight.links(nodesRight);
-            var maxDepthRight = 0;
+            var maxDepthRight = 1;
             var leftMaxTextLengthRight = 0;
             nodesRight.forEach(function(d) {
                 maxDepthRight = maxDepthRight > d.depth ? maxDepthRight : d.depth;
@@ -90,7 +90,7 @@ echo $this->element('genericElements/assetLoader', array(
             rootLeft.y0 = 0;
             var nodesLeft = treeLeft.nodes(rootLeft).reverse();
             var linksLeft = treeLeft.links(nodesLeft);
-            var maxDepthLeft = 0;
+            var maxDepthLeft = 1;
             var leftMaxTextLengthLeft = 0;
             nodesLeft.forEach(function(d) {
                 maxDepthLeft = maxDepthLeft > d.depth ? maxDepthLeft : d.depth;
@@ -272,6 +272,7 @@ echo $this->element('genericElements/assetLoader', array(
             .append("div")
             .attr("class", "well well-small")
             .style('padding', '4px 9px')
+            .style('white-space', 'nowrap')
             .html(function(d) { return d.Relation.referenced_galaxy_cluster_type; })
             
         paddingX = 8;
