@@ -2926,9 +2926,7 @@ function organisationViewContent(context, id) {
             $('#ajaxContent').html('An error has occured, please reload the page.');
         },
         success: function(response){
-	console.log("Success!!!");
             $('#ajaxContent').html(response);
-	console.log("Completed!!!");
         },
         complete: function() {
             $(".loading").hide();
