@@ -29,7 +29,7 @@ class ObjectTemplatesController extends AppController
         $items = array();
         $items[] = array(
             'name' => __('All Objects'),
-            'value' => $this->baseurl . "/ObjectTemplates/objectChoice/" . h($event_id) . "/0"
+            'value' => $this->baseurl . "/ObjectTemplates/objectChoice/" . h($event_id) . "/" . "0"
         );
         foreach($metas as $meta) {
             $items[] = array(
