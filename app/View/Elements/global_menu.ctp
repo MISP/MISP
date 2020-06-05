@@ -36,15 +36,27 @@
                     ),
                     array(
                         'text' => __('View Proposals'),
+<<<<<<< HEAD
                         'url' => $baseurl . '/shadow_attributes/index/all:0'
+||||||| parent of 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
+                        'url' => '/shadow_attributes/index'
+=======
+                        'url' => $baseurl . '/shadow_attributes/index'
+>>>>>>> 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
                     ),
                     array(
                         'text' => __('Events with proposals'),
+<<<<<<< HEAD
                         'url' => $baseurl . '/events/proposalEventIndex'
                     ),
                     array(
                         'url' => $baseurl . '/event_delegations/index/context:pending',
                         'text' => __('View delegation requests')
+||||||| parent of 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
+                        'url' => '/events/proposalEventIndex'
+=======
+                        'url' => $baseurl . '/events/proposalEventIndex'
+>>>>>>> 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
                     ),
                     array(
                         'type' => 'separator'
@@ -137,7 +149,13 @@
             array(
                 'type' => 'root',
                 'text' => __('Global Actions'),
+<<<<<<< HEAD
                 'url' => $baseurl . '/dashboards',
+||||||| parent of 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
+                'url' => '/users/dashboard',
+=======
+                'url' => $baseurl . '/users/dashboard',
+>>>>>>> 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
                 'children' => array(
                     array(
                         'text' => __('News'),
@@ -145,6 +163,7 @@
                     ),
                     array(
                         'text' => __('My Profile'),
+<<<<<<< HEAD
                         'url' => $baseurl . '/users/view/me'
                     ),
                     array(
@@ -154,10 +173,21 @@
                     array(
                         'text' => __('Set Setting'),
                         'url' => $baseurl . '/user_settings/setSetting'
+||||||| parent of 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
+                        'url' => '/users/view/me'
+=======
+                        'url' => $baseurl . '/users/view/me'
+>>>>>>> 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
                     ),
                     array(
                         'text' => __('Dashboard'),
+<<<<<<< HEAD
                         'url' => $baseurl . '/dashboards'
+||||||| parent of 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
+                        'url' => '/users/dashboard'
+=======
+                        'url' => $baseurl . '/users/dashboard'
+>>>>>>> 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
                     ),
                     array(
                         'text' => __('Organisations'),
@@ -286,6 +316,7 @@
                 'children' => array(
                     array(
                         'text' => __('List Users'),
+<<<<<<< HEAD
                         'url' => $baseurl . '/admin/users/index'
                     ),
                     array(
@@ -295,6 +326,11 @@
                     array(
                         'text' => __('Set User Setting'),
                         'url' => $baseurl . '/user_settings/setSetting'
+||||||| parent of 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
+                        'url' => '/admin/users/index'
+=======
+                        'url' => $baseurl . '/admin/users/index'
+>>>>>>> 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
                     ),
                     array(
                         'text' => __('Add User'),
@@ -302,11 +338,17 @@
                     ),
                     array(
                         'text' => __('Contact Users'),
+<<<<<<< HEAD
                         'url' => $baseurl . '/admin/users/email'
                     ),
                     array(
                         'text' => __('User Registrations'),
                         'url' => $baseurl . '/users/registrations'
+||||||| parent of 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
+                        'url' => '/admin/users/email'
+=======
+                        'url' => $baseurl . '/admin/users/email'
+>>>>>>> 927499acbc6971b60acf0bae81da62324316660f... Fixed baseurl in JS
                     ),
                     array(
                         'type' => 'separator'

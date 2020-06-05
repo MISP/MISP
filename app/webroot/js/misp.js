@@ -2909,12 +2909,12 @@ function objectTemplateViewContent(context, id) {
 
 function organisationViewContent(context, id) {
     organisationViewButtonHighlight(context);
-    var action = "/organisations/landingpage/";
+    var action = baseurl + "/organisations/landingpage/";
     if (context == 'members') {
-        action = "/admin/users/index/searchorg:";
+        action = baseurl + "/admin/users/index/searchorg:";
     }
     if (context == 'events') {
-        action = "/events/index/searchorg:";
+        action = baseurl + "/events/index/searchorg:";
     }
     $.ajax({
         url: baseurl + action + id,
