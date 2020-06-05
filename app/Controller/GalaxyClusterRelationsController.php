@@ -41,10 +41,10 @@ class GalaxyClusterRelationsController extends AppController
             $searchConditions = array(
                 'OR' => array(
                     'LOWER(GalaxyClusterRelation.referenced_galaxy_cluster_type) LIKE' => $searchall,
-                    'LOWER(GalaxyCluster.value) LIKE' => $searchall,
-                    'LOWER(ReferencedGalaxyCluster.value) LIKE' => $searchall,
-                    'LOWER(GalaxyCluster.tag_name) LIKE' => $searchall,
-                    'LOWER(ReferencedGalaxyCluster.tag_name) LIKE' => $searchall,
+                    'LOWER(TargetCluster.value) LIKE' => $searchall,
+                    'LOWER(TargetCluster.tag_name) LIKE' => $searchall,
+                    'LOWER(SourceCluster.value) LIKE' => $searchall,
+                    'LOWER(SourceCluster.tag_name) LIKE' => $searchall,
                 ),
             );
         }
@@ -189,6 +189,8 @@ class GalaxyClusterRelationsController extends AppController
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
                 $tags = array_map('trim', $tags);
                 $relation['GalaxyClusterRelation' ]['tags'] = $tags;
+            } else {
+                $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
 
             if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['GalaxyCluster']['org_id'] != $this->Auth->user()['org_id']) {
