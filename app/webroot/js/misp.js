@@ -108,7 +108,7 @@ function delegatePopup(id) {
 }
 
 function genericPopup(url, popupTarget, callback) {
-    $.get(baseurl + url, function(data) {
+    $.get(url, function(data) {
         $(popupTarget).html(data);
         $(popupTarget).fadeIn();
         left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
