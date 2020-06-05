@@ -16,6 +16,7 @@ var hexagonPoints = '30,15 22.5,28 7.5,28 0,15 7.5,2.0 22.5,2'
 var hexagonPointsSmaller = '21,10.5 15.75,19.6 5.25,19.6 0,10.5 5.25,1.4 15.75,1.4'
 var hexagonTranslate = -10.5;
 var graph = <?= json_encode($relations) ?>;
+var store;
 var nodes, links, edgepaths, edgelabels, edgetags;
 var width, height, margin;
 var vis, svg, plotting_area, force, container, zoom;
@@ -37,7 +38,6 @@ $(document).ready( function() {
 });
 
 function initGraph() {
-    var correctLink = [];
     var groupDomain = {};
     graph.links.forEach(function(link) {
         var tmpNode = graph.nodes.filter(function(node) {
@@ -50,11 +50,11 @@ function initGraph() {
         link.target = tmpNode[0];
         groupDomain[link.source.group] = 1;
         groupDomain[link.target.group] = 1;
-        correctLink.push(link)
+        link.id = link.source.uuid + ':' + link.target.uuid + ':' + link.type;
     })
+    store = $.extend(true, {}, graph);
     groupDomain = Object.keys(groupDomain);
     colors.domain(groupDomain);
-    graph.links = correctLink;
     force = d3.layout.force()
         .size([width, height])
         .charge(-1000)
@@ -108,6 +108,17 @@ function initGraph() {
             .attr("d", "M0,-5L10,0L0,5")
             .attr("class","arrowHead");
 
+    container.append("g")
+        .attr("class", "nodes")
+    container.append("g")
+        .attr("class", "links")
+    container.append("g")
+        .attr("class", "edgepaths")
+    container.append("g")
+        .attr("class", "edgelabels")
+    container.append("g")
+        .attr("class", "edgetags")
+
     svg.append('g')
         .classed('legendContainer', true)
         .append('g')
@@ -115,11 +126,11 @@ function initGraph() {
     legendLabels = groupDomain.map(function(domain) {
         return {
             text: domain,
-            color: colors(domain)
+            color: colors(domain),
+            disabled: false
         }
     })
     drawLabels();
-
     update();
 }
 
@@ -136,10 +147,9 @@ function update() {
         .nodes(graph.nodes)
         .links(graph.links)
 
-    links = container.append("g")
-        .attr("class", "links")
+    links = container.select('.links')
         .selectAll("line")
-        .data(graph.links);
+        .data(graph.links, function(d) { return d.id;});
     links.exit().remove();
 
     var linkEnter = links.enter()
@@ -170,8 +180,7 @@ function update() {
             return opacity;
         })
 
-        edgepaths = container.append("g")
-            .attr("class", "edgepaths")
+        edgepaths = container.select(".edgepaths")
             .selectAll(".edgepath") //make path go along with the link provide position for link labels
             .data(graph.links);
         edgepaths.exit().remove();
@@ -184,10 +193,10 @@ function update() {
             .attr('data-id', function (d, i) { return i; })
             .style("pointer-events", "none");
 
-        edgelabels = container.append("g")
-            .attr("class", "edgelabels")
+        edgelabels = container.select(".edgelabels")
             .selectAll(".edgelabel")
             .data(graph.links)
+        
         edgelabels.exit().remove();
         edgelabels.enter()
             .append('text')
@@ -205,8 +214,7 @@ function update() {
             .on('click', clickHandlerLink)
             .text(function(d) { return d.type});
 
-        edgetags = container.append("g")
-            .attr("class", "edgetags")
+        edgetags = container.select(".edgetags")
             .selectAll(".edgetagContainer")
             .data(graph.links)
         edgetags.exit().remove();
@@ -244,10 +252,9 @@ function update() {
                 }
             });
 
-    nodes = container.append("g")
-        .attr("class", "nodes")
-        .selectAll("div")
-        .data(graph.nodes);
+    nodes = container.select(".nodes")
+        .selectAll(".node")
+        .data(graph.nodes, function(d) { return d.uuid;});
     nodes.exit().remove();
     var nodesEnter = nodes.enter()
         .append('g')
@@ -497,7 +504,7 @@ function drawLabels() {
         .data(legendLabels);
     var label = labels.enter()
         .append('g')
-        .attr('class', 'labels')
+        .attr('class', 'labels useCursorPointer')
     label.append('circle')
     label.append('text')
 
@@ -529,6 +536,20 @@ function drawLabels() {
 
             return 'translate(' + xpos + ',' + ypos + ')';
         })
+        .on('click', function(d, i) { 
+            var label_text = d.text;
+            if (d3.event.ctrlKey) { // hide all others
+                d.disabled = false;
+                legendLabels.filter(function(fd) { return fd.text !== label_text}).forEach(function(label_data) {
+                    label_data.disabled = true;
+                })
+            } else { // hide it
+                d.disabled = !d.disabled;
+            }
+            filterGraph();
+            drawLabels();
+            update();
+        });
     var legendBB = svg.select('.legend').node().getBBox();
     var pad = 3;
     svg.select('.legendContainer').insert('rect', ':first-child')
@@ -538,6 +559,66 @@ function drawLabels() {
         .attr('width', legendBB.width + pad)
         .attr('height', legendBB.height + pad)
         .style('stroke', '#eee');
+}
+
+function filterGraph() {
+    var visibleLabels = legendLabels.filter(function(label) {
+        return !label.disabled
+    }).map(function(label) {
+        return label.text;
+    });
+    var visibleLabels = {}
+    legendLabels.forEach(function(label) {
+        visibleLabels[label.text] = !label.disabled;
+    });
+
+    store.nodes.forEach(function(node) {
+        if (node.isFiltered === undefined) {
+            node.isFiltered = false;
+        }
+        if(visibleLabels[(node.group)] && node.isFiltered) {
+            node.isFiltered = false;
+            graph.nodes.push($.extend(true, {}, node));
+        } else if (!visibleLabels[(node.group)] && !node.isFiltered) {
+            node.isFiltered = true;
+            graph.nodes.forEach(function(d, i) {
+                if (node.id === d.id) {
+                    graph.nodes.splice(i, 1);
+                }
+            });
+        }
+    });
+
+    store.links.forEach(function(link) {
+        if (link.isFiltered === undefined) {
+            link.isFiltered = false;
+        }
+        if((visibleLabels[(link.source.group)] && visibleLabels[(link.target.group)]) && link.isFiltered) {
+            link.isFiltered = false;
+
+            /* No clue with d3 force doesn't keep the correct reference */
+            var newLink = $.extend(true, {}, link);
+            var tmpNode = graph.nodes.filter(function(node) {
+                return node.uuid == newLink.source.uuid;
+            })
+            newLink.source = tmpNode[0]
+            tmpNode = graph.nodes.filter(function(node) {
+                return node.uuid == newLink.target.uuid;
+            })
+            newLink.target = tmpNode[0];
+            newLink.id = link.source.uuid + ':' + link.target.uuid + ':' + link.type;
+            /* Hopefully it will be fixed whener we bump d3.js */
+
+            graph.links.push(newLink);
+        } else if (!(visibleLabels[(link.source.group)] && visibleLabels[(link.target.group)]) && !link.isFiltered) {
+            link.isFiltered = true;
+            graph.links.forEach(function(d, i) {
+                if (link.id === d.id) {
+                    graph.links.splice(i, 1);
+                }
+            });
+        }
+    });
 }
 
 function getReadableDistribution(d) {
