@@ -977,14 +977,10 @@ class StixBuilder():
     def _get_reply_to_observable(_, attribute_value):
         observable = {
             '0': {
-                'type': 'email-addr',
-                'value': attribute_value
-            },
-            '1': {
                 'type': 'email-message',
                 'is_multipart': 'false',
                 'additional_header_fields': {
-                    'Reply-To': '0'
+                    'Reply-To': attribute_value
                 }
             }
         }
