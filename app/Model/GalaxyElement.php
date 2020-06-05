@@ -26,9 +26,11 @@ class GalaxyElement extends AppModel
         return true;
     }
 
-    public function updateElements($oldClusterId, $newClusterId, $elements)
+    public function updateElements($oldClusterId, $newClusterId, $elements, $delete=true)
     {
-        $this->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $oldClusterId));
+        if ($delete) {
+            $this->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $oldClusterId));
+        }
         $tempElements = array();
         foreach ($elements as $key => $value) {
             if (is_array($value)) {

@@ -814,16 +814,18 @@ class GalaxyClustersController extends AppController
         $parentVersion = $parentCluster['GalaxyCluster']['version'];
         if ($this->request->is('post') || $this->request->is('put')) {
             $elements = array();
-            foreach ($this->request->data['GalaxyCluster'] as $k => $jElement) {
-                $element = json_decode($jElement, true);
-                $elements[] = array(
-                    'key' => $element['key'],
-                    'value' => $element['value'],
-                );
+            if (!empty($this->request->data['GalaxyCluster'])) {
+                foreach ($this->request->data['GalaxyCluster'] as $k => $jElement) {
+                    $element = json_decode($jElement, true);
+                    $elements[] = array(
+                        'key' => $element['key'],
+                        'value' => $element['value'],
+                    );
+                }
             }
             $cluster['GalaxyCluster']['elements'] = $elements;
             $cluster['GalaxyCluster']['extends_version'] = $parentVersion;
-            $errors = $this->GalaxyCluster->editCluster($this->Auth->user(), $cluster, $fromPull=false, $fieldList=array('extends_version'));
+            $errors = $this->GalaxyCluster->editCluster($this->Auth->user(), $cluster, $fromPull=false, $fieldList=array('extends_version'), $deleteOldElements=false);
             if (!empty($errors)) {
                 $flashErrorMessage = implode(', ', $errors);
                 $this->Flash->error($flashErrorMessage);

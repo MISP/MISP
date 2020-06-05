@@ -231,7 +231,7 @@ class GalaxyCluster extends AppModel
         return $saveSuccess;
     }
 
-    public function editCluster($user, $cluster, $fromPull = false, $fieldList = array())
+    public function editCluster($user, $cluster, $fromPull = false, $fieldList = array(), $deleteOldElements=true)
     {
         $this->SharingGroup = ClassRegistry::init('SharingGroup');
         $errors = array();
@@ -275,7 +275,7 @@ class GalaxyCluster extends AppModel
                     foreach ($cluster['GalaxyCluster']['elements'] as $element) { // transform cluster into Galaxy meta format
                         $elementsToSave[$element['key']][] = $element['value'];
                     }
-                    $this->GalaxyElement->updateElements($cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['id'], $elementsToSave);
+                    $this->GalaxyElement->updateElements($cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['id'], $elementsToSave, $delete=$deleteOldElements);
                 } else {
                     foreach($this->validationErrors as $validationError) {
                         $errors[] = $validationError[0];

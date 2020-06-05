@@ -65,6 +65,7 @@
             </div>
         </div>
 
+        <?php echo $this->Form->create('GalaxyCluster');?>
         <?php if (empty($missingElements)): ?>
             <div class="row">
                 <div class="span12">
@@ -75,7 +76,6 @@
             </div>
         <?php else: ?>
             <h4><?= __('Elements in parent fork but not in this cluster') ?></h4>
-            <?php echo $this->Form->create('GalaxyCluster');?>
             <div class="row">
                 <div class="span8">
                     <table class="table table-striped table-hover table-condensed">
