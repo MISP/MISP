@@ -1981,6 +1981,11 @@ class Attribute extends AppModel
                     $conditions['INET_ATON(value1) BETWEEN ? AND ?'] = array($startIp, $endIp);
                 } else {
                     $conditions[] = 'IS_IPV6(value1)';
+                    // Just fetch IPv6 address that starts with given prefix. This is fast, because value1 is indexed.
+                    $ipv6Parts = explode(':', rtrim($ip_array[0], ':'));
+                    $ipv6Parts = array_slice($ipv6Parts, 0, intval($ip_array[1] / 16));
+                    $prefix = implode(':', $ipv6Parts);
+                    $conditions['value1 LIKE'] = $prefix . '%';
                 }
             }
 
