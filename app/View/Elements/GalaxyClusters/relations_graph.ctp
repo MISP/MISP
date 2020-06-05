@@ -109,8 +109,6 @@ function initGraph() {
             .attr("class","arrowHead");
 
     container.append("g")
-        .attr("class", "nodes")
-    container.append("g")
         .attr("class", "links")
     container.append("g")
         .attr("class", "edgepaths")
@@ -118,6 +116,8 @@ function initGraph() {
         .attr("class", "edgelabels")
     container.append("g")
         .attr("class", "edgetags")
+    container.append("g")
+        .attr("class", "nodes")
 
     svg.append('g')
         .classed('legendContainer', true)
