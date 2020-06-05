@@ -57,11 +57,11 @@ function initGraph() {
     colors.domain(groupDomain);
     force = d3.layout.force()
         .size([width, height])
-        .charge(-1000)
+        .charge(-3000)
         .friction(0.3)
         .theta(0.3)
         // .theta(0.9)
-        .linkDistance(120)
+        .linkDistance(130)
         // .linkStrength(0.7)
         .on("tick", tick)
 
@@ -204,9 +204,8 @@ function update() {
             .attr('dy', '-3')
             .attr('id', function (d, i) {return 'edgelabelId_' + i})
             .attr('font-size', 10)
-            .attr('fill', '#aaa');
-
-        edgelabels.append('textPath') //To render text along the shape of a <path>, enclose the text in a <textPath> element that has an href attribute with a reference to the <path> element.
+            .attr('fill', '#aaa')
+            .append('textPath') //To render text along the shape of a <path>, enclose the text in a <textPath> element that has an href attribute with a reference to the <path> element.
             .attr('xlink:href', function (d, i) {return '#edgepathId_' + i})
             .style("text-anchor", "middle")
             .attr("startOffset", "50%")
