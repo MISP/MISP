@@ -1421,6 +1421,8 @@ class ExternalStixParser(StixParser):
         attributes.extend(self._parse_email_references(email_message, references))
         if hasattr(email_message, 'body_multipart') and email_message.body_multipart:
             attributes.extend(self._parse_email_body(email_message.body_multipart, references))
+        if references:
+            print(f'Unable to parse the following observable objects: {references}', file=sys.stderr)
         self.handle_import_case(observable, attributes, 'email')
 
     def parse_file_observable(self, observable):
