@@ -43,7 +43,7 @@
                     'name' => __('Distribution'),
                     'sort' => 'distribution',
                     'data_path' => 'GalaxyClusterRelation.distribution',
-                    'element' => 'distribution_levels'
+                    'element' => 'distribution_levels',
                 ),
             ),
             'title' => __('Galaxy Cluster Relationships'),
@@ -114,7 +114,7 @@
                     <label for="RelationshipDistribution"><?= __('Distribution') ?></label>
                     <select id="RelationshipDistribution" name="distribution">
                         <?php foreach ($distributionLevels as $k => $distribution): ?>
-                            <option value="<?= h($k) ?>"><?= h($distribution) ?></option>
+                            <option value="<?= h($k) ?>" <?= $k == 3 ? 'selected' : ''?>><?= h($distribution) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>

@@ -14,7 +14,6 @@
                     'field' => 'distribution',
                     'options' => $distributionLevels,
                     'default' => isset($cluster['GalaxyCluster']['distribution']) ? $cluster['GalaxyCluster']['distribution'] : $initialDistribution,
-                    'default' => $initialDistribution,
                     'stayInLine' => 1
                 ),
                 array(
