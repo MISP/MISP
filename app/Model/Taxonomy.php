@@ -290,7 +290,7 @@ class Taxonomy extends AppModel
                     if (isset($tags[strtoupper($temp['tag'])])) {
                         $existingTag = $tags[strtoupper($temp['tag'])];
                         $taxonomy['entries'][$key]['existing_tag'] = $existingTag;
-                        // numerical_value is overriden at tag level. Propagate the override further up
+                        // numerical_value is overridden at tag level. Propagate the override further up
                         if (isset($existingTag['Tag']['original_numerical_value'])) {
                             $taxonomy['entries'][$key]['original_numerical_value'] = $existingTag['Tag']['original_numerical_value'];
                             $taxonomy['entries'][$key]['numerical_value'] = $existingTag['Tag']['numerical_value'];
