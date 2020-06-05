@@ -331,7 +331,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
                 });
                 object_id = selected.join('|');
             }
-            url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
+            url = "/sightings/advanced/" + object_id + "/" + object_context;
             genericPopup(url, '#popover_box');
         });
         $(".eventViewAttributeHover").mouseenter(function() {

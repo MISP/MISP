@@ -1604,7 +1604,7 @@ class MispInteraction {
         dataHandler.fetch_reference_data(rel_uuid, function(data) {
             data = data[0].ObjectReference;
             var uuid = data.referenced_uuid;
-            genericPopup(baseurl + '/objectReferences/add/'+data.object_id, '#popover_form', function() {
+            genericPopup('/objectReferences/add/'+data.object_id, '#popover_form', function() {
                 $('#targetSelect').val(uuid);
                 $('#ObjectReferenceComment').val(data.comment);
                 $('#ObjectReferenceRelationshipTypeSelect').val(data.relationship_type);
