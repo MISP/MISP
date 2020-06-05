@@ -277,7 +277,9 @@ class StixParser():
                 main_objects.append(value)
             else:
                 references[key] = value
-        return main_objects[0], references
+        if len(main_objects) > 1:
+            print(f'More than one {main_type} objects in this observable: {observable}', file=sys.stderr)
+        return main_objects[0] if main_objects else None, references
 
     def _get_tag_names_from_synonym(self, name):
         try:
@@ -1210,7 +1212,7 @@ class ExternalStixParser(StixParser):
                            ('domain-name', 'ipv6-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
                            ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
                            ('domain-name', 'network-traffic'): 'parse_network_socket_observable',
-                           ('domain-name', 'network-traffic', 'url'): 'parse_url_object_observable',
+                           ('domain-name', 'network-traffic', 'url'): 'parse_url_observable',
                            ('email-addr',): 'parse_email_address_observable',
                            ('email-addr', 'email-message'): 'parse_email_observable',
                            ('email-addr', 'email-message', 'file'): 'parse_email_observable',
@@ -1479,6 +1481,14 @@ class ExternalStixParser(StixParser):
             for reference in references.values():
                 attributes.append(self._parse_observable_reference(reference, 'domain_ip_mapping'))
         self.handle_import_case(observable, attributes, 'ip-port')
+
+    def parse_url_observable(self, observable):
+        network_traffic, references = self.filter_main_object(observable.objects, 'NetworkTraffic')
+        attributes = self._get_attributes_from_observable(network_traffic, 'network_traffic_mapping') if network_traffic else []
+        if references:
+            for reference in references.values():
+                attributes.append(self._parse_observable_reference(reference, 'url_mapping'))
+        self.handle_import_case(observable, attributes, 'url')
 
     ################################################################################
     ##                         PATTERN PARSING FUNCTIONS.                         ##
