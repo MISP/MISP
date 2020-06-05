@@ -1385,7 +1385,7 @@ class ExternalStixParser(StixParser):
     def _get_attributes_from_observable(stix_object, mapping):
         attributes = []
         for key, value in stix_object.items():
-            if key in getattr(stix2misp_mapping, mapping):
+            if key in getattr(stix2misp_mapping, mapping) and value:
                 attribute = deepcopy(getattr(stix2misp_mapping, mapping)[key])
                 attribute.update({'value': value, 'to_ids': False})
                 attributes.append(attribute)
@@ -1482,6 +1482,15 @@ class ExternalStixParser(StixParser):
             for reference in references.values():
                 attributes.append(self._parse_observable_reference(reference, 'domain_ip_mapping'))
         self.handle_import_case(observable, attributes, 'ip-port')
+
+    def parse_regkey_observable(self, observable):
+        attributes = []
+        for observable_object in observable.objects.values():
+            attributes.extend(self._get_attributes_from_observable(observable_object, 'regkey_mapping'))
+            if 'values' in observable_object:
+                for registry_value in observable_object['values']:
+                    attributes.extend(self._get_attributes_from_observable(registry_value, 'regkey_mapping'))
+        self.handle_import_case(observable, attributes, 'registry-key')
 
     def parse_url_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable.objects, 'NetworkTraffic')
