@@ -335,7 +335,8 @@ emailObjectMapping = {'email-body': {'email_type': 'message', 'stix_type': 'body
                       'send-date': {'email_type': 'message', 'stix_type': 'date'},
                       'x-mailer': {'email_type': 'message', 'stix_type': 'additional_header_fields.x_mailer'}}
 
-fileMapping = {'hashes': "hashes.'{0}'", 'size-in-bytes': 'size', 'filename': 'name', 'mime-type': 'mime_type'}
+fileMapping = {'hashes': "hashes.'{0}'", 'size-in-bytes': 'size', 'filename': 'name',
+               'mime-type': 'mime_type', 'file-encoding': 'name_enc'}
 
 ipPortObjectMapping = {'ip': network_traffic_dst_ref,
                        'src-port': 'src_port', 'dst-port': 'dst_port',
