@@ -178,12 +178,37 @@ class GalaxyCluster extends AppModel
         }
         if (!isset($cluster['GalaxyCluster']['orgc_id'])) {
             if (isset($cluster['Orgc']['uuid'])) {
-                $orgc_id = $this->Orgc->find('first', array('conditions' => array('Orgc.uuid' => $user['Orgc']['uuid']), 'fields' => array('Orgc.id'), 'recursive' => -1));
+                $orgc_id = $this->Orgc->find('first', array('conditions' => array('Orgc.uuid' => $cluster['Orgc']['uuid']), 'fields' => array('Orgc.id'), 'recursive' => -1));
             } else {
                 $orgc_id = $user['org_id'];
             }
             $cluster['GalaxyCluster']['orgc_id'] = $orgc_id;
         }
+
+        if (!isset($cluster['GalaxyCluster']['org_id'])) {
+            if (isset($cluster['Org']['uuid'])) {
+                $org_id = $this->Org->find('first', array('conditions' => array('Org.uuid' => $cluster['Org']['uuid']), 'fields' => array('Org.id'), 'recursive' => -1));
+            } else {
+                $org_id = $user['org_id'];
+            }
+            $cluster['GalaxyCluster']['org_id'] = $org_id;
+        }
+        if (
+            $cluster['GalaxyCluster']['orgc_id'] === $user['org_id'] ||
+            ($user['Role']['perm_sync'] && $existingCluster['GalaxyCluster']['locked']) ||
+            $user['Role']['perm_site_admin']
+        ) {
+            if ($user['Role']['perm_sync']) {
+                if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])) {
+                    // $errors[] = array(__('Galaxy Cluster could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.'));
+                    return false;
+                }
+            }
+        } else {
+            // $errors[] = array(__('Galaxy Cluster could not be saved: The user used to edit the cluster is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the cluster whilst also not being a site administrator.'));
+            return false;
+        }
+
         $cluster['GalaxyCluster']['type'] = $galaxy['type'];
         if (!$fromPull) {
             $date = new DateTime();
@@ -197,7 +222,11 @@ class GalaxyCluster extends AppModel
                 'conditions' => array('id' =>  $this->id),
                 'recursive' => -1
             ));
-            $this->GalaxyElement->updateElements(-1, $savedCluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['elements']);
+            $elementsToSave = array();
+            foreach ($cluster['GalaxyCluster']['elements'] as $element) { // transform cluster into Galaxy meta format
+                $elementsToSave[$element['key']][] = $element['value'];
+            }
+            $this->GalaxyElement->updateElements(-1, $savedCluster['GalaxyCluster']['id'], $elementsToSave);
         }
         return $saveSuccess;
     }
@@ -244,7 +273,7 @@ class GalaxyCluster extends AppModel
                 if ($saveSuccess) {
                     $elementsToSave = array();
                     foreach ($cluster['GalaxyCluster']['elements'] as $element) { // transform cluster into Galaxy meta format
-                        $elementsToSave[$element['key']] = $element['value'];
+                        $elementsToSave[$element['key']][] = $element['value'];
                     }
                     $this->GalaxyElement->updateElements($cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['id'], $elementsToSave);
                 } else {
@@ -334,6 +363,7 @@ class GalaxyCluster extends AppModel
         $existingGalaxyCluster = $this->find('first', array('conditions' => array(
             'GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid']
         )));
+        $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $cluster['GalaxyCluster']['type'], $cluster['GalaxyCluster']['uuid']);
         if (empty($existingGalaxyCluster)) {
             $this->create();
             $saveSuccess = $this->save($cluster);

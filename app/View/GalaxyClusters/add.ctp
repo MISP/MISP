@@ -46,14 +46,12 @@
                     'default' => $galaxy_id
                 ),
                 array(
-                    'field' => 'forkUuid',
+                    'field' => 'extends_uuid',
                     'type' => 'hidden',
-                    'default' => isset($forkUuid) ? $forkUuid : ''
                 ),
                 array(
-                    'field' => 'forkVersion',
+                    'field' => 'extends_version',
                     'type' => 'hidden',
-                    'default' => isset($forkVersion) ? $forkVersion : ''
                 ),
                 array(
                     'field' => 'description',

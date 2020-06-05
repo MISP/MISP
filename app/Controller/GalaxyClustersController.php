@@ -250,9 +250,6 @@ class GalaxyClustersController extends AppController
             if (!empty($origCluster)) {
                 $origCluster = $origCluster[0];
                 $origClusterMeta = $origCluster['GalaxyCluster'];
-                $forkVersion = $origCluster['GalaxyCluster']['version'];
-                $this->set('forkUuid', $forkUuid);
-                $this->set('forkVersion', $forkVersion);
                 if (empty($this->request->data)) {
                     $this->request->data = $origCluster;
                     unset($this->request->data['GalaxyCluster']['id']);
@@ -261,6 +258,8 @@ class GalaxyClustersController extends AppController
                         unset($origCluster['GalaxyElement'][$k]['id']);
                         unset($origCluster['GalaxyElement'][$k]['galaxy_cluster_id']);
                     }
+                    $this->request->data['GalaxyCluster']['extends_uuid'] = $origCluster['GalaxyCluster']['uuid'];
+                    $this->request->data['GalaxyCluster']['extends_version'] = $origCluster['GalaxyCluster']['version'];
                     $this->request->data['GalaxyCluster']['elements'] = json_encode($origCluster['GalaxyElement']);
                     $this->request->data['GalaxyCluster']['elementsDict'] = $origCluster['GalaxyElement'];
                     $this->request->data['GalaxyCluster']['authors'] = json_encode($origCluster['GalaxyCluster']['authors']);
@@ -275,21 +274,29 @@ class GalaxyClustersController extends AppController
             $cluster = $this->request->data;
             $errors = array();
             if (empty($cluster['GalaxyCluster']['elements'])) {
-                $galaxy['Galaxy']['values'] = array();
+                $cluster['GalaxyCluster']['elements'] = array();
             } else {
                 $decoded = json_decode($cluster['GalaxyCluster']['elements'], true);
-                if ($decoded === null) {
-                    $decoded = array();
+                if (is_null($decoded)) {
+                    $this->GalaxyCluster->validationErrors['values'][] = __('Invalid JSON');
+                    $errors[] = sprintf(__('Invalid JSON'));
                 }
-                $galaxy['Galaxy']['elements'] = $decoded;
+                $cluster['GalaxyCluster']['elements'] = $decoded;
             }
-            $extendId = $this->Toolbox->findIdByUuid($this->GalaxyCluster, $cluster['GalaxyCluster']['forkUuid']);
-            $extendedCluster = $this->GalaxyCluster->fetchGalaxyClusters(
-                $this->Auth->user(),
-                array('conditions' => array('GalaxyCluster.id' => $extendId))
-            );
-            if (!empty($extendedCluster)) {
-                $cluster['GalaxyCluster']['extends_uuid'] = $extendedCluster[0]['GalaxyCluster']['uuid'];
+            if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
+                $extendId = $this->Toolbox->findIdByUuid($this->GalaxyCluster, $cluster['GalaxyCluster']['extends_uuid']);
+                $extendedCluster = $this->GalaxyCluster->fetchGalaxyClusters(
+                    $this->Auth->user(),
+                    array('conditions' => array('GalaxyCluster.id' => $extendId))
+                );
+                if (!empty($extendedCluster)) {
+                    $cluster['GalaxyCluster']['extends_uuid'] = $extendedCluster[0]['GalaxyCluster']['uuid'];
+                    if (empty($cluster['GalaxyCluster']['extends_version'])) {
+                        $cluster['GalaxyCluster']['extends_version'] = $extendedCluster[0]['GalaxyCluster']['version'];
+                    }
+                } else {
+                    $cluster['GalaxyCluster']['extends_uuid'] = '';
+                }
             } else {
                 $cluster['GalaxyCluster']['extends_uuid'] = '';
             }
@@ -302,11 +309,22 @@ class GalaxyClustersController extends AppController
                     $errors[] = $validationError;
                 }
             }
+
             if (!empty($errors)) {
-                $flashErrorMessage = implode(', ', implode(' ', $errors));
-                $this->Flash->error($flashErrorMessage);
+                $message = implode(', ', implode(' ', $errors));
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'add', $this->GalaxyCluster->id, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
             } else {
-                $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $this->GalaxyCluster->id));
+                $message = __('Galaxy cluster saved');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'add', $this->GalaxyCluster->id, $this->response->type());
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $this->GalaxyCluster->id));
+                }
             }
         }
         $this->set('galaxy_id', $galaxyId);
@@ -394,17 +412,32 @@ class GalaxyClustersController extends AppController
             }
             $cluster['GalaxyCluster']['authors'] = json_encode($cluster['GalaxyCluster']['authors']);
             if (!empty($errors)) {
-                $flashErrorMessage = implode(', ', $errors);
-                $this->Flash->error($flashErrorMessage);
+                $message = implode(', ', implode(' ', $errors));
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'edit', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
             } else {
                 $errors = $this->GalaxyCluster->editCluster($this->Auth->user(), $cluster);
                 if (!empty($errors)) {
-                    $flashErrorMessage = implode(', ', $errors);
-                    $this->Flash->error($flashErrorMessage);
+                    $message = implode(', ', implode(' ', $errors));
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('GalaxyCluster', 'edit', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
+                    } else {
+                        $this->Flash->error($message);
+                    }
                 } else {
-                    $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $id));
+                    $message = __('Galaxy cluster saved');
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'edit', $cluster['GalaxyCluster']['id'], $this->response->type());
+                    } else {
+                        $this->Flash->success($message);
+                        $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $this->GalaxyCluster->id));
+                    }
                 }
             }
+
         } else {
             $this->GalaxyCluster->data['GalaxyCluster']['elements'] = json_encode($this->GalaxyCluster->data['GalaxyElement']);
             $this->GalaxyCluster->data['GalaxyCluster']['elementsDict'] = $this->GalaxyCluster->data['GalaxyElement'];
