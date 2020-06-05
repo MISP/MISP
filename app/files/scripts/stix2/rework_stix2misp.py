@@ -1199,6 +1199,7 @@ class ExternalStixParser(StixParser):
     _object_from_refs = {'course-of-action': 'parse_course_of_action', 'vulnerability': 'parse_external_vulnerability',
                           'indicator': 'parse_external_indicator', 'observed-data': 'parse_external_observable'}
     _observable_mapping = {('artifact', 'file'): 'parse_file_observable',
+                           ('artifact', 'directory', 'file'): 'parse_file_observable',
                            ('artifact', 'email-addr', 'email-message', 'file'): 'parse_email_observable',
                            ('autonomous-system',): 'parse_asn_observable',
                            ('autonomous-system', 'ipv4-addr'): 'parse_asn_observable',
