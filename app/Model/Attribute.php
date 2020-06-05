@@ -663,7 +663,7 @@ class Attribute extends AppModel
     private function __alterAttributeCount($event_id, $increment = true)
     {
         return $this->Event->updateAll(
-            array('Event.attribute_count' => $increment ? 'Event.attribute_count+1' : 'GREATEST(Event.attribute_count-1, 0)'),
+            array('Event.attribute_count' => $increment ? 'Event.attribute_count+1' : 'GREATEST(Event.attribute_count, 1) - 1'),
             array('Event.id' => $event_id)
         );
     }
