@@ -17,7 +17,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys, json, os, datetime
-import pymisp
 import re
 import uuid
 import misp2stix2_mapping
