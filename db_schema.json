@@ -6806,7 +6806,6 @@
         ],
         "correlations": [
             "id",
-            "value",
             "event_id",
             "1_event_id",
             "attribute_id",
@@ -7170,5 +7169,5 @@
             "id"
         ]
     },
-    "db_version": "54"
+    "db_version": "55"
 }
