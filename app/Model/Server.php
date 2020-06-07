@@ -2533,11 +2533,14 @@ class Server extends AppModel
 
     private function __pullEvent($eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
     {
-        $event = $eventModel->downloadEventFromServer(
-                $eventId,
-                $server
-        );
-        ;
+        try {
+            $event = $eventModel->downloadEventFromServer($eventId, $server);
+        } catch (Exception $e) {
+            $this->logException('Failed downloading the event ' . $eventId, $e);
+            $fails[$eventId] = __('failed downloading the event');
+            return false;
+        }
+
         if (!empty($event)) {
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
