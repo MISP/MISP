@@ -6809,10 +6809,7 @@
             "event_id",
             "1_event_id",
             "attribute_id",
-            "1_attribute_id",
-            "org_id",
-            "sharing_group_id",
-            "a_sharing_group_id"
+            "1_attribute_id"
         ],
         "dashboards": [
             "id",

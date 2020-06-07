@@ -1396,7 +1396,12 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `sightingdbs` MODIFY `timestamp` int(11) NOT NULL DEFAULT 0;";
                 break;
             case 55:
-                $this->__dropIndex('correlations', 'value'); // index is not used in any SQL query
+                // index is not used in any SQL query
+                $this->__dropIndex('correlations', 'value');
+                // these index can be theoretically used, but probably just in very rare occasion
+                $this->__dropIndex('correlations', 'org_id');
+                $this->__dropIndex('correlations', 'sharing_group_id');
+                $this->__dropIndex('correlations', 'a_sharing_group_id');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
