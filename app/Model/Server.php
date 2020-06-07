@@ -2613,18 +2613,13 @@ class Server extends AppModel
 
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
     {
+        $this->Job = ClassRegistry::init('Job');
         if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->read(null, $jobId);
             $email = "Scheduled job";
         } else {
-            $job = false;
             $email = $user['email'];
         }
         $eventModel = ClassRegistry::init('Event');
-        $eventIds = array();
-        // if we are downloading a single event, don't fetch all proposals
-        $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
         $server['Server']['version'] = $this->getRemoteVersion($id);
         if (!empty($eventIds['error'])) {
@@ -2653,12 +2648,11 @@ class Server extends AppModel
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
+            $this->Job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
             foreach ($eventIds as $k => $eventId) {
                 $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
-                if ($jobId) {
-                    if ($k % 10 == 0) {
-                        $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
-                    }
+                if ($k % 10 == 0) {
+                    $this->Job->saveProgress($jobId, null, 50 * (($k + 1) / count($eventIds)));
                 }
             }
         }
@@ -2674,25 +2668,17 @@ class Server extends AppModel
                     'action' => 'pull',
                     'user_id' => $user['id'],
                     'title' => 'Failed to pull event #' . $eventid . '.',
-                    'change' => 'Reason:' . $message
+                    'change' => 'Reason: ' . $message
                 ));
             }
         }
-        if ($jobId) {
-            $job->saveField('progress', 50);
-            $job->saveField('message', 'Pulling proposals.');
-        }
+        $this->Job->saveProgress($jobId, 'Pulling proposals.', 50);
         $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
-        if ($jobId) {
-            $job->saveField('progress', 75);
-            $job->saveField('message', 'Pulling sightings.');
-        }
+
+        $this->Job->saveProgress($jobId, 'Pulling sightings.', 75);
         $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
-        if ($jobId) {
-            $job->saveField('progress', 100);
-            $job->saveField('message', 'Pull completed.');
-            $job->saveField('status', 4);
-        }
+
+        $this->Job->saveProgress($jobId, 'Pull completed.', 100);
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
