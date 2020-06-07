@@ -1961,9 +1961,9 @@ class Attribute extends AppModel
         $ipValues = array();
         $ip = $a['value1'];
         if (strpos($ip, '/') !== false) { // IP is CIDR
-            $ip_array = explode('/', $ip);
-            $ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-            
+            list($networkIp, $mask) = explode('/', $ip);
+            $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+
             $conditions = array(
                 'type' => array('ip-src', 'ip-dst'),
                 'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
@@ -1975,17 +1975,28 @@ class Attribute extends AppModel
                 // Massive speed up for CIDR correlation. Instead of testing all in PHP, database can do that work much
                 // faster. But these methods are just supported by MySQL.
                 if ($ip_version === 4) {
-                    $startIp = ip2long($ip_array[0]) & ((-1 << (32 - $ip_array[1])));
-                    $endIp = $startIp + pow(2, (32 - $ip_array[1])) - 1;
+                    $startIp = ip2long($networkIp) & ((-1 << (32 - $mask)));
+                    $endIp = $startIp + pow(2, (32 - $mask)) - 1;
                     // Just fetch IP address that fit in CIDR range.
                     $conditions['INET_ATON(value1) BETWEEN ? AND ?'] = array($startIp, $endIp);
+
+                    // Just fetch IPv4 address that starts with given prefix. This is fast, because value1 is indexed.
+                    // This optimisation is possible just to mask bigger than 8 bites.
+                    if ($mask >= 8) {
+                        $ipv4Parts = explode('.', $networkIp);
+                        $ipv4Parts = array_slice($ipv4Parts, 0, intval($mask / 8));
+                        $prefix = implode('.', $ipv4Parts);
+                        $conditions['value1 LIKE'] = $prefix . '%';
+                    }
                 } else {
                     $conditions[] = 'IS_IPV6(value1)';
                     // Just fetch IPv6 address that starts with given prefix. This is fast, because value1 is indexed.
-                    $ipv6Parts = explode(':', rtrim($ip_array[0], ':'));
-                    $ipv6Parts = array_slice($ipv6Parts, 0, intval($ip_array[1] / 16));
-                    $prefix = implode(':', $ipv6Parts);
-                    $conditions['value1 LIKE'] = $prefix . '%';
+                    if ($mask >= 16) {
+                        $ipv6Parts = explode(':', rtrim($networkIp, ':'));
+                        $ipv6Parts = array_slice($ipv6Parts, 0, intval($mask / 16));
+                        $prefix = implode(':', $ipv6Parts);
+                        $conditions['value1 LIKE'] = $prefix . '%';
+                    }
                 }
             }
 
