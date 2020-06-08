@@ -529,7 +529,7 @@ class StixFromMISPParser(StixParser):
         value = self.parse_single_attribute_observable(objects, attribute['type'])
         if isinstance(value, tuple):
             value, data = value
-            attribute['data'] = io.BytesIO(data.encode())
+            attribute['data'] = data
         attribute['value'] = value
         if hasattr(observable, 'object_marking_refs'):
             attribute = self.create_attribute_with_tag(attribute, indicator.object_marking_refs)
@@ -788,7 +788,7 @@ class StixFromMISPParser(StixParser):
 
     @staticmethod
     def _parse_payload(observable):
-        return observable['0'].get('payload_bin')
+        return observable['0'].payload_bin
 
     def parse_pe_observable(self, observable):
         key = self._fetch_file_observable(observable)
