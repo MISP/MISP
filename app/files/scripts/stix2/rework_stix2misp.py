@@ -1429,7 +1429,6 @@ class ExternalStixParser(StixParser):
 
     def parse_email_observable(self, observable):
         email_message, references = self.filter_main_object(observable.objects, 'EmailMessage')
-        ordered_references = '\n'.join(f'{key}: {value}' for key, value in references.items())
         attributes = self._get_attributes_from_observable(email_message, 'email_mapping')
         if hasattr(email_message, 'additional_header_fields'):
             attributes.extend(self._get_attributes_from_observable(email_message.additional_header_fields, 'email_mapping'))
