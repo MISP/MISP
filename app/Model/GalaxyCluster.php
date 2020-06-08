@@ -700,6 +700,8 @@ class GalaxyCluster extends AppModel
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
             'conditions' => $conditions,
+            'full' => !empty($filters['full']) ? $filters['full'] : (!empty($filters['minimal']) ? !$filters['minimal'] : true),
+            'minimal' => !empty($filters['minimal']) ? $filters['minimal'] : (!empty($filters['full']) ? !$filters['full'] : false),
         );
 
         if (isset($filters['limit'])) {
@@ -713,13 +715,10 @@ class GalaxyCluster extends AppModel
         }
 
         $default_cluster_memory_coefficient = 80;
-        $params['full'] = false;
-        if (!empty($filters['full'])) {
-            $params['full'] = $filters['full'];
-            $filters['minimal'] = false;
+        if ($params['full']) {
             $default_cluster_memory_coefficient = 0.5;
         }
-        if (!empty($filters['minimal'])) {
+        if ($params['minimal']) {
             $default_cluster_memory_coefficient = 100;
             $params['fields'] = array('uuid', 'version');
         }
@@ -802,7 +801,7 @@ class GalaxyCluster extends AppModel
 
     public function buildFilterConditions($user, $filters)
     {
-        $conditions = array();
+        $conditions = $this->buildConditions($user);
         if (isset($filters['org_id'])) {
             $this->Organisation = ClassRegistry::init('Organisation');
             if (!is_array($filters['org_id'])) {
@@ -818,7 +817,7 @@ class GalaxyCluster extends AppModel
                     }
                 }
             }
-            $conditions['GalaxyCluster.org_id'] = $filters['org_id'];
+            $conditions['AND']['GalaxyCluster.org_id'] = $filters['org_id'];
         }
         if (isset($filters['orgc_id'])) {
             $this->Organisation = ClassRegistry::init('Organisation');
@@ -835,33 +834,33 @@ class GalaxyCluster extends AppModel
                     }
                 }
             }
-            $conditions['GalaxyCluster.orgc_id'] = $filters['orgc_id'];
+            $conditions['AND']['GalaxyCluster.orgc_id'] = $filters['orgc_id'];
         }
 
         if (isset($filters['galaxy_uuid'])) {
-            $galaxy = $this->Galaxy->find('first', array(
+            $galaxyIds = $this->Galaxy->find('list', array(
                 'recursive' => -1,
                 'conditions' => array('Galaxy.uuid' => $filters['galaxy_uuid']),
-                'fields' => array('uuid', 'id')
+                'fields' => array('id')
             ));
-            if (!empty($galaxy)) {
-                $filters['galaxy_id'] = $galaxy[0]['id'];
+            if (!empty($galaxyIds)) {
+                $filters['galaxy_id'] = array_values($galaxyIds);
             } else {
                 $filters['galaxy_id'] = -1;
             }
         }
 
         $simpleParams = array(
-            'id', 'uuid', 'galaxy_id', 'version', 'distribution', 'tag',
+            'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'extends_uuid', 'tag_name'
         );
         foreach ($simpleParams as $k => $simpleParam) {
             if (isset($filters[$simpleParam])) {
-                $conditions["GalaxyCluster.${$simpleParam}"] = $filters[$simpleParam];
+                $conditions['AND']["GalaxyCluster.${simpleParam}"] = $filters[$simpleParam];
             }
         }
 
         if (isset($filters['custom'])) {
-            $conditions['GalaxyCluster.default'] = !$filters['custom'];
+            $conditions['AND']['GalaxyCluster.default'] = !$filters['custom'];
         }
         return $conditions;
     }
