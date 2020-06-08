@@ -1802,6 +1802,7 @@ class ExternalStixParser(StixParser):
         if len(attributes) == 1:
             attribute = {field: attributes[0][field] for field in self._single_attribute_fields if attributes[0].get(field)}
             attribute['uuid'] = stix_object.id.split('--')[1]
+            attribute.update(self.parse_timeline(stix_object))
             self.misp_event.add_attribute(**attribute)
         else:
             misp_object = self.create_misp_object(stix_object, name)
