@@ -1409,6 +1409,15 @@ class ExternalStixParser(StixParser):
             file.add_attribute(**attribute)
         self.misp_event.add_object(**file)
 
+    def parse_asn_observable(self, observable):
+        autonomous_system, references = self.filter_main_object(observable.objects, 'AutonomousSystem')
+        mapping = 'asn_mapping'
+        attributes = self._get_attributes_from_observable(autonomous_system, mapping)
+        if references:
+            for reference in references.values():
+                attributes.append(self._parse_observable_reference(reference, mapping))
+        self.handle_import_case(observable, attributes, 'asn')
+
     def parse_domain_ip_observable(self, observable):
         domain, references = self.filter_main_object(observable.objects, 'DomainName')
         mapping = 'domain_ip_mapping'
