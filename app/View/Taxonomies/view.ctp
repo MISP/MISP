@@ -97,7 +97,16 @@
             <?php endif; ?>
                 <td id="tag_<?php echo h($k); ?>" class="short"><?php echo h($item['tag']); ?></td>
                 <td><?php echo h($item['expanded']); ?>&nbsp;</td>
-                <td class="short"><?php echo isset($item['numerical_value']) ? h($item['numerical_value']) : ''; ?>&nbsp;</td>
+                <td class="short">
+                    <?php echo isset($item['numerical_value']) ? h($item['numerical_value']) : ''; ?>&nbsp;
+                    <?php if(isset($item['original_numerical_value'])): ?>
+                        <i
+                            class="<?= $this->FontAwesome->getClass('exclamation-triangle') ?> fa-exclamation-triangle"
+                            title="<?= __('Numerical value overriden by userSetting.&#10;Original numerical_value = %s', h($item['original_numerical_value'])) ?>"
+                            data-value-overriden="1"
+                        ></i>
+                    <?php endif; ?>
+                </td>
                 <td class="short">
                 <?php
                     if ($item['existing_tag']) {
@@ -193,6 +202,7 @@
         $('.select_taxonomy, .select_all').click(function(){
             taxonomyListAnyCheckBoxesChecked();
         });
+        $('[data-value-overriden="1"]').tooltip();
     });
 </script>
 <?php

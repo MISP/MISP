@@ -69,6 +69,8 @@ class Tag extends AppModel
         )
     );
 
+    private $tagOverrides = false;
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -131,6 +133,12 @@ class Tag extends AppModel
                 }
             }
         }
+    }
+
+    public function afterFind($results, $primary = false)
+    {
+        $results = $this->checkForOverride($results);
+        return $results;
     }
 
     public function validateColour($fields)
@@ -411,6 +419,28 @@ class Tag extends AppModel
             $tags[$k]['Tag']['hide_tag'] = 1;
         }
         return ($this->saveAll($tags));
+    }
+
+    /**
+    * Recover user_id from the session and override numerical_values from userSetting
+    */
+    public function checkForOverride($tags)
+    {
+        $userId = Configure::read('CurrentUserId');
+        $this->UserSetting = ClassRegistry::init('UserSetting');
+        if ($this->tagOverrides === false && $userId > 0) {
+            $this->tagOverrides = $this->UserSetting->getTagNumericalValueOverride($userId);
+        }
+        foreach ($tags as $k => $tag) {
+            if (isset($tag['Tag']['name'])) {
+                $tagName = $tag['Tag']['name'];
+                if (isset($this->tagOverrides[$tagName]) && is_numeric($this->tagOverrides[$tagName])) {
+                    $tags[$k]['Tag']['original_numerical_value'] = $tags[$k]['Tag']['numerical_value'];
+                    $tags[$k]['Tag']['numerical_value'] = $this->tagOverrides[$tagName];
+                }
+            }
+        }
+        return $tags;
     }
 
     public function getTagsByName($tag_names, $containTagConnectors = true)
