@@ -1518,6 +1518,14 @@ class ExternalStixParser(StixParser):
                 attributes.append(self._parse_observable_reference(reference, 'url_mapping'))
         self.handle_import_case(observable, attributes, 'url')
 
+    def parse_x509_observable(self, observable):
+        attributes = []
+        for observable_object in observable.objects.values():
+            attributes.extend(self._get_attributes_from_observable(observable_object, 'x509_mapping'))
+            if hasattr(observable_object, 'hashes'):
+                attributes.extend(self._get_attributes_from_observable(observable_object.hashes, 'x509_mapping'))
+        self.handle_import_case(observable, attributes, 'x509')
+
     ################################################################################
     ##                         PATTERN PARSING FUNCTIONS.                         ##
     ################################################################################
