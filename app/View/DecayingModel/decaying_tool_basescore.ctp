@@ -38,10 +38,19 @@
                                                 <li>
                                                     <a style="position: relative; padding: 3px 5px;">
                                                         <span class="tagComplete"
-                                                        style="margin-right: 35px;background-color: <?php echo h($entry['Tag']['colour']); ?>;color:<?php echo h($this->TextColour->getTextColour($entry['Tag']['colour']));?>"
+                                                        style="margin-right:50px;background-color: <?php echo h($entry['Tag']['colour']); ?>;color:<?php echo h($this->TextColour->getTextColour($entry['Tag']['colour']));?>"
                                                         title="<?php echo sprintf('%s: %s', h($entry['expanded']), h($entry['description'])) ?>"><?php echo h($entry['Tag']['name']); ?>
                                                         </span>
-                                                        <span class="label label-inverse numerical-value-label"><?php echo h($entry['numerical_value']) ?></span>
+                                                        <span class="label label-inverse numerical-value-label">
+                                                            <?php echo h($entry['numerical_value']) ?>
+                                                            <?php if(isset($entry['original_numerical_value'])): ?>
+                                                                <i
+                                                                    class="<?= $this->FontAwesome->getClass('exclamation-triangle') ?> fa-exclamation-triangle"
+                                                                    title="<?= __('Numerical value overriden by userSetting.&#10;Original numerical_value = %s', h($entry['original_numerical_value'])) ?>"
+                                                                    data-value-overriden="1"
+                                                                ></i>
+                                                            <?php endif; ?>
+                                                        </span>
                                                     </a>
                                                 </li>
                                             <?php endforeach; ?>
