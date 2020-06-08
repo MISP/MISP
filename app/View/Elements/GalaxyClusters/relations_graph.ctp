@@ -34,6 +34,16 @@ $(document).ready( function() {
     $('#tooltipContainer').hide();
     if (graph.nodes.length > 0) {
         initGraph();
+    } else {
+        $('#graphContainer')
+            .css({
+                'text-align': 'center',
+                'height': 'unset'
+            })
+            .append(
+                $('<p></p>')
+                    .text("<?= __('This galaxy does not have any relationships.') ?>")
+            );
     }
 });
 
