@@ -90,7 +90,9 @@ class GalaxyCluster extends AppModel
         if ($this->data['GalaxyCluster']['distribution'] != 4) {
             $this->data['GalaxyCluster']['sharing_group_id'] = null;
         }
-        if (is_array($this->data['GalaxyCluster']['authors'])) {
+        if (!isset($this->data['GalaxyCluster']['authors']) || is_null($this->data['GalaxyCluster']['authors'])) {
+            $this->data['GalaxyCluster']['authors'] = '';
+        } elseif (is_array($this->data['GalaxyCluster']['authors'])) {
             $this->data['GalaxyCluster']['authors'] = json_encode($this->data['GalaxyCluster']['authors']);
         }
         return true;
@@ -317,23 +319,6 @@ class GalaxyCluster extends AppModel
         return $clusters;
     }
 
-    public function captureClusters($user, $galaxy, $clusters, $forceUpdate=false, $orgId=0)
-    {
-        $importResult = array('success' => true, 'imported' => 0, 'ignored' => 0, 'failed' => 0,'errors' => array());
-        foreach ($clusters as $k => $cluster) {
-            $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
-            $saveResult = $this->captureCluster($user, $cluster, $fromPull=false);
-            $importResult['imported'] += $saveResult['imported'];
-            $importResult['ignored'] += $saveResult['ignored'];
-            $importResult['failed'] += $saveResult['failed'];
-            $importResult['errors'] = array_merge($importResult['errors'], $saveResult['errors']);
-        }
-        if ($importResult['failed'] > 0 && $importResult['imported'] == 0 && $importResult['ignored'] == 0) {
-            $importResult['success'] = false;
-        }
-        return $importResult;
-    }
-
     /**
      * Gets a cluster then save it.
      *
@@ -413,7 +398,7 @@ class GalaxyCluster extends AppModel
                 $cluster['GalaxyCluster']['id'] = $existingGalaxyCluster['GalaxyCluster']['id'];
                 $saveSuccess = $this->save($cluster);
             } else {
-                $results['errors'][] = __('Remote version is not newer than local one');
+                $results['errors'][] = __('Remote version is not newer than local one for cluster (%s)', $cluster['GalaxyCluster']['uuid']);
                 $results['ignored']++;
                 return $results;
             }

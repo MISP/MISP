@@ -17,10 +17,11 @@
                     'data_path' => 'default',
                 ),
                 array(
-                    'name' => __('Galaxy Cluster Target'),
+                    'name' => __('Galaxy Cluster Target (galaxy :: cluster)'),
                     'sort' => 'TargetCluster.tag_name',
                     'element' => 'cluster_link',
                     'data_path' => 'TargetCluster',
+                    'data_path_relation' => 'GalaxyClusterRelation',
                     'url_params_data_paths' => 'TargetCluster.id',
                     'url' => $baseurl . '/galaxy_clusters/view'
                 ),

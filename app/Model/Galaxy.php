@@ -280,7 +280,8 @@ class Galaxy extends AppModel
                 $results['errors'][] = __('Galaxy not found');
                 continue;
             }
-            $saveResult = $this->GalaxyCluster->captureClusters($user, $existingGalaxy, $clusters, $forceUpdate=$forceUpdate, $orgId=$user['org_id']);
+            $cluster['GalaxyCluster']['galaxy_id'] = $existingGalaxy['Galaxy']['id'];
+            $saveResult = $this->GalaxyCluster->captureCluster($user, $cluster, $fromPull=true);
             $results['imported'] += $saveResult['imported'];
             $results['ignored'] += $saveResult['ignored'];
             $results['failed'] += $saveResult['failed'];

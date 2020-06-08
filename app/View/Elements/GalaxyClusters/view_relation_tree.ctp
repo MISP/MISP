@@ -387,7 +387,7 @@ echo $this->element('genericElements/assetLoader', array(
     function getId(d) {
         var id = "";
         if (d.GalaxyCluster !== undefined) {
-            id = d.GalaxyCluster.id;
+            id = d.GalaxyCluster.uuid;
         } else if (d.Relation !== undefined) {
             id = d.Relation.id;
         }

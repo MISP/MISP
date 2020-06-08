@@ -61,6 +61,16 @@ class GalaxyClusterRelation extends AppModel
         return true;
     }
 
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as $k => $result) {
+            if (isset($results[$k]['TargetCluster']) && is_null($results[$k]['TargetCluster']['id'])) {
+                $results[$k]['TargetCluster'] = array();
+            }
+        }
+        return $results;
+    }
+
     public function buildConditions($user)
     {
         $this->Event = ClassRegistry::init('Event');
@@ -320,7 +330,7 @@ class GalaxyClusterRelation extends AppModel
             $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $cluster['GalaxyCluster']['id'];
             
             if (empty($relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'])) {
-                $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('No referenced cluster UUID provided'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterUuid));
+                $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('No referenced cluster UUID provided'), __('relation for cluster (%s)', $clusterUuid));
                 $results['failed']++;
                 continue;
             } else {
@@ -334,7 +344,7 @@ class GalaxyClusterRelation extends AppModel
                 );
                 $referencedCluster = $this->SourceCluster->fetchGalaxyClusters($user, $options);
                 if (empty($referencedCluster)) {
-                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Referenced cluster not found'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterUuid));
+                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Referenced cluster not found'), __('relation to (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'], $clusterUuid));
                     unset($relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id']);
                 } else {
                     $referencedCluster = $referencedCluster[0];
@@ -355,7 +365,7 @@ class GalaxyClusterRelation extends AppModel
             )));
             if (!empty($existingRelation)) {
                 if (!$fromPull) {
-                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Relation already exists'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterUuid));
+                    $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Relation already exists'), __('relation to (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'], $clusterUuid));
                     $results['failed']++;
                     continue;
                 } else {

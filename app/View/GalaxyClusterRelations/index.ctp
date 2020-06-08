@@ -52,6 +52,7 @@
                     'sort' => 'SourceCluster.tag_name',
                     'element' => 'cluster_link',
                     'data_path' => 'SourceCluster',
+                    'data_path_relation' => 'GalaxyClusterRelation',
                     'url_params_data_paths' => 'SourceCluster.id',
                     'url' => $baseurl . '/galaxy_clusters/view'
                 ),
@@ -60,6 +61,7 @@
                     'sort' => 'TargetCluster.tag_name',
                     'element' => 'cluster_link',
                     'data_path' => 'TargetCluster',
+                    'data_path_relation' => 'GalaxyClusterRelation',
                     'url_params_data_paths' => 'TargetCluster.id',
                     'url' => $baseurl . '/galaxy_clusters/view'
                 ),

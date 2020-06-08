@@ -20,6 +20,13 @@
             ));
             // add relation info between the two clusters
             foreach($cluster['GalaxyClusterRelation'] as $relation) {
+                if (empty($relation['GalaxyCluster'])) { // unkown cluster, create placeholder
+                    $relation['GalaxyCluster'] = array(
+                        'uuid' => $relation['referenced_galaxy_cluster_uuid'],
+                        'type' => 'unkown galaxy',
+                        'value' => $relation['referenced_galaxy_cluster_uuid'],
+                    );
+                }
                 $tmp = array(
                     'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),
                     'children' => array(
