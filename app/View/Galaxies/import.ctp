@@ -10,11 +10,6 @@ echo $this->element('genericElements/Form/genericForm', array(
         'description' => __('Paste a JSON of cluster to import or provide a JSON file below.'),
         'fields' => array(
             array(
-                'field' => 'force_update',
-                'label' => __('Force update'),
-                'type' => 'checkbox',
-            ),
-            array(
                 'field' => 'json',
                 'type' => 'text',
                 'class' => 'input span6',

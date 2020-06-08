@@ -383,8 +383,14 @@ class GalaxyClusterRelation extends AppModel
             $saveSuccess = $this->save($relation);
             if ($saveSuccess) {
                 $results['imported']++;
-                if (!empty($relation['GalaxyClusterRelationTag'])) {
-                    $tagNames = Hash::extract($relation['GalaxyClusterRelationTag'], '{n}.name');
+                $modelKey = false;
+                if (!empty($relation['GalaxyClusterRelation']['GalaxyClusterRelationTag'])) {
+                    $modelKey = 'GalaxyClusterRelationTag';
+                } elseif (!empty($relation['GalaxyClusterRelation']['Tag'])) {
+                    $modelKey = 'Tag';
+                }
+                if ($modelKey !== false) {
+                    $tagNames = Hash::extract($relation['GalaxyClusterRelation'][$modelKey], '{n}.name');
                     // Here we only attach tags. If they were removed at some point it's not taken into account. Since we don't have tag soft-deletion, tags added by users will be kept.
                     $this->GalaxyClusterRelationTag->attachTags($user, $this->id, $tagNames, $capture=true);
                 }

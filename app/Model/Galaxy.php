@@ -257,7 +257,7 @@ class Galaxy extends AppModel
      * @param bool $forceUpdate update clusters regardless of their version
      * @return array
      */
-    public function importGalaxyAndClusters($user, $clusters, $forceUpdate=false)
+    public function importGalaxyAndClusters($user, $clusters)
     {
         $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
         foreach ($clusters as $k => $cluster) {
