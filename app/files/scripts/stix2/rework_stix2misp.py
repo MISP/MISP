@@ -1487,15 +1487,19 @@ class ExternalStixParser(StixParser):
                 attributes.append(self._parse_observable_reference(reference, 'domain_ip_mapping'))
         self.handle_import_case(observable, attributes, 'ip-port')
 
-    def parse_mutex_observable(self, observable):
+    def parse_mac_address_observable(self, observable):
+        args = ('mac-address', 'value')
         if len(observable.objects) == 1:
-            self.add_attribute_from_observable(observable, 'mutex', 'name')
+            self.add_attribute_from_observable(observable, *args)
         else:
-            attribute = {'type': 'mutex', 'to_ids': False}
-            for observable_object in observable.objects.values():
-                tmp_attribute = {'value': observable_object.name}
-                tmp_attribute.update(attribute)
-                self.misp_event.add_attribute(**tmp_attribute)
+            self.add_attributes_from_observable(observable.objects, *args)
+
+    def parse_mutex_observable(self, observable):
+        args = ('mutex', 'name')
+        if len(observable.objects) == 1:
+            self.add_attribute_from_observable(observable, *args)
+        else:
+            self.add_attributes_from_observable(observable.objects, *args)
 
     def parse_regkey_observable(self, observable):
         attributes = []
@@ -1758,6 +1762,13 @@ class ExternalStixParser(StixParser):
         })
         attribute.update(self.parse_timeline(observable))
         self.misp_event.add_attribute(**attribute)
+
+    def add_attributes_from_observable(self, observable_objects, attribute_type, feature):
+        attribute = {'type': attribute_type, 'to_ids': False}
+        for observable_object in observable_objects.values():
+            tmp_attribute = {'value': getattr(observable_object, feature)}
+            tmp_attribute.update(attribute)
+            self.misp_event.add_attribute(**tmp_attribute)
 
     def create_misp_object(self, stix_object, name=None):
         misp_object = MISPObject(name if name is not None else stix_object.type,
