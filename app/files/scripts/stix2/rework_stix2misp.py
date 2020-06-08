@@ -1483,6 +1483,16 @@ class ExternalStixParser(StixParser):
                 attributes.append(self._parse_observable_reference(reference, 'domain_ip_mapping'))
         self.handle_import_case(observable, attributes, 'ip-port')
 
+    def parse_mutex_observable(self, observable):
+        if len(observable.objects) == 1:
+            self.add_attribute_from_observable(observable, 'mutex', 'name')
+        else:
+            attribute = {'type': 'mutex', 'to_ids': False}
+            for observable_object in observable.objects.values():
+                tmp_attribute = {'value': observable_object.name}
+                tmp_attribute.update(attribute)
+                self.misp_event.add_attribute(**tmp_attribute)
+
     def parse_regkey_observable(self, observable):
         attributes = []
         for observable_object in observable.objects.values():
@@ -1660,13 +1670,13 @@ class ExternalStixParser(StixParser):
         self.misp_event.add_object(**file_object)
 
     def parse_ip_address_pattern(self, indicator):
-        self.add_single_attribute(indicator, 'ip-dst')
+        self.add_attribute_from_indicator(indicator, 'ip-dst')
 
     def parse_mac_address_pattern(self, indicator):
-        self.add_single_attribute(indicator, 'mac-address')
+        self.add_attribute_from_indicator(indicator, 'mac-address')
 
     def parse_mutex_pattern(self, indicator):
-        self.add_single_attribute(indicator, 'mutex')
+        self.add_attribute_from_indicator(indicator, 'mutex')
 
     def parse_network_traffic_pattern(self, indicator):
         attributes = defaultdict(dict)
@@ -1723,7 +1733,7 @@ class ExternalStixParser(StixParser):
     ##                             UTILITY FUNCTIONS.                             ##
     ################################################################################
 
-    def add_single_attribute(self, indicator, attribute_type):
+    def add_attribute_from_indicator(self, indicator, attribute_type):
         attribute = MISPAttribute()
         attribute.from_dict(**{
             'uuid': indicator.id.split('--')[1],
@@ -1732,6 +1742,17 @@ class ExternalStixParser(StixParser):
             'to_ids': True
         })
         attribute.update(self.parse_timeline(indicator))
+        self.misp_event.add_attribute(**attribute)
+
+    def add_attribute_from_observable(self, observable, attribute_type, feature):
+        attribute = MISPAttribute()
+        attribute.from_dict(**{
+            'uuid': observable.id.split('--')[1],
+            'type': attribute_type,
+            'value': getattr(observable.objects['0'], feature),
+            'to_ids': False
+        })
+        attribute.update(self.parse_timeline(observable))
         self.misp_event.add_attribute(**attribute)
 
     def create_misp_object(self, stix_object, name=None):
