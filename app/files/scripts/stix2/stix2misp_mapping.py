@@ -18,7 +18,7 @@ attributes_mapping = {
     'ip-dst|port': '_parse_network_attribute',
     'ip-src|port': '_parse_network_attribute',
     'hostname|port': '_parse_network_attribute',
-    'email-reply-to': '_parse_value',
+    'email-reply-to': '_parse_email_reply_to',
     'attachment': '_parse_attachment',
     'mac-address': '_parse_value',
     'AS': '_parse_number'

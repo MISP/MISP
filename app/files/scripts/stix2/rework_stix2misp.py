@@ -665,6 +665,10 @@ class StixFromMISPParser(StixParser):
             attributes.extend(self._parse_email_body(email.body_multipart, references))
         return attributes
 
+    @staticmethod
+    def _parse_email_reply_to(observable):
+        return observable['0'].additional_header_fields.get('Reply-To')
+
     def parse_file_observable(self, observable):
         file, references = self.filter_main_object(observable, 'File')
         references = {key: {'object': value, 'used': False} for key, value in references.items()}
