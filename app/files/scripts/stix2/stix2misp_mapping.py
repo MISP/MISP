@@ -133,7 +133,8 @@ asn_mapping = {'number': as_number_attribute_mapping,
                'autonomous-system:number': as_number_attribute_mapping,
                'name': description_attribute_mapping,
                'autonomous-system:name': description_attribute_mapping,
-               'value': asn_subnet_attribute_mapping,
+               'ipv4-addr': asn_subnet_attribute_mapping,
+               'ipv6-addr': asn_subnet_attribute_mapping,
                'ipv4-addr:value': asn_subnet_attribute_mapping,
                'ipv6-addr:value': asn_subnet_attribute_mapping}
 

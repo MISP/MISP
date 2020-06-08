@@ -622,13 +622,12 @@ class StixFromMISPParser(StixParser):
 
     def parse_asn_observable(self, observable):
         attributes = []
+        mapping = 'asn_mapping'
         for observable_object in observable.values():
-            for key, value in observable_object.items():
-                if key in stix2misp_mapping.asn_mapping:
-                    attribute = deepcopy(stix2misp_mapping.asn_mapping[key])
-                    attribute.update({'value': f'AS{value}' if key == 'number' else value,
-                                      'to_ids': False})
-                    attributes.append(attribute)
+            if isinstance(observable_object, stix2.AutonomousSystem):
+                attributes.extend(self.fill_observable_attributes(observable_object, mapping))
+            else:
+                attributes.append(self._parse_observable_reference(observable_object, mapping))
         return attributes
 
     def _parse_attachment(self, observable):
