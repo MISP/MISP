@@ -286,6 +286,37 @@ class GalaxyCluster extends AppModel
         return $errors;
     }
 
+    public function unsetFieldsForExport($clusters)
+    {
+        foreach ($clusters as $k => $cluster) {
+            unset($clusters[$k]['GalaxyCluster']['galaxy_id']);
+            $modelsToUnset = array('GalaxyCluster', 'Galaxy', 'Org', 'Orgc');
+            forEach($modelsToUnset as $modelName) {
+                unset($clusters[$k][$modelName]['id']);
+            }
+            $modelsToUnset = array('GalaxyClusterRelation', 'TargettingClusterRelation');
+            forEach($modelsToUnset as $modelName) {
+                forEach($cluster[$modelName] as $i => $relation) {
+                    unset($clusters[$k][$modelName][$i]['id']);
+                    unset($clusters[$k][$modelName][$i]['galaxy_cluster_id']);
+                    unset($clusters[$k][$modelName][$i]['referenced_galaxy_cluster_id']);
+                    if (isset($relation['Tag'])) {
+                        forEach($relation['Tag'] as $j => $tags) {
+                            unset($clusters[$k][$modelName][$i]['Tag'][$j]['id']);
+                            unset($clusters[$k][$modelName][$i]['Tag'][$j]['org_id']);
+                            unset($clusters[$k][$modelName][$i]['Tag'][$j]['user_id']);
+                        }
+                    }
+                }
+            }
+            forEach($cluster['GalaxyElement'] as $i => $element) {
+                unset($clusters[$k]['GalaxyElement'][$i]['id']);
+                unset($clusters[$k]['GalaxyElement'][$i]['galaxy_cluster_id']);
+            }
+        }
+        return $clusters;
+    }
+
     public function captureClusters($user, $galaxy, $clusters, $forceUpdate=false, $orgId=0)
     {
         $importResult = array('success' => true, 'imported' => 0, 'ignored' => 0, 'failed' => 0,'errors' => array());

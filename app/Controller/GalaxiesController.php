@@ -236,17 +236,12 @@ class GalaxiesController extends AppController
                 )
             );
             $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(),$options, $full=true);
-            foreach ($clusters as $k => $cluster) {
-                unset($clusters[$k]['GalaxyCluster']['galaxy_id']);
-                $modelsToUnset = array('GalaxyCluster', 'Galaxy', 'GalaxyElement', 'GalaxyClusterRelation');
-                forEach($modelsToUnset as $modelName) {
-                    unset($clusters[$k][$modelName]['id']);
-                }
-            }
+            $clusters = $this->Galaxy->GalaxyCluster->unsetFieldsForExport($clusters);
+            $content = json_encode($clusters, JSON_PRETTY_PRINT);
+            $this->response->body($content);
             if ($this->request->data['download'] == 'download') {
+                $this->response->type('json');
                 $this->response->download(sprintf('galaxy_%s_%s.json', $galaxy['Galaxy']['uuid'], time()));
-            } else {
-                $this->response->body(json_encode($clusters));
             }
             return $this->response;
         } else {
