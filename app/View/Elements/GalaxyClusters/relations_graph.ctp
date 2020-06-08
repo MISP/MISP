@@ -164,8 +164,7 @@ function update() {
 
     var linkEnter = links.enter()
         .append("line")
-        .attr("id",function(d,i) { return "linkId_" + i; })
-        .attr("data-id",function(d,i) { return i; })
+        .attr("id",function(d,i) { return "linkId_" + d.id; })
         .attr("class", "link useCursorPointer")
         .on('click', clickHandlerLink)
         .attr("marker-end", function(d) { return d.target.isRoot ? "url(#arrowEndForHexa)" : "url(#arrowEnd)"; })
@@ -192,31 +191,30 @@ function update() {
 
         edgepaths = container.select(".edgepaths")
             .selectAll(".edgepath") //make path go along with the link provide position for link labels
-            .data(graph.links);
+            .data(graph.links, function(d) { return d.id;});
         edgepaths.exit().remove();
         edgepaths.enter()
             .append('path')
             .attr('class', 'edgepath')
             .attr('fill-opacity', 0)
             .attr('stroke-opacity', 0)
-            .attr('id', function (d, i) { return "edgepathId_" + i; })
-            .attr('data-id', function (d, i) { return i; })
+            .attr('id', function (d) { return "edgepathId_" + d.id; })
             .style("pointer-events", "none");
 
         edgelabels = container.select(".edgelabels")
             .selectAll(".edgelabel")
-            .data(graph.links)
+            .data(graph.links, function(d) { return d.id;});
         
         edgelabels.exit().remove();
         edgelabels.enter()
             .append('text')
             .attr('class', 'edgelabel')
             .attr('dy', '-3')
-            .attr('id', function (d, i) {return 'edgelabelId_' + i})
+            .attr('id', function (d) {return 'edgelabelId_' + d.id})
             .attr('font-size', 10)
             .attr('fill', '#aaa')
             .append('textPath') //To render text along the shape of a <path>, enclose the text in a <textPath> element that has an href attribute with a reference to the <path> element.
-            .attr('xlink:href', function (d, i) {return '#edgepathId_' + i})
+            .attr('xlink:href', function (d) {return '#edgepathId_' + d.id})
             .style("text-anchor", "middle")
             .attr("startOffset", "50%")
             .attr('class', 'useCursorPointer')
@@ -225,11 +223,11 @@ function update() {
 
         edgetags = container.select(".edgetags")
             .selectAll(".edgetagContainer")
-            .data(graph.links)
+            .data(graph.links, function(d) { return d.id;});
         edgetags.exit().remove();
         edgetags.enter()
             .append('g')
-            .attr('id', function (d, i) {return 'edgetagId_' + i})
+            .attr('id', function (d) {return 'edgetagId_' + d.id})
             .attr('class', 'edgetagContainer useCursorPointer')
             .on('click', clickHandlerLink)
             .each(function(d) {
@@ -290,7 +288,6 @@ function update() {
         .attr("text-anchor", "middle")
         .style("fill-opacity", 1)
         .text(function(d) { return d.value });
-
 
     force.start();
 }
