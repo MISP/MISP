@@ -281,6 +281,7 @@ class Galaxy extends AppModel
                 continue;
             }
             $cluster['GalaxyCluster']['galaxy_id'] = $existingGalaxy['Galaxy']['id'];
+            $cluster['GalaxyCluster']['locked'] = true;
             $saveResult = $this->GalaxyCluster->captureCluster($user, $cluster, $fromPull=true);
             $results['imported'] += $saveResult['imported'];
             $results['ignored'] += $saveResult['ignored'];
