@@ -129,10 +129,30 @@ class GalaxyCluster extends AppModel
         return $results;
     }
 
-    public function afterSave($results, $primary = false)
+    public function afterSave($created, $options = array())
     {
-       // update all relations IDs that was not set (UUID is set)
-       // Can happen if the relations was saved while the cluster was not existing in this istance
+        // Update all relations IDs that are unkown but saved (UUID is set)
+        parent::afterSave($created, $options);
+        $cluster = $this->data['GalaxyCluster'];
+        $this->GalaxyClusterRelation->updateAll(
+            array('GalaxyClusterRelation.referenced_galaxy_cluster_id' => $cluster['id']),
+            array(
+                'GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $cluster['uuid'],
+                'GalaxyClusterRelation.referenced_galaxy_cluster_id' => 0,
+            )
+        );
+    }
+
+    public function afterDelete()
+    {
+        // Remove all relations IDs now that the cluster is unkown
+        $cluster = $this->data['GalaxyCluster'];
+        $this->GalaxyClusterRelation->updateAll(
+            array('GalaxyClusterRelation.referenced_galaxy_cluster_id' => 0),
+            array(
+                'GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $cluster['uuid'],
+            )
+        );
     }
 
     public function beforeDelete($cascade = true)
