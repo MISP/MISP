@@ -397,8 +397,11 @@ class GalaxyClustersController extends AppController
             if (!isset($cluster['GalaxyCluster']['id'])) { 
                 $cluster['GalaxyCluster']['id'] = $id;
             }
+
             if (empty($cluster['GalaxyCluster']['elements'])) {
-                $cluster['GalaxyCluster']['GalaxyElement'] = array();
+                if (empty($cluster['GalaxyCluster']['GalaxyElement'])) {
+                    $cluster['GalaxyCluster']['GalaxyElement'] = array();
+                }
             } else {
                 $decoded = json_decode($cluster['GalaxyCluster']['elements'], true);
                 if (is_null($decoded)) {
@@ -407,6 +410,7 @@ class GalaxyClustersController extends AppController
                 }
                 $cluster['GalaxyCluster']['GalaxyElement'] = $decoded;
             }
+
             if (empty($cluster['GalaxyCluster']['authors'])) {
                 $cluster['GalaxyCluster']['authors'] = [];
             } else {

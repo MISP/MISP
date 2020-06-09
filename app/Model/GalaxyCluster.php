@@ -283,8 +283,8 @@ class GalaxyCluster extends AppModel
                         }
                         $this->GalaxyElement->updateElements($cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['id'], $elementsToSave, $delete=$deleteOldElements);
                     }
-                    if (!empty($cluster['GalaxyClusterRelation'])) {
-                        $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyClusterRelation'], $capture=true, $force=true);
+                    if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
+                        $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $capture=true, $force=true);
                     }
 
                 } else {

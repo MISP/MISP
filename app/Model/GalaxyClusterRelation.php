@@ -287,6 +287,7 @@ class GalaxyClusterRelation extends AppModel
                         }
                     } else {
                         $this->GalaxyClusterRelationTag->deleteAll(array('GalaxyClusterRelationTag.galaxy_cluster_relation_id' => $relation['GalaxyClusterRelation']['id']));
+                        // Here we only attach tags. If some are not present in the payload, they will not be deleted. As, we don't have tag soft-deletion, tags added by users will be kept.
                         $this->GalaxyClusterRelationTag->attachTags($user, $relation['GalaxyClusterRelation']['id'], $relation['GalaxyClusterRelation']['tags'], $capture=$capture);
                     }
                 }
