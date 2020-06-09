@@ -156,6 +156,16 @@ class GalaxyCluster extends AppModel
         $this->GalaxyClusterRelation->deleteAll(array('GalaxyClusterRelation.galaxy_cluster_uuid' => $this->uuid));
     }
 
+    public function arrangeDataForExport($cluster)
+    {
+        $models = array('Galaxy', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargettingClusterRelation');
+        foreach ($models as $model) {
+            $cluster['GalaxyCluster'][$model] = $cluster[$model];
+            unset($cluster[$model]);
+        }
+        return $cluster;
+    }
+
     // Respecting ACL, save a cluster, its elements and set correct fields
     public function saveCluster($user, $cluster, $allowEdit=false)
     {

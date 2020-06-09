@@ -206,13 +206,8 @@ class GalaxyClustersController extends AppController
             throw new NotFoundException('Cluster not found.');
         }
         if ($this->_isRest()) {
-            $models = array('Galaxy', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargettingClusterRelation');
-            foreach ($models as $model) {
-                $cluster['GalaxyCluster'][$model] = $cluster[$model];
-                unset($cluster[$model]);
-            }
+            $cluster = $this->GalaxyCluster->arrangeDataForExport($cluster);
             return $this->RestResponse->viewData($cluster, $this->response->type());
-            // return $this->RestResponse->viewData(array('GalaxyCluster' => $cluster['GalaxyCluster']), $this->response->type());
         } else {
             $cluster = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $cluster);
             $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);

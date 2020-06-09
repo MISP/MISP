@@ -243,6 +243,9 @@ class GalaxiesController extends AppController
             );
             $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(),$options, $full=true);
             $clusters = $this->Galaxy->GalaxyCluster->unsetFieldsForExport($clusters);
+            foreach ($clusters as $k => $cluster) {
+                $clusters[$k] = $this->Galaxy->GalaxyCluster->arrangeDataForExport($cluster);
+            }
             $content = json_encode($clusters, JSON_PRETTY_PRINT);
             $this->response->body($content);
             if ($this->request->data['download'] == 'download') {
