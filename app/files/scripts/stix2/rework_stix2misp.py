@@ -1481,14 +1481,7 @@ class ExternalStixParser(StixParser):
         network_traffic, references = self.filter_main_object(observable.objects, 'NetworkTraffic')
         attributes = self._get_attributes_from_observable(network_traffic, 'network_traffic_mapping')
         mapping = 'ip_port_references_mapping'
-        for feature in ('src', 'dst'):
-            ref = f'{feature}_ref'
-            if hasattr(network_traffic, ref):
-                reference = getattr(network_traffic, ref)
-                attributes.append(self._parse_observable_reference(references.pop(reference), mapping, feature))
-            if hasattr(network_traffic, f'{ref}s'):
-                for reference in getattr(network_traffic, f'{ref}s'):
-                    attributes.append(self._parse_observable_reference(references.pop(reference), mapping, feature))
+        attributes.extend(self.parse_network_traffic_references(network_traffic, references, 'network_traffic_references_mapping'))
         if references:
             for reference in references.values():
                 attributes.append(self._parse_observable_reference(reference, 'domain_ip_mapping'))
@@ -1500,6 +1493,18 @@ class ExternalStixParser(StixParser):
             self.add_attribute_from_observable(observable, *args)
         else:
             self.add_attributes_from_observable(observable.objects, *args)
+
+    def parse_network_traffic_references(self, network_traffic, references, mapping):
+        attributes = []
+        for feature in ('src', 'dst'):
+            ref = f'{feature}_ref'
+            if hasattr(network_traffic, ref):
+                reference = getattr(network_traffic, ref)
+                attributes.append(self._parse_observable_reference(references.pop(reference), mapping, feature))
+            if hasattr(network_traffic, f'{ref}s'):
+                for reference in getattr(network_traffic, f'{ref}s'):
+                    attributes.append(self._parse_observable_reference(references.pop(reference), mapping, feature))
+        return attributes
 
     def parse_mutex_observable(self, observable):
         args = ('mutex', 'name')
