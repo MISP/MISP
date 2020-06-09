@@ -633,18 +633,19 @@ class GalaxyCluster extends AppModel
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->Event->cacheSgids($user, true);
+            $alias = $this->alias;
             $conditions['AND']['OR'] = array(
-                'GalaxyCluster.org_id' => $user['org_id'],
+                "${alias}.org_id" => $user['org_id'],
                 array(
                     'AND' => array(
-                        'GalaxyCluster.distribution >' => 0,
-                        'GalaxyCluster.distribution <' => 4
+                        "${alias}.distribution >" => 0,
+                        "${alias}.distribution <" => 4
                     ),
                 ),
                 array(
                     'AND' => array(
-                        'GalaxyCluster.sharing_group_id' => $sgids,
-                        'GalaxyCluster.distribution' => 4
+                        "${alias}.sharing_group_id" => $sgids,
+                        "${alias}.distribution" => 4
                     )
                 )
             );
