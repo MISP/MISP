@@ -107,6 +107,14 @@ class GalaxyClusterRelationsController extends AppController
                 $errors = array(__('Invalid permssions'));
             }
 
+            if (!empty($relation['GalaxyClusterRelation']['tags'])) {
+                $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
+                $tags = array_map('trim', $tags);
+                $relation['GalaxyClusterRelation' ]['tags'] = $tags;
+            } else {
+                $relation['GalaxyClusterRelation' ]['tags'] = array();
+            }
+
             if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['GalaxyCluster']['org_id'] != $this->Auth->user()['org_id']) {
                 $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['GalaxyCluster'], $relation);
             } else {

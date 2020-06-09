@@ -186,12 +186,6 @@ class GalaxyClusterRelation extends AppModel
         }
         $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $cluster['uuid'];
 
-        if (!empty($relation['GalaxyClusterRelation']['tags'])) {
-            $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
-            $tags = array_map('trim', $tags);
-            $relation['GalaxyClusterRelation' ]['tags'] = $tags;
-        }
-
         $existingRelation = $this->find('first', array('conditions' => array(
             'GalaxyClusterRelation.galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'],
             'GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
@@ -220,7 +214,12 @@ class GalaxyClusterRelation extends AppModel
                     $tags = $relation['GalaxyClusterRelation']['tags'];
                 } elseif (!empty($relation['GalaxyClusterRelation']['GalaxyClusterRelationTag'])) {
                     $tags = $relation['GalaxyClusterRelation']['GalaxyClusterRelationTag'];
+                    $tags = Hash::extract($tags, '{n}.name');
+                } elseif (!empty($relation['GalaxyClusterRelation']['Tag'])) {
+                    $tags = $relation['GalaxyClusterRelation']['Tag'];
+                    $tags = Hash::extract($tags, '{n}.name');
                 }
+
                 if (!empty($tags)) {
                     $tagSaveResults = $this->GalaxyClusterRelationTag->attachTags($user, $this->id, $tags, $capture=$capture);
                     if (!$tagSaveResults) {
