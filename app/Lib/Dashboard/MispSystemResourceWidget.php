@@ -19,16 +19,13 @@ class MispSystemResourceWidget
 
 	public function handler($user, $options = array())
 	{
-        $treshold = (int)$params['treshold'];
 
         $drive = round((1 - disk_free_space(getcwd())/disk_total_space(getcwd()))*100,2);
-        if ($drive > $treshold) {
+        $driveFree = $drive . "%";
+        $driveFreeClass = "";
+        if ($drive > intval($options['treshold'])) {
             $driveFree = $drive . "% - [Above Treshhold]";
             $driveFreeClass = "red";
-        }
-        else {
-            $driveFree = $drive . "%";
-            $driveFreeClass = "";
         }
 
         $sysload = sys_getloadavg();
@@ -39,6 +36,7 @@ class MispSystemResourceWidget
         $memoryTotal = $matches[1];
 
         $data = array(
+                array( 'title' => __('User'), 'value' => $user['email']),
                 array( 'title' => __('System'), 'value' => php_uname()),
                 array( 'title' => __('Disk usage'), 'value' => h($driveFree), 'class' => $driveFreeClass),
                 array( 'title' => __('Load'), 'value' => h($sysload[0] . " - " . $sysload[1] . " - " . $sysload[2])),
