@@ -283,13 +283,15 @@ class Galaxy extends AppModel
             }
             $cluster['GalaxyCluster']['galaxy_id'] = $existingGalaxy['Galaxy']['id'];
             $cluster['GalaxyCluster']['locked'] = true;
-            $saveResult = $this->GalaxyCluster->captureCluster($user, $cluster, $fromPull=true);
-            $results['imported'] += $saveResult['imported'];
-            $results['ignored'] += $saveResult['ignored'];
-            $results['failed'] += $saveResult['failed'];
-            $results['errors'] = array_merge($results['errors'], $saveResult['errors']);
+            $saveResult = $this->GalaxyCluster->saveCluster($user, $cluster, $allowEdit=true);
+            if (empty($errors)) {
+                $results['imported']++;
+            } else {
+                $results['failed']++;
+                $results['errors'] = array_merge($results['errors'], $errors);
+            }
         }
-        $results['success'] = !($results['failed'] > 0 && $results['imported'] == 0 && $results['ignored'] == 0);
+        $results['success'] = !($results['failed'] > 0 && $results['imported'] == 0);
         return $results;
     }
 

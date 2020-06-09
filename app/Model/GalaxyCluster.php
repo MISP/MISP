@@ -162,11 +162,13 @@ class GalaxyCluster extends AppModel
         if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
             return false;
         }
+        $errors = array();
         $galaxy = $this->Galaxy->find('first', array('conditions' => array(
             'id' => $cluster['GalaxyCluster']['galaxy_id']
         )));
         if (empty($galaxy)) {
-            return false;
+            $errors[] = __('Galaxy not found');
+            return $errors;
         } else {
             $galaxy = $galaxy['Galaxy'];
         }
@@ -176,22 +178,27 @@ class GalaxyCluster extends AppModel
             $existingGalaxyCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid'])));
             if ($existingGalaxyCluster) {
                 if ($existingGalaxyCluster['GalaxyCluster']['galaxy_id'] != $galaxy['id']) { // cluster already exists in another galaxy
-                    return false;
+                    $errors[] = __('Cluster already exists in another galaxy');
+                return $errors;
                 }
-                if (!$existingGalaxyCluster['GalaxyCluster']['default'] && $allowEdit) {
-                    $errors = $this->editCluster($user, $cluster);
-                    return empty($errors);
-                } else {
-                    // Maybe redirect to the correct URL?
+                if (!$existingGalaxyCluster['GalaxyCluster']['default']) {
+                    $errors[] = __('Edit not allowed on default clusters');
+                    return $errors;
                 }
-                return false;
+                if (!$allowEdit) {
+                    $errors[] = __('Edit not allowed');
+                    return $errors;
+                }
+                $errors = $this->editCluster($user, $cluster);
+                return $errors;
             }
         } else {
             $cluster['GalaxyCluster']['uuid'] = CakeText::uuid();
         }
         $forkedCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['extends_uuid'])));
         if (!empty($forkedCluster) && $forkedCluster['GalaxyCluster']['galaxy_id'] != $galaxy['id']) {
-            return false; // cluster forks always have to belong to the same galaxy as the parent
+            $errors[] = __('Cluster forks always have to belong to the same galaxy as the parent');
+            return $errors;
         }
         $cluster['GalaxyCluster']['org_id'] = $user['Organisation']['id'];
         if (!isset($cluster['GalaxyCluster']['orgc_id'])) {
@@ -205,8 +212,8 @@ class GalaxyCluster extends AppModel
 
         if ($user['Role']['perm_sync']) {
             if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])) {
-                // The sync user has to have access to the sharing group in order to be able to edit it
-                return false;
+                $errors[] = __('The sync user has to have access to the sharing group in order to be able to edit it');
+            return $errors;
             }
         }
 
@@ -234,8 +241,12 @@ class GalaxyCluster extends AppModel
             if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
                 $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $capture=true);
             }
+        } else {
+            foreach($this->validationErrors as $validationError) {
+                $errors[] = $validationError[0];
+            }
         }
-        return $saveSuccess;
+        return $errors;
     }
 
     public function editCluster($user, $cluster, $fieldList = array(), $deleteOldElements=true)
