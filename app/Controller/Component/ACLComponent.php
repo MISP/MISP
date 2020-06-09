@@ -192,6 +192,7 @@ class ACLComponent extends Component
                     'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),
                     'upload_stix' => array('perm_add'),
                     'view' => array('*'),
+                    'viewClusterRelations' => array('*'),
                     'viewEventAttributes' => array('*'),
                     'viewEventGraph' => array('*'),
                     'viewGraph' => array('*'),
@@ -229,8 +230,10 @@ class ACLComponent extends Component
                 'attachMultipleClusters' => array('perm_tagger'),
                 'delete' => array(),
                 'export' => array('*'),
+                'forkTree' => array('*'),
                 'index' => array('*'),
                 'import' => array('perm_galaxy_editor'),
+                'relationsGraph' => array('*'),
                 'selectGalaxy' => array('perm_tagger'),
                 'selectGalaxyNamespace' => array('perm_tagger'),
                 'selectCluster' => array('perm_tagger'),
@@ -247,8 +250,18 @@ class ACLComponent extends Component
                 'edit' => array('perm_galaxy_editor'),
                 'index' => array('*'),
                 'pushCluster' => array('perm_sync'),
+                'updateCluster' => array('perm_galaxy_editor'),
                 'view' => array('*'),
-                'viewGalaxyMatrix' => array('*')
+                'viewGalaxyMatrix' => array('*'),
+                'viewRelations' => array('*'),
+                'viewRelationTree' => array('*'),
+            ),
+            'galaxyClusterRelations' => array(
+                'add' => array('perm_galaxy_editor'),
+                'delete' => array('perm_galaxy_editor'),
+                'edit' => array('perm_galaxy_editor'),
+                'index' => array('*'),
+                'fetchClustersFromRelation' => array('*'),
             ),
             'galaxyElements' => array(
                     'index' => array('*')

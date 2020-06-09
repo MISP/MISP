@@ -1164,18 +1164,20 @@
                             'message' => __('Are you sure you want to drop and reimport all galaxies from the submodule?')
                         ));
                     }
-                    if ($hostOrgUser) { //  TODO: Use correct permission
+                    if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/galaxies/import',
                             'text' => __('Import Galaxy Clusters')
                         ));
-                        if ($menuItem === 'view' || $menuItem === 'export') {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'element_id' => 'export',
-                                'url' => '/galaxies/export/' . h($galaxy['Galaxy']['id']),
-                                'text' => __('Export Galaxy Clusters')
-                            ));
+                    }
+                    if ($menuItem === 'view' || $menuItem === 'export') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'export',
+                            'url' => '/galaxies/export/' . h($galaxy['Galaxy']['id']),
+                            'text' => __('Export Galaxy Clusters')
+                        ));
+                        if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => '/galaxy_clusters/add/' . h($galaxy['Galaxy']['id']),
                                 'text' => __('Add Galaxy Cluster')
@@ -1194,17 +1196,19 @@
                             'url' => '/galaxy_clusters/view/' . h($id),
                             'text' => __('View Cluster')
                         ));
-                        if (!$defaultCluster) {
+                        if (!$defaultCluster && ($isSiteAdmin || $me['Role']['perm_galaxy_editor'])) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'view_cluster',
                                 'url' => '/galaxy_clusters/edit/' . h($id),
                                 'text' => __('Edit Cluster')
                             ));
                         }
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/galaxy_clusters/add/' . h($galaxy_id) . '/forkUuid:' . h($cluster['GalaxyCluster']['uuid']),
-                            'text' => __('Fork Cluster')
-                        ));
+                        if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => '/galaxy_clusters/add/' . h($galaxy_id) . '/forkUuid:' . h($cluster['GalaxyCluster']['uuid']),
+                                'text' => __('Fork Cluster')
+                            ));
+                        }
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewGraph',
@@ -1253,7 +1257,7 @@
                         'url' => '/galaxy_cluster_relations/index',
                         'text' => __('List Relationships')
                     ));
-                    if ($hostOrgUser) { 
+                    if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) { 
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
