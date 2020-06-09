@@ -263,13 +263,13 @@ class Galaxy extends AppModel
         $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
         foreach ($clusters as $k => $cluster) {
             $conditions = array();
-            if (!empty($cluster['Galaxy'])) {
-                $existingGalaxy = $this->captureGalaxy($user, $cluster['Galaxy']);
+            if (!empty($cluster['GalaxyCluster']['Galaxy'])) {
+                $existingGalaxy = $this->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy']);
             } elseif ($cluster['type']) {
                 $existingGalaxy = $this->find('first', array(
                     'recursive' => -1,
                     'fields' => array('id', 'version'),
-                    'conditions' => array('Galaxy.type' => $cluster['Galaxy']['type']),
+                    'conditions' => array('Galaxy.type' => $cluster['GalaxyCluster']['Galaxy']['type']),
                 ));
                 if (empty($existingGalaxy)) { // We don't have enough info to create the galaxy
                     $results['failed']++;
