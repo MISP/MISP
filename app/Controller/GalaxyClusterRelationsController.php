@@ -108,7 +108,7 @@ class GalaxyClusterRelationsController extends AppController
             }
 
             if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['GalaxyCluster']['org_id'] != $this->Auth->user()['org_id']) {
-                $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $relation);
+                $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['GalaxyCluster'], $relation);
             } else {
                 $errors = array(__('Only the owner organisation of the source cluster can use it as a source'));
             }

@@ -206,8 +206,11 @@ class GalaxyClustersController extends AppController
             throw new NotFoundException('Cluster not found.');
         }
         if ($this->_isRest()) {
-            $cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];
-            $cluster['GalaxyCluster']['GalaxyElement'] = $cluster['GalaxyElement'];
+            $models = array('Galaxy', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargettingClusterRelation');
+            foreach ($models as $model) {
+                $cluster['GalaxyCluster'][$model] = $cluster[$model];
+                unset($cluster[$model]);
+            }
             return $this->RestResponse->viewData($cluster, $this->response->type());
             // return $this->RestResponse->viewData(array('GalaxyCluster' => $cluster['GalaxyCluster']), $this->response->type());
         } else {
@@ -272,16 +275,19 @@ class GalaxyClustersController extends AppController
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $cluster = $this->request->data;
+            $cluster['GalaxyCluster']['galaxy_id'] = $galaxyId;
             $errors = array();
             if (empty($cluster['GalaxyCluster']['elements'])) {
-                $cluster['GalaxyCluster']['elements'] = array();
+                if (empty($cluster['GalaxyCluster']['GalaxyElement'])) {
+                    $cluster['GalaxyCluster']['GalaxyElement'] = array();
+                }
             } else {
                 $decoded = json_decode($cluster['GalaxyCluster']['elements'], true);
                 if (is_null($decoded)) {
                     $this->GalaxyCluster->validationErrors['values'][] = __('Invalid JSON');
                     $errors[] = sprintf(__('Invalid JSON'));
                 }
-                $cluster['GalaxyCluster']['elements'] = $decoded;
+                $cluster['GalaxyCluster']['GalaxyElement'] = $decoded;
             }
             if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
                 $extendId = $this->Toolbox->findIdByUuid($this->GalaxyCluster, $cluster['GalaxyCluster']['extends_uuid']);
@@ -392,14 +398,14 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['id'] = $id;
             }
             if (empty($cluster['GalaxyCluster']['elements'])) {
-                $cluster['GalaxyCluster']['elements'] = array();
+                $cluster['GalaxyCluster']['GalaxyElement'] = array();
             } else {
                 $decoded = json_decode($cluster['GalaxyCluster']['elements'], true);
                 if (is_null($decoded)) {
                     $this->GalaxyCluster->validationErrors['values'][] = __('Invalid JSON');
                     $errors[] = sprintf(__('Invalid JSON'));
                 }
-                $cluster['GalaxyCluster']['elements'] = $decoded;
+                $cluster['GalaxyCluster']['GalaxyElement'] = $decoded;
             }
             if (empty($cluster['GalaxyCluster']['authors'])) {
                 $cluster['GalaxyCluster']['authors'] = [];

@@ -110,7 +110,6 @@ class Galaxy extends AppModel
                 'tag_name' => 'misp-galaxy:' . $cluster_package['type'] . '="'
             );
             $elements = array();
-            $relations = array();
             $temp = $this->GalaxyCluster->find('all', array(
                 'conditions' => array(
                     'GalaxyCluster.galaxy_id' => $galaxies[$cluster_package['type']]
@@ -196,6 +195,7 @@ class Galaxy extends AppModel
                     }
                 }
                 if (isset($cluster['related'])) {
+                    $relations = array();
                     foreach ($cluster['related'] as $key => $relation) {
                         array('', 'referenced_galaxy_cluster_uuid');
                         $relations[] = array(
@@ -206,6 +206,9 @@ class Galaxy extends AppModel
                             'tags' => $relation['tags'],
                         );
                     }
+                    if (!empty($relations)) {
+                        $this->GalaxyCluster->GalaxyClusterRelation->saveRelations($tempUser, $cluster, $relations, $capture=true, $force=true);
+                    }
                 }
             }
             $db = $this->getDataSource();
@@ -214,8 +217,6 @@ class Galaxy extends AppModel
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
             $tempUser = array('Role' => array('perm_galaxy_editor' => 1, 'perm_tag_editor' => 1, 'perm_site_admin' => 1)); // only site-admin are authorized to update galaxies
-            // $this->GalaxyCluster->GalaxyClusterRelation->addRelations($tempUser, $relations, $capture=true);
-            $this->GalaxyCluster->GalaxyClusterRelation->saveRelation($tempUser, $relations, $capture=true, $force=true);
         }
         return true;
     }
