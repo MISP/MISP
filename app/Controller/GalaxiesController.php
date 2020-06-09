@@ -114,9 +114,12 @@ class GalaxiesController extends AppController
 
     public function delete($id)
     {
-        if (!is_numeric($id)) {
+        if (Validation::uuid($id)) {
+            $id = $this->Toolbox->findIdByUuid($this->Galaxy, $id);
+        } elseif (!is_numeric($id)) {
             throw new NotFoundException('Invalid galaxy.');
         }
+
         $galaxy = $this->Galaxy->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Galaxy.id' => $id)
