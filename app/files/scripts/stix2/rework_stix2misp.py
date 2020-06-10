@@ -187,6 +187,11 @@ class StixParser():
         return {feature: value}
 
     @staticmethod
+    def _parse_network_traffic_protocol(protocol):
+        return {'type': 'text', 'value': protocol, 'to_ids': False,
+                'object_relation': f'layer{stix2misp_mapping.connection_protocols[protocol]}-protocol'}
+
+    @staticmethod
     def _parse_observable_reference(reference, mapping, feature=None):
         attribute = {
             'value': reference.value,
@@ -781,11 +786,6 @@ class StixFromMISPParser(StixParser):
         return attributes
 
     @staticmethod
-    def _parse_network_traffic_protocol(protocol):
-        return {'type': 'text', 'value': protocol, 'to_ids': False,
-                'object_relation': f'layer{stix2misp_mapping.connection_protocols[protocol]}-protocol'}
-
-    @staticmethod
     def _parse_number(observable):
         return observable['0'].get('number')
 
@@ -1212,10 +1212,11 @@ class ExternalStixParser(StixParser):
                            ('domain-name',): 'parse_domain_ip_observable',
                            ('domain-name', 'ipv4-addr'): 'parse_domain_ip_observable',
                            ('domain-name', 'ipv6-addr'): 'parse_domain_ip_observable',
-                           ('domain-name', 'ipv4-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
-                           ('domain-name', 'ipv6-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
-                           ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): 'parse_ip_port_or_network_socket_observable',
-                           ('domain-name', 'network-traffic'): 'parse_network_socket_observable',
+                           ('domain-name', 'ipv4-addr', 'ipv6-addr'): 'parse_domain_ip_observable',
+                           ('domain-name', 'ipv4-addr', 'network-traffic'): 'parse_domain_ip_network_traffic_observable',
+                           ('domain-name', 'ipv6-addr', 'network-traffic'): 'parse_domain_ip_network_traffic_observable',
+                           ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): 'parse_domain_ip_network_traffic_observable',
+                           ('domain-name', 'network-traffic'): 'parse_domain_network_traffic_observable',
                            ('domain-name', 'network-traffic', 'url'): 'parse_url_observable',
                            ('email-addr',): 'parse_email_address_observable',
                            ('email-addr', 'email-message'): 'parse_email_observable',
@@ -1226,6 +1227,7 @@ class ExternalStixParser(StixParser):
                            ('ipv6-addr',): 'parse_ip_address_observable',
                            ('ipv4-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
                            ('ipv6-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
+                           ('ipv4-addr', 'ipv6-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
                            ('mac-addr',): 'parse_mac_address_observable',
                            ('mutex',): 'parse_mutex_observable',
                            ('process',): 'parse_process_observable',
@@ -1385,6 +1387,13 @@ class ExternalStixParser(StixParser):
     ################################################################################
 
     @staticmethod
+    def _fetch_reference_type(references, object_type):
+        for key, reference in references.items():
+            if isinstance(reference, getattr(stix2, object_type)):
+                return key
+        return None
+
+    @staticmethod
     def _get_attributes_from_observable(stix_object, mapping):
         attributes = []
         for key, value in stix_object.items():
@@ -1392,6 +1401,15 @@ class ExternalStixParser(StixParser):
                 attribute = deepcopy(getattr(stix2misp_mapping, mapping)[key])
                 attribute.update({'value': value, 'to_ids': False})
                 attributes.append(attribute)
+        return attributes
+
+    def get_network_traffic_attributes(self, network_traffic, references):
+        attributes = self._get_attributes_from_observable(network_traffic, 'network_traffic_mapping')
+        mapping = 'network_traffic_references_mapping'
+        attributes.extend(self.parse_network_traffic_references(network_traffic, references, mapping))
+        if references:
+            for reference in references.values():
+                attributes.append(self._parse_observable_reference(reference, mapping, 'dst'))
         return attributes
 
     @staticmethod
@@ -1408,6 +1426,22 @@ class ExternalStixParser(StixParser):
         for attribute in attributes:
             file.add_attribute(**attribute)
         self.misp_event.add_object(**file)
+
+    @staticmethod
+    def _is_reference(network_traffic, reference):
+        for feature in ('src', 'dst'):
+            for reference_type in (f'{feature}_{ref}' for ref in ('ref', 'refs')):
+                if reference in network_traffic.get(reference_type, []):
+                    return True
+        return False
+
+    @staticmethod
+    def _network_traffic_has_extension(network_traffic):
+        if not hasattr(network_traffic, 'extensions'):
+            return None
+        if 'socket-ext' in network_traffic.extensions:
+            return 'parse_socket_extension_observable'
+        return None
 
     def parse_asn_observable(self, observable):
         autonomous_system, references = self.filter_main_object(observable.objects, 'AutonomousSystem')
@@ -1426,6 +1460,27 @@ class ExternalStixParser(StixParser):
             for reference in references.values():
                 attributes.append(self._parse_observable_reference(reference, mapping))
         self.handle_import_case(observable, attributes, 'domain-ip')
+
+    def parse_domain_ip_network_traffic_observable(self, observable):
+        network_traffic, references = self.filter_main_object(observable.objects, 'NetworkTraffic')
+        extension = self._network_traffic_has_extension(network_traffic)
+        if extension:
+            attributes, object_name = getattr(self, extension)(network_traffic, references)
+            return self.handle_import_case(observable, attributes, object_name)
+        if self._required_protocols(network_traffic.protocols):
+            attributes = self.parse_network_connection_object(network_traffic, references)
+            return self.handle_import_case(observable, attributes, 'network-connection')
+        attributes, object_name = self.parse_network_traffic_objects(network_traffic, references)
+        self.handle_import_case(observable, attributes, object_name)
+
+    def parse_domain_network_traffic_observable(self, observable):
+        network_traffic, references = self.filter_main_object(observable.objects, 'NetworkTraffic')
+        extension = self._network_traffic_has_extension(network_traffic)
+        if extension:
+            attributes, object_name = getattr(self, extension)(network_traffic, references)
+            return self.handle_import_case(observable, attributes, object_name)
+        attributes = self.parse_network_connection_object(network_traffic, references)
+        self.handle_import_case(observable, attributes, 'network-connection')
 
     def parse_email_observable(self, observable):
         email_message, references = self.filter_main_object(observable.objects, 'EmailMessage')
@@ -1479,13 +1534,20 @@ class ExternalStixParser(StixParser):
 
     def parse_ip_network_traffic_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable.objects, 'NetworkTraffic')
+        extension = self._network_traffic_has_extension(network_traffic)
+        if extension:
+            attributes, object_name = getattr(self, extension)(network_traffic, references)
+            return self.handle_import_case(observable, attributes, object_name)
+        attributes = self.parse_ip_port_object(network_traffic, references)
+        self.handle_import_case(observable, attributes, 'ip-port')
+
+    def parse_ip_port_object(self, network_traffic, references):
         attributes = self._get_attributes_from_observable(network_traffic, 'network_traffic_mapping')
-        mapping = 'ip_port_references_mapping'
-        attributes.extend(self.parse_network_traffic_references(network_traffic, references, 'network_traffic_references_mapping'))
+        attributes.extend(self.parse_network_traffic_references(network_traffic, references, 'ip_port_references_mapping'))
         if references:
             for reference in references.values():
                 attributes.append(self._parse_observable_reference(reference, 'domain_ip_mapping'))
-        self.handle_import_case(observable, attributes, 'ip-port')
+        return attributes
 
     def parse_mac_address_observable(self, observable):
         args = ('mac-address', 'value')
@@ -1493,6 +1555,17 @@ class ExternalStixParser(StixParser):
             self.add_attribute_from_observable(observable, *args)
         else:
             self.add_attributes_from_observable(observable.objects, *args)
+
+    def parse_network_connection_object(self, network_traffic, references):
+        attributes = self.get_network_traffic_attributes(network_traffic, references)
+        attributes.extend(self.parse_protocols(network_traffic.protocols))
+        return attributes
+
+    def parse_network_traffic_objects(self, network_traffic, references):
+        _has_domain = self._fetch_reference_type(references.values(), 'DomainName')
+        if _has_domain and _is_reference(network_traffic, _has_domain):
+            return self.parse_network_connection_object(network_traffic, references), 'network-connection'
+        return self.parse_ip_port_object(network_traffic, references), 'ip-port'
 
     def parse_network_traffic_references(self, network_traffic, references, mapping):
         attributes = []
@@ -1513,6 +1586,16 @@ class ExternalStixParser(StixParser):
         else:
             self.add_attributes_from_observable(observable.objects, *args)
 
+    def parse_protocols(self, protocols):
+        attributes = []
+        protocols = (protocol.upper() for protocol in protocols)
+        for protocol in protocols:
+            try:
+                attributes.append(self._parse_network_traffic_protocol(protocol))
+            except KeyError:
+                print(f'Unknown protocol in network-traffic observable object: {protocol}', file=sys.stderr)
+        return attributes
+
     def parse_regkey_observable(self, observable):
         attributes = []
         for observable_object in observable.objects.values():
@@ -1521,6 +1604,20 @@ class ExternalStixParser(StixParser):
                 for registry_value in observable_object['values']:
                     attributes.extend(self._get_attributes_from_observable(registry_value, 'regkey_mapping'))
         self.handle_import_case(observable, attributes, 'registry-key')
+
+    def parse_socket_extension_observable(self, network_traffic, references):
+        attributes = self.get_network_traffic_attributes(network_traffic, references)
+        for key, value in network_traffic.extensions['socket-ext'].items():
+            if key in stix2misp_mapping.network_socket_extension_mapping:
+                if key.startswith('is_') and not value:
+                    continue
+                attribute = {
+                    'value': key.split('_')[1] if key.startswith('is_') else value,
+                    'to_ids': False
+                }
+                attribute.update(stix2misp_mapping.network_socket_extension_mapping[key])
+                attributes.append(attribute)
+        return attributes, 'network-socket'
 
     def parse_url_observable(self, observable):
         network_traffic, references = self.filter_main_object(observable.objects, 'NetworkTraffic')
@@ -1537,6 +1634,13 @@ class ExternalStixParser(StixParser):
             if hasattr(observable_object, 'hashes'):
                 attributes.extend(self._get_attributes_from_observable(observable_object.hashes, 'x509_mapping'))
         self.handle_import_case(observable, attributes, 'x509')
+
+    @staticmethod
+    def _required_protocols(protocols):
+        protocols = tuple(protocol.upper() for protocol in protocols)
+        if any(protocol not in ('TCP', 'IP') for protocol in protocols):
+            return True
+        return False
 
     ################################################################################
     ##                         PATTERN PARSING FUNCTIONS.                         ##
