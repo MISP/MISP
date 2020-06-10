@@ -250,6 +250,7 @@ class ACLComponent extends Component
                 'edit' => array('perm_galaxy_editor'),
                 'index' => array('*'),
                 'pushCluster' => array('perm_sync'),
+                'restSearch' => array('*'),
                 'updateCluster' => array('perm_galaxy_editor'),
                 'view' => array('*'),
                 'viewGalaxyMatrix' => array('*'),
