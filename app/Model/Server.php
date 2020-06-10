@@ -2094,7 +2094,7 @@ class Server extends AppModel
                         ),
                         'CustomAuth_required' => array(
                                 'level' => 2,
-                                'description' => __('If this setting is enabled then the only way to authenticate will be using the custom header. Altnertatively you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.'),
+                                'description' => __('If this setting is enabled then the only way to authenticate will be using the custom header. Alternatively, you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',
