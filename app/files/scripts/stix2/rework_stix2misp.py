@@ -279,12 +279,11 @@ class StixParser():
     def _choose_with_priority(container, first_choice, second_choice):
         return first_choice if first_choice in container else second_choice
 
-    @staticmethod
-    def filter_main_object(observable, main_type):
+    def filter_main_object(self, observable, main_type, test_function='_standard_test_filter'):
         references = {}
         main_objects = []
         for key, value in observable.items():
-            if isinstance(value, getattr(stix2, main_type)):
+            if getattr(self, test_function)(value, main_type):
                 main_objects.append(value)
             else:
                 references[key] = value
@@ -330,6 +329,15 @@ class StixParser():
         except KeyError:
             pass
         return misp_object
+
+    @staticmethod
+    def _process_test_filter(value, main_type):
+        _is_main_process = any(feature in value for feature in ('parent_ref', 'child_refs'))
+        return isinstance(value, getattr(stix2, main_type)) and _is_main_process
+
+    @staticmethod
+    def _standard_test_filter(value, main_type):
+        return isinstance(value, getattr(stix2, main_type))
 
 
 class StixFromMISPParser(StixParser):
@@ -811,30 +819,19 @@ class StixFromMISPParser(StixParser):
         return port_observable['src_port'] if 'src_port' in port_observable else port_observable['dst_port']
 
     def parse_process_observable(self, observable):
-        references = {}
-        for key, value in observable.items():
-            if isinstance(value, stix2.Process) and hasattr(value, 'name'):
-                process = value
-            else:
-                references[key] = value
+        process, references = self.filter_main_object(observable.objects, 'Process', test_function='_process_test_filter')
         attributes = self.fill_observable_attributes(process, 'process_mapping')
         if hasattr(process, 'parent_ref'):
-            attributes.append(self._parse_process_reference(references[process.parent_ref], 'parent'))
+            attributes.extend(self.fill_observable_attributes(references[process.parent_ref], 'parent_process_reference_mapping'))
         if hasattr(process, 'child_refs'):
             for reference in process.child_refs:
-                attributes.append(self._parse_process_reference(references[reference], 'child'))
+                attributes.extend(self.fill_observable_attributes(references[reference], 'child_process_reference_mapping'))
         if hasattr(process, 'binary_ref'):
             reference = references[process.binary_ref]
             attribute = deepcopy(stix2misp_mapping.process_image_mapping)
             attribute.update({'value': reference.name, 'to_ids': False})
             attributes.append(attribute)
         return attributes
-
-    @staticmethod
-    def _parse_process_reference(reference, feature):
-        attribute = deepcopy(stix2misp_mapping.pid_attribute_mapping)
-        attribute.update({'object_relation': f'{feature}-pid', 'value': reference.pid, 'to_ids': False})
-        return attribute
 
     @staticmethod
     def _parse_regkey_attribute(observable):
@@ -1226,6 +1223,7 @@ class ExternalStixParser(StixParser):
                            ('email-addr', 'email-message', 'file'): 'parse_email_observable',
                            ('email-message',): 'parse_email_observable',
                            ('file',): 'parse_file_observable',
+                           ('file', 'process'): 'parse_process_observable',
                            ('ipv4-addr',): 'parse_ip_address_observable',
                            ('ipv6-addr',): 'parse_ip_address_observable',
                            ('ipv4-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
@@ -1595,6 +1593,26 @@ class ExternalStixParser(StixParser):
             self.add_attribute_from_observable(observable, *args)
         else:
             self.add_attributes_from_observable(observable.objects, *args)
+
+    def parse_process_observable(self, observable):
+        process, references = self.filter_main_object(observable.objects, 'Process', test_function='_process_test_filter')
+        attributes = self._get_attributes_from_observable(process, 'process_mapping')
+        if hasattr(process, 'parent_ref'):
+            attributes.extend(self._get_attributes_from_observable(references.pop(process.parent_ref), 'parent_process_reference_mapping'))
+        if hasattr(process, 'child_refs'):
+            for reference in process.child_refs:
+                attributes.extend(self._get_attributes_from_observable(references.pop(reference), 'child_process_reference_mapping'))
+        if hasattr(process, 'binary_ref'):
+            reference = references.pop(process.binary_ref)
+            attribute = {
+                'value': reference.name,
+                'to_ids': False
+            }
+            attribute.update(stix2misp_mapping.process_image_mapping)
+            attributes.append(attribute)
+        if references:
+            print(f'Unable to parse the following observable objects: {references}', file=sys.stderr)
+        self.handle_import_case(observable, attributes, 'process')
 
     def parse_protocols(self, protocols):
         attributes = []

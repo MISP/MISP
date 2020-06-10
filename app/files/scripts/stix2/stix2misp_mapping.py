@@ -245,6 +245,12 @@ process_mapping = {'name': process_name_mapping,
                    'process:child_refs[*].pid': {'type': 'text', 'object_relation': 'child-pid'},
                    'process:binary_ref.name': process_image_mapping}
 
+child_process_reference_mapping = {'pid': {'type': 'text', 'object_relation': 'child-pid'}}
+
+parent_process_reference_mapping = {'command_line': {'type': 'text', 'object_relation': 'parent-command-line'},
+                                    'pid': {'type': 'text', 'object_relation': 'parent-pid'},
+                                    'process-name': {'type': 'text', 'object_relation': 'parent-process-name'}}
+
 regkey_mapping = {'data': data_attribute_mapping,
                   'windows-registry-key:values.data': data_attribute_mapping,
                   'data_type': data_type_attribute_mapping,
