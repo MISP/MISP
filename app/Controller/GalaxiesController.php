@@ -523,7 +523,7 @@ class GalaxiesController extends AppController
             if (empty($object)) {
                 throw new MethodNotAllowedException('Invalid attribute.');
             }
-            $object[0] = $this->Attribute->Event->massageTags($object[0], 'Attribute');
+            $object[0] = $this->Attribute->Event->massageTags($this->Auth->user(), $object[0], 'Attribute');
         } elseif ($scope == 'tag_collection') {
             $this->loadModel('TagCollection');
             $object = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $id)));
