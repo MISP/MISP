@@ -265,6 +265,12 @@ class StixParser():
         else:
             self.misp_event.info = f'Imported with MISP import script for {self.stix_version}'
 
+    @staticmethod
+    def _parse_user_account_groups(groups):
+        attributes = [{'type': 'text', 'object_relation': 'group', 'to_ids': False,
+                       'disable_correlation': True, 'value': group} for group in groups]
+        return attributes
+
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
     ################################################################################
@@ -889,10 +895,7 @@ class StixFromMISPParser(StixParser):
         if 'extensions' in observable and 'unix-account-ext' in observable['extensions']:
             extension = observable['extensions']['unix-account-ext']
             if 'groups' in extension:
-                for group in extension['groups']:
-                    attributes.append({'type': 'text', 'object_relation': 'group',
-                                       'to_ids': False, 'disable_correlation': True,
-                                       'value': group})
+                attribute.extend(self._parse_user_account_groups(extension['groups']))
             attributes.extend(self.fill_observable_attributes(extension, 'user_account_mapping'))
         return attributes
 
@@ -1394,6 +1397,13 @@ class ExternalStixParser(StixParser):
         return None
 
     @staticmethod
+    def _fetch_user_account_type(observable_objects):
+        for observable_object in observable_objects.values():
+            if hasattr(observable_object, 'extensions') or any(key not in ('user_id', 'credential', 'type') for key in observable_object):
+                return 'user-account', 'user_account_mapping'
+        return 'credential', 'credential_mapping'
+
+    @staticmethod
     def _get_attributes_from_observable(stix_object, mapping):
         attributes = []
         for key, value in stix_object.items():
@@ -1626,6 +1636,20 @@ class ExternalStixParser(StixParser):
             for reference in references.values():
                 attributes.append(self._parse_observable_reference(reference, 'url_mapping'))
         self.handle_import_case(observable, attributes, 'url')
+
+    def parse_user_account_extension(self, extension):
+        attributes = self._parse_user_account_groups(extension['groups']) if 'groups' in extension else []
+        attributes.extend(self._get_attributes_from_observable(extension, 'user_account_mapping'))
+        return attributes
+
+    def parse_user_account_observable(self, observable):
+        attributes = []
+        object_name, mapping = self._fetch_user_account_type(observable.objects)
+        for observable_object in observable.objects.values():
+            attributes.extend(self._get_attributes_from_observable(observable_object, mapping))
+            if hasattr(observable_object, 'extensions') and observable_object.extensions.get('unix-account-ext'):
+                attributes.extend(self.parse_user_account_extension(observable_object.extensions['unix-account-ext']))
+        self.handle_import_case(observable, attributes, object_name)
 
     def parse_x509_observable(self, observable):
         attributes = []
