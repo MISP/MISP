@@ -819,7 +819,7 @@ class StixFromMISPParser(StixParser):
         return port_observable['src_port'] if 'src_port' in port_observable else port_observable['dst_port']
 
     def parse_process_observable(self, observable):
-        process, references = self.filter_main_object(observable.objects, 'Process', test_function='_process_test_filter')
+        process, references = self.filter_main_object(observable, 'Process', test_function='_process_test_filter')
         attributes = self.fill_observable_attributes(process, 'process_mapping')
         if hasattr(process, 'parent_ref'):
             attributes.extend(self.fill_observable_attributes(references[process.parent_ref], 'parent_process_reference_mapping'))
@@ -892,7 +892,7 @@ class StixFromMISPParser(StixParser):
         if 'extensions' in observable and 'unix-account-ext' in observable['extensions']:
             extension = observable['extensions']['unix-account-ext']
             if 'groups' in extension:
-                attribute.extend(self._parse_user_account_groups(extension['groups']))
+                attributes.extend(self._parse_user_account_groups(extension['groups']))
             attributes.extend(self.fill_observable_attributes(extension, 'user_account_mapping'))
         return attributes
 
