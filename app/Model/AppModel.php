@@ -1419,6 +1419,7 @@ class AppModel extends Model
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "ALTER TABLE `servers` ADD `push_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_sightings`;";
+                $sqlArray[] = "ALTER TABLE `servers` ADD `pull_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_galaxy_clusters`;";
                 $indexArray[] = array('galaxy_clusters', 'org_id');
                 $indexArray[] = array('galaxy_clusters', 'orgc_id');
                 $indexArray[] = array('galaxy_clusters', 'sharing_group_id');

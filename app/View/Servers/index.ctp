@@ -29,6 +29,7 @@
             <th><?php echo $this->Paginator->sort('pull');?></th>
             <th><?php echo $this->Paginator->sort('push_sightings', 'Push Sightings');?></th>
             <th><?php echo $this->Paginator->sort('push_galaxy_clusters', 'Push Clusters');?></th>
+            <th><?php echo $this->Paginator->sort('pull_galaxy_clusters', 'Pull Clusters');?></th>
             <th><?php echo $this->Paginator->sort('caching_enabled', 'Cache');?></th>
             <th><?php echo $this->Paginator->sort('unpublish_event (push event)');?></th>
             <th><?php echo $this->Paginator->sort('publish_without_email (pull event)');?></th>
@@ -122,6 +123,7 @@ foreach ($servers as $row_pos => $server):
         <td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['pull']? __('Yes') : __('No')); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (<?php echo __('Rules');?>)</span></td>
         <td class="short"><span class="<?php echo ($server['Server']['push_sightings'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['push_sightings'] ? __('Yes') : __('No')); ?>"></span></td>
         <td class="short"><span class="<?php echo ($server['Server']['push_galaxy_clusters'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['push_galaxy_clusters'] ? __('Yes') : __('No')); ?>"></span></td>
+        <td class="short"><span class="<?php echo ($server['Server']['pull_galaxy_clusters'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['pull_galaxy_clusters'] ? __('Yes') : __('No')); ?>"></span></td>
         <td>
             <?php
                 if ($server['Server']['caching_enabled']) {
