@@ -332,7 +332,7 @@ class GalaxyClusterRelation extends AppModel
                 $referencedCluster = $this->SourceCluster->fetchGalaxyClusters($user, $options);
                 if (empty($referencedCluster)) {
                     $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Referenced cluster not found'), __('relation to (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'], $clusterUuid));
-                    unset($relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id']);
+                    $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = 0;
                 } else {
                     $referencedCluster = $referencedCluster[0];
                     $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $referencedCluster['SourceCluster']['id'];
