@@ -183,6 +183,7 @@ class GalaxyCluster extends AppModel
             $galaxy = $galaxy['Galaxy'];
         }
         unset($cluster['GalaxyCluster']['id']);
+        $cluster['GalaxyCluster']['locked'] = false;
         if (isset($cluster['GalaxyCluster']['uuid'])) {
             // check if the uuid already exists
             $existingGalaxyCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid'])));
@@ -439,11 +440,11 @@ class GalaxyCluster extends AppModel
                 'conditions' => array('id' =>  $this->id),
                 'recursive' => -1
             ));
-            if (!empty($cluster['GalaxyElement'])) {
-                $this->GalaxyElement->captureElements($user, $cluster['GalaxyElement'],  $savedCluster['GalaxyCluster']['id']);
+            if (!empty($cluster['GalaxyCluster']['GalaxyElement'])) {
+                $this->GalaxyElement->captureElements($user, $cluster['GalaxyCluster']['GalaxyElement'],  $savedCluster['GalaxyCluster']['id']);
             }
-            if (!empty($cluster['GalaxyClusterRelation'])) {
-                $saveResult = $this->GalaxyClusterRelation->captureRelations($user, $savedCluster, $cluster['GalaxyClusterRelation'],  $fromPull=true, $orgId=$orgId);
+            if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
+                $saveResult = $this->GalaxyClusterRelation->captureRelations($user, $savedCluster, $cluster['GalaxyCluster']['GalaxyClusterRelation'],  $fromPull=true, $orgId=$orgId);
                 if ($saveResult['failed'] > 0) {
                     $results['errors'][] = __('Issues while capturing relations have been logged.');
                 }
@@ -1271,7 +1272,7 @@ class GalaxyCluster extends AppModel
         return $error;
     }
 
-    public function pullGalaxyClusters($user, $server)
+    public function pullGalaxyClusters($user, $server, $technique = 'full')
     {
         $version = explode('.', $server['Server']['version']);
         if (
@@ -1279,8 +1280,11 @@ class GalaxyCluster extends AppModel
         ) {
             return 0;
         }
-        $clusterIds = $this->__getClusterIdListBasedOnPullTechnique($technique, $server, $serverModel);
-        $server['Server']['version'] = $this->getRemoteVersion($id);
+        $clusterIds = $this->__getClusterIdListBasedOnPullTechnique($technique, $server);
+        if (!isset($server['Server']['version'])) {
+            $this->Server = ClassRegistry::init('Server');
+            $server['Server']['version'] = $this->Server->getRemoteVersion($server['Server']['id']);
+        }
         $successes = array();
         $fails = array();
         // now process the $clusterIds to pull each of the events sequentially
@@ -1290,36 +1294,34 @@ class GalaxyCluster extends AppModel
                 $this->__pullGalaxyCluster($clusterId, $successes, $fails, $server, $user);
             }
         }
+        return count($successes);
     }
 
     private function __getClusterIdListBasedOnPullTechnique($technique, $server)
     {
         $this->Server = ClassRegistry::init('Server');
-        if ("full" === $technique) {
-            $clusterIds = $this->Server->getClusterIdsFromServer($server, $performLocalDelta=false);
-            if ($clusterIds === 403) {
-                return array('error' => array(1, null));
-            } elseif (is_string($clusterIds)) {
-                return array('error' => array(2, $clusterIds));
-            }
-        } elseif ("update" === $technique) {
+        if ("update" === $technique) {
             $elligibleClusters = $this->GalaxyCluster->getElligibleClustersToPull($user);
-            $clusterIds = $this->Server->getClusterIdsFromServer($server, $performLocalDelta=true, $elligibleClusters);
+            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=true, $elligibleClusters=$elligibleClusters);
             if ($clusterIds === 403) {
                 return array('error' => array(1, null));
             } elseif (is_string($clusterIds)) {
                 return array('error' => array(2, $clusterIds));
             }
         } else {
-            return array('error' => array(4, null));
+            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=false);
+            if ($clusterIds === 403) {
+                return array('error' => array(1, null));
+            } elseif (is_string($clusterIds)) {
+                return array('error' => array(2, $clusterIds));
+            }
         }
         return $clusterIds;
     }
 
     private function __pullGalaxyCluster($clusterId, &$successes, &$fails, $server, $user)
     {
-        $cluster = $eventModel->downloadGalaxyClusterFromServer($clusterId, $server);
-
+        $cluster = $this->downloadGalaxyClusterFromServer($clusterId, $server);
         if (!empty($cluster)) {
             $cluster = $this->__updatePulledClusterBeforeInsert($cluster, $server, $user);
             $result = $this->captureCluster($user, $cluster, $fromPull=true, $orgId=$server['Server']['org_id']);
@@ -1331,7 +1333,19 @@ class GalaxyCluster extends AppModel
         } else {
             $fails[$clusterId] = __('failed downloading the galaxy cluster');
         }
-        return true;
+    }
+
+    public function downloadGalaxyClusterFromServer($clusterId, $server, $HttpSocket=null)
+    {
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $uri = $url . '/galaxy_clusters/view/' . $clusterId;
+        $response = $HttpSocket->get($uri, $data = '', $request);
+        if ($response->isOk()) {
+            return json_decode($response->body, true);
+        }
+        return null;
     }
 
     private function __updatePulledClusterBeforeInsert($cluster, $server, $user)
@@ -1352,14 +1366,14 @@ class GalaxyCluster extends AppModel
                     break;
             }
 
-            if (!empty($cluster['GalaxyClusterRelation'])) {
-                foreach ($cluster['GalaxyClusterRelation'] as $k => $relation) {
+            if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
+                foreach ($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $k => $relation) {
                     switch ($relation['distribution']) {
                         case 1:
-                            $cluster['GalaxyClusterRelation'][$k]['distribution'] = 0;
+                            $cluster['GalaxyCluster']['GalaxyClusterRelation'][$k]['distribution'] = 0;
                             break;
                         case 2:
-                            $cluster['GalaxyClusterRelation'][$k]['distribution'] = 1;
+                            $cluster['GalaxyCluster']['GalaxyClusterRelation'][$k]['distribution'] = 1;
                             break;
                     }
                 }

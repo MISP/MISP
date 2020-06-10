@@ -2688,12 +2688,15 @@ class Server extends AppModel
             $job->saveField('message', 'Pulling sightings.');
         }
         $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
-        if ($jobId) {
-            $job->saveField('progress', 90);
-            $job->saveField('message', 'Pulling galaxy clusters.');
+        $pulledClusters = 0;
+        if (isset($server['Server']['pull_galaxy_clusters']) && $server['Server']['pull_galaxy_clusters']) {
+            if ($jobId) {
+                $job->saveField('progress', 90);
+                $job->saveField('message', 'Pulling galaxy clusters.');
+            }
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
         }
-        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server);
         if ($jobId) {
             $job->saveField('progress', 100);
             $job->saveField('message', 'Pull completed.');
@@ -2718,7 +2721,7 @@ class Server extends AppModel
                 count($fails)
             )
         ));
-        return array($successes, $fails, $pulledProposals, $pulledSightings);
+        return array($successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters);
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -2803,7 +2806,7 @@ class Server extends AppModel
                             }
                         }
                     } else {
-                        $elligibleClusters = Hash::extract($clusterArray, '{n}.GalaxyCluster.uuid');
+                        $elligibleClusters = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid');
                     }
                 }
                 return array_keys($elligibleClusters);

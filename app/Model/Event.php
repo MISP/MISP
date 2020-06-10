@@ -1429,7 +1429,7 @@ class Event extends AppModel
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        $uri = $url . sprintf('/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1/includeCustomGalaxyCluster:%s', $server['Server']['sync_custom_clusters'] ? '1' : '0');
+        $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->isOk()) {
             return json_decode($response->body, true);
