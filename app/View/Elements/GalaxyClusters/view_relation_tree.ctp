@@ -213,11 +213,18 @@ echo $this->element('genericElements/assetLoader', array(
             .style("stroke-width", function(d) {
                 var linkWidth = 2;
                 var linkMaxWidth = 4;
+                var tag = false;
                 if (d.source.Relation !== undefined && d.source.Relation.Tag !== undefined) {
-                    linkWidth = d.source.Relation.Tag.numerical_value / 100 * linkMaxWidth;
+                    tag = d.source.Relation.Tag;
                 } else if (d.target.Relation !== undefined && d.target.Relation.Tag !== undefined) {
-                    linkWidth = d.target.Relation.Tag.numerical_value / 100 * linkMaxWidth;
+                    tag = d.target.Relation.Tag;
                 }
+                if (tag !== false) {
+                    var avg = getAverageNumericalValue(tag);
+                    d.numerical_avg = avg;
+                    linkWidth = avg / 100 * linkMaxWidth;
+                }
+                linkWidth = Math.max(linkWidth, 1);
                 return linkWidth + 'px';
             })
             .attr("d", function(d) {
@@ -376,6 +383,18 @@ echo $this->element('genericElements/assetLoader', array(
             total += bcr.width;
         }
         return total;
+    }
+
+    function getAverageNumericalValue(tags) {
+        var total = 0;
+        var validTagCount = 0;
+        tags.forEach(function(tag) {
+            if (tag.numerical_value !== undefined) {
+                total += parseInt(tag.numerical_value);
+                validTagCount++;
+            }
+        });
+        return validTagCount > 0 ? total / validTagCount : 0;
     }
 
     function nodeDbclick(d) {
