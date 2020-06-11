@@ -229,6 +229,19 @@ class GalaxyClustersController extends AppController
 
     public function add($galaxyId)
     {
+        if (Validation::uuid($galaxyId)) {
+            $temp = $this->GalaxyCluster->Galaxy->find('first', array(
+                'recursive' => -1,
+                'fields' => array('Galaxy.id', 'Galaxy.uuid'),
+                'conditions' => array('Galaxy.uuid' => $galaxyId)
+            ));
+            if ($temp === null) {
+                throw new NotFoundException(__('Invalid galaxy'));
+            }
+            $galaxyId = $temp['Galaxy']['id'];
+        } elseif (!is_numeric($galaxyId)) {
+            throw new NotFoundException(__('Invalid galaxy'));
+        }
         $this->loadModel('Attribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         unset($distributionLevels[5]);
