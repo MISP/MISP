@@ -6622,7 +6622,7 @@ class Event extends AppModel
                         ));
                         if (!empty($temp)) {
                             if (!$user['Role']['perm_site_admin'] && $user['org_id'] != $event['Event']['orgc_id']) {
-                                if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgsids))) {
+                                if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgids))) {
                                     unset($object['ObjectReference'][$k2]);
                                     continue;
                                 }
