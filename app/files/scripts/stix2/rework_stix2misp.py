@@ -1373,15 +1373,16 @@ class ExternalStixParser(StixParser):
             self.add_stix2_pattern_object(indicator)
 
     def parse_vulnerability(self, vulnerability):
-        misp_object = self.create_misp_object(vulnerability)
-        self.fill_misp_object(misp_object, vulnerability, 'vulnerability_mapping')
+        attributes = self._get_attributes_from_observable(vulnerability, 'vulnerability_mapping')
         if hasattr(vulnerability, 'external_references'):
             for reference in vulnerability.external_references:
                 if reference['source_name'] == 'url':
                     attribute = deepcopy(stix2misp_mapping.references_attribute_mapping)
                     attribute['value'] = reference['url']
-                    misp_object.add_attribute(**attribute)
-        self.misp_event.add_object(**misp_object)
+                    attributes.append(attribute)
+        if len(attributes) == 1 and attributes[0]['object_relation'] == 'id':
+            attributes[0]['type'] = 'vulnerability'
+        self.handle_import_case(vulnerability, attributes, 'vulnerability')
 
     ################################################################################
     ##                        OBSERVABLE PARSING FUNCTIONS                        ##
