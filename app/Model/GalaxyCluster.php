@@ -412,6 +412,8 @@ class GalaxyCluster extends AppModel
         )));
         $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $cluster['GalaxyCluster']['type'], $cluster['GalaxyCluster']['uuid']);
         if (empty($existingGalaxyCluster)) {
+            $galaxy = $this->Galaxy->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy']);
+            $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
             $this->create();
             $saveSuccess = $this->save($cluster);
         } else {
