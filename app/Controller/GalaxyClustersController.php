@@ -319,7 +319,7 @@ class GalaxyClustersController extends AppController
             }
             $errors = $this->GalaxyCluster->saveCluster($this->Auth->user(), $cluster);
             if (!empty($errors)) {
-                $message = implode(', ', implode(' ', $errors));
+                $message = implode(', ', $errors);
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('GalaxyCluster', 'add', $this->GalaxyCluster->id, $message, $this->response->type());
                 } else {
