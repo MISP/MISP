@@ -212,14 +212,15 @@ class GalaxyCluster extends AppModel
             return $errors;
         }
         $cluster['GalaxyCluster']['org_id'] = $user['Organisation']['id'];
-        if (!isset($cluster['GalaxyCluster']['orgc_id'])) {
-            if (isset($cluster['Orgc']['uuid'])) {
-                $orgc_id = $this->Orgc->find('first', array('conditions' => array('Orgc.uuid' => $cluster['Orgc']['uuid']), 'fields' => array('Orgc.id'), 'recursive' => -1));
-            } else {
-                $orgc_id = $user['org_id'];
-            }
-            $cluster['GalaxyCluster']['orgc_id'] = $orgc_id;
-        }
+        $cluster['GalaxyCluster']['orgc_id'] = $user['Organisation']['id'];
+        // if (!isset($cluster['GalaxyCluster']['orgc_id'])) {
+        //     if (isset($cluster['Orgc']['uuid'])) {
+        //         $orgc_id = $this->Orgc->find('first', array('conditions' => array('Orgc.uuid' => $cluster['Orgc']['uuid']), 'fields' => array('Orgc.id'), 'recursive' => -1));
+        //     } else {
+        //         $orgc_id = $user['org_id'];
+        //     }
+        //     $cluster['GalaxyCluster']['orgc_id'] = $orgc_id;
+        // }
 
         if ($user['Role']['perm_sync']) {
             if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])) {
