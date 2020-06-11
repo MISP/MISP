@@ -424,7 +424,7 @@ class GalaxyClustersController extends AppController
             }
             $cluster['GalaxyCluster']['authors'] = json_encode($cluster['GalaxyCluster']['authors']);
             if (!empty($errors)) {
-                $message = implode(', ', implode(' ', $errors));
+                $message = implode(', ', $errors);
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('GalaxyCluster', 'edit', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
                 } else {
@@ -433,7 +433,7 @@ class GalaxyClustersController extends AppController
             } else {
                 $errors = $this->GalaxyCluster->editCluster($this->Auth->user(), $cluster);
                 if (!empty($errors)) {
-                    $message = implode(', ', implode(' ', $errors));
+                    $message = implode(', ', $errors);
                     if ($this->_isRest()) {
                         return $this->RestResponse->saveFailResponse('GalaxyCluster', 'edit', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
                     } else {
