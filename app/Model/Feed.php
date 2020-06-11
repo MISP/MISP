@@ -1725,19 +1725,7 @@ class Feed extends AppModel
     {
         if ($jobId) {
             $job = ClassRegistry::init('Job');
-
-            $jobData = array($job->primaryKey => $jobId);
-            if ($message) {
-                $jobData['message'] = $message;
-            }
-            if ($progress) {
-                $jobData['progress'] = $progress;
-            }
-            try {
-                $job->save($jobData);
-            } catch (Exception $e) {
-                // ignore error during saving information about job
-            }
+            $job->saveProgress($jobId, $message, $progress);
         }
     }
 
