@@ -1805,7 +1805,7 @@ class ExternalStixParser(StixParser):
                     extension_type = features.pop(0).strip("'")
                     if 'section' in features[0] and features[0] != 'number_of_sections':
                         index = features[0].split('[')[1].strip(']') if '[' in features[0] else '0'
-                        extensions[extension_type][f'section_{index}']['.'.join(features)] = pattern_value
+                        extensions[extension_type][f'section_{index}'][features[-1].strip("'")] = pattern_value
                     else:
                         extensions[extension_type]['.'.join(features)] = pattern_value
                 continue
