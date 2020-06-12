@@ -78,7 +78,9 @@ class GalaxyClusterRelation extends AppModel
         if (!$user['Role']['perm_site_admin']) {
             $alias = $this->alias;
             $sgids = $this->Event->cacheSgids($user, true);
+            $gcids = $this->SourceCluster->cacheGalaxyClusterIDs($user);
             $conditions['AND']['OR'] = array(
+                "${alias}.galaxy_cluster_id" => $gcids,
                 array(
                     'AND' => array(
                         "${alias}.distribution >" => 0,

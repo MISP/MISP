@@ -10,6 +10,8 @@ class GalaxyCluster extends AppModel
             'Containable',
     );
 
+    private $__assetCache = array();
+
     public $validate = array(
         'name' => array(
             'stringNotEmpty' => array(
@@ -1436,5 +1438,26 @@ class GalaxyCluster extends AppModel
             }
         }
         return $cluster;
+    }
+
+    public function cacheGalaxyClusterIDs($user)
+    {
+        if (isset($this->__assetCache['gcids'])) {
+            return $this->__assetCache['gcids'];
+        } else {
+            $gcids = $this->fetchGalaxyClusters($user, array(
+                'fields' => 'id',
+                'conditions' => array(
+                    'org_id' => $user['org_id']
+                )
+            ), false);
+            $alias = $this->alias;
+            $gcids = Hash::extract($gcids, "{n}.${alias}.id");
+            if (empty($gcids)) {
+                $gcids = array(-1);
+            }
+            $this->__assetCache['gcids'] = $gcids;
+            return $gcids;
+        }
     }
 }
