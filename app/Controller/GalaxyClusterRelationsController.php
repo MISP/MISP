@@ -139,8 +139,8 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
 
-            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['GalaxyCluster']['org_id'] != $this->Auth->user()['org_id']) {
-                $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['GalaxyCluster'], $relation);
+            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['SourceCluster']['org_id'] != $this->Auth->user()['org_id']) {
+                $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['SourceCluster'], $relation);
             } else {
                 $errors = array(__('Only the owner organisation of the source cluster can use it as a source'));
             }
