@@ -469,9 +469,9 @@ class GalaxyCluster extends AppModel
         }
         // first we want to see how the creator organisation is encoded
         // The options here are either by passing an organisation object along or simply passing a string along
-        if (isset($element['Orgc'])) {
-            $element[$model]['orgc_id'] = $this->Orgc->captureOrg($element['Orgc'], $user);
-            unset($element['Orgc']);
+        if (isset($element[$model]['Orgc'])) {
+            $element[$model]['orgc_id'] = $this->Orgc->captureOrg($element[$model]['Orgc'], $user);
+            unset($element[$model]['Orgc']);
         } else {
             // Can't capture the Orgc, default to the current user
             $element[$model]['orgc_id'] = $user['org_id'];
