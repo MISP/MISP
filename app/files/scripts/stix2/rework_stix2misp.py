@@ -1883,7 +1883,41 @@ class ExternalStixParser(StixParser):
             attributes[pattern_type.split(':')[1]] = pattern_value
 
     def parse_process_pattern(self, indicator):
-        attributes = self.get_attributes_from_pattern(indicator.pattern, 'process_mapping')
+        attributes = []
+        parent = {}
+        child = defaultdict(set)
+        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
+            pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
+            if 'parent_' in pattern_type:
+                child[pattern_type.split('.')[-1]].add(pattern_value)
+            elif 'child_' in pattern_type:
+                parent[pattern_type.split('.')[-1]] = pattern_value
+            else:
+                try:
+                    attribute = deepcopy(stix2misp_mapping.process_mapping[pattern_type])
+                except KeyError:
+                    print(f'Pattern type not supported at the moment: {pattern_type}', file=sys.stderr)
+                    continue
+                attribute['value'] = pattern_value
+                attributes.append(attribute)
+        if parent:
+            for key, value in parent.items():
+                if key not in stix2misp_mapping.parent_process_reference_mapping:
+                    print(f'Parent process key from pattern not supported at the moment: {key}', file=sys.stderr)
+                    continue
+                attribute = {'value': value}
+                attribute.update(stix2misp_mapping.parent_process_reference_mapping[key])
+                attributes.append(attribute)
+        if child:
+            for key, values in child.items():
+                if key not in stix2misp_mapping.child_process_reference_mapping:
+                    print(f'Child process key from pattern not supported at the moment: {key}', file=sys.stderr)
+                    continue
+                for value in values:
+                    attribute = {'value': value}
+                    attribute.update(stix2misp_mapping.child_process_reference_mapping[key])
+                    attributes.append(attribute)
+        self.handle_import_case(indicator, attributes, 'process')
 
     def parse_regkey_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'regkey_mapping')
