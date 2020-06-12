@@ -1396,7 +1396,7 @@ class ExternalStixParser(StixParser):
         return None
 
     @staticmethod
-    def _fetch_user_account_type(observable_objects):
+    def _fetch_user_account_type_observable(observable_objects):
         for observable_object in observable_objects.values():
             if hasattr(observable_object, 'extensions') or any(key not in ('user_id', 'credential', 'type') for key in observable_object):
                 return 'user-account', 'user_account_mapping'
@@ -1663,7 +1663,7 @@ class ExternalStixParser(StixParser):
 
     def parse_user_account_observable(self, observable):
         attributes = []
-        object_name, mapping = self._fetch_user_account_type(observable.objects)
+        object_name, mapping = self._fetch_user_account_type_observable(observable.objects)
         for observable_object in observable.objects.values():
             attributes.extend(self._get_attributes_from_observable(observable_object, mapping))
             if hasattr(observable_object, 'extensions') and observable_object.extensions.get('unix-account-ext'):
@@ -1688,6 +1688,13 @@ class ExternalStixParser(StixParser):
     ################################################################################
     ##                         PATTERN PARSING FUNCTIONS.                         ##
     ################################################################################
+
+    @staticmethod
+    def _fetch_user_account_type_pattern(pattern):
+        for stix_object in pattern:
+            if 'extensions' in stix_object or all(key not in stix_object for key in ('user_id', 'credential', 'type')):
+                return 'user-account', 'user_account_mapping'
+        return 'credential', 'credential_mapping'
 
     def get_attachment(self, attachment, filename):
         attribute = {
@@ -1886,7 +1893,9 @@ class ExternalStixParser(StixParser):
 
     def parse_user_account_pattern(self, indicator):
         attributes = []
-        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
+        pattern = indicator.pattern.strip('[]').split(' AND ')
+        object_name, mapping = self._fetch_user_account_type_pattern(pattern)
+        for pattern_part in pattern:
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             pattern_type = pattern_type.split(':')[1]
             if pattern_type.startswith('extensions.'):
@@ -1896,10 +1905,11 @@ class ExternalStixParser(StixParser):
                 if pattern_type in ('group', 'groups'):
                     attributes.append({'type': 'text', 'object_relation': 'group', 'value': pattern_value})
                     continue
-            if pattern_type in stix2misp_mapping.user_account_mapping:
-                attribute = deepcopy(stix2misp_mapping.user_account_mapping[pattern_type])
+            if pattern_type in getattr(stix2misp_mapping, mapping):
+                attribute = deepcopy(getattr(stix2misp_mapping, mapping)[pattern_type])
                 attribute['value'] = pattern_value
                 attributes.append(attribute)
+        self.handle_import_case(indicator, attributes, object_name)
 
     def parse_x509_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'x509_mapping')

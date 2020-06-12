@@ -66,7 +66,7 @@ as_number_attribute_mapping = {'type': 'AS', 'object_relation': 'asn'}
 description_attribute_mapping = {'type': 'text', 'object_relation': 'description'}
 asn_subnet_attribute_mapping = {'type': 'ip-src', 'object_relation': 'subnet-announced'}
 cc_attribute_mapping = {'type': 'email-dst', 'object_relation': 'cc'}
-credential_mapping = {'type': 'text', 'object_relation': 'password'}
+credential_attribute_mapping = {'type': 'text', 'object_relation': 'password'}
 data_attribute_mapping = {'type': 'text', 'object_relation': 'data'}
 data_type_attribute_mapping = {'type': 'text', 'object_relation': 'data-type'}
 domain_attribute_mapping = {'type': 'domain', 'object_relation': 'domain'}
@@ -113,7 +113,6 @@ to_attribute_mapping = {'type': 'email-dst', 'object_relation': 'to'}
 url_attribute_mapping = {'type': 'url', 'object_relation': 'url'}
 url_port_attribute_mapping = {'type': 'port', 'object_relation': 'port'}
 user_id_mapping = {'type': 'text', 'object_relation': 'username'}
-username_mapping = {'type': 'text', 'object_relation': 'username'}
 x_mailer_attribute_mapping = {'type': 'email-x-mailer', 'object_relation': 'x-mailer'}
 x509_md5_attribute_mapping = {'type': 'x509-fingerprint-md5', 'object_relation': 'x509-fingerprint-md5'}
 x509_sha1_attribute_mapping = {'type': 'x509-fingerprint-sha1', 'object_relation': 'x509-fingerprint-sha1'}
@@ -147,8 +146,8 @@ attack_pattern_references_mapping = {'mitre-attack': references_attribute_mappin
 course_of_action_mapping = {'description': description_attribute_mapping,
                             'name': name_attribute_mapping}
 
-credential_mapping = {'credential': credential_mapping,
-                      'user-account:credential': credential_mapping,
+credential_mapping = {'credential': credential_attribute_mapping,
+                      'user-account:credential': credential_attribute_mapping,
                       'user_id': user_id_mapping,
                       'user-account:user_id': user_id_mapping}
 
@@ -276,10 +275,10 @@ user_account_mapping = {'account_created': {'type': 'datetime', 'object_relation
                         'account_expires': {'type': 'datetime', 'object_relation': 'expires'},
                         'account_first_login': {'type': 'datetime', 'object_relation': 'first_login'},
                         'account_last_login': {'type': 'datetime', 'object_relation': 'last_login'},
-                        'account_login': {'type': 'text', 'object_relation': 'username'},
+                        'account_login': user_id_mapping,
                         'account_type': {'type': 'text', 'object_relation': 'account-type'},
                         'can_escalate_privs': {'type': 'boolean', 'object_relation': 'can_escalate_privs'},
-                        'credential': {'type': 'text', 'object_relation': 'password'},
+                        'credential': credential_attribute_mapping,
                         'credential_last_changed': {'type': 'datetime', 'object_relation': 'password_last_changed'},
                         'display_name': {'type': 'text', 'object_relation': 'display-name'},
                         'gid': {'type': 'text', 'object_relation': 'group-id'},
