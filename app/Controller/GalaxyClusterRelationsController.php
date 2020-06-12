@@ -76,6 +76,30 @@ class GalaxyClusterRelationsController extends AppController
         }
     }
 
+    public function view($id)
+    {
+        if ($this->_isRest()) {
+            $conditions = array('GalaxyClusterRelation.id' => $id);
+            $relation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array(
+                'conditions' => $conditions,
+                'contain' => array('GalaxyClusterRelationTag' => 'Tag')
+            ));
+            if (empty($relation)) {
+                throw new NotFoundException(__('Invalid cluster relation'));
+            }
+            $relation = $relation[0];
+            if (!empty($relation['GalaxyClusterRelationTag'])) {
+                foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
+                    $relation['Tag'][] = $relationTag['Tag'];
+                }
+            }
+            unset($relation['GalaxyClusterRelationTag']);
+            return $this->RestResponse->viewData($relation, $this->response->type());
+        } else {
+            throw new MethodNotAllowedException(__('This method can only be accessed via RestSearch.'));
+        }
+    }
+
     public function add()
     {
         $this->loadModel('Attribute');
