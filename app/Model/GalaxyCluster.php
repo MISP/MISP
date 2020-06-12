@@ -673,8 +673,16 @@ class GalaxyCluster extends AppModel
             $params['contain'] = array(
                 'Galaxy',
                 'GalaxyElement',
-                'GalaxyClusterRelation' => array('GalaxyClusterRelationTag' => array('Tag'), 'SharingGroup'),
-                'TargettingClusterRelation' => array('GalaxyClusterRelationTag' => array('Tag'), 'SharingGroup'),
+                'GalaxyClusterRelation' => array(
+                    'conditions' => $this->GalaxyClusterRelation->buildConditions($user),
+                    'GalaxyClusterRelationTag' => array('Tag'),
+                    'SharingGroup'
+                ),
+                'TargettingClusterRelation' => array(
+                    'conditions' => $this->TargettingClusterRelation->buildConditions($user),
+                    'GalaxyClusterRelationTag' => array('Tag'),
+                    'SharingGroup'
+                ),
                 'Orgc',
                 'Org',
                 'SharingGroup'
