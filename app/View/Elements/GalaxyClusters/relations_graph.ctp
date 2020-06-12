@@ -16,6 +16,7 @@ var hexagonPoints = '30,15 22.5,28 7.5,28 0,15 7.5,2.0 22.5,2'
 var hexagonPointsSmaller = '21,10.5 15.75,19.6 5.25,19.6 0,10.5 5.25,1.4 15.75,1.4'
 var hexagonTranslate = -10.5;
 var graph = <?= json_encode($relations) ?>;
+console.log(graph)
 var store;
 var nodes, links, edgepaths, edgelabels, edgetags;
 var width, height, margin;

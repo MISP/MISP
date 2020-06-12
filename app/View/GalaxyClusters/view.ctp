@@ -39,7 +39,7 @@
     $table_data = array();
     $table_data[] = array('key' => __('Cluster ID'), 'value' => $cluster['GalaxyCluster']['id']);
     $table_data[] = array('key' => __('Name'), 'value' => $cluster['GalaxyCluster']['value']);
-    $table_data[] = array('key' => __('Parent Galaxy'), 'value' => $cluster['Galaxy']['name'] ? $cluster['Galaxy']['name'] : $cluster['Galaxy']['type']);
+    $table_data[] = array('key' => __('Parent Galaxy'), 'value' => $cluster['GalaxyCluster']['Galaxy']['name'] ? $cluster['GalaxyCluster']['Galaxy']['name'] : $cluster['GalaxyCluster']['Galaxy']['type']);
     $table_data[] = array('key' => __('Description'), 'value' => $cluster['GalaxyCluster']['description']);
     $table_data[] = array('key' => __('Version'), 'value' => $cluster['GalaxyCluster']['version']);
     $table_data[] = array('key' => __('UUID'), 'value' => $cluster['GalaxyCluster']['uuid']);
@@ -49,11 +49,11 @@
     $table_data[] = array('key' => __('Distribution'), 'element' => 'genericElements/IndexTable/Fields/distribution_levels', 'element_params' => array('row' => $cluster['GalaxyCluster'], 'field' => array('data_path' => 'distribution')));
     $table_data[] = array(
         'key' => __('Owner Organisation'), 
-        'html' => $this->OrgImg->getOrgImg(array('name' => $cluster['Org']['name'], 'id' => $cluster['Org']['id'], 'size' => 18), true),
+        'html' => $this->OrgImg->getOrgImg(array('name' => $cluster['GalaxyCluster']['Org']['name'], 'id' => $cluster['GalaxyCluster']['Org']['id'], 'size' => 18), true),
     );
     $table_data[] = array(
         'key' => __('Creator Organisation'), 
-        'html' => $this->OrgImg->getOrgImg(array('name' => $cluster['Orgc']['name'], 'id' => $cluster['Orgc']['id'], 'size' => 18), true),
+        'html' => $this->OrgImg->getOrgImg(array('name' => $cluster['GalaxyCluster']['Orgc']['name'], 'id' => $cluster['GalaxyCluster']['Orgc']['id'], 'size' => 18), true),
     );
     $table_data[] = array('key' => __('Connector tag'), 'value' => $cluster['GalaxyCluster']['tag_name']);
     $table_data[] = array('key' => __('Events'), 'html' => isset($cluster['GalaxyCluster']['tag_count']) ? 
@@ -72,7 +72,7 @@
     <div class="row-fluid">
         <div class="span8">
             <h2>
-                <?php echo isset($cluster['Galaxy']['name']) ? h($cluster['Galaxy']['name']) : h($cluster['GalaxyCluster']['type']) . ': ' . $cluster['GalaxyCluster']['value']; ?>
+                <?php echo isset($cluster['GalaxyCluster']['Galaxy']['name']) ? h($cluster['GalaxyCluster']['Galaxy']['name']) : h($cluster['GalaxyCluster']['type']) . ': ' . $cluster['GalaxyCluster']['value']; ?>
             </h2>
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>

@@ -76,18 +76,19 @@ class GalaxyClusterRelation extends AppModel
         $this->Event = ClassRegistry::init('Event');
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
+            $alias = $this->alias;
             $sgids = $this->Event->cacheSgids($user, true);
             $conditions['AND']['OR'] = array(
                 array(
                     'AND' => array(
-                        'GalaxyClusterRelation.distribution >' => 0,
-                        'GalaxyClusterRelation.distribution <' => 4
+                        "${alias}.distribution >" => 0,
+                        "${alias}.distribution <" => 4
                     ),
                 ),
                 array(
                     'AND' => array(
-                        'GalaxyClusterRelation.sharing_group_id' => $sgids,
-                        'GalaxyClusterRelation.distribution' => 4
+                        "${alias}.sharing_group_id" => $sgids,
+                        "${alias}.distribution" => 4
                     )
                 )
             );
@@ -141,26 +142,36 @@ class GalaxyClusterRelation extends AppModel
 
     public function massageRelationTag($cluster)
     {
-        if (!empty($cluster['GalaxyClusterRelation'])) {
-            foreach ($cluster['GalaxyClusterRelation'] as $k => $relation) {
+        if (!empty($cluster['GalaxyCluster'][$this->alias])) {
+            foreach ($cluster['GalaxyCluster'][$this->alias] as $k => $relation) {
                 if (!empty($relation['GalaxyClusterRelationTag'])) {
                     foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
-                        $cluster['GalaxyClusterRelation'][$k]['Tag'][] = $relationTag['Tag'];
+                        $cluster['GalaxyCluster'][$this->alias][$k]['Tag'][] = $relationTag['Tag'];
                     }
-                    unset($cluster['GalaxyClusterRelation'][$k]['GalaxyClusterRelationTag']);
                 }
+                unset($cluster['GalaxyCluster'][$this->alias][$k]['GalaxyClusterRelationTag']);
             }
         }
-        if (!empty($cluster['TargettingClusterRelation'])) {
-            foreach ($cluster['TargettingClusterRelation'] as $k => $relation) {
-                if (!empty($relation['GalaxyClusterRelationTag'])) {
-                    foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
-                        $cluster['TargettingClusterRelation'][$k]['Tag'][] = $relationTag['Tag'];
-                    }
-                    unset($cluster['TargettingClusterRelation'][$k]['GalaxyClusterRelationTag']);
-                }
-            }
-        }
+        // if (!empty($cluster['GalaxyClusterRelation'])) {
+        //     foreach ($cluster['GalaxyClusterRelation'] as $k => $relation) {
+        //         if (!empty($relation['GalaxyClusterRelationTag'])) {
+        //             foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
+        //                 $cluster['GalaxyClusterRelation'][$k]['Tag'][] = $relationTag['Tag'];
+        //             }
+        //             unset($cluster['GalaxyClusterRelation'][$k]['GalaxyClusterRelationTag']);
+        //         }
+        //     }
+        // }
+        // if (!empty($cluster['TargettingClusterRelation'])) {
+        //     foreach ($cluster['TargettingClusterRelation'] as $k => $relation) {
+        //         if (!empty($relation['GalaxyClusterRelationTag'])) {
+        //             foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
+        //                 $cluster['TargettingClusterRelation'][$k]['Tag'][] = $relationTag['Tag'];
+        //             }
+        //             unset($cluster['TargettingClusterRelation'][$k]['GalaxyClusterRelationTag']);
+        //         }
+        //     }
+        // }
         return $cluster;
     }
 

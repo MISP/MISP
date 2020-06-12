@@ -206,7 +206,6 @@ class GalaxyClustersController extends AppController
             throw new NotFoundException('Cluster not found.');
         }
         if ($this->_isRest()) {
-            $cluster = $this->GalaxyCluster->arrangeDataForExport($cluster);
             return $this->RestResponse->viewData($cluster, $this->response->type());
         } else {
             $cluster = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $cluster);
@@ -265,16 +264,19 @@ class GalaxyClustersController extends AppController
                     $this->request->data = $origCluster;
                     unset($this->request->data['GalaxyCluster']['id']);
                     unset($this->request->data['GalaxyCluster']['uuid']);
-                    foreach ($origCluster['GalaxyElement'] as $k => $element) {
-                        unset($origCluster['GalaxyElement'][$k]['id']);
-                        unset($origCluster['GalaxyElement'][$k]['galaxy_cluster_id']);
+                    foreach ($origCluster['GalaxyCluster']['GalaxyElement'] as $k => $element) {
+                        unset($origCluster['GalaxyCluster']['GalaxyElement'][$k]['id']);
+                        unset($origCluster['GalaxyCluster']['GalaxyElement'][$k]['galaxy_cluster_id']);
                     }
                     $this->request->data['GalaxyCluster']['extends_uuid'] = $origCluster['GalaxyCluster']['uuid'];
                     $this->request->data['GalaxyCluster']['extends_version'] = $origCluster['GalaxyCluster']['version'];
-                    $this->request->data['GalaxyCluster']['elements'] = json_encode($origCluster['GalaxyElement']);
-                    $this->request->data['GalaxyCluster']['elementsDict'] = $origCluster['GalaxyElement'];
+                    $this->request->data['GalaxyCluster']['elements'] = json_encode($origCluster['GalaxyCluster']['GalaxyElement']);
+                    $this->request->data['GalaxyCluster']['elementsDict'] = $origCluster['GalaxyCluster']['GalaxyElement'];
                     $this->request->data['GalaxyCluster']['authors'] = json_encode($origCluster['GalaxyCluster']['authors']);
                 }
+                unset($origClusterMeta['Galaxy']);
+                unset($origClusterMeta['Org']);
+                unset($origClusterMeta['Orgc']);
                 $this->set('origCluster', $origCluster);
                 $this->set('origClusterMeta', $origClusterMeta);
             } else {
@@ -366,7 +368,7 @@ class GalaxyClustersController extends AppController
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException('Default galaxy cluster cannot be edited');
         }
-        $this->GalaxyCluster->data = array('GalaxyCluster' => $cluster['GalaxyCluster'], 'GalaxyElement' => $cluster['GalaxyElement']);
+        $this->GalaxyCluster->data = array('GalaxyCluster' => $cluster['GalaxyCluster'], 'GalaxyElement' => $cluster['GalaxyCluster']['GalaxyElement']);
 
         $this->loadModel('Attribute');
         $distributionLevels = $this->Attribute->distributionLevels;
@@ -386,7 +388,7 @@ class GalaxyClustersController extends AppController
         if (!empty($origCluster)) {
             $origCluster = $origCluster[0];
             $this->set('forkUuid', $cluster['GalaxyCluster']['extends_uuid']);
-            $origClusterMeta = $origCluster['GalaxyCluster'];
+            $origClusterMeta = $origCluster['GalaxyCluster']['GalaxyCluster'];
             $this->set('origCluster', $origCluster);
             $this->set('origClusterMeta', $origClusterMeta);
         }
@@ -847,9 +849,9 @@ class GalaxyClustersController extends AppController
             }
         }
         $missingElements = array();
-        forEach($parentCluster['GalaxyElement'] as $k => $parentElement) {
+        forEach($parentCluster['GalaxyCluster']['GalaxyElement'] as $k => $parentElement) {
             $found = false;
-            forEach($cluster['GalaxyElement'] as $k => $clusterElement) {
+            forEach($cluster['GalaxyCluster']['GalaxyElement'] as $k => $clusterElement) {
                 if ($parentElement['key'] == $clusterElement['key'] &&
                     $parentElement['value'] == $clusterElement['value']) {
                         $found = true;
@@ -861,8 +863,8 @@ class GalaxyClustersController extends AppController
             }
         }
         $this->set('missingElements', $missingElements);
-        $this->set('parentElements', $parentCluster['GalaxyElement']);
-        $this->set('clusterElements', $cluster['GalaxyElement']);
+        $this->set('parentElements', $parentCluster['GalaxyCluster']['GalaxyElement']);
+        $this->set('clusterElements', $cluster['GalaxyCluster']['GalaxyElement']);
         $this->set('forkVersion', $forkVersion);
         $this->set('parentVersion', $parentVersion);
         $this->set('newVersionAvailable', $parentVersion > $forkVersion);

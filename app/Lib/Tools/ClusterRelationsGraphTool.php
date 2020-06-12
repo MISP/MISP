@@ -21,8 +21,8 @@
             }
             foreach ($clusters as $cluster) {
                 $cluster = $this->attachOwnerInsideCluster($cluster);
-                if (!empty($cluster['GalaxyClusterRelation'])) {
-                    foreach($cluster['GalaxyClusterRelation'] as $relation) {
+                if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
+                    foreach($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $relation) {
                         $referencedClusterUuid = $relation['referenced_galaxy_cluster_uuid'];
                         if (!isset($this->lookup[$referencedClusterUuid])) {
                             $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->user, array(
@@ -101,19 +101,19 @@
 
         private function attachOwnerInsideCluster($cluster)
         {
-            if (!empty($cluster['Org']) && !isset($cluster['GalaxyCluster']['Org'])) {
+            if (!empty($cluster['GalaxyCluster']['Org']) && !isset($cluster['GalaxyCluster']['Org'])) {
                 $cluster['GalaxyCluster']['Org'] = array(
                     'id' => $cluster['Org']['id'],
                     'name' => $cluster['Org']['name'],
                 );
             }
-            if (!empty($cluster['Orgc']) && !isset($cluster['GalaxyCluster']['Orgc'])) {
+            if (!empty($cluster['GalaxyCluster']['Orgc']) && !isset($cluster['GalaxyCluster']['Orgc'])) {
                 $cluster['GalaxyCluster']['Orgc'] = array(
                     'id' => $cluster['Orgc']['id'],
                     'name' => $cluster['Orgc']['name'],
                 );
             }
-            if (!empty($cluster['SharingGroup']) && !isset($cluster['GalaxyCluster']['SharingGroup'])) {
+            if (!empty($cluster['GalaxyCluster']['SharingGroup']) && !isset($cluster['GalaxyCluster']['SharingGroup'])) {
                 $cluster['GalaxyCluster']['SharingGroup'] = array(
                     'id' => $cluster['SharingGroup']['id'],
                     'name' => $cluster['SharingGroup']['name'],
