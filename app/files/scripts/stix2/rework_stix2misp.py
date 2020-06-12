@@ -1890,6 +1890,7 @@ class ExternalStixParser(StixParser):
 
     def parse_url_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'url_mapping')
+        self.handle_import_case(indicator, attributes, 'url')
 
     def parse_user_account_pattern(self, indicator):
         attributes = []
