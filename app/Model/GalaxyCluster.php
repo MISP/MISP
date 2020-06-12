@@ -71,7 +71,7 @@ class GalaxyCluster extends AppModel
             'foreignKey' => 'galaxy_cluster_id',
             'dependent' => true,
         ),
-        'TargettingClusterRelation' => array(
+        'TargetingClusterRelation' => array(
             'className' => 'GalaxyClusterRelation',
             'foreignKey' => 'referenced_galaxy_cluster_id',
         ),
@@ -158,7 +158,7 @@ class GalaxyCluster extends AppModel
 
     public function arrangeData($cluster)
     {
-        $models = array('Galaxy', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargettingClusterRelation');
+        $models = array('Galaxy', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargetingClusterRelation');
         foreach ($models as $model) {
             if (isset($cluster[$model])) {
                 $cluster['GalaxyCluster'][$model] = $cluster[$model];
@@ -330,7 +330,7 @@ class GalaxyCluster extends AppModel
             forEach($modelsToUnset as $modelName) {
                 unset($clusters[$k][$modelName]['id']);
             }
-            $modelsToUnset = array('GalaxyClusterRelation', 'TargettingClusterRelation');
+            $modelsToUnset = array('GalaxyClusterRelation', 'TargetingClusterRelation');
             forEach($modelsToUnset as $modelName) {
                 forEach($cluster['GalaxyCluster'][$modelName] as $i => $relation) {
                     unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['id']);
@@ -680,8 +680,8 @@ class GalaxyCluster extends AppModel
                     'GalaxyClusterRelationTag' => array('Tag'),
                     'SharingGroup'
                 ),
-                'TargettingClusterRelation' => array(
-                    'conditions' => $this->TargettingClusterRelation->buildConditions($user),
+                'TargetingClusterRelation' => array(
+                    'conditions' => $this->TargetingClusterRelation->buildConditions($user),
                     'GalaxyClusterRelationTag' => array('Tag'),
                     'SharingGroup'
                 ),
@@ -1407,12 +1407,12 @@ class GalaxyCluster extends AppModel
                 }
             }
         }
-        if (!empty($cluster['GalaxyCluster']['TargettingClusterRelation'])) {
-            foreach ($cluster['GalaxyCluster']['TargettingClusterRelation'] as $k => $relation) {
+        if (!empty($cluster['GalaxyCluster']['TargetingClusterRelation'])) {
+            foreach ($cluster['GalaxyCluster']['TargetingClusterRelation'] as $k => $relation) {
                 $conditions = array('conditions' => array('GalaxyCluster.uuid' => $relation['galaxy_cluster_uuid']));
                 $relatedCluster = $this->fetchGalaxyClusters($user, $conditions, false);
                 if (!empty($relatedCluster)) {
-                    $cluster['GalaxyCluster']['TargettingClusterRelation'][$k]['GalaxyCluster'] = $relatedCluster[0]['GalaxyCluster'];
+                    $cluster['GalaxyCluster']['TargetingClusterRelation'][$k]['GalaxyCluster'] = $relatedCluster[0]['GalaxyCluster'];
                 }
             }
         }
@@ -1432,7 +1432,7 @@ class GalaxyCluster extends AppModel
                 if (!empty($relation['GalaxyClusterRelationTag'])) {
                     $relation['GalaxyClusterRelation']['Tag'] = $relation['GalaxyClusterRelationTag'][0]['Tag'];
                 }
-                $cluster['GalaxyCluster']['TargettingClusterRelation'][] = $relation['GalaxyClusterRelation'];
+                $cluster['GalaxyCluster']['TargetingClusterRelation'][] = $relation['GalaxyClusterRelation'];
             }
         }
         return $cluster;

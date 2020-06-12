@@ -152,26 +152,6 @@ class GalaxyClusterRelation extends AppModel
                 unset($cluster['GalaxyCluster'][$this->alias][$k]['GalaxyClusterRelationTag']);
             }
         }
-        // if (!empty($cluster['GalaxyClusterRelation'])) {
-        //     foreach ($cluster['GalaxyClusterRelation'] as $k => $relation) {
-        //         if (!empty($relation['GalaxyClusterRelationTag'])) {
-        //             foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
-        //                 $cluster['GalaxyClusterRelation'][$k]['Tag'][] = $relationTag['Tag'];
-        //             }
-        //             unset($cluster['GalaxyClusterRelation'][$k]['GalaxyClusterRelationTag']);
-        //         }
-        //     }
-        // }
-        // if (!empty($cluster['TargettingClusterRelation'])) {
-        //     foreach ($cluster['TargettingClusterRelation'] as $k => $relation) {
-        //         if (!empty($relation['GalaxyClusterRelationTag'])) {
-        //             foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
-        //                 $cluster['TargettingClusterRelation'][$k]['Tag'][] = $relationTag['Tag'];
-        //             }
-        //             unset($cluster['TargettingClusterRelation'][$k]['GalaxyClusterRelationTag']);
-        //         }
-        //     }
-        // }
         return $cluster;
     }
 

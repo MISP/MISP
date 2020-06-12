@@ -40,8 +40,8 @@
                 'GalaxyCluster' => $cluster['GalaxyCluster'],
                 'children' => array()
             ));
-            if (!empty($cluster['GalaxyCluster']['TargettingClusterRelation'])) {
-                foreach($cluster['GalaxyCluster']['TargettingClusterRelation'] as $relation) {
+            if (!empty($cluster['GalaxyCluster']['TargetingClusterRelation'])) {
+                foreach($cluster['GalaxyCluster']['TargetingClusterRelation'] as $relation) {
                     if (isset($relation['GalaxyCluster'])) { // not set if Cluster is unkown
                         $tmp = array(
                             'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),
