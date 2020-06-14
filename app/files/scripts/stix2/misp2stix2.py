@@ -1696,7 +1696,7 @@ class StixBuilder():
             self.parse_galaxies(attribute['Galaxy'], object_id)
             relation = attribute['object_relation']
             if relation in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
-                stix_type = misp2stix2_mapping.fileMapping['hashes'].format(relation.split('-')[2])
+                stix_type = f"hashes.'{relation.split('-')[2]}'"
             else:
                 try:
                     stix_type = misp2stix2_mapping.x509mapping[relation]
