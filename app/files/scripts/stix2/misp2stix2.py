@@ -718,7 +718,10 @@ class StixBuilder():
     def fetch_custom_values(self, attributes, object_id):
         values = defaultdict(list)
         for attribute in attributes:
-            self.parse_galaxies(attribute['Galaxy'], object_id)
+            try:
+                self.parse_galaxies(attribute['Galaxy'], object_id)
+            except KeyError:
+                pass
             attribute_type = '{}_{}'.format(attribute['type'], attribute['object_relation'])
             values[attribute_type].append(attribute['value'])
         return {attribute_type: value[0] if len(value) == 1 else value for attribute_type, value in values.items()}
