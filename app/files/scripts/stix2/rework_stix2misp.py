@@ -1954,15 +1954,30 @@ class ExternalStixParser(StixParser):
     ################################################################################
 
     def add_attribute_from_indicator(self, indicator, attribute_type):
-        attribute = MISPAttribute()
-        attribute.from_dict(**{
-            'uuid': indicator.id.split('--')[1],
-            'type': attribute_type,
-            'value': indicator.pattern.split(' = ')[1].strip("']"),
-            'to_ids': True
-        })
-        attribute.update(self.parse_timeline(indicator))
-        self.misp_event.add_attribute(**attribute)
+        patterns = indicator.pattern.strip('[]').split(' AND ')
+        if len(patterns) == 1:
+            _, value = self.get_type_and_value_from_pattern(patterns[0])
+            attribute = MISPAttribute()
+            attribute.from_dict(**{
+                'uuid': indicator.id.split('--')[1],
+                'type': attribute_type,
+                'value': value,
+                'to_ids': True
+            })
+            attribute.update(self.parse_timeline(indicator))
+            self.misp_event.add_attribute(**attribute)
+        else:
+            tmp_attribute = self.parse_timeline(indicator)
+            for pattern in patterns:
+                _, value = self.get_type_and_value_from_pattern(pattern)
+                attribute = MISPAttribute()
+                attribute.from_dict(**{
+                    'type': attribute_type,
+                    'value': value,
+                    'to_ids': True
+                })
+                attribute.update(tmp_attribute)
+                self.misp_event.add_attribute(**attribute)
 
     def add_attribute_from_observable(self, observable, attribute_type, feature):
         attribute = MISPAttribute()
