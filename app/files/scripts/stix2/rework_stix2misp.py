@@ -1759,6 +1759,7 @@ class ExternalStixParser(StixParser):
 
     def parse_as_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'asn_mapping')
+        self.handle_import_case(indicator, attributes, 'asn')
 
     def parse_domain_ip_port_pattern(self, indicator):
         attributes = []
@@ -1921,6 +1922,7 @@ class ExternalStixParser(StixParser):
 
     def parse_regkey_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'regkey_mapping')
+        self.handle_import_case(indicator, attributes, 'registry-key')
 
     def parse_url_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'url_mapping')
@@ -1948,6 +1950,7 @@ class ExternalStixParser(StixParser):
 
     def parse_x509_pattern(self, indicator):
         attributes = self.get_attributes_from_pattern(indicator.pattern, 'x509_mapping')
+        self.handle_import_case(indicator, attributes, 'x509')
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
