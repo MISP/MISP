@@ -2450,7 +2450,8 @@ class AppModel extends Model
             'offset' => null,
             'joins' => array(),
             'conditions' => array(),
-            'group' => false
+            'group' => false,
+            'recursive' => -1
         );
         $params = array();
         foreach (array_keys($defaults) as $key) {
