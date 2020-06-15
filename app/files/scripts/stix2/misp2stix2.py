@@ -1178,10 +1178,7 @@ class StixBuilder():
                 if relation in ('from', 'to', 'cc'):
                     object_str = str(object_num)
                     observable[object_str] = {'type': 'email-addr', 'value': attribute_value}
-                    if relation == 'from':
-                        message[mapping] = object_str
-                    else:
-                        message[mapping].append(object_str)
+                    message[mapping].append(object_str)
                     object_num += 1
                 elif relation in ('attachment', 'screenshot'):
                     object_str = str(object_num)
@@ -1201,7 +1198,7 @@ class StixBuilder():
         if additional_header:
             message['additional_header_fields'] = additional_header
         message['type'] = 'email-message'
-        if 'body_multipart' in message:
+        if 'body_multipart' in message and len(message['body_multipart']) > 1:
             message['is_multipart'] = True
         else:
             message['is_multipart'] = False
@@ -1224,7 +1221,7 @@ class StixBuilder():
                         pattern.append(pattern_mapping.format(email_type, 'body_multipart[{}].body_raw_ref.payload_bin'.format(n), attribute['data']))
                     n += 1
                 else:
-                    stix_type = mapping['stix_type']
+                    stix_type = self._parse_email_stix_type(relation, mapping['stix_type'])
             except KeyError:
                 email_type = 'message'
                 stix_type = "'x_misp_{}_{}'".format(attribute['type'], relation)
@@ -1794,6 +1791,14 @@ class StixBuilder():
         if attribute['type'] in ('attachment', 'malware-sample') and attribute.get('data') is not None:
             return f"{attribute['value'].replace(' | ', '|')} | {attribute['data']}"
         return attribute['value']
+
+    @staticmethod
+    def _parse_email_stix_type(relation, mapping):
+        if relation == 'from':
+            return f'{mapping}.value'
+        if relation in ('to', 'cc'):
+            return f'{mapping}[*].value'
+        return mapping
 
 
 def main(args):
