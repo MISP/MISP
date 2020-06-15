@@ -205,6 +205,9 @@ class GalaxyClusterRelationsController extends AppController
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
 
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (empty($this->request->data['GalaxyClusterRelation'])) {
+                $this->request->data = array('GalaxyClusterRelation' => $this->request->data);
+            }
             $relation = $this->request->data;
             $relation['GalaxyClusterRelation']['id'] = $id;
             if ($relation['GalaxyClusterRelation']['distribution'] != 4) {
@@ -227,7 +230,7 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
 
-            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['GalaxyCluster']['org_id'] == $this->Auth->user()['org_id']) {
+            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['SourceCluster']['org_id'] == $this->Auth->user()['org_id']) {
                 $errors = $this->GalaxyClusterRelation->editRelation($this->Auth->user(), $relation);
             } else {
                 $errors = array(__('Only the owner organisation of the source cluster can use it as a source'));
