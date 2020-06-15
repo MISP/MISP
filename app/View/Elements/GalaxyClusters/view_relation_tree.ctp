@@ -66,6 +66,7 @@ echo $this->element('genericElements/assetLoader', array(
                 if (d.GalaxyCluster !== undefined) {
                     var clusterLength = d.GalaxyCluster.type.length > d.GalaxyCluster.value.length ? d.GalaxyCluster.type.length : d.GalaxyCluster.value.length;
                     leftMaxTextLengthRight = leftMaxTextLengthRight > clusterLength ? leftMaxTextLengthRight : clusterLength;
+                    d.id = 'left-' + getId(d, true);
                 } else if (d.Relation !== undefined) {
                     var tagLength = 0;
                     if (d.Relation.Tag !== undefined) {
@@ -73,6 +74,7 @@ echo $this->element('genericElements/assetLoader', array(
                     }
                     var relationLength = tagLength > d.Relation.referenced_galaxy_cluster_type.length ? tagLength : d.Relation.referenced_galaxy_cluster_type.length;
                     leftMaxTextLengthRight = leftMaxTextLengthRight > relationLength ? leftMaxTextLengthRight : relationLength;
+                    d.id = 'left-' + getId(d);
                 }
             })
             var offsetLeafLengthRight = leftMaxTextLengthRight * 6.7; // font-size of body is 12px
@@ -97,6 +99,7 @@ echo $this->element('genericElements/assetLoader', array(
                 if (d.GalaxyCluster !== undefined) {
                     var clusterLength = d.GalaxyCluster.type.length > d.GalaxyCluster.value.length ? d.GalaxyCluster.type.length : d.GalaxyCluster.value.length;
                     leftMaxTextLengthLeft = leftMaxTextLengthLeft > clusterLength ? leftMaxTextLengthLeft : clusterLength;
+                    d.id = 'right-' + getId(d, true);
                 } else if (d.Relation !== undefined) {
                     var tagLength = 0;
                     if (d.Relation.Tag !== undefined) {
@@ -104,6 +107,7 @@ echo $this->element('genericElements/assetLoader', array(
                     }
                     var relationLength = tagLength > d.Relation.referenced_galaxy_cluster_type.length ? tagLength : d.Relation.referenced_galaxy_cluster_type.length;
                     leftMaxTextLengthLeft = leftMaxTextLengthLeft > relationLength ? leftMaxTextLengthLeft : relationLength;
+                    d.id = 'right-' + getId(d);
                 }
             })
             var offsetLeafLengthLeft = leftMaxTextLengthLeft * 6.7; // font-size of body is 12px
@@ -131,7 +135,7 @@ echo $this->element('genericElements/assetLoader', array(
         };
     }
     
-    function drawTree(data, leftShift, childrenBothSides) {    
+    function drawTree(data, leftShift, childrenBothSides) {
         var diagonal = function link(d) {
             return "M" + d.source.y + "," + d.source.x
                 + "C" + (d.source.y + d.target.y) / 2 + "," + d.source.x
@@ -177,7 +181,7 @@ echo $this->element('genericElements/assetLoader', array(
         var links = data.links;
 
         var node = svg.selectAll("g.node")
-            .data(nodes, function(d) { return getId(d, true) });
+            .data(nodes, function(d) { return d.id });
 
         var nodeEnter = node.enter().append("g")
             .attr("class", "node")
@@ -189,7 +193,7 @@ echo $this->element('genericElements/assetLoader', array(
         drawEntities(gEnter);
 
         var link = svg.selectAll("path.link")
-            .data(links, function(d) { return getId(d.target); });
+            .data(links, function(d) { return d.target.id; });
 
         link.enter().insert("path", "g")
             .attr("id",function(d,i) { return "linkId_" + i; })

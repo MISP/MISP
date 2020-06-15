@@ -714,6 +714,7 @@ class GalaxyCluster extends AppModel
         foreach ($clusters as $i => $cluster) {
             $clusters[$i] = $this->arrangeData($clusters[$i]);
             $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
+            $clusters[$i] = $this->TargetingClusterRelation->massageRelationTag($clusters[$i]);
         }
         return $clusters;
     }
