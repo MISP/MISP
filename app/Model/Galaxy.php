@@ -174,6 +174,8 @@ class Galaxy extends AppModel
                 }
                 $cluster_to_save['distribution'] = 3;
                 $cluster_to_save['default'] = true;
+                $cluster_to_save['org_id'] = 0;
+                $cluster_to_save['orgc_id'] = 0;
                 $result = $this->GalaxyCluster->save($cluster_to_save, false);
                 $galaxyClusterId = $this->GalaxyCluster->id;
                 if (isset($cluster['meta'])) {
