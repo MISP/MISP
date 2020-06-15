@@ -332,9 +332,7 @@ class GalaxyClusterRelation extends AppModel
             }
 
             if ($cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('Only sync user can create galaxy on behalf of other users'), __('relation (%s) for cluster (%s)', $relation['GalaxyClusterRelation']['id'], $clusterUuid));
-                $results['failed']++;
-                continue;
+                $cluster['GalaxyCluster']['orgc_id'] != $user['org_id']; // Only sync user can create galaxy on behalf of other users
             }
 
             $existingRelation = $this->find('first', array('conditions' => array(
