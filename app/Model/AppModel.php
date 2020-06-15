@@ -1412,6 +1412,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `sharing_group_id` int(11);";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` DROP COLUMN `referenced_galaxy_cluster_value`;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_relation_tags` (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `galaxy_cluster_relation_id` int(11) NOT NULL,

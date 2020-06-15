@@ -139,7 +139,7 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
 
-            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['SourceCluster']['org_id'] != $this->Auth->user()['org_id']) {
+            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['SourceCluster']['org_id'] == $this->Auth->user()['org_id']) {
                 $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['SourceCluster'], $relation);
             } else {
                 $errors = array(__('Only the owner organisation of the source cluster can use it as a source'));
@@ -150,6 +150,7 @@ class GalaxyClusterRelationsController extends AppController
                 if (empty($errors)) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'add', $this->response->type(), $message);
                 } else {
+                    $message .= sprintf('Reasons: %s', json_encode(array_merge($errors, $this->GalaxyClusterRelation->validationErrors)));
                     return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'add', $message, $this->response->type());
                 }
             } elseif ($this->request->is('ajax')) {
@@ -157,7 +158,8 @@ class GalaxyClusterRelationsController extends AppController
                 if (empty($errors)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => '')),'status' => 200, 'type' => 'json'));
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not save relation, reason: ' . json_encode(array_merge($errors, $this->GalaxyClusterRelation->validationErrors)))),'status' => 200, 'type' => 'json'));
+                    $message .= sprintf('Reasons: %s', json_encode(array_merge($errors, $this->GalaxyClusterRelation->validationErrors)));
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)),'status' => 200, 'type' => 'json'));
                 }
             } else {
                 if (empty($errors)) {
@@ -225,7 +227,7 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
 
-            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['GalaxyCluster']['org_id'] != $this->Auth->user()['org_id']) {
+            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['GalaxyCluster']['org_id'] == $this->Auth->user()['org_id']) {
                 $errors = $this->GalaxyClusterRelation->editRelation($this->Auth->user(), $relation);
             } else {
                 $errors = array(__('Only the owner organisation of the source cluster can use it as a source'));
