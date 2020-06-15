@@ -1790,13 +1790,25 @@ class ExternalStixParser(StixParser):
                     if len(features) == 3 and features[1] == 'body_raw_ref':
                         index = features[0].split('[')[1].strip(']') if '[' in features[0] else '0'
                         key = 'data' if features[2] == 'payload_bin' else 'value'
-                        attachments[key][key] = pattern_value
+                        attachments[index][key] = pattern_value
                         continue
                 print(f'Pattern type not supported at the moment: {pattern_type}', file=sys.stderr)
                 continue
             attribute = deepcopy(stix2misp_mapping.email_mapping[pattern_type])
             attribute['value'] = pattern_value
             attributes.append(attribute)
+        if attachments:
+            for attachment in attachments.values():
+                attribute = {
+                    'type': 'attachment',
+                    'object_relation': 'screenshot'
+                } if 'data' in attachment else {
+                    'type': 'email-attachment',
+                    'object_relation': 'attachment'
+                }
+                attribute.update(attachment)
+                attributes.append(attribute)
+        self.handle_import_case(indicator, attributes, 'email')
 
     def parse_file_pattern(self, indicator):
         attributes = []

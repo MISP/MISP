@@ -161,15 +161,15 @@ domain_ip_mapping = {'domain-name': domain_attribute_mapping,
 
 email_mapping = {'date': email_date_attribute_mapping,
                  'email-message:date': email_date_attribute_mapping,
-                 'email-message:to_refs': to_attribute_mapping,
-                 'email-message:cc_refs': cc_attribute_mapping,
+                 'email-message:to_refs[*].value': to_attribute_mapping,
+                 'email-message:cc_refs[*].value': cc_attribute_mapping,
                  'subject': email_subject_attribute_mapping,
                  'email-message:subject': email_subject_attribute_mapping,
                  'X-Mailer': x_mailer_attribute_mapping,
                  'email-message:additional_header_fields.x_mailer': x_mailer_attribute_mapping,
                  'Reply-To': reply_to_attribute_mapping,
                  'email-message:additional_header_fields.reply_to': reply_to_attribute_mapping,
-                 'email-message:from_ref': from_attribute_mapping,
+                 'email-message:from_ref.value': from_attribute_mapping,
                  'email-addr:value': to_attribute_mapping}
 
 email_references_mapping = {'attachment': email_attachment_attribute_mapping,
