@@ -238,7 +238,7 @@ class GalaxyClusterRelationsController extends AppController
                 if (empty($errors)) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'edit', $this->response->type(), $message);
                 } else {
-                    return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'edit', $message, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'edit', false, $message, $this->response->type());
                 }if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $relation['GalaxyClusterRelation']['sharing_group_id'])) {
                     $errors[] = array(__('Galaxy Cluster Relation could not be saved: The user has to have access to the sharing group in order to be able to edit it.'));
                 }
