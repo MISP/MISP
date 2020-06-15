@@ -381,21 +381,15 @@ class GalaxyCluster extends AppModel
         } else {
             if (!isset($cluster['GalaxyCluster']['Orgc'])) {
                 if (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $results['errors'][] = __('Only sync user can create cluster on behalf of other users');
-                    $results['failed']++;
-                    return $results;
+                    $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
                 }
             } else {
                 if ($cluster['GalaxyCluster']['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $results['errors'][] = __('Only sync user can create galaxy on behalf of other users');
-                    $results['failed']++;
-                    return $results;
+                    $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
                 }
             }
             if (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                $results['errors'][] = __('Only sync user can create galaxy on behalf of other users');
-                $results['failed']++;
-                return $results;
+                $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
             }
         }
 
