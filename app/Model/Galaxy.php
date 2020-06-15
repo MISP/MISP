@@ -150,6 +150,7 @@ class Galaxy extends AppModel
                 $this->GalaxyCluster->delete($cluster_ids_to_delete, false, false);
             }
 
+            $tempUser = array('Role' => array('perm_galaxy_editor' => 1, 'perm_tag_editor' => 1, 'perm_site_admin' => 1)); // only site-admin are authorized to update galaxies
             // create all clusters
             foreach ($cluster_package['values'] as $cluster) {
                 if (empty($cluster['version'])) {
@@ -203,6 +204,7 @@ class Galaxy extends AppModel
                             'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
                             'referenced_galaxy_cluster_type' => $relation['type'],
                             'default' => true,
+                            'distribution' => 3,
                             'tags' => $relation['tags'],
                         );
                     }
@@ -216,7 +218,6 @@ class Galaxy extends AppModel
             if (!empty($elements)) {
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
-            $tempUser = array('Role' => array('perm_galaxy_editor' => 1, 'perm_tag_editor' => 1, 'perm_site_admin' => 1)); // only site-admin are authorized to update galaxies
         }
         return true;
     }
