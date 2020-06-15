@@ -173,10 +173,11 @@ class GalaxyCluster extends AppModel
     // Respecting ACL, save a cluster, its elements and set correct fields
     public function saveCluster($user, $cluster, $allowEdit=false)
     {
-        if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
-            return false;
-        }
         $errors = array();
+        if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
+            $errors[] = __('Incorrect permission');
+            return $errors;
+        }
         $galaxy = $this->Galaxy->find('first', array('conditions' => array(
             'id' => $cluster['GalaxyCluster']['galaxy_id']
         )));
@@ -451,7 +452,7 @@ class GalaxyCluster extends AppModel
                 $this->GalaxyElement->captureElements($user, $cluster['GalaxyCluster']['GalaxyElement'],  $savedCluster['GalaxyCluster']['id']);
             }
             if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
-                $saveResult = $this->GalaxyClusterRelation->captureRelations($user, $savedCluster, $cluster['GalaxyCluster']['GalaxyClusterRelation'],  $fromPull=true, $orgId=$orgId);
+                $saveResult = $this->GalaxyClusterRelation->captureRelations($user, $savedCluster, $cluster['GalaxyCluster']['GalaxyClusterRelation'],  $fromPull=$fromPull);
                 if ($saveResult['failed'] > 0) {
                     $results['errors'][] = __('Issues while capturing relations have been logged.');
                 }

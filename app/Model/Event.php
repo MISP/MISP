@@ -6992,4 +6992,42 @@ class Event extends AppModel
             }
         }
     }
+
+    public function extractAllTagNames($event)
+    {
+        $tags = array();
+        if (!empty($event['EventTag'])) {
+            foreach($event['EventTag'] as $eventTag) {
+                $tagName = $eventTag['Tag']['name'];
+                $tags[$tagName] = $tagName;
+            }
+        }
+        if (!empty($event['Attribute'])) {
+            foreach($event['Attribute'] as $attribute) {
+                foreach($attribute['AttributeTag'] as $attributeTag) {
+                    $tagName = $attributeTag['Tag']['name'];
+                    $tags[$tagName] = $tagName;
+                }
+            }
+        }
+        if (!empty($event['ShadowAttribute'])) {
+            foreach($event['ShadowAttribute'] as $attribute) {
+                foreach($attribute['AttributeTag'] as $attributeTag) {
+                    $tagName = $attributeTag['Tag']['name'];
+                    $tags[$tagName] = $tagName;
+                }
+            }
+        }
+        if (!empty($event['Object'])) {
+            foreach($event['Object'] as $object) {
+                foreach($object['Attribute'] as $attribute) {
+                    foreach($attribute['AttributeTag'] as $attributeTag) {
+                        $tagName = $attributeTag['Tag']['name'];
+                        $tags[$tagName] = $tagName;
+                    }
+                }
+            }
+        }
+        return $tags;
+    }
 }

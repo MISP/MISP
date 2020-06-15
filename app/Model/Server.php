@@ -3052,8 +3052,17 @@ class Server extends AppModel
                         $event = $event[0];
                         $event['Event']['locked'] = 1;
                         $result = $this->Event->uploadEventToServer($event, $this->data, $HttpSocket);
+                        $result = 'Success';
                         if ('Success' === $result) {
                             $successes[] = $event['Event']['id'];
+
+                            if ($push['canPush'] || $push['canEditGalaxyCluster']) {
+                                $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $event);
+                            } else {
+                                $clustersSuccesses = array();
+                            }
+                            $successes = array_merge($successes, $clustersSuccesses);
+
                         } else {
                             $fails[$event['Event']['id']] = $result;
                         }
@@ -3091,13 +3100,6 @@ class Server extends AppModel
         if (!isset($fails)) {
             $fails = array();
         }
-
-        if ($push['canPush'] || $push['canEditGalaxyCluster']) {
-            $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user);
-        } else {
-            $clustersSuccesses = array();
-        }
-        $successes = array_merge($successes, $clustersSuccesses);
 
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
@@ -3147,7 +3149,7 @@ class Server extends AppModel
         return $uuidList;
     }
 
-    public function syncGalaxyClusters($HttpSocket, $server, $user)
+    public function syncGalaxyClusters($HttpSocket, $server, $user, $event)
     {
         $successes = array();
         if (!$server['Server']['push_galaxy_clusters']) {
@@ -3156,20 +3158,19 @@ class Server extends AppModel
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $elligibleClusters = $this->GalaxyCluster->getElligibleClustersToPush($user);
-        $clusterIds = $this->getClusterIdsFromServer($server, $HttpSocket, $elligibleClusters);
-        if (!empty($clusterIds)) {
-            // check each cluster push it when needed
-            foreach ($clusterIds as $k => $clusterId) {
-                $options = array('conditions' => array(
-                    'GalaxyCluster.uuid' => $clusterId
-                ));
-                $cluster = $this->GalaxyCluster->fetchGalaxyClusters($user, $options, $full=true);
-                if (!empty($cluster)) {
-                    $cluster = $cluster[0];
-                    $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $HttpSocket, $user);
-                    if ($result === 'Success') {
-                        $successes[] = __('GalaxyCluster %s', $cluster['GalaxyCluster']['uuid']);
-                    }
+        $tagNames = $this->Event->extractAllTagNames($event);
+        if (!empty($tagNames)) {
+            $options = array(
+                'conditions' => array(
+                    'GalaxyCluster.tag_name' => $tagNames,
+                    'GalaxyCluster.default' => 0,
+                )
+            );
+            $clusters = $this->GalaxyCluster->fetchGalaxyClusters($user, $options, $full=true);
+            foreach ($clusters as $k => $cluster) {
+                $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $HttpSocket, $user);
+                if ($result === 'Success') {
+                    $successes[] = __('GalaxyCluster %s', $cluster['GalaxyCluster']['uuid']);
                 }
             }
         }
