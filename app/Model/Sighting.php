@@ -817,7 +817,13 @@ class Sighting extends AppModel
         if (!empty($eventIds)) {
             // download each event and save sightings
             foreach ($eventIds as $k => $eventId) {
-                $event = $this->Event->downloadEventFromServer($eventId, $server);
+                try {
+                    $event = $this->Event->downloadEventFromServer($eventId, $server);
+                } catch (Exception $e) {
+                    $this->logException('Failed downloading the event ' . $eventId, $e);
+                    continue;
+                }
+
                 $sightings = array();
                 if(!empty($event) && !empty($event['Event']['Attribute'])) {
                     foreach($event['Event']['Attribute'] as $attribute) {

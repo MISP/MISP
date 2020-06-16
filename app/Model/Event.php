@@ -1424,6 +1424,15 @@ class Event extends AppModel
         return $attribute;
     }
 
+    /**
+     * Download event from remote server.
+     *
+     * @param int $eventId
+     * @param array $server
+     * @param null|HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
     public function downloadEventFromServer($eventId, $server, $HttpSocket=null)
     {
         $url = $server['Server']['url'];
@@ -1431,10 +1440,18 @@ class Event extends AppModel
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
-        if ($response->isOk()) {
-            return json_decode($response->body, true);
+
+        if ($response === false) {
+            throw new Exception("Could not reach '$uri'.");
+        } else if (!$response->isOk()) {
+            throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
         }
-        return null;
+
+        $event = json_decode($response->body, true);
+        if ($event === null) {
+            throw new Exception('Could not parse event JSON: ' . json_last_error_msg(), json_last_error());
+        }
+        return $event;
     }
 
     public function quickDelete($event)

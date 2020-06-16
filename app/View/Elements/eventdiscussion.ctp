@@ -1,5 +1,5 @@
-<h3><?= __('Discussion') ?></h3>
 <div id="top">
+    <h3><?= __('Discussion') ?></h3>
     <div class="pagination">
         <?php
         if (!empty($posts)):
