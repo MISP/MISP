@@ -1178,7 +1178,10 @@ class StixBuilder():
                 if relation in ('from', 'to', 'cc'):
                     object_str = str(object_num)
                     observable[object_str] = {'type': 'email-addr', 'value': attribute_value}
-                    message[mapping].append(object_str)
+                    if relation == 'from':
+                        message[mapping] = object_str
+                    else:
+                        message[mapping].append(object_str)
                     object_num += 1
                 elif relation in ('attachment', 'screenshot'):
                     object_str = str(object_num)
