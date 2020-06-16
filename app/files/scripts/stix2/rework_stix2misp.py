@@ -1772,7 +1772,9 @@ class ExternalStixParser(StixParser):
             attribute['value'] = pattern_value
             attributes.append(attribute)
         if references:
-            attributes.extend(attribute for attribute in references.values())
+            attributes.extend(references.values())
+        object_name = 'ip-port' if 'network-traffic' in indicator.pattern else 'domain-ip'
+        self.handle_import_case(indicator, attributes, object_name)
 
     def parse_email_message_pattern(self, indicator):
         attributes = []
