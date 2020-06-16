@@ -145,7 +145,12 @@ class GalaxyClusterRelationsController extends AppController
                 $errors = array(__('Only the owner organisation of the source cluster can use it as a source'));
             }
 
-            $message = empty($errors) ? __('Relationship added.') : __('Relationship could not be added.');
+            if (empty($errors)) {
+                $message = __('Relationship added.');
+                $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['SourceCluster']['id']);
+            } else {
+                $message = __('Relationship could not be added.');
+            }
             if ($this->_isRest()) {
                 if (empty($errors)) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'add', $this->response->type(), $message);
@@ -236,7 +241,12 @@ class GalaxyClusterRelationsController extends AppController
                 $errors = array(__('Only the owner organisation of the source cluster can use it as a source'));
             }
 
-            $message = empty($errors) ? __('Relationship saved.') : __('Relationship could not be edited.');
+            if (empty($errors)) {
+                $message = __('Relationship added.');
+                $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['SourceCluster']['id']);
+            } else {
+                $message = __('Relationship could not be added.');
+            }
             if ($this->_isRest()) {
                 if (empty($errors)) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'edit', $this->response->type(), $message);
@@ -268,11 +278,12 @@ class GalaxyClusterRelationsController extends AppController
         if ($this->request->is('post')) {
             $relation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array('conditions' => array('id' => $id)));
             if (empty($relation)) {
-                throw new NotFoundException('Target cluster not found.');
+                throw new NotFoundException(__('Target cluster not found.'));
             }
             $result = $this->GalaxyClusterRelation->delete($id, true);
             if ($result) {
-                $message = 'Galaxy cluster relationship successfuly deleted.';
+                $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['SourceCluster']['id']);
+                $message = __('Galaxy cluster relationship successfuly deleted.');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'delete', $id, $this->response->type());
                 } else {
@@ -280,7 +291,7 @@ class GalaxyClusterRelationsController extends AppController
                     $this->redirect($this->referer());
                 }
             } else {
-                $message = 'Galaxy cluster relationship could not be deleted.';
+                $message = __('Galaxy cluster relationship could not be deleted.');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'delete', $id, $message, $this->response->type());
                 } else {
@@ -298,7 +309,7 @@ class GalaxyClusterRelationsController extends AppController
         $conditions['uuid'] = $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'];
         $clusterSource = $this->GalaxyClusterRelation->SourceCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
         if (empty($clusterSource)) {
-            throw new NotFoundException('Source cluster not found.');
+            throw new NotFoundException(__('Source cluster not found.'));
         }
         $clusterSource = $clusterSource[0];
 
@@ -306,7 +317,7 @@ class GalaxyClusterRelationsController extends AppController
         $conditions['uuid'] = $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'];
         $clusterTarget = $this->GalaxyClusterRelation->TargetCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
         if (empty($clusterTarget)) {
-            throw new NotFoundException('Target cluster not found.');
+            throw new NotFoundException(__('Target cluster not found.'));
         }
         $clusterTarget = $clusterTarget[0];
         return array(

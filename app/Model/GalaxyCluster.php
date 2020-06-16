@@ -341,14 +341,26 @@ class GalaxyCluster extends AppModel
 
     public function publish($cluster)
     {
-        $cluster['GalaxyCluster']['published'] = true;
-        return $this->save($cluster, array('fieldList' => array('published')));
+        if (is_numeric($cluster)) {
+            $this->id = $cluster;
+            return $this->saveField('published', 1);
+        } elseif (isset($cluster['GalaxyCluster'])) {
+            $cluster['GalaxyCluster']['published'] = true;
+            return $this->save($cluster, array('fieldList' => array('published')));
+        }
+        return false;
     }
 
     public function unpublish($cluster)
     {
-        $cluster['GalaxyCluster']['published'] = false;
-        return $this->save($cluster, array('fieldList' => array('published')));
+        if (is_numeric($cluster)) {
+            $this->id = $cluster;
+            return $this->saveField('published', 0);
+        } elseif (isset($cluster['GalaxyCluster'])) {
+            $cluster['GalaxyCluster']['published'] = false;
+            return $this->save($cluster, array('fieldList' => array('published')));
+        }
+        return false;
     }
 
     public function unsetFieldsForExport($clusters)

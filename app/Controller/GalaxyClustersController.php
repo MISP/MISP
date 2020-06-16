@@ -389,7 +389,7 @@ class GalaxyClustersController extends AppController
         if (!empty($origCluster)) {
             $origCluster = $origCluster[0];
             $this->set('forkUuid', $cluster['GalaxyCluster']['extends_uuid']);
-            $origClusterMeta = $origCluster['GalaxyCluster']['GalaxyCluster'];
+            $origClusterMeta = $origCluster['GalaxyCluster'];
             $this->set('origCluster', $origCluster);
             $this->set('origClusterMeta', $origClusterMeta);
         }
