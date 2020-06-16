@@ -3056,7 +3056,7 @@ class Server extends AppModel
                         if ('Success' === $result) {
                             $successes[] = $event['Event']['id'];
 
-                            if ($push['canPush'] || $push['canEditGalaxyCluster']) {
+                            if ($push['canEditGalaxyCluster']) {
                                 $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $event);
                             } else {
                                 $clustersSuccesses = array();
