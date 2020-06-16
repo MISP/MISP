@@ -1567,7 +1567,7 @@ class ExternalStixParser(StixParser):
 
     def parse_network_connection_object(self, network_traffic, references):
         attributes = self.get_network_traffic_attributes(network_traffic, references)
-        attributes.extend(self.parse_protocols(network_traffic.protocols))
+        attributes.extend(self.parse_protocols(network_traffic.protocols, 'observable object'))
         return attributes
 
     def parse_network_traffic_objects(self, network_traffic, references):
@@ -1615,14 +1615,14 @@ class ExternalStixParser(StixParser):
             print(f'Unable to parse the following observable objects: {references}', file=sys.stderr)
         self.handle_import_case(observable, attributes, 'process')
 
-    def parse_protocols(self, protocols):
+    def parse_protocols(self, protocols, object_type):
         attributes = []
         protocols = (protocol.upper() for protocol in protocols)
         for protocol in protocols:
             try:
                 attributes.append(self._parse_network_traffic_protocol(protocol))
             except KeyError:
-                print(f'Unknown protocol in network-traffic observable object: {protocol}', file=sys.stderr)
+                print(f'Unknown protocol in network-traffic {object_type}: {protocol}', file=sys.stderr)
         return attributes
 
     def parse_regkey_observable(self, observable):
@@ -1637,15 +1637,17 @@ class ExternalStixParser(StixParser):
     def parse_socket_extension_observable(self, network_traffic, references):
         attributes = self.get_network_traffic_attributes(network_traffic, references)
         for key, value in network_traffic.extensions['socket-ext'].items():
-            if key in stix2misp_mapping.network_socket_extension_mapping:
-                if key.startswith('is_') and not value:
-                    continue
-                attribute = {
-                    'value': key.split('_')[1] if key.startswith('is_') else value,
-                    'to_ids': False
-                }
-                attribute.update(stix2misp_mapping.network_socket_extension_mapping[key])
-                attributes.append(attribute)
+            if key not in stix2misp_mapping.network_socket_extension_mapping:
+                print(f'Unknown socket extension field in observable object: {key}', file=sys.stderr)
+                continue
+            if key.startswith('is_') and not value:
+                continue
+            attribute = {
+                'value': key.split('_')[1] if key.startswith('is_') else value,
+                'to_ids': False
+            }
+            attribute.update(stix2misp_mapping.network_socket_extension_mapping[key])
+            attributes.append(attribute)
         return attributes, 'network-socket'
 
     def parse_url_observable(self, observable):
@@ -1677,13 +1679,6 @@ class ExternalStixParser(StixParser):
             if hasattr(observable_object, 'hashes'):
                 attributes.extend(self._get_attributes_from_observable(observable_object.hashes, 'x509_mapping'))
         self.handle_import_case(observable, attributes, 'x509')
-
-    @staticmethod
-    def _required_protocols(protocols):
-        protocols = tuple(protocol.upper() for protocol in protocols)
-        if any(protocol not in ('TCP', 'IP') for protocol in protocols):
-            return True
-        return False
 
     ################################################################################
     ##                         PATTERN PARSING FUNCTIONS.                         ##
@@ -1873,27 +1868,66 @@ class ExternalStixParser(StixParser):
     def parse_mutex_pattern(self, indicator):
         self.add_attribute_from_indicator(indicator, 'mutex')
 
+    def parse_network_connection_pattern(self, indicator, attributes, references):
+        attributes.extend(self._parse_network_pattern_references(references, 'network_traffic_references_mapping'))
+        self.handle_import_case(indicator, attributes, 'network-connection')
+
+    @staticmethod
+    def _parse_network_pattern_references(references, mapping):
+        attributes = []
+        for feature, reference in references.items():
+            feature = feature.split('_')[0]
+            attribute = {key: value.format(feature) for key, value in getattr(stix2misp_mapping, mapping)[reference['type']].items()}
+            attribute['value'] = reference['value']
+            attributes.append(attribute)
+        return attributes
+
+    def parse_network_socket_pattern(self, indicator, attributes, references, extension):
+        attributes.extend(self._parse_network_pattern_references(references, 'network_traffic_references_mapping'))
+        for key, value in extension.items():
+            if key not in stix2misp_mapping.network_socket_extension_mapping:
+                print(f'Unknown socket extension field in pattern: {key}', file=sys.stderr)
+                continue
+            if key.startswith('is_') and not json.loads(value.lower()):
+                continue
+            attribute = deepcopy(stix2misp_mapping.network_socket_extension_mapping[key])
+            attribute['value'] = key.split('_')[1] if key.startswith('is_') else value
+            attributes.append(attribute)
+        self.handle_import_case(indicator, attributes, 'network-socket')
+
     def parse_network_traffic_pattern(self, indicator):
-        attributes = defaultdict(dict)
+        attributes = []
+        protocols = []
+        references = defaultdict(dict)
         extensions = defaultdict(dict)
         for pattern_part in indicator.pattern.strip('[]').split(' AND '):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
-            if pattern_type not in stix2misp_mapping.network_traffic_mapping:
-                if pattern_type.startswith('network-traffic:protocols['):
-                    ref = pattern_type.split('[')[1].strip(']')
-                    attributes[f'protocols_{ref}'] = pattern_value
-                elif any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
-                    feature_type, ref = pattern_type.split(':')[1].split('_')
-                    ref, feature = ref.split('.')
-                    ref = f"{feature_type}_{'0' if ref == 'ref' else ref.strip('ref[]')}"
-                    attributes[ref].update({feature: pattern_value})
-                elif pattern_type.startswith('network-traffic:extensions.'):
-                    _, extension_type, feature = pattern_type.split('.')
-                    extensions[extension_type.strip("'")][feature] = pattern_value
-                else:
-                    print(f'Pattern type not supported at the moment: {pattern_type}', file=sys.stderr)
+            if pattern_type in stix2misp_mapping.network_traffic_mapping:
+                attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
+                attribute['value'] = pattern_value.strip("'")
+                attributes.append(attribute)
                 continue
-            attributes[pattern_type.split(':')[1]] = pattern_value
+            if pattern_type.startswith('network-traffic:protocols['):
+                protocols.append(pattern_value)
+            elif any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
+                feature_type, ref = pattern_type.split(':')[1].split('_')
+                ref, feature = ref.split('.')
+                ref = f"{feature_type}_{'0' if ref == 'ref' else ref.strip('ref[]')}"
+                references[ref].update({feature: pattern_value})
+            elif pattern_type.startswith('network-traffic:extensions.'):
+                _, extension_type, feature = pattern_type.split('.')
+                extensions[extension_type.strip("'")][feature] = pattern_value
+            else:
+                print(f'Pattern type not supported at the moment: {pattern_type}', file=sys.stderr)
+        if extensions:
+            if 'socket-ext' in extensions:
+                return self.parse_network_socket_pattern(indicator, attributes, references, extensions['socket-ext'])
+            print(f'Unknown network extension(s) in pattern: {", ".join(extensions.keys())}', file=sys.stderr)
+        if protocols and self._required_protocols(protocols):
+            attributes.extend(self.parse_protocols(protocols, 'pattern'))
+            return self.parse_network_connection_pattern(indicator, attributes, references)
+        attributes.extend(self._parse_network_pattern_references(references, 'ip_port_references_mapping'))
+        self.handle_import_case(indicator, attributes, 'ip-port')
 
     def parse_process_pattern(self, indicator):
         attributes = []
@@ -2053,6 +2087,13 @@ class ExternalStixParser(StixParser):
     def _parse_pattern_types(pattern):
         types = {part.split('=')[0].split(':')[0] for part in pattern}
         return tuple(sorted(types))
+
+    @staticmethod
+    def _required_protocols(protocols):
+        protocols = tuple(protocol.upper() for protocol in protocols)
+        if any(protocol not in ('TCP', 'IP') for protocol in protocols):
+            return True
+        return False
 
 
 def from_misp(stix_objects):
