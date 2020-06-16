@@ -38,7 +38,12 @@ class GalaxyCluster extends AppModel
             'rule' => array('inList', array('0', '1', '2', '3', '4')),
             'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group',
             'required' => true
-        )
+        ),
+        'published' => array(
+            'boolean' => array(
+                'rule' => array('boolean'),
+            ),
+        ),
     );
 
     public $belongsTo = array(
@@ -91,6 +96,9 @@ class GalaxyCluster extends AppModel
         }
         if ($this->data['GalaxyCluster']['distribution'] != 4) {
             $this->data['GalaxyCluster']['sharing_group_id'] = null;
+        }
+        if (!isset($this->data['GalaxyCluster']['published'])) {
+            $this->data['GalaxyCluster']['published'] = false;
         }
         if (!isset($this->data['GalaxyCluster']['authors']) || is_null($this->data['GalaxyCluster']['authors'])) {
             $this->data['GalaxyCluster']['authors'] = '';
@@ -211,6 +219,9 @@ class GalaxyCluster extends AppModel
         } else {
             $cluster['GalaxyCluster']['uuid'] = CakeText::uuid();
         }
+        if (!isset($cluster['GalaxyCluster']['published'])) {
+            $cluster['GalaxyCluster']['published'] = false;
+        }
         $forkedCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['extends_uuid'])));
         if (!empty($forkedCluster) && $forkedCluster['GalaxyCluster']['galaxy_id'] != $galaxy['id']) {
             $errors[] = __('Cluster forks always have to belong to the same galaxy as the parent');
@@ -299,8 +310,11 @@ class GalaxyCluster extends AppModel
                 $date = new DateTime();
                 $cluster['GalaxyCluster']['version'] = $date->getTimestamp();
                 $cluster['GalaxyCluster']['default'] = false;
+                if (!isset($cluster['GalaxyCluster']['published'])) {
+                    $cluster['GalaxyCluster']['published'] = false;
+                }
                 if (empty($fieldList)) {
-                    $fieldList = array('value', 'description', 'version', 'source', 'authors', 'distribution', 'sharing_group_id', 'default');
+                    $fieldList = array('value', 'description', 'version', 'source', 'authors', 'distribution', 'sharing_group_id', 'default', 'published');
                 }
                 $saveSuccess = $this->save($cluster, array('fieldList' => $fieldList));
                 if ($saveSuccess) {
@@ -323,6 +337,18 @@ class GalaxyCluster extends AppModel
             }
         }
         return $errors;
+    }
+
+    public function publish($cluster)
+    {
+        $cluster['GalaxyCluster']['published'] = true;
+        return $this->save($cluster, array('fieldList' => array('published')));
+    }
+
+    public function unpublish($cluster)
+    {
+        $cluster['GalaxyCluster']['published'] = false;
+        return $this->save($cluster, array('fieldList' => array('published')));
     }
 
     public function unsetFieldsForExport($clusters)
@@ -411,6 +437,9 @@ class GalaxyCluster extends AppModel
             'GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid']
         )));
         $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $cluster['GalaxyCluster']['type'], $cluster['GalaxyCluster']['uuid']);
+        if (!isset($cluster['GalaxyCluster']['published'])) {
+            $cluster['GalaxyCluster']['published'] = false;
+        }
         if (empty($existingGalaxyCluster)) {
             $galaxy = $this->Galaxy->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy']);
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];

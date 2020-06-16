@@ -74,13 +74,14 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placem
     }, 1000);
 }
 
-function publishPopup(id, type) {
+function publishPopup(id, type, scope) {
+    scope = scope === undefined ? 'events' : scope;
     var action = "alert";
     if (type == "publish") action = "publish";
     if (type == "unpublish") action = "unpublish";
     if (type == "sighting") action = "publishSightings";
     var destination = 'attributes';
-    $.get( "/events/" + action + "/" + id, function(data) {
+    $.get( "/" + scope + "/" + action + "/" + id, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });

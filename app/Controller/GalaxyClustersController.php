@@ -286,6 +286,7 @@ class GalaxyClustersController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $cluster = $this->request->data;
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxyId;
+            $cluster['GalaxyCluster']['published'] = false;
             $errors = array();
             if (empty($cluster['GalaxyCluster']['elements'])) {
                 if (empty($cluster['GalaxyCluster']['GalaxyElement'])) {
@@ -425,6 +426,7 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['authors'] = $decoded;
             }
             $cluster['GalaxyCluster']['authors'] = json_encode($cluster['GalaxyCluster']['authors']);
+            $cluster['GalaxyCluster']['published'] = false;
             if (!empty($errors)) {
                 $message = implode(', ', $errors);
                 if ($this->_isRest()) {
@@ -472,6 +474,118 @@ class GalaxyClustersController extends AppController
         $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
         $this->set('action', 'edit');
         $this->render('add');
+    }
+
+    public function publish($cluster_id)
+    {
+        if (Validation::uuid($cluster_id)) {
+            $temp = $this->GalaxyCluster->find('first', array(
+                'recursive' => -1,
+                'fields' => array('GalaxyCluster.id', 'GalaxyCluster.uuid'),
+                'conditions' => array('GalaxyCluster.uuid' => $cluster_id)
+            ));
+            if ($temp === null) {
+                throw new NotFoundException(__('Invalid galaxy cluster'));
+            }
+            $cluster_id = $temp['GalaxyCluster']['id'];
+        } elseif (!is_numeric($cluster_id)) {
+            throw new NotFoundException(__('Invalid galaxy cluster'));
+        }
+        $conditions = array('conditions' => array('GalaxyCluster.id' => $cluster_id));
+        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, false);
+        if (empty($cluster)) {
+            throw new NotFoundException(__('Invalid galaxy cluster'));
+        }
+        $cluster = $cluster[0];
+        if ($cluster['GalaxyCluster']['orgc_id'] != $this->Auth->user('org_id')) {
+            throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
+        }
+        if ($cluster['GalaxyCluster']['published']) {
+            throw new MethodNotAllowedException(__('You can\'t publish an galaxy cluster that is already published'));
+        }
+        if ($cluster['GalaxyCluster']['default']) {
+            throw new MethodNotAllowedException(__('Default galaxy cluster cannot be published'));
+        }
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $success = $this->GalaxyCluster->publish($cluster);
+            if (!$success) {
+                $message = __('Could not publish galaxy cluster');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'publish', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
+            } else {
+                $message = __('Galaxy cluster published');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'publish', $cluster['GalaxyCluster']['id'], $this->response->type());
+                } else {
+                    $this->Flash->success($message);
+                }
+            }
+            $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $cluster['GalaxyCluster']['id']));
+        } else {
+            $this->set('cluster', $cluster);
+            $this->set('type', 'publish');
+            $this->render('ajax/publishConfirmationForm');
+        }
+    }
+
+    public function unpublish($cluster_id)
+    {
+        if (Validation::uuid($cluster_id)) {
+            $temp = $this->GalaxyCluster->find('first', array(
+                'recursive' => -1,
+                'fields' => array('GalaxyCluster.id', 'GalaxyCluster.uuid'),
+                'conditions' => array('GalaxyCluster.uuid' => $cluster_id)
+            ));
+            if ($temp === null) {
+                throw new NotFoundException(__('Invalid galaxy cluster'));
+            }
+            $cluster_id = $temp['GalaxyCluster']['id'];
+        } elseif (!is_numeric($cluster_id)) {
+            throw new NotFoundException(__('Invalid galaxy cluster'));
+        }
+        $conditions = array('conditions' => array('GalaxyCluster.id' => $cluster_id));
+        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, false);
+        if (empty($cluster)) {
+            throw new NotFoundException(__('Invalid galaxy cluster'));
+        }
+        $cluster = $cluster[0];
+        if ($cluster['GalaxyCluster']['orgc_id'] != $this->Auth->user('org_id')) {
+            throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
+        }
+        if (!$cluster['GalaxyCluster']['published']) {
+            throw new MethodNotAllowedException(__('You can\'t unpublish an galaxy cluster that is already published'));
+        }
+        if ($cluster['GalaxyCluster']['default']) {
+            throw new MethodNotAllowedException(__('Default galaxy cluster cannot be unpublished'));
+        }
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $success = $this->GalaxyCluster->unpublish($cluster);
+            if (!$success) {
+                $message = __('Could not unpublish galaxy cluster');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'unpublish', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
+            } else {
+                $message = __('Galaxy cluster unpublished');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'unpublish', $cluster['GalaxyCluster']['id'], $this->response->type());
+                } else {
+                    $this->Flash->success($message);
+                }
+            }
+            $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $cluster['GalaxyCluster']['id']));
+        } else {
+            $this->set('cluster', $cluster);
+            $this->set('type', 'unpublish');
+            $this->render('ajax/publishConfirmationForm');
+        }
     }
 
     public function attachToEvent($event_id, $tag_name)

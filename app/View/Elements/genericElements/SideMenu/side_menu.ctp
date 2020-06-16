@@ -1208,6 +1208,20 @@
                                 'url' => '/galaxy_clusters/add/' . h($galaxy_id) . '/forkUuid:' . h($cluster['GalaxyCluster']['uuid']),
                                 'text' => __('Fork Cluster')
                             ));
+                            if (
+                                isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id'] &&
+                                !$cluster['GalaxyCluster']['default']
+                            ) {
+                                echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                    'onClick' => array(
+                                        'function' => 'publishPopup',
+                                        'params' => array($cluster['GalaxyCluster']['id'], ($cluster['GalaxyCluster']['published'] ? 'unpublish' : 'publish'), 'galaxy_clusters')
+                                    ),
+                                    'class' => 'publishButtons not-published ',
+                                    'text' => $cluster['GalaxyCluster']['published'] ? __('Unpublish Cluster') : __('Publish Cluster')
+                                ));
+                            }
                         }
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -1243,6 +1257,24 @@
                             'url' => '/galaxy_clusters/view/' . h($clusterId),
                             'text' => __('View Cluster')
                         ));
+                    }
+                    if ($menuItem === 'view') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        if (
+                            isset($cluster['GalaxyCluster']['published']) && !$cluster['GalaxyCluster']['published'] &&
+                            isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id'] &&
+                            !$cluster['GalaxyCluster']['default'] &&
+                            ($isSiteAdmin || $me['Role']['perm_galaxy_editor'])
+                        ) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'onClick' => array(
+                                    'function' => 'publishPopup',
+                                    'params' => array($cluster['GalaxyCluster']['id'], 'alert')
+                                ),
+                                'class' => 'publishButtons not-published ' . $publishButtons,
+                                'text' => __('Publish Cluster')
+                            ));
+                        }
                     }
                     break;
 

@@ -52,6 +52,13 @@
             ),
             'fields' => array(
                 array(
+                    'name' => __('Published'),
+                    'sort' => 'GalaxyCluster.published',
+                    'element' => 'boolean',
+                    'class' => 'short',
+                    'data_path' => 'GalaxyCluster.published'
+                ),
+                array(
                     'name' => __('Value'),
                     'sort' => 'GalaxyCluster.value',
                     'element' => 'links',
@@ -144,6 +151,28 @@
                 ),
             ),
             'actions' => array(
+                array(
+                    'title' => 'Publish Cluster',
+                    'url' => '/galaxy_clusters/publish',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.id'
+                    ),
+                    'icon' => 'upload',
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to publish the Galaxy Cluster?'),
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return ($options['me']['org_id'] == $options['datapath']['orgc'] && !$options['datapath']['published']);
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'orgc' => 'GalaxyCluster.orgc_id',
+                                'published' => 'GalaxyCluster.published'
+                            )
+                        )
+                    ),
+                ),
                 array(
                     'title' => 'View correlation graph',
                     'url' => '/galaxies/viewGraph',
