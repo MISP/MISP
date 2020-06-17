@@ -1965,7 +1965,7 @@ class Attribute extends AppModel
             $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
 
             $conditions = array(
-                'type' => array('ip-src', 'ip-dst'),
+                'type' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'),
                 'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
                 'disable_correlation' => 0,
                 'deleted' => 0,
@@ -2074,7 +2074,7 @@ class Attribute extends AppModel
             return true;
         }
 
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst'))) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'))) {
             $extraConditions = $this->__cidrCorrelation($a);
         } else if ($a['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
