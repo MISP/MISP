@@ -1961,13 +1961,47 @@ class Attribute extends AppModel
         $ipValues = array();
         $ip = $a['value1'];
         if (strpos($ip, '/') !== false) { // IP is CIDR
-            $ip_array = explode('/', $ip);
-            $ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+            list($networkIp, $mask) = explode('/', $ip);
+            $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+
+            $conditions = array(
+                'type' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'),
+                'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
+                'disable_correlation' => 0,
+                'deleted' => 0,
+            );
+
+            if (in_array($this->getDataSource()->config['datasource'], array('Database/Mysql', 'Database/MysqlObserver'))) {
+                // Massive speed up for CIDR correlation. Instead of testing all in PHP, database can do that work much
+                // faster. But these methods are just supported by MySQL.
+                if ($ip_version === 4) {
+                    $startIp = ip2long($networkIp) & ((-1 << (32 - $mask)));
+                    $endIp = $startIp + pow(2, (32 - $mask)) - 1;
+                    // Just fetch IP address that fit in CIDR range.
+                    $conditions['INET_ATON(value1) BETWEEN ? AND ?'] = array($startIp, $endIp);
+
+                    // Just fetch IPv4 address that starts with given prefix. This is fast, because value1 is indexed.
+                    // This optimisation is possible just to mask bigger than 8 bites.
+                    if ($mask >= 8) {
+                        $ipv4Parts = explode('.', $networkIp);
+                        $ipv4Parts = array_slice($ipv4Parts, 0, intval($mask / 8));
+                        $prefix = implode('.', $ipv4Parts);
+                        $conditions['value1 LIKE'] = $prefix . '%';
+                    }
+                } else {
+                    $conditions[] = 'IS_IPV6(value1)';
+                    // Just fetch IPv6 address that starts with given prefix. This is fast, because value1 is indexed.
+                    if ($mask >= 16) {
+                        $ipv6Parts = explode(':', rtrim($networkIp, ':'));
+                        $ipv6Parts = array_slice($ipv6Parts, 0, intval($mask / 16));
+                        $prefix = implode(':', $ipv6Parts);
+                        $conditions['value1 LIKE'] = $prefix . '%';
+                    }
+                }
+            }
+
             $ipList = $this->find('list', array(
-                'conditions' => array(
-                    'type' => array('ip-src', 'ip-dst'),
-                    'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
-                ),
+                'conditions' => $conditions,
                 'group' => 'value1', // return just unique values
                 'fields' => array('value1'),
                 'order' => false
@@ -2040,7 +2074,7 @@ class Attribute extends AppModel
             return true;
         }
 
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst'))) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'))) {
             $extraConditions = $this->__cidrCorrelation($a);
         } else if ($a['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
