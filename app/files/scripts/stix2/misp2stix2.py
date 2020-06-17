@@ -1256,14 +1256,14 @@ class StixBuilder():
             file_observable['parent_directory_ref'] = str(n_object)
             n_object += 1
             if len(attributes_dict['path']) > 1:
-                self._handle_multiple_file_fields_observable(file_obsevrable, attributes_dict['path'][1:], 'path')
+                self._handle_multiple_file_fields_observable(file_observable, attributes_dict['path'][1:], 'path')
         if 'fullpath' in attributes_dict:
             if 'parent_directory_ref' not in file_observable:
                 observable[str(n_object)] = {'type': 'directory', 'path': attributes_dict['fullpath'][0]}
                 file_observable['parent_directory_ref'] = str(n_object)
                 n_object += 1
                 if len(attributes_dict['path']) > 1:
-                    self._handle_multiple_file_fields_observable(file_obsevrable, attributes_dict['fullpath'][1:], 'fullpath')
+                    self._handle_multiple_file_fields_observable(file_observable, attributes_dict['fullpath'][1:], 'fullpath')
             else:
                 self._handle_multiple_file_fields_observable(file_observable, attributes_dict['fullpath'], 'fullpath')
         if 'malware-sample' in attributes_dict:
