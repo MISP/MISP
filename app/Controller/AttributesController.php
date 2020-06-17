@@ -1602,9 +1602,9 @@ class AttributesController extends AppController
 
             // clusters to add
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            $clusters = $this->GalaxyCluster->find('all', array(
+            $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
                 'fields' => array('value', 'id'),
-                'recursive' => -1
+                'conditions' => array('published' => true)
             ));
             $clusterItemsAdd = array();
             foreach ($clusters as $k => $cluster) {

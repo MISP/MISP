@@ -308,7 +308,14 @@ class Galaxy extends AppModel
         } else {
             $local = 0;
         }
-        $cluster = $this->GalaxyCluster->find('first', array('recursive' => -1, 'conditions' => array('id' => $cluster_id), 'fields' => array('tag_name', 'id', 'value')));
+        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array(
+            'first' => true,
+            'conditions' => array('id' => $cluster_id),
+            'fields' => array('tag_name', 'id', 'value'),
+        ), $full=false);
+        if (empty($cluster)) {
+            throw new NotFoundException(__('Invalid Galaxy cluster'));
+        }
         $this->Tag = ClassRegistry::init('Tag');
         if ($target_type === 'event') {
             $target = $this->Tag->EventTag->Event->fetchEvent($user, array('eventid' => $target_id, 'metadata' => 1));
@@ -519,7 +526,7 @@ class Galaxy extends AppModel
         $mispUUID = Configure::read('MISP')['uuid'];
 
         if (!isset($galaxy['Galaxy']['kill_chain_order'])) {
-            throw new Exception(__("Galaxy cannot be represented as a matrix"));
+            throw new MethodNotAllowedException(__("Galaxy cannot be represented as a matrix"));
 
         }
         $matrixData = array(

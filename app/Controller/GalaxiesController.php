@@ -345,16 +345,19 @@ class GalaxiesController extends AppController
     public function selectCluster($target_id, $target_type = 'event', $selectGalaxy = false)
     {
         $conditions = array();
+        $conditions = array('OR' => array(
+            'GalaxyCluster.published' => true,
+            'GalaxyCluster.default' => true,
+        ));
         if ($selectGalaxy) {
-            $conditions = array('GalaxyCluster.galaxy_id' => $selectGalaxy);
+            $conditions['GalaxyCluster.galaxy_id'] = $selectGalaxy;
         }
         $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
-        $data = $this->Galaxy->GalaxyCluster->find('all', array(
+        $data = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
                 'conditions' => $conditions,
                 'fields' => array('value', 'description', 'source', 'type', 'id'),
                 'order' => array('value asc'),
-                'recursive' => -1
-        ));
+        ), false);
         $clusters = array();
         $cluster_ids = array();
         foreach ($data as $k => $cluster) {

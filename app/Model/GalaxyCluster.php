@@ -738,7 +738,10 @@ class GalaxyCluster extends AppModel
             $params['conditions']['AND'][] = $options['conditions'];
         }
         if (isset($options['group'])) {
-            $params['group'] = empty($options['group']) ? $options['group'] : false;
+            $params['group'] = $options['group'];
+        }
+        if (isset($options['order'])) {
+            $params['order'] = $options['order'];
         }
         if (isset($options['page'])) {
             $params['page'] = $options['page'];
@@ -746,7 +749,15 @@ class GalaxyCluster extends AppModel
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
         }
-        $clusters = $this->find('all', $params);
+        if (isset($options['list']) && $options['list']) {
+            return $this->find('list', $params);
+        }
+        $clusters = array();
+        if (isset($options['first']) && $options['first']) {
+            $clusters = $this->find('first', $params);
+        } else {
+            $clusters = $this->find('all', $params);
+        }
         foreach ($clusters as $i => $cluster) {
             $clusters[$i] = $this->arrangeData($clusters[$i]);
             $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
@@ -928,6 +939,46 @@ class GalaxyCluster extends AppModel
             $conditions['AND']['GalaxyCluster.default'] = !$filters['custom'];
         }
         return $conditions;
+    }
+
+    public function isAuthorizedTo($user, $cluster_id, $authorization)
+    {
+        $possibleAuthorization = array('view', 'edit');
+        if (!in_array($authorization, $possibleAuthorization)) {
+            throw new NotFoundException(__('Invalid authorization requested'));
+        }
+        if (Validation::uuid($cluster_id)) {
+            $temp = $this->GalaxyCluster->find('first', array(
+                'recursive' => -1,
+                'fields' => array('GalaxyCluster.id', 'GalaxyCluster.uuid'),
+                'conditions' => array('GalaxyCluster.uuid' => $cluster_id)
+            ));
+            if ($temp === null) {
+                throw new NotFoundException(__('Invalid galaxy cluster'));
+            }
+            $cluster_id = $temp['GalaxyCluster']['id'];
+        } elseif (!is_numeric($cluster_id)) {
+            throw new NotFoundException(__('Invalid galaxy cluster'));
+        }
+        $conditions = array('conditions' => array('GalaxyCluster.id' => $cluster_id));
+        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, false);
+        if (empty($cluster)) {
+            throw new NotFoundException(__('Invalid galaxy cluster'));
+        }
+        $cluster = $cluster[0];
+        if ($authorization == 'view') {
+            return $cluster;
+        } else {
+            if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
+                throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
+            }
+            if ($authorization == 'edit') {
+                if (!$user['Role']['perm_site_admin'] && $cluster['GalaxyCluster']['orgc_id'] != $this->Auth->user('org_id')) {
+                    throw new MethodNotAllowedException(__('You can\'t modify galaxy cluster where you are not part of the creator organisation.'));
+                }
+            }
+            return $cluster;
+        }
     }
 
     /**

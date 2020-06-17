@@ -752,10 +752,7 @@ class GalaxyClustersController extends AppController
     {
         if ($this->request->is('post')) {
             $result = false;
-            $galaxy_cluster = $this->GalaxyCluster->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('GalaxyCluster.id' => $id)
-            ));
+            $galaxy_cluster = $this->GalaxyCluster->isAuthorizedTo($user, $id, 'edit');
             if (!empty($galaxy_cluster)) {
                 $result = $this->GalaxyCluster->delete($id, true);
                 $galaxy_id = $galaxy_cluster['GalaxyCluster']['galaxy_id'];
@@ -792,9 +789,9 @@ class GalaxyClustersController extends AppController
             throw new MethodNotAllowedException('This function can only be reached via AJAX.');
         }
 
-        $cluster = $this->GalaxyCluster->find('first', array(
+        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
             'conditions' => array('id' => $id)
-        ));
+        ), $full=false);
         if (empty($cluster)) {
             throw new Exception("Invalid Galaxy Cluster.");
         }
