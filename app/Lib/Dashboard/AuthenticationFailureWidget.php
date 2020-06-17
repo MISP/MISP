@@ -18,9 +18,6 @@ class AuthenticationFailureWidget
     "absciss": "username"
 }';
 
-
-    private $__populationData = array();
-
     public function handler($user, $options = array())
     {
         $this->Event = ClassRegistry::init('Event');
@@ -94,7 +91,7 @@ class AuthenticationFailureWidget
         foreach ($object['Attribute'] as $attribute) {
             if (in_array($attribute['object_relation'], $validFields)) {
                 if ($attribute['object_relation'] == 'total') {
-                    $attribute['value'] = intval($attribute['value']);
+                    $attribute['value'] = (int)($attribute['value']);
                 }
                 $temp[$attribute['object_relation']] = $attribute['value'];
             }
