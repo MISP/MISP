@@ -1,3 +1,7 @@
+################################################################################
+#                        ATTRIBUTES AND OBJECTS MAPPING                        #
+################################################################################
+
 attributes_mapping = {
     'filename': '_parse_name',
     'ip-src': '_parse_value',
@@ -60,6 +64,127 @@ attributes_type_mapping = {
     'x509-fingerprint-sha1': '_parse_x509_attribute',
     'x509-fingerprint-sha256': '_parse_x509_attribute'
 }
+
+objects_mapping = {
+    'asn': {
+        'observable': 'parse_asn_observable',
+        'pattern': 'parse_asn_pattern'},
+    'credential': {
+        'observable': 'parse_credential_observable',
+        'pattern': 'parse_credential_pattern'},
+    'domain-ip': {
+        'observable': 'parse_domain_ip_observable',
+        'pattern': 'parse_domain_ip_pattern'},
+    'email': {
+        'observable': 'parse_email_observable',
+        'pattern': 'parse_email_pattern'},
+    'file': {
+        'observable': 'parse_file_observable',
+        'pattern': 'parse_file_pattern'},
+    'ip-port': {
+        'observable': 'parse_ip_port_observable',
+        'pattern': 'parse_ip_port_pattern'},
+    'network-connection': {
+        'observable': 'parse_network_connection_observable',
+        'pattern': 'parse_network_connection_pattern'},
+    'network-socket': {
+        'observable': 'parse_network_socket_observable',
+        'pattern': 'parse_network_socket_pattern'},
+    'process': {
+        'observable': 'parse_process_observable',
+        'pattern': 'parse_process_pattern'},
+    'registry-key': {
+        'observable': 'parse_regkey_observable',
+        'pattern': 'parse_regkey_pattern'},
+    'url': {
+        'observable': 'parse_url_observable',
+        'pattern': 'parse_url_pattern'},
+    'user-account': {
+        'observable': 'parse_user_account_observable',
+        'pattern': 'parse_user_account_pattern'},
+    'WindowsPEBinaryFile': {
+        'observable': 'parse_pe_observable',
+        'pattern': 'parse_pe_pattern'},
+    'x509': {
+        'observable': 'parse_x509_observable',
+        'pattern': 'parse_x509_pattern'}
+}
+
+observable_mapping = {
+    ('artifact', 'file'): 'parse_file_observable',
+    ('artifact', 'directory', 'file'): 'parse_file_observable',
+    ('artifact', 'email-addr', 'email-message', 'file'): 'parse_email_observable',
+    ('autonomous-system',): 'parse_asn_observable',
+    ('autonomous-system', 'ipv4-addr'): 'parse_asn_observable',
+    ('autonomous-system', 'ipv6-addr'): 'parse_asn_observable',
+    ('autonomous-system', 'ipv4-addr', 'ipv6-addr'): 'parse_asn_observable',
+    ('directory', 'file'): 'parse_file_observable',
+    ('domain-name',): 'parse_domain_ip_observable',
+    ('domain-name', 'ipv4-addr'): 'parse_domain_ip_observable',
+    ('domain-name', 'ipv6-addr'): 'parse_domain_ip_observable',
+    ('domain-name', 'ipv4-addr', 'ipv6-addr'): 'parse_domain_ip_observable',
+    ('domain-name', 'ipv4-addr', 'network-traffic'): 'parse_domain_ip_network_traffic_observable',
+    ('domain-name', 'ipv6-addr', 'network-traffic'): 'parse_domain_ip_network_traffic_observable',
+    ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): 'parse_domain_ip_network_traffic_observable',
+    ('domain-name', 'network-traffic'): 'parse_domain_network_traffic_observable',
+    ('domain-name', 'network-traffic', 'url'): 'parse_url_observable',
+    ('email-addr',): 'parse_email_address_observable',
+    ('email-addr', 'email-message'): 'parse_email_observable',
+    ('email-addr', 'email-message', 'file'): 'parse_email_observable',
+    ('email-message',): 'parse_email_observable',
+    ('file',): 'parse_file_observable',
+    ('file', 'process'): 'parse_process_observable',
+    ('ipv4-addr',): 'parse_ip_address_observable',
+    ('ipv6-addr',): 'parse_ip_address_observable',
+    ('ipv4-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
+    ('ipv6-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
+    ('ipv4-addr', 'ipv6-addr', 'network-traffic'): 'parse_ip_network_traffic_observable',
+    ('mac-addr',): 'parse_mac_address_observable',
+    ('mutex',): 'parse_mutex_observable',
+    ('process',): 'parse_process_observable',
+    ('x509-certificate',): 'parse_x509_observable',
+    ('url',): 'parse_url_observable',
+    ('user-account',): 'parse_user_account_observable',
+    ('windows-registry-key',): 'parse_regkey_observable'
+}
+
+pattern_mapping = {
+    ('artifact', 'file'): 'parse_file_pattern',
+    ('artifact', 'directory', 'file'): 'parse_file_pattern',
+    ('autonomous-system', ): 'parse_as_pattern',
+    ('autonomous-system', 'ipv4-addr'): 'parse_as_pattern',
+    ('autonomous-system', 'ipv6-addr'): 'parse_as_pattern',
+    ('autonomous-system', 'ipv4-addr', 'ipv6-addr'): 'parse_as_pattern',
+    ('directory',): 'parse_file_pattern',
+    ('directory', 'file'): 'parse_file_pattern',
+    ('domain-name',): 'parse_domain_ip_port_pattern',
+    ('domain-name', 'ipv4-addr', 'url'): 'parse_domain_ip_port_pattern',
+    ('domain-name', 'ipv6-addr', 'url'): 'parse_domain_ip_port_pattern',
+    ('domain-name', 'network-traffic'): 'parse_domain_ip_port_pattern',
+    ('domain-name', 'network-traffic', 'url'): 'parse_url_pattern',
+    ('email-addr',): 'parse_email_address_pattern',
+    ('email-message',): 'parse_email_message_pattern',
+    ('file',): 'parse_file_pattern',
+    ('ipv4-addr',): 'parse_ip_address_pattern',
+    ('ipv6-addr',): 'parse_ip_address_pattern',
+    ('ipv4-addr', 'ipv6-addr'): 'parse_ip_address_pattern',
+    ('mac-addr',): 'parse_mac_address_pattern',
+    ('mutex',): 'parse_mutex_pattern',
+    ('network-traffic',): 'parse_network_traffic_pattern',
+    ('process',): 'parse_process_pattern',
+    ('url',): 'parse_url_pattern',
+    ('user-account',): 'parse_user_account_pattern',
+    ('windows-registry-key',): 'parse_regkey_pattern',
+    ('x509-certificate',): 'parse_x509_pattern'
+}
+
+pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
+single_attribute_fields = ('type', 'value', 'to_ids')
+
+
+################################################################################
+#                  OBSERVABLE OBJECTS AND PATTERNS MAPPING.                    #
+################################################################################
 
 address_family_attribute_mapping = {'type': 'text','object_relation': 'address-family'}
 as_number_attribute_mapping = {'type': 'AS', 'object_relation': 'asn'}
