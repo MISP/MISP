@@ -1,15 +1,15 @@
 {
     "type": "bundle",
     "spec_version": "2.0",
-    "id": "bundle--5e788da7-0010-43a9-8358-7538a964451a",
+    "id": "bundle--5eea00d2-4524-4eac-b4f4-54caa964451a",
     "objects": [
         {
             "type": "identity",
             "id": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "name": "ORGNAME_387",
             "identity_class": "organization",
-            "created": "2020-03-23T10:21:28.105Z",
-            "modified": "2020-03-23T10:21:28.105Z"
+            "created": "2020-06-17T11:38:58.248Z",
+            "modified": "2020-06-17T11:38:58.248Z"
         },
         {
             "type": "report",
@@ -17,7 +17,8 @@
             "name": "STIX observables test event",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "created": "2018-03-28T00:00:00.000Z",
-            "published": "2020-03-23T10:20:55Z",
+            "published": "2020-06-17T11:38:35Z",
+            "modified": "2020-06-17T11:38:30.000Z",
             "object_marking_refs": [
                 "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9"
             ],
@@ -93,23 +94,14 @@
                 "course-of-action--a8825ae8-6dea-11e7-8d57-7728f3cfe086",
                 "threat-actor--7cdff317-a673-4474-84ec-4f1754947823",
                 "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9",
-                "relationship--0657df85-5460-49db-a7f9-f87b3b2cff3d",
-                "relationship--97d35580-e338-4715-92e9-9cf36bc832dc"
-            ],
-            "modified": "2020-03-23T10:21:28.121Z"
+                "relationship--79efacb3-44fb-4e21-9801-5dba54a9191a",
+                "relationship--f49edb64-a7c8-4a58-89da-50286f348168"
+            ]
         },
         {
             "id": "observed-data--5ac4db18-1294-41ba-a57f-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"md5\"",
-                "misp:category=\"Payload delivery\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "file",
@@ -118,21 +110,21 @@
                     }
                 }
             },
-            "created": "2020-03-23T10:21:28.105Z",
-            "modified": "2020-03-23T10:21:28.105Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"md5\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-0ee0-4e31-b4b6-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"sha1\"",
-                "misp:category=\"Payload delivery\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "file",
@@ -141,21 +133,21 @@
                     }
                 }
             },
-            "created": "2020-03-23T10:21:28.106Z",
-            "modified": "2020-03-23T10:21:28.106Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"sha1\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-02f4-42eb-b89b-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"sha256\"",
-                "misp:category=\"Payload delivery\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "file",
@@ -164,21 +156,21 @@
                     }
                 }
             },
-            "created": "2020-03-23T10:21:28.106Z",
-            "modified": "2020-03-23T10:21:28.106Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"sha256\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-be00-43c7-9527-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"filename|sha1\"",
-                "misp:category=\"Payload delivery\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "file",
@@ -188,21 +180,21 @@
                     }
                 }
             },
-            "created": "2020-03-23T10:21:28.107Z",
-            "modified": "2020-03-23T10:21:28.107Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"filename|sha1\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-62f0-4f12-906d-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"ip-src\"",
-                "misp:category=\"Network activity\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "ipv4-addr",
@@ -216,42 +208,42 @@
                     ]
                 }
             },
-            "created": "2020-03-23T10:21:28.107Z",
-            "modified": "2020-03-23T10:21:28.107Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"ip-src\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-e320-42b6-afb4-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"hostname\"",
-                "misp:category=\"Network activity\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "domain-name",
                     "value": "www.circl.lu"
                 }
             },
-            "created": "2020-03-23T10:21:28.107Z",
-            "modified": "2020-03-23T10:21:28.107Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"hostname\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-d4dc-4e7b-be94-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"domain|ip\"",
-                "misp:category=\"Network activity\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "domain-name",
@@ -265,36 +257,35 @@
                     "value": "1.2.3.4"
                 }
             },
-            "created": "2020-03-23T10:21:28.107Z",
-            "modified": "2020-03-23T10:21:28.107Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"domain|ip\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "x-misp-object-port--5ac4db18-aec4-4efd-9b85-01ef0a00020f",
             "x_misp_category": "Network activity",
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
             "labels": [
                 "misp:type=\"port\"",
                 "misp:category=\"Network activity\"",
                 "misp:to_ids=\"False\""
             ],
-            "x_misp_timestamp": "2018-03-28 12:06:12",
             "x_misp_value": "2510",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "type": "x-misp-object-port",
-            "created": "2020-03-23T10:21:28.108Z",
-            "modified": "2020-03-23T10:21:28.108Z"
+            "type": "x-misp-object-port"
         },
         {
             "id": "observed-data--5ac4db18-70bc-4d45-b435-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"email-src\"",
-                "misp:category=\"Payload delivery\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "email-addr",
@@ -302,25 +293,25 @@
                 },
                 "1": {
                     "type": "email-message",
-                    "from_ref": "0",
-                    "is_multipart": false
+                    "is_multipart": false,
+                    "from_ref": "0"
                 }
             },
-            "created": "2020-03-23T10:21:28.108Z",
-            "modified": "2020-03-23T10:21:28.108Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"email-src\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-3f90-4a8c-aada-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"email-subject\"",
-                "misp:category=\"Payload delivery\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "email-message",
@@ -328,110 +319,111 @@
                     "is_multipart": false
                 }
             },
-            "created": "2020-03-23T10:21:28.108Z",
-            "modified": "2020-03-23T10:21:28.108Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"email-subject\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-4984-4a75-8203-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"url\"",
-                "misp:category=\"External analysis\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "url",
                     "value": "https://www.circl.lu/team"
                 }
             },
-            "created": "2020-03-23T10:21:28.108Z",
-            "modified": "2020-03-23T10:21:28.108Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"url\"",
+                "misp:category=\"External analysis\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-e380-4cfa-bd53-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"regkey\"",
-                "misp:category=\"Persistence mechanism\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "windows-registry-key",
                     "key": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
                 }
             },
-            "created": "2020-03-23T10:21:28.109Z",
-            "modified": "2020-03-23T10:21:28.109Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"regkey\"",
+                "misp:category=\"Persistence mechanism\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-598c-48d0-89f2-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"regkey|value\"",
-                "misp:category=\"Persistence mechanism\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "windows-registry-key",
                     "key": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
                     "values": [
                         {
-                            "name": "%TEMP%\\seagate.exe"
+                            "data": "%TEMP%\\seagate.exe",
+                            "name": ""
                         }
                     ]
                 }
             },
-            "created": "2020-03-23T10:21:28.109Z",
-            "modified": "2020-03-23T10:21:28.109Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"regkey|value\"",
+                "misp:category=\"Persistence mechanism\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-47c4-4631-b3c8-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"mutex\"",
-                "misp:category=\"Artifacts dropped\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "mutex",
                     "name": "no idea"
                 }
             },
-            "created": "2020-03-23T10:21:28.109Z",
-            "modified": "2020-03-23T10:21:28.109Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"mutex\"",
+                "misp:category=\"Artifacts dropped\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-0d5c-4305-a505-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"filename|ssdeep\"",
-                "misp:category=\"Payload delivery\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "file",
@@ -441,21 +433,21 @@
                     }
                 }
             },
-            "created": "2020-03-23T10:21:28.109Z",
-            "modified": "2020-03-23T10:21:28.109Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"filename|ssdeep\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-14b0-4554-9999-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"ip-dst|port\"",
-                "misp:category=\"Network activity\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "ipv4-addr",
@@ -470,59 +462,65 @@
                     "dst_port": 2510
                 }
             },
-            "created": "2020-03-23T10:21:28.110Z",
-            "modified": "2020-03-23T10:21:28.110Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"ip-dst|port\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-ddfc-4fde-b936-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"mac-address\"",
-                "misp:category=\"Network activity\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "mac-addr",
                     "value": "5e:ff:56:a2:af:15"
                 }
             },
-            "created": "2020-03-23T10:21:28.110Z",
-            "modified": "2020-03-23T10:21:28.110Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"mac-address\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "x-misp-object-comment--5ac4db18-8cec-40ac-8d7f-01ef0a00020f",
             "x_misp_category": "Other",
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
             "labels": [
                 "misp:type=\"comment\"",
                 "misp:category=\"Other\"",
                 "misp:to_ids=\"False\""
             ],
-            "x_misp_timestamp": "2018-03-28 12:06:12",
             "x_misp_value": "oui, c'est un comment",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "type": "x-misp-object-comment",
-            "created": "2020-03-23T10:21:28.110Z",
-            "modified": "2020-03-23T10:21:28.110Z"
+            "type": "x-misp-object-comment"
         },
         {
             "id": "x-misp-object-other--5ac4db18-9d68-42c1-a313-01ef0a00020f",
             "x_misp_category": "Other",
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
             "labels": [
                 "misp:type=\"other\"",
                 "misp:category=\"Other\"",
                 "misp:to_ids=\"False\""
             ],
-            "x_misp_timestamp": "2018-03-28 12:06:12",
             "x_misp_value": "bla",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "type": "x-misp-object-other",
-            "created": "2020-03-23T10:21:28.110Z",
-            "modified": "2020-03-23T10:21:28.110Z"
+            "type": "x-misp-object-other"
         },
         {
             "id": "vulnerability--5ac4db18-0150-4435-b016-01ef0a00020f",
@@ -540,21 +538,13 @@
                 "misp:category=\"External analysis\"",
                 "misp:to_ids=\"False\""
             ],
-            "created": "2020-03-23T10:21:28.110Z",
-            "modified": "2020-03-23T10:21:28.110Z"
+            "created": "2020-06-17T11:38:58.252Z",
+            "modified": "2020-06-17T11:38:58.252Z"
         },
         {
             "id": "observed-data--5ac4db18-4a4c-4623-bea4-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
-            "labels": [
-                "misp:type=\"x509-fingerprint-sha1\"",
-                "misp:category=\"Network activity\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "x509-certificate",
@@ -563,85 +553,80 @@
                     }
                 }
             },
-            "created": "2020-03-23T10:21:28.110Z",
-            "modified": "2020-03-23T10:21:28.110Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"x509-fingerprint-sha1\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5ac4db18-5634-4e63-a270-01ef0a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-03-28T12:06:12Z",
-            "last_observed": "2018-03-28T12:06:12Z",
+            "objects": {
+                "0": {
+                    "type": "email-message",
+                    "is_multipart": false,
+                    "additional_header_fields": {
+                        "Reply-To": "jean@michel.crapaud"
+                    }
+                }
+            },
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "labels": [
                 "misp:type=\"email-reply-to\"",
                 "misp:category=\"Payload delivery\"",
                 "misp:to_ids=\"False\""
             ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "objects": {
-                "0": {
-                    "type": "email-addr",
-                    "value": "jean@michel.crapaud"
-                },
-                "1": {
-                    "type": "email-message",
-                    "additional_header_fields": {
-                        "Reply-To": "0"
-                    },
-                    "is_multipart": false
-                }
-            },
-            "created": "2020-03-23T10:21:28.111Z",
-            "modified": "2020-03-23T10:21:28.111Z"
+            "created": "2018-03-28T12:06:12.000Z",
+            "modified": "2018-03-28T12:06:12.000Z",
+            "first_observed": "2018-03-28T12:06:12Z",
+            "last_observed": "2018-03-28T12:06:12Z"
         },
         {
             "id": "observed-data--5b23a25a-08c0-497c-8475-04660a00020f",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2018-06-15T11:26:18Z",
-            "last_observed": "2018-06-15T11:26:18Z",
-            "labels": [
-                "misp:type=\"AS\"",
-                "misp:category=\"Network activity\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "autonomous-system",
                     "number": 66642
                 }
             },
-            "created": "2020-03-23T10:21:28.111Z",
-            "modified": "2020-03-23T10:21:28.111Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"AS\"",
+                "misp:category=\"Network activity\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2018-06-15T11:26:18.000Z",
+            "modified": "2018-06-15T11:26:18.000Z",
+            "first_observed": "2018-06-15T11:26:18Z",
+            "last_observed": "2018-06-15T11:26:18Z"
         },
         {
             "id": "x-misp-object-named-pipe--5d886bec-7414-46ea-be16-0e42a964451a",
             "x_misp_category": "Artifacts dropped",
+            "created": "2019-09-23T06:53:32.000Z",
+            "modified": "2019-09-23T06:53:32.000Z",
             "labels": [
                 "misp:type=\"named pipe\"",
                 "misp:category=\"Artifacts dropped\"",
                 "misp:to_ids=\"False\""
             ],
-            "x_misp_timestamp": "2019-09-23 06:53:32",
             "x_misp_value": "\\\\.\\pipe\\testpipe",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "type": "x-misp-object-named-pipe",
-            "created": "2020-03-23T10:21:28.111Z",
-            "modified": "2020-03-23T10:21:28.111Z"
+            "type": "x-misp-object-named-pipe"
         },
         {
             "id": "observed-data--5e384a51-9868-4cba-b7c0-3c7ba964451a",
             "type": "observed-data",
             "number_observed": 1,
-            "first_observed": "2020-02-03T16:29:05Z",
-            "last_observed": "2020-02-03T16:29:05Z",
-            "labels": [
-                "misp:type=\"attachment\"",
-                "misp:category=\"Payload delivery\"",
-                "misp:to_ids=\"False\""
-            ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
             "objects": {
                 "0": {
                     "type": "artifact",
@@ -653,8 +638,16 @@
                     "content_ref": "0"
                 }
             },
-            "created": "2020-03-23T10:21:28.111Z",
-            "modified": "2020-03-23T10:21:28.111Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
+            "labels": [
+                "misp:type=\"attachment\"",
+                "misp:category=\"Payload delivery\"",
+                "misp:to_ids=\"False\""
+            ],
+            "created": "2020-02-03T16:29:05.000Z",
+            "modified": "2020-02-03T16:29:05.000Z",
+            "first_observed": "2020-02-03T16:29:05Z",
+            "last_observed": "2020-02-03T16:29:05Z"
         },
         {
             "id": "observed-data--5ac4db18-7ba4-4c60-ae41-01ef0a00020f",
@@ -679,11 +672,11 @@
                     ]
                 }
             },
-            "first_observed": "2018-04-03T08:13:16Z",
-            "last_observed": "2018-04-03T08:13:16Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.111Z",
-            "modified": "2020-03-23T10:21:28.111Z"
+            "created": "2018-04-03T08:13:16.000Z",
+            "modified": "2018-04-03T08:13:16.000Z",
+            "first_observed": "2018-04-03T08:13:16Z",
+            "last_observed": "2018-04-03T08:13:16Z"
         },
         {
             "id": "observed-data--5ac4db18-3900-4b41-8099-01ef0a00020f",
@@ -708,11 +701,11 @@
                     "value": "8.8.8.8"
                 }
             },
-            "first_observed": "2018-04-03T08:14:23Z",
-            "last_observed": "2018-04-03T08:14:23Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.112Z",
-            "modified": "2020-03-23T10:21:28.112Z"
+            "created": "2018-04-03T08:14:23.000Z",
+            "modified": "2018-04-03T08:14:23.000Z",
+            "first_observed": "2018-04-03T08:14:23Z",
+            "last_observed": "2018-04-03T08:14:23Z"
         },
         {
             "id": "observed-data--5ac4db18-7d84-4ab3-b47b-01ef0a00020f",
@@ -737,11 +730,11 @@
                     }
                 }
             },
-            "first_observed": "2018-04-03T09:08:02Z",
-            "last_observed": "2018-04-03T09:08:02Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.112Z",
-            "modified": "2020-03-23T10:21:28.112Z"
+            "created": "2018-04-03T09:08:02.000Z",
+            "modified": "2018-04-03T09:08:02.000Z",
+            "first_observed": "2018-04-03T09:08:02Z",
+            "last_observed": "2018-04-03T09:08:02Z"
         },
         {
             "id": "observed-data--5ac4db18-0040-46e6-b788-01ef0a00020f",
@@ -772,11 +765,11 @@
                     "dst_port": 443
                 }
             },
-            "first_observed": "2018-04-03T09:22:18Z",
-            "last_observed": "2018-04-03T09:22:18Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.112Z",
-            "modified": "2020-03-23T10:21:28.112Z"
+            "created": "2018-04-03T09:22:18.000Z",
+            "modified": "2018-04-03T09:22:18.000Z",
+            "first_observed": "2018-04-03T09:22:18Z",
+            "last_observed": "2018-04-03T09:22:18Z"
         },
         {
             "id": "observed-data--5ac4db19-f4d0-460f-94c8-01ef0a00020f",
@@ -808,11 +801,11 @@
                     "value": "www.circl.lu"
                 }
             },
-            "first_observed": "2018-04-04T07:29:32Z",
-            "last_observed": "2018-04-04T07:29:32Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.112Z",
-            "modified": "2020-03-23T10:21:28.112Z"
+            "created": "2018-04-04T07:29:32.000Z",
+            "modified": "2018-04-04T07:29:32.000Z",
+            "first_observed": "2018-04-04T07:29:32Z",
+            "last_observed": "2018-04-04T07:29:32Z"
         },
         {
             "id": "observed-data--5afb32e7-cb00-4dd5-ba41-02090a00020f",
@@ -853,11 +846,11 @@
                     ]
                 }
             },
-            "first_observed": "2018-05-15T19:20:07Z",
-            "last_observed": "2018-05-15T19:20:07Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.113Z",
-            "modified": "2020-03-23T10:21:28.113Z"
+            "created": "2018-05-15T19:20:07.000Z",
+            "modified": "2018-05-15T19:20:07.000Z",
+            "first_observed": "2018-05-15T19:20:07Z",
+            "last_observed": "2018-05-15T19:20:07Z"
         },
         {
             "id": "observed-data--5afb332f-1fbc-4028-be0d-02070a00020f",
@@ -904,11 +897,11 @@
                     }
                 }
             },
-            "first_observed": "2020-03-02T20:39:49Z",
-            "last_observed": "2020-03-02T20:39:49Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.113Z",
-            "modified": "2020-03-23T10:21:28.113Z"
+            "created": "2020-03-02T20:39:49.000Z",
+            "modified": "2020-03-02T20:39:49.000Z",
+            "first_observed": "2020-03-02T20:39:49Z",
+            "last_observed": "2020-03-02T20:39:49Z"
         },
         {
             "id": "x-misp-object-whois--5b0d1bd1-7508-4002-85d0-026b0a00020f",
@@ -922,6 +915,8 @@
                 "domain_domain": "www.circl.lu",
                 "ip-src_ip-address": "1.2.3.4"
             },
+            "created": "2018-05-29T09:22:25.000Z",
+            "modified": "2018-05-29T09:22:25.000Z",
             "labels": [
                 "misp:type=\"whois\"",
                 "misp:category=\"network\"",
@@ -930,10 +925,7 @@
             ],
             "x_misp_category": "network",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "x_misp_timestamp": "2018-05-29 09:22:25",
-            "type": "x-misp-object-whois",
-            "created": "2020-03-23T10:21:28.114Z",
-            "modified": "2020-03-23T10:21:28.114Z"
+            "type": "x-misp-object-whois"
         },
         {
             "id": "observed-data--5b1f9adb-6b24-4752-83fe-02030a00020f",
@@ -957,11 +949,11 @@
                     "x_misp_text_notification": "victim-notified"
                 }
             },
-            "first_observed": "2018-06-12T13:15:51Z",
-            "last_observed": "2018-06-12T13:15:51Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.114Z",
-            "modified": "2020-03-23T10:21:28.114Z"
+            "created": "2018-06-12T13:15:51.000Z",
+            "modified": "2018-06-12T13:15:51.000Z",
+            "first_observed": "2018-06-12T13:15:51Z",
+            "last_observed": "2018-06-12T13:15:51Z"
         },
         {
             "id": "observed-data--5b23c878-df00-4f88-8722-02710a00020f",
@@ -994,11 +986,11 @@
                     "name": "AS name"
                 }
             },
-            "first_observed": "2020-02-27T10:08:16Z",
-            "last_observed": "2020-02-27T10:08:16Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.114Z",
-            "modified": "2020-03-23T10:21:28.114Z"
+            "created": "2020-02-27T10:08:16.000Z",
+            "modified": "2020-02-27T10:08:16.000Z",
+            "first_observed": "2020-02-27T10:08:16Z",
+            "last_observed": "2020-02-27T10:08:16Z"
         },
         {
             "id": "observed-data--5d234f9d-7310-4141-99c8-2f45a964451a",
@@ -1030,11 +1022,11 @@
                     }
                 }
             },
-            "first_observed": "2019-07-08T14:13:49Z",
-            "last_observed": "2019-07-08T14:13:49Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.115Z",
-            "modified": "2020-03-23T10:21:28.115Z"
+            "created": "2019-07-08T14:13:49.000Z",
+            "modified": "2019-07-08T14:13:49.000Z",
+            "first_observed": "2019-07-08T14:13:49Z",
+            "last_observed": "2019-07-08T14:13:49Z"
         },
         {
             "id": "course-of-action--5d515039-9a68-468b-9c78-3affa964451a",
@@ -1053,8 +1045,8 @@
             "x_misp_text_cost": "Low",
             "x_misp_text_impact": "Low",
             "x_misp_text_efficacy": "High",
-            "created": "2020-03-23T10:21:28.115Z",
-            "modified": "2020-03-23T10:21:28.115Z"
+            "created": "2020-06-17T11:38:58.257Z",
+            "modified": "2020-06-17T11:38:58.257Z"
         },
         {
             "id": "x-misp-object-weakness--13f1e6e7-87ab-4ced-bb84-d9461b3eb36a",
@@ -1065,6 +1057,8 @@
                 "text_status": "Usable",
                 "text_weakness-abs": "Class"
             },
+            "created": "2019-08-12T12:20:13.000Z",
+            "modified": "2019-08-12T12:20:13.000Z",
             "labels": [
                 "misp:type=\"weakness\"",
                 "misp:category=\"vulnerability\"",
@@ -1073,10 +1067,7 @@
             ],
             "x_misp_category": "vulnerability",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "x_misp_timestamp": "2019-08-12 12:20:13",
-            "type": "x-misp-object-weakness",
-            "created": "2020-03-23T10:21:28.115Z",
-            "modified": "2020-03-23T10:21:28.115Z"
+            "type": "x-misp-object-weakness"
         },
         {
             "id": "attack-pattern--7edfed6f-7b06-46ea-8aba-9c4075df40d1",
@@ -1108,8 +1099,8 @@
                 "misp:to_ids=\"False\"",
                 "from_object"
             ],
-            "created": "2020-03-23T10:21:28.115Z",
-            "modified": "2020-03-23T10:21:28.115Z"
+            "created": "2020-06-17T11:38:58.257Z",
+            "modified": "2020-06-17T11:38:58.257Z"
         },
         {
             "id": "observed-data--5e384a61-41f4-4345-ab87-3ccda964451a",
@@ -1124,7 +1115,7 @@
             "objects": {
                 "0": {
                     "type": "directory",
-                    "path": "/home/chrisr3d/git/"
+                    "path": "/var/www/MISP/app/files/scripts/tmp"
                 },
                 "1": {
                     "type": "artifact",
@@ -1142,6 +1133,7 @@
                 "3": {
                     "type": "file",
                     "size": 35,
+                    "name_enc": "UTF-8",
                     "hashes": {
                         "MD5": "8764605c6f388c89096b534d33565802",
                         "SHA-1": "46aba99aa7158e4609aaa72b50990842fd22ae86",
@@ -1149,15 +1141,14 @@
                     },
                     "name": "oui",
                     "parent_directory_ref": "0",
-                    "x_misp_multiple_fullpath": "/home/chrisr3d/git/MISP/cleanMISP/app/files/scripts/stix2",
                     "content_ref": "1"
                 }
             },
-            "first_observed": "2020-03-06T16:29:53Z",
-            "last_observed": "2020-03-06T16:29:53Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.115Z",
-            "modified": "2020-03-23T10:21:28.115Z"
+            "created": "2020-06-17T11:38:30.000Z",
+            "modified": "2020-06-17T11:38:30.000Z",
+            "first_observed": "2020-06-17T11:38:30Z",
+            "last_observed": "2020-06-17T11:38:30Z"
         },
         {
             "id": "observed-data--5e3967f3-b870-4638-b366-22fda964451a",
@@ -1230,11 +1221,11 @@
                     "is_multipart": true
                 }
             },
-            "first_observed": "2020-02-04T12:47:47Z",
-            "last_observed": "2020-02-04T12:47:47Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.116Z",
-            "modified": "2020-03-23T10:21:28.116Z"
+            "created": "2020-02-04T12:47:47.000Z",
+            "modified": "2020-02-04T12:47:47.000Z",
+            "first_observed": "2020-02-04T12:47:47Z",
+            "last_observed": "2020-02-04T12:47:47Z"
         },
         {
             "id": "observed-data--5e39785c-2140-478f-9d5a-159da964451a",
@@ -1270,11 +1261,11 @@
                     "name": "Progress_in_progress"
                 }
             },
-            "first_observed": "2020-02-04T13:57:48Z",
-            "last_observed": "2020-02-04T13:57:48Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.117Z",
-            "modified": "2020-03-23T10:21:28.117Z"
+            "created": "2020-02-04T13:57:48.000Z",
+            "modified": "2020-02-04T13:57:48.000Z",
+            "first_observed": "2020-02-04T13:57:48Z",
+            "last_observed": "2020-02-04T13:57:48Z"
         },
         {
             "id": "vulnerability--5e57b76e-e974-451a-b893-1440a964451a",
@@ -1320,8 +1311,8 @@
                 "misp:to_ids=\"False\"",
                 "from_object"
             ],
-            "created": "2020-03-23T10:21:28.118Z",
-            "modified": "2020-03-23T10:21:28.118Z"
+            "created": "2020-06-17T11:38:58.259Z",
+            "modified": "2020-06-17T11:38:58.259Z"
         },
         {
             "id": "observed-data--5ac4db19-c620-4b8d-a5a7-01ef0a00020f",
@@ -1335,10 +1326,6 @@
             "number_observed": 1,
             "objects": {
                 "0": {
-                    "type": "directory",
-                    "path": "/home/chrisr3d/git/"
-                },
-                "1": {
                     "type": "file",
                     "size": 1234,
                     "hashes": {
@@ -1347,8 +1334,6 @@
                         "SHA-256": "3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8"
                     },
                     "name": "oui",
-                    "parent_directory_ref": "0",
-                    "x_misp_multiple_fullpath": "/home/chrisr3d/git/MISP/cleanMISP/app/files/scripts/stix2",
                     "extensions": {
                         "windows-pebinary-ext": {
                             "pe_type": "exe",
@@ -1382,15 +1367,17 @@
                     }
                 }
             },
-            "first_observed": "2019-09-23T16:23:16Z",
-            "last_observed": "2019-09-23T16:23:16Z",
             "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.118Z",
-            "modified": "2020-03-23T10:21:28.118Z"
+            "created": "2019-09-23T16:23:16.000Z",
+            "modified": "2019-09-23T16:23:16.000Z",
+            "first_observed": "2019-09-23T16:23:16Z",
+            "last_observed": "2019-09-23T16:23:16Z"
         },
         {
             "id": "attack-pattern--dcb864dc-775f-11e7-9fbb-1f41b4996683",
             "type": "attack-pattern",
+            "created": "2018-03-28T00:00:00.000Z",
+            "modified": "2020-06-17T11:38:30.000Z",
             "name": "DLL Search Order Hijacking - T1038",
             "description": "ATT&CK Tactic | Windows systems use a common method to look for required DLLs to load into a program. (Citation: Microsoft DLL Search) Adversaries may take advantage of the Windows DLL search order and programs that ambiguously specify DLLs to gain privilege escalation and persistence. \n\nAdversaries may perform DLL preloading, also called binary planting attacks, (Citation: OWASP Binary Planting) by placing a malicious DLL with the same name as an ambiguously specified DLL in a location that Windows searches before the legitimate DLL. Often this location is the current working directory of the program. Remote DLL preloading attacks occur when a program sets its current directory to a remote location such as a Web share before loading a DLL. (Citation: Microsoft 2269637) Adversaries may use this behavior to cause the program to load a malicious DLL. \n\nAdversaries may also directly modify the way a program loads DLLs by replacing an existing DLL or modifying a .manifest or .local redirection file, directory, or junction to cause the program to load a different DLL to maintain persistence or privilege escalation. (Citation: Microsoft DLL Redirection) (Citation: Microsoft Manifests) (Citation: Mandiant Search Order)\n\nIf a search order-vulnerable program is configured to run at a higher privilege level, then the adversary-controlled DLL that is loaded will also be executed at the higher level. In this case, the technique could be used for privilege escalation from user to administrator or SYSTEM or from administrator to SYSTEM, depending on the program.\n\nPrograms that fall victim to path hijacking may appear to behave normally because malicious DLLs may be configured to also load the legitimate DLLs they were meant to replace.",
             "kill_chain_phases": [
@@ -1403,13 +1390,13 @@
                 "misp:name=\"Attack Pattern\"",
                 "misp-galaxy:mitre-attack-pattern=\"DLL Search Order Hijacking - T1038\""
             ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.120Z",
-            "modified": "2020-03-23T10:21:28.120Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985"
         },
         {
             "id": "intrusion-set--10df003c-7831-11e7-bdb9-971cdd1218df",
             "type": "intrusion-set",
+            "created": "2018-03-28T00:00:00.000Z",
+            "modified": "2020-06-17T11:38:30.000Z",
             "name": "APT16 - G0023",
             "description": "Name of ATT&CK Group | [APT16](https://attack.mitre.org/groups/G0023) is a China-based threat group that has launched spearphishing campaigns targeting Japanese and Taiwanese organizations. (Citation: FireEye EPS Awakens Part 2)",
             "aliases": [
@@ -1419,13 +1406,13 @@
                 "misp:name=\"Intrusion Set\"",
                 "misp-galaxy:mitre-intrusion-set=\"APT16 - G0023\""
             ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.120Z",
-            "modified": "2020-03-23T10:21:28.120Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985"
         },
         {
             "id": "malware--d752161c-78f6-11e7-a0ea-bfa79b407ce4",
             "type": "malware",
+            "created": "2018-03-28T00:00:00.000Z",
+            "modified": "2020-06-17T11:38:30.000Z",
             "name": "Elise - S0081",
             "description": "Name of ATT&CK software | [Elise](https://attack.mitre.org/software/S0081) is a custom backdoor Trojan that appears to be used exclusively by [Lotus Blossom](https://attack.mitre.org/groups/G0030). It is part of a larger group of\ntools referred to as LStudio, ST Group, and APT0LSTU. (Citation: Lotus Blossom Jun 2015)(Citation: Accenture Dragonfish Jan 2018)",
             "kill_chain_phases": [
@@ -1438,13 +1425,13 @@
                 "misp:name=\"Malware\"",
                 "misp-galaxy:mitre-malware=\"Elise - S0081\""
             ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.120Z",
-            "modified": "2020-03-23T10:21:28.120Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985"
         },
         {
             "id": "tool--d700dc5c-78f6-11e7-a476-5f748c8e4fe0",
             "type": "tool",
+            "created": "2018-03-28T00:00:00.000Z",
+            "modified": "2020-06-17T11:38:30.000Z",
             "name": "ifconfig - S0101",
             "description": "Name of ATT&CK software | [ifconfig](https://attack.mitre.org/software/S0101) is a Unix-based utility used to gather information about and interact with the TCP/IP settings on a system. (Citation: Wikipedia Ifconfig)",
             "kill_chain_phases": [
@@ -1457,26 +1444,26 @@
                 "misp:name=\"Tool\"",
                 "misp-galaxy:mitre-tool=\"ifconfig - S0101\""
             ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.120Z",
-            "modified": "2020-03-23T10:21:28.120Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985"
         },
         {
             "id": "course-of-action--a8825ae8-6dea-11e7-8d57-7728f3cfe086",
             "type": "course-of-action",
+            "created": "2018-03-28T00:00:00.000Z",
+            "modified": "2020-06-17T11:38:30.000Z",
             "name": "Access Token Manipulation Mitigation - T1134",
             "description": "ATT&CK Mitigation | Access tokens are an integral part of the security system within Windows and cannot be turned off. However, an attacker must already have administrator level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require to do their job.\n\nAny user can also spoof access tokens if they have legitimate credentials. Follow mitigation guidelines for preventing adversary use of [Valid Accounts](https://attack.mitre.org/techniques/T1078). Limit permissions so that users and user groups cannot create tokens. This setting should be defined for the local system account only. GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Create a token object. (Citation: Microsoft Create Token) Also define who can create a process level token to only the local and network service through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Replace a process level token. (Citation: Microsoft Replace Process Token)\n\nAlso limit opportunities for adversaries to increase privileges by limiting Privilege Escalation opportunities.",
             "labels": [
                 "misp:name=\"Course of Action\"",
                 "misp-galaxy:mitre-course-of-action=\"Access Token Manipulation Mitigation - T1134\""
             ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.120Z",
-            "modified": "2020-03-23T10:21:28.120Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985"
         },
         {
             "id": "threat-actor--7cdff317-a673-4474-84ec-4f1754947823",
             "type": "threat-actor",
+            "created": "2018-03-28T00:00:00.000Z",
+            "modified": "2020-06-17T11:38:30.000Z",
             "name": "APT 16",
             "description": "Threat actors are characteristics of malicious actors (or adversaries) representing a cyber attack threat including presumed intent and historically observed behaviour. | Between November 26, 2015, and December 1, 2015, known and suspected China-based APT groups launched several spear-phishing attacks targeting Japanese and Taiwanese organizations in the high-tech, government services, media and financial services industries. Each campaign delivered a malicious Microsoft Word document exploiting the aforementioned EPS dict copy use-after-free vulnerability, and the local Windows privilege escalation vulnerability CVE-2015-1701. The successful exploitation of both vulnerabilities led to the delivery of either a downloader that we refer to as IRONHALO, or a backdoor that we refer to as ELMER.",
             "aliases": [
@@ -1487,9 +1474,7 @@
                 "misp:name=\"Threat Actor\"",
                 "misp-galaxy:threat-actor=\"APT 16\""
             ],
-            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985",
-            "created": "2020-03-23T10:21:28.120Z",
-            "modified": "2020-03-23T10:21:28.120Z"
+            "created_by_ref": "identity--5a8e935e-5484-488c-852c-776f7c7cf985"
         },
         {
             "id": "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9",
@@ -1502,18 +1487,18 @@
         },
         {
             "type": "relationship",
-            "id": "relationship--0657df85-5460-49db-a7f9-f87b3b2cff3d",
-            "created": "2020-03-23T10:21:28.121Z",
-            "modified": "2020-03-23T10:21:28.121Z",
+            "id": "relationship--79efacb3-44fb-4e21-9801-5dba54a9191a",
+            "created": "2020-06-17T11:38:58.261Z",
+            "modified": "2020-06-17T11:38:58.261Z",
             "source_ref": "vulnerability--5e57b76e-e974-451a-b893-1440a964451a",
             "relationship_type": "targeted-by",
             "target_ref": "attack-pattern--7edfed6f-7b06-46ea-8aba-9c4075df40d1"
         },
         {
             "type": "relationship",
-            "id": "relationship--97d35580-e338-4715-92e9-9cf36bc832dc",
-            "created": "2020-03-23T10:21:28.121Z",
-            "modified": "2020-03-23T10:21:28.121Z",
+            "id": "relationship--f49edb64-a7c8-4a58-89da-50286f348168",
+            "created": "2020-06-17T11:38:58.261Z",
+            "modified": "2020-06-17T11:38:58.261Z",
             "source_ref": "vulnerability--5e57b76e-e974-451a-b893-1440a964451a",
             "relationship_type": "weakened-by",
             "target_ref": "x-misp-object-weakness--13f1e6e7-87ab-4ced-bb84-d9461b3eb36a"
