@@ -781,48 +781,6 @@ class FeedsController extends AppController
         $this->render('freetext_index');
     }
 
-    private function __previewCSV($feed)
-    {
-        if (isset($this->passedArgs['pages'])) {
-            $currentPage = $this->passedArgs['pages'];
-        } else {
-            $currentPage = 1;
-        }
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        if ($feed['Feed']['source_format'] != 'csv') {
-            throw new MethodNotAllowedException(__('Invalid feed type.'));
-        }
-        $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-        try {
-            $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage);
-        } catch (Exception $e) {
-            $this->Flash->error("Could not fetch feed: {$e->getMessage()}");
-            $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
-        }
-        // we want false as a valid option for the split fetch, but we don't want it for the preview
-        if ($resultArray == false) {
-            $resultArray = array();
-        }
-        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
-        $resultArray = $this->Feed->getFreetextFeed2FeedCorrelations($resultArray);
-        // remove all duplicates
-        foreach ($resultArray as $k => $v) {
-            for ($i = 0; $i < $k; $i++) {
-                if (isset($resultArray[$i]) && $v == $resultArray[$i]) {
-                    unset($resultArray[$k]);
-                }
-            }
-        }
-        $resultArray = array_values($resultArray);
-        $this->loadModel('Attribute');
-        $this->set('distributionLevels', $this->Attribute->distributionLevels);
-        $this->set('feed', $feed);
-        $this->set('attributes', $resultArray);
-        $this->render('freetext_index');
-    }
-
-
     public function previewEvent($feedId, $eventUuid, $all = false)
     {
         if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
