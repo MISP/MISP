@@ -264,6 +264,7 @@ class GalaxyClusterRelationsController extends AppController
             if (empty($relation)) {
                 throw new NotFoundException(__('Relation not found.'));
             }
+            $relation = $relation[0];
             $clusterSource = $this->GalaxyClusterRelation->SourceCluster->checkAuthorization($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=true, $full=false);
             $result = $this->GalaxyClusterRelation->delete($id, true);
             if ($result) {
