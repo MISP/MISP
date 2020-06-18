@@ -72,6 +72,9 @@ class Tag extends AppModel
         )
     );
 
+    public $reGalaxy = '/misp-galaxy:[^:="]+="[^:="]+/i';
+    public $reCustomGalaxy = '/misp-galaxy:[^:="]+="[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"/i';
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -87,6 +90,8 @@ class Tag extends AppModel
         if (!isset($this->data['Tag']['exportable'])) {
             $this->data['Tag']['exportable'] = 1;
         }
+        $this->data['Tag']['is_galaxy'] = preg_match($this->reGalaxy, $this->data['Tag']['name']);
+        $this->data['Tag']['is_custom_galaxy'] = preg_match($this->reCustomGalaxy, $this->data['Tag']['name']);
         return true;
     }
 
