@@ -361,9 +361,6 @@ class Sighting extends AppModel
                 }
             }
         }
-        if (!in_array($type, array(0, 1, 2))) {
-            return 'Invalid type, please change it before you POST 1000000 sightings.';
-        }
         $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions, 'flatten' => 1));
         if (empty($attributes)) {
             return 'No valid attributes found that match the criteria.';
@@ -770,19 +767,21 @@ class Sighting extends AppModel
         return $final;
     }
 
-    // Bulk save sightings
+    /**
+     * @param int|string $eventId Event ID or UUID
+     * @param array $sightings
+     * @param array $user
+     * @param null $passAlong
+     * @return int|string Number of saved sightings or error message as string
+     */
     public function bulkSaveSightings($eventId, $sightings, $user, $passAlong = null)
     {
-        if (!is_numeric($eventId)) {
-             $eventId = $this->Event->field('id', array('uuid' => $eventId));
-        }
-        $event = $this->Event->fetchEvent($user, array(
-             'eventid' => $eventId,
+        $event = $this->Event->fetchEvent($user, array_merge(array(
              'metadata' => 1,
-             'flatten' => true
-        ));
+             'flatten' => true,
+        ), is_string($eventId) ? array('event_uuid' => $eventId) : array('eventid' => $eventId)));
         if (empty($event)) {
-            return 'Event not found or not accesible by this user.';
+            return 'Event not found or not accessible by this user.';
         }
         $saved = 0;
         foreach ($sightings as $s) {
