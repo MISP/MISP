@@ -1865,17 +1865,6 @@ class EventsController extends AppController
         return array('active' => $activeRules > 0 ? $res : false, 'activeRules' => $activeRules);
     }
 
-    private function __removeChildren(&$pivot, $id)
-    {
-        if ($pivot['id'] == $id) {
-            $pivot['children'] = array();
-        } else {
-            foreach ($pivot['children'] as $k => $v) {
-                $this->__removeChildren($v, $id);
-            }
-        }
-    }
-
     private function __doRemove(&$pivot, $id)
     {
         foreach ($pivot['children'] as $k => $v) {
