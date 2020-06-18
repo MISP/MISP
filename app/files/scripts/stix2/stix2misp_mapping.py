@@ -217,6 +217,7 @@ name_attribute_mapping = {'type': 'text', 'object_relation': 'name'}
 network_traffic_ip = {'type': 'ip-{}', 'object_relation': 'ip-{}'}
 number_sections_mapping = {'type': 'counter', 'object_relation': 'number-sections'}
 password_mapping = {'type': 'text', 'object_relation': 'password'}
+path_attribute_mapping = {'type': 'text', 'object_relation': 'path'}
 pe_type_mapping = {'type': 'text', 'object_relation': 'type'}
 pid_attribute_mapping = {'type': 'text', 'object_relation': 'pid'}
 process_command_line_mapping = {'type': 'text', 'object_relation': 'command-line'}
@@ -309,7 +310,8 @@ file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'file:name': filename_attribute_mapping,
                 'name_enc': encoding_attribute_mapping,
                 'file:name_enc': encoding_attribute_mapping,
-                'file:parent_directory_ref.path': {'type': 'text', 'object_relation': 'path'},
+                'file:parent_directory_ref.path': path_attribute_mapping,
+                'directory:path': path_attribute_mapping,
                 'size': size_attribute_mapping,
                 'file:size': size_attribute_mapping}
 
