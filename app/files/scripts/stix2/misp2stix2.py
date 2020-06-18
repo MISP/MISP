@@ -190,7 +190,7 @@ class StixBuilder():
                 self.add_indicator(attribute)
             else:
                 self.add_observed_data(attribute)
-        except Exception:
+        except (AtLeastOnePropertyError, InvalidValueError):
             self.add_custom(attribute)
 
     def handle_usual_object_name(self, misp_object, to_ids):
@@ -215,7 +215,7 @@ class StixBuilder():
         self.objects_to_parse[misp_object['name']][misp_object['uuid']] = to_ids, misp_object
 
     def resolve_objects2parse(self):
-        for uuid, misp_object in self.objects_to_parse['file'].items():
+        for misp_object in self.objects_to_parse['file'].values():
             to_ids_file, file_object = misp_object
             file_id = "file--{}".format(file_object['uuid'])
             to_ids_list = [to_ids_file]
@@ -434,7 +434,7 @@ class StixBuilder():
         identity_id = "identity--{}".format(attribute['uuid'])
         name = attribute['value']
         labels, markings = self.create_labels(attribute)
-        identity_args = {'id': identity_id,  'type': identity, 'name': name, 'labels': labels,
+        identity_args = {'id': identity_id,  'type': 'identity', 'name': name, 'labels': labels,
                           'identity_class': 'individual', 'created_by_ref': self.identity_id,
                           'interoperability': True}
         if attribute.get('comment'):
@@ -445,13 +445,11 @@ class StixBuilder():
         self.append_object(identity)
 
     def add_indicator(self, attribute):
-        attribute_type = attribute['type']
         indicator_id = "indicator--{}".format(attribute['uuid'])
         self.parse_galaxies(attribute['Galaxy'], indicator_id)
         category = attribute['category']
         killchain = self.create_killchain(category)
         labels, markings = self.create_labels(attribute)
-        attribute_value = attribute['value'] if attribute_type != "AS" else self.define_attribute_value(attribute['value'], attribute['comment'])
         pattern = f'[{self.define_pattern(attribute)}]'
         timestamp = self.get_datetime_from_timestamp(attribute['timestamp'])
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels,
@@ -478,12 +476,10 @@ class StixBuilder():
         self.append_object(malware)
 
     def add_observed_data(self, attribute):
-        attribute_type = attribute['type']
         observed_data_id = "observed-data--{}".format(attribute['uuid'])
         self.parse_galaxies(attribute['Galaxy'], observed_data_id)
         timestamp = self.get_datetime_from_timestamp(attribute['timestamp'])
         labels, markings = self.create_labels(attribute)
-        attribute_value = attribute['value'] if attribute_type != "AS" else self.define_attribute_value(attribute['value'], attribute['comment'])
         observable = self.define_observable(attribute)
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data', 'number_observed': 1,
                               'objects': observable, 'created_by_ref': self.identity_id,
@@ -1734,13 +1730,6 @@ class StixBuilder():
         if ':' in address:
             return 'ipv6-addr'
         return 'ipv4-addr'
-
-    @staticmethod
-    def define_attribute_value(value, comment):
-        if value.isdigit() or value.startswith("AS"):
-            return int(value) if value.isdigit() else int(value[2:].split(' ')[0])
-        if comment.startswith("AS") or comment.isdigit():
-            return int(comment) if comment.isdigit() else int(comment[2:].split(' ')[0])
 
     @staticmethod
     def _get_attribute_arguments(attribute):

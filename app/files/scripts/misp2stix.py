@@ -44,7 +44,7 @@ from cybox.utils import Namespace
 from stix.coa import CourseOfAction
 from stix.common import InformationSource, Identity, ToolInformation
 from stix.common.confidence import Confidence
-from stix.common.related import RelatedCOA, RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
+from stix.common.related import RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
 from stix.common.vocabs import IncidentStatus
 from stix.core import STIXPackage, STIXHeader
 from stix.data_marking import Marking, MarkingSpecification
