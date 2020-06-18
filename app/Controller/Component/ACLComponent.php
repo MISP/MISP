@@ -265,7 +265,6 @@ class ACLComponent extends Component
                 'edit' => array('perm_galaxy_editor'),
                 'index' => array('*'),
                 'view' => array('*'),
-                'fetchClustersFromRelation' => array('*'),
             ),
             'galaxyElements' => array(
                     'index' => array('*')

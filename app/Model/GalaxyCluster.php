@@ -229,14 +229,6 @@ class GalaxyCluster extends AppModel
         }
         $cluster['GalaxyCluster']['org_id'] = $user['Organisation']['id'];
         $cluster['GalaxyCluster']['orgc_id'] = $user['Organisation']['id'];
-        // if (!isset($cluster['GalaxyCluster']['orgc_id'])) {
-        //     if (isset($cluster['Orgc']['uuid'])) {
-        //         $orgc_id = $this->Orgc->find('first', array('conditions' => array('Orgc.uuid' => $cluster['Orgc']['uuid']), 'fields' => array('Orgc.id'), 'recursive' => -1));
-        //     } else {
-        //         $orgc_id = $user['org_id'];
-        //     }
-        //     $cluster['GalaxyCluster']['orgc_id'] = $orgc_id;
-        // }
 
         if ($user['Role']['perm_sync']) {
             if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])) {
@@ -539,59 +531,6 @@ class GalaxyCluster extends AppModel
         return $cluster;
     }
 
-    // receive a full galaxy and add all new clusters, update existing ones contained in the new galaxy, cull old clusters that are removed from the galaxy
-    public function update($id, $galaxy)
-    {
-        $existingClusters = $this->find('all', array(
-            'conditions' => array('GalaxyCluster.galaxy_id' => $id),
-            'recursive' => -1,
-        ));
-        foreach ($galaxy['values'] as $cluster) {
-            $oldCluster = false;
-            if (!empty($existingClusters)) {
-                foreach ($existingClusters as $k => $existingCluster) {
-                    if ($existingCluster['GalaxyCluster']['value'] == $cluster['value']) {
-                        $oldCluster = true;
-                        if ($cluster['description'] != $existingCluster['GalaxyCluster']['description']) {
-                            $existingCluster['GalaxyCluster']['description'] = $cluster['description'];
-                            $this->GalaxyElement->deleteAll('galaxy_cluster_id' == $existingCluster['GalaxyCluster']['id']);
-                            $this->save($existingCluster);
-                            $template = array('galaxy_cluster_id' => $this->id);
-                            $toSave = array();
-                            foreach ($cluster as $key => $value) {
-                                if (in_array($key, array('value', 'description'))) {
-                                    continue;
-                                }
-                                $tosave[] = array_merge($template, array('key' => $key, 'value' => $value));
-                            }
-                            $this->GalaxyElement->saveMany($toSave);
-                        }
-                        unset($existingClusters[$k]);
-                    }
-                }
-            }
-            if (!$oldCluster) {
-                $newCluster = array_intersect_key($cluster, array_flip(array('value', 'description')));
-                $newCluster['galaxy_id'] = $id;
-                $newCluster['type'] = $galaxy['type'];
-                $newCluster['collection_uuid'] = $newCluster['uuid'];
-                $toSave[] = $newCluster;
-            }
-            $final = array();
-            if (!empty($existingCluster)) {
-                $fieldsToUpdate = array('description', '');
-                $final = $existingCluster;
-            }
-        }
-        $this->saveMany($toSave);
-        // Let's retrieve the full list of clusters we have for the given galaxy and pass it to the element system
-        $existingClusters = $this->find('all', array(
-                'conditions' => array('GalaxyCluster.galaxy_id'),
-                'contain' => array('GalaxyElement'/*, 'GalaxyReference'*/)
-        ));
-        $this->GalaxyElement->update($id, $existingClusters, $galaxy['values']);
-    }
-
     /* Return a list of all tags associated with the cluster specific cluster within the galaxy (or all clusters if $clusterValue is false)
      * The counts are restricted to the event IDs that the user is allowed to see.
     */
@@ -628,17 +567,16 @@ class GalaxyCluster extends AppModel
         if (isset($this->__clusterCache[$name])) {
             return $this->__clusterCache[$name];
         }
-        $conditions = $this->buildConditions($user);
+        $conditions = array();
         if (is_numeric($name)) {
-            $conditions['AND'] = array('GalaxyCluster.id' => $name);
+            $conditions[] = array('GalaxyCluster.id' => $name);
         } else {
-            $conditions['AND'] = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
+            $conditions[] = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
         }
-
-        $cluster = $this->find('first', array(
+        $cluster = $this->fetchGalaxyClusters($user, array(
             'conditions' => $conditions,
-            'contain' => array('Galaxy', 'GalaxyElement')
-        ));
+            'first' => true
+        ), true);
 
         if (!empty($cluster)) {
             $cluster = $this->postprocess($cluster);
@@ -651,21 +589,20 @@ class GalaxyCluster extends AppModel
 
     public function getClusters($names, $user, $postProcess=true)
     {
-        $conditions = $this->buildConditions($user);
+        $conditions = array();
         if (count(array_filter($names, 'is_numeric' )) === count($names)) { // all elements are numeric
-            $conditions['AND'] = array('GalaxyCluster.id' => $names);
+            $conditions[] = array('GalaxyCluster.id' => $names);
         } else {
-            $names = array_map('strtolower', $names);
-            $conditions['AND'] = array('LOWER(GalaxyCluster.tag_name)' => $names);
+            $conditions[] = array('LOWER(GalaxyCluster.tag_name)' => array_map('strtolower', $names));
         }
-
-        $clusters = $this->find('all', array(
+        $clusters = $this->fetchGalaxyClusters($user, array(
             'conditions' => $conditions,
-            'contain' => array('Galaxy', 'GalaxyElement')
-        ));
+        ), true);
 
         if (!empty($clusters) && $postProcess) {
-            $clusters = $this->postprocess($clusters);
+            foreach ($clusters as $k => $cluster) {
+                $clusters[$k] = $this->postprocess($cluster);
+            }
         }
 
         return $clusters;
@@ -941,40 +878,75 @@ class GalaxyCluster extends AppModel
         return $conditions;
     }
 
-    public function isAuthorizedTo($user, $cluster_id, $authorization)
+    public function fetchClusterById($user, $clusterId, $full=false)
     {
-        $possibleAuthorization = array('view', 'edit');
-        if (!in_array($authorization, $possibleAuthorization)) {
-            throw new NotFoundException(__('Invalid authorization requested'));
-        }
-        if (Validation::uuid($cluster_id)) {
-            $temp = $this->GalaxyCluster->find('first', array(
+        if (Validation::uuid($clusterId)) {
+            $temp = $this->find('first', array(
                 'recursive' => -1,
                 'fields' => array('GalaxyCluster.id', 'GalaxyCluster.uuid'),
-                'conditions' => array('GalaxyCluster.uuid' => $cluster_id)
+                'conditions' => array('GalaxyCluster.uuid' => $clusterId)
             ));
             if ($temp === null) {
                 throw new NotFoundException(__('Invalid galaxy cluster'));
             }
-            $cluster_id = $temp['GalaxyCluster']['id'];
-        } elseif (!is_numeric($cluster_id)) {
+            $clusterId = $temp['GalaxyCluster']['id'];
+        } elseif (!is_numeric($clusterId)) {
             throw new NotFoundException(__('Invalid galaxy cluster'));
         }
-        $conditions = array('conditions' => array('GalaxyCluster.id' => $cluster_id));
-        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, false);
-        if (empty($cluster)) {
-            throw new NotFoundException(__('Invalid galaxy cluster'));
+        $conditions = array('conditions' => array('GalaxyCluster.id' => $clusterId));
+        $cluster = $this->fetchGalaxyClusters($user, $conditions, $full);
+        return $cluster;
+    }
+
+
+    public function checkAuthorization($user, $cluster, $authorizations, $throwErrors=true, $full=false)
+    {
+        $authorizations = is_array($authorizations) ? $authorizations : array($authorizations);
+        $possibleAuthorizations = array('view', 'edit', 'delete', 'publish');
+        if (!empty(array_diff($authorizations, $possibleAuthorizations))) {
+            throw new NotFoundException(__('Invalid authorization requested'));
+        }
+        if (!isset($cluster['GalaxyCluster']['uuid'])) {
+            $cluster = $this->fetchClusterById($user, $cluster, $full=$full);
+            if (empty($cluster)) {
+                $message = __('Invalid galaxy cluster');
+                if ($throwErrors) {
+                    throw new NotFoundException($message);
+                }
+                return array('authorized' => false, 'error' => $message);
+            }
         }
         $cluster = $cluster[0];
-        if ($authorization == 'view') {
+        if ($user['Role']['perm_site_admin']) {
+            return $cluster;
+        }
+
+        if (in_array('view', $authorizations) && count($authorizations) == 1) {
             return $cluster;
         } else {
-            if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
-                throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
+            if (!$user['Role']['perm_galaxy_editor']) {
+                $message = __('You don\'t have the permission to do that.');
+                if ($throwErrors) {
+                    throw new MethodNotAllowedException($message);
+                }
+                return array('authorized' => false, 'error' => $message);
             }
-            if ($authorization == 'edit') {
-                if (!$user['Role']['perm_site_admin'] && $cluster['GalaxyCluster']['orgc_id'] != $this->Auth->user('org_id')) {
-                    throw new MethodNotAllowedException(__('You can\'t modify galaxy cluster where you are not part of the creator organisation.'));
+            if (in_array('edit', $authorizations) || in_array('delete', $authorizations)) {
+                if ($cluster['GalaxyCluster']['orgc_id'] != $this->Auth->user('org_id')) {
+                    $message = __('Only the creator organisation can modify the galaxy cluster');
+                    if ($throwErrors) {
+                        throw new MethodNotAllowedException($message);
+                    }
+                    return array('authorized' => false, 'error' => $message);
+                }
+            }
+            if (in_array('publish', $authorizations)) {
+                if ($cluster['GalaxyCluster']['orgc_id'] != $this->Auth->user('org_id')) {
+                    $message = __('Only the creator organisation can publish the galaxy cluster');
+                    if ($throwErrors) {
+                        throw new MethodNotAllowedException($message);
+                    }
+                    return array('authorized' => false, 'error' => $message);
                 }
             }
             return $cluster;
@@ -1032,16 +1004,20 @@ class GalaxyCluster extends AppModel
             $cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];
             unset($cluster['Galaxy']);
         }
+        if (isset($cluster['GalaxyElement'])) {
+            $cluster['GalaxyCluster']['GalaxyElement'] = $cluster['GalaxyElement'];
+            unset($cluster['GalaxyElement']);
+        }
 
         $elements = array();
-        foreach ($cluster['GalaxyElement'] as $element) {
+        foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) {
             if (!isset($elements[$element['key']])) {
                 $elements[$element['key']] = array($element['value']);
             } else {
                 $elements[$element['key']][] = $element['value'];
             }
         }
-        unset($cluster['GalaxyElement']);
+        unset($cluster['GalaxyCluster']['GalaxyElement']);
         $cluster['GalaxyCluster']['meta'] = $elements;
 
         if ($tagId) {
@@ -1073,8 +1049,8 @@ class GalaxyCluster extends AppModel
         foreach ($galaxyElements as $galaxyElementKey => $galaxyElementValue) {
             $tmpResults[] = array_values($this->GalaxyElement->find('list', array(
                 'conditions' => array(
-                    'key' => $galaxyElementKey,
-                    'value' => $galaxyElementValue,
+                    'LOWER(GalaxyElement.key)' => strtolower($galaxyElementKey),
+                    'LOWER(GalaxyElement.value)' => strtolower($galaxyElementValue),
                 ),
                 'fields' => array('galaxy_cluster_id'),
                 'recursive' => -1
@@ -1088,13 +1064,11 @@ class GalaxyCluster extends AppModel
             foreach ($tmpResults as $tmpResult) {
                 $matchingClusters = array_intersect($matchingClusters, $tmpResult);
             }
-    
-            $clusterTags = $this->find('list', array(
+            $clusterTags = $this->fetchGalaxyClusters($user, array(
                 'conditions' => array('id' => $matchingClusters),
                 'fields' => array('GalaxyCluster.tag_name'),
-                'recursive' => -1
-            ));
-            // TODO: Apply ACL
+                'list' => true,
+            ), $full=false);
         }
         return array_values($clusterTags);
     }
@@ -1104,32 +1078,27 @@ class GalaxyCluster extends AppModel
         $options = array(
             'conditions' => array(
                 'GalaxyCluster.default' => 0,
+                'GalaxyCluster.published' => 1,
             ),
-            'fields' => array('uuid', 'version')
+            'fields' => array('uuid', 'version'),
+            'list' => true,
         );
         $clusters = $this->fetchGalaxyClusters($user, $options, $full=false);
-        $clusterUuids = array();
-        foreach($clusters as $cluster) {
-            $clusterUuids[$cluster['GalaxyCluster']['uuid']] = $cluster['GalaxyCluster']['version'];
-        }
-        return $clusterUuids;
+        return $clusters;
     }
 
-    public function getElligibleClustersToPull($user)
+    public function getElligibleLocalClustersToUpdate($user)
     {
         $options = array(
             'conditions' => array(
                 'GalaxyCluster.default' => 0,
                 'GalaxyCluster.locked' => 1,
             ),
-            'fields' => array('uuid', 'version')
+            'fields' => array('uuid', 'version'),
+            'list' => true,
         );
         $clusters = $this->fetchGalaxyClusters($user, $options, $full=false);
-        $clusterUuids = array();
-        foreach($clusters as $cluster) {
-            $clusterUuids[$cluster['GalaxyCluster']['uuid']] = $cluster['GalaxyCluster']['version'];
-        }
-        return $clusterUuids;
+        return $clusters;
     }
 
     public function uploadClusterToServer($cluster, $server, $HttpSocket, $user)
@@ -1405,8 +1374,8 @@ class GalaxyCluster extends AppModel
     {
         $this->Server = ClassRegistry::init('Server');
         if ("update" === $technique) {
-            $elligibleClusters = $this->GalaxyCluster->getElligibleClustersToPull($user);
-            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=true, $elligibleClusters=$elligibleClusters);
+            $localClustersToUpdate = $this->GalaxyCluster->getElligibleLocalClustersToUpdate($user);
+            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=true, $elligibleClusters=$localClustersToUpdate);
             if ($clusterIds === 403) {
                 return array('error' => array(1, null));
             } elseif (is_string($clusterIds)) {

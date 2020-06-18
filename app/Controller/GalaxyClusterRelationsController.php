@@ -122,14 +122,12 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation']['sharing_group_id'] = null;
             }
 
-            $clusters = $this->fetchClustersFromRelation($relation);
-            $clusterSource = $clusters['clusterSource'];
-            $clusterTarget = $clusters['clusterTarget'];
+            $clusterSource = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=false, $full=false);
+            if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
+                $errors = array($clusterSource['error']);
+            }
 
             $errors = array();
-            if (!$this->Auth->user()['Role']['perm_galaxy_editor']) {
-                $errors = array(__('Invalid permssions'));
-            }
 
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
@@ -139,11 +137,7 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
 
-            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['SourceCluster']['org_id'] == $this->Auth->user()['org_id']) {
-                $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['SourceCluster'], $relation);
-            } else {
-                $errors = array(__('Only the owner organisation of the source cluster can use it as a source'));
-            }
+            $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['SourceCluster'], $relation);
 
             if (empty($errors)) {
                 $message = __('Relationship added.');
@@ -219,13 +213,7 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation']['sharing_group_id'] = null;
             }
 
-            $clusters = $this->fetchClustersFromRelation($relation);
-            $clusterSource = $clusters['clusterSource'];
-
-            $errors = array();
-            if (!$this->Auth->user()['Role']['perm_galaxy_editor']) {
-                $errors = array(__('Invalid permssions'));
-            }
+            $clusterSource = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=false, $full=false);
 
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
@@ -235,11 +223,7 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
 
-            if ($this->Auth->user()['Role']['perm_site_admin'] || $clusterSource['SourceCluster']['org_id'] == $this->Auth->user()['org_id']) {
-                $errors = $this->GalaxyClusterRelation->editRelation($this->Auth->user(), $relation);
-            } else {
-                $errors = array(__('Only the owner organisation of the source cluster can use it as a source'));
-            }
+            $errors = $this->GalaxyClusterRelation->editRelation($this->Auth->user(), $relation);
 
             if (empty($errors)) {
                 $message = __('Relationship added.');
@@ -278,8 +262,9 @@ class GalaxyClusterRelationsController extends AppController
         if ($this->request->is('post')) {
             $relation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array('conditions' => array('id' => $id)));
             if (empty($relation)) {
-                throw new NotFoundException(__('Target cluster not found.'));
+                throw new NotFoundException(__('Relation not found.'));
             }
+            $clusterSource = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=true, $full=false);
             $result = $this->GalaxyClusterRelation->delete($id, true);
             if ($result) {
                 $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['SourceCluster']['id']);
@@ -300,30 +285,5 @@ class GalaxyClusterRelationsController extends AppController
                 }
             }
         }
-    }
-
-    public function fetchClustersFromRelation($relation)
-    {
-        // Fetch cluster source and adapt IDs
-        $conditions = array();
-        $conditions['uuid'] = $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'];
-        $clusterSource = $this->GalaxyClusterRelation->SourceCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
-        if (empty($clusterSource)) {
-            throw new NotFoundException(__('Source cluster not found.'));
-        }
-        $clusterSource = $clusterSource[0];
-
-        // Fetch cluster target and adapt IDs
-        $conditions['uuid'] = $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'];
-        $clusterTarget = $this->GalaxyClusterRelation->TargetCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => $conditions), false);
-        if (empty($clusterTarget)) {
-            throw new NotFoundException(__('Target cluster not found.'));
-        }
-        $clusterTarget = $clusterTarget[0];
-        return array(
-            'clusterSource' => $clusterSource,
-            'clusterTarget' => $clusterTarget,
-            'relation' => $relation,
-        );
     }
 }

@@ -347,25 +347,7 @@ class GalaxyClustersController extends AppController
 
     public function edit($id)
     {
-        if (Validation::uuid($id)) {
-            $temp = $this->GalaxyCluster->find('first', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.id', 'GalaxyCluster.uuid'),
-                'conditions' => array('GalaxyCluster.uuid' => $id)
-            ));
-            if ($temp === null) {
-                throw new NotFoundException(__('Invalid galaxy cluster'));
-            }
-            $id = $temp['GalaxyCluster']['id'];
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid galaxy cluster'));
-        }
-        $conditions = array('conditions' => array('GalaxyCluster.id' => $id));
-        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, true);
-        if (empty($cluster)) {
-            throw new NotFoundException(__('Invalid galaxy cluster'));
-        }
-        $cluster = $cluster[0];
+        $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException('Default galaxy cluster cannot be edited');
         }
@@ -382,16 +364,20 @@ class GalaxyClustersController extends AppController
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
 
-        $origCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
-            'conditions' => array('uuid' => $cluster['GalaxyCluster']['extends_uuid']),
-        ), false);
+        if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
+            $forkedCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
+                'conditions' => array('uuid' => $cluster['GalaxyCluster']['extends_uuid']),
+            ), false);
+        } else {
+            $forkedCluster = array();
+        }
 
-        if (!empty($origCluster)) {
-            $origCluster = $origCluster[0];
+        if (!empty($forkedCluster)) {
+            $forkedCluster = $forkedCluster[0];
             $this->set('forkUuid', $cluster['GalaxyCluster']['extends_uuid']);
-            $origClusterMeta = $origCluster['GalaxyCluster'];
-            $this->set('origCluster', $origCluster);
-            $this->set('origClusterMeta', $origClusterMeta);
+            $forkedClusterMeta = $forkedCluster['GalaxyCluster'];
+            $this->set('origCluster', $forkedCluster);
+            $this->set('origClusterMeta', $forkedClusterMeta);
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $cluster = $this->request->data;
@@ -476,32 +462,11 @@ class GalaxyClustersController extends AppController
         $this->render('add');
     }
 
-    public function publish($cluster_id)
+    public function publish($clusterId)
     {
-        if (Validation::uuid($cluster_id)) {
-            $temp = $this->GalaxyCluster->find('first', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.id', 'GalaxyCluster.uuid'),
-                'conditions' => array('GalaxyCluster.uuid' => $cluster_id)
-            ));
-            if ($temp === null) {
-                throw new NotFoundException(__('Invalid galaxy cluster'));
-            }
-            $cluster_id = $temp['GalaxyCluster']['id'];
-        } elseif (!is_numeric($cluster_id)) {
-            throw new NotFoundException(__('Invalid galaxy cluster'));
-        }
-        $conditions = array('conditions' => array('GalaxyCluster.id' => $cluster_id));
-        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, false);
-        if (empty($cluster)) {
-            throw new NotFoundException(__('Invalid galaxy cluster'));
-        }
-        $cluster = $cluster[0];
-        if ($cluster['GalaxyCluster']['orgc_id'] != $this->Auth->user('org_id')) {
-            throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
-        }
+        $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $clusterId, 'publish', $throwErrors=true, $full=false);
         if ($cluster['GalaxyCluster']['published']) {
-            throw new MethodNotAllowedException(__('You can\'t publish an galaxy cluster that is already published'));
+            throw new MethodNotAllowedException(__('You can\'t publish a galaxy cluster that is already published'));
         }
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException(__('Default galaxy cluster cannot be published'));
@@ -532,32 +497,11 @@ class GalaxyClustersController extends AppController
         }
     }
 
-    public function unpublish($cluster_id)
+    public function unpublish($clusterId)
     {
-        if (Validation::uuid($cluster_id)) {
-            $temp = $this->GalaxyCluster->find('first', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.id', 'GalaxyCluster.uuid'),
-                'conditions' => array('GalaxyCluster.uuid' => $cluster_id)
-            ));
-            if ($temp === null) {
-                throw new NotFoundException(__('Invalid galaxy cluster'));
-            }
-            $cluster_id = $temp['GalaxyCluster']['id'];
-        } elseif (!is_numeric($cluster_id)) {
-            throw new NotFoundException(__('Invalid galaxy cluster'));
-        }
-        $conditions = array('conditions' => array('GalaxyCluster.id' => $cluster_id));
-        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, false);
-        if (empty($cluster)) {
-            throw new NotFoundException(__('Invalid galaxy cluster'));
-        }
-        $cluster = $cluster[0];
-        if ($cluster['GalaxyCluster']['orgc_id'] != $this->Auth->user('org_id')) {
-            throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
-        }
+        $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $clusterId, 'publish', $throwErrors=true, $full=false);
         if (!$cluster['GalaxyCluster']['published']) {
-            throw new MethodNotAllowedException(__('You can\'t unpublish an galaxy cluster that is already published'));
+            throw new MethodNotAllowedException(__('You can\'t unpublish a galaxy cluster that is not published'));
         }
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException(__('Default galaxy cluster cannot be unpublished'));
@@ -752,10 +696,10 @@ class GalaxyClustersController extends AppController
     {
         if ($this->request->is('post')) {
             $result = false;
-            $galaxy_cluster = $this->GalaxyCluster->isAuthorizedTo($user, $id, 'edit');
-            if (!empty($galaxy_cluster)) {
+            $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
+            if (!empty($cluster)) {
                 $result = $this->GalaxyCluster->delete($id, true);
-                $galaxy_id = $galaxy_cluster['GalaxyCluster']['galaxy_id'];
+                $galaxy_id = $cluster['GalaxyCluster']['galaxy_id'];
             }
             if ($result) {
                 $message = 'Galaxy cluster successfuly deleted.';
@@ -904,25 +848,7 @@ class GalaxyClustersController extends AppController
 
     public function updateCluster($clusterId)
     {
-        if (Validation::uuid($clusterId)) {
-            $temp = $this->GalaxyCluster->find('first', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.id', 'GalaxyCluster.uuid'),
-                'conditions' => array('GalaxyCluster.uuid' => $clusterId)
-            ));
-            if ($temp === null) {
-                throw new NotFoundException('Invalid galaxy cluster');
-            }
-            $clusterId = $temp['GalaxyCluster']['id'];
-        } elseif (!is_numeric($clusterId)) {
-            throw new NotFoundException(__('Invalid galaxy cluster'));
-        }
-        $conditions = array('conditions' => array('GalaxyCluster.id' => $clusterId));
-        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, true);
-        if (empty($cluster)) {
-            throw new NotFoundException('Invalid galaxy cluster');
-        }
-        $cluster = $cluster[0];
+        $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $clusterId, 'edit', $throwErrors=true, $full=false);
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException(__('Default galaxy cluster cannot be updated'));
         }
@@ -950,7 +876,8 @@ class GalaxyClustersController extends AppController
             }
             $cluster['GalaxyCluster']['elements'] = $elements;
             $cluster['GalaxyCluster']['extends_version'] = $parentVersion;
-            $errors = $this->GalaxyCluster->editCluster($this->Auth->user(), $cluster, $fromPull=false, $fieldList=array('extends_version'), $deleteOldElements=false);
+            $cluster['GalaxyCluster']['published'] = false;
+            $errors = $this->GalaxyCluster->editCluster($this->Auth->user(), $cluster, $fromPull=false, $fieldList=array('extends_version', 'published'), $deleteOldElements=false);
             if (!empty($errors)) {
                 $flashErrorMessage = implode(', ', $errors);
                 $this->Flash->error($flashErrorMessage);
