@@ -32,7 +32,7 @@ class Attribute extends AppModel
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
             'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-            'distribution' => array('desc' => 'Describes who will have access to the event.')
+            'distribution' => array('desc' => 'Describes who will have access to the attribute.')
     );
 
     public $defaultFields = array(
