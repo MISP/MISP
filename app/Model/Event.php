@@ -5655,11 +5655,6 @@ class Event extends AppModel
         }
     }
 
-    private function __destroyCaches()
-    {
-        $this->__assetCache = array();
-    }
-
     public function unpublishEvent($id, $proposalLock = false)
     {
         $event = $this->find('first', array(
