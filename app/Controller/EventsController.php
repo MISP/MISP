@@ -4430,21 +4430,6 @@ class EventsController extends AppController
         $this->set('id', $id);
     }
 
-    public function viewEventGraph()
-    {
-        $event = $this->Event->fetchEvent($this->Auth->user(), array(
-            'eventid' => $id
-        ));
-        if (empty($event)) {
-            throw new MethodNotAllowedException(__('Invalid Event.'));
-        }
-        $this->set('event', $event[0]);
-        $this->set('scope', 'event');
-        $this->set('id', $id);
-    }
-
-
-
     /*
         public function deleteNode($id) {
             if (!$this->request->is('post')) throw new MethodNotAllowedException(__('Only POST requests are allowed.'));
