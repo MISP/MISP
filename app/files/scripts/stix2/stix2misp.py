@@ -1972,21 +1972,25 @@ class ExternalStixParser(StixParser):
             pattern_type, pattern_value = pattern.split(' = \'')
         except ValueError:
             pattern_type, pattern_value = pattern.split('=')
-        return pattern_type, pattern_value.strip("'")
+        return pattern_type.strip(), pattern_value.strip("'")
 
     def handle_import_case(self, stix_object, attributes, name, _force_object=False):
-        if len(attributes) > 1 or (_force_object and self._handle_object_forcing(_force_object, attributes[0])):
-            misp_object = self.create_misp_object(stix_object, name)
-            for attribute in attributes:
-                misp_object.add_attribute(**attribute)
-            self.misp_event.add_object(**misp_object)
-        else:
-            attribute = {field: attributes[0][field] for field in stix2misp_mapping.single_attribute_fields if attributes[0].get(field)}
-            attribute['uuid'] = stix_object.id.split('--')[1]
-            attribute.update(self.parse_timeline(stix_object))
-            if isinstance(stix_object, stix2.Indicator):
-                attribute['to_ids'] = True
-            self.misp_event.add_attribute(**attribute)
+        try:
+            if len(attributes) > 1 or (_force_object and self._handle_object_forcing(_force_object, attributes[0])):
+                misp_object = self.create_misp_object(stix_object, name)
+                for attribute in attributes:
+                    misp_object.add_attribute(**attribute)
+                self.misp_event.add_object(**misp_object)
+            else:
+                attribute = {field: attributes[0][field] for field in stix2misp_mapping.single_attribute_fields if attributes[0].get(field)}
+                attribute['uuid'] = stix_object.id.split('--')[1]
+                attribute.update(self.parse_timeline(stix_object))
+                if isinstance(stix_object, stix2.Indicator):
+                    attribute['to_ids'] = True
+                self.misp_event.add_attribute(**attribute)
+        except IndexError:
+            object_type = 'indicator' if isinstance(stix_object, stix2.Indicator) else 'observable objects'
+            print(f'No attribute or object could be imported from the following {object_type}: {stix_object}', file=sys.stderr)
 
     @staticmethod
     def _handle_object_forcing(_force_object, attribute):
