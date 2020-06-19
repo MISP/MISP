@@ -1394,6 +1394,9 @@ class ExternalStixParser(StixParser):
         attributes = self.parse_network_connection_object(network_traffic, references)
         self.handle_import_case(observable, attributes, 'network-connection')
 
+    def parse_email_address_observable(self, observable):
+        self.add_attributes_from_observable(observable.objects, 'email-src', 'value')
+
     def parse_email_observable(self, observable):
         email_message, references = self.filter_main_object(observable.objects, 'EmailMessage')
         attributes = self._get_attributes_from_observable(email_message, 'email_mapping')
