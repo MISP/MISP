@@ -161,9 +161,9 @@ pattern_mapping = {
     ('domain-name', 'ipv4-addr'): 'parse_domain_ip_port_pattern',
     ('domain-name', 'ipv6-addr'): 'parse_domain_ip_port_pattern',
     ('domain-name', 'ipv4-addr', 'ipv6-addr'): 'parse_domain_ip_port_pattern',
-    ('domain-name', 'ipv4-addr', 'url'): 'parse_domain_ip_port_pattern',
-    ('domain-name', 'ipv6-addr', 'url'): 'parse_domain_ip_port_pattern',
-    ('domain-name', 'ipv4-addr', 'ipv6-addr', 'url'): 'parse_domain_ip_port_pattern',
+    ('domain-name', 'ipv4-addr', 'url'): 'parse_url_pattern',
+    ('domain-name', 'ipv6-addr', 'url'): 'parse_url_pattern',
+    ('domain-name', 'ipv4-addr', 'ipv6-addr', 'url'): 'parse_url_pattern',
     ('domain-name', 'network-traffic'): 'parse_domain_ip_port_pattern',
     ('domain-name', 'network-traffic', 'url'): 'parse_url_pattern',
     ('email-addr',): 'parse_email_address_pattern',
@@ -358,6 +358,7 @@ for hash_type in hash_types:
     attribute = {'type': misp_hash_type, 'object_relation': misp_hash_type}
     file_mapping[hash_type] = attribute
     file_mapping.update({f"file:hashes.'{feature}'": attribute for feature in (hash_type, misp_hash_type)})
+    file_mapping.update({f"file:hashes.{feature}": attribute for feature in (hash_type, misp_hash_type)})
     pe_section_mapping[hash_type] = attribute
     pe_section_mapping[misp_hash_type] = attribute
 
@@ -397,7 +398,9 @@ url_mapping = {'url': url_attribute_mapping,
                'domain-name': domain_attribute_mapping,
                'domain-name:value': domain_attribute_mapping,
                'network-traffic': url_port_attribute_mapping,
-               'network-traffic:dst_port': url_port_attribute_mapping
+               'network-traffic:dst_port': url_port_attribute_mapping,
+               'ipv4-addr:value': ip_attribute_mapping,
+               'ipv6-addr:value': ip_attribute_mapping
                }
 
 user_account_mapping = {'account_created': {'type': 'datetime', 'object_relation': 'created'},
