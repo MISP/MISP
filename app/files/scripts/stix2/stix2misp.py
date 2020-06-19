@@ -1207,10 +1207,8 @@ class ExternalStixParser(StixParser):
         pattern = indicator.pattern
         if any(relation in pattern for relation in stix2misp_mapping.pattern_forbidden_relations) or all(relation in pattern for relation in (' OR ', ' AND ')):
             self.add_stix2_pattern_object(indicator)
-        elif ' OR ' in pattern:
-            self.parse_multiple_attributes(indicator)
-        else:
-            self.parse_usual_indicator(indicator)
+        separator = ' OR ' if ' OR ' in pattern else ' AND '
+        self.parse_usual_indicator(indicator, separator)
 
     def _parse_observable(self, observable):
         types = self._parse_observable_types(observable.objects)
@@ -1268,11 +1266,11 @@ class ExternalStixParser(StixParser):
         self.fill_misp_object(misp_object, course_of_action, 'course_of_action_mapping')
         self.misp_event.add_object(**misp_object)
 
-    def parse_usual_indicator(self, indicator):
-        pattern = tuple(part.strip() for part in indicator.pattern.strip('[]').split(' AND '))
+    def parse_usual_indicator(self, indicator, separator):
+        pattern = tuple(part.strip() for part in indicator.pattern.strip('[]').split(separator))
         types = self._parse_pattern_types(pattern)
         try:
-            getattr(self, stix2misp_mapping.pattern_mapping[types])(indicator)
+            getattr(self, stix2misp_mapping.pattern_mapping[types])(indicator, separator)
         except KeyError:
             print(f'Type(s) not supported at the moment: {types}\n', file=sys.stderr)
             self.add_stix2_pattern_object(indicator)
@@ -1598,9 +1596,9 @@ class ExternalStixParser(StixParser):
         attribute['data'] = attachment.pop(data_feature)
         return attribute
 
-    def get_attributes_from_pattern(self, pattern, mapping):
+    def get_attributes_from_pattern(self, pattern, mapping, separator):
         attributes = []
-        for pattern_part in pattern.strip('[]').split(' AND '):
+        for pattern_part in pattern.strip('[]').split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             try:
                 attribute = deepcopy(getattr(stix2misp_mapping, mapping)[pattern_type])
@@ -1649,14 +1647,14 @@ class ExternalStixParser(StixParser):
             attributes.append(attribute)
         return attributes
 
-    def parse_as_pattern(self, indicator):
-        attributes = self.get_attributes_from_pattern(indicator.pattern, 'asn_mapping')
+    def parse_as_pattern(self, indicator, separator):
+        attributes = self.get_attributes_from_pattern(indicator.pattern, 'asn_mapping', separator)
         self.handle_import_case(indicator, attributes, 'asn')
 
-    def parse_domain_ip_port_pattern(self, indicator):
+    def parse_domain_ip_port_pattern(self, indicator, separator):
         attributes = []
         references = defaultdict(dict)
-        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
+        for pattern_part in indicator.pattern.strip('[]').split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type not in stix2misp_mapping.domain_ip_mapping:
                 if any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
@@ -1673,10 +1671,13 @@ class ExternalStixParser(StixParser):
         object_name = 'ip-port' if 'network-traffic' in indicator.pattern else 'domain-ip'
         self.handle_import_case(indicator, attributes, object_name)
 
-    def parse_email_message_pattern(self, indicator):
+    def parse_email_address_pattern(self, indicator, separator):
+        self.add_attributes_from_indicator(indicator, 'email-src', separator)
+
+    def parse_email_message_pattern(self, indicator, separator):
         attributes = []
         attachments = defaultdict(dict)
-        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
+        for pattern_part in indicator.pattern.strip('[]').split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type not in stix2misp_mapping.email_mapping:
                 if pattern_type.startswith('email-message:body_multipart'):
@@ -1704,11 +1705,11 @@ class ExternalStixParser(StixParser):
                 attributes.append(attribute)
         self.handle_import_case(indicator, attributes, 'email')
 
-    def parse_file_pattern(self, indicator):
+    def parse_file_pattern(self, indicator, separator):
         attributes = []
         attachment = {}
         extensions = defaultdict(lambda: defaultdict(dict))
-        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
+        for pattern_part in indicator.pattern.strip('[]').split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type in stix2misp_mapping.attachment_types:
                 attachment[pattern_type] = pattern_value.strip("'")
@@ -1758,14 +1759,14 @@ class ExternalStixParser(StixParser):
             self.misp_event.add_object(**pe_object)
         self.misp_event.add_object(**file_object)
 
-    def parse_ip_address_pattern(self, indicator):
-        self.add_attributes_from_indicator(indicator, 'ip-dst')
+    def parse_ip_address_pattern(self, indicator, separator):
+        self.add_attributes_from_indicator(indicator, 'ip-dst', separator)
 
-    def parse_mac_address_pattern(self, indicator):
-        self.add_attributes_from_indicator(indicator, 'mac-address')
+    def parse_mac_address_pattern(self, indicator, separator):
+        self.add_attributes_from_indicator(indicator, 'mac-address', separator)
 
-    def parse_mutex_pattern(self, indicator):
-        self.add_attributes_from_indicator(indicator, 'mutex')
+    def parse_mutex_pattern(self, indicator, separator):
+        self.add_attributes_from_indicator(indicator, 'mutex', separator)
 
     def parse_network_connection_pattern(self, indicator, attributes, references):
         attributes.extend(self._parse_network_pattern_references(references, 'network_traffic_references_mapping'))
@@ -1794,12 +1795,12 @@ class ExternalStixParser(StixParser):
             attributes.append(attribute)
         self.handle_import_case(indicator, attributes, 'network-socket')
 
-    def parse_network_traffic_pattern(self, indicator):
+    def parse_network_traffic_pattern(self, indicator, separator):
         attributes = []
         protocols = []
         references = defaultdict(dict)
         extensions = defaultdict(dict)
-        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
+        for pattern_part in indicator.pattern.strip('[]').split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type in stix2misp_mapping.network_traffic_mapping:
                 attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
@@ -1828,11 +1829,11 @@ class ExternalStixParser(StixParser):
         attributes.extend(self._parse_network_pattern_references(references, 'ip_port_references_mapping'))
         self.handle_import_case(indicator, attributes, 'ip-port')
 
-    def parse_process_pattern(self, indicator):
+    def parse_process_pattern(self, indicator, separator):
         attributes = []
         parent = {}
         child = defaultdict(set)
-        for pattern_part in indicator.pattern.strip('[]').split(' AND '):
+        for pattern_part in indicator.pattern.strip('[]').split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if 'parent_' in pattern_type:
                 child[pattern_type.split('.')[-1]].add(pattern_value)
@@ -1865,17 +1866,17 @@ class ExternalStixParser(StixParser):
                     attributes.append(attribute)
         self.handle_import_case(indicator, attributes, 'process', _force_object=True)
 
-    def parse_regkey_pattern(self, indicator):
-        attributes = self.get_attributes_from_pattern(indicator.pattern, 'regkey_mapping')
+    def parse_regkey_pattern(self, indicator, separator):
+        attributes = self.get_attributes_from_pattern(indicator.pattern, 'regkey_mapping', separator)
         self.handle_import_case(indicator, attributes, 'registry-key')
 
-    def parse_url_pattern(self, indicator):
-        attributes = self.get_attributes_from_pattern(indicator.pattern, 'url_mapping')
+    def parse_url_pattern(self, indicator, separator):
+        attributes = self.get_attributes_from_pattern(indicator.pattern, 'url_mapping', separator)
         self.handle_import_case(indicator, attributes, 'url')
 
-    def parse_user_account_pattern(self, indicator):
+    def parse_user_account_pattern(self, indicator, separator):
         attributes = []
-        pattern = indicator.pattern.strip('[]').split(' AND ')
+        pattern = indicator.pattern.strip('[]').split(separator)
         object_name, mapping = self._fetch_user_account_type_pattern(pattern)
         for pattern_part in pattern:
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
@@ -1893,16 +1894,16 @@ class ExternalStixParser(StixParser):
                 attributes.append(attribute)
         self.handle_import_case(indicator, attributes, object_name)
 
-    def parse_x509_pattern(self, indicator):
-        attributes = self.get_attributes_from_pattern(indicator.pattern, 'x509_mapping')
+    def parse_x509_pattern(self, indicator, separator):
+        attributes = self.get_attributes_from_pattern(indicator.pattern, 'x509_mapping', separator)
         self.handle_import_case(indicator, attributes, 'x509')
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
     ################################################################################
 
-    def add_attributes_from_indicator(self, indicator, attribute_type):
-        patterns = indicator.pattern.strip('[]').split(' AND ')
+    def add_attributes_from_indicator(self, indicator, attribute_type, separator):
+        patterns = indicator.pattern.strip('[]').split(separator)
         if len(patterns) == 1:
             _, value = self.get_type_and_value_from_pattern(patterns[0])
             attribute = MISPAttribute()

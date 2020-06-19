@@ -158,8 +158,12 @@ pattern_mapping = {
     ('directory',): 'parse_file_pattern',
     ('directory', 'file'): 'parse_file_pattern',
     ('domain-name',): 'parse_domain_ip_port_pattern',
+    ('domain-name', 'ipv4-addr'): 'parse_domain_ip_port_pattern',
+    ('domain-name', 'ipv6-addr'): 'parse_domain_ip_port_pattern',
+    ('domain-name', 'ipv4-addr', 'ipv6-addr'): 'parse_domain_ip_port_pattern',
     ('domain-name', 'ipv4-addr', 'url'): 'parse_domain_ip_port_pattern',
     ('domain-name', 'ipv6-addr', 'url'): 'parse_domain_ip_port_pattern',
+    ('domain-name', 'ipv4-addr', 'ipv6-addr', 'url'): 'parse_domain_ip_port_pattern',
     ('domain-name', 'network-traffic'): 'parse_domain_ip_port_pattern',
     ('domain-name', 'network-traffic', 'url'): 'parse_url_pattern',
     ('email-addr',): 'parse_email_address_pattern',
@@ -251,9 +255,6 @@ x509_version_attribute_mapping = {'type': 'text', 'object_relation': 'version'}
 x509_vna_attribute_mapping = {'type': 'datetime', 'object_relation': 'validity-not-after'} # x509 validity not after
 x509_vnb_attribute_mapping = {'type': 'datetime', 'object_relation': 'validity-not-before'} # x509 validity not before
 
-artifact_mapping = {'artifact:mime_type': mime_type_attribute_mapping,
-                    'file:content_ref.mime_type': mime_type_attribute_mapping}
-
 asn_mapping = {'number': as_number_attribute_mapping,
                'autonomous-system:number': as_number_attribute_mapping,
                'name': description_attribute_mapping,
@@ -281,6 +282,8 @@ domain_ip_mapping = {'domain-name': domain_attribute_mapping,
                      'domain-name:value': domain_attribute_mapping,
                      'ipv4-addr': ip_attribute_mapping,
                      'ipv6-addr': ip_attribute_mapping,
+                     'ipv4-addr:value': ip_attribute_mapping,
+                     'ipv6-addr:value': ip_attribute_mapping,
                      'domain-name:resolves_to_refs[*].value': ip_attribute_mapping,
                      'network-traffic:dst_port': dst_port_attribute_mapping,
                      'network-traffic:src_port': src_port_attribute_mapping}
@@ -304,7 +307,9 @@ email_references_mapping = {'attachment': email_attachment_attribute_mapping,
                             'screenshot': screenshot_attribute_mapping,
                             'to_refs': to_attribute_mapping}
 
-file_mapping = {'mime_type': mime_type_attribute_mapping,
+file_mapping = {'artifact:mime_type': mime_type_attribute_mapping,
+                'file:content_ref.mime_type': mime_type_attribute_mapping,
+                'mime_type': mime_type_attribute_mapping,
                 'file:mime_type': mime_type_attribute_mapping,
                 'name': filename_attribute_mapping,
                 'file:name': filename_attribute_mapping,
@@ -357,7 +362,6 @@ for hash_type in hash_types:
     file_mapping.update({f"file:hashes.'{feature}'": attribute for feature in (hash_type, misp_hash_type)})
     pe_section_mapping[hash_type] = attribute
     pe_section_mapping[misp_hash_type] = attribute
-artifact_mapping.update(file_mapping)
 
 process_mapping = {'name': process_name_mapping,
                    'process:name': process_name_mapping,
