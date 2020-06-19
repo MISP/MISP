@@ -1395,7 +1395,7 @@ class ExternalStixParser(StixParser):
         self.handle_import_case(observable, attributes, 'network-connection')
 
     def parse_email_address_observable(self, observable):
-        self.add_attributes_from_observable(observable.objects, 'email-src', 'value')
+        self.add_attributes_from_observable(observable, 'email-src', 'value')
 
     def parse_email_observable(self, observable):
         email_message, references = self.filter_main_object(observable.objects, 'EmailMessage')
@@ -1465,7 +1465,7 @@ class ExternalStixParser(StixParser):
         return attributes
 
     def parse_mac_address_observable(self, observable):
-        self.add_attributes_from_observable(observable.objects, 'mac-address', 'value')
+        self.add_attributes_from_observable(observable, 'mac-address', 'value')
 
     def parse_network_connection_object(self, network_traffic, references):
         attributes = self.get_network_traffic_attributes(network_traffic, references)
@@ -1491,7 +1491,7 @@ class ExternalStixParser(StixParser):
         return attributes
 
     def parse_mutex_observable(self, observable):
-        self.add_attributes_from_observable(observable.objects, 'mutex', 'name')
+        self.add_attributes_from_observable(observable, 'mutex', 'name')
 
     def parse_process_observable(self, observable):
         process, references = self.filter_main_object(observable.objects, 'Process', test_function='_process_test_filter')
