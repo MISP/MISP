@@ -2425,19 +2425,6 @@ class AppModel extends Model
         return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
     }
 
-    public function checkVersionRequirements($versionString, $minVersion)
-    {
-        $version = explode('.', $versionString);
-        $minVersion = explode('.', $minVersion);
-        if (count($version) > $minVersion) {
-            return true;
-        }
-        if (count($version) == 1) {
-            return $minVersion <= $version;
-        }
-        return ($version[0] >= $minVersion[0] && $version[1] >= $minVersion[1] && $version[2] >= $minVersion[2]);
-    }
-
     // generate a generic subquery - options needs to include conditions
     public function subQueryGenerator($model, $options, $lookupKey, $negation = false)
     {
