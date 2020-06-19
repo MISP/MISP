@@ -143,7 +143,8 @@ class GalaxyCluster extends AppModel
     {
         // Update all relations IDs that are unkown but saved (UUID is set)
         parent::afterSave($created, $options);
-        $cluster = $this->data['GalaxyCluster'];
+        $cluster = $this->data[$this->alias];
+        $cluster = $this->fetchAndSetUUID($cluster);
         $this->GalaxyClusterRelation->updateAll(
             array('GalaxyClusterRelation.referenced_galaxy_cluster_id' => $cluster['id']),
             array('GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $cluster['uuid'])
@@ -153,7 +154,9 @@ class GalaxyCluster extends AppModel
     public function afterDelete()
     {
         // Remove all relations IDs now that the cluster is unkown
-        $cluster = $this->data['GalaxyCluster'];
+        parent::afterDelete($created, $options);
+        $cluster = $this->data[$this->alias];
+        $cluster = $this->fetchAndSetUUID($cluster);
         $this->GalaxyClusterRelation->updateAll(
             array('GalaxyClusterRelation.referenced_galaxy_cluster_id' => 0),
             array('GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $cluster['uuid'])
@@ -174,6 +177,20 @@ class GalaxyCluster extends AppModel
                 $cluster['GalaxyCluster'][$model] = $cluster[$model];
                 unset($cluster[$model]);
             }
+        }
+        return $cluster;
+    }
+
+    public function fetchAndSetUUID($cluster)
+    {
+        if (!isset($cluster['uuid'])) {
+            $alias = $this->alias;
+            $tmp = $this->find('first', array(
+                'recursive' => -1,
+                'fields' => array("${alias}.id", "${alias}.uuid"),
+                'conditions' => array("${alias}.id" => $cluster['id'])
+            ));
+            $cluster['uuid'] = $tmp[$alias]['uuid'];
         }
         return $cluster;
     }
@@ -880,20 +897,21 @@ class GalaxyCluster extends AppModel
 
     public function fetchClusterById($user, $clusterId, $full=false)
     {
+        $alias = $this->alias;
         if (Validation::uuid($clusterId)) {
             $temp = $this->find('first', array(
                 'recursive' => -1,
-                'fields' => array('GalaxyCluster.id', 'GalaxyCluster.uuid'),
-                'conditions' => array('GalaxyCluster.uuid' => $clusterId)
+                'fields' => array("${alias}.id", "${alias}.uuid"),
+                'conditions' => array("${alias}.uuid" => $clusterId)
             ));
             if ($temp === null) {
                 throw new NotFoundException(__('Invalid galaxy cluster'));
             }
-            $clusterId = $temp['GalaxyCluster']['id'];
+            $clusterId = $temp[$alias]['id'];
         } elseif (!is_numeric($clusterId)) {
             throw new NotFoundException(__('Invalid galaxy cluster'));
         }
-        $conditions = array('conditions' => array('GalaxyCluster.id' => $clusterId));
+        $conditions = array('conditions' => array("${alias}.id" => $clusterId));
         $cluster = $this->fetchGalaxyClusters($user, $conditions, $full);
         return $cluster;
     }
@@ -906,7 +924,7 @@ class GalaxyCluster extends AppModel
         if (!empty(array_diff($authorizations, $possibleAuthorizations))) {
             throw new NotFoundException(__('Invalid authorization requested'));
         }
-        if (!isset($cluster['GalaxyCluster']['uuid'])) {
+        if (!isset($cluster[$this->alias]['uuid'])) {
             $cluster = $this->fetchClusterById($user, $cluster, $full=$full);
             if (empty($cluster)) {
                 $message = __('Invalid galaxy cluster');
@@ -932,7 +950,7 @@ class GalaxyCluster extends AppModel
                 return array('authorized' => false, 'error' => $message);
             }
             if (in_array('edit', $authorizations) || in_array('delete', $authorizations)) {
-                if ($cluster['GalaxyCluster']['orgc_id'] != $user('org_id')) {
+                if ($cluster[$this->alias]['orgc_id'] != $user('org_id')) {
                     $message = __('Only the creator organisation can modify the galaxy cluster');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);
@@ -941,7 +959,7 @@ class GalaxyCluster extends AppModel
                 }
             }
             if (in_array('publish', $authorizations)) {
-                if ($cluster['GalaxyCluster']['orgc_id'] != $user('org_id')) {
+                if ($cluster[$this->alias]['orgc_id'] != $user('org_id')) {
                     $message = __('Only the creator organisation can publish the galaxy cluster');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);
