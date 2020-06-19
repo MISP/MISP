@@ -848,7 +848,7 @@ class GalaxyClustersController extends AppController
 
     public function updateCluster($clusterId)
     {
-        $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $clusterId, 'edit', $throwErrors=true, $full=false);
+        $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $clusterId, 'edit', $throwErrors=true, $full=true);
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException(__('Default galaxy cluster cannot be updated'));
         }
@@ -867,17 +867,19 @@ class GalaxyClustersController extends AppController
             $elements = array();
             if (!empty($this->request->data['GalaxyCluster'])) {
                 foreach ($this->request->data['GalaxyCluster'] as $k => $jElement) {
-                    $element = json_decode($jElement, true);
-                    $elements[] = array(
-                        'key' => $element['key'],
-                        'value' => $element['value'],
-                    );
+                        $element = json_decode($jElement, true);
+                        if (!is_null($element) && $element != 0) {
+                            $elements[] = array(
+                                'key' => $element['key'],
+                                'value' => $element['value'],
+                            );
+                    }
                 }
             }
-            $cluster['GalaxyCluster']['elements'] = $elements;
+            $cluster['GalaxyCluster']['GalaxyElement'] = $elements;
             $cluster['GalaxyCluster']['extends_version'] = $parentVersion;
             $cluster['GalaxyCluster']['published'] = false;
-            $errors = $this->GalaxyCluster->editCluster($this->Auth->user(), $cluster, $fromPull=false, $fieldList=array('extends_version', 'published'), $deleteOldElements=false);
+            $errors = $this->GalaxyCluster->editCluster($this->Auth->user(), $cluster, $fieldList=array('extends_version', 'published'), $deleteOldElements=false);
             if (!empty($errors)) {
                 $flashErrorMessage = implode(', ', $errors);
                 $this->Flash->error($flashErrorMessage);
