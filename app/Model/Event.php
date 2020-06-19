@@ -1116,13 +1116,10 @@ class Event extends AppModel
                 return $result;
             }
         }
-        $uploadFailed = false;
         try {
-            $json = json_decode($newTextBody, true);
+            $this->jsonDecode($newTextBody);
         } catch (Exception $e) {
-            $uploadFailed = true;
-        }
-        if (!is_array($json) || $uploadFailed) {
+            $this->logException("Invalid JSON returned when pushing to remote server {$server['Server']['id']}", $e);
             return $this->__logUploadResult($server, $event, $newTextBody);
         }
         return 'Success';
@@ -1172,18 +1169,8 @@ class Event extends AppModel
     {
         switch ($response->code) {
             case '200': // 200 (OK) + entity-action-result
-                if ($response->isOk()) {
-                    $newTextBody = $response->body();
-                    return true;
-                } else {
-                    try {
-                        $jsonArray = json_decode($response->body, true);
-                    } catch (Exception $e) {
-                        return true;
-                    }
-                    return $jsonArray['name'];
-                }
-                // no break
+                $newTextBody = $response->body();
+                return true;
             case '302': // Found
                 $newLocation = $response->headers['Location'];
                 $newTextBody = $response->body();
@@ -6079,7 +6066,7 @@ class Event extends AppModel
                 'action' => 'warning',
                 'user_id' => 0,
                 'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-                'change' => 'Returned message: ', $newTextBody,
+                'change' => 'Returned message: ' . $newTextBody,
         ));
         return false;
     }
