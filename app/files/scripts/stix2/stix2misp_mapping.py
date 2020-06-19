@@ -357,8 +357,6 @@ for hash_type in hash_types:
     misp_hash_type = hash_type.replace('-', '').lower()
     attribute = {'type': misp_hash_type, 'object_relation': misp_hash_type}
     file_mapping[hash_type] = attribute
-    for object_type in ('artifact:', 'file:content_ref.'):
-        artifact_mapping.update({f"{object_type}hashes.'{feature}'": attribute for feature in (hash_type, misp_hash_type)})
     file_mapping.update({f"file:hashes.'{feature}'": attribute for feature in (hash_type, misp_hash_type)})
     pe_section_mapping[hash_type] = attribute
     pe_section_mapping[misp_hash_type] = attribute
