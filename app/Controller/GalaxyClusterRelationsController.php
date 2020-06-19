@@ -114,6 +114,7 @@ class GalaxyClusterRelationsController extends AppController
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
 
         if ($this->request->is('post')) {
+            $errors = array();
             if (empty($this->request->data['GalaxyClusterRelation'])) {
                 $this->request->data = array('GalaxyClusterRelation' => $this->request->data);
             }
@@ -127,8 +128,6 @@ class GalaxyClusterRelationsController extends AppController
                 $errors = array($clusterSource['error']);
             }
 
-            $errors = array();
-
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
                 $tags = array_map('trim', $tags);
@@ -137,7 +136,9 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
 
-            $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['SourceCluster'], $relation);
+            if (empty($errors)) {
+                $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['SourceCluster'], $relation);
+            }
 
             if (empty($errors)) {
                 $message = __('Relationship added.');
@@ -204,6 +205,7 @@ class GalaxyClusterRelationsController extends AppController
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
 
         if ($this->request->is('post') || $this->request->is('put')) {
+            $errors = array();
             if (empty($this->request->data['GalaxyClusterRelation'])) {
                 $this->request->data = array('GalaxyClusterRelation' => $this->request->data);
             }
@@ -214,6 +216,9 @@ class GalaxyClusterRelationsController extends AppController
             }
 
             $clusterSource = $this->GalaxyClusterRelation->SourceCluster->checkAuthorization($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=false, $full=false);
+            if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
+                $errors = array($clusterSource['error']);
+            }
 
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
@@ -223,7 +228,9 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
 
-            $errors = $this->GalaxyClusterRelation->editRelation($this->Auth->user(), $relation);
+            if (empty($errors)) {
+                $errors = $this->GalaxyClusterRelation->editRelation($this->Auth->user(), $relation);
+            }
 
             if (empty($errors)) {
                 $message = __('Relationship added.');

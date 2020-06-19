@@ -950,7 +950,7 @@ class GalaxyCluster extends AppModel
                 return array('authorized' => false, 'error' => $message);
             }
             if (in_array('edit', $authorizations) || in_array('delete', $authorizations)) {
-                if ($cluster[$this->alias]['orgc_id'] != $user('org_id')) {
+                if ($cluster[$this->alias]['orgc_id'] != $user['org_id']) {
                     $message = __('Only the creator organisation can modify the galaxy cluster');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);
@@ -959,7 +959,7 @@ class GalaxyCluster extends AppModel
                 }
             }
             if (in_array('publish', $authorizations)) {
-                if ($cluster[$this->alias]['orgc_id'] != $user('org_id')) {
+                if ($cluster[$this->alias]['orgc_id'] != $user['org_id']) {
                     $message = __('Only the creator organisation can publish the galaxy cluster');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);
