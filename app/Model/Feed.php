@@ -320,7 +320,6 @@ class Feed extends AppModel
                 foreach ($feeds as $k => $v) {
                     if ($redis->sismember('misp:feed_cache:' . $v['Feed']['id'], md5($value['value']))) {
                         $data[$key]['feed_correlations'][] = array($v);
-                    } else {
                     }
                 }
             }
@@ -1116,7 +1115,7 @@ class Feed extends AppModel
         }
     }
 
-    private function __cacheFreetextFeed($feed, $redis, $HttpSocket, $jobId = false)
+    private function __cacheFreetextFeed(array $feed, $redis, HttpSocket $HttpSocket, $jobId = false)
     {
         $feedId = $feed['Feed']['id'];
 
@@ -1124,19 +1123,23 @@ class Feed extends AppModel
             $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
         } catch (Exception $e) {
             $this->logException("Could not get freetext feed $feedId", $e);
-            $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
+            $this->jobProgress($jobId, 'Could not fetch freetext feed. See error log for more details.');
             return false;
         }
 
+        $pipe = $redis->multi(Redis::PIPELINE);
         foreach ($values as $k => $value) {
             $md5Value = md5($value['value']);
             $redis->sAdd('misp:feed_cache:' . $feedId, $md5Value);
             $redis->sAdd('misp:feed_cache:combined', $md5Value);
             if ($k % 1000 == 0) {
                 $this->jobProgress($jobId, "Feed $feedId: $k/" . count($values) . " values cached.");
+                $pipe->exec();
+                $pipe = $redis->multi(Redis::PIPELINE);
             }
         }
         $redis->set('misp:feed_cache_timestamp:' . $feedId, time());
+        $pipe->exec();
         return true;
     }
 
