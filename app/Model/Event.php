@@ -661,24 +661,6 @@ class Event extends AppModel
         }
     }
 
-    public function buildEventConditions($user)
-    {
-        $conditions = array();
-        if ($user['Role']['perm_site_admin']) {
-            return $conditions;
-        }
-        $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-        $conditions['OR'] = array(
-            'Event.orgc_id' => $user['org_id'],
-            'Event.distribution' => array(1, 2, 3),
-            'AND' => array(
-                'Event.distribution' => 4,
-                'Event.sharing_group_id' => $sgids
-            )
-        );
-        return $conditions;
-    }
-
     public function isOwnedByOrg($eventid, $org)
     {
         return $this->field('id', array('id' => $eventid, 'org_id' => $org)) === $eventid;
@@ -885,7 +867,8 @@ class Event extends AppModel
 
         $relatedEventIds = array_values($correlations);
         // now look up the event data for these attributes
-        $conditions = array("Event.id" => $relatedEventIds);
+        $conditions = $this->createEventConditions($user);
+        $conditions['AND'][] = array('Event.id' => $relatedEventIds);
         $fields = array('id', 'date', 'threat_level_id', 'info', 'published', 'uuid', 'analysis', 'timestamp', 'distribution', 'org_id', 'orgc_id');
         $orgfields = array('id', 'name', 'uuid');
         $relatedEvents = $this->find(
