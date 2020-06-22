@@ -1645,7 +1645,7 @@ class Attribute extends AppModel
         return $this->data['Event']['org_id'] === $org;
     }
 
-    public function getRelatedAttributes($attribute, $fields=array(), $includeEventData = false)
+    public function getRelatedAttributes($user, $attribute, $fields=array(), $includeEventData = false)
     {
         // LATER getRelatedAttributes($attribute) this might become a performance bottleneck
 
@@ -1684,16 +1684,17 @@ class Attribute extends AppModel
                     'Attribute.value2' => array($attribute['value1'],$attribute['value2']),
             );
         }
-
+        $baseConditions = $this->buildConditions($user);
+        $baseConditions['AND'][] = $conditions;
         // do the search
         if (empty($fields)) {
             $fields = array('Attribute.*');
         }
         $params = array(
-            'conditions' => $conditions,
+            'conditions' => $baseConditions,
             'fields' => $fields,
             'recursive' => 0,
-            'group' => array('Attribute.event_id'),
+            'group' => array('Attribute.id', 'Attribute.event_id', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid', 'Attribute.timestamp', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.to_ids', 'Attribute.comment', 'Event.id', 'Event.uuid', 'Event.threat_level_id', 'Event.analysis', 'Event.info', 'Event.extends_uuid', 'Event.distribution', 'Event.sharing_group_id', 'Event.published', 'Event.date', 'Event.orgc_id', 'Event.org_id', 'Object.id', 'Object.uuid', 'Object.distribution', 'Object.name', 'Object.template_uuid', 'Object.distribution', 'Object.sharing_group_id'),
             'order' => 'Attribute.event_id DESC'
         );
         if (!empty($includeEventData)) {
@@ -1701,6 +1702,11 @@ class Attribute extends AppModel
                 'Event' => array(
                     'fields' => array(
                         'Event.id', 'Event.uuid', 'Event.threat_level_id', 'Event.analysis', 'Event.info', 'Event.extends_uuid', 'Event.distribution', 'Event.sharing_group_id', 'Event.published', 'Event.date', 'Event.orgc_id', 'Event.org_id'
+                    )
+                ),
+                'Object' => array(
+                    'fields' => array(
+                        'Object.id', 'Object.uuid', 'Object.distribution', 'Object.name', 'Object.template_uuid', 'Object.distribution', 'Object.sharing_group_id'
                     )
                 )
             );
@@ -3436,7 +3442,7 @@ class Attribute extends AppModel
                 }
                 if (!empty($options['includeCorrelations'])) {
                     $attributeFields = array('id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'to_ids', 'comment');
-                    $results[$k]['Attribute']['RelatedAttribute'] = ($this->getRelatedAttributes($results[$k]['Attribute'], $attributeFields, true));
+                    $results[$k]['Attribute']['RelatedAttribute'] = ($this->getRelatedAttributes($user, $results[$k]['Attribute'], $attributeFields, true));
                 }
             }
             if (!$loop) {
