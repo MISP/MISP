@@ -216,7 +216,8 @@ class Sighting extends AppModel
         }
         $conditions = array('Sighting.event_id' => $event['Event']['id']);
         if ($attribute_id) {
-            $conditions[] = array('Sighting.attribute_id' => $attribute_id);
+            $attribute = $this->Attribute->fetchAttribute($attribute_id);
+            $conditions['Sighting.attribute_id'] = $attribute_id;
         }
         if (!$ownEvent && (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0)) {
             $conditions['Sighting.org_id'] = $user['org_id'];
@@ -263,7 +264,9 @@ class Sighting extends AppModel
                 $sightings[$k]['Sighting']['Organisation'] = $sightings[$k]['Organisation'];
             }
             // zeroq: add attribute UUID to sighting to make synchronization easier
-            $attribute = $this->Attribute->fetchAttribute($sighting['Sighting']['attribute_id']);
+            if (!isset($attribute)) {
+                $attribute = $this->Attribute->fetchAttribute($sighting['Sighting']['attribute_id']);
+            }
             $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
 
             $sightings[$k] = $sightings[$k]['Sighting'] ;
