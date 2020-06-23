@@ -216,7 +216,8 @@ class Sighting extends AppModel
         }
         $conditions = array('Sighting.event_id' => $event['Event']['id']);
         if ($attribute_id) {
-            $conditions[] = array('Sighting.attribute_id' => $attribute_id);
+            $attribute = $this->Attribute->fetchAttribute($attribute_id);
+            $conditions['Sighting.attribute_id'] = $attribute_id;
         }
         if (!$ownEvent && (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0)) {
             $conditions['Sighting.org_id'] = $user['org_id'];
@@ -263,7 +264,9 @@ class Sighting extends AppModel
                 $sightings[$k]['Sighting']['Organisation'] = $sightings[$k]['Organisation'];
             }
             // zeroq: add attribute UUID to sighting to make synchronization easier
-            $attribute = $this->Attribute->fetchAttribute($sighting['Sighting']['attribute_id']);
+            if (!isset($attribute)) {
+                $attribute = $this->Attribute->fetchAttribute($sighting['Sighting']['attribute_id']);
+            }
             $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
 
             $sightings[$k] = $sightings[$k]['Sighting'] ;
@@ -469,9 +472,8 @@ class Sighting extends AppModel
 
     public function getSightingsForTag($user, $tag_id, $sgids = array(), $type = false)
     {
-        $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
         $conditions = array(
-            'Sighting.date_sighting >' => strtotime("-" . $range . " days"),
+            'Sighting.date_sighting >' => $this->getMaximumRange(),
             'EventTag.tag_id' => $tag_id
         );
         if ($type !== false) {
@@ -508,9 +510,8 @@ class Sighting extends AppModel
 
     public function getSightingsForObjectIds($user, $tagList, $context = 'event', $type = '0')
     {
-        $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
         $conditions = array(
-            'Sighting.date_sighting >' => strtotime("-" . $range . " days"),
+            'Sighting.date_sighting >' => $this->getMaximumRange(),
             ucfirst($context) . 'Tag.tag_id' => $tagList
 
         );
@@ -841,5 +842,15 @@ class Sighting extends AppModel
             }
         }
         return $saved;
+    }
+
+    /**
+     * @return int Timestamp
+     */
+    public function getMaximumRange()
+    {
+        $rangeInDays = Configure::read('MISP.Sightings_range');
+        $rangeInDays = (!empty($rangeInDays) && is_numeric($rangeInDays)) ? $rangeInDays : 365;
+        return strtotime("-$rangeInDays days");
     }
 }

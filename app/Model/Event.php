@@ -5463,18 +5463,14 @@ class Event extends AppModel
         );
     }
 
-    public function getSightingData($event)
+    public function getSightingData(array $event)
     {
         $this->Sighting = ClassRegistry::init('Sighting');
         if (!empty($event['Sighting'])) {
-            $attributeSightings = array();
-            $attributeOwnSightings = array();
-            $attributeSightingsPopover = array();
             $sightingsData = array();
             $sparklineData = array();
             $startDates = array();
-            $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
-            $range = strtotime("-" . $range . " days", time());
+            $range = $this->Sighting->getMaximumRange();
             foreach ($event['Sighting'] as $sighting) {
                 $type = $this->Sighting->type[$sighting['type']];
                 if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
@@ -5516,22 +5512,21 @@ class Event extends AppModel
                 }
             }
             $csv = array();
+            $today = strtotime(date('Y-m-d', time()));
             foreach ($startDates as $k => $v) {
                 $startDates[$k] = date('Y-m-d', $v);
             }
-            $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
             foreach ($sparklineData as $aid => $data) {
                 if (!isset($startDates[$aid])) {
                     continue;
                 }
                 $startDate = $startDates[$aid];
-                if (strtotime($startDate) < strtotime('-' . $range . ' days', time())) {
+                if (strtotime($startDate) < $range) {
                     $startDate = date('Y-m-d');
                 }
                 $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
-                $to = date('Y-m-d', time());
                 $sighting = $data;
-                for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
+                for ($date = $startDate; strtotime($date) <= $today; $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
                     if (!isset($csv[$aid])) {
                         $csv[$aid] = 'Date,Close\n';
                     }
