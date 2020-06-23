@@ -341,6 +341,22 @@ class Sighting extends AppModel
 
     public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false)
     {
+        if (!in_array($type, array(0, 1, 2))) {
+            return 'Invalid type, please change it before you POST 1000000 sightings.';
+        }
+
+        if ($sighting_uuid) {
+            // Since sightings are immutable (it is not possible to change it from web interface), we can check
+            // if sighting with given uuid already exists and quit early
+            $existing_sighting = $this->find('count', array(
+                'recursive' => -1,
+                'conditions' => array('uuid' => $sighting_uuid)
+            ));
+            if ($existing_sighting) {
+                return 0;
+            }
+        }
+
         $conditions = array();
         if ($id && $id !== 'stix') {
             $id = $this->explodeIdList($id);
@@ -364,9 +380,6 @@ class Sighting extends AppModel
                 }
             }
         }
-        if (!in_array($type, array(0, 1, 2))) {
-            return 'Invalid type, please change it before you POST 1000000 sightings.';
-        }
         $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions, 'flatten' => 1));
         if (empty($attributes)) {
             return 'No valid attributes found that match the criteria.';
@@ -389,27 +402,15 @@ class Sighting extends AppModel
             // zeroq: allow setting a specific uuid
             if ($sighting_uuid) {
                 $sighting['uuid'] = $sighting_uuid;
-                // check if sighting with given uuid already exists
-                $existing_sighting = $this->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('uuid' => $sighting_uuid)
-                ));
-                // do not add sighting if already exists
-                if (!empty($existing_sighting)) {
-                    return 0;
-                }
             }
             $result = $this->save($sighting);
             if ($result === false) {
                 return json_encode($this->validationErrors);
             }
-            $sightingsAdded += $result ? 1 : 0;
+            ++$sightingsAdded;
             if ($publish) {
                 $this->Event->publishRouter($sighting['event_id'], null, $user, 'sightings');
             }
-        }
-        if ($sightingsAdded == 0) {
-            return 'There was nothing to add.';
         }
         return $sightingsAdded;
     }
@@ -771,19 +772,21 @@ class Sighting extends AppModel
         return $final;
     }
 
-    // Bulk save sightings
+    /**
+     * @param int|string $eventId Event ID or UUID
+     * @param array $sightings
+     * @param array $user
+     * @param null $passAlong
+     * @return int|string Number of saved sightings or error message as string
+     */
     public function bulkSaveSightings($eventId, $sightings, $user, $passAlong = null)
     {
-        if (!is_numeric($eventId)) {
-             $eventId = $this->Event->field('id', array('uuid' => $eventId));
-        }
-        $event = $this->Event->fetchEvent($user, array(
-             'eventid' => $eventId,
+        $event = $this->Event->fetchEvent($user, array_merge(array(
              'metadata' => 1,
-             'flatten' => true
-        ));
+             'flatten' => true,
+        ), is_string($eventId) ? array('event_uuid' => $eventId) : array('eventid' => $eventId)));
         if (empty($event)) {
-            return 'Event not found or not accesible by this user.';
+            return 'Event not found or not accessible by this user.';
         }
         $saved = 0;
         foreach ($sightings as $s) {
