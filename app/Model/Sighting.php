@@ -472,9 +472,8 @@ class Sighting extends AppModel
 
     public function getSightingsForTag($user, $tag_id, $sgids = array(), $type = false)
     {
-        $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
         $conditions = array(
-            'Sighting.date_sighting >' => strtotime("-" . $range . " days"),
+            'Sighting.date_sighting >' => $this->getMaximumRange(),
             'EventTag.tag_id' => $tag_id
         );
         if ($type !== false) {
@@ -511,9 +510,8 @@ class Sighting extends AppModel
 
     public function getSightingsForObjectIds($user, $tagList, $context = 'event', $type = '0')
     {
-        $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
         $conditions = array(
-            'Sighting.date_sighting >' => strtotime("-" . $range . " days"),
+            'Sighting.date_sighting >' => $this->getMaximumRange(),
             ucfirst($context) . 'Tag.tag_id' => $tagList
 
         );
@@ -844,5 +842,15 @@ class Sighting extends AppModel
             }
         }
         return $saved;
+    }
+
+    /**
+     * @return int Timestamp
+     */
+    public function getMaximumRange()
+    {
+        $rangeInDays = Configure::read('MISP.Sightings_range');
+        $rangeInDays = (!empty($rangeInDays) && is_numeric($rangeInDays)) ? $rangeInDays : 365;
+        return strtotime("-$rangeInDays days");
     }
 }
