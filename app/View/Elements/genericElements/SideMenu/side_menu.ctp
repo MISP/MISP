@@ -1028,7 +1028,7 @@
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/decayingModel/decayingTool',
-                            'text' => __('Decaying Tool')
+                            'text' => __('Decaying Models Tool')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
