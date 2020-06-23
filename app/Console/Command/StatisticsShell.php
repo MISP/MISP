@@ -18,7 +18,7 @@ class StatisticsShell extends AppShell {
         foreach ($repos as $repo) {
             $results = $this->extract($results, $repo, $from, $to);
         }
-        echo PHP_EOL . PHP_EOL . count($results) . ' unique contributors.' . PHP_EOL . PHP_EOL;
+        echo PHP_EOL . PHP_EOL . array_sum($results) . ' commits from ' . count($results) . ' unique contributors.' . PHP_EOL . PHP_EOL;
         arsort($results);
         foreach ($results as $email => $count) {
             echo $email . ': ' . $count . PHP_EOL;
