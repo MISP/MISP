@@ -12,7 +12,7 @@
                     </td>
                     <td style="width:50px;text-align:center;">
                         <span title="<?php echo __('Move tag to the list of tags to allow');?>" role="button" tabindex="0" aria-label="<?php echo __('Move tag to the list of tags to allow');?>" class="btn btn-inverse" id="tagspushLeftLeft" onClick="serverRuleMoveFilter('push', 'tags', 'Middle', 'Left');" style="padding:2px;">&lt;&lt;</span>
-                        <span title="<?php echo __('Remove tag from the list of tags to allow');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove tag from the list of tags to allow');?>"class="btn btn-inverse" id="tagspushLeftRight" onClick="serverRuleMoveFilter('push', 'tags', 'Left', 'Middle');" style="padding:2px;">&gt;&gt;</span>
+                        <span title="<?php echo __('Remove tag from the list of tags to allow');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove tag from the list of tags to allow');?>" class="btn btn-inverse" id="tagspushLeftRight" onClick="serverRuleMoveFilter('push', 'tags', 'Left', 'Middle');" style="padding:2px;">&gt;&gt;</span>
                     </td>
                     <td style="width:120px;">
                         <p style="font-weight:bold;"><?php echo __('Available Tags');?></p>
@@ -52,7 +52,7 @@
                     </td>
                     <td style="width:50px;text-align:center;">
                         <span title="<?php echo __('Remove organisation from the list of organisations to block');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove organisation from the list of organisations to block');?>" class="btn btn-inverse" id="orgspushRightLeft" onClick="serverRuleMoveFilter('push', 'orgs', 'Right', 'Middle');" style="padding:2px;">&lt;&lt;</span>
-                        <span title="<?php echo __('Move organisation to the list of organisations to block');?>" role="button" tabindex="0" aria-label="<?php echo __('Move organisation to the list of organisations to block');?>"class="btn btn-inverse" id="orgspushRightRight" onClick="serverRuleMoveFilter('push', 'orgs', 'Middle', 'Right');" style="padding:2px;">&gt;&gt;</span>
+                        <span title="<?php echo __('Move organisation to the list of organisations to block');?>" role="button" tabindex="0" aria-label="<?php echo __('Move organisation to the list of organisations to block');?>" class="btn btn-inverse" id="orgspushRightRight" onClick="serverRuleMoveFilter('push', 'orgs', 'Middle', 'Right');" style="padding:2px;">&gt;&gt;</span>
                     </td>
                     <td style="width:120px;">
                         <p style="color:red;font-weight:bold;"><?php echo __('Blocked Orgs (AND NOT)');?></p>
