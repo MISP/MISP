@@ -16,10 +16,14 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, datetime
+
+import json
+import os
 import re
+import sys
 import uuid
 import misp2stix2_mapping
+from datetime import datetime
 from stix2.base import STIXJSONEncoder
 from stix2.exceptions import InvalidValueError, TLPMarkingDefinitionError, AtLeastOnePropertyError
 from stix2.properties import DictionaryProperty, ListProperty, StringProperty, TimestampProperty
@@ -63,10 +67,10 @@ class StixBuilder():
             self.add_custom(self.links.pop(0))
         external_refs = [self.__parse_link(link) for link in self.links]
         report_args = {'type': 'report', 'id': self.report_id, 'name': self.misp_event['info'],
-                       'created_by_ref': self.identity_id, 'created': self.misp_event['date'],
+                       'created': datetime.strptime(self.misp_event['date'], '%Y-%m-%d'),
                        'published': self.get_datetime_from_timestamp(self.misp_event['publish_timestamp']),
                        'modified': self.get_datetime_from_timestamp(self.misp_event['timestamp']),
-                       'interoperability': True}
+                       'created_by_ref': self.identity_id, 'interoperability': True}
         labels = [tag for tag in _MISP_event_tags]
         if self.misp_event.get('Tag'):
             markings = []
@@ -339,9 +343,15 @@ class StixBuilder():
         sdo_id = "{}--{}".format(sdo_type, cluster_uuid)
         description = "{} | {}".format(galaxy['description'], cluster['description'])
         labels = ['misp:name=\"{}\"'.format(galaxy['name'])]
-        sdo_args = {'id': sdo_id, 'type': sdo_type, 'created': self.misp_event['date'],
-                    'modified': self.get_datetime_from_timestamp(self.misp_event['timestamp']),
-                    'name': cluster['value'], 'description': description, 'interoperability': True}
+        sdo_args = {
+            'id': sdo_id,
+            'type': sdo_type,
+            'created': datetime.strptime(self.misp_event['date'], '%Y-%m-%d'),
+            'modified': self.get_datetime_from_timestamp(self.misp_event['timestamp']),
+            'name': cluster['value'],
+            'description': description,
+            'interoperability': True
+        }
         if b_killchain:
             killchain = [{'kill_chain_name': 'misp-category',
                           'phase_name': galaxy['type']}]
@@ -1749,7 +1759,7 @@ class StixBuilder():
 
     @staticmethod
     def get_datetime_from_timestamp(timestamp):
-        return datetime.datetime.utcfromtimestamp(int(timestamp))
+        return datetime.utcfromtimestamp(int(timestamp))
 
     @staticmethod
     def _handle_multiple_file_fields_observable(file_observable, values, feature):
