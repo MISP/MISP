@@ -80,7 +80,6 @@ class ServerShell extends AppShell
         if (empty($user)) {
             die('User ID do not match an existing user.' . PHP_EOL);
         }
-        if (empty($this->args[1])) die();
         $serverId = $this->args[1];
         if (!empty($this->args[2])) {
             $technique = $this->args[2];
@@ -109,20 +108,22 @@ class ServerShell extends AppShell
         }
         $this->Server->id = $serverId;
         $server = $this->Server->read(null, $serverId);
-        $result = $this->Server->pull($user, $serverId, $technique, $server, $jobId, $force);
-        $this->Job->id = $jobId;
-        $this->Job->save(array(
-                'id' => $jobId,
-                'message' => 'Job done.',
-                'progress' => 100,
-                'status' => 4
-        ));
-        if (is_array($result)) {
-            $message = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled.', count($result[0]), count($result[1]), $result[2], $result[3]));
-        } else {
-            $message = sprintf(__('ERROR: %s'), $result);
+        if (!$server) {
+            die("Remote server with ID $serverId not found");
         }
-        $this->Job->saveField('message', $message);
+        try {
+            $result = $this->Server->pull($user, $serverId, $technique, $server, $jobId, $force);
+            if (is_array($result)) {
+                $message = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled.', count($result[0]), count($result[1]), $result[2], $result[3]);
+                $this->saveJobStatus($jobId, false, $message);
+            } else {
+                $message = __('ERROR: %s', $result);
+                $this->saveJobStatus($jobId, true, $message);
+            }
+        } catch (Exception $e) {
+            $this->saveJobStatus($jobId, true, __('ERROR: %s', $e->getMessage()));
+            throw $e;
+        }
         echo $message . PHP_EOL;
     }
 
