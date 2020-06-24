@@ -1754,9 +1754,20 @@ class Attribute extends AppModel
         return $attachmentTool->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
     }
 
-    public function base64EncodeAttachment($attribute)
+    /**
+     * Returns attribute attachment content as base64 encoded string. If file doesn't exists, empty string is returned.
+     *
+     * @param array $attribute
+     * @return string
+     */
+    public function base64EncodeAttachment(array $attribute)
     {
-        return base64_encode($this->getAttachment($attribute));
+        try {
+            return base64_encode($this->getAttachment($attribute));
+        } catch (NotFoundException $e) {
+            $this->log($e->getMessage(), LOG_NOTICE);
+            return '';
+        }
     }
 
     public function saveBase64EncodedAttachment($attribute)
