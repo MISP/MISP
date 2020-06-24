@@ -2391,16 +2391,20 @@ class Server extends AppModel
         return true;
     }
 
-    private function __getEventIdListBasedOnPullTechnique($technique, $server, $force = false)
+    /**
+     * @param int|string $technique 'full', 'update', remote event ID or remote event UUID
+     * @param array $server
+     * @param bool $force
+     * @return array
+     */
+    private function __getEventIdListBasedOnPullTechnique($technique, array $server, $force = false)
     {
         try {
             if ("full" === $technique) {
                 // get a list of the event_ids on the server
                 $eventIds = $this->getEventIdsFromServer($server, false, null, false, 'events', $force);
                 // reverse array of events, to first get the old ones, and then the new ones
-                if (!empty($eventIds)) {
-                    $eventIds = array_reverse($eventIds);
-                }
+                return array_reverse($eventIds);
             } elseif ("update" === $technique) {
                 $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
                 $eventModel = ClassRegistry::init('Event');
@@ -2408,13 +2412,14 @@ class Server extends AppModel
                     'fields' => array('uuid'),
                     'recursive' => -1,
                 ));
-                $eventIds = array_intersect($eventIds, $local_event_ids);
+                return array_intersect($eventIds, $local_event_ids);
             } elseif (is_numeric($technique)) {
-                $eventIds = array(intval($technique));
+                return array(intval($technique));
+            } elseif (Validation::uuid($technique)) {
+                return array($technique);
             } else {
                 return array('error' => array(4, null));
             }
-            return $eventIds;
         } catch (HttpException $e) {
             $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
             if ($e->getCode() === 403) {
