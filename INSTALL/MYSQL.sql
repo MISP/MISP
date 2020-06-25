@@ -805,6 +805,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
   `perm_publish_zmq` tinyint(1) NOT NULL DEFAULT 0,
   `perm_publish_kafka` tinyint(1) NOT NULL DEFAULT 0,
   `perm_decaying` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_galaxy_editor` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
