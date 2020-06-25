@@ -2758,7 +2758,7 @@ class Server extends AppModel
         return $final;
     }
 
-    private function __orgRuleDowngrade($HttpSocket, $request, $server, $filter_rules)
+    private function __orgRuleDowngrade($HttpSocket, $request, $server, $filterRules)
     {
         $uri = $server['Server']['url'] . '/servers/getVersion';
         try {
@@ -2771,24 +2771,25 @@ class Server extends AppModel
         }
         $version = explode('.', $version);
         if ($version[0] <= 2 && $version[1] <= 4 && $version[0] <= 123) {
-            $filter_rules['org'] = implode('|', $filter_rules['org']);
+            $filterRules['org'] = implode('|', $filterRules['org']);
         }
-        return $filter_rules;
+        return $filterRules;
     }
 
     // Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed
-    public function getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=true, $elligibleClusters=array())
+    public function getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=true, $elligibleClusters=array(), $conditions=array())
     {
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/galaxy_clusters/restSearch';
-        $filter_rules['published'] = 1;
-        $filter_rules['minimal'] = 1;
-        $filter_rules['custom'] = 1;
+        $filterRules['published'] = 1;
+        $filterRules['minimal'] = 1;
+        $filterRules['custom'] = 1;
+        $filterRules = array_merge($filterRules, $conditions);
 
         try {
-            $response = $HttpSocket->post($uri, json_encode($filter_rules), $request);
+            $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
             if ($response->isOk()) {
                 $clusterArray = json_decode($response->body, true);
                 // correct $eventArray if just one event
@@ -2829,20 +2830,20 @@ class Server extends AppModel
     {
         $url = $server['Server']['url'];
         if ($ignoreFilterRules) {
-            $filter_rules = array();
+            $filterRules = array();
         } else {
-            $filter_rules = $this->filterRuleToParameter($server['Server']['pull_rules']);
+            $filterRules = $this->filterRuleToParameter($server['Server']['pull_rules']);
         }
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        if (!empty($filter_rules['org'])) {
-            $filter_rules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filter_rules);
+        if (!empty($filterRules['org'])) {
+            $filterRules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filterRules);
         }
         $uri = $url . '/events/index';
-        $filter_rules['minimal'] = 1;
-        $filter_rules['published'] = 1;
+        $filterRules['minimal'] = 1;
+        $filterRules['published'] = 1;
         try {
-            $response = $HttpSocket->post($uri, json_encode($filter_rules), $request);
+            $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
             if ($response->isOk()) {
                 $eventArray = json_decode($response->body, true);
                 // correct $eventArray if just one event
