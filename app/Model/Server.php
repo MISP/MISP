@@ -2648,6 +2648,15 @@ class Server extends AppModel
             ));
             return !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.');
         }
+        $pulledClusters = 0;
+        if (!empty($server['Server']['pull_galaxy_clusters'])) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
+            if ($jobId) {
+                $job->saveField('progress', 10);
+                $job->saveField('message', 'Pulling galaxy clusters.');
+            }
+        }
         $successes = array();
         $fails = array();
         // now process the $eventIds to pull each of the events sequentially
@@ -2657,7 +2666,7 @@ class Server extends AppModel
                 $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
                 if ($jobId) {
                     if ($k % 10 == 0) {
-                        $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
+                        $job->saveField('progress', 10 + 40 * (($k + 1) / count($eventIds)));
                     }
                 }
             }
@@ -2688,15 +2697,6 @@ class Server extends AppModel
             $job->saveField('message', 'Pulling sightings.');
         }
         $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
-        $pulledClusters = 0;
-        if (isset($server['Server']['pull_galaxy_clusters']) && $server['Server']['pull_galaxy_clusters']) {
-            if ($jobId) {
-                $job->saveField('progress', 90);
-                $job->saveField('message', 'Pulling galaxy clusters.');
-            }
-            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
-        }
         if ($jobId) {
             $job->saveField('progress', 100);
             $job->saveField('message', 'Pull completed.');
@@ -2783,6 +2783,7 @@ class Server extends AppModel
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/galaxy_clusters/restSearch';
+        $filter_rules['published'] = 1;
         $filter_rules['minimal'] = 1;
         $filter_rules['custom'] = 1;
 

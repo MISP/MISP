@@ -507,6 +507,7 @@ class GalaxyCluster extends AppModel
                 $results['errors'][] = $validationError[0];
             }
         }
+        $results['success'] = $results['imported'] > 0;
         return $results;
     }
 
@@ -881,7 +882,7 @@ class GalaxyCluster extends AppModel
         }
 
         $simpleParams = array(
-            'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'extends_uuid', 'tag_name'
+            'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'extends_uuid', 'tag_name', 'published'
         );
         foreach ($simpleParams as $k => $simpleParam) {
             if (isset($filters[$simpleParam])) {
@@ -1424,6 +1425,7 @@ class GalaxyCluster extends AppModel
         } else {
             $fails[$clusterId] = __('failed downloading the galaxy cluster');
         }
+        return true;
     }
 
     public function downloadGalaxyClusterFromServer($clusterId, $server, $HttpSocket=null)
