@@ -81,7 +81,7 @@ class AppModel extends Model
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
-        51 => false, 52 => false, 53 => false, 54 => false, 55 => false,
+        51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
     );
 
     public $advanced_updates_description = array(
@@ -1402,6 +1402,10 @@ class AppModel extends Model
                 $this->__dropIndex('correlations', 'org_id');
                 $this->__dropIndex('correlations', 'sharing_group_id');
                 $this->__dropIndex('correlations', 'a_sharing_group_id');
+                break;
+            case 56:
+                // index can be theoretically used, but probably just in very rare occasion
+                $this->__dropIndex('attributes', 'object_relation');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

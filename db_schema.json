@@ -6794,7 +6794,6 @@
             "value1",
             "value2",
             "object_id",
-            "object_relation",
             "deleted",
             "first_seen",
             "last_seen"
