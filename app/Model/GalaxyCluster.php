@@ -881,6 +881,15 @@ class GalaxyCluster extends AppModel
             }
         }
 
+        if (isset($filters['eventid'])) {
+            $clusterUUIDs = $this->getClusterUUIDsFromAttachedTags($user, $filters['eventid']);
+            if (!empty($clusterUUIDs)) {
+                $filters['uuid'] = array_values($clusterUUIDs);
+            } else {
+                $filters['uuid'] = -1;
+            }
+        }
+
         $simpleParams = array(
             'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'extends_uuid', 'tag_name', 'published'
         );
@@ -894,6 +903,55 @@ class GalaxyCluster extends AppModel
             $conditions['AND']['GalaxyCluster.default'] = !$filters['custom'];
         }
         return $conditions;
+    }
+
+    private function getClusterUUIDsFromAttachedTags($user, $eventId)
+    {
+        $models = array('Attribute', 'Event');
+        $clusterUUIDs = array();
+        foreach ($models as $model) {
+            $modelLower = strtolower($model);
+            $joinCondition2 = array('table' => "${modelLower}_tags",
+                'alias' => "${model}Tag",
+                'type' => 'inner',
+                'conditions' => array(
+                    "Tag.id = ${model}Tag.tag_id",
+                    "${model}Tag.event_id" => $eventId,
+                )
+            );
+            if ($model == 'Attribute') {
+                // We have to make sure users have access to the event/attributes
+                // Otherwise, they might enumerate and  fetch tags from event/attributes they can't see
+                $this->Attribute = ClassRegistry::init('Attribute');
+                $attributes = $this->Attribute->fetchAttributes($user, array(
+                    'conditions' => array('Attribute.event_id' => $eventId),
+                    'fields' => array('Attribute.id'),
+                    'flatten' => 1
+                ));
+                if (empty($attributes)) { // no attributes accessible
+                    $attributes = -1;
+                }
+                $attributeIds = Hash::extract($attributes, '{n}.Attribute.id');
+                $joinCondition2['conditions']["${model}Tag.attribute_id"] = $attributeIds;
+            }
+            $options = array(
+                'joins' => array(
+                    array('table' => 'tags',
+                        'alias' => 'Tag',
+                        'type' => 'inner',
+                        'conditions' => array(
+                            'GalaxyCluster.tag_name = Tag.name'
+                        )
+                    ),
+                    $joinCondition2
+                ),
+                'fields' => array('GalaxyCluster.uuid')
+            );
+            $tmp = $this->find('list', $options);
+            $clusterUUIDs = array_merge($clusterUUIDs, array_values($tmp));
+        }
+        $clusterUUIDs = array_unique($clusterUUIDs);
+        return $clusterUUIDs;
     }
 
     public function fetchClusterById($user, $clusterId, $full=false)
@@ -1395,6 +1453,14 @@ class GalaxyCluster extends AppModel
         if ("update" === $technique) {
             $localClustersToUpdate = $this->GalaxyCluster->getElligibleLocalClustersToUpdate($user);
             $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=true, $elligibleClusters=$localClustersToUpdate);
+            if ($clusterIds === 403) {
+                return array('error' => array(1, null));
+            } elseif (is_string($clusterIds)) {
+                return array('error' => array(2, $clusterIds));
+            }
+        } elseif (is_numeric($technique)) { // need to fetch the clusters from remote event
+            $conditions = array('eventid' => $technique);
+            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=false, $elligibleClusters=array(), $conditions=$conditions);
             if ($clusterIds === 403) {
                 return array('error' => array(1, null));
             } elseif (is_string($clusterIds)) {
