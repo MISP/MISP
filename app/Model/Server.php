@@ -3200,6 +3200,7 @@ class Server extends AppModel
             return $successes;
         }
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $this->Event = ClassRegistry::init('Event');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $clusters = array();
         if ($technique == 'full') {

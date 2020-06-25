@@ -4170,6 +4170,13 @@ class Event extends AppModel
                         $thisUploaded = true;
                     }
                 } else {
+                    $fakeSyncUser = array(
+                        'org_id' => $server['Server']['remote_org_id'],
+                        'Role' => array(
+                            'perm_site_admin' => 0
+                        )
+                    );
+                    $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
                     $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket, $scope);
                     if (isset($this->data['ShadowAttribute'])) {
                         $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
