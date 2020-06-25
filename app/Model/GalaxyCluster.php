@@ -154,7 +154,7 @@ class GalaxyCluster extends AppModel
     public function afterDelete()
     {
         // Remove all relations IDs now that the cluster is unkown
-        parent::afterDelete($created, $options);
+        parent::afterDelete();
         $cluster = $this->data[$this->alias];
         $cluster = $this->fetchAndSetUUID($cluster);
         $this->GalaxyClusterRelation->updateAll(
@@ -945,7 +945,8 @@ class GalaxyCluster extends AppModel
                     ),
                     $joinCondition2
                 ),
-                'fields' => array('GalaxyCluster.uuid')
+                'fields' => array('GalaxyCluster.uuid'),
+                'recursive' => -1,
             );
             $tmp = $this->find('list', $options);
             $clusterUUIDs = array_merge($clusterUUIDs, array_values($tmp));
@@ -1430,7 +1431,7 @@ class GalaxyCluster extends AppModel
         ) {
             return 0;
         }
-        $clusterIds = $this->__getClusterIdListBasedOnPullTechnique($technique, $server);
+        $clusterIds = $this->__getClusterIdListBasedOnPullTechnique($user, $technique, $server);
         if (!isset($server['Server']['version'])) {
             $this->Server = ClassRegistry::init('Server');
             $server['Server']['version'] = $this->Server->getRemoteVersion($server['Server']['id']);
@@ -1447,32 +1448,42 @@ class GalaxyCluster extends AppModel
         return count($successes);
     }
 
-    private function __getClusterIdListBasedOnPullTechnique($technique, $server)
+    private function __getClusterIdListBasedOnPullTechnique($user, $technique, $server)
     {
         $this->Server = ClassRegistry::init('Server');
         if ("update" === $technique) {
-            $localClustersToUpdate = $this->GalaxyCluster->getElligibleLocalClustersToUpdate($user);
-            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=true, $elligibleClusters=$localClustersToUpdate);
-            if ($clusterIds === 403) {
-                return array('error' => array(1, null));
-            } elseif (is_string($clusterIds)) {
-                return array('error' => array(2, $clusterIds));
+            $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
+            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $onlyUpdateLocalCluster=true, $elligibleClusters=$localClustersToUpdate);
+        } elseif ("pull_relevant_cluster" === $technique) {
+            // Fetch all local custom cluster tags then fetch their corresponding clusters on the remote end
+            $tagNames = $this->Tag->find('list', array(
+                'conditions' => array(
+                    'Tag.is_custom_galaxy' => true
+                ),
+                'fields' => array('Tag.name'),
+                'recursive' => -1,
+            ));
+            $clusterUUIDs = array();
+            $re = '/^misp-galaxy:[^:="]+="(?<uuid>[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})"$/m';
+            foreach ($tagNames as $tagName) {
+                preg_match($re, $tagName, $matches);
+                if (isset($matches['uuid'])) {
+                    $clusterUUIDs[$matches['uuid']] = true;
+                }
             }
-        } elseif (is_numeric($technique)) { // need to fetch the clusters from remote event
+            $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
+            $conditions = array('uuid' => array_keys($clusterUUIDs));
+            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $onlyUpdateLocalCluster=false, $elligibleClusters=$localClustersToUpdate, $conditions=$conditions);
+        } elseif (is_numeric($technique)) {
             $conditions = array('eventid' => $technique);
-            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=false, $elligibleClusters=array(), $conditions=$conditions);
-            if ($clusterIds === 403) {
-                return array('error' => array(1, null));
-            } elseif (is_string($clusterIds)) {
-                return array('error' => array(2, $clusterIds));
-            }
+            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $onlyUpdateLocalCluster=false, $elligibleClusters=array(), $conditions=$conditions);
         } else {
-            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=false);
-            if ($clusterIds === 403) {
-                return array('error' => array(1, null));
-            } elseif (is_string($clusterIds)) {
-                return array('error' => array(2, $clusterIds));
-            }
+            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $onlyUpdateLocalCluster=false);
+        }
+        if ($clusterIds === 403) {
+            return array('error' => array(1, null));
+        } elseif (is_string($clusterIds)) {
+            return array('error' => array(2, $clusterIds));
         }
         return $clusterIds;
     }

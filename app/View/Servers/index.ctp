@@ -175,6 +175,9 @@ foreach ($servers as $row_pos => $server):
                     echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/update', __('Pull updates to events that already exist locally'), __('Pull updates'), 'fa fa-sync');
                     echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/full', __('Pull all'), __('Pull all'), 'fa fa-arrow-circle-down');
                 }
+                if ($server['Server']['pull_galaxy_clusters']) {
+                    echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/pull_relevant_cluster', __('Pull known relevant custom clusters'), __('Pull relevant clusters'), 'fa fa-star');
+                }
                 if ($server['Server']['push'] || $server['Server']['push_sightings']) {
                     echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/push/' . h($server['Server']['id']) . '/full', __('Push all'), __('Push all'), 'fa fa-arrow-circle-up');
                 }

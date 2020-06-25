@@ -2621,12 +2621,31 @@ class Server extends AppModel
             $job = false;
             $email = $user['email'];
         }
+        $server['Server']['version'] = $this->getRemoteVersion($id);
+        $pulledClusters = 0;
+        if (!empty($server['Server']['pull_galaxy_clusters'])) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            if ($jobId) {
+                $job->saveField('message', $technique == 'pull_relevant_cluster' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
+            }
+            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
+            if ($technique == 'pull_relevant_cluster') {
+                if ($jobId) {
+                    $job->saveField('progress', 100);
+                    $job->saveField('message', 'Pulling complete.');
+                }
+                return array(array(), array(), 0, 0, $pulledClusters);
+            }
+            if ($jobId) {
+                $job->saveField('progress', 10);
+                $job->saveField('message', 'Pulling events.');
+            }
+        }
         $eventModel = ClassRegistry::init('Event');
         $eventIds = array();
         // if we are downloading a single event, don't fetch all proposals
         $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
-        $server['Server']['version'] = $this->getRemoteVersion($id);
         if (!empty($eventIds['error'])) {
             $errors = array(
                 '1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
@@ -2647,15 +2666,6 @@ class Server extends AppModel
                 'change' => !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.')
             ));
             return !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.');
-        }
-        $pulledClusters = 0;
-        if (!empty($server['Server']['pull_galaxy_clusters'])) {
-            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
-            if ($jobId) {
-                $job->saveField('progress', 10);
-                $job->saveField('message', 'Pulling galaxy clusters.');
-            }
         }
         $successes = array();
         $fails = array();
@@ -2777,7 +2787,7 @@ class Server extends AppModel
     }
 
     // Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed
-    public function getClusterIdsFromServer($server, $HttpSocket=null, $performLocalDelta=true, $elligibleClusters=array(), $conditions=array())
+    public function getClusterIdsFromServer($server, $HttpSocket=null, $onlyUpdateLocalCluster=true, $elligibleClusters=array(), $conditions=array())
     {
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
@@ -2798,17 +2808,19 @@ class Server extends AppModel
                     $clusterArray = $clusterArray['response'];
                 }
                 if (!empty($clusterArray)) {
-                    if ($performLocalDelta) {
-                        foreach ($clusterArray as $cluster) {
-                            if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
-                                $localVersion = $elligibleClusters[$cluster['GalaxyCluster']['uuid']];
-                                if ($localVersion >= $cluster['GalaxyCluster']['version']) {
-                                    unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
-                                }
+                    foreach ($clusterArray as $cluster) {
+                        if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
+                            $localVersion = $elligibleClusters[$cluster['GalaxyCluster']['uuid']];
+                            if ($localVersion >= $cluster['GalaxyCluster']['version']) {
+                                unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                            }
+                        } else {
+                            if ($onlyUpdateLocalCluster) {
+                                unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                            } else {
+                                $elligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
                             }
                         }
-                    } else {
-                        $elligibleClusters = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid');
                     }
                 }
                 return array_keys($elligibleClusters);
