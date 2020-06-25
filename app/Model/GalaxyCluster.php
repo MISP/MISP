@@ -1151,17 +1151,20 @@ class GalaxyCluster extends AppModel
         return array_values($clusterTags);
     }
 
-    public function getElligibleClustersToPush($user)
+    public function getElligibleClustersToPush($user, $conditions=array(), $full=false)
     {
         $options = array(
             'conditions' => array(
                 'GalaxyCluster.default' => 0,
                 'GalaxyCluster.published' => 1,
             ),
-            'fields' => array('uuid', 'version'),
-            'list' => true,
         );
-        $clusters = $this->fetchGalaxyClusters($user, $options, $full=false);
+        $options['conditions'] = array_merge($options['conditions'], $conditions);
+        if (!$full) {
+            $options['fields'] = array('uuid', 'version');
+            $options['list'] = true;
+        }
+        $clusters = $this->fetchGalaxyClusters($user, $options, $full=$full);
         return $clusters;
     }
 
@@ -1453,7 +1456,7 @@ class GalaxyCluster extends AppModel
         $this->Server = ClassRegistry::init('Server');
         if ("update" === $technique) {
             $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
-            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $onlyUpdateLocalCluster=true, $elligibleClusters=$localClustersToUpdate);
+            $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket=null, $onlyUpdateLocalCluster=true, $elligibleClusters=$localClustersToUpdate);
         } elseif ("pull_relevant_cluster" === $technique) {
             // Fetch all local custom cluster tags then fetch their corresponding clusters on the remote end
             $tagNames = $this->Tag->find('list', array(
@@ -1473,12 +1476,12 @@ class GalaxyCluster extends AppModel
             }
             $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
             $conditions = array('uuid' => array_keys($clusterUUIDs));
-            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $onlyUpdateLocalCluster=false, $elligibleClusters=$localClustersToUpdate, $conditions=$conditions);
+            $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket=null, $onlyUpdateLocalCluster=false, $elligibleClusters=$localClustersToUpdate, $conditions=$conditions);
         } elseif (is_numeric($technique)) {
             $conditions = array('eventid' => $technique);
-            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $onlyUpdateLocalCluster=false, $elligibleClusters=array(), $conditions=$conditions);
+            $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket=null, $onlyUpdateLocalCluster=false, $elligibleClusters=array(), $conditions=$conditions);
         } else {
-            $clusterIds = $this->Server->getClusterIdsFromServer($server, $HttpSocket=null, $onlyUpdateLocalCluster=false);
+            $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket=null, $onlyUpdateLocalCluster=false);
         }
         if ($clusterIds === 403) {
             return array('error' => array(1, null));
