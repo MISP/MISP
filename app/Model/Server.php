@@ -2894,10 +2894,7 @@ class Server extends AppModel
                     'change' => $message
             ));
             if ($jobId) {
-                $job->id = $jobId;
-                $job->saveField('progress', 100);
-                $job->saveField('message', $message);
-                $job->saveField('status', 4);
+                $job->saveStatus($jobId, false, $message);
             }
             return $push;
         }
@@ -3036,10 +3033,7 @@ class Server extends AppModel
                 'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
         ));
         if ($jobId) {
-            $job->id = $jobId;
-            $job->saveField('progress', 100);
-            $job->saveField('message', 'Push to server ' . $id . ' complete.');
-            $job->saveField('status', 4);
+            $job->saveStatus($jobId, true, __('Push to server %s complete.', $id));
         } else {
             return array($successes, $fails);
         }

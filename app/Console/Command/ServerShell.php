@@ -2,6 +2,13 @@
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 require_once 'AppShell.php';
+
+/**
+ * @property Job $Job
+ * @property Server $Server
+ * @property Feed $Feed
+ * @property User $User
+ */
 class ServerShell extends AppShell
 {
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
@@ -80,7 +87,6 @@ class ServerShell extends AppShell
         if (empty($user)) {
             die('User ID do not match an existing user.' . PHP_EOL);
         }
-        if (empty($this->args[1])) die();
         $serverId = $this->args[1];
         if (!empty($this->args[2])) {
             $technique = $this->args[2];
@@ -109,20 +115,22 @@ class ServerShell extends AppShell
         }
         $this->Server->id = $serverId;
         $server = $this->Server->read(null, $serverId);
-        $result = $this->Server->pull($user, $serverId, $technique, $server, $jobId, $force);
-        $this->Job->id = $jobId;
-        $this->Job->save(array(
-                'id' => $jobId,
-                'message' => 'Job done.',
-                'progress' => 100,
-                'status' => 4
-        ));
-        if (is_array($result)) {
-            $message = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled.', count($result[0]), count($result[1]), $result[2], $result[3]));
-        } else {
-            $message = sprintf(__('ERROR: %s'), $result);
+        if (!$server) {
+            die("Remote server with ID $serverId not found");
         }
-        $this->Job->saveField('message', $message);
+        try {
+            $result = $this->Server->pull($user, $serverId, $technique, $server, $jobId, $force);
+            if (is_array($result)) {
+                $message = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled.', count($result[0]), count($result[1]), $result[2], $result[3]);
+                $this->Job->saveStatus($jobId, true, $message);
+            } else {
+                $message = __('ERROR: %s', $result);
+                $this->Job->saveStatus($jobId, false, $message);
+            }
+        } catch (Exception $e) {
+            $this->Job->saveStatus($jobId, false, __('ERROR: %s', $e->getMessage()));
+            throw $e;
+        }
         echo $message . PHP_EOL;
     }
 
@@ -155,18 +163,22 @@ class ServerShell extends AppShell
         $technique = empty($this->args[3]) ? 'full' : $this->args[3];
         $this->Job->read(null, $jobId);
         $server = $this->Server->read(null, $serverId);
+        if (!$server) {
+            die("Remote server with ID $serverId not found");
+        }
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
         $HttpSocket = $syncTool->setupHttpSocket($server);
         $result = $this->Server->push($serverId, $technique, $jobId, $HttpSocket, $user);
-        $message = 'Job done.';
-        if ($result !== true && !is_array($result)) $message = 'Job failed. Reason: ' . $result;
-        $this->Job->save(array(
-                'id' => $jobId,
-                'message' => $message,
-                'progress' => 100,
-                'status' => 4
-        ));
+
+        if ($result !== true && !is_array($result)) {
+            $message = 'Job failed. Reason: ' . $result;
+            $this->Job->saveStatus($jobId, false, $message);
+        } else {
+            $message = 'Job done.';
+            $this->Job->saveStatus($jobId, true, $message);
+        }
+
         if (isset($this->args[4])) {
             $this->Task->id = $this->args[5];
             $message = 'Job(s) started at ' . date('d/m/Y - H:i:s') . '.';
@@ -174,7 +186,6 @@ class ServerShell extends AppShell
             echo $message . PHP_EOL;
         }
     }
-
 
     public function fetchFeed()
     {
@@ -205,13 +216,6 @@ class ServerShell extends AppShell
             $this->Job->save($data);
             $jobId = $this->Job->id;
         }
-        $this->Job->read(null, $jobId);
-        $outcome = array(
-            'id' => $jobId,
-            'message' => 'Job done.',
-            'progress' => 100,
-            'status' => 4
-        );
         if ($feedId == 'all') {
             $feedIds = $this->Feed->find('list', array(
                 'fields' => array('Feed.id', 'Feed.id'),
@@ -221,14 +225,7 @@ class ServerShell extends AppShell
             $successes = 0;
             $fails = 0;
             foreach ($feedIds as $k => $feedId) {
-                $jobStatus = array(
-                    'id' => $jobId,
-                    'message' => 'Fetching feed: ' . $feedId,
-                    'progress' => 100 * $k / count($feedIds),
-                    'status' => 0
-                );
-                $this->Job->id = $jobId;
-                $this->Job->save($jobStatus);
+                $this->Job->saveProgress($jobId, 'Fetching feed: ' . $feedId, 100 * $k / count($feedIds));
                 $result = $this->Feed->downloadFromFeedInitiator($feedId, $user);
                 if ($result) {
                     $successes++;
@@ -236,7 +233,9 @@ class ServerShell extends AppShell
                     $fails++;
                 }
             }
-            $outcome['message'] = 'Job done. ' . $successes . ' feeds pulled successfuly, ' . $fails . ' feeds could not be pulled.';
+            $message = 'Job done. ' . $successes . ' feeds pulled successfully, ' . $fails . ' feeds could not be pulled.';
+            $this->Job->saveStatus($jobId, true, $message);
+            echo $message . PHP_EOL;
         } else {
             $temp = $this->Feed->find('first', array(
                 'fields' => array('Feed.id', 'Feed.id'),
@@ -245,15 +244,18 @@ class ServerShell extends AppShell
             if (!empty($temp)) {
                 $result = $this->Feed->downloadFromFeedInitiator($feedId, $user, $jobId);
                 if (!$result) {
-                    $outcome['progress'] = 0;
-                    $outcome['status'] = 3;
-                    $outcome['message'] = 'Job failed.';
+                    $this->Job->saveStatus($jobId, false);
+                    echo 'Job failed.' . PHP_EOL;
+                } else {
+                    $this->Job->saveStatus($jobId, false);
+                    echo 'Job done.' . PHP_EOL;
                 }
+            } else {
+                $message = "Feed with ID $feedId not found.";
+                $this->Job->saveStatus($jobId, false, $message);
+                echo $message . PHP_EOL;
             }
         }
-        $this->Job->id = $jobId;
-        $this->Job->save($outcome);
-        echo $outcome['message'] . PHP_EOL;
     }
 
     public function cacheServer()
@@ -273,7 +275,7 @@ class ServerShell extends AppShell
             $data = array(
                     'worker' => 'default',
                     'job_type' => 'cache_servers',
-                    'job_input' => 'Server: ' . $scopeid,
+                    'job_input' => 'Server: ' . $scope,
                     'status' => 0,
                     'retries' => 0,
                     'org' => $user['Organisation']['name'],
@@ -282,29 +284,16 @@ class ServerShell extends AppShell
             $this->Job->save($data);
             $jobId = $this->Job->id;
         }
-        $this->Job->read(null, $jobId);
         $result = $this->Server->cacheServerInitiator($user, $scope, $jobId);
-        $this->Job->id = $jobId;
         if ($result !== true) {
-            $message = 'Job Failed. Reason: ';
-            $this->Job->save(array(
-                    'id' => $jobId,
-                    'message' => $message . $result,
-                    'progress' => 0,
-                    'status' => 3
-            ));
+            $message = 'Job Failed. Reason: ' . $result;
+            $this->Job->saveStatus($jobId, false, $message);
         } else {
             $message = 'Job done.';
-            $this->Job->save(array(
-                    'id' => $jobId,
-                    'message' => $message,
-                    'progress' => 100,
-                    'status' => 4
-            ));
+            $this->Job->saveStatus($jobId, true, $message);
         }
         echo $message . PHP_EOL;
     }
-
 
     public function cacheFeed()
     {
@@ -342,7 +331,7 @@ class ServerShell extends AppShell
 
         if ($result === false) {
             $message = __('Job failed. See error logs for more details.');
-            $this->saveJobStatus($jobId, true, $message);
+            $this->Job->saveStatus($jobId, false, $message);
 
         } else {
             $total = $result['successes'] + $result['fails'];
@@ -354,7 +343,7 @@ class ServerShell extends AppShell
             if ($result['fails'] > 0) {
                 $message .= ' ' . __('See error logs for more details.');
             }
-            $this->saveJobStatus($jobId, false, $message);
+            $this->Job->saveStatus($jobId, true, $message);
         }
         echo $message . PHP_EOL;
     }
@@ -388,8 +377,6 @@ class ServerShell extends AppShell
             );
             $this->Job->save($data);
             $jobId = $this->Job->id;
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
             $result = $this->Server->pull($user, $server['Server']['id'], 'full', $server, $jobId);
             $this->Job->save(array(
                     'id' => $jobId,
@@ -500,7 +487,7 @@ class ServerShell extends AppShell
 
         if ($result === false) {
             $message = __('Job failed. See error logs for more details.');
-            $this->saveJobStatus($jobId, true, $message);
+            $this->Job->saveStatus($jobId, false, $message);
 
         } else {
             $total = $result['successes'] + $result['fails'];
@@ -512,7 +499,7 @@ class ServerShell extends AppShell
             if ($result['fails'] > 0) {
                 $message .= ' ' . __('See error logs for more details.');
             }
-            $this->saveJobStatus($jobId, false, $message);
+            $this->Job->saveStatus($jobId, true, $message);
         }
 
         $this->Task->id = $task['Task']['id'];
@@ -552,26 +539,9 @@ class ServerShell extends AppShell
             App::uses('SyncTool', 'Tools');
             $syncTool = new SyncTool();
             $HttpSocket = $syncTool->setupHttpSocket($server);
-            $result = $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user);
+            $this->Server->push($server['Server']['id'], 'full', $jobId, $HttpSocket, $user);
         }
         $this->Task->id = $task['Task']['id'];
         $this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');
-    }
-
-    /**
-     * @param int $jobId
-     * @param bool $failed
-     * @param string $message
-     * @return mixed
-     */
-    private function saveJobStatus($jobId, $failed, $message)
-    {
-        $this->Job->id = $jobId;
-        return $this->Job->save(array(
-            'id' => $jobId,
-            'message' => $message,
-            'progress' => $failed ? 0 : 100,
-            'status' => $failed ? 3 : 4,
-        ));
     }
 }
