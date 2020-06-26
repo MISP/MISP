@@ -194,11 +194,20 @@ function submitFunction(clicked, callback) {
     } else {
         additionalData = {};
     }
-    additionalDataOption = options_additionalData[$select.attr('id')][selected];
+    additionalDataOption = options_additionalData[$select.attr('id')];
     if (additionalData !== undefined) {
-        $.extend(additionalData, additionalDataOption);
-        execAndClose(clicked);
-        callback(selected, additionalData);
+        additionalData['itemOptions'] = additionalDataOption;
+        // check needed if the function name is not defined in the controller but in the JS
+        var dismissId = $clicked.closest('.popover[data-dismissid]').data('dismissid');
+        var callingButton = $('button[data-dismissid="' + dismissId + '"]');
+        if (callingButton.data('popover-no-submit') && callingButton.data('popover-callback-function') !== undefined) {
+            callbackFunction = callingButton.data('popover-callback-function');
+            execAndClose(clicked);
+            callbackFunction(selected, additionalData);
+        } else {
+            execAndClose(clicked);
+            callback(selected, additionalData);
+        }
     }
 }
 </script>

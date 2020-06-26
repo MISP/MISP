@@ -4138,7 +4138,6 @@ function addGalaxyListener(id) {
     var target_type = $(id).data('target-type');
     var target_id = $(id).data('target-id');
     var local = $(id).data('local');
-    console.log(local);
     if (local) {
         local = 1;
     } else {

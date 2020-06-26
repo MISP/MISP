@@ -784,6 +784,9 @@ class TagsController extends AppController
                         )
                     ),
                     'infoExtra' => $expanded[$tag['id']]
+                ),
+                'additionalData' => array(
+                    'tag_name' => $tagName
                 )
             );
             if ($taxonomy_id === 'collections') {

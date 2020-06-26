@@ -25,7 +25,9 @@
                     'field' => 'referenced_galaxy_cluster_uuid',
                     'label' => __('Target UUID'),
                     'type' => 'text',
+                    'stayInLine' => 1
                 ),
+                sprintf('<button id="btnPickTarget" type="button" style="margin-top: 25px;">%s</button>', __('Pick target cluster')),
                 array(
                     'field' => 'referenced_galaxy_cluster_type',
                     'label' => __('Relationship Type'),
@@ -35,8 +37,10 @@
                     'field' => 'tags',
                     'label' => __('Tag list'),
                     'type' => 'textarea',
-                    'placeholder' => 'estimative-language:likelihood-probability="very-likely", false-positive:risk="low"'
+                    'placeholder' => 'estimative-language:likelihood-probability="very-likely", false-positive:risk="low"',
+                    'stayInLine' => 1
                 ),
+                sprintf('<button id="btnPickTag" type="button" style="margin-top: 25px;">%s</button>', __('Pick tags')),
             ),
             'submit' => array(
                 'ajaxSubmit' => ''
@@ -57,6 +61,31 @@
         $(this).attr('data-toggle', '')
             .html(syntaxHighlightJson($(this).text().trim()));
         });
+        $('#btnPickTarget').click(function() {
+            $(this).data('popover-no-submit', true);
+            $(this).data('popover-callback-function', setTargetUUIDAfterSelect);
+            var target_id = 0;
+            var target_type = 'galaxyClusterRelation';
+            popoverPopup(this, target_id + '/' + target_type, 'galaxies', 'selectGalaxyNamespace');
+        });
+        $('#btnPickTag').click(function() {
+            $(this).data('popover-no-submit', true);
+            $(this).data('popover-callback-function', setTagsAfterSelect);
+            var target_id = 0;
+            var target_type = 'galaxyClusterRelation';
+            popoverPopup(this, target_id + '/' + target_type, 'tags', 'selectTaxonomy')
+        });
     });
+    function setTargetUUIDAfterSelect(selected, additionalData){
+        selectedUUID = additionalData.itemOptions[selected].uuid;
+        $('#GalaxyClusterRelationReferencedGalaxyClusterUuid').val(selectedUUID);
+    }
+    function setTagsAfterSelect(selected, additionalData){
+        selectedTags = [];
+        selected.forEach(function(selection) {
+            selectedTags.push(additionalData.itemOptions[selection].tag_name);
+        });
+        $('#GalaxyClusterRelationTags').val(selectedTags.join(', '));
+    }
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

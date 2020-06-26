@@ -358,7 +358,7 @@ class GalaxiesController extends AppController
         $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
         $data = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
                 'conditions' => $conditions,
-                'fields' => array('value', 'description', 'source', 'type', 'id'),
+                'fields' => array('value', 'description', 'source', 'type', 'id', 'uuid'),
                 'order' => array('value asc'),
         ), false);
         $clusters = array();
@@ -411,6 +411,9 @@ class GalaxiesController extends AppController
                     'template' => array(
                         'name' => $name,
                         'infoExtra' => $cluster['description'],
+                    ),
+                    'additionalData' => array(
+                        'uuid' => $cluster['uuid']
                     )
                 );
                 if ($cluster['synonyms_string'] !== '') {
@@ -427,7 +430,7 @@ class GalaxiesController extends AppController
             $this->set('items', $items);
             $this->set('options', array( // set chosen (select picker) options
                 'functionName' => $onClickForm,
-                'multiple' => '-1',
+                'multiple' => $target_type == 'galaxyClusterRelation' ? 0 : '-1',
                 'select_options' => array(
                     'additionalData' => array(
                         'target_id' => $target_id,
