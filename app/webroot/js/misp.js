@@ -4556,16 +4556,16 @@ $(document).ready(function() {
     $('.quickToggleCheckbox').toggle(function() {
         var url = $(this).data('checkbox-url');
     });
-    $(".correlation-expand-button").on("click", function() {
-        $(this).parent().children(".correlation-expanded-area").show();
-        $(this).parent().children(".correlation-collapse-button").show();
-        $(this).hide();
-    });
-    $(".correlation-collapse-button").on("click", function() {
-        $(this).parent().children(".correlation-expanded-area").hide();
-        $(this).parent().children(".correlation-expand-button").show();
-        $(this).hide();
-    });
+});
+
+$("body").on("click", ".correlation-expand-button", function() {
+    $(this).parent().children(".correlation-expanded-area").show();
+    $(this).parent().children(".correlation-collapse-button").show();
+    $(this).hide();
+}).on("click", ".correlation-collapse-button", function() {
+    $(this).parent().children(".correlation-expanded-area").hide();
+    $(this).parent().children(".correlation-expand-button").show();
+    $(this).hide();
 });
 
 function queryEventLock(event_id, user_org_id) {
