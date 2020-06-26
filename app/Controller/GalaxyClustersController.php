@@ -473,20 +473,25 @@ class GalaxyClustersController extends AppController
         }
 
         if ($this->request->is('post') || $this->request->is('put')) {
-            $success = $this->GalaxyCluster->publish($cluster);
-            if (!$success) {
-                $message = __('Could not publish galaxy cluster');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'publish', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
-                } else {
-                    $this->Flash->error($message);
-                }
+            $success = $this->GalaxyCluster->publishRouter($this->Auth->user(), $cluster, $passAlong=null);
+            if (Configure::read('MISP.background_jobs')) {
+                $message = __('Publish job queued. Job ID: %s', $success);
+                $this->Flash->success($message);
             } else {
-                $message = __('Galaxy cluster published');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'publish', $cluster['GalaxyCluster']['id'], $this->response->type());
+                if (!$success) {
+                    $message = __('Could not publish galaxy cluster');
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('GalaxyCluster', 'publish', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
+                    } else {
+                        $this->Flash->error($message);
+                    }
                 } else {
-                    $this->Flash->success($message);
+                    $message = __('Galaxy cluster published');
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'publish', $cluster['GalaxyCluster']['id'], $this->response->type());
+                    } else {
+                        $this->Flash->success($message);
+                    }
                 }
             }
             $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $cluster['GalaxyCluster']['id']));
@@ -737,10 +742,14 @@ class GalaxyClustersController extends AppController
             'conditions' => array('id' => $id)
         ), $full=false);
         if (empty($cluster)) {
-            throw new Exception("Invalid Galaxy Cluster.");
+            throw new MethodNotAllowedException("Invalid Galaxy Cluster.");
         }
+        $cluster = $cluster[0];
         $this->loadModel('Event');
         $mitreAttackGalaxyId = $this->GalaxyCluster->Galaxy->getMitreAttackGalaxyId();
+        if ($mitreAttackGalaxyId == 0) { // Mitre Att&ck galaxy not found
+            return new CakeResponse(array('body' => '', 'status' => 200, 'type' => 'text'));
+        }
         $attackPatternTagNames = $this->GalaxyCluster->find('list', array(
             'conditions' => array('galaxy_id' => $mitreAttackGalaxyId),
             'fields' => array('tag_name')

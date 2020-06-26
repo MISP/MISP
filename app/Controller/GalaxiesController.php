@@ -202,6 +202,9 @@ class GalaxiesController extends AppController
         if (!$this->Auth->user()['Role']['perm_sync'] || !$this->Auth->user()['Role']['perm_galaxy_editor'] ) {
             throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
         }
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only accessible via a REST request.'));
+        }
         if ($this->request->is('post')) {
             $clusters = $this->request->data;
             $saveResult = $this->Galaxy->importGalaxyAndClusters($this->Auth->user(), $clusters);

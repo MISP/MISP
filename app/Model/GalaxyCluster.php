@@ -348,14 +348,55 @@ class GalaxyCluster extends AppModel
         return $errors;
     }
 
-    public function publish($cluster)
+    public function publishRouter($user, $cluster, $passAlong=null)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $this->Event = ClassRegistry::init('Event');
+            $job_type = 'publish_cluster';
+            $function = 'publish_galaxy_clusters';
+            $message = 'Publishing.';
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $data = array(
+                    'worker' => $this->Event->__getPrioWorkerIfPossible(),
+                    'job_type' => 'publish_galaxy_clusters',
+                    'job_input' => 'Cluster ID: ' . $cluster['GalaxyCluster']['id'],
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => $user['org_id'],
+                    'org' => $user['Organisation']['name'],
+                    'message' => $message
+            );
+            $job->save($data);
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                    'prio',
+                    'EventShell',
+                    array($function, $cluster['GalaxyCluster']['id'], $jobId, $user['id'], $passAlong),
+                    true
+            );
+            $job->saveField('process_id', $process_id);
+            return $process_id;
+        } else {
+            $result = $this->publish($cluster, $passAlong=$passAlong);
+            return $result;
+        }
+    }
+
+    public function publish($cluster, $passAlong=null)
     {
         if (is_numeric($cluster)) {
+            $clusterId = $cluster;
             $this->id = $cluster;
-            return $this->saveField('published', 1);
+            $saved = $this->saveField('published', 1);
         } elseif (isset($cluster['GalaxyCluster'])) {
+            $clusterId = $cluster['GalaxyCluster']['id'];
             $cluster['GalaxyCluster']['published'] = true;
-            return $this->save($cluster, array('fieldList' => array('published')));
+            $saved = $this->save($cluster, array('fieldList' => array('published')));
+        }
+        if ($saved) {
+            $uploaded = $this->uploadClusterToServersRouter($clusterId);
+            return $uploaded;
         }
         return false;
     }
@@ -370,6 +411,76 @@ class GalaxyCluster extends AppModel
             return $this->save($cluster, array('fieldList' => array('published')));
         }
         return false;
+    }
+
+    // Upload this specific cluster to all remote servers
+    private function uploadClusterToServersRouter($clusterId, $passAlong=null)
+    {
+        $clusterOrgcId = $this->find('first', array(
+            'conditions' => array('GalaxyCluster.id' => $clusterId),
+            'recursive' => -1,
+            'fields' => array('GalaxyCluster.orgc_id')
+        ));
+        $elevatedUser = array(
+            'Role' => array(
+                'perm_site_admin' => 1,
+                'perm_sync' => 1
+            ),
+            'org_id' => $clusterOrgcId['GalaxyCluster']['orgc_id']
+        );
+        $elevatedUser['Role']['perm_site_admin'] = 1;
+        $elevatedUser['Role']['perm_sync'] = 1;
+        $elevatedUser['Role']['perm_audit'] = 0;
+        $cluster = $this->fetchGalaxyClusters($elevatedUser, array('minimal' => true, 'conditions' => array('id' => $clusterId)), $full=false);
+        if (empty($cluster)) {
+            return true;
+        }
+        $cluster = $cluster[0];
+
+        $this->Server = ClassRegistry::init('Server');
+        $conditions = array('push' => 1, 'push_galaxy_clusters' => 1);
+        if ($passAlong) {
+            $conditions[] = array('Server.id !=' => $passAlong);
+        }
+        $servers = $this->Server->find('all', array(
+            'conditions' => $conditions,
+            'order' => array('Server.priority ASC', 'Server.id ASC')
+        ));
+        // iterate over the servers and upload the event
+        if (empty($servers)) {
+            return true;
+        }
+        $uploaded = false;
+        $failedServers = array();
+        App::uses('SyncTool', 'Tools');
+        foreach ($servers as &$server) {
+            if ((!isset($server['Server']['internal']) || !$server['Server']['internal']) && $cluster['GalaxyCluster']['distribution'] < 2) {
+                continue;
+            }
+            $syncTool = new SyncTool();
+            $HttpSocket = $syncTool->setupHttpSocket($server);
+            $fakeSyncUser = array(
+                'org_id' => $server['Server']['remote_org_id'],
+                'Organisation' => array(
+                    'id' => $server['Server']['remote_org_id']
+                ),
+                'Role' => array(
+                    'perm_site_admin' => 0
+                )
+            );
+            $cluster = $this->fetchGalaxyClusters($fakeSyncUser, array('conditions' => array('GalaxyCluster.id' => $clusterId)), $full=true);
+            if (empty($cluster)) {
+                return true;
+            }
+            $cluster = $cluster[0];
+            $result = $this->uploadClusterToServer($cluster, $server, $HttpSocket, $fakeSyncUser);
+            if ($result == 'Success') {
+                $uploaded = true;
+            } else {
+                $failedServers[] = $server;
+            }
+        }
+        return $uploaded;
     }
 
     public function unsetFieldsForExport($clusters)
@@ -453,6 +564,12 @@ class GalaxyCluster extends AppModel
             }
         }
 
+        if ($cluster['GalaxyCluster']['default']) {
+            $results['errors'][] = __('Can only save non default clusters');
+            $results['failed']++;
+            return $results;
+        }
+
         $cluster = $this->captureOrganisationAndSG($cluster, 'GalaxyCluster', $user);
         $existingGalaxyCluster = $this->find('first', array('conditions' => array(
             'GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid']
@@ -467,11 +584,6 @@ class GalaxyCluster extends AppModel
             $this->create();
             $saveSuccess = $this->save($cluster);
         } else {
-            if ($cluster['GalaxyCluster']['default']) {
-                $results['errors'][] = __('Can only save non default clusters');
-                $results['failed']++;
-                return $results;
-            }
             if ($fromPull && !$existingGalaxyCluster['GalaxyCluster']['locked'] && !$server['Server']['internal']) {
                 $results['errors'][] = __('Blocked an edit to an cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
                 $results['failed']++;
@@ -500,6 +612,9 @@ class GalaxyCluster extends AppModel
                 if ($saveResult['failed'] > 0) {
                     $results['errors'][] = __('Issues while capturing relations have been logged.');
                 }
+            }
+            if ($savedCluster['GalaxyCluster']['published']) {
+                $this->publishRouter($user, $savedCluster['GalaxyCluster']['id'], $passAlong=$server['Server']['id']);
             }
         } else {
             $results['failed']++;
