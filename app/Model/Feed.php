@@ -637,13 +637,13 @@ class Feed extends AppModel
     /**
      * @param array $feed
      * @param string $uuid
-     * @param $user Not used
+     * @param array $user
      * @return array|bool
      * @throws Exception
      */
-    public function downloadAndSaveEventFromFeed($feed, $uuid, $user)
+    public function downloadAndSaveEventFromFeed(array $feed, $uuid, array $user)
     {
-        $event = $this->downloadEventFromFeed($feed, $uuid, $user);
+        $event = $this->downloadEventFromFeed($feed, $uuid);
         if (!is_array($event) || isset($event['code'])) {
             return false;
         }
@@ -653,11 +653,10 @@ class Feed extends AppModel
     /**
      * @param array $feed
      * @param string $uuid
-     * @param $user Not used
      * @return bool|string|array
      * @throws Exception
      */
-    public function downloadEventFromFeed($feed, $uuid, $user)
+    public function downloadEventFromFeed(array $feed, $uuid)
     {
         $filerRules = $this->__prepareFilterRules($feed);
         $HttpSocket = $this->isFeedLocal($feed) ? false : $this->__setupHttpSocket($feed);
@@ -665,7 +664,12 @@ class Feed extends AppModel
         return $this->__prepareEvent($event, $feed, $filerRules);
     }
 
-    private function __saveEvent($event, $user)
+    /**
+     * @param array $event
+     * @param array $user
+     * @return array
+     */
+    private function __saveEvent(array $event, array $user)
     {
         $this->Event = ClassRegistry::init('Event');
         $existingEvent = $this->Event->find('first', array(
@@ -677,7 +681,7 @@ class Feed extends AppModel
         if (!empty($existingEvent)) {
             $result['action'] = 'edit';
             if ($existingEvent['Event']['timestamp'] < $event['Event']['timestamp']) {
-                $result['result'] = $this->Event->_edit($event, true, $user);
+                $result['result'] = $this->Event->_edit($event, $user);
             } else {
                 $result['result'] = 'No change';
             }

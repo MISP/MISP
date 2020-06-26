@@ -3419,7 +3419,7 @@ class Event extends AppModel
     }
 
     // Low level function to add an Event based on an Event $data array
-    public function _add(&$data, $fromXml, $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
+    public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
     {
         if ($jobId) {
             App::uses('AuthComponent', 'Controller/Component');
@@ -3731,7 +3731,7 @@ class Event extends AppModel
         }
     }
 
-    public function _edit(&$data, $user, $id, $jobId = null, $passAlong = null, $force = false)
+    public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false)
     {
         $data = $this->cleanupEventArrayFromXML($data);
         unset($this->Attribute->validate['event_id']);
@@ -3740,8 +3740,10 @@ class Event extends AppModel
         // reposition to get the event.id with given uuid
         if (isset($data['Event']['uuid'])) {
             $existingEvent = $this->findByUuid($data['Event']['uuid']);
-        } else {
+        } elseif ($id) {
             $existingEvent = $this->findById($id);
+        } else {
+            throw new InvalidArgumentException("No event UUID or ID provided.");
         }
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
