@@ -2155,7 +2155,7 @@ class Attribute extends AppModel
 
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'))) {
             $extraConditions = $this->__cidrCorrelation($a);
-        } else if ($a['type'] === 'ssdeep') {
+        } else if ($a['type'] === 'ssdeep' || $a['type'] === 'filename|ssdeep') {
             $extraConditions = $this->ssdeepCorrelation($a);
         }
 
@@ -2164,110 +2164,101 @@ class Attribute extends AppModel
             $correlatingValues[] = $a['value2'];
         }
 
-        $correlatingAttributes = array();
-        foreach ($correlatingValues as $k => $cV) {
-            if ($k === 1 && $a['type'] === 'filename|ssdeep') {
-                $extraConditions = $this->ssdeepCorrelation($a);
-            }
-            $conditions = array(
-                'OR' => array(
-                    'Attribute.value1' => $cV,
-                    'AND' => array(
-                        'Attribute.value2' => $cV,
-                        'NOT' => array('Attribute.type' => $this->primaryOnlyCorrelatingTypes)
-                    )
-                ),
-                'NOT' => array(
-                    'Attribute.event_id' => $a['event_id'],
-                    'Attribute.type' => $this->nonCorrelatingTypes,
-                ),
-                'Attribute.disable_correlation' => 0,
-                'Event.disable_correlation' => 0,
-                '(Attribute.deleted + 0)' => 0
-            );
-            if (!empty($extraConditions)) {
-                $conditions['OR'][] = $extraConditions;
-            }
-            if ($full) {
-                $conditions['Attribute.id > '] = $a['id'];
-            }
-            $correlatingAttributes[$k] = $this->find('all', array(
-                'conditions' => $conditions,
-                'recursive' => -1,
-                'fields' => array(
-                    'Attribute.event_id',
-                    'Attribute.id',
-                    'Attribute.distribution',
-                    'Attribute.sharing_group_id',
-                    'Attribute.value1',
-                    'Attribute.value2',
-                ),
-                'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
-                'order' => array(),
-            ));
+        $conditions = array(
+            'OR' => array(
+                'Attribute.value1' => $correlatingValues,
+                'AND' => array(
+                    'Attribute.value2' => $correlatingValues,
+                    'NOT' => array('Attribute.type' => $this->primaryOnlyCorrelatingTypes)
+                )
+            ),
+            'NOT' => array(
+                'Attribute.event_id' => $a['event_id'],
+                'Attribute.type' => $this->nonCorrelatingTypes,
+            ),
+            'Attribute.disable_correlation' => 0,
+            'Event.disable_correlation' => 0,
+            '(Attribute.deleted + 0)' => 0
+        );
+        if (!empty($extraConditions)) {
+            $conditions['OR'][] = $extraConditions;
         }
+        if ($full) {
+            $conditions['Attribute.id > '] = $a['id'];
+        }
+        $correlatingAttributes = $this->find('all', array(
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => array(
+                'Attribute.event_id',
+                'Attribute.id',
+                'Attribute.distribution',
+                'Attribute.sharing_group_id',
+                'Attribute.value',
+            ),
+            'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
+            'order' => array(),
+        ));
         $correlations = array();
-        foreach ($correlatingAttributes as $k => $cA) {
-            foreach ($cA as $corr) {
-                if (Configure::read('MISP.deadlock_avoidance')) {
-                    $correlations[] = array(
-                        'value' => $k === 0 ? $corr['Attribute']['value1'] : $corr['Attribute']['value2'],
-                        '1_event_id' => $event['Event']['id'],
-                        '1_attribute_id' => $a['id'],
-                        'event_id' => $corr['Attribute']['event_id'],
-                        'attribute_id' => $corr['Attribute']['id'],
-                        'org_id' => $corr['Event']['org_id'],
-                        'distribution' => $corr['Event']['distribution'],
-                        'a_distribution' => $corr['Attribute']['distribution'],
-                        'sharing_group_id' => $corr['Event']['sharing_group_id'],
-                        'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
-                        'date' => $corr['Event']['date'],
-                        'info' => $corr['Event']['info']
-                    );
-                    $correlations[] = array(
-                        'value' => $correlatingValues[$k],
-                        '1_event_id' => $corr['Event']['id'],
-                        '1_attribute_id' => $corr['Attribute']['id'],
-                        'event_id' => $a['event_id'],
-                        'attribute_id' => $a['id'],
-                        'org_id' => $event['Event']['org_id'],
-                        'distribution' => $event['Event']['distribution'],
-                        'a_distribution' => $a['distribution'],
-                        'sharing_group_id' => $event['Event']['sharing_group_id'],
-                        'a_sharing_group_id' => $a['sharing_group_id'],
-                        'date' => $event['Event']['date'],
-                        'info' => $event['Event']['info']
-                    );
-                } else {
-                    $correlations[] = array(
-                        $k === 0 ? $corr['Attribute']['value1'] : $corr['Attribute']['value2'],
-                        $event['Event']['id'],
-                        $a['id'],
-                        $corr['Attribute']['event_id'],
-                        $corr['Attribute']['id'],
-                        $corr['Event']['org_id'],
-                        $corr['Event']['distribution'],
-                        $corr['Attribute']['distribution'],
-                        $corr['Event']['sharing_group_id'],
-                        $corr['Attribute']['sharing_group_id'],
-                        $corr['Event']['date'],
-                        $corr['Event']['info']
-                    );
-                    $correlations[] = array(
-                        $correlatingValues[$k],
-                        $corr['Event']['id'],
-                        $corr['Attribute']['id'],
-                        $a['event_id'],
-                        $a['id'],
-                        $event['Event']['org_id'],
-                        $event['Event']['distribution'],
-                        $a['distribution'],
-                        $event['Event']['sharing_group_id'],
-                        $a['sharing_group_id'],
-                        $event['Event']['date'],
-                        $event['Event']['info']
-                    );
-                }
+        foreach ($correlatingAttributes as $corr) {
+            if (Configure::read('MISP.deadlock_avoidance')) {
+                $correlations[] = array(
+                    'value' => $corr['Attribute']['value'],
+                    '1_event_id' => $event['Event']['id'],
+                    '1_attribute_id' => $a['id'],
+                    'event_id' => $corr['Attribute']['event_id'],
+                    'attribute_id' => $corr['Attribute']['id'],
+                    'org_id' => $corr['Event']['org_id'],
+                    'distribution' => $corr['Event']['distribution'],
+                    'a_distribution' => $corr['Attribute']['distribution'],
+                    'sharing_group_id' => $corr['Event']['sharing_group_id'],
+                    'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
+                    'date' => $corr['Event']['date'],
+                    'info' => $corr['Event']['info']
+                );
+                $correlations[] = array(
+                    'value' => $a['value'],
+                    '1_event_id' => $corr['Event']['id'],
+                    '1_attribute_id' => $corr['Attribute']['id'],
+                    'event_id' => $a['event_id'],
+                    'attribute_id' => $a['id'],
+                    'org_id' => $event['Event']['org_id'],
+                    'distribution' => $event['Event']['distribution'],
+                    'a_distribution' => $a['distribution'],
+                    'sharing_group_id' => $event['Event']['sharing_group_id'],
+                    'a_sharing_group_id' => $a['sharing_group_id'],
+                    'date' => $event['Event']['date'],
+                    'info' => $event['Event']['info']
+                );
+            } else {
+                $correlations[] = array(
+                    $corr['Attribute']['value'],
+                    $event['Event']['id'],
+                    $a['id'],
+                    $corr['Attribute']['event_id'],
+                    $corr['Attribute']['id'],
+                    $corr['Event']['org_id'],
+                    $corr['Event']['distribution'],
+                    $corr['Attribute']['distribution'],
+                    $corr['Event']['sharing_group_id'],
+                    $corr['Attribute']['sharing_group_id'],
+                    $corr['Event']['date'],
+                    $corr['Event']['info']
+                );
+                $correlations[] = array(
+                    $a['value'],
+                    $corr['Event']['id'],
+                    $corr['Attribute']['id'],
+                    $a['event_id'],
+                    $a['id'],
+                    $event['Event']['org_id'],
+                    $event['Event']['distribution'],
+                    $a['distribution'],
+                    $event['Event']['sharing_group_id'],
+                    $a['sharing_group_id'],
+                    $event['Event']['date'],
+                    $event['Event']['info']
+                );
             }
         }
 
@@ -2923,6 +2914,7 @@ class Attribute extends AppModel
                     'Attribute.type',
                     'Attribute.value1',
                     'Attribute.value2',
+                    'Attribute.value',
                     'Attribute.distribution',
                     'Attribute.sharing_group_id',
                 ],
