@@ -2093,6 +2093,42 @@ class Attribute extends AppModel
         return $extraConditions;
     }
 
+    private function ssdeepCorrelation(array $a)
+    {
+        if (!function_exists('ssdeep_fuzzy_compare')) {
+            // PHP extensions ssdeep is not installed, skip
+            return array();
+        }
+
+        if (!isset($this->FuzzyCorrelateSsdeep)) {
+            $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
+        }
+        $hashValue = $a['type'] === 'ssdeep' ? $a['value1'] : $a['value2'];
+        $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($hashValue, $a['id']);
+        if (!empty($fuzzyIds)) {
+            $ssdeepAttributes = $this->find('list', array(
+                'recursive' => -1,
+                'conditions' => array(
+                    'Attribute.type' => array('ssdeep', 'filename|ssdeep'), // just for sure
+                    'Attribute.id' => $fuzzyIds,
+                ),
+                'fields' => array('Attribute.id', "(CASE WHEN Attribute.type = 'ssdeep' THEN Attribute.value1 ELSE Attribute.value2 END) as value"),
+            ));
+            $threshold = Configure::read('MISP.ssdeep_correlation_threshold') ?: 40;
+            $attributeIds = array();
+            foreach ($ssdeepAttributes as $id => $value) {
+                $ssdeepValue = ssdeep_fuzzy_compare($hashValue, $value);
+                if ($ssdeepValue >= $threshold) {
+                    $attributeIds[] = $id;
+                }
+            }
+            if (!empty($attributeIds)) {
+                return array('Attribute.id' => $attributeIds);
+            }
+        }
+        return array();
+    }
+
     public function __afterSaveCorrelation($a, $full = false, $event = false)
     {
         if (!empty($a['disable_correlation']) || Configure::read('MISP.completely_disable_correlation')) {
@@ -2119,28 +2155,8 @@ class Attribute extends AppModel
 
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'))) {
             $extraConditions = $this->__cidrCorrelation($a);
-        } else if ($a['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
-            $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-            $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value1'], $a['id']);
-            if (!empty($fuzzyIds)) {
-                $ssdeepIds = $this->find('list', array(
-                    'recursive' => -1,
-                    'conditions' => array(
-                        'Attribute.type' => 'ssdeep',
-                        'Attribute.id' => $fuzzyIds
-                    ),
-                    'fields' => array('Attribute.id', 'Attribute.value1')
-                ));
-                $threshold = Configure::read('MISP.ssdeep_correlation_threshold') ?: 40;
-                $attributeIds = array();
-                foreach ($ssdeepIds as $attributeId => $v) {
-                    $ssdeep_value = ssdeep_fuzzy_compare($a['value1'], $v);
-                    if ($ssdeep_value >= $threshold) {
-                        $attributeIds[] = $attributeId;
-                    }
-                }
-                $extraConditions = array('Attribute.id' => $attributeIds);
-            }
+        } else if ($a['type'] === 'ssdeep') {
+            $extraConditions = $this->ssdeepCorrelation($a);
         }
 
         $correlatingValues = array($a['value1']);
@@ -2150,6 +2166,9 @@ class Attribute extends AppModel
 
         $correlatingAttributes = array();
         foreach ($correlatingValues as $k => $cV) {
+            if ($k === 1 && $a['type'] === 'filename|ssdeep') {
+                $extraConditions = $this->ssdeepCorrelation($a);
+            }
             $conditions = array(
                 'OR' => array(
                     'Attribute.value1' => $cV,
@@ -2906,7 +2925,6 @@ class Attribute extends AppModel
                     'Attribute.value2',
                     'Attribute.distribution',
                     'Attribute.sharing_group_id',
-                    'Attribute.disable_correlation',
                 ],
                 'order' => [],
             ]);
