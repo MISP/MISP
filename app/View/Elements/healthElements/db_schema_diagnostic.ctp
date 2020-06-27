@@ -114,9 +114,10 @@
                     $rows .= sprintf('<td class="" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i),
                         empty($columnDiagnostic['sql']) ? '' :
                             sprintf(
-                                '<i class="fa fa-wrench useCursorPointer" onclick="quickFixSchema(this, \'%s\')" title="%s" data-query="%s"></i>',
+                                '<i class="fa fa-wrench useCursorPointer" onclick="quickFixSchema(this, \'%s\')" title="%s" aria-label="%s" tabindex="0" role="link" data-query="%s"></i>',
                                 h($columnDiagnostic['sql']),
                                 __('Fix Database schema'),
+                                __('Fix Database schema'),				
                                 h($columnDiagnostic['sql'])
                             )
                     );
