@@ -3756,7 +3756,8 @@ class Event extends AppModel
                     'Server.name',
                     'Server.id',
                     'Server.unpublish_event',
-                    'Server.publish_without_email'
+                    'Server.publish_without_email',
+                    'Server.internal',
                 )
             ));
         } else {
