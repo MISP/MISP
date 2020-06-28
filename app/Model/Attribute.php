@@ -3907,7 +3907,7 @@ class Attribute extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis) {
-            if ($redis->sCard('misp:cidr_cache_list') === 0) {
+            if (!$redis->exists('misp:cidr_cache_list')) {
                 $cidrList = $this->setCIDRList();
             } else {
                 $cidrList = $redis->smembers('misp:cidr_cache_list');
