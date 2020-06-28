@@ -1800,9 +1800,10 @@ class Attribute extends AppModel
         if ($thumbnail && extension_loaded('gd')) {
             if ($maxWidth == 200 && $maxHeight == 200) {
                 // Return thumbnail directly if already exists
-                $imageData = $this->getAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
-                if ($imageData !== '') {
-                    return $imageData;
+                try {
+                    return $this->getAttachment($attribute['Attribute'], $path_suffix = '_thumbnail');
+                } catch (NotFoundException $e) {
+                    // pass
                 }
             }
 
