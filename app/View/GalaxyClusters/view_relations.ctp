@@ -107,9 +107,10 @@
                         <input id="RelationshipTypeFreetext" type="text"></input>
                     </select>
                 </div>
-                <div class="input">
+                <div class="input input-append" style="width: 295px">
                     <label for="RelationshipTarget"><?= __('Target UUID') ?></label>
                     <input id="RelationshipTarget" name="target_id" type="text"></input>
+                    <button type="button" class="btn" onclick="pickerTarget.apply(this);"><?= __('Picker') ?></button>
                 </div>
                 <div class="input">
                     <label for="RelationshipDistribution"><?= __('Distribution') ?></label>
@@ -119,9 +120,10 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="input">
+                <div class="input input-append">
                     <label for="RelationshipTags"><?= __('Tags') ?></label>
                     <input id="RelationshipTags" name="tags" type="text"></input>
+                    <button type="button" class="btn" onclick="pickerTags.apply(this);"><?= __('Picker') ?></button>
                 </div>
                 <div class="clear"></div>
                 <button id="buttonAddRelationship" type="button" class="btn btn-primary" style="">
@@ -165,6 +167,32 @@ $(document).ready(function() {
     })
 });
 
+function pickerTarget() {
+    $(this).data('popover-no-submit', true);
+    $(this).data('popover-callback-function', setTargetUUIDAfterSelect);
+    var target_id = 0;
+    var target_type = 'galaxyClusterRelation';
+    popoverPopup(this, target_id + '/' + target_type, 'galaxies', 'selectGalaxyNamespace');
+}
+function setTargetUUIDAfterSelect(selected, additionalData){
+    selectedUUID = additionalData.itemOptions[selected].uuid;
+    $('#RelationshipTarget').val(selectedUUID);
+}
+
+function pickerTags() {
+    $(this).data('popover-no-submit', true);
+    $(this).data('popover-callback-function', setTagsAfterSelect);
+    var target_id = 0;
+    var target_type = 'galaxyClusterRelation';
+    popoverPopup(this, target_id + '/' + target_type, 'tags', 'selectTaxonomy')
+}
+function setTagsAfterSelect(selected, additionalData){
+    selectedTags = [];
+    selected.forEach(function(selection) {
+        selectedTags.push(additionalData.itemOptions[selection].tag_name);
+    });
+    $('#RelationshipTags').val(selectedTags.join(', '));
+}
 
 function toggleFreeText() {
     if ($('#relationsQuickAddForm #RelationshipType').val() === 'custom') {
