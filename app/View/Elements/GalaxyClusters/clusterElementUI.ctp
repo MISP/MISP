@@ -1,6 +1,8 @@
+<?php if (!isset($drawToggleButton) || $drawToggleButton): ?>
 <div style="margin-top: -12px; margin-bottom: 12px;">
     <button id="toggleElementUI" type="button" class="btn btn-primary"><?= __('Toggle Cluster Elements UI'); ?></button>
 </div>
+<?php endif; ?>
 
 <div id="genericModal" class="modal hide fade">
     <div class="modal-header">
@@ -41,11 +43,15 @@
             $('#GalaxyClusterElements').text(JSON.stringify(currentElements))
         });
         $('#toggleElementUI').click(function() {
-            $('#genericModal').modal();
-            deleteAllRows();
-            fillTable(currentElements);
+            initClusterElementUI();
         });
     });
+
+    function initClusterElementUI() {
+        $('#genericModal').modal();
+        deleteAllRows();
+        fillTable(currentElements);
+    }
 
     function addNewRow(key, value) {
         key = key === undefined ? '' : key;

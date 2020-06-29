@@ -70,10 +70,17 @@
                     'field' => 'elements',
                     'label' => __("Galaxy Cluster Elements"),
                     'type' => 'textarea',
+                    'picker' => array(
+                        'text' => __('Toggle UI'),
+                        'function' => 'initClusterElementUI'
+                    )
                 ),
             ),
             'metaFields' => array(
-                $this->element('/GalaxyClusters/clusterElementUI', array('elements' => isset($this->request->data['GalaxyCluster']['elementsDict']) ? $this->request->data['GalaxyCluster']['elementsDict'] : array()))
+                $this->element('/GalaxyClusters/clusterElementUI', array(
+                    'elements' => isset($this->request->data['GalaxyCluster']['elementsDict']) ? $this->request->data['GalaxyCluster']['elementsDict'] : array(),
+                    'drawToggleButton' => false,
+                ))
             )
         )
     ));
