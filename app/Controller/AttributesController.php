@@ -1885,120 +1885,6 @@ class AttributesController extends AppController
         $this->set('fails', $this->Attribute->checkComposites());
     }
 
-    // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
-    // Similar to the restSearch, this parameter can be chained with '&&' and negations are accepted too. For example filename&&!filename|md5 would return all filenames that don't have an md5
-    // The usage of returnAttributes is the following: [MISP-url]/attributes/returnAttributes/<API-key>/<type>/<signature flag>
-    // The signature flag is off by default, enabling it will only return attributes that have the to_ids flag set to true.
-    public function returnAttributes($key='download', $id, $type = null, $sigOnly = false)
-    {
-        $user = $this->checkAuthUser($key);
-        // if the user is authorised to use the api key then user will be populated with the user's account
-        // in addition we also set a flag indicating whether the user is a site admin or not.
-        if ($key != null && $key != 'download') {
-            $user = $this->checkAuthUser($key);
-        } else {
-            if (!$this->Auth->user()) {
-                throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
-            }
-            $user = $this->checkAuthUser($this->Auth->user('authkey'));
-        }
-        if (!$user) {
-            throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-        }
-        if ($this->request->is('post')) {
-            if ($this->response->type() === 'application/json') {
-                $data = $this->request->input('json_decode', true);
-            } elseif ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
-                $data = $this->request->data;
-            } else {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers).'));
-            }
-            $paramArray = array('type', 'sigOnly');
-            foreach ($paramArray as $p) {
-                if (isset($data['request'][$p])) {
-                    ${$p} = $data['request'][$p];
-                } else {
-                    ${$p} = null;
-                }
-            }
-        }
-        $this->loadModel('Event');
-        $this->Event->read(null, $id);
-        $myEventOrAdmin = false;
-        if ($user['User']['siteAdmin'] || $this->Event->data['Event']['org_id'] == $user['User']['org_id']) {
-            $myEventOrAdmin = true;
-        }
-
-        if (!$myEventOrAdmin) {
-            if ($this->Event->data['Event']['distribution'] == 0) {
-                throw new UnauthorizedException(__('You don\'t have access to that event.'));
-            }
-        }
-        $this->response->type('xml');    // set the content type
-        $this->layout = 'xml/default';
-        $this->header('Content-Disposition: download; filename="misp.search.attribute.results.xml"');
-        // check if user can see the event!
-        $conditions['AND'] = array();
-        $include = array();
-        $exclude = array();
-        $attributes = array();
-        // If there is a type set, create the include and exclude arrays from it
-        if (isset($type)) {
-            $elements = explode('&&', $type);
-            foreach ($elements as $v) {
-                if (substr($v, 0, 1) == '!') {
-                    $exclude[] = substr($v, 1);
-                } else {
-                    $include[] = $v;
-                }
-            }
-        }
-
-        // check each attribute
-        foreach ($this->Event->data['Attribute'] as $k => $attribute) {
-            $contained = false;
-            // If the include list is empty, then the first check should always set contained to true (basically we chose type = all - exclusions, or simply all)
-            if (empty($include)) {
-                $contained = true;
-            } else {
-                // If we have elements in $include we should check if the attribute's type should be included
-                foreach ($include as $inc) {
-                    if (strpos($attribute['type'], $inc) !== false) {
-                        $contained = true;
-                    }
-                }
-            }
-            // If we have either everything included or the attribute passed the include check, we should check if there is a reason to exclude the attribute
-            // For example, filename may be included, but md5 may be excluded, meaning that filename|md5 should be removed
-            if ($contained) {
-                foreach ($exclude as $exc) {
-                    if (strpos($attribute['type'], $exc) !== false) {
-                        continue 2;
-                    }
-                }
-            }
-            // If we still didn't throw the attribute away, let's check if the user requesting the attributes is of the owning organisation of the event
-            // and if not, whether the distribution of the attribute allows the user to see it
-            if ($contained && !$myEventOrAdmin && $attribute['distribution'] == 0) {
-                $contained = false;
-            }
-
-            // If we have set the sigOnly parameter and the attribute has to_ids set to false, discard it!
-            if ($contained && $sigOnly === 'true' && !$attribute['to_ids']) {
-                $contained = false;
-            }
-
-            // If after all of this $contained is still true, let's add the attribute to the array
-            if ($contained) {
-                $attributes[] = $attribute;
-            }
-        }
-        if (empty($attributes)) {
-            throw new NotFoundException(__('No matches.'));
-        }
-        $this->set('results', $attributes);
-    }
-
     public function downloadAttachment($key='download', $id)
     {
         if ($key != null && $key != 'download') {
@@ -2027,6 +1913,48 @@ class AttributesController extends AppController
             throw new UnauthorizedException(__('Attribute does not exists or you do not have the permission to download this attribute.'));
         }
         $this->__downloadAttachment($attributes[0]['Attribute']);
+    }
+
+    // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
+    // Similar to the restSearch, this parameter can be chained with '&&' and negations are accepted too. For example filename&&!filename|md5 would return all filenames that don't have an md5
+    // The usage of returnAttributes is the following: [MISP-url]/attributes/returnAttributes/<API-key>/<event_id>/<type>/<signature flag>
+    // The signature flag is off by default, enabling it will only return attributes that have the to_ids flag set to true.
+    public function returnAttributes()
+    {
+        //$key='download', $id, $type = null, $sigOnly = false
+        $this->_legacyAPIRemap(array(
+            'paramArray' => array(
+                'key', 'id', 'type', 'sigOnly'
+            ),
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'ordered_url_params' => func_get_args(),
+            'injectedParams' => array(
+                'returnFormat' => 'xml'
+            ),
+            'alias' => array(
+                'id' => 'eventid'
+            )
+        ));
+        if (!empty($this->_legacyParams['sigOnly'])) {
+            $this->_legacyParams['to_ids'] = 1;
+        } else {
+            $this->_legacyParams['to_ids'] = [0,1];
+        }
+        if (!empty($this->_legacyParams['type']) && $this->_legacyParams['type'] === 'all') {
+            unset($this->_legacyParams['type']);
+        }
+        if (!empty($this->_legacyParams['type']) && $this->_legacyParams['type'] === 'all') {
+            unset($this->_legacyParams['type']);
+        }
+        if ($this->response->type() === 'application/json') {
+            $this->_legacyParams['returnFormat'] = 'json';
+        } elseif ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
+            $this->_legacyParams['returnFormat'] = 'xml';
+        } else {
+            throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers).'));
+        }
+        return $this->restSearch();
     }
 
     public function text()
