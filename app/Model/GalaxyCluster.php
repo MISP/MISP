@@ -351,6 +351,13 @@ class GalaxyCluster extends AppModel
     public function publishRouter($user, $cluster, $passAlong=null)
     {
         if (Configure::read('MISP.background_jobs')) {
+            if (is_numeric($cluster)) {
+                $clusterId = $cluster;
+            } elseif (isset($cluster['GalaxyCluster'])) {
+                $clusterId = $cluster['GalaxyCluster']['id'];
+            } else {
+                return false;
+            }
             $this->Event = ClassRegistry::init('Event');
             $job_type = 'publish_cluster';
             $function = 'publish_galaxy_clusters';
@@ -360,7 +367,7 @@ class GalaxyCluster extends AppModel
             $data = array(
                     'worker' => $this->Event->__getPrioWorkerIfPossible(),
                     'job_type' => 'publish_galaxy_clusters',
-                    'job_input' => 'Cluster ID: ' . $cluster['GalaxyCluster']['id'],
+                    'job_input' => 'Cluster ID: ' . $clusterId,
                     'status' => 0,
                     'retries' => 0,
                     'org_id' => $user['org_id'],
@@ -372,7 +379,7 @@ class GalaxyCluster extends AppModel
             $process_id = CakeResque::enqueue(
                     'prio',
                     'EventShell',
-                    array($function, $cluster['GalaxyCluster']['id'], $jobId, $user['id'], $passAlong),
+                    array($function, $clusterId, $jobId, $user['id'], $passAlong),
                     true
             );
             $job->saveField('process_id', $process_id);
@@ -691,10 +698,6 @@ class GalaxyCluster extends AppModel
         return $tags;
     }
 
-    /* Fetch a cluster along with all elements and the galaxy it belongs to
-     *   - In the future, once we move to galaxy 2.0, pass a user along for access control
-     *   - maybe in the future remove the galaxy itself once we have logos with each galaxy
-    */
     public function getCluster($name, $user)
     {
         if (isset($this->__clusterCache[$name])) {
@@ -1193,14 +1196,7 @@ class GalaxyCluster extends AppModel
      */
     private function postprocess(array $cluster, $tagId = null)
     {
-        if (isset($cluster['Galaxy'])) {
-            $cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];
-            unset($cluster['Galaxy']);
-        }
-        if (isset($cluster['GalaxyElement'])) {
-            $cluster['GalaxyCluster']['GalaxyElement'] = $cluster['GalaxyElement'];
-            unset($cluster['GalaxyElement']);
-        }
+        $cluster = $this->arrangeData($cluster);
 
         $elements = array();
         foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) {
