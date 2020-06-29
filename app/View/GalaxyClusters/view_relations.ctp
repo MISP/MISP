@@ -230,7 +230,10 @@ function submitRelationshipForm() {
                 success:function (data) {
                     $.get("/galaxy_clusters/viewRelations/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
                         $("#relations_container").html(data);
-                        $("#relations_container").show();
+                        $('#references_div').show({
+                            complete: buildTree,
+                            duration: 0
+                        });
                     });
                 },
                 error:function(jqXHR, textStatus, errorThrown) {
