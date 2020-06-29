@@ -219,6 +219,10 @@ class GalaxyClusterRelation extends AppModel
                         $errors[] = __('Tags could not be saved');
                     }
                 }
+            } else {
+                foreach($this->validationErrors as $validationError) {
+                    $errors[] = $validationError[0];
+                }
             }
         }
         return $errors;
