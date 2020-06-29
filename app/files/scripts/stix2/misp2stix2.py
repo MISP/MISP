@@ -546,7 +546,7 @@ class StixBuilder():
         self.append_object(vulnerability)
 
     def add_object_custom(self, misp_object, to_ids):
-        name = misp_object['name']
+        name = misp_object['name'].replace('_', '-')
         custom_object_id = 'x-misp-object-{}--{}'.format(name, misp_object['uuid'])
         custom_object_type = 'x-misp-object-{}'.format(name)
         category = misp_object.get('meta-category')

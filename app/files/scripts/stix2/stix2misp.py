@@ -344,6 +344,7 @@ class StixFromMISPParser(StixParser):
         super().__init__()
         self._stix2misp_mapping.update({'custom_object': '_parse_custom'})
         self._stix2misp_mapping.update({special_type: '_parse_undefined' for special_type in ('attack-pattern', 'course-of-action', 'vulnerability')})
+        self._custom_objects = tuple(filename.name.replace('_', '-') for filename  in _misp_objects_path.glob('*') if '_' in filename.name)
 
     def parse_event(self, stix_objects):
         for stix_object in stix_objects:
@@ -455,6 +456,8 @@ class StixFromMISPParser(StixParser):
 
     def parse_custom_object(self, custom):
         name = custom['type'].split('x-misp-object-')[1]
+        if name in self._custom_objects:
+            name = name.replace('-', '_')
         misp_object = MISPObject(name, misp_objects_path_custom=_misp_objects_path)
         misp_object.timestamp = self.getTimestampfromDate(custom['modified'])
         misp_object.uuid = custom['id'].split('--')[1]
