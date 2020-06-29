@@ -349,21 +349,19 @@ class AttributesController extends AppController
 
     public function download($id = null)
     {
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            throw new NotFoundException(__('Invalid attribute'));
+        if (is_numeric($id)) {
+            $conditions = array('Attribute.id' => $id);
+        } elseif (Validation::uuid($id)) {
+            $conditions = array('Attribute.uuid' => $id);
+        } else {
+            throw new NotFoundException(__('Invalid attribute id.'));
         }
-        $this->Attribute->read();
-        if (!$this->_isSiteAdmin() &&
-            $this->Auth->user('org_id') !=
-            $this->Attribute->data['Event']['org_id'] &&
-            (
-                $this->Attribute->data['Event']['distribution'] == 0 ||
-                $this->Attribute->data['Attribute']['distribution'] == 0
-            )) {
-            throw new UnauthorizedException(__('You do not have the permission to view this event.'));
+        $conditions['Attribute.type'] = array('attachment', 'malware-sample');
+        $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => $conditions, 'flatten' => true));
+        if (empty($attributes)) {
+            throw new UnauthorizedException(__('Attribute does not exists or you do not have the permission to download this attribute.'));
         }
-        $this->__downloadAttachment($this->Attribute->data['Attribute']);
+        $this->__downloadAttachment($attributes[0]['Attribute']);
     }
 
     private function __downloadAttachment($attribute)
@@ -2016,20 +2014,19 @@ class AttributesController extends AppController
         if (!$user) {
             throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
         }
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            throw new NotFoundException(__('Invalid attribute or no authorisation to view it.'));
+        if (is_numeric($id)) {
+            $conditions = array('Attribute.id' => $id);
+        } elseif (Validation::uuid($id)) {
+            $conditions = array('Attribute.uuid' => $id);
+        } else {
+            throw new NotFoundException(__('Invalid attribute id.'));
         }
-        $this->Attribute->read(null, $id);
-        if (!$user['User']['siteAdmin'] &&
-            $user['User']['org_id'] != $this->Attribute->data['Event']['org_id'] &&
-            (
-                $this->Attribute->data['Event']['distribution'] == 0 ||
-                $this->Attribute->data['Attribute']['distribution'] == 0
-            )) {
-            throw new NotFoundException(__('Invalid attribute or no authorisation to view it.'));
+        $conditions['Attribute.type'] = array('attachment', 'malware-sample');
+        $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions, 'flatten' => true));
+        if (empty($attributes)) {
+            throw new UnauthorizedException(__('Attribute does not exists or you do not have the permission to download this attribute.'));
         }
-        $this->__downloadAttachment($this->Attribute->data['Attribute']);
+        $this->__downloadAttachment($attributes[0]['Attribute']);
     }
 
     public function text()
