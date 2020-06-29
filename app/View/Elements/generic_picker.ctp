@@ -53,6 +53,12 @@
     $options_additionalData = array();
 ?>
 
+<style>
+.popover[data-dismissid] {
+    max-width: 60%;
+}
+</style>
+
 <script>
 function execAndClose(elem, alreadyExecuted) {
     var dismissid = $(elem).closest('div.popover').attr('data-dismissid');
