@@ -728,7 +728,7 @@ class StixBuilder():
                 self.parse_galaxies(attribute['Galaxy'], object_id)
             except KeyError:
                 pass
-            attribute_type = '{}_{}'.format(attribute['type'], attribute['object_relation'])
+            attribute_type = '{}_{}'.format(attribute['type'], attribute['object_relation'].replace('.', '_DOT_'))
             values[attribute_type].append(attribute['value'])
         return {attribute_type: value[0] if len(value) == 1 else value for attribute_type, value in values.items()}
 

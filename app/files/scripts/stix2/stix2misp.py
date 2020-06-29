@@ -466,7 +466,7 @@ class StixFromMISPParser(StixParser):
         except KeyError:
             misp_object.category = self.get_misp_category(custom['labels'])
         for key, value in custom['x_misp_values'].items():
-            attribute_type, object_relation = key.split('_')
+            attribute_type, object_relation = key.replace('_DOT_', '.').split('_')
             if isinstance(value, list):
                 for single_value in value:
                     misp_object.add_attribute(**{'type': attribute_type, 'value': single_value,
