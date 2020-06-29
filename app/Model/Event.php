@@ -4766,43 +4766,47 @@ class Event extends AppModel
             $proposal['objectType'] = 'proposal';
         }
 
-        $include = $filterType['proposal'] != 2;
+        $include = true;
+        if ($filterType) {
+            $include = $filterType['proposal'] != 2;
 
-        /* correlation */
-        if ($filterType['correlation'] == 0) { // `both`
-            // pass, do not consider as `both` is selected
-        } else if (in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
-            $include = $include && ($filterType['correlation'] == 1);
-        } else { // `exclude`
-            $include = $include && ($filterType['correlation'] == 2);
+            /* correlation */
+            if ($filterType['correlation'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
+                $include = $include && ($filterType['correlation'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['correlation'] == 2);
+            }
+
+            /* feed */
+            if ($filterType['feed'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($proposal['Feed'])) { // `include only`
+                $include = $include && ($filterType['feed'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['feed'] == 2);
+            }
+
+            /* server */
+            if ($filterType['server'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($attribute['Server'])) { // `include only`
+                $include = $include && ($filterType['server'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['server'] == 2);
+            }
+
+            /* TypeGroupings */
+            if (
+                $filterType['attributeFilter'] != 'all'
+                && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
+                && !in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+            ) {
+                $include = false;
+            }
         }
 
-        /* feed */
-        if ($filterType['feed'] == 0) { // `both`
-            // pass, do not consider as `both` is selected
-        } else if (!empty($proposal['Feed'])) { // `include only`
-            $include = $include && ($filterType['feed'] == 1);
-        } else { // `exclude`
-            $include = $include && ($filterType['feed'] == 2);
-        }
-
-        /* server */
-        if ($filterType['server'] == 0) { // `both`
-            // pass, do not consider as `both` is selected
-        } else if (!empty($attribute['Server'])) { // `include only`
-            $include = $include && ($filterType['server'] == 1);
-        } else { // `exclude`
-            $include = $include && ($filterType['server'] == 2);
-        }
-
-        /* TypeGroupings */
-        if (
-            $filterType['attributeFilter'] != 'all'
-            && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
-            && !in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
-        ) {
-            $include = false;
-        }
         $proposal = $this->__prepareGenericForView($proposal, $eventWarnings, $warningLists);
 
         /* warning */
