@@ -435,7 +435,7 @@ class Tag extends AppModel
             if (isset($tag['Tag']['name'])) {
                 $tagName = $tag['Tag']['name'];
                 if (isset($this->tagOverrides[$tagName]) && is_numeric($this->tagOverrides[$tagName])) {
-                    $tags[$k]['Tag']['original_numerical_value'] = $tags[$k]['Tag']['numerical_value'];
+                    $tags[$k]['Tag']['original_numerical_value'] = isset($tags[$k]['Tag']['numerical_value']) ? $tags[$k]['Tag']['numerical_value'] : '';
                     $tags[$k]['Tag']['numerical_value'] = $this->tagOverrides[$tagName];
                 }
             }
