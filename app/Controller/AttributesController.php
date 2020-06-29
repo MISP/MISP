@@ -1949,10 +1949,6 @@ class AttributesController extends AppController
         }
         if ($this->response->type() === 'application/json') {
             $this->_legacyParams['returnFormat'] = 'json';
-        } elseif ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
-            $this->_legacyParams['returnFormat'] = 'xml';
-        } else {
-            throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers).'));
         }
         return $this->restSearch();
     }
