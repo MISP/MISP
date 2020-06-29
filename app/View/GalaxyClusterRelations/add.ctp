@@ -8,8 +8,20 @@
                     'field' => 'galaxy_cluster_uuid',
                     'label' => __('Source UUID'),
                     'type' => 'text',
-                    'stayInLine' => true
+                    'picker' => array(
+                        'text' => __('Pick source cluster'),
+                        'function' => 'pickerSource',
+                    )
                 ),
+                array(
+                    'field' => 'referenced_galaxy_cluster_uuid',
+                    'label' => __('Target UUID'),
+                    'type' => 'text',
+                    'picker' => array(
+                        'text' => __('Pick target cluster'),
+                        'function' => 'pickerTarget',
+                        )
+                    ),
                 array(
                     'field' => 'distribution',
                     'options' => $distributionLevels,
@@ -20,15 +32,6 @@
                     'field' => 'sharing_group_id',
                     'options' => $sharingGroups,
                     'label' => __("Sharing Group")
-                ),
-                array(
-                    'field' => 'referenced_galaxy_cluster_uuid',
-                    'label' => __('Target UUID'),
-                    'type' => 'text',
-                    'picker' => array(
-                        'text' => __('Pick target cluster'),
-                        'function' => 'pickerTarget',
-                    )
                 ),
                 array(
                     'field' => 'referenced_galaxy_cluster_type',
@@ -66,6 +69,13 @@
             .html(syntaxHighlightJson($(this).text().trim()));
         });
     });
+    function pickerSource() {
+        $(this).data('popover-no-submit', true);
+        $(this).data('popover-callback-function', setSourceUUIDAfterSelect);
+        var target_id = 0;
+        var target_type = 'galaxyClusterRelation';
+        popoverPopup(this, target_id + '/' + target_type, 'galaxies', 'selectGalaxyNamespace');
+    }
     function pickerTarget() {
         $(this).data('popover-no-submit', true);
         $(this).data('popover-callback-function', setTargetUUIDAfterSelect);
@@ -79,6 +89,10 @@
         var target_id = 0;
         var target_type = 'galaxyClusterRelation';
         popoverPopup(this, target_id + '/' + target_type, 'tags', 'selectTaxonomy')
+    }
+    function setSourceUUIDAfterSelect(selected, additionalData){
+        selectedUUID = additionalData.itemOptions[selected].uuid;
+        $('#GalaxyClusterRelationGalaxyClusterUuid').val(selectedUUID);
     }
     function setTargetUUIDAfterSelect(selected, additionalData){
         selectedUUID = additionalData.itemOptions[selected].uuid;

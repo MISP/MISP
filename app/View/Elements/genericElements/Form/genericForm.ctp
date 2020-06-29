@@ -58,7 +58,7 @@
                 }
                 if (!empty($fieldData['picker']) && isset($fieldData['picker']['function'])) {
                     $fieldData['picker']['text'] = isset($fieldData['picker']['text']) ? $fieldData['picker']['text'] : __('Picker');
-                    $params['div'] = 'input-append';
+                    $params['div'] = 'input text input-append';
                     $params['after'] = sprintf('<button type="button" class="btn" onclick="%s.call(this);">%s</button>', $fieldData['picker']['function'], __($fieldData['picker']['text']));
                 }
                 $temp = $this->Form->input($fieldData['field'], $params);
