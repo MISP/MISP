@@ -2626,10 +2626,10 @@ class Server extends AppModel
         if (!empty($server['Server']['pull_galaxy_clusters'])) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
             if ($jobId) {
-                $job->saveField('message', $technique == 'pull_relevant_cluster' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
+                $job->saveField('message', $technique == 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
             }
             $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
-            if ($technique == 'pull_relevant_cluster') {
+            if ($technique == 'pull_relevant_clusters') {
                 if ($jobId) {
                     $job->saveField('progress', 100);
                     $job->saveField('message', 'Pulling complete.');

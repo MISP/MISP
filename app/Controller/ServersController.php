@@ -669,7 +669,7 @@ class ServersController extends AppController
         if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
             $error = __('Pull setting not enabled for this server.');
         }
-        if (false == $this->Server->data['Server']['pull_galaxy_clusters'] && ($technique == 'pull_relevant_cluster')) {
+        if (false == $this->Server->data['Server']['pull_galaxy_clusters'] && ($technique == 'pull_relevant_clusters')) {
             $error = __('Pull setting not enabled for this server.');
         }
         if (empty($error)) {

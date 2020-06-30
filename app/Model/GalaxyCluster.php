@@ -1568,7 +1568,7 @@ class GalaxyCluster extends AppModel
         if ("update" === $technique) {
             $localClustersToUpdate = $this->getElligibleLocalClustersToUpdate($user);
             $clusterIds = $this->Server->getElligibleClusterIdsFromServerForPull($server, $HttpSocket=null, $onlyUpdateLocalCluster=true, $elligibleClusters=$localClustersToUpdate);
-        } elseif ("pull_relevant_cluster" === $technique) {
+        } elseif ("pull_relevant_clusters" === $technique) {
             // Fetch all local custom cluster tags then fetch their corresponding clusters on the remote end
             $tagNames = $this->Tag->find('list', array(
                 'conditions' => array(
