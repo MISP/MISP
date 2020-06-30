@@ -636,6 +636,49 @@ class ServersController extends AppController
         }
     }
 
+    public function eventBlockRule()
+    {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $setting = $this->AdminSetting->find('first', [
+            'conditions' => ['setting' => 'eventBlockRule'],
+            'recursive' => -1
+        ]);
+        if (empty($setting)) {
+            $setting = ['setting' => 'eventBlockRule'];
+            if ($this->request->is('post')) {
+                $this->AdminSetting->create();
+            }
+        }
+        if ($this->request->is('post')) {
+            if (!empty($this->request->data['Server'])) {
+                $this->request->data = $this->request->data['Server'];
+            }
+            $setting['AdminSetting']['setting'] = 'eventBlockRule';
+            $setting['AdminSetting']['value'] = $this->request->data['value'];
+            $result = $this->AdminSetting->save($setting);
+            if ($result) {
+                $message = __('Settings saved');
+            } else {
+                $message = __('Could not save the settings. Invalid input.');
+            }
+            if ($this->_isRest()) {
+                if ($result) {
+                    return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
+                } else {
+                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', $message, $this->response->type());
+                }
+            } else {
+                if ($result) {
+                    $this->Flash->success($message);
+                    $this->redirect('/');
+                } else {
+                    $this->Flash->error($message);
+                }
+            }
+        }
+        $this->set('setting', $setting);
+    }
+
     /**
      * Pull one or more events with attributes from a remote instance.
      * Set $technique to
