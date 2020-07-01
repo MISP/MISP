@@ -139,6 +139,9 @@ class AppController extends Controller
                 $this->_stop();
             }
         }
+        if (Configure::read('Security.disable_browser_cache')) {
+            $this->response->disableCache();
+        }
         $this->response->header('X-XSS-Protection', '1; mode=block');
 
         if (!empty($this->params['named']['sql'])) {
