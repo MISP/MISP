@@ -37,6 +37,7 @@ class Log extends AppModel
                     'edit',
                     'email',
                     'enable',
+                    'enrichment',
                     'error',
                     'export',
                     'file_upload',

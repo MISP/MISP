@@ -2,6 +2,9 @@
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 
+/**
+ * @property Event $Event
+ */
 class EventsController extends AppController
 {
     public $components = array(
@@ -2135,15 +2138,16 @@ class EventsController extends AppController
         if (!$this->userRole['perm_modify']) {
             throw new UnauthorizedException(__('You do not have permission to do that.'));
         }
+        $scriptDir = APP . 'files' . DS . 'scripts';
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
-                $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-                $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+                $tempFile = new File($scriptDir . DS . 'tmp' . DS . $randomFileName, true, 0644);
                 $tempFile->write($this->request->input());
                 $tempFile->close();
                 $result = $this->Event->upload_stix(
                     $this->Auth->user(),
+                    $scriptDir,
                     $randomFileName,
                     $stix_version,
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
@@ -2165,10 +2169,10 @@ class EventsController extends AppController
                 $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
                 if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
                     $randomFileName = $this->Event->generateRandomFileName();
-                    $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-                    move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
+                    move_uploaded_file($this->data['Event']['stix']['tmp_name'], $scriptDir . DS . 'tmp' . DS . $randomFileName);
                     $result = $this->Event->upload_stix(
                         $this->Auth->user(),
+                        $scriptDir,
                         $randomFileName,
                         $stix_version,
                         $original_file,
@@ -2794,9 +2798,8 @@ class EventsController extends AppController
     // Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
     public function contact($id = null)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
-        $this->Event->id = $id;
-        if (!$this->Event->exists()) {
+        $events = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+        if (empty($events)) {
             throw new NotFoundException(__('Invalid event'));
         }
         // User has filled in his contact form, send out the email.
@@ -2846,7 +2849,7 @@ class EventsController extends AppController
         }
         // User didn't see the contact form yet. Present it to him.
         if (empty($this->data)) {
-            $this->data = $this->Event->read(null, $id);
+            $this->data = $events[0];
         }
     }
 
@@ -2893,7 +2896,7 @@ class EventsController extends AppController
 
             // as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
             $org_name = $this->_isSiteAdmin() ? 'ADMIN' : $this->Auth->user('Organisation')['name'];
-            $conditions = $this->Event->buildEventConditions($this->Auth->user());
+            $conditions = $this->Event->createEventConditions($this->Auth->user());
             $this->Event->recursive = -1;
             $newestEvent = $this->Event->find('first', array(
                 'conditions' => $conditions,

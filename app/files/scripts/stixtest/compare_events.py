@@ -9,6 +9,7 @@ class Comparer():
         event1.load_file(filename1)
         event2 = MISPEvent()
         event2.load_file(filename2)
+        self.__jq_misp_event(filename2)
         self.tags1 = defaultdict(set)
         self.tags2 = defaultdict(set)
         self.galaxies1 = defaultdict(set)
@@ -153,6 +154,13 @@ class Comparer():
                 self._analyse_object(object, uuid2, first, second)
                 if object['name'] == 'pe' and uuid1 in getattr(self, f'references{first}'):
                     self._iterate_through_pe_and_sections(uuid1, first, second, uuid2)
+
+    @staticmethod
+    def __jq_misp_event(filename):
+        with open(filename, 'rt', encoding='utf-8') as f:
+            json_event = json.loads(f.read())
+        with open(filename, 'wt', encoding='utf-8') as f:
+            f.write(json.dumps(json_event, indent=4))
 
 def main(args):
     comparer = Comparer(*args[1:])

@@ -136,12 +136,18 @@ abstract class DecayingModelBase
             $all_sightings = $this->Sighting->listSightings($user, $attribute['id'], 'attribute', false, 0, true);
             if (!empty($all_sightings)) {
                 $last_sighting_timestamp = $all_sightings[0]['Sighting']['date_sighting'];
+            } elseif (!is_null($attribute['last_seen'])) {
+                $last_sighting_timestamp = (new DateTime($attribute['last_seen']))->format('U');
             } else {
-                $last_sighting_timestamp = $attribute['timestamp']; // if no sighting, take the last update time
+                $last_sighting_timestamp = $attribute['timestamp']; // if no sighting nor valid last_seen, take the last update time
             }
         }
         if ($attribute['timestamp'] > $last_sighting_timestamp) { // The attribute was modified after the last sighting
-            $last_sighting_timestamp = $attribute['timestamp'];
+            if (!is_null($attribute['last_seen'])) {
+                $last_sighting_timestamp = (new DateTime($attribute['last_seen']))->format('U');
+            } else {
+                $last_sighting_timestamp = $attribute['timestamp'];
+            }
         }
         $timestamp = time();
         $scores = array(

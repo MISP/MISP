@@ -32,7 +32,7 @@ class Attribute extends AppModel
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
             'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-            'distribution' => array('desc' => 'Describes who will have access to the event.')
+            'distribution' => array('desc' => 'Describes who will have access to the attribute.')
     );
 
     public $defaultFields = array(
@@ -663,7 +663,7 @@ class Attribute extends AppModel
     private function __alterAttributeCount($event_id, $increment = true)
     {
         return $this->Event->updateAll(
-            array('Event.attribute_count' => $increment ? 'Event.attribute_count+1' : 'GREATEST(Event.attribute_count-1, 0)'),
+            array('Event.attribute_count' => $increment ? 'Event.attribute_count+1' : 'GREATEST(Event.attribute_count, 1) - 1'),
             array('Event.id' => $event_id)
         );
     }
@@ -1645,7 +1645,7 @@ class Attribute extends AppModel
         return $this->data['Event']['org_id'] === $org;
     }
 
-    public function getRelatedAttributes($attribute, $fields=array(), $includeEventData = false)
+    public function getRelatedAttributes($user, $attribute, $fields=array(), $includeEventData = false)
     {
         // LATER getRelatedAttributes($attribute) this might become a performance bottleneck
 
@@ -1684,16 +1684,17 @@ class Attribute extends AppModel
                     'Attribute.value2' => array($attribute['value1'],$attribute['value2']),
             );
         }
-
+        $baseConditions = $this->buildConditions($user);
+        $baseConditions['AND'][] = $conditions;
         // do the search
         if (empty($fields)) {
             $fields = array('Attribute.*');
         }
         $params = array(
-            'conditions' => $conditions,
+            'conditions' => $baseConditions,
             'fields' => $fields,
             'recursive' => 0,
-            'group' => array('Attribute.event_id'),
+            'group' => array('Attribute.id', 'Attribute.event_id', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid', 'Attribute.timestamp', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.to_ids', 'Attribute.comment', 'Event.id', 'Event.uuid', 'Event.threat_level_id', 'Event.analysis', 'Event.info', 'Event.extends_uuid', 'Event.distribution', 'Event.sharing_group_id', 'Event.published', 'Event.date', 'Event.orgc_id', 'Event.org_id', 'Object.id', 'Object.uuid', 'Object.distribution', 'Object.name', 'Object.template_uuid', 'Object.distribution', 'Object.sharing_group_id'),
             'order' => 'Attribute.event_id DESC'
         );
         if (!empty($includeEventData)) {
@@ -1701,6 +1702,11 @@ class Attribute extends AppModel
                 'Event' => array(
                     'fields' => array(
                         'Event.id', 'Event.uuid', 'Event.threat_level_id', 'Event.analysis', 'Event.info', 'Event.extends_uuid', 'Event.distribution', 'Event.sharing_group_id', 'Event.published', 'Event.date', 'Event.orgc_id', 'Event.org_id'
+                    )
+                ),
+                'Object' => array(
+                    'fields' => array(
+                        'Object.id', 'Object.uuid', 'Object.distribution', 'Object.name', 'Object.template_uuid', 'Object.distribution', 'Object.sharing_group_id'
                     )
                 )
             );
@@ -1961,13 +1967,47 @@ class Attribute extends AppModel
         $ipValues = array();
         $ip = $a['value1'];
         if (strpos($ip, '/') !== false) { // IP is CIDR
-            $ip_array = explode('/', $ip);
-            $ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+            list($networkIp, $mask) = explode('/', $ip);
+            $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+
+            $conditions = array(
+                'type' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'),
+                'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
+                'disable_correlation' => 0,
+                'deleted' => 0,
+            );
+
+            if (in_array($this->getDataSource()->config['datasource'], array('Database/Mysql', 'Database/MysqlObserver'))) {
+                // Massive speed up for CIDR correlation. Instead of testing all in PHP, database can do that work much
+                // faster. But these methods are just supported by MySQL.
+                if ($ip_version === 4) {
+                    $startIp = ip2long($networkIp) & ((-1 << (32 - $mask)));
+                    $endIp = $startIp + pow(2, (32 - $mask)) - 1;
+                    // Just fetch IP address that fit in CIDR range.
+                    $conditions['INET_ATON(value1) BETWEEN ? AND ?'] = array($startIp, $endIp);
+
+                    // Just fetch IPv4 address that starts with given prefix. This is fast, because value1 is indexed.
+                    // This optimisation is possible just to mask bigger than 8 bites.
+                    if ($mask >= 8) {
+                        $ipv4Parts = explode('.', $networkIp);
+                        $ipv4Parts = array_slice($ipv4Parts, 0, intval($mask / 8));
+                        $prefix = implode('.', $ipv4Parts);
+                        $conditions['value1 LIKE'] = $prefix . '%';
+                    }
+                } else {
+                    $conditions[] = 'IS_IPV6(value1)';
+                    // Just fetch IPv6 address that starts with given prefix. This is fast, because value1 is indexed.
+                    if ($mask >= 16) {
+                        $ipv6Parts = explode(':', rtrim($networkIp, ':'));
+                        $ipv6Parts = array_slice($ipv6Parts, 0, intval($mask / 16));
+                        $prefix = implode(':', $ipv6Parts);
+                        $conditions['value1 LIKE'] = $prefix . '%';
+                    }
+                }
+            }
+
             $ipList = $this->find('list', array(
-                'conditions' => array(
-                    'type' => array('ip-src', 'ip-dst'),
-                    'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
-                ),
+                'conditions' => $conditions,
                 'group' => 'value1', // return just unique values
                 'fields' => array('value1'),
                 'order' => false
@@ -2040,7 +2080,7 @@ class Attribute extends AppModel
             return true;
         }
 
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst'))) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'))) {
             $extraConditions = $this->__cidrCorrelation($a);
         } else if ($a['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
@@ -3436,7 +3476,7 @@ class Attribute extends AppModel
                 }
                 if (!empty($options['includeCorrelations'])) {
                     $attributeFields = array('id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'to_ids', 'comment');
-                    $results[$k]['Attribute']['RelatedAttribute'] = ($this->getRelatedAttributes($results[$k]['Attribute'], $attributeFields, true));
+                    $results[$k]['Attribute']['RelatedAttribute'] = ($this->getRelatedAttributes($user, $results[$k]['Attribute'], $attributeFields, true));
                 }
             }
             if (!$loop) {
@@ -3477,8 +3517,8 @@ class Attribute extends AppModel
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
                     $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
                     if (empty($results[$key]['Attribute']['AttributeTag'])) {
-                        $results[$key]['Attribute']['AttributeTag'] = $results[$key]['AttributeTag'];
-                        $results[$key]['Attribute']['EventTag'] = $results[$key]['EventTag'];
+                        $results[$key]['Attribute']['AttributeTag'] = isset($results[$key]['AttributeTag']) ? $results[$key]['AttributeTag'] : array();
+                        $results[$key]['Attribute']['EventTag'] = isset($results[$key]['EventTag']) ? $results[$key]['EventTag'] : array();
                     }
                     $results[$key]['Attribute'] = $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides'], $include_full_model);
                     unset($results[$key]['Attribute']['AttributeTag']);
@@ -4477,7 +4517,7 @@ class Attribute extends AppModel
 
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
-
+        $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,

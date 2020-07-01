@@ -1396,6 +1396,14 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `sightingdbs` MODIFY `timestamp` int(11) NOT NULL DEFAULT 0;";
                 break;
             case 55:
+                // index is not used in any SQL query
+                $this->__dropIndex('correlations', 'value');
+                // these index can be theoretically used, but probably just in very rare occasion
+                $this->__dropIndex('correlations', 'org_id');
+                $this->__dropIndex('correlations', 'sharing_group_id');
+                $this->__dropIndex('correlations', 'a_sharing_group_id');
+                break;
+            case 56:
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `sharing_group_id` int(11);";
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `org_id` int(11) NOT NULL;";
@@ -2498,7 +2506,8 @@ class AppModel extends Model
             'offset' => null,
             'joins' => array(),
             'conditions' => array(),
-            'group' => false
+            'group' => false,
+            'recursive' => -1
         );
         $params = array();
         foreach (array_keys($defaults) as $key) {

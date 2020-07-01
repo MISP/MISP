@@ -362,6 +362,11 @@
                         'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
                     ),
                     array(
+                        'text' => __('Event Block Rules'),
+                        'url' => '/servers/eventBlockRule',
+                        'requirement' => $isSiteAdmin
+                    ),
+                    array(
                         'type' => 'separator',
                         'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
                     ),

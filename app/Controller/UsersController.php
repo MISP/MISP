@@ -306,7 +306,11 @@ class UsersController extends AppController
                     $this->Flash->error($message);
                 }
             } else {
-                $this->Flash->error($message);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
             }
         }
         if ($this->_isRest()) {
@@ -2349,9 +2353,16 @@ class UsersController extends AppController
 
     public function register()
     {
+        $fieldToValidate = array('email', 'gpgkey');
         if (empty(Configure::read('Security.allow_self_registration'))) {
             throw new MethodNotAllowedException(__('Self registration is not enabled on this instance.'));
         }
+        $message = Configure::read('Security.self_registration_message');
+        if (empty($message)) {
+            $this->loadModel('Server');
+            $message = $this->Server->serverSettings['Security']['self_registration_message']['value'];
+        }
+        $this->set('message', $message);
         if ($this->request->is('post')) {
             if (isset($this->request->data['User'])) {
                 $this->request->data = $this->request->data['User'];
@@ -2377,6 +2388,18 @@ class UsersController extends AppController
             }
             if (empty($requestObject['email'])) {
                 throw new BadRequestException(__('We require at least the email field to be filled.'));
+            }
+            $this->User->set($requestObject);
+            if (!$this->User->validates(array('fieldList' => $fieldToValidate))) {
+                $errors = $this->User->validationErrors;
+                $message = __('Request could not be created.');
+                if ($this->_isRest()) {
+                    $message .= __('Errors: %s', json_encode($errors));
+                    return $this->RestResponse->saveFailResponse('Users', 'register', false, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                    return;
+                }
             }
             $this->loadModel('Inbox');
             $this->Inbox->create();
@@ -2405,13 +2428,6 @@ class UsersController extends AppController
                     $this->redirect('/');
                 }
             }
-        } else {
-            $message = Configure::read('Security.self_registration_message');
-            if (empty($message)) {
-                $this->loadModel('Server');
-                $message = $this->Server->serverSettings['Security']['self_registration_message']['value'];
-            }
-            $this->set('message', $message);
         }
     }
 

@@ -661,24 +661,6 @@ class Event extends AppModel
         }
     }
 
-    public function buildEventConditions($user)
-    {
-        $conditions = array();
-        if ($user['Role']['perm_site_admin']) {
-            return $conditions;
-        }
-        $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-        $conditions['OR'] = array(
-            'Event.orgc_id' => $user['org_id'],
-            'Event.distribution' => array(1, 2, 3),
-            'AND' => array(
-                'Event.distribution' => 4,
-                'Event.sharing_group_id' => $sgids
-            )
-        );
-        return $conditions;
-    }
-
     public function isOwnedByOrg($eventid, $org)
     {
         return $this->field('id', array('id' => $eventid, 'org_id' => $org)) === $eventid;
@@ -885,7 +867,8 @@ class Event extends AppModel
 
         $relatedEventIds = array_values($correlations);
         // now look up the event data for these attributes
-        $conditions = array("Event.id" => $relatedEventIds);
+        $conditions = $this->createEventConditions($user);
+        $conditions['AND'][] = array('Event.id' => $relatedEventIds);
         $fields = array('id', 'date', 'threat_level_id', 'info', 'published', 'uuid', 'analysis', 'timestamp', 'distribution', 'org_id', 'orgc_id');
         $orgfields = array('id', 'name', 'uuid');
         $relatedEvents = $this->find(
@@ -1424,6 +1407,15 @@ class Event extends AppModel
         return $attribute;
     }
 
+    /**
+     * Download event from remote server.
+     *
+     * @param int $eventId
+     * @param array $server
+     * @param null|HttpSocket $HttpSocket
+     * @return array
+     * @throws Exception
+     */
     public function downloadEventFromServer($eventId, $server, $HttpSocket=null)
     {
         $url = $server['Server']['url'];
@@ -1431,10 +1423,18 @@ class Event extends AppModel
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
-        if ($response->isOk()) {
-            return json_decode($response->body, true);
+
+        if ($response === false) {
+            throw new Exception("Could not reach '$uri'.");
+        } else if (!$response->isOk()) {
+            throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
         }
-        return null;
+
+        $event = json_decode($response->body, true);
+        if ($event === null) {
+            throw new Exception('Could not parse event JSON: ' . json_last_error_msg(), json_last_error());
+        }
+        return $event;
     }
 
     public function quickDelete($event)
@@ -3419,8 +3419,41 @@ class Event extends AppModel
         return $attributes;
     }
 
+    public function checkEventBlockRules($event)
+    {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $setting = $this->AdminSetting->find('first', [
+            'conditions' => ['setting' => 'eventBlockRule'],
+            'recursive' => -1
+        ]);
+        if (empty($setting) || empty($setting['AdminSetting']['value'])) {
+            return true;
+        }
+        $rules = json_decode($setting['AdminSetting']['value'], true);
+        if (empty($rules)) {
+            return true;
+        }
+        if (!empty($rules['tags'])) {
+            if (!is_array($rules['tags'])) {
+                $rules['tags'] = [$rules['tags']];
+            }
+            $eventTags = Hash::extract($event, 'Event.Tag.{n}.name');
+            if (empty($eventTags)) {
+                $eventTags = Hash::extract($event, 'Event.EventTag.{n}.Tag.name');
+            }
+            if (!empty($eventTags)) {
+                foreach ($rules['tags'] as $blockTag) {
+                    if (in_array($blockTag, $eventTags)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
     // Low level function to add an Event based on an Event $data array
-    public function _add(&$data, $fromXml, $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
+    public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
     {
         if ($jobId) {
             App::uses('AuthComponent', 'Controller/Component');
@@ -3431,6 +3464,9 @@ class Event extends AppModel
             if (!empty($r)) {
                 return 'Blocked by blacklist';
             }
+        }
+        if (!$this->checkEventBlockRules($data)) {
+            return 'Blocked by event block rules';
         }
         if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published'])) {
             $this->Log = ClassRegistry::init('Log');
@@ -3687,7 +3723,7 @@ class Event extends AppModel
             }
             if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
                 // do the necessary actions to publish the event (email, upload,...)
-                if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || $server['Server']['publish_without_email'] == 0)) {
+                if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($this->getID(), $user);
                 }
                 $this->publish($this->getID(), $passAlong);
@@ -3732,7 +3768,7 @@ class Event extends AppModel
         }
     }
 
-    public function _edit(&$data, $user, $id, $jobId = null, $passAlong = null, $force = false)
+    public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false)
     {
         $data = $this->cleanupEventArrayFromXML($data);
         unset($this->Attribute->validate['event_id']);
@@ -3741,8 +3777,10 @@ class Event extends AppModel
         // reposition to get the event.id with given uuid
         if (isset($data['Event']['uuid'])) {
             $existingEvent = $this->findByUuid($data['Event']['uuid']);
-        } else {
+        } elseif ($id) {
             $existingEvent = $this->findById($id);
+        } else {
+            throw new InvalidArgumentException("No event UUID or ID provided.");
         }
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
@@ -5471,18 +5509,14 @@ class Event extends AppModel
         );
     }
 
-    public function getSightingData($event)
+    public function getSightingData(array $event)
     {
         $this->Sighting = ClassRegistry::init('Sighting');
         if (!empty($event['Sighting'])) {
-            $attributeSightings = array();
-            $attributeOwnSightings = array();
-            $attributeSightingsPopover = array();
             $sightingsData = array();
             $sparklineData = array();
             $startDates = array();
-            $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
-            $range = strtotime("-" . $range . " days", time());
+            $range = $this->Sighting->getMaximumRange();
             foreach ($event['Sighting'] as $sighting) {
                 $type = $this->Sighting->type[$sighting['type']];
                 if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
@@ -5524,22 +5558,21 @@ class Event extends AppModel
                 }
             }
             $csv = array();
+            $today = strtotime(date('Y-m-d', time()));
             foreach ($startDates as $k => $v) {
                 $startDates[$k] = date('Y-m-d', $v);
             }
-            $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
             foreach ($sparklineData as $aid => $data) {
                 if (!isset($startDates[$aid])) {
                     continue;
                 }
                 $startDate = $startDates[$aid];
-                if (strtotime($startDate) < strtotime('-' . $range . ' days', time())) {
+                if (strtotime($startDate) < $range) {
                     $startDate = date('Y-m-d');
                 }
                 $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
-                $to = date('Y-m-d', time());
                 $sighting = $data;
-                for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
+                for ($date = $startDate; strtotime($date) <= $today; $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
                     if (!isset($csv[$aid])) {
                         $csv[$aid] = 'Date,Close\n';
                     }
@@ -5769,26 +5802,30 @@ class Event extends AppModel
         return $this->save($event);
     }
 
-    public function upload_stix($user, $filename, $stix_version, $original_file, $publish)
+    public function upload_stix($user, $scriptDir, $filename, $stix_version, $original_file, $publish)
     {
         App::uses('Folder', 'Utility');
         App::uses('File', 'Utility');
+        $tempFilePath = $scriptDir . DS . 'tmp' . DS . $filename;
         if ($stix_version == '2') {
-            $scriptFile = APP . 'files/scripts/stix2/stix2misp.py';
-            $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
+            $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
             $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
             $output_path = $tempFilePath . '.stix2';
             $stix_version = "STIX 2.0";
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
-            $scriptFile = APP . 'files/scripts/stix2misp.py';
-            $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
+            $scriptFile = $scriptDir . DS . 'stix2misp.py';
             $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
             $output_path = $tempFilePath . '.json';
             $stix_version = "STIX 1.1";
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');
         }
-        $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution'));
+        $synonymsToTagNames = $this->__getTagNamesFromSynonyms($scriptDir);
+        if ($synonymsToTagNames) {
+            $shell_command .= ' ' . $synonymsToTagNames;
+        }
+        $shell_command .= ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
         $result = preg_split("/\r\n|\n|\r/", trim($result));
         $result = end($result);
@@ -5832,6 +5869,48 @@ class Event extends AppModel
         }
     }
 
+    private function __getTagNamesFromSynonyms($scriptDir)
+    {
+        $synonymsToTagNames = $scriptDir . DS . 'synonymsToTagNames.json';
+        if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
+            if (empty($this->GalaxyCluster)) {
+                $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            }
+            $clusters = $this->GalaxyCluster->find('all', array(
+                'recursive' => -1,
+                'fields' => array(
+                    'GalaxyCluster.value',
+                    'MAX(GalaxyCluster.version)',
+                    'GalaxyCluster.tag_name',
+                    'GalaxyCluster.id'
+                ),
+                'group' => array('GalaxyCluster.tag_name')
+            ));
+            $synonyms = $this->GalaxyCluster->GalaxyElement->find('all', array(
+                'recursive' => -1,
+                'fields' => array('galaxy_cluster_id', 'value'),
+                'conditions' => array('key' => 'synonyms')
+            ));
+            $idToSynonyms = array();
+            foreach($synonyms as $synonym) {
+                $idToSynonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym['GalaxyElement']['value'];
+            }
+            $mapping = array();
+            foreach($clusters as $cluster) {
+                $mapping[$cluster['GalaxyCluster']['value']][] = $cluster['GalaxyCluster']['tag_name'];
+                if (!empty($idToSynonyms[$cluster['GalaxyCluster']['id']])) {
+                    foreach($idToSynonyms[$cluster['GalaxyCluster']['id']] as $synonym) {
+                        $mapping[$synonym][] = $cluster['GalaxyCluster']['tag_name'];
+                    }
+                }
+            }
+            $file = new File($synonymsToTagNames, true, 0644);
+            $file->write(json_encode($mapping));
+            $file->close();
+        }
+        return $synonymsToTagNames;
+    }
+
     public function enrichmentRouter($options)
     {
         if (Configure::read('MISP.background_jobs')) {
@@ -5868,7 +5947,7 @@ class Event extends AppModel
         $option_fields = array('user', 'event_id', 'modules');
         foreach ($option_fields as $option_field) {
             if (empty($params[$option_field])) {
-                throw new MethodNotAllowedException(__('%s not set', $params[$option_field]));
+                throw new MethodNotAllowedException(__('%s not set', $option_field));
             }
         }
         $event = $this->fetchEvent($params['user'], array('eventid' => $params['event_id'], 'includeAttachments' => 1, 'flatten' => 1));
@@ -6630,7 +6709,7 @@ class Event extends AppModel
                         ));
                         if (!empty($temp)) {
                             if (!$user['Role']['perm_site_admin'] && $user['org_id'] != $event['Event']['orgc_id']) {
-                                if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgsids))) {
+                                if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgids))) {
                                     unset($object['ObjectReference'][$k2]);
                                     continue;
                                 }
@@ -6698,6 +6777,7 @@ class Event extends AppModel
 
         $subqueryElements = $this->harvestSubqueryElements($filters);
         $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
+        $filters = $this->addFiltersFromUserSettings($user, $filters);
 
         if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
@@ -6974,6 +7054,14 @@ class Event extends AppModel
                 $filters['org'] = $orgcIdsFromMeta;
             }
         }
+        return $filters;
+    }
+
+    public function addFiltersFromUserSettings($user, $filters)
+    {
+        $this->UserSetting = ClassRegistry::init('UserSetting');
+        $defaultParameters = $this->UserSetting->getDefaulRestSearchParameters($user);
+        $filters = array_replace_recursive($defaultParameters, $filters);
         return $filters;
     }
 

@@ -143,7 +143,20 @@ class MispObject extends AppModel
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
                             'context' => 'Attribute'
                         );
-                        $conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
+                        if ($scope === 'Attribute') {
+                            $subQueryOptions = array(
+                                'fields' => ['Attribute.object_id'],
+                                'group' => 'Attribute.object_id',
+                                'recursive' => -1,
+                                'conditions' => array(
+                                    'Attribute.object_id NOT' => 0,
+                                    $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options)
+                                )
+                            );
+                            $conditions['AND'][] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Object.id');
+                        } else {
+                            $conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
+                        }
                     }
                 }
             }
@@ -1337,6 +1350,7 @@ class MispObject extends AppModel
         }
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
+        $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,

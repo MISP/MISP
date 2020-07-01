@@ -36,6 +36,39 @@ class ServerShell extends AppShell
         echo json_encode($res) . PHP_EOL;
     }
 
+    public function pullAll()
+    {
+        $this->ConfigLoad->execute();
+
+        $userId = $this->args[0];
+        $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die('User ID do not match an existing user.' . PHP_EOL);
+        }
+
+        if (!empty($this->args[1])) {
+            $technique = $this->args[1];
+        } else {
+            $technique = 'full';
+        }
+
+        $servers = $this->Server->find('all', array(
+            'conditions' => array('Server.pull' => 1),
+            'recursive' => -1,
+            'order' => 'Server.priority',
+            'fields' => array('Server.name', 'Server.id'),
+        ));
+
+        foreach ($servers as $server) {
+            $jobId = CakeResque::enqueue(
+                'default',
+                'ServerShell',
+                array('pull', $userId, $server['Server']['id'], $technique)
+            );
+            $this->out("Enqueued pulling from {$server['Server']['name']} server as job $jobId");
+        }
+    }
+
     public function pull()
     {
         $this->ConfigLoad->execute();

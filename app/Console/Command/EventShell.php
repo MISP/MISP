@@ -5,6 +5,7 @@ require_once 'AppShell.php';
 class EventShell extends AppShell
 {
     public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation');
+    public $tasks = array('ConfigLoad');
 
     public function doPublish()
     {
@@ -311,9 +312,9 @@ class EventShell extends AppShell
         $user = $this->User->getAuthUser($userId);
         if (empty($user)) die('Invalid user.');
         $eventId = $this->args[1];
-        $modules = $this->args[2];
+        $modulesRaw = $this->args[2];
         try {
-            $modules = json_decode($modules);
+            $modules = json_decode($modulesRaw, true);
         } catch (Exception $e) {
             die('Invalid module JSON');
         }
@@ -324,7 +325,7 @@ class EventShell extends AppShell
             $data = array(
                     'worker' => 'default',
                     'job_type' => 'enrichment',
-                    'job_input' => 'Event: ' . $eventId . ' modules: ' . $modules,
+                    'job_input' => 'Event: ' . $eventId . ' modules: ' . $modulesRaw,
                     'status' => 0,
                     'retries' => 0,
                     'org' => $user['Organisation']['name'],
@@ -347,6 +348,7 @@ class EventShell extends AppShell
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
         }
+        echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
         $log->create();

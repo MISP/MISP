@@ -834,6 +834,11 @@
                                 'text' => __('Scheduled Tasks')
                             ));
                         }
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'eventBlockRule',
+                            'url' => '/servers/eventBlockRule',
+                            'text' => __('Event Block Rules')
+                        ));
                         if (Configure::read('MISP.enableEventBlacklisting') !== false) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'eventBlacklistsAdd',
@@ -1028,7 +1033,7 @@
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/decayingModel/decayingTool',
-                            'text' => __('Decaying Tool')
+                            'text' => __('Decaying Models Tool')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     }

@@ -2094,7 +2094,7 @@ class Server extends AppModel
                         ),
                         'CustomAuth_required' => array(
                                 'level' => 2,
-                                'description' => __('If this setting is enabled then the only way to authenticate will be using the custom header. Altnertatively you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.'),
+                                'description' => __('If this setting is enabled then the only way to authenticate will be using the custom header. Alternatively, you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',
@@ -2533,10 +2533,13 @@ class Server extends AppModel
 
     private function __pullEvent($eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
     {
-        $event = $eventModel->downloadEventFromServer(
-                $eventId,
-                $server
-        );
+        try {
+            $event = $eventModel->downloadEventFromServer($eventId, $server);
+        } catch (Exception $e) {
+            $this->logException('Failed downloading the event ' . $eventId, $e);
+            $fails[$eventId] = __('failed downloading the event');
+            return false;
+        }
 
         if (!empty($event)) {
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
@@ -2613,12 +2616,10 @@ class Server extends AppModel
 
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
     {
+        $this->Job = ClassRegistry::init('Job');
         if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->read(null, $jobId);
             $email = "Scheduled job";
         } else {
-            $job = false;
             $email = $user['email'];
         }
         $server['Server']['version'] = $this->getRemoteVersion($id);
@@ -2642,9 +2643,6 @@ class Server extends AppModel
             }
         }
         $eventModel = ClassRegistry::init('Event');
-        $eventIds = array();
-        // if we are downloading a single event, don't fetch all proposals
-        $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
         if (!empty($eventIds['error'])) {
             $errors = array(
@@ -2672,11 +2670,12 @@ class Server extends AppModel
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
+            $this->Job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
             foreach ($eventIds as $k => $eventId) {
                 $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
                 if ($jobId) {
                     if ($k % 10 == 0) {
-                        $job->saveField('progress', 10 + 40 * (($k + 1) / count($eventIds)));
+                        $this->Job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
                     }
                 }
             }
@@ -2693,25 +2692,17 @@ class Server extends AppModel
                     'action' => 'pull',
                     'user_id' => $user['id'],
                     'title' => 'Failed to pull event #' . $eventid . '.',
-                    'change' => 'Reason:' . $message
+                    'change' => 'Reason: ' . $message
                 ));
             }
         }
-        if ($jobId) {
-            $job->saveField('progress', 50);
-            $job->saveField('message', 'Pulling proposals.');
-        }
+        $this->Job->saveProgress($jobId, 'Pulling proposals.', 50);
         $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
-        if ($jobId) {
-            $job->saveField('progress', 75);
-            $job->saveField('message', 'Pulling sightings.');
-        }
+
+        $this->Job->saveProgress($jobId, 'Pulling sightings.', 75);
         $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
-        if ($jobId) {
-            $job->saveField('progress', 100);
-            $job->saveField('message', 'Pull completed.');
-            $job->saveField('status', 4);
-        }
+
+        $this->Job->saveProgress($jobId, 'Pull completed.', 100);
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
