@@ -496,6 +496,7 @@ class SharingGroup extends AppModel
 
     public function captureSG($sg, $user, $syncLocal=false)
     {
+        $this->Log = ClassRegistry::init('Log');
         $existingSG = !isset($sg['uuid']) ? null : $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('SharingGroup.uuid' => $sg['uuid']),

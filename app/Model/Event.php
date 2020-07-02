@@ -5700,7 +5700,7 @@ class Event extends AppModel
         }
     }
 
-    private function __cacheSharingGroupData($user, $useCache = false)
+    public function __cacheSharingGroupData($user, $useCache = false)
     {
         if ($useCache && isset($this->__assetCache['sharingGroupData'])) {
             return $this->__assetCache['sharingGroupData'];

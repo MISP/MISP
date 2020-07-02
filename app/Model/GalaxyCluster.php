@@ -481,9 +481,12 @@ class GalaxyCluster extends AppModel
             $syncTool = new SyncTool();
             $HttpSocket = $syncTool->setupHttpSocket($server);
             $fakeSyncUser = array(
+                'id' => 0,
+                'email' => 'fakeSyncUser@user.test',
                 'org_id' => $server['Server']['remote_org_id'],
                 'Organisation' => array(
-                    'id' => $server['Server']['remote_org_id']
+                    'id' => $server['Server']['remote_org_id'],
+                    'name' => 'fakeSyncOrg',
                 ),
                 'Role' => array(
                     'perm_site_admin' => 0
@@ -845,7 +848,19 @@ class GalaxyCluster extends AppModel
         } else {
             $clusters = $this->find('all', $params);
         }
+        $this->Event = ClassRegistry::init('Event');
+        $sharingGroupData = $this->Event->__cacheSharingGroupData($user, true);
         foreach ($clusters as $i => $cluster) {
+            if (!empty($cluster['GalaxyCluster']['sharing_group_id']) && isset($sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']])) {
+                $clusters[$i]['SharingGroup'] = $sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']]['SharingGroup'];
+            }
+            if (isset($cluster['GalaxyClusterRelation'])) {
+                foreach ($cluster['GalaxyClusterRelation'] as $j => $relation) {
+                    if (!empty($relation['sharing_group_id']) && isset($sharingGroupData[$relation['sharing_group_id']])) {
+                        $clusters[$i]['GalaxyClusterRelation'][$j]['SharingGroup'] = $sharingGroupData[$relation['sharing_group_id']]['SharingGroup'];
+                    }
+                }
+            }
             $clusters[$i] = $this->arrangeData($clusters[$i]);
             $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
             $clusters[$i] = $this->TargetingClusterRelation->massageRelationTag($clusters[$i]);
@@ -1478,9 +1493,10 @@ class GalaxyCluster extends AppModel
             $relation['distribution'] = 1;
         }
 
+        $this->Event = ClassRegistry::init('Event');
         // If the attribute has a sharing group attached, make sure it can be transferred
         if ($relation['distribution'] == 4) {
-            if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('GalaxyClusterRelation' => $relation), $server, 'GalaxyClusterRelation') === false) {
+            if (!$server['Server']['internal'] && $this->Event->checkDistributionForPush(array('GalaxyClusterRelation' => $relation), $server, 'GalaxyClusterRelation') === false) {
                 return false;
             }
             // Add the local server to the list of instances in the SG
