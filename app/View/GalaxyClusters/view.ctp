@@ -47,7 +47,10 @@
     $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid']);
     $table_data[] = array('key' => __('Source'), 'value' => $cluster['GalaxyCluster']['source']);
     $table_data[] = array('key' => __('Authors'), 'value' => !empty($cluster['GalaxyCluster']['authors']) ? implode(', ', $cluster['GalaxyCluster']['authors']) : __('N/A'));
-    $table_data[] = array('key' => __('Distribution'), 'element' => 'genericElements/IndexTable/Fields/distribution_levels', 'element_params' => array('row' => $cluster['GalaxyCluster'], 'field' => array('data_path' => 'distribution')));
+    $table_data[] = array('key' => __('Distribution'), 'element' => 'genericElements/IndexTable/Fields/distribution_levels', 'element_params' => array(
+        'row' => $cluster['GalaxyCluster'],
+        'field' => array('data_path' => 'distribution')
+    ));
     $table_data[] = array(
         'key' => __('Owner Organisation'), 
         'html' => $this->OrgImg->getOrgImg(array('name' => $cluster['GalaxyCluster']['Org']['name'], 'id' => $cluster['GalaxyCluster']['Org']['id'], 'size' => 18), true),

@@ -312,10 +312,10 @@ class GalaxyClustersController extends AppController
                         $cluster['GalaxyCluster']['extends_version'] = $extendedCluster[0]['GalaxyCluster']['version'];
                     }
                 } else {
-                    $cluster['GalaxyCluster']['extends_uuid'] = '';
+                    $cluster['GalaxyCluster']['extends_uuid'] = null;
                 }
             } else {
-                $cluster['GalaxyCluster']['extends_uuid'] = '';
+                $cluster['GalaxyCluster']['extends_uuid'] = null;
             }
             if ($cluster['GalaxyCluster']['distribution'] != 4) {
                 $cluster['GalaxyCluster']['sharing_group_id'] = null;
