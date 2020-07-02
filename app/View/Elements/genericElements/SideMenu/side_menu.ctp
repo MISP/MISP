@@ -1214,8 +1214,10 @@
                                 'text' => __('Fork Cluster')
                             ));
                             if (
-                                isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id'] &&
-                                !$cluster['GalaxyCluster']['default']
+                                $isSiteAdmin || (
+                                    isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id'] &&
+                                    !$cluster['GalaxyCluster']['default']
+                                )
                             ) {
                                 echo $this->element('/genericElements/SideMenu/side_menu_divider');
                                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(

@@ -210,7 +210,7 @@
                     'icon' => 'edit',
                     'complex_requirement' => array(
                         'function' => function($row, $options) {
-                            return ($options['me']['org_id'] == $options['datapath']['org']);
+                            return $options['me']['Role']['perm_site_admin'] || ($options['me']['org_id'] == $options['datapath']['org']);
                         },
                         'options' => array(
                             'me' => $me,
