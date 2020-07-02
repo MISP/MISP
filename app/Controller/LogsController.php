@@ -146,32 +146,18 @@ class LogsController extends AppController
     }
 
     // Shows a minimalistic history for the currently selected event
-    public function event_index($id, $org = null)
+    public function event_index($id)
     {
         // check if the user has access to this event...
         $mayModify = false;
-        $mineOrAdmin = false;
         $this->loadModel('Event');
-        if (!is_numeric($id) || $id < 1) {
-            $id = -1;
-        }
         $event = $this->Event->fetchEvent($this->Auth->user(), array(
             'eventid' => $id,
             'includeAllTags' => 1,
             'sgReferenceOnly' => 1,
-            'deleted' => 1,
+            'deleted' => [0, 1],
             'deleted_proposals' => 1
         ));
-        $conditions = array(
-            'OR' => array(
-                array(
-                    'AND' => array(
-                        'Log.model' => 'Event',
-                        'Log.model_id' => $id
-                    )
-                )
-            )
-        );
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
         }
@@ -179,8 +165,6 @@ class LogsController extends AppController
         $attribute_ids = array();
         $object_ids = array();
         $proposal_ids = array();
-        $event_tag_ids = array();
-        $attribute_tag_ids = array();
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $aa) {
                 $attribute_ids[] = $aa['id'];
