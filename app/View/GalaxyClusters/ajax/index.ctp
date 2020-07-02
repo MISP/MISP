@@ -162,7 +162,7 @@
                     'postLinkConfirm' => __('Are you sure you want to publish the Galaxy Cluster?'),
                     'complex_requirement' => array(
                         'function' => function($row, $options) {
-                            return ($options['me']['org_id'] == $options['datapath']['orgc'] && !$options['datapath']['published']);
+                            return ($options['me']['Role']['perm_site_admin'] || $options['me']['org_id'] == $options['datapath']['orgc']) && !$options['datapath']['published'];
                         },
                         'options' => array(
                             'me' => $me,
