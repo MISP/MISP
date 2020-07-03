@@ -285,6 +285,9 @@ class GalaxyClustersController extends AppController
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $cluster = $this->request->data;
+            if (!isset($cluster['GalaxyCluster'])) {
+                $cluster = array('GalaxyCluster' => $cluster);
+            }
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxyId;
             $cluster['GalaxyCluster']['published'] = false;
             $errors = array();
@@ -381,6 +384,9 @@ class GalaxyClustersController extends AppController
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $cluster = $this->request->data;
+            if (!isset($cluster['GalaxyCluster'])) {
+                $cluster = array('GalaxyCluster' => $cluster);
+            }
             $errors = array();
             if (!isset($cluster['GalaxyCluster']['uuid'])) { 
                 $cluster['GalaxyCluster']['uuid'] = $this->GalaxyCluster->data['GalaxyCluster']['uuid']; // freeze the uuid
