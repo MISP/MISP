@@ -129,7 +129,7 @@ class WarninglistsController extends AppController
     public function toggleEnable()
     {
         if (!$this->request->is('post')) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('This function only accepts POST requests.'))), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => __('This function only accepts POST requests.')));
         }
         if (isset($this->request->data['Warninglist']['data'])) {
             $id = $this->request->data['Warninglist']['data'];
@@ -157,11 +157,11 @@ class WarninglistsController extends AppController
             $enabled = $this->request->data['enabled'];
         }
         if (empty($id)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Warninglist not found.'))), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => __('Warninglist not found.')));
         }
         $currentState = $this->Warninglist->find('all', array('conditions' => array('id' => $id), 'recursive' => -1));
         if (empty($currentState)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Warninglist(s) not found.'))), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => __('Warninglist(s) not found.')));
         }
         $success = 0;
         foreach ($currentState as $warningList) {
@@ -187,9 +187,9 @@ class WarninglistsController extends AppController
         }
         if ($success) {
             $this->Warninglist->regenerateWarninglistCaches($id);
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success . __(' warninglist(s) ') . $message)), 'status' => 200, 'type' => 'json')); // TODO: non-SVO lang considerations
+            return new JsonResponse(array('saved' => true, 'success' => $success . __(' warninglist(s) ') . $message)); // TODO: non-SVO lang considerations
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Warninglist(s) could not be toggled.'))), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => __('Warninglist(s) could not be toggled.')));
         }
     }
 

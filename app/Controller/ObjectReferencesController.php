@@ -84,13 +84,13 @@ class ObjectReferencesController extends AppController
                     $object['ObjectReference']['object_uuid'] = $object_uuid;
                     return $this->RestResponse->viewData($object, $this->response->type());
                 } elseif ($this->request->is('ajax')) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Object reference added.')),'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => true, 'success' => 'Object reference added.'));
                 }
             } else {
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('ObjectReferences', 'add', false, $this->ObjectReference->validationErrors, $this->response->type());
                 } elseif ($this->request->is('ajax')) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Object reference could not be added.')),'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => 'Object reference could not be added.'));
                 }
             }
         } else {
@@ -179,13 +179,13 @@ class ObjectReferencesController extends AppController
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('ObjectReferences', 'delete', $id, $this->response->type());
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Object reference deleted.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => true, 'success' => 'Object reference deleted.'));
                 }
             } else {
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('ObjectReferences', 'delete', $id, $result, $this->response->type());
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Object reference was not deleted.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => 'Object reference was not deleted.'));
                 }
             }
         } else {

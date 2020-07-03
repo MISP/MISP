@@ -193,7 +193,7 @@ class ShadowAttributesController extends AppController
             }
         } else {
             $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode($response), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse($response);
         }
     }
 
@@ -256,14 +256,14 @@ class ShadowAttributesController extends AppController
                     $this->set('_serialize', array('name', 'message', 'url'));
                 } else {
                     $this->autoRender = false;
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => true, 'success' => 'Proposal discarded.'));
                 }
             } else {
                 if ($this->_isRest()) {
                     throw new MethodNotAllowedException(__('Could not discard proposal.'));
                 } else {
                     $this->autoRender = false;
-                    return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not discard proposal.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('false' => true, 'errors' => 'Could not discard proposal.'));
                 }
             }
         } else {
@@ -361,9 +361,9 @@ class ShadowAttributesController extends AppController
                     // handle it if some of them failed!
                     if ($fails) {
                         $error_message = 'The lines' . $fails . ' could not be saved. Please, try again.';
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => false, 'errors' => $error_message));
                     } else {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => true));
                     }
                 } else {
                     if ($fails) {
@@ -408,7 +408,7 @@ class ShadowAttributesController extends AppController
                     // inform the user and redirect
                     if ($this->request->is('ajax')) {
                         $this->autoRender = false;
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal added' . $emailResult)), 'status'=>200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => true, 'success' => 'Proposal added' . $emailResult));
                     } elseif ($this->_isRest()) {
                         $sa = $this->ShadowAttribute->find(
                             'first',
@@ -427,7 +427,7 @@ class ShadowAttributesController extends AppController
                 } else {
                     if ($this->request->is('ajax')) {
                         $this->autoRender = false;
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->ShadowAttribute->validationErrors)), 'status'=>200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => false, 'errors' => $this->ShadowAttribute->validationErrors));
                     } elseif ($this->_isRest()) {
                         $message = '';
                         foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
@@ -819,7 +819,7 @@ class ShadowAttributesController extends AppController
 
         if ($this->request->is('post')) {
             if (empty($existingAttribute)) {
-                return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid Attribute.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('false' => true, 'errors' => 'Invalid Attribute.'));
             }
             $existingAttribute = $existingAttribute[0];
             $this->ShadowAttribute->create();
@@ -844,9 +844,9 @@ class ShadowAttributesController extends AppController
                 if (!$this->ShadowAttribute->sendProposalAlertEmail($existingAttribute['Event']['id'])) {
                     $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
                 }
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'The proposal to delete the attribute has been saved' . $emailResult)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => 'The proposal to delete the attribute has been saved' . $emailResult));
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not create proposal.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('false' => true, 'errors' => 'Could not create proposal.'));
             }
         } else {
             if (empty($existingAttribute)) {
@@ -1137,17 +1137,17 @@ class ShadowAttributesController extends AppController
         foreach ($this->request->data['ShadowAttribute'] as $changedKey => $changedField) {
             if ($proposal[$changedKey] == $changedField) {
                 $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode('nochange'), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse('nochange');
             }
             $proposal[$changedKey] = $changedField;
         }
 
         if ($this->ShadowAttribute->save($proposal)) {
             $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => true));
         } else {
             $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => $this->ShadowAttribute->validationErrors)), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('fail' => false, 'errors' => $this->ShadowAttribute->validationErrors));
         }
     }
 
@@ -1167,7 +1167,7 @@ class ShadowAttributesController extends AppController
                     'fields' => array('id', 'orgc_id', 'user_id')
             ));
             if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
-                return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('false' => true, 'errors' => 'You don\'t have permission to do that.'));
             }
         }
 
@@ -1186,9 +1186,9 @@ class ShadowAttributesController extends AppController
         $fails = array_diff($ids, $successes);
         $this->autoRender = false;
         if (count($fails) == 0 && count($successes) > 0) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' deleted.')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' deleted.'));
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.'));
         }
     }
 
@@ -1208,7 +1208,7 @@ class ShadowAttributesController extends AppController
                     'fields' => array('id', 'orgc_id', 'user_id')
             ));
             if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
-                return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('false' => true, 'errors' => 'You don\'t have permission to do that.'));
             }
         }
 
@@ -1229,9 +1229,9 @@ class ShadowAttributesController extends AppController
         $fails = array_diff($ids, $successes);
         $this->autoRender = false;
         if (count($fails) == 0 && count($successes) > 0) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted.')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted.'));
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be accepted.')), 'status'=>200, 'type' => 'json'));
+            return new CakeResponse(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be accepted.'));
         }
     }
 

@@ -41,9 +41,9 @@ class FavouriteTagsController extends AppController
             }
         }
         if ($success) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message . ' was successful.')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => true, 'success' => $message . ' was successful.'));
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'fails' => $message . ' has failed.')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'fails' => $message . ' has failed.'));
         }
     }
 

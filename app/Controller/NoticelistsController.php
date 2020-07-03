@@ -116,11 +116,11 @@ class NoticelistsController extends AppController
     {
         $id = $this->request->data['Noticelist']['data'];
         if (!is_numeric($id)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Noticelist not found.')), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => 'Noticelist not found.'));
         }
         $currentState = $this->Noticelist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
         if (empty($currentState)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Noticelist not found.')), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => 'Noticelist not found.'));
         }
         $currentState['Noticelist']['ref'] = json_decode($currentState['Noticelist']['ref']);
         $currentState['Noticelist']['geographical_area'] = json_decode($currentState['Noticelist']['geographical_area']);
@@ -132,9 +132,9 @@ class NoticelistsController extends AppController
             $message = 'enabled';
         }
         if ($this->Noticelist->save($currentState)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Noticelist ' . $message)), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => true, 'success' => 'Noticelist ' . $message));
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Noticelist could not be enabled.')), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => 'Noticelist could not be enabled.'));
         }
     }
 

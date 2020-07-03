@@ -430,7 +430,7 @@ class OrganisationsController extends AppController
         foreach ($temp as $t) {
             $orgs[] = $t['Organisation']['uuid'];
         }
-        return new CakeResponse(array('body'=> json_encode($orgs), 'type' => 'json'));
+        return new JsonResponse($orgs);
     }
 
     public function admin_merge($id, $target_id = false)

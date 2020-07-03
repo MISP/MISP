@@ -3391,7 +3391,7 @@ class EventsController extends AppController
         $this->Event->recursive = -1;
         $event = $this->Event->read(array(), $id);
         if (empty($event)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => 'Invalid event.'));
         }
         $local = !empty($this->params['named']['local']);
         if (!$this->request->is('post')) {
@@ -3413,7 +3413,7 @@ class EventsController extends AppController
                     )
                 ) {
                     if (Configure::read('MISP.host_org_id') != $this->Auth->user('org_id') || !$local) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => false, 'errors' => 'You don\'t have permission to do that.'));
                     }
                 }
             }
@@ -3428,7 +3428,7 @@ class EventsController extends AppController
                     $this->loadModel('TagCollection');
                     $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
                     if (empty($tagCollection)) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Tag Collection.'));
                     }
                     $tag_id_list = array();
                     foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
@@ -3444,7 +3444,7 @@ class EventsController extends AppController
                                 $this->loadModel('TagCollection');
                                 $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
                                 if (empty($tagCollection)) {
-                                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                                    return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Tag Collection.'));
                                 }
                                 foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
                                     $tag_id_list[] = $tagCollectionTag['tag_id'];
@@ -3456,7 +3456,7 @@ class EventsController extends AppController
                     } else {
                         $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
                         if (empty($tag)) {
-                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                            return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Tag.'));
                         }
                         $tag_id = $tag['Tag']['id'];
                     }
@@ -3538,11 +3538,11 @@ class EventsController extends AppController
                 }
             }
             if ($success) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Tag(s) added.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => __('Tag(s) added.'), 'check_publish' => true));
             } elseif (empty($fail)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true));
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $fail)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => $fail));
             }
         }
     }
@@ -3571,12 +3571,12 @@ class EventsController extends AppController
                 $tag_id = $this->request->data['tag'];
             }
             if (empty($tag_id)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.'));
             }
             if (!is_numeric($tag_id)) {
                 $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
                 if (empty($tag)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.'));
                 }
                 $tag_id = $tag['Tag']['id'];
             }
@@ -3607,12 +3607,12 @@ class EventsController extends AppController
                 ) &&
                 !$this->_isSiteAdmin()
             ) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => 'You don\'t have permission to do that.'));
             }
             $this->Event->insertLock($this->Auth->user(), $id);
             $this->autoRender = false;
             if (empty($eventTag)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.'));
             }
             $tag = $this->Event->EventTag->Tag->find('first', array(
                 'conditions' => array('Tag.id' => $tag_id),
@@ -3628,9 +3628,9 @@ class EventsController extends AppController
                 }
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => empty($eventTag['EventTag']['local']))), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => empty($eventTag['EventTag']['local'])));
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.'));
             }
         }
     }
@@ -4478,7 +4478,7 @@ class EventsController extends AppController
             }
         });
         $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return new JsonResponse($json);
     }
 
     private function genDistributionGraph($id, $type = 'event', $extended = 0) {
@@ -4531,16 +4531,14 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return new JsonResponse($json);
     }
 
     public function getDistributionGraph($id, $type = 'event')
     {
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
         $json = $this->genDistributionGraph($id, $type, $extended);
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return new JsonResponse($json);
     }
 
     public function getEventGraphReferences($id, $type = 'event')
@@ -4564,8 +4562,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return new JsonResponse($json);
     }
 
     public function getEventGraphTags($id, $type = 'event')
@@ -4589,8 +4586,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return new JsonResponse($json);
     }
 
     public function getEventGraphGeneric($id, $type = 'event')
@@ -4619,8 +4615,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return new JsonResponse($json);
     }
 
     public function getReferenceData($uuid, $type = 'reference')
@@ -4640,8 +4635,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return new JsonResponse($json);
     }
 
     public function getObjectTemplate($type = 'templates')
@@ -4662,8 +4656,7 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
-        $this->response->type('json');
-        return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+        return new JsonResponse($json);
     }
 
     public function viewGalaxyMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
@@ -4762,8 +4755,7 @@ class EventsController extends AppController
         $this->Galaxy->sortMatrixByScore($tabs, $scores);
         if ($this->_isRest()) {
             $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
-            $this->response->type('json');
-            return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse($json);
         } else {
             if (!$this->request->is('ajax')) {
                 throw new MethodNotAllowedException(__('Invalid method.'));

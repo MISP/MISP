@@ -451,9 +451,9 @@ class ObjectsController extends AppController
                     $this->autoRender = false;
                     if (is_numeric($objectToSave)) {
                         $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => true, 'success' => $message));
                     } else {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $error_message)), 'status'=>200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => true, 'errors' => $error_message));
                     }
                 } else {
                     if (is_numeric($objectToSave)) {
@@ -843,18 +843,7 @@ class ObjectsController extends AppController
             if ($this->__delete($id, $hard)) {
                 $message = 'Object deleted.';
                 if ($this->request->is('ajax')) {
-                    return new CakeResponse(
-                        array(
-                            'body'=> json_encode(
-                                array(
-                                    'saved' => true,
-                                    'success' => $message
-                                )
-                            ),
-                            'status'=>200,
-                            'type' => 'json'
-                        )
-                    );
+                    return new JsonResponse(array('saved' => true, 'success' => $message));
                 } elseif ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse(
                         'Objects',
@@ -869,18 +858,7 @@ class ObjectsController extends AppController
             } else {
                 $message = 'Object could not be deleted.';
                 if ($this->request->is('ajax')) {
-                    return new CakeResponse(
-                        array(
-                            'body'=> json_encode(
-                                array(
-                                    'saved' => false,
-                                    'errors' => $message
-                                )
-                            ),
-                            'status'=>200,
-                            'type' => 'json'
-                        )
-                    );
+                    return new JsonResponse(array('saved' => false, 'errors' => $message));
                 } elseif ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse(
                         'Objects',

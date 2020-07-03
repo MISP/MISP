@@ -123,9 +123,9 @@ class EventGraphController extends AppController
                 )
             );
             if ($result) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'eventGraph saved.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => 'eventGraph saved.'));
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'eventGraph could not be saved.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => 'eventGraph could not be saved.'));
             }
         }
     }
@@ -156,9 +156,9 @@ class EventGraphController extends AppController
                 }
                 $result = $this->EventGraph->delete($id);
                 if ($result) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'EventGraph deleted.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => true, 'success' => 'EventGraph deleted.'));
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'EventGraph not deleted.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => 'EventGraph not deleted.'));
                 }
             }
         }

@@ -200,7 +200,7 @@ class TemplatesController extends AppController
         ));
 
         if (!$this->_isSiteAdmin() && !$this->Template->checkAuthorisation($template_id['TemplateElement']['template_id'], $this->Auth->user(), true)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => 'You are not authorised to do that.'));
         }
 
         $elements = $this->Template->TemplateElement->find('all', array(
@@ -208,16 +208,16 @@ class TemplatesController extends AppController
                 'recursive' => -1,
         ));
         if (empty($elements)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, the supplied template elements don\'t exist, or you are not eligible to edit them.')),'status'=>200));
+            return new JsonResponse(array('saved' => false, 'errors' => 'Something went wrong, the supplied template elements don\'t exist, or you are not eligible to edit them.'));
         }
         if (count($elements) != count($orderedElements)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Incomplete template element list passed as argument. Expecting ' . count($elements) . ' elements, only received positions for ' . count($orderedElements) . '.')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => 'Incomplete template element list passed as argument. Expecting ' . count($elements) . ' elements, only received positions for ' . count($orderedElements) . '.'));
         }
         $template_id = $elements[0]['TemplateElement']['template_id'];
 
         foreach ($elements as $key => $e) {
             if ($template_id !== $e['TemplateElement']['template_id']) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Cannot sort template elements belonging to separate templates. You should never see this message during legitimate use.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => 'Cannot sort template elements belonging to separate templates. You should never see this message during legitimate use.'));
             }
             foreach ($orderedElements as $k => $orderedElement) {
                 if ($orderedElement == $e['TemplateElement']['id']) {
@@ -226,7 +226,7 @@ class TemplatesController extends AppController
             }
         }
         $this->Template->TemplateElement->saveMany($elements);
-        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Elements repositioned.')), 'status'=>200, 'type' => 'json'));
+        return new JsonResponse(array('saved' => true, 'success' => 'Elements repositioned.'));
     }
 
     public function delete($id)

@@ -282,12 +282,12 @@ class TagCollectionsController extends AppController
                     ));
                     $tag_id_list = array_values($tag_ids);
                     if (empty($tag_id_list)) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag(s).')), 'status'=>200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Tag(s).'));
                     }
                 } else {
                     $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
                     if (empty($tag)) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Tag.'));
                     }
                     $tag_id = $tag['Tag']['id'];
                 }
@@ -297,11 +297,11 @@ class TagCollectionsController extends AppController
                 'conditions' => array('TagCollection.id' => $id)
             ));
             if (empty($tagCollection)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid tag collection.')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => 'Invalid tag collection.'));
             }
             if (!$this->_isSiteAdmin()) {
                 if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $tagCollection['TagCollection']['org_id'])) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => 'You don\'t have permission to do that.'));
                 }
             }
             $this->autoRender = false;
@@ -343,11 +343,11 @@ class TagCollectionsController extends AppController
                 }
             }
             if ($success) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => $success));
             } elseif (empty($fail)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true));
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $fail)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => $fail));
             }
         }
     }
@@ -388,11 +388,11 @@ class TagCollectionsController extends AppController
                 )
             ));
             if (empty($tagCollection)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Invalid tag collection.'))), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => __('Invalid tag collection.')));
             }
             $found = false;
             if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $tagCollection['TagCollection']['org_id']) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Insufficient privileges to remove the tag from the collection.'))), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => __('Insufficient privileges to remove the tag from the collection.')));
             }
             foreach ($tagCollection['TagCollectionTag'] as $TagCollectionTag) {
                 if ((is_numeric($tag_id) && $TagCollectionTag['Tag']['id'] == $tag_id) || $TagCollectionTag['Tag']['name'] === $tag_id) {
@@ -403,15 +403,15 @@ class TagCollectionsController extends AppController
                 }
             }
             if (!$found) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Invalid tag or tag not associated with the collection.'))), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => __('Invalid tag or tag not associated with the collection.')));
             }
 
             if (!$result) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Failed to remove tag from the collection.'))), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => __('Failed to remove tag from the collection.')));
             }
             $log = ClassRegistry::init('Log');
             $log->createLogEntry($this->Auth->user(), 'tag', 'TagCollection', $id, 'Removed tag (' . $tag['Tag']['id'] . ') "' . $tag['Tag']['name'] . '" from tag collection (' . $id . ')', 'Tag collection (' . $id . ') - untagged Tag (' . $tag_id . ')');
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.')), 'status' => 200));
+            return new JsonResponse(array('saved' => true, 'success' => 'Tag removed.'));
         }
     }
 

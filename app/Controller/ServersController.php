@@ -1360,7 +1360,7 @@ class ServersController extends AppController
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'No change.', $this->response->type());
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'No change.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => 'No change.'));
                 }
             }
             $this->autoRender = false;
@@ -1380,7 +1380,7 @@ class ServersController extends AppController
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'app/Config.config.php is not writeable to the apache user.', $this->response->type());
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.'));
                 }
             }
             $result = $this->Server->serverSettingsEditValue($this->Auth->user(), $setting, $this->request->data['Server']['value'], $forceSave);
@@ -1388,13 +1388,13 @@ class ServersController extends AppController
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('Servers', 'serverSettingsEdit', false, $this->response->type(), 'Field updated');
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => true, 'success' => 'Field updated.'));
                 }
             } else {
                 if ($this->_isRest) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $result, $this->response->type());
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => $result));
                 }
             }
         }
@@ -1533,7 +1533,7 @@ class ServersController extends AppController
             $result['headers']['Content-type'] = isset($headers['Content-type']) ? $headers['Content-type'] : 0;
             $result['headers']['Accept'] = isset($headers['Accept']) ? $headers['Accept'] : 0;
             $result['headers']['Authorization'] = isset($headers['Authorization']) ? 'OK' : 0;
-            return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+            return new JsonResponse($result);
         } else {
             throw new MethodNotAllowedException('Invalid request, expecting a POST request.');
         }
@@ -1602,11 +1602,11 @@ class ServersController extends AppController
                 }
                 if (!$perm_sync && !$perm_sighting) {
                     $result['status'] = 7;
-                    return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+                    return new JsonResponse($result);
                 }
                 if (!$perm_sync && $perm_sighting) {
                     $result['status'] = 8;
-                    return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+                    return new JsonResponse($result);
                 }
                 return new CakeResponse(
                         array(
@@ -1627,7 +1627,7 @@ class ServersController extends AppController
                 $result['status'] = 3;
             }
         }
-        return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+        return new JsonResponse($result);
     }
 
     public function startZeroMQServer()
@@ -1638,9 +1638,9 @@ class ServersController extends AppController
         $pubSubTool = $this->Server->getPubSubTool();
         $result = $pubSubTool->restartServer();
         if ($result === true) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully started.')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => true, 'success' => 'ZeroMQ server successfully started.'));
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => $result));
         }
     }
 
@@ -1652,9 +1652,9 @@ class ServersController extends AppController
         $pubSubTool = $this->Server->getPubSubTool();
         $result = $pubSubTool->killService();
         if ($result === true) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully killed.')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => true, 'success' => 'ZeroMQ server successfully killed.'));
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.'));
         }
     }
 
@@ -1834,7 +1834,7 @@ class ServersController extends AppController
             $request = $this->request->data;
             $submodule = $request['Server']['submodule'];
             $res = $this->Server->updateSubmodule($this->Auth->user(), $submodule);
-            return new CakeResponse(array('body'=> json_encode($res), 'type' => 'json'));
+            return new JsonResponse($res);
         } else {
             throw new MethodNotAllowedException();
         }

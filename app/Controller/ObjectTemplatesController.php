@@ -277,14 +277,14 @@ class ObjectTemplatesController extends AppController
     {
         $id = $this->request->data['ObjectTemplate']['data'];
         if (!is_numeric($id)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Template not found.')), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => 'Template not found.'));
         }
         $result = $this->ObjectTemplate->setActive($id);
         if ($result === false) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Template\'s state could not be toggeled.')), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => 'Template\'s state could not be toggeled.'));
         }
         $message = (($result == 1) ? 'activated' : 'disabled');
-        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Template ' . $message . '.')), 'status' => 200, 'type' => 'json'));
+        return new JsonResponse(array('saved' => true, 'success' => 'Template ' . $message . '.'));
     }
 
     public function getToggleField()

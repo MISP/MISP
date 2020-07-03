@@ -281,9 +281,9 @@ class AttributesController extends AppController
                     $this->layout = false;
                     $errors = ($attributeCount > 1) ? $message : $this->Attribute->validationErrors;
                     if (!empty($successes)) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status' => 200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => true, 'success' => $message));
                     } else {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errors)),'status' => 200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => false, 'errors' => $errors));
                     }
                 } else {
                     if ($successes > 0) {
@@ -888,9 +888,9 @@ class AttributesController extends AppController
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
                     if ($result) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute updated.')),'status' => 200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => true, 'success' => 'Attribute updated.'));
                     } else {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not update attribute, reason: ' . json_encode($this->Attribute->validationErrors))),'status' => 200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => false, 'errors' => 'Could not update attribute, reason: ' . json_encode($this->Attribute->validationErrors)));
                     }
                 }
             }
@@ -1029,7 +1029,7 @@ class AttributesController extends AppController
         }
         $this->Attribute->id = $id;
         if (!$this->Attribute->exists()) {
-            return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('fail' => false, 'errors' => 'Invalid attribute'));
         }
         $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
         $conditions['includeAllTags'] = false;
@@ -1047,7 +1047,7 @@ class AttributesController extends AppController
             || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'You do not have permission to do that')), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('fail' => false, 'errors' => 'You do not have permission to do that'));
             }
         }
         if (!$this->_isRest()) {
@@ -1067,13 +1067,13 @@ class AttributesController extends AppController
             }
             if ($attribute['Attribute'][$changedKey] == $changedField) {
                 $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('errors'=> array('value' => 'nochange')));
             }
             $attribute['Attribute'][$changedKey] = $changedField;
             $changed = true;
         }
         if (!$changed) {
-            return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('errors'=> array('value' => 'nochange')));
         }
         $date = new DateTime();
         $attribute['Attribute']['timestamp'] = $date->getTimestamp();
@@ -1091,10 +1091,10 @@ class AttributesController extends AppController
                 $this->Attribute->Object->updateTimestamp($attribute['Attribute']['object_id'], $date->getTimestamp());
             }
             $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => true, 'success' => 'Field updated.', 'check_publish' => true));
         } else {
             $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => $this->Attribute->validationErrors));
         }
     }
 
@@ -1217,9 +1217,9 @@ class AttributesController extends AppController
         if ($this->request->is('ajax')) {
             if ($this->request->is('post')) {
                 if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => true, 'success' => 'Attribute deleted.'));
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => 'Attribute was not deleted.'));
                 }
             } else {
                 $this->set('hard', $hard);
@@ -1265,7 +1265,7 @@ class AttributesController extends AppController
         ));
         if (empty($attribute) || !$this->userRole['perm_site_admin'] && $this->Auth->user('org_id') != $attribute['Event']['orgc_id']) {
             if ($this->request->is('ajax')) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Attribute')), 'type' => 'json', 'status'=>200));
+                return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Attribute'));
             } else {
                 throw new MethodNotAllowedException(__('Invalid Attribute'));
             }
@@ -1277,9 +1277,9 @@ class AttributesController extends AppController
             if ($this->request->is('post')) {
                 $result = $this->Attribute->restore($id, $this->Auth->user());
                 if ($result === true) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute restored.')), 'type' => 'json' ,'status'=>200));
+                    return new JsonResponse(array('saved' => true, 'success' => 'Attribute restored.'));
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'type' => 'json', 'status'=>200));
+                    return new JsonResponse(array('saved' => false, 'errors' => $result));
                 }
             } else {
                 $this->set('id', $id);
@@ -1381,13 +1381,13 @@ class AttributesController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Attributes', 'deleteSelected', $id, false, $message);
             }
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => true, 'success' => $message));
         } else {
             $message = count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' attribute' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.';
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Attributes', 'deleteSelected', false, $message);
             }
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => false, 'errors' => $message));
         }
     }
 
@@ -1429,7 +1429,7 @@ class AttributesController extends AppController
 
             if (!$changeInAttribute && !$changeInTagOrCluster) {
                 $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true));
             }
 
             if ($this->request->data['Attribute']['to_ids'] != 2) {
@@ -1490,10 +1490,10 @@ class AttributesController extends AppController
                     $event['Event']['published'] = 0;
                     $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info', 'id')));
                     $this->autoRender = false;
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => true));
                 } else {
                     $this->autoRender = false;
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors));
                 }
             }
 
@@ -1514,7 +1514,7 @@ class AttributesController extends AppController
                 }
             }
 
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+            return new JsonResponse(array('saved' => true));
 
         } else {
             if (!isset($id)) {
@@ -2344,9 +2344,9 @@ class AttributesController extends AppController
             $this->autoRender = false;
             $this->layout = 'ajax';
             if ($success) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => $message));
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'errors' => $message));
             }
         }
     }
@@ -2529,7 +2529,7 @@ class AttributesController extends AppController
         $this->loadModel('Attribute');
         $events = array_keys($this->Attribute->Event->find('list'));
         $orphans = $this->Attribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
-        return new CakeResponse(array('body'=> count($orphans), 'status'=>200, 'type' => 'json'));
+        return new JsonResponse(count($orphans));
     }
 
     public function updateAttributeValues($script)
@@ -2783,7 +2783,7 @@ class AttributesController extends AppController
                     $this->loadModel('TagCollection');
                     $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
                     if (empty($tagCollection)) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                        return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Tag Collection.'));
                     }
                     $tag_id_list = array();
                     foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
@@ -2800,7 +2800,7 @@ class AttributesController extends AppController
                                 $this->loadModel('TagCollection');
                                 $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
                                 if (empty($tagCollection)) {
-                                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                                    return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Tag Collection.'));
                                 }
                                 foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
                                     $tag_id_list[] = $tagCollectionTag['tag_id'];
@@ -2812,7 +2812,7 @@ class AttributesController extends AppController
                     } else {
                         $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
                         if (empty($tag)) {
-                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                            return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Tag.'));
                         }
                         $tag_id = $tag['Tag']['id'];
                     }
@@ -2940,7 +2940,7 @@ class AttributesController extends AppController
                 } else {
                     $message = $success . ' tags added.';
                 }
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => $message, 'check_publish' => true));
             } else {
                 if ($fails == 1) {
                     $message = 'Tag could not be added.';
@@ -2950,7 +2950,7 @@ class AttributesController extends AppController
                 if ($success > 0) {
                     $message .= ' However, ' . $success . ' tag(s) were added.';
                 }
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => $message));
             }
         }
     }
@@ -2994,12 +2994,12 @@ class AttributesController extends AppController
             }
             $eventId = $this->Attribute->data['Attribute']['event_id'];
             if (empty($tag_id)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Tag.'));
             }
             if (!is_numeric($tag_id)) {
                 $tag = $this->Attribute->AttributeTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
                 if (empty($tag)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => 'Invalid Tag.'));
                 }
                 $tag_id = $tag['Tag']['id'];
             }
@@ -3034,12 +3034,12 @@ class AttributesController extends AppController
                 ) &&
                 !$this->_isSiteAdmin()
             ) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You do not have permission to do that.')), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => 'You do not have permission to do that.'));
             }
 
             $this->autoRender = false;
             if (empty($attributeTag)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid attribute - tag combination.')), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => 'Invalid attribute - tag combination.'));
             }
             $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
                 'conditions' => array('Tag.id' => $tag_id),
@@ -3060,9 +3060,9 @@ class AttributesController extends AppController
                 }
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => empty($attributeTag['AttributeTag']['local']))), 'status' => 200));
+                return new JsonResponse(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => empty($attributeTag['AttributeTag']['local'])));
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')), 'status' => 200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => 'Tag could not be removed.'));
             }
         }
     }
@@ -3110,7 +3110,7 @@ class AttributesController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('attributes', 'toggleCorrelation', $id, false, 'Correlation ' . ($attribute['Attribute']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ('Correlation ' . ($attribute['Attribute']['disable_correlation'] ? 'disabled' : 'enabled')), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => ('Correlation ' . ($attribute['Attribute']['disable_correlation'] ? 'disabled' : 'enabled')), 'check_publish' => true));
             }
         } else {
             $this->set('attribute', $attribute);

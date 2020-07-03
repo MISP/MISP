@@ -317,7 +317,7 @@ class GalaxiesController extends AppController
     {
         $cluster_id = $this->request->data['Galaxy']['target_id'];
         $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
-        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+        return new JsonResponse(array('saved' => true, 'success' => $result, 'check_publish' => true));
     }
 
     public function attachMultipleClusters($target_id, $target_type = 'event')
@@ -334,10 +334,10 @@ class GalaxiesController extends AppController
             if (strlen($cluster_ids) > 0) {
                 $cluster_ids = json_decode($cluster_ids, true);
                 if ($cluster_ids === null || empty($cluster_ids)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Failed to parse request or no clusters picked.'))), 'status'=>200, 'type' => 'json'));
+                    return new JsonResponse(array('saved' => false, 'errors' => __('Failed to parse request or no clusters picked.')));
                 }
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Failed to parse request.'))), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => false, 'errors' => __('Failed to parse request.')));
             }
             $result = "";
             if (!is_array($cluster_ids)) { // in case we only want to attach 1
@@ -349,7 +349,7 @@ class GalaxiesController extends AppController
                 }
             }
             if ($this->request->is('ajax')) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+                return new JsonResponse(array('saved' => true, 'success' => $result, 'check_publish' => true));
             } else {
                 $this->Flash->info($result);
                 $this->redirect($this->referer());
