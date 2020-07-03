@@ -269,7 +269,7 @@ class SharingGroup extends AppModel
                     }
                 }
             }
-            if (isset($sg['SharingGroupServer'])) {
+            if (!empty($sg['SharingGroupServer'])) {
                 foreach ($sg['SharingGroupServer'] as $server) {
                     if (isset($server['Server'][0])) {
                         $server['Server'] = $server['Server'][0];
@@ -549,7 +549,8 @@ class SharingGroup extends AppModel
                 'organisation_uuid' => array('default' => $user['Organisation']['uuid']),
                 'created' => array('default' => $date = date('Y-m-d H:i:s')),
                 'modified' => array('default' => $date = date('Y-m-d H:i:s')),
-                'active' => array('default' => 1)
+                'active' => array('default' => 1),
+                'roaming' => array('default' => false),
             );
             foreach (array_keys($attributes) as $a) {
                 if (isset($sg[$a])) {
