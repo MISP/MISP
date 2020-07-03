@@ -248,6 +248,9 @@ class GalaxyCluster extends AppModel
         if (!isset($cluster['GalaxyCluster']['published'])) {
             $cluster['GalaxyCluster']['published'] = false;
         }
+        if (!isset($cluster['GalaxyCluster']['collection_uuid'])) {
+            $cluster['GalaxyCluster']['collection_uuid'] = '';
+        }
         if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
             
             $forkedCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['extends_uuid'])));
