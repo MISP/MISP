@@ -1410,17 +1410,15 @@ class EventsController extends AppController
         }
         $this->set('tagConflicts', $tagConflicts);
 
-        $startDate = null;
-        $modificationMap = array();
+        $modDate = date("Y-m-d", $event['Event']['timestamp']);
+        $modificationMap = array($modDate => 1);
+
         foreach ($event['Attribute'] as $k => $attribute) {
             if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
                 $oldest_timestamp = $attribute['timestamp'];
             }
-            if ($startDate === null || $attribute['timestamp'] < $startDate) {
-                $startDate = $attribute['timestamp'];
-            }
             $modDate = date("Y-m-d", $attribute['timestamp']);
-            $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
+            $modificationMap[$modDate] = !isset($modificationMap[$modDate]) ? 1 : $modificationMap[$modDate] + 1;
 
             $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
 
@@ -1436,22 +1434,14 @@ class EventsController extends AppController
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
         $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
-        $startDate = $event['Event']['timestamp'];
-        $modDate = date("Y-m-d", $event['Event']['timestamp']);
-        $modificationMap[$modDate] = 1;
+
         foreach ($event['Object'] as $k => $object) {
-            if ($startDate === null || $object['timestamp'] < $startDate) {
-                $startDate = $object['timestamp'];
-            }
             $modDate = date("Y-m-d", $object['timestamp']);
-            $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $object['timestamp'])] + 1;
+            $modificationMap[$modDate] = !isset($modificationMap[$modDate])? 1 : $modificationMap[$modDate] + 1;
             if (!empty($object['Attribute'])) {
                 foreach ($object['Attribute'] as $k2 => $attribute) {
-                    if ($startDate === null || $attribute['timestamp'] < $startDate) {
-                        $startDate = $attribute['timestamp'];
-                    }
                     $modDate = date("Y-m-d", $attribute['timestamp']);
-                    $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
+                    $modificationMap[$modDate] = !isset($modificationMap[$modDate])? 1 : $modificationMap[$modDate] + 1;
 
                     $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
 
@@ -1481,11 +1471,11 @@ class EventsController extends AppController
         sort($startDate);
         $startDate = $startDate[0];
         $this->set('startDate', $startDate);
-        $to = date('Y-m-d', time());
-        if ((strtotime($to) - 172800) > $startDate) {
-            $startDate = date('Y-m-d', strtotime($to) - 172800);
+        $today = strtotime(date('Y-m-d', time()));
+        if (($today - 172800) > $startDate) {
+            $startDate = date('Y-m-d', $today - 172800);
         }
-        for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
+        for ($date = $startDate; strtotime($date) <= $today; $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
             if (isset($modificationMap[$date])) {
                 $modificationMapCSV .= $date . ',' . $modificationMap[$date] . '\n';
             } else {
