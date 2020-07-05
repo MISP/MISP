@@ -456,7 +456,7 @@ class ShadowAttributesController extends AppController
         // combobox for categories
         $categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
-        $this->set('categories', compact('categories'));
+        $this->set('categories', $categories);
         foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
             $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
         }
