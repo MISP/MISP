@@ -3027,11 +3027,11 @@ class Event extends AppModel
         } else {
             $subject = '';
         }
-        $subjMarkingString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "tlp:amber";
-        $subjTag = !empty(Configure::read('MISP.email_subject_tag')) ? Configure::read('MISP.email_subject_tag') : "tlp";
+        $subjMarkingString = Configure::read('MISP.email_subject_TLP_string') ?: "tlp:amber";
+        $subjTag = Configure::read('MISP.email_subject_tag') ?: "tlp";
         $tagLen = strlen($subjTag);
         foreach ($event[0]['EventTag'] as $k => $tag) {
-            $tagName=$tag['Tag']['name'];
+            $tagName = $tag['Tag']['name'];
             if (strncasecmp($subjTag, $tagName, $tagLen) == 0 && strlen($tagName) > $tagLen && ($tagName[$tagLen] == ':' || $tagName[$tagLen] == '=')) {
                 if (Configure::read('MISP.email_subject_include_tag_name') === false) {
                     $subjMarkingString = trim(substr($tagName, $tagLen+1), '"');
@@ -3045,7 +3045,7 @@ class Event extends AppModel
         if (Configure::read('MISP.threatlevel_in_email_subject') === false) {
             $threatLevel = '';
         }
-        $subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $threatLevel . $subjMarkingString;
+        $subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $threatLevel . strtoupper($subjMarkingString);
 
         // Initialise the Job class if we have a background process ID
         // This will keep updating the process's progress bar
@@ -3250,13 +3250,13 @@ class Event extends AppModel
         if (empty($orgMembers)) {
             return false;
         }
+        $tplColorString = Configure::read('MISP.email_subject_TLP_string') ?: "tlp:amber";
+        $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - " . strtoupper($tplColorString);
+        $result = true;
         foreach ($orgMembers as $reporter) {
             $temp = $this->__buildContactEventEmailBody($user, $message, $event, $reporter, $id);
             $bodyevent = $temp[0];
             $body = $temp[1];
-            $result = true;
-            $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "tlp:amber";
-            $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
             $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
         }
         return $result;
