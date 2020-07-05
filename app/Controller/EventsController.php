@@ -1591,9 +1591,6 @@ class EventsController extends AppController
         // find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
         $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event'));
-        }
         $conditions = array('eventid' => $id);
         if (!$this->_isRest()) {
             $conditions['includeAllTags'] = true;
@@ -2532,9 +2529,6 @@ class EventsController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event'));
-        }
         $this->Event->recursive = -1;
         $event = $this->Event->read(null, $id);
         if (!$this->_isSiteAdmin()) {
@@ -2635,9 +2629,6 @@ class EventsController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event'));
-        }
         // update the event and set the from field to the current instance's organisation from the bootstrap. We also need to save id and info for the logs.
         $this->Event->recursive = -1;
         $event = $this->Event->read(null, $id);
