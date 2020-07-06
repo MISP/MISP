@@ -4,7 +4,7 @@ class ComplexTypeTool
 {
     private $__refangRegexTable = array(
         array(
-            'from' => '/^hxxp/i',
+            'from' => '/^(hxxp|hxtp|htxp)/i',
             'to' => 'http',
             'types' => array('link', 'url')
         ),
@@ -49,7 +49,7 @@ class ComplexTypeTool
             'types' => array('link', 'url')
         ),
         array(
-            'from' => '/[\@]/',
+            'from' => '/[\@]|\[at\]/',
             'to' => '@',
             'types' => array('email-src', 'email-dst')
         ),
@@ -181,6 +181,7 @@ class ComplexTypeTool
     {
         $delimiter = !empty($settings['delimiter']) ? $settings['delimiter'] : ",";
         $rows = str_getcsv($input, "\n");
+        unset($input);
         $data = array();
         foreach ($rows as $k => $row) {
             if (empty($row[0]) || $row[0] === '#') {
@@ -193,7 +194,6 @@ class ComplexTypeTool
             }
         }
         unset($rows);
-        unset($input);
         $values = !empty($settings['value']) ? $settings['value'] : array();
         if (!is_array($values)) {
             $values = explode(',', $values);

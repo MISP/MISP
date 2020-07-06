@@ -14,6 +14,7 @@ class ComplexTypeToolTest extends TestCase
         $this->assertEquals('ip-dst', $results[0]['default_type']);
     }
 
+    // Issue https://github.com/MISP/MISP/issues/6009
     public function testCheckFreeTextIpv6(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -59,6 +60,7 @@ class ComplexTypeToolTest extends TestCase
         $this->assertEquals('domain', $results[0]['default_type']);
     }
 
+    // Issue https://github.com/MISP/MISP/issues/657
     public function testCheckFreeTextPunycode(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -68,6 +70,7 @@ class ComplexTypeToolTest extends TestCase
         $this->assertEquals('domain', $results[0]['default_type']);
     }
 
+    // Issue https://github.com/MISP/MISP/issues/657
     public function testCheckFreeTextPunycodeTld(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -76,5 +79,83 @@ class ComplexTypeToolTest extends TestCase
         $this->assertCount(1, $results);
         $this->assertEquals('xn--lbrs59br5a.xn--fiqs8s', $results[0]['value']);
         $this->assertEquals('domain', $results[0]['default_type']);
+    }
+
+    // Issue https://github.com/MISP/MISP/issues/3580
+    public function testCheckFreeTextDate(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('2018-08-21');
+        $this->assertCount(0, $results);
+    }
+
+    public function testCheckFreeTextEmail(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('test@example.com');
+        $this->assertCount(1, $results);
+        $this->assertEquals('test@example.com', $results[0]['value']);
+        $this->assertEquals('email-src', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextEmailBracket(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('test[@]example.com');
+        $this->assertCount(1, $results);
+        $this->assertEquals('test@example.com', $results[0]['value']);
+        $this->assertEquals('email-src', $results[0]['default_type']);
+    }
+
+    // Issue https://github.com/MISP/MISP/issues/4805
+    public function testCheckFreeTextEmailBracketAt(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('test[at]example.com');
+        $this->assertCount(1, $results);
+        $this->assertEquals('test@example.com', $results[0]['value']);
+        $this->assertEquals('email-src', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextUrlHttp(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('http://example.com');
+        $this->assertCount(1, $results);
+        $this->assertEquals('http://example.com', $results[0]['value']);
+        $this->assertEquals('url', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextUrlHttps(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('https://example.com');
+        $this->assertCount(1, $results);
+        $this->assertEquals('https://example.com', $results[0]['value']);
+        $this->assertEquals('url', $results[0]['default_type']);
+    }
+
+    // Issue https://github.com/MISP/MISP/issues/4908
+    public function testCheckFreeTextUrlReplace(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        foreach (['hxxp://example.com', 'hxtp://example.com', 'htxp://example.com'] as $test) {
+            $results = $complexTypeTool->checkFreeText($test);
+            $this->assertCount(1, $results);
+            $this->assertEquals('http://example.com', $results[0]['value']);
+            $this->assertEquals('url', $results[0]['default_type']);
+        }
+    }
+
+    // Issue https://github.com/MISP/MISP/issues/4908
+    public function testCheckFreeTextUrlReplaceHttps(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        foreach (['hxxps://example.com', 'hxtps://example.com', 'htxps://example.com'] as $test) {
+            $results = $complexTypeTool->checkFreeText($test);
+            $this->assertCount(1, $results);
+            $this->assertEquals('https://example.com', $results[0]['value']);
+            $this->assertEquals('url', $results[0]['default_type']);
+        }
     }
 }
