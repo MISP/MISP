@@ -183,6 +183,15 @@ EOT
         $this->assertEquals('domain', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextIdnDomain(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('háčkyčárky.cz');
+        $this->assertCount(1, $results);
+        $this->assertEquals('háčkyčárky.cz', $results[0]['value']);
+        $this->assertEquals('domain', $results[0]['default_type']);
+    }
+
     // Issue https://github.com/MISP/MISP/issues/657
     public function testCheckFreeTextPunycode(): void
     {
