@@ -438,8 +438,6 @@ class ACLComponent extends Component
                     'download' => array('*'),
                     'edit' => array('perm_add'),
                     'generateCorrelation' => array(),
-                    'getProposalsByUuid' => array('perm_sync'),
-                    'getProposalsByUuidList' => array('perm_sync'),
                     'index' => array('*'),
                     'view' => array('*'),
             ),

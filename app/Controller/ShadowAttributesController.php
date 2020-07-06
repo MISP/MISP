@@ -1003,49 +1003,6 @@ class ShadowAttributesController extends AppController
         }
     }
 
-    // takes a uuid and finds all proposals that belong to an event with the given uuid. These are then returned.
-    public function getProposalsByUuid($uuid)
-    {
-        if (!$this->_isRest() || !$this->userRole['perm_sync']) {
-            throw new MethodNotAllowedException(__('This feature is only available using the API to Sync users'));
-        }
-        if (strlen($uuid) != 36) {
-            throw new NotFoundException(__('Invalid UUID'));
-        }
-        $temp = $this->ShadowAttribute->find('all', array(
-                'conditions' => array('event_uuid' => $uuid),
-                'recursive' => -1,
-                'contain' => array(
-                    'Org' => array('fields' => array('uuid', 'name')),
-                    'EventOrg' => array('fields' => array('uuid', 'name')),
-                )
-        ));
-        foreach ($temp as $key => $t) {
-            if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
-                $temp[$key]['ShadowAttribute']['data'] = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
-            }
-        }
-        if ($temp == null) {
-            $this->response->statusCode(404);
-            $this->set('name', 'No proposals found.');
-            $this->set('message', 'No proposals found');
-            $this->set('errors', 'No proposals found');
-            $this->set('url', '/shadow_attributes/getProposalsByUuid/' . $uuid);
-            $this->set('_serialize', array('name', 'message', 'url', 'errors'));
-            $this->response->send();
-            return false;
-        } else {
-            $this->set('proposal', $temp);
-            $this->render('get_proposals_by_uuid');
-        }
-    }
-
-    // deprecated function, returns empty array - proposal sync on more modern versions (>=2.4.111) happens via the shadow_attributes/index endpoint
-    public function getProposalsByUuidList()
-    {
-        return $this->RestResponse->viewData(array());
-    }
-
     public function discardSelected($id)
     {
         if (!$this->request->is('post') || !$this->request->is('ajax')) {

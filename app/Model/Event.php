@@ -1524,20 +1524,6 @@ class Event extends AppModel
         return $this->delete($id, false);
     }
 
-    public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null)
-    {
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $url . '/shadow_attributes/getProposalsByUuidList';
-        $response = $HttpSocket->post($uri, json_encode($uuidList), $request);
-        if ($response->isOk()) {
-            return(json_decode($response->body, true));
-        } else {
-            return false;
-        }
-    }
-
     public function createEventConditions($user)
     {
         $conditions = array();
