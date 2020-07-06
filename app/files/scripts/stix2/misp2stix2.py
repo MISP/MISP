@@ -410,6 +410,9 @@ class StixBuilder():
         custom_object_id = "x-misp-object-{}--{}".format(attribute_type, attribute['uuid'])
         custom_object_type = "x-misp-object-{}".format(attribute_type)
         labels, markings = self.create_labels(attribute)
+        stix_labels = ListProperty(StringProperty)
+        stix_labels.clean(labels)
+        stix_markings = ListProperty(StringProperty)
         timestamp = self.get_datetime_from_timestamp(attribute['timestamp'])
         custom_object_args = {'id': custom_object_id, 'x_misp_category': attribute['category'],
                               'created': timestamp, 'modified': timestamp, 'labels': labels,
@@ -419,15 +422,16 @@ class StixBuilder():
         if markings:
             markings = self.handle_tags(markings)
             custom_object_args['object_marking_refs'] = markings
+            stix_markings.clean(markings)
         if custom_object_type not in self.custom_objects:
             @CustomObject(custom_object_type, [
                 ('id', StringProperty(required=True)),
-                ('labels', ListProperty(labels, required=True)),
+                ('labels', ListProperty(stix_labels, required=True)),
                 ('x_misp_value', StringProperty(required=True)),
                 ('created', TimestampProperty(required=True, precision='millisecond')),
                 ('modified', TimestampProperty(required=True, precision='millisecond')),
                 ('created_by_ref', StringProperty(required=True)),
-                ('object_marking_refs', ListProperty(markings)),
+                ('object_marking_refs', ListProperty(stix_markings)),
                 ('x_misp_comment', StringProperty()),
                 ('x_misp_category', StringProperty())
             ])
@@ -550,7 +554,14 @@ class StixBuilder():
         custom_object_id = 'x-misp-object-{}--{}'.format(name, misp_object['uuid'])
         custom_object_type = 'x-misp-object-{}'.format(name)
         category = misp_object.get('meta-category')
-        labels = self.create_object_labels(name, category, to_ids)
+        labels = [
+            f'misp:type="{name}"',
+            f'misp:category="{category}"',
+            f'misp:to_ids="{to_ids}"',
+            'from_object'
+        ]
+        stix_labels = ListProperty(StringProperty)
+        stix_labels.clean(labels)
         values = self.fetch_custom_values(misp_object['Attribute'], custom_object_id)
         timestamp = self.get_datetime_from_timestamp(misp_object['timestamp'])
         custom_object_args = {'id': custom_object_id, 'x_misp_values': values,
@@ -561,7 +572,7 @@ class StixBuilder():
         if custom_object_type not in self.custom_objects:
             @CustomObject(custom_object_type, [
                 ('id', StringProperty(required=True)),
-                ('labels', ListProperty(labels, required=True)),
+                ('labels', ListProperty(stix_labels, required=True)),
                 ('x_misp_values', DictionaryProperty(required=True)),
                 ('created', TimestampProperty(required=True, precision='millisecond')),
                 ('modified', TimestampProperty(required=True, precision='millisecond')),
@@ -666,9 +677,7 @@ class StixBuilder():
 
     @staticmethod
     def create_labels(attribute):
-        labels = ['misp:type="{}"'.format(attribute['type']),
-                  'misp:category="{}"'.format(attribute['category']),
-                  'misp:to_ids="{}"'.format(attribute['to_ids'])]
+        labels = [f'misp:{feature}="{attribute[feature]}"' for feature in ('type', 'category', 'to_ids')]
         markings = []
         if attribute.get('Tag'):
             for tag in attribute['Tag']:
@@ -678,10 +687,12 @@ class StixBuilder():
 
     @staticmethod
     def create_object_labels(name, category, to_ids):
-        return ['misp:type="{}"'.format(name),
-                'misp:category="{}"'.format(category),
-                'misp:to_ids="{}"'.format(to_ids),
-                'from_object']
+        return [
+            f'misp:type="{name}"',
+            f'misp:category="{category}"',
+            f'misp:to_ids="{to_ids}"',
+            'from_object'
+        ]
 
     def create_marking(self, tag):
         if tag in misp2stix2_mapping.tlp_markings:
