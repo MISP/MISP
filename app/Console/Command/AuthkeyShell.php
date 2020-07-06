@@ -14,7 +14,7 @@ class AuthkeyShell extends AppShell {
     public function main()
     {
         $this->ConfigLoad->execute();
-        if (!isset($this->args[0]) || empty($this->args[0])) echo 'MISP authkey reset command line tool.' . PHP_EOL . 'To assign a new authkey for a user:' . PHP_EOL . APP . 'Console/cake Authkey [email]' . PHP_EOL;
+        if (!isset($this->args[0]) || empty($this->args[0])) echo 'MISP authkey reset command line tool.' . PHP_EOL . 'To assign a new authkey for a user:' . PHP_EOL . APP . 'Console/cake Authkey [email] [auth_key | optional]' . PHP_EOL;
         else {
             // get the users that need their password hashed
             $user = $this->User->find('first', array('conditions' => array('email' => $this->args[0]), 'recursive' => -1, 'contain' => 'Organisation'));
@@ -24,6 +24,14 @@ class AuthkeyShell extends AppShell {
             }
             $this->User->id = $user['User']['id'];
             $newkey = $this->User->generateAuthKey();
+            if (isset($this->args[1]) && !empty($this->args[1])) {
+                $newkey = $this->args[1];
+                if(!ctype_alnum($this->args[1]) || strlen($this->args[1]) != 40) {
+                    echo 'MISP authkey reset command line tool.' . PHP_EOL . 'To assign a new authkey for a user:' . PHP_EOL . APP . 'Console/cake Authkey [email] [api_key | optional]' . PHP_EOL;
+                    echo 'Authkey must be a 40 character Alphanumeric string.' . PHP_EOL;
+                    exit;
+                }
+            }
             if ($this->User->saveField('authkey', $newkey)) {
                 $logTitle = 'Authentication key for user ' . $user['User']['id'] . ' (' . $user['User']['email'] . ')';
                 $this->Log->createLogEntry('SYSTEM', 'reset_auth_key', 'User', $user['User']['id'], $logTitle, array('authkey' => array($user['User']['authkey'], $newkey)));

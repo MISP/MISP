@@ -931,7 +931,7 @@ class MispObject extends AppModel
         return $this->id;
     }
 
-    public function captureObject($object, $eventId, $user, $log = false)
+    public function captureObject($object, $eventId, $user, $log = false, $unpublish = true)
     {
         $this->create();
         if (!isset($object['Object'])) {
@@ -945,7 +945,9 @@ class MispObject extends AppModel
         }
         $object['Object']['event_id'] = $eventId;
         if ($this->save($object)) {
-            $this->Event->unpublishEvent($eventId);
+            if ($unpublish) {
+                $this->Event->unpublishEvent($eventId);
+            }
             $objectId = $this->id;
             $partialFails = array();
             if (!empty($object['Object']['Attribute'])) {
