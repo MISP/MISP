@@ -60,6 +60,8 @@ class ComplexTypeTool
         )
     );
 
+    private $__tlds = null;
+
     public function refangValue($value, $type)
     {
         foreach ($this->__refangRegexTable as $regex) {
@@ -70,14 +72,12 @@ class ComplexTypeTool
         return $value;
     }
 
-    private $__tlds = array();
-
     public function setTLDs($tlds = array())
     {
-        if (!empty($tlds)) {
-            $this->__tlds = $tlds;
+        $this->__tlds = [];
+        foreach ($tlds as $tld) {
+            $this->__tlds[$tld] = true;
         }
-        return true;
     }
 
     public function checkComplexRouter($input, $type, $settings = array())
@@ -342,8 +342,9 @@ class ComplexTypeTool
         }
 
         // check for hashes
+        $rawLength = strlen($input['raw']);
         foreach ($this->__hexHashTypes as $k => $v) {
-            if (strlen($input['raw']) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input['raw'])) {
+            if ($rawLength === $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input['raw'])) {
                 $types = $v['single'];
                 if (!empty($this->__checkForBTC($input))) {
                     $types[] = 'btc';
@@ -362,13 +363,13 @@ class ComplexTypeTool
     {
         // note down and remove the port if it's a url / domain name / hostname / ip
         // input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
-        $input['comment'] = false;
         if (preg_match('/(:[0-9]{2,5})$/', $input['refanged'], $input['port'])) {
             $input['comment'] = 'On port ' . substr($input['port'][0], 1);
             $input['refanged_no_port'] = str_replace($input['port'][0], '', $input['refanged']);
             $input['port'] = substr($input['port'][0], 1);
         } else {
             unset($input['port']);
+            $input['comment'] = false;
             $input['refanged_no_port'] = $input['refanged'];
         }
         return $input;
@@ -407,7 +408,7 @@ class ComplexTypeTool
 		}
     }
 
-    private function __checkForIP($input)
+    private function __checkForIP(array $input)
     {
         if (filter_var($input['refanged_no_port'], FILTER_VALIDATE_IP)) {
             if (isset($input['port'])) {
@@ -415,6 +416,27 @@ class ComplexTypeTool
             } else {
                 return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
             }
+        }
+        // IPv6 address that is considered as IP address with port
+        if (filter_var($input['refanged'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            return [
+                'types' => ['ip-dst', 'ip-src', 'ip-src/ip-dst'],
+                'to_ids' => true,
+                'default_type' => 'ip-dst',
+                'comment' => '',
+                'value' => $input['refanged'],
+            ];
+        }
+        // IPv6 with port in `[1fff:0:a88:85a3::ac1f]:8001` format
+        if (isset($input['port']) && $input['refanged_no_port'][0] === '[' && filter_var(substr($input['refanged_no_port'], 1, -1), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $value = substr($input['refanged_no_port'], 1, -1);
+            return [
+                'types' => ['ip-dst|port', 'ip-src|port', 'ip-src|port/ip-dst|port'],
+                'to_ids' => true,
+                'default_type' => 'ip-dst|port',
+                'comment' => $input['comment'],
+                'value' => "$value|{$input['port']}",
+            ];
         }
         // it could still be a CIDR block
         if (strpos($input['refanged_no_port'], '/')) {
@@ -427,19 +449,15 @@ class ComplexTypeTool
         }
     }
 
-    private function __checkForDomainOrFilename($input)
+    private function __checkForDomainOrFilename(array $input)
     {
         if (strpos($input['refanged'], '.') !== false) {
             $temp = explode('.', $input['refanged']);
-            // TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
-            //if (filter_var($input, FILTER_VALIDATE_URL)) {
             $domainDetection = true;
-            if (preg_match('/^([-\pL\pN]+\.)+[a-z]+(:[0-9]{2,5})?$/iu', $input['refanged'])) {
-                if (empty($this->__tlds) || count($this->__tlds) == 1) {
-                    $this->__generateTLDList();
-                }
+            if (preg_match('/^([-\pL\pN]+\.)+[a-z0-9-]+(:[0-9]{2,5})?$/iu', $input['refanged'])) {
+                // Remove port
                 $tldExploded = explode(':', $temp[count($temp)-1]);
-                if (!in_array(strtolower($tldExploded[0]), $this->__tlds)) {
+                if (!$this->isTld($tldExploded[0])) {
                     $domainDetection = false;
                 }
             } else {
@@ -496,17 +514,30 @@ class ComplexTypeTool
         return false;
     }
 
+    /**
+     * @param string $tld
+     * @return bool
+     */
+    private function isTld($tld)
+    {
+        if ($this->__tlds === null) {
+            $this->setTLDs($this->__generateTLDList());
+        }
+        return isset($this->__tlds[strtolower($tld)]);
+    }
+
     private function __generateTLDList()
     {
-        $this->__tlds = array('biz', 'cat', 'com', 'edu', 'gov', 'int', 'mil', 'net', 'org', 'pro', 'tel', 'aero', 'arpa', 'asia', 'coop', 'info', 'jobs', 'mobi', 'name', 'museum', 'travel', 'onion');
+        $tlds = array('biz', 'cat', 'com', 'edu', 'gov', 'int', 'mil', 'net', 'org', 'pro', 'tel', 'aero', 'arpa', 'asia', 'coop', 'info', 'jobs', 'mobi', 'name', 'museum', 'travel', 'onion');
         $char1 = $char2 = 'a';
         for ($i = 0; $i < 26; $i++) {
             for ($j = 0; $j < 26; $j++) {
-                $this->__tlds[] = $char1 . $char2;
+                $tlds[] = $char1 . $char2;
                 $char2++;
             }
             $char1++;
             $char2 = 'a';
         }
+        return $tlds;
     }
 }
