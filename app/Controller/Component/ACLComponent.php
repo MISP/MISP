@@ -437,8 +437,6 @@ class ACLComponent extends Component
                     'discardSelected' => array('perm_add'),
                     'download' => array('*'),
                     'edit' => array('perm_add'),
-                    'editField' => array('perm_add'),
-                    'fetchEditForm' => array('perm_add'),
                     'generateCorrelation' => array(),
                     'getProposalsByUuid' => array('perm_sync'),
                     'getProposalsByUuidList' => array('perm_sync'),
