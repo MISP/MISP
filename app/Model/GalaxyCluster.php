@@ -492,7 +492,8 @@ class GalaxyCluster extends AppModel
                     'name' => 'fakeSyncOrg',
                 ),
                 'Role' => array(
-                    'perm_site_admin' => 0
+                    'perm_site_admin' => 0,
+                    'perm_sync' => 1
                 )
             );
             $cluster = $this->fetchGalaxyClusters($fakeSyncUser, array('conditions' => array('GalaxyCluster.id' => $clusterId)), $full=true);
@@ -852,7 +853,7 @@ class GalaxyCluster extends AppModel
             $clusters = $this->find('all', $params);
         }
         $this->Event = ClassRegistry::init('Event');
-        $sharingGroupData = $this->Event->__cacheSharingGroupData($user, true);
+        $sharingGroupData = $this->Event->__cacheSharingGroupData($user, false);
         foreach ($clusters as $i => $cluster) {
             if (!empty($cluster['GalaxyCluster']['sharing_group_id']) && isset($sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']])) {
                 $clusters[$i]['SharingGroup'] = $sharingGroupData[$cluster['GalaxyCluster']['sharing_group_id']]['SharingGroup'];
