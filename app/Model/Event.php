@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('RandomTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
 class Event extends AppModel
 {
@@ -6788,8 +6789,8 @@ class Event extends AppModel
                 $filters['published'] = 1;
             }
         }
-        $tmpfile = tmpfile();
-        fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $tmpfile = new TmpFileTool();
+        $tmpfile->write($exportTool->header($exportToolParams));
         $i = 0;
         if (!empty($filters['withAttachments'])) {
             $filters['includeAttachments'] = 1;
@@ -6817,7 +6818,7 @@ class Event extends AppModel
                         if ($i !== 0) {
                             $temp = $exportTool->separator($exportToolParams) . $temp;
                         }
-                        fwrite($tmpfile, $temp);
+                        $tmpfile->write($temp);
                         $i++;
                     }
                 }
@@ -6825,15 +6826,8 @@ class Event extends AppModel
         }
         unset($result);
         unset($temp);
-        fwrite($tmpfile, $exportTool->footer($exportToolParams));
-        fseek($tmpfile, 0);
-        if (fstat($tmpfile)['size'] > 0) {
-            $final = fread($tmpfile, fstat($tmpfile)['size']);
-        } else {
-            $final = 0;
-        }
-        fclose($tmpfile);
-        return $final;
+        $tmpfile->write($exportTool->footer($exportToolParams));
+        return $tmpfile->finish();
     }
 
     /*

@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
 class Sighting extends AppModel
 {
@@ -634,11 +635,11 @@ class Sighting extends AppModel
         $allowedContext = array('event', 'attribute');
         // validate context
         if (isset($filters['context']) && !in_array($filters['context'], $allowedContext, true)) {
-            throw new MethodNotAllowedException(_('Invalid context.'));
+            throw new MethodNotAllowedException(__('Invalid context.'));
         }
         // ensure that an id is provided if context is set
         if (!empty($filters['context']) && !isset($filters['id'])) {
-            throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
+            throw new MethodNotAllowedException(__('An id must be provided if the context is set.'));
         }
 
         if (!isset($this->validFormats[$returnFormat][1])) {
@@ -749,8 +750,8 @@ class Sighting extends AppModel
             'filters' => $filters
         );
 
-        $tmpfile = tmpfile();
-        fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $tmpfile = new TmpFileTool();
+        $tmpfile->write($exportTool->header($exportToolParams));
 
         $temp = '';
         $i = 0;
@@ -763,13 +764,9 @@ class Sighting extends AppModel
             }
             $i++;
         }
-        fwrite($tmpfile, $temp);
-
-        fwrite($tmpfile, $exportTool->footer($exportToolParams));
-        fseek($tmpfile, 0);
-        $final = fread($tmpfile, fstat($tmpfile)['size']);
-        fclose($tmpfile);
-        return $final;
+        $tmpfile->write($temp);
+        $tmpfile->write($exportTool->footer($exportToolParams));
+        return $tmpfile->finish();
     }
 
     /**

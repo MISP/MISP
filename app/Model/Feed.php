@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
 class Feed extends AppModel
 {
@@ -161,10 +162,10 @@ class Feed extends AppModel
     /**
      * @param array $feed
      * @param HttpSocket $HttpSocket
-     * @return array
+     * @return Generator|array
      * @throws Exception
      */
-    public function getCache($feed, $HttpSocket)
+    public function getCache(array $feed, HttpSocket $HttpSocket)
     {
         $uri = $feed['Feed']['url'] . '/hashes.csv';
         $data = $this->feedGetUri($feed, $uri, $HttpSocket);
@@ -173,13 +174,16 @@ class Feed extends AppModel
             throw new Exception("File '$uri' with hashes for cache filling is empty.");
         }
 
-        $data = trim($data);
-        $data = explode("\n", $data);
-        $result = array();
-        foreach ($data as $v) {
-            $result[] = explode(',', $v);
+        // CSV file can be pretty big to do operations in memory, so we save content to temp and iterate line by line.
+        $tmpFile = new TmpFileTool();
+        $tmpFile->write(trim($data));
+        unset($data);
+
+        foreach ($tmpFile->lines() as $line) {
+            yield explode(',', rtrim($line));
         }
-        return $result;
+
+        return array();
     }
 
     /**
