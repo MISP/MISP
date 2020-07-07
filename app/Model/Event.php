@@ -3168,9 +3168,9 @@ class Event extends AppModel
                     'conditions' => array(
                         'User.id' => $event['Event']['user_id'],
                         'User.disabled' => 0,
-                        'User.org_id' => $event['Event']
+                        'User.org_id' => $event['Event']['orgc_id'],
                     ),
-                    'fields' => array('User.email', 'User.gpgkey', 'User.certif_public'),
+                    'fields' => array('User.email', 'User.gpgkey', 'User.certif_public', 'User.id', 'User.disabled'),
                     'recursive' => -1
             ));
             if (!empty($temp)) {
@@ -3201,10 +3201,10 @@ class Event extends AppModel
         $body .= "Someone wants to get in touch with you concerning a MISP event. \n";
         $body .= "\n";
         $body .= "You can reach them at " . $user['User']['email'] . "\n";
-        if (!$user['User']['gpgkey']) {
+        if (!empty($user['User']['gpgkey'])) {
             $body .= "Their GnuPG key is added as attachment to this email. \n";
         }
-        if (!$user['User']['certif_public']) {
+        if (!empty($user['User']['certif_public'])) {
             $body .= "Their Public certificate is added as attachment to this email. \n";
         }
         $body .= "\n";
