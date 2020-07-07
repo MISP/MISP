@@ -1,13 +1,13 @@
 <?php
     $modelForForm = 'GalaxyCluster';
-    $origCluster = isset($origCluster) ? $origCluster : array();
-    $origClusterHtmlPreview = '';
-    if (isset($origClusterMeta)) {
-        foreach ($origClusterMeta as $key => $value) {
+    $forkedCluster = isset($forkedCluster) ? $forkedCluster : array();
+    $forkedClusterHtmlPreview = '';
+    if (isset($forkedClusterMeta)) {
+        foreach ($forkedClusterMeta as $key => $value) {
             if (is_array($value)) {
-                $origClusterHtmlPreview .= sprintf('<div><b>%s: </b><div data-toggle="json" class="large-left-margin">%s</div></div>', h($key), json_encode($value));
+                $forkedClusterHtmlPreview .= sprintf('<div><b>%s: </b><div data-toggle="json" class="large-left-margin">%s</div></div>', h($key), json_encode($value));
             } else {
-                $origClusterHtmlPreview .= sprintf('<div><b>%s: </b>%s</div>', h($key), h($value));
+                $forkedClusterHtmlPreview .= sprintf('<div><b>%s: </b>%s</div>', h($key), h($value));
             }
         }
     }
@@ -35,10 +35,10 @@
                     'options' => $sharingGroups,
                     'label' => __("Sharing Group")
                 ),
-                !isset($origClusterMeta) ? '' : sprintf('<div id="fork_galaxy_preview" class="panel-container fork-cluster-preview"><h5>%s %s</h5>%s</div>',
+                !isset($forkedClusterMeta) ? '' : sprintf('<div id="fork_galaxy_preview" class="panel-container fork-cluster-preview"><h5>%s %s</h5>%s</div>',
                     __('Forked Cluster data'),
-                    sprintf('<a class="%s %s black" href="%s"></a>', $this->FontAwesome->findNamespace('view'), 'fa-eye', '/galaxy_clusters/view/' . h($origCluster['GalaxyCluster']['id'])),
-                    $origClusterHtmlPreview
+                    sprintf('<a class="%s %s black" href="%s"></a>', $this->FontAwesome->findNamespace('view'), 'fa-eye', '/galaxy_clusters/view/' . h($forkedCluster['GalaxyCluster']['id'])),
+                    $forkedClusterHtmlPreview
                 ),
                 array(
                     'field' => 'galaxy_id',
@@ -88,7 +88,7 @@
 ?>
 
 <script type="text/javascript">
-    var origCluster = <?php echo json_encode($origCluster); ?>;
+    var forkedCluster = <?php echo json_encode($forkedCluster); ?>;
     $('#GalaxyClusterDistribution').change(function() {
         checkSharingGroup('GalaxyCluster');
     });

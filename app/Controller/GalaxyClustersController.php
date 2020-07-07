@@ -31,7 +31,7 @@ class GalaxyClustersController extends AppController
             )
     );
 
-    public function index($id)
+    public function index(int $galaxyId)
     {
         $filters = $this->IndexFilter->harvestParameters(array('context', 'searchall'));
         $aclConditions = $this->GalaxyCluster->buildConditions($this->Auth->user());
@@ -82,7 +82,7 @@ class GalaxyClustersController extends AppController
                 ),
             );
         }
-        $searchConditions['GalaxyCluster.galaxy_id'] = $id;
+        $searchConditions['GalaxyCluster.galaxy_id'] = $galaxyId;
 
         if ($this->_isRest()) {
             $clusters = $this->Galaxy->find(
@@ -162,48 +162,32 @@ class GalaxyClustersController extends AppController
             $this->set('distributionLevels', $distributionLevels);
             $this->set('csv', $csv);
             $this->set('list', $clusters);
-            $this->set('galaxy_id', $id);
+            $this->set('galaxy_id', $galaxyId);
         }
         if ($this->request->is('ajax')) {
             $this->layout = 'ajax';
             $this->render('ajax/index');
         }
     }
-
+    
+    /**
+     * @param  mixed $id ID of the cluster
+     */
     public function view($id)
     {
-        $conditions = array();
-        if (Validation::uuid($id)) {
-            $conditions['GalaxyCluster.uuid'] = $id;
-        } else {
-            $conditions['GalaxyCluster.id'] = $id;
-        }
-        $contain = array('Galaxy', 'Orgc', 'Org');
-        if ($this->_isRest()) {
-            $contain[] = 'GalaxyElement';
-        }
-        $options = array(
-            'conditions' => $conditions,
-            // 'contain' => $contain
-        );
-        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $options, $full=true);
-        if (!empty($cluster)) {
-            $cluster = $cluster[0];
-            $this->loadModel('Tag');
-            $tag = $this->Tag->find('first', array(
-                'conditions' => array(
-                    'LOWER(name)' => strtolower($cluster['GalaxyCluster']['tag_name']),
-                ),
-                'fields' => array('id'),
-                'recursive' => -1,
-                'contain' => array('EventTag.tag_id')
-            ));
-            if (!empty($tag)) {
-                $cluster['GalaxyCluster']['tag_count'] = count($tag['EventTag']);
-                $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
-            }
-        } else {
-            throw new NotFoundException('Cluster not found.');
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
+        $this->loadModel('Tag');
+        $tag = $this->Tag->find('first', array(
+            'conditions' => array(
+                'LOWER(name)' => strtolower($cluster['GalaxyCluster']['tag_name']),
+            ),
+            'fields' => array('id'),
+            'recursive' => -1,
+            'contain' => array('EventTag.tag_id')
+        ));
+        if (!empty($tag)) {
+            $cluster['GalaxyCluster']['tag_count'] = count($tag['EventTag']);
+            $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($cluster, $this->response->type());
@@ -225,7 +209,10 @@ class GalaxyClustersController extends AppController
             $this->set('distributionLevels', $distributionLevels);
         }
     }
-
+    
+    /**
+     * @param  mixed $galaxyId ID of the galaxy to which the cluster will be added
+     */
     public function add($galaxyId)
     {
         if (Validation::uuid($galaxyId)) {
@@ -254,31 +241,31 @@ class GalaxyClustersController extends AppController
 
         if (isset($this->params['named']['forkUuid'])) {
             $forkUuid = $this->params['named']['forkUuid'];
-            $origCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
+            $forkedCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
                 'conditions' => array('GalaxyCluster.uuid' => $forkUuid),
             ), true);
-            if (!empty($origCluster)) {
-                $origCluster = $origCluster[0];
-                $origClusterMeta = $origCluster['GalaxyCluster'];
+            if (!empty($forkedCluster)) {
+                $forkedCluster = $forkedCluster[0];
+                $forkedClusterMeta = $forkedCluster['GalaxyCluster'];
                 if (empty($this->request->data)) {
-                    $this->request->data = $origCluster;
+                    $this->request->data = $forkedCluster;
                     unset($this->request->data['GalaxyCluster']['id']);
                     unset($this->request->data['GalaxyCluster']['uuid']);
-                    foreach ($origCluster['GalaxyCluster']['GalaxyElement'] as $k => $element) {
-                        unset($origCluster['GalaxyCluster']['GalaxyElement'][$k]['id']);
-                        unset($origCluster['GalaxyCluster']['GalaxyElement'][$k]['galaxy_cluster_id']);
+                    foreach ($forkedCluster['GalaxyCluster']['GalaxyElement'] as $k => $element) {
+                        unset($forkedCluster['GalaxyCluster']['GalaxyElement'][$k]['id']);
+                        unset($forkedCluster['GalaxyCluster']['GalaxyElement'][$k]['galaxy_cluster_id']);
                     }
-                    $this->request->data['GalaxyCluster']['extends_uuid'] = $origCluster['GalaxyCluster']['uuid'];
-                    $this->request->data['GalaxyCluster']['extends_version'] = $origCluster['GalaxyCluster']['version'];
-                    $this->request->data['GalaxyCluster']['elements'] = json_encode($origCluster['GalaxyCluster']['GalaxyElement']);
-                    $this->request->data['GalaxyCluster']['elementsDict'] = $origCluster['GalaxyCluster']['GalaxyElement'];
-                    $this->request->data['GalaxyCluster']['authors'] = json_encode($origCluster['GalaxyCluster']['authors']);
+                    $this->request->data['GalaxyCluster']['extends_uuid'] = $forkedCluster['GalaxyCluster']['uuid'];
+                    $this->request->data['GalaxyCluster']['extends_version'] = $forkedCluster['GalaxyCluster']['version'];
+                    $this->request->data['GalaxyCluster']['elements'] = json_encode($forkedCluster['GalaxyCluster']['GalaxyElement']);
+                    $this->request->data['GalaxyCluster']['elementsDict'] = $forkedCluster['GalaxyCluster']['GalaxyElement'];
+                    $this->request->data['GalaxyCluster']['authors'] = json_encode($forkedCluster['GalaxyCluster']['authors']);
                 }
-                unset($origClusterMeta['Galaxy']);
-                unset($origClusterMeta['Org']);
-                unset($origClusterMeta['Orgc']);
-                $this->set('origCluster', $origCluster);
-                $this->set('origClusterMeta', $origClusterMeta);
+                unset($forkedClusterMeta['Galaxy']);
+                unset($forkedClusterMeta['Org']);
+                unset($forkedClusterMeta['Orgc']);
+                $this->set('forkedCluster', $forkedCluster);
+                $this->set('forkedClusterMeta', $forkedClusterMeta);
             } else {
                 throw new NotFoundException('Forked cluster not found.');
             }
@@ -305,14 +292,14 @@ class GalaxyClustersController extends AppController
             }
             if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
                 $extendId = $this->Toolbox->findIdByUuid($this->GalaxyCluster, $cluster['GalaxyCluster']['extends_uuid']);
-                $extendedCluster = $this->GalaxyCluster->fetchGalaxyClusters(
+                $forkedCluster = $this->GalaxyCluster->fetchGalaxyClusters(
                     $this->Auth->user(),
                     array('conditions' => array('GalaxyCluster.id' => $extendId))
                 );
-                if (!empty($extendedCluster)) {
-                    $cluster['GalaxyCluster']['extends_uuid'] = $extendedCluster[0]['GalaxyCluster']['uuid'];
+                if (!empty($forkedCluster)) {
+                    $cluster['GalaxyCluster']['extends_uuid'] = $forkedCluster[0]['GalaxyCluster']['uuid'];
                     if (empty($cluster['GalaxyCluster']['extends_version'])) {
-                        $cluster['GalaxyCluster']['extends_version'] = $extendedCluster[0]['GalaxyCluster']['version'];
+                        $cluster['GalaxyCluster']['extends_version'] = $forkedCluster[0]['GalaxyCluster']['version'];
                     }
                 } else {
                     $cluster['GalaxyCluster']['extends_uuid'] = null;
@@ -379,8 +366,8 @@ class GalaxyClustersController extends AppController
             $forkedCluster = $forkedCluster[0];
             $this->set('forkUuid', $cluster['GalaxyCluster']['extends_uuid']);
             $forkedClusterMeta = $forkedCluster['GalaxyCluster'];
-            $this->set('origCluster', $forkedCluster);
-            $this->set('origClusterMeta', $forkedClusterMeta);
+            $this->set('forkedCluster', $forkedCluster);
+            $this->set('forkedClusterMeta', $forkedClusterMeta);
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             $cluster = $this->request->data;
