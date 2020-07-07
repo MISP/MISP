@@ -5854,7 +5854,7 @@ class Event extends AppModel
 
     private function __getTagNamesFromSynonyms($scriptDir)
     {
-        $synonymsToTagNames = $scriptDir . DS . 'synonymsToTagNames.json';
+        $synonymsToTagNames = $scriptDir . DS . 'tmp' . DS . 'synonymsToTagNames.json';
         if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
             if (empty($this->GalaxyCluster)) {
                 $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
