@@ -147,7 +147,7 @@ class GalaxiesController extends AppController
             }
         }
     }
-
+    
     public function import()
     {
         if ($this->request->is('post') || $this->request->is('put')) {
@@ -198,6 +198,7 @@ class GalaxiesController extends AppController
         $this->set('action', 'import');
     }
 
+    // Ingests clusters coming from a sync request
     public function pushCluster()
     {
         if (!$this->Auth->user()['Role']['perm_sync'] || !$this->Auth->user()['Role']['perm_galaxy_editor']) {
@@ -220,7 +221,7 @@ class GalaxiesController extends AppController
         }
     }
 
-    public function export($galaxyId)
+    public function export(int $galaxyId)
     {
         $galaxy = $this->Galaxy->find('first', array(
             'recursive' => -1,
@@ -541,7 +542,7 @@ class GalaxiesController extends AppController
         $this->render('/Events/ajax/ajaxGalaxies');
     }
 
-    public function forkTree($galaxyId)
+    public function forkTree(int $galaxyId)
     {
         $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
         if (empty($clusters)) {
@@ -564,7 +565,7 @@ class GalaxiesController extends AppController
         $this->set('galaxy_id', $galaxyId);
     }
 
-    public function relationsGraph($galaxyId)
+    public function relationsGraph(int $galaxyId)
     {
         $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
         if (empty($clusters)) {

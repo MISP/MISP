@@ -4808,8 +4808,9 @@ class EventsController extends AppController
             $this->render('/Elements/view_galaxy_matrix');
         }
     }
-
-    public function viewClusterRelations($eventId)
+    
+    // Displays all the cluster relations for the provided event
+    public function viewClusterRelations(int $eventId)
     {
         $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'flatten' => true));
         if (empty($event)) {
