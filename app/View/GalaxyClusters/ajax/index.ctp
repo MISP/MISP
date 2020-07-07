@@ -117,7 +117,12 @@
                     'name' => __('#Relations'),
                     'class' => 'short',
                     'data_path' => 'GalaxyCluster.relation_counts',
-                    'element' => 'relation_counts'
+                    'element' => 'in_out_counts',
+                    'fields' => array(
+                        'entity_name' => __('cluster'),
+                        'inbound_action_name' => __('is being targeted by'),
+                        'outbound_action_name' => __('targets'),
+                    )
                 ),
                 array(
                     'name' => __('Description'),

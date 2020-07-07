@@ -372,7 +372,8 @@ class Galaxy extends AppModel
         return 'Could not attach the cluster';
     }
 
-    public function detachCluster($user, $target_type, $target_id, $cluster_id) {
+    public function detachCluster($user, $target_type, $target_id, $cluster_id)
+    {
         $cluster = $this->GalaxyCluster->find('first', array(
             'recursive' => -1,
             'conditions' => array('id' => $cluster_id),
@@ -527,7 +528,6 @@ class Galaxy extends AppModel
 
         if (!isset($galaxy['Galaxy']['kill_chain_order'])) {
             throw new MethodNotAllowedException(__("Galaxy cannot be represented as a matrix"));
-
         }
         $matrixData = array(
             'killChain' => $galaxy['Galaxy']['kill_chain_order'],
@@ -594,21 +594,21 @@ class Galaxy extends AppModel
         foreach (array_keys($tabs) as $i) {
             foreach (array_keys($tabs[$i]) as $j) {
                 // major ordering based on score, minor based on alphabetical
-                usort($tabs[$i][$j], function ($a, $b) use($scores) {
+                usort($tabs[$i][$j], function ($a, $b) use ($scores) {
                     if ($a['tag_name'] == $b['tag_name']) {
                         return 0;
                     }
                     if (isset($scores[$a['tag_name']]) && isset($scores[$b['tag_name']])) {
                         if ($scores[$a['tag_name']] < $scores[$b['tag_name']]) {
                             $ret = 1;
-                        } else if ($scores[$a['tag_name']] == $scores[$b['tag_name']]) {
+                        } elseif ($scores[$a['tag_name']] == $scores[$b['tag_name']]) {
                             $ret = strcmp($a['value'], $b['value']);
                         } else {
                             $ret = -1;
                         }
-                    } else if (isset($scores[$a['tag_name']])) {
+                    } elseif (isset($scores[$a['tag_name']])) {
                         $ret = -1;
-                    } else if (isset($scores[$b['tag_name']])) {
+                    } elseif (isset($scores[$b['tag_name']])) {
                         $ret = 1;
                     } else { // none are set
                         $ret = strcmp($a['value'], $b['value']);
@@ -664,7 +664,7 @@ class Galaxy extends AppModel
         }
 
         if ($pruneRootLeaves) {
-            foreach($tree as $i => $node) {
+            foreach ($tree as $i => $node) {
                 if (empty($node['children'])) {
                     unset($tree[$i]);
                 }
@@ -677,5 +677,4 @@ class Galaxy extends AppModel
         ));
         return $tree;
     }
-
 }

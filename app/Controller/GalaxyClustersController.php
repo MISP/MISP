@@ -85,9 +85,9 @@ class GalaxyClustersController extends AppController
         $searchConditions['GalaxyCluster.galaxy_id'] = $id;
 
         if ($this->_isRest()) {
-            $clusters = $this->Galaxy->find('all', 
+            $clusters = $this->Galaxy->find(
+                'all',
                 array(
-                    // 'recursive' => -1,
                     'conditions' => array(
                         'AND' => array($contextConditions, $searchConditions, $aclConditions)
                     ),
@@ -388,10 +388,10 @@ class GalaxyClustersController extends AppController
                 $cluster = array('GalaxyCluster' => $cluster);
             }
             $errors = array();
-            if (!isset($cluster['GalaxyCluster']['uuid'])) { 
+            if (!isset($cluster['GalaxyCluster']['uuid'])) {
                 $cluster['GalaxyCluster']['uuid'] = $this->GalaxyCluster->data['GalaxyCluster']['uuid']; // freeze the uuid
             }
-            if (!isset($cluster['GalaxyCluster']['id'])) { 
+            if (!isset($cluster['GalaxyCluster']['id'])) {
                 $cluster['GalaxyCluster']['id'] = $id;
             }
 
@@ -445,7 +445,6 @@ class GalaxyClustersController extends AppController
                     }
                 }
             }
-
         } else {
             $this->GalaxyCluster->data['GalaxyCluster']['elements'] = json_encode($this->GalaxyCluster->data['GalaxyElement']);
             $this->GalaxyCluster->data['GalaxyCluster']['elementsDict'] = $this->GalaxyCluster->data['GalaxyElement'];
@@ -739,7 +738,8 @@ class GalaxyClustersController extends AppController
         }
     }
 
-    public function viewGalaxyMatrix($id) {
+    public function viewGalaxyMatrix($id)
+    {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be reached via AJAX.');
         }
@@ -882,9 +882,9 @@ class GalaxyClustersController extends AppController
             $elements = array();
             if (!empty($this->request->data['GalaxyCluster'])) {
                 foreach ($this->request->data['GalaxyCluster'] as $k => $jElement) {
-                        $element = json_decode($jElement, true);
-                        if (!is_null($element) && $element != 0) {
-                            $elements[] = array(
+                    $element = json_decode($jElement, true);
+                    if (!is_null($element) && $element != 0) {
+                        $elements[] = array(
                                 'key' => $element['key'],
                                 'value' => $element['value'],
                             );
@@ -904,12 +904,12 @@ class GalaxyClustersController extends AppController
             }
         }
         $missingElements = array();
-        forEach($parentCluster['GalaxyCluster']['GalaxyElement'] as $k => $parentElement) {
+        foreach ($parentCluster['GalaxyCluster']['GalaxyElement'] as $k => $parentElement) {
             $found = false;
-            forEach($cluster['GalaxyCluster']['GalaxyElement'] as $k => $clusterElement) {
+            foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $k => $clusterElement) {
                 if ($parentElement['key'] == $clusterElement['key'] &&
                     $parentElement['value'] == $clusterElement['value']) {
-                        $found = true;
+                    $found = true;
                     break; // element exists in parent
                 }
             }

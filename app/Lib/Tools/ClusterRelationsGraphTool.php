@@ -22,7 +22,7 @@
             foreach ($clusters as $cluster) {
                 $cluster = $this->attachOwnerInsideCluster($cluster);
                 if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
-                    foreach($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $relation) {
+                    foreach ($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $relation) {
                         $referencedClusterUuid = $relation['referenced_galaxy_cluster_uuid'];
                         if (!isset($this->lookup[$referencedClusterUuid])) {
                             $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->user, array(
@@ -71,7 +71,7 @@
                         )
                     ));
                     if (!empty($referencingRelations)) {
-                        foreach($referencingRelations as $relation) {
+                        foreach ($referencingRelations as $relation) {
                             $referencingClusterUuid = $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'];
                             if (!isset($this->lookup[$referencingClusterUuid])) {
                                 $referencedCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->user, array(

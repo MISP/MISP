@@ -106,7 +106,7 @@ class GalaxyClusterRelation extends AppModel
         );
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
-        } elseif($full) {
+        } elseif ($full) {
             $params['contain'] = array('SharingGroup', 'SourceCluster', 'TargetCluster');
         }
         if (isset($options['fields'])) {
@@ -160,7 +160,7 @@ class GalaxyClusterRelation extends AppModel
     public function saveRelations($user, $cluster, $relations, $capture=false, $force=false)
     {
         $errors = array();
-        foreach($relations as $k => $relation) {
+        foreach ($relations as $k => $relation) {
             $saveResult = $this->saveRelation($user, $cluster, $relation, $capture=$capture, $force=$force);
             $errors = array_merge($errors, $saveResult);
         }
@@ -220,7 +220,7 @@ class GalaxyClusterRelation extends AppModel
                     }
                 }
             } else {
-                foreach($this->validationErrors as $validationError) {
+                foreach ($this->validationErrors as $validationError) {
                     $errors[] = $validationError[0];
                 }
             }
@@ -278,7 +278,7 @@ class GalaxyClusterRelation extends AppModel
 
                     $saveSuccess = $this->save($relation, array('fieldList' => $fieldList));
                     if (!$saveSuccess) {
-                        foreach($this->validationErrors as $validationError) {
+                        foreach ($this->validationErrors as $validationError) {
                             $errors[] = $validationError[0];
                         }
                     } else {
@@ -377,8 +377,6 @@ class GalaxyClusterRelation extends AppModel
                 }
             } else {
                 $results['failed']++;
-                foreach($this->validationErrors as $validationError) {
-                }
             }
         }
 

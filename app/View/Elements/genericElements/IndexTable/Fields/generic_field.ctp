@@ -10,6 +10,13 @@
                 $data = '';
             }
         }
+    }
+    if (is_bool($data)) {
+        $data = sprintf(
+            '<i class="black fa fa-%s"></i>',
+            $data ? 'check' : 'times'
+        );
+        $data = '';
     } else {
         $data = h($data);
         if (!empty($field['privacy'])) {

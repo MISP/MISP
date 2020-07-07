@@ -139,7 +139,7 @@ class Role extends AppModel
             'id' => 'RolePermGalaxyEditor',
             'text' => 'Galaxy Editor',
             'readonlyenabled' => false,
-            'title' => 'Create or modify MISP Galaxies'
+            'title' => 'Create or modify MISP Galaxies and MISP Galaxies Clusters'
         ),
         'perm_decaying' => array(
             'id' => 'RolePermDecaying',

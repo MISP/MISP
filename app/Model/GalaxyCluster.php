@@ -229,7 +229,7 @@ class GalaxyCluster extends AppModel
             if ($existingGalaxyCluster) {
                 if ($existingGalaxyCluster['GalaxyCluster']['galaxy_id'] != $galaxy['id']) { // cluster already exists in another galaxy
                     $errors[] = __('Cluster already exists in another galaxy');
-                return $errors;
+                    return $errors;
                 }
                 if (!$existingGalaxyCluster['GalaxyCluster']['default']) {
                     $errors[] = __('Edit not allowed on default clusters');
@@ -252,7 +252,6 @@ class GalaxyCluster extends AppModel
             $cluster['GalaxyCluster']['collection_uuid'] = '';
         }
         if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
-            
             $forkedCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['extends_uuid'])));
             if (!empty($forkedCluster) && $forkedCluster['GalaxyCluster']['galaxy_id'] != $galaxy['id']) {
                 $errors[] = __('Cluster forks always have to belong to the same galaxy as the parent');
@@ -267,7 +266,7 @@ class GalaxyCluster extends AppModel
         if ($user['Role']['perm_sync']) {
             if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])) {
                 $errors[] = __('The sync user has to have access to the sharing group in order to be able to edit it');
-            return $errors;
+                return $errors;
             }
         }
 
@@ -296,7 +295,7 @@ class GalaxyCluster extends AppModel
                 $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $capture=true);
             }
         } else {
-            foreach($this->validationErrors as $validationError) {
+            foreach ($this->validationErrors as $validationError) {
                 $errors[] = $validationError[0];
             }
         }
@@ -354,9 +353,8 @@ class GalaxyCluster extends AppModel
                     if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
                         $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $capture=true, $force=true);
                     }
-
                 } else {
-                    foreach($this->validationErrors as $validationError) {
+                    foreach ($this->validationErrors as $validationError) {
                         $errors[] = $validationError[0];
                     }
                 }
@@ -394,10 +392,10 @@ class GalaxyCluster extends AppModel
             $job->save($data);
             $jobId = $job->id;
             $process_id = CakeResque::enqueue(
-                    'prio',
-                    'EventShell',
-                    array($function, $clusterId, $jobId, $user['id'], $passAlong),
-                    true
+                'prio',
+                'EventShell',
+                array($function, $clusterId, $jobId, $user['id'], $passAlong),
+                true
             );
             $job->saveField('process_id', $process_id);
             return $process_id;
@@ -516,17 +514,17 @@ class GalaxyCluster extends AppModel
         foreach ($clusters as $k => $cluster) {
             unset($clusters[$k]['GalaxyCluster']['galaxy_id']);
             $modelsToUnset = array('GalaxyCluster', 'Galaxy', 'Org', 'Orgc');
-            forEach($modelsToUnset as $modelName) {
+            foreach ($modelsToUnset as $modelName) {
                 unset($clusters[$k][$modelName]['id']);
             }
             $modelsToUnset = array('GalaxyClusterRelation', 'TargetingClusterRelation');
-            forEach($modelsToUnset as $modelName) {
-                forEach($cluster['GalaxyCluster'][$modelName] as $i => $relation) {
+            foreach ($modelsToUnset as $modelName) {
+                foreach ($cluster['GalaxyCluster'][$modelName] as $i => $relation) {
                     unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['id']);
                     unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['galaxy_cluster_id']);
                     unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['referenced_galaxy_cluster_id']);
                     if (isset($relation['Tag'])) {
-                        forEach($relation['Tag'] as $j => $tags) {
+                        foreach ($relation['Tag'] as $j => $tags) {
                             unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['id']);
                             unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['org_id']);
                             unset($clusters[$k]['GalaxyCluster'][$modelName][$i]['Tag'][$j]['user_id']);
@@ -534,7 +532,7 @@ class GalaxyCluster extends AppModel
                     }
                 }
             }
-            forEach($cluster['GalaxyCluster']['GalaxyElement'] as $i => $element) {
+            foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $i => $element) {
                 unset($clusters[$k]['GalaxyCluster']['GalaxyElement'][$i]['id']);
                 unset($clusters[$k]['GalaxyCluster']['GalaxyElement'][$i]['galaxy_cluster_id']);
             }
@@ -633,10 +631,10 @@ class GalaxyCluster extends AppModel
                 'recursive' => -1
             ));
             if (!empty($cluster['GalaxyCluster']['GalaxyElement'])) {
-                $this->GalaxyElement->captureElements($user, $cluster['GalaxyCluster']['GalaxyElement'],  $savedCluster['GalaxyCluster']['id']);
+                $this->GalaxyElement->captureElements($user, $cluster['GalaxyCluster']['GalaxyElement'], $savedCluster['GalaxyCluster']['id']);
             }
             if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
-                $saveResult = $this->GalaxyClusterRelation->captureRelations($user, $savedCluster, $cluster['GalaxyCluster']['GalaxyClusterRelation'],  $fromPull=$fromPull);
+                $saveResult = $this->GalaxyClusterRelation->captureRelations($user, $savedCluster, $cluster['GalaxyCluster']['GalaxyClusterRelation'], $fromPull=$fromPull);
                 if ($saveResult['failed'] > 0) {
                     $results['errors'][] = __('Issues while capturing relations have been logged.');
                 }
@@ -646,7 +644,7 @@ class GalaxyCluster extends AppModel
             }
         } else {
             $results['failed']++;
-            foreach($this->validationErrors as $validationError) {
+            foreach ($this->validationErrors as $validationError) {
                 $results['errors'][] = $validationError[0];
             }
         }
@@ -747,7 +745,7 @@ class GalaxyCluster extends AppModel
     public function getClusters($names, $user, $postProcess=true)
     {
         $conditions = array();
-        if (count(array_filter($names, 'is_numeric' )) === count($names)) { // all elements are numeric
+        if (count(array_filter($names, 'is_numeric')) === count($names)) { // all elements are numeric
             $conditions[] = array('GalaxyCluster.id' => $names);
         } else {
             $conditions[] = array('LOWER(GalaxyCluster.tag_name)' => array_map('strtolower', $names));
@@ -1410,7 +1408,7 @@ class GalaxyCluster extends AppModel
                 if (!$found) {
                     return 403;
                 }
-            } else if (empty($cluster['GalaxyCluster']['SharingGroup']['roaming'])) {
+            } elseif (empty($cluster['GalaxyCluster']['SharingGroup']['roaming'])) {
                 return 403;
             }
         }
@@ -1455,7 +1453,7 @@ class GalaxyCluster extends AppModel
     private function __prepareElementsForSync($cluster, $server)
     {
         if (!empty($cluster['GalaxyCluster']['GalaxyElement'])) {
-            foreach($cluster['GalaxyCluster']['GalaxyElement'] as $k => $element) {
+            foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $k => $element) {
                 $cluster['GalaxyCluster']['GalaxyElement'][$k] = $this->__updateElementForSync($element, $server);
             }
         }
@@ -1466,7 +1464,7 @@ class GalaxyCluster extends AppModel
     {
         $this->Event = ClassRegistry::init('Event');
         if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
-            foreach($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $k => $relation) {
+            foreach ($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $k => $relation) {
                 $cluster['GalaxyCluster']['GalaxyClusterRelation'][$k] = $this->__updateRelationsForSync($relation, $server);
                 if (empty($cluster['GalaxyCluster']['GalaxyClusterRelation'][$k])) {
                     unset($cluster['GalaxyCluster']['GalaxyClusterRelation'][$k]);

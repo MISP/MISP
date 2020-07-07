@@ -64,14 +64,6 @@ class JSONConverterTool
             }
         }
 
-        // Replace is with a special key in galaxyCluster??
-        // if (isset($event['customGalaxy'])) {
-        //     foreach($event['customGalaxy'] as $k => $customGalaxy) {
-        //         unset($customGalaxy['Galaxy']['org_id']);
-        //         $event['Event']['customGalaxy'][$k] = $customGalaxy;
-        //     }
-        // }
-
         //
         // cleanup the array from things we do not want to expose
         //

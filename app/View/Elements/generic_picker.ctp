@@ -203,7 +203,7 @@ function submitFunction(clicked, callback) {
     additionalDataOption = options_additionalData[$select.attr('id')];
     if (additionalData !== undefined) {
         additionalData['itemOptions'] = additionalDataOption;
-        // check needed if the function name is not defined in the controller but in the JS
+        // callback function defined in the controller can be overridden in the JS
         var dismissId = $clicked.closest('.popover[data-dismissid]').data('dismissid');
         var callingButton = $('button[data-dismissid="' + dismissId + '"]');
         if (callingButton.data('popover-no-submit') && callingButton.data('popover-callback-function') !== undefined) {
