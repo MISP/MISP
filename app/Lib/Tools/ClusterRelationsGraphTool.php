@@ -15,7 +15,7 @@
         /**
          * getNetwork Returns the network for the provided clusters
          *
-         * @param  mixed $clusters
+         * @param  array $clusters
          * @param  bool $keepNotLinkedClusters If true, includes nodes not linked to others
          * @param  bool $includeReferencingRelation If true, fetch and includes nodes referencing the $clusters passed
          * @return array The constructed network with nodes and links as keys

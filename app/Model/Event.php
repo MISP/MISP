@@ -7077,8 +7077,14 @@ class Event extends AppModel
             }
         }
     }
-
-    public function extractAllTagNames($event)
+    
+    /**
+     * extractAllTagNames Returns all tag names attached to any elements in an event
+     *
+     * @param  mixed $event
+     * @return array All tag names in the event
+     */
+    public function extractAllTagNames(array $event)
     {
         $tags = array();
         if (!empty($event['EventTag'])) {
