@@ -171,7 +171,7 @@ class GalaxyClustersController extends AppController
     }
     
     /**
-     * @param  mixed $id ID of the cluster
+     * @param  mixed $id ID or UUID of the cluster
      */
     public function view($id)
     {
@@ -334,7 +334,10 @@ class GalaxyClustersController extends AppController
         $this->set('sharingGroups', $sgs);
         $this->set('action', 'add');
     }
-
+    
+    /**
+     * @param  mixed $id ID or UUID of the cluster
+     */
     public function edit($id)
     {
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
@@ -454,9 +457,12 @@ class GalaxyClustersController extends AppController
         $this->render('add');
     }
 
-    public function publish($clusterId)
+    /**
+     * @param  mixed $id ID or UUID of the cluster
+     */
+    public function publish($id)
     {
-        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, 'publish', $throwErrors=true, $full=false);
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'publish', $throwErrors=true, $full=false);
         if ($cluster['GalaxyCluster']['published']) {
             throw new MethodNotAllowedException(__('You can\'t publish a galaxy cluster that is already published'));
         }
@@ -494,9 +500,12 @@ class GalaxyClustersController extends AppController
         }
     }
 
-    public function unpublish($clusterId)
+    /**
+     * @param  mixed $id ID or UUID of the cluster
+     */
+    public function unpublish($id)
     {
-        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, 'publish', $throwErrors=true, $full=false);
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'publish', $throwErrors=true, $full=false);
         if (!$cluster['GalaxyCluster']['published']) {
             throw new MethodNotAllowedException(__('You can\'t unpublish a galaxy cluster that is not published'));
         }
@@ -688,28 +697,28 @@ class GalaxyClustersController extends AppController
         $this->redirect($this->referer());
     }
 
-    // TODO: Add support for custom cluster deletion
+    /**
+     * @param  mixed $id ID or UUID of the cluster
+     */
     public function delete($id)
     {
         if ($this->request->is('post')) {
             $result = false;
             $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
-            if (!empty($cluster)) {
-                $result = $this->GalaxyCluster->delete($id, true);
-                $galaxy_id = $cluster['GalaxyCluster']['galaxy_id'];
-            }
+            $result = $this->GalaxyCluster->delete($cluster['GalaxyCluster']['id'], true);
+            $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
             if ($result) {
-                $message = 'Galaxy cluster successfuly deleted.';
+                $message = __('Galaxy cluster successfuly deleted.');
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $id, $this->response->type());
+                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $this->response->type());
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxy_id));
+                    $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxyId));
                 }
             } else {
-                $message = 'Galaxy cluster could not be deleted.';
+                $message = __('Galaxy cluster could not be deleted.');
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $id, $message, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
                 } else {
                     $this->Flash->error($message);
                     $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
@@ -717,10 +726,10 @@ class GalaxyClustersController extends AppController
             }
         } else {
             if ($this->request->is('ajax')) {
-                $this->set('id', $id);
+                $this->set('id', $cluster['GalaxyCluster']['id']);
                 $this->render('ajax/galaxy_cluster_delete_confirmation');
             } else {
-                throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+                throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
             }
         }
     }
@@ -848,9 +857,12 @@ class GalaxyClustersController extends AppController
         $this->render('cluster_matrix');
     }
 
-    public function updateCluster($clusterId)
+    /**
+     * @param  mixed $id ID or UUID of the cluster
+     */
+    public function updateCluster($id)
     {
-        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, 'edit', $throwErrors=true, $full=true);
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException(__('Default galaxy cluster cannot be updated'));
         }
@@ -887,7 +899,7 @@ class GalaxyClustersController extends AppController
                 $this->Flash->error($flashErrorMessage);
             } else {
                 $this->Flash->success(__('Cluster updated to the newer version'));
-                $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $clusterId));
+                $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $id));
             }
         }
         $missingElements = array();
@@ -910,23 +922,21 @@ class GalaxyClustersController extends AppController
         $this->set('forkVersion', $forkVersion);
         $this->set('parentVersion', $parentVersion);
         $this->set('newVersionAvailable', $parentVersion > $forkVersion);
-        $this->set('id', $clusterId);
+        $this->set('id', $cluster['GalaxyCluster']['id']);
         $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
         $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
         $this->set('cluster', $cluster);
     }
 
+    /**
+     * @param  mixed $id ID or UUID of the cluster
+     */
     public function viewRelations($id)
     {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be reached via AJAX.');
         }
-        $conditions = array('conditions' => array('GalaxyCluster.id' => $id));
-        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $conditions, true);
-        if (empty($cluster)) {
-            throw new NotFoundException('Invalid galaxy cluster');
-        }
-        $cluster = $cluster[0];
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
         $existingRelations = $this->GalaxyCluster->GalaxyClusterRelation->getExistingRelationships();
         $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
 
@@ -952,14 +962,12 @@ class GalaxyClustersController extends AppController
         $this->set('distributionLevels', $distributionLevels);
     }
 
-    public function viewRelationTree($clusterId)
+    /**
+     * @param  mixed $id ID or UUID of the cluster
+     */
+    public function viewRelationTree($id)
     {
-        $options = array('conditions' => array('GalaxyCluster.id' => $clusterId));
-        $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $options, true);
-        if (empty($cluster)) {
-            throw new NotFoundException('Invalid galaxy cluster');
-        }
-        $cluster = $cluster[0];
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
         $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
         App::uses('ClusterRelationsTreeTool', 'Tools');
         $grapher = new ClusterRelationsTreeTool();
