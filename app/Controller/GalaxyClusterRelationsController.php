@@ -50,7 +50,8 @@ class GalaxyClusterRelationsController extends AppController
         }
 
         if ($this->_isRest()) {
-            $relations = $this->GalaxyClusterRelation->find('all', 
+            $relations = $this->GalaxyClusterRelation->find(
+                'all',
                 array(
                     'recursive' => -1,
                     'conditions' => array(
@@ -243,7 +244,8 @@ class GalaxyClusterRelationsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'edit', $this->response->type(), $message);
                 } else {
                     return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'edit', false, $message, $this->response->type());
-                }if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $relation['GalaxyClusterRelation']['sharing_group_id'])) {
+                }
+                if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $relation['GalaxyClusterRelation']['sharing_group_id'])) {
                     $errors[] = array(__('Galaxy Cluster Relation could not be saved: The user has to have access to the sharing group in order to be able to edit it.'));
                 }
             } else {

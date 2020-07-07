@@ -40,7 +40,8 @@ class GalaxiesController extends AppController
             );
         }
         if ($this->_isRest()) {
-            $galaxies = $this->Galaxy->find('all',
+            $galaxies = $this->Galaxy->find(
+                'all',
                 array(
                     'recursive' => -1,
                     'conditions' => array(
@@ -199,7 +200,7 @@ class GalaxiesController extends AppController
 
     public function pushCluster()
     {
-        if (!$this->Auth->user()['Role']['perm_sync'] || !$this->Auth->user()['Role']['perm_galaxy_editor'] ) {
+        if (!$this->Auth->user()['Role']['perm_sync'] || !$this->Auth->user()['Role']['perm_galaxy_editor']) {
             throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
         }
         if (!$this->_isRest()) {
@@ -244,7 +245,7 @@ class GalaxiesController extends AppController
                     'GalaxyCluster.default' => $clusterType
                 )
             );
-            $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(),$options, $full=true);
+            $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $options, $full=true);
             $clusters = $this->Galaxy->GalaxyCluster->unsetFieldsForExport($clusters);
             $content = json_encode($clusters, JSON_PRETTY_PRINT);
             $this->response->body($content);
@@ -522,7 +523,6 @@ class GalaxiesController extends AppController
                 throw new MethodNotAllowedException('Invalid event.');
             }
             $this->set('object', $object[0]);
-
         } elseif ($scope == 'attribute') {
             $this->loadModel('Attribute');
             $object = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));

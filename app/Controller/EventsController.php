@@ -4808,6 +4808,7 @@ class EventsController extends AppController
             $this->render('/Elements/view_galaxy_matrix');
         }
     }
+
     public function viewClusterRelations($eventId)
     {
         $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'flatten' => true));
@@ -4816,19 +4817,19 @@ class EventsController extends AppController
         }
         $event = $event[0];
         $clusterIds = array();
-        foreach($event['Galaxy'] as $galaxy) {
-            foreach($galaxy['GalaxyCluster'] as $cluster) {
+        foreach ($event['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $cluster) {
                 $clusterIds[$cluster['id']] = $cluster['id'];
             }
         }
-        foreach($event['Attribute'] as $attribute) {
-            foreach($attribute['Galaxy'] as $galaxy) {
-                foreach($galaxy['GalaxyCluster'] as $cluster) {
+        foreach ($event['Attribute'] as $attribute) {
+            foreach ($attribute['Galaxy'] as $galaxy) {
+                foreach ($galaxy['GalaxyCluster'] as $cluster) {
                     $clusterIds[$cluster['id']] = $cluster['id'];
                 }
             }
         }
-        $rootNodeIds = $clusterIds; 
+        $rootNodeIds = $clusterIds;
         $this->loadModel('GalaxyCluster');
         $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.id' => $clusterIds)), $full=true);
         App::uses('ClusterRelationsGraphTool', 'Tools');
