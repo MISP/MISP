@@ -2031,18 +2031,13 @@ class Attribute extends AppModel
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $cidrList = $this->getSetCIDRList();
             foreach ($cidrList as $cidr) {
-                $cidr_ip = explode('/', $cidr)[0];
-                if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    if ($ip_version === 4) {
-                        if ($this->__ipv4InCidr($ip, $cidr)) {
-                            $ipValues[] = $cidr;
-                        }
+                if (strpos($cidr, '.') !== false) {
+                    if ($ip_version === 4 && $this->__ipv4InCidr($ip, $cidr)) {
+                        $ipValues[] = $cidr;
                     }
                 } else {
-                    if ($ip_version === 6) {
-                        if ($this->__ipv6InCidr($ip, $cidr)) {
-                            $ipValues[] = $cidr;
-                        }
+                    if ($ip_version === 6 && $this->__ipv6InCidr($ip, $cidr)) {
+                        $ipValues[] = $cidr;
                     }
                 }
             }
@@ -3908,7 +3903,7 @@ class Attribute extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis) {
-            if ($redis->sCard('misp:cidr_cache_list') === 0) {
+            if (!$redis->exists('misp:cidr_cache_list')) {
                 $cidrList = $this->setCIDRList();
             } else {
                 $cidrList = $redis->smembers('misp:cidr_cache_list');
