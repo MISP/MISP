@@ -124,7 +124,7 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation']['sharing_group_id'] = null;
             }
 
-            $clusterSource = $this->GalaxyClusterRelation->SourceCluster->checkAuthorization($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=false, $full=false);
+            $clusterSource = $this->GalaxyClusterRelation->SourceCluster->fetchIfAuthorized($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=false, $full=false);
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
                 $errors = array($clusterSource['error']);
             }
@@ -216,7 +216,7 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation']['sharing_group_id'] = null;
             }
 
-            $clusterSource = $this->GalaxyClusterRelation->SourceCluster->checkAuthorization($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=false, $full=false);
+            $clusterSource = $this->GalaxyClusterRelation->SourceCluster->fetchIfAuthorized($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=false, $full=false);
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
                 $errors = array($clusterSource['error']);
             }
@@ -274,7 +274,7 @@ class GalaxyClusterRelationsController extends AppController
                 throw new NotFoundException(__('Relation not found.'));
             }
             $relation = $relation[0];
-            $clusterSource = $this->GalaxyClusterRelation->SourceCluster->checkAuthorization($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=true, $full=false);
+            $clusterSource = $this->GalaxyClusterRelation->SourceCluster->fetchIfAuthorized($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=true, $full=false);
             $result = $this->GalaxyClusterRelation->delete($id, true);
             if ($result) {
                 $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['SourceCluster']['id']);

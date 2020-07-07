@@ -1121,12 +1121,12 @@ class GalaxyCluster extends AppModel
             throw new NotFoundException(__('Invalid galaxy cluster'));
         }
         $conditions = array('conditions' => array("${alias}.id" => $clusterId));
-        $cluster = $this->fetchGalaxyClusters($user, $conditions, $full);
+        $cluster = $this->fetchGalaxyClusters($user, $conditions, $full=$full);
         return $cluster;
     }
 
 
-    public function checkAuthorization($user, $cluster, $authorizations, $throwErrors=true, $full=false)
+    public function fetchIfAuthorized($user, $cluster, $authorizations, $throwErrors=true, $full=false)
     {
         $authorizations = is_array($authorizations) ? $authorizations : array($authorizations);
         $possibleAuthorizations = array('view', 'edit', 'delete', 'publish');

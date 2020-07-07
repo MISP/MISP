@@ -350,7 +350,7 @@ class GalaxyClustersController extends AppController
 
     public function edit($id)
     {
-        $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException('Default galaxy cluster cannot be edited');
         }
@@ -469,7 +469,7 @@ class GalaxyClustersController extends AppController
 
     public function publish($clusterId)
     {
-        $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $clusterId, 'publish', $throwErrors=true, $full=false);
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, 'publish', $throwErrors=true, $full=false);
         if ($cluster['GalaxyCluster']['published']) {
             throw new MethodNotAllowedException(__('You can\'t publish a galaxy cluster that is already published'));
         }
@@ -509,7 +509,7 @@ class GalaxyClustersController extends AppController
 
     public function unpublish($clusterId)
     {
-        $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $clusterId, 'publish', $throwErrors=true, $full=false);
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, 'publish', $throwErrors=true, $full=false);
         if (!$cluster['GalaxyCluster']['published']) {
             throw new MethodNotAllowedException(__('You can\'t unpublish a galaxy cluster that is not published'));
         }
@@ -706,7 +706,7 @@ class GalaxyClustersController extends AppController
     {
         if ($this->request->is('post')) {
             $result = false;
-            $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
+            $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
             if (!empty($cluster)) {
                 $result = $this->GalaxyCluster->delete($id, true);
                 $galaxy_id = $cluster['GalaxyCluster']['galaxy_id'];
@@ -863,7 +863,7 @@ class GalaxyClustersController extends AppController
 
     public function updateCluster($clusterId)
     {
-        $cluster = $this->GalaxyCluster->checkAuthorization($this->Auth->user(), $clusterId, 'edit', $throwErrors=true, $full=true);
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, 'edit', $throwErrors=true, $full=true);
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException(__('Default galaxy cluster cannot be updated'));
         }
