@@ -15,14 +15,6 @@ class GalaxyClustersController extends AppController
             'contain' => array(
                 'Tag' => array(
                     'fields' => array('Tag.id'),
-                    /*
-                    'EventTag' => array(
-                        'fields' => array('EventTag.event_id')
-                    ),
-                    'AttributeTag' => array(
-                        'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
-                    )
-                    */
                 ),
                 'GalaxyElement' => array(
                     'conditions' => array('GalaxyElement.key' => 'synonyms'),
@@ -31,7 +23,7 @@ class GalaxyClustersController extends AppController
             )
     );
 
-    public function index(int $galaxyId)
+    public function index($galaxyId)
     {
         $filters = $this->IndexFilter->harvestParameters(array('context', 'searchall'));
         $aclConditions = $this->GalaxyCluster->buildConditions($this->Auth->user());

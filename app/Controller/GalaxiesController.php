@@ -221,7 +221,7 @@ class GalaxiesController extends AppController
         }
     }
 
-    public function export(int $galaxyId)
+    public function export($galaxyId)
     {
         $galaxy = $this->Galaxy->find('first', array(
             'recursive' => -1,
@@ -542,7 +542,7 @@ class GalaxiesController extends AppController
         $this->render('/Events/ajax/ajaxGalaxies');
     }
 
-    public function forkTree(int $galaxyId)
+    public function forkTree($galaxyId)
     {
         $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
         if (empty($clusters)) {
@@ -565,7 +565,7 @@ class GalaxiesController extends AppController
         $this->set('galaxy_id', $galaxyId);
     }
 
-    public function relationsGraph(int $galaxyId)
+    public function relationsGraph($galaxyId)
     {
         $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
         if (empty($clusters)) {

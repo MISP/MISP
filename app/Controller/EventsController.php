@@ -4810,7 +4810,7 @@ class EventsController extends AppController
     }
     
     // Displays all the cluster relations for the provided event
-    public function viewClusterRelations(int $eventId)
+    public function viewClusterRelations($eventId)
     {
         $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'flatten' => true));
         if (empty($event)) {

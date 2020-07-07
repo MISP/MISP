@@ -77,7 +77,7 @@ class GalaxyClusterRelationsController extends AppController
         }
     }
 
-    public function view(int $id)
+    public function view($id)
     {
         if ($this->_isRest()) {
             $conditions = array('GalaxyClusterRelation.id' => $id);
@@ -178,7 +178,7 @@ class GalaxyClusterRelationsController extends AppController
         $this->set('action', 'add');
     }
 
-    public function edit(int $id)
+    public function edit($id)
     {
         $conditions = array('conditions' => array('GalaxyClusterRelation.id' => $id), 'contain' => array('GalaxyClusterRelationTag' => 'Tag'));
         $existingRelation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), $conditions);
@@ -266,7 +266,7 @@ class GalaxyClusterRelationsController extends AppController
         $this->render('add');
     }
 
-    public function delete(int $id)
+    public function delete($id)
     {
         if ($this->request->is('post')) {
             $relation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array('conditions' => array('id' => $id)));
