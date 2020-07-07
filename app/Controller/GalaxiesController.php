@@ -575,11 +575,10 @@ class GalaxiesController extends AppController
             'recursive' => -1,
             'conditions' => array('Galaxy.id' => $galaxyId)
         ));
-        $rootNodeIds = Hash::combine($clusters, '{n}.GalaxyCluster.id', '{n}.GalaxyCluster.id');
         App::uses('ClusterRelationsGraphTool', 'Tools');
         $grapher = new ClusterRelationsGraphTool();
         $grapher->construct($this->Auth->user(), $this->Galaxy->GalaxyCluster);
-        $relations = $grapher->getNetwork($clusters, $rootNodeIds=$rootNodeIds);
+        $relations = $grapher->getNetwork($clusters);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->type());
         }

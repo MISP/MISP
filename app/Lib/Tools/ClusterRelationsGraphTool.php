@@ -11,16 +11,24 @@
             $this->user = $user;
             return true;
         }
-
-        public function getNetwork($clusters, $rootNodeIds=array(), $keepNotLinkedClusters=false, $includeReferencingRelation=false)
+        
+        /**
+         * getNetwork Returns the network for the provided clusters
+         *
+         * @param  mixed $clusters
+         * @param  bool $keepNotLinkedClusters If true, includes nodes not linked to others
+         * @param  bool $includeReferencingRelation If true, fetch and includes nodes referencing the $clusters passed
+         * @return array The constructed network with nodes and links as keys
+         */
+        public function getNetwork(array $clusters, $keepNotLinkedClusters=false, $includeReferencingRelation=false)
         {
+            $rootNodeIds = Hash::extract($clusters, '{n}.GalaxyCluster.id');
             $nodes = array();
             $links = array();
             foreach ($clusters as $cluster) {
                 $this->lookup[$cluster['GalaxyCluster']['uuid']] = $cluster;
             }
             foreach ($clusters as $cluster) {
-                $cluster = $this->attachOwnerInsideCluster($cluster);
                 if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
                     foreach ($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $relation) {
                         $referencedClusterUuid = $relation['referenced_galaxy_cluster_uuid'];
@@ -30,14 +38,12 @@
                                 'contain' => array('Org', 'Orgc', 'SharingGroup'),
                             ));
                             if (!empty($referencedCluster)) {
-                                $referencedCluster[0] = $this->attachOwnerInsideCluster($referencedCluster[0]);
                                 $this->lookup[$referencedClusterUuid] = $referencedCluster[0];
                             } else {
                                 $this->lookup[$referencedClusterUuid] = array();
                             }
                         }
                         $referencedCluster = $this->lookup[$referencedClusterUuid];
-                        $referencedCluster = $this->attachOwnerInsideCluster($referencedCluster);
                         if (!empty($referencedCluster)) {
                             $nodes[$referencedClusterUuid] = $referencedCluster['GalaxyCluster'];
                             $nodes[$referencedClusterUuid]['group'] = $referencedCluster['GalaxyCluster']['type'];
@@ -68,7 +74,8 @@
                     $referencingRelations = $this->GalaxyCluster->GalaxyClusterRelation->fetchRelations($this->user, array(
                         'conditions' => array(
                             'referenced_galaxy_cluster_uuid' => $cluster['GalaxyCluster']['uuid']
-                        )
+                        ),
+                        'contain' => array('Org', 'Orgc', 'SharingGroup'),
                     ));
                     if (!empty($referencingRelations)) {
                         foreach ($referencingRelations as $relation) {
@@ -82,7 +89,6 @@
                             }
                             $referencingCluster = $this->lookup[$referencingClusterUuid];
                             if (!empty($referencingCluster)) {
-                                $referencingCluster = $this->attachOwnerInsideCluster($referencingCluster);
                                 $nodes[$referencingClusterUuid] = $referencingCluster['GalaxyCluster'];
                                 $nodes[$referencingClusterUuid]['group'] = $referencingCluster['GalaxyCluster']['type'];
                                 $links[] = array(
@@ -97,29 +103,5 @@
                 }
             }
             return array('nodes' => array_values($nodes), 'links' => $links);
-        }
-
-        private function attachOwnerInsideCluster($cluster)
-        {
-            if (!empty($cluster['GalaxyCluster']['Org']) && !isset($cluster['GalaxyCluster']['Org'])) {
-                $cluster['GalaxyCluster']['Org'] = array(
-                    'id' => $cluster['Org']['id'],
-                    'name' => $cluster['Org']['name'],
-                );
-            }
-            if (!empty($cluster['GalaxyCluster']['Orgc']) && !isset($cluster['GalaxyCluster']['Orgc'])) {
-                $cluster['GalaxyCluster']['Orgc'] = array(
-                    'id' => $cluster['Orgc']['id'],
-                    'name' => $cluster['Orgc']['name'],
-                );
-            }
-            if (!empty($cluster['GalaxyCluster']['SharingGroup']) && !isset($cluster['GalaxyCluster']['SharingGroup'])) {
-                $cluster['GalaxyCluster']['SharingGroup'] = array(
-                    'id' => $cluster['SharingGroup']['id'],
-                    'name' => $cluster['SharingGroup']['name'],
-                    'description' => $cluster['SharingGroup']['description'],
-                );
-            }
-            return $cluster;
         }
     }

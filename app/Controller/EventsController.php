@@ -4830,13 +4830,12 @@ class EventsController extends AppController
                 }
             }
         }
-        $rootNodeIds = $clusterIds;
         $this->loadModel('GalaxyCluster');
         $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.id' => $clusterIds)), $full=true);
         App::uses('ClusterRelationsGraphTool', 'Tools');
         $grapher = new ClusterRelationsGraphTool();
         $grapher->construct($this->Auth->user(), $this->GalaxyCluster);
-        $relations = $grapher->getNetwork($clusters, $rootNodeIds=$rootNodeIds, $keepNotLinkedClusters=true, $includeReferencingRelation=true);
+        $relations = $grapher->getNetwork($clusters, $keepNotLinkedClusters=true, $includeReferencingRelation=true);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->type());
         }
