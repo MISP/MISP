@@ -305,7 +305,7 @@ class AttributesController extends AppController
         // combobox for categories
         $categories = array_keys($this->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
-        $this->set('categories', compact('categories'));
+        $this->set('categories', $categories);
         $this->loadModel('Event');
         $events = $this->Event->findById($eventId);
         $this->set('event_id', $events['Event']['id']);
@@ -2243,7 +2243,7 @@ class AttributesController extends AppController
             // combobox for categories
             $categories = array_keys($this->Attribute->categoryDefinitions);
             $categories = $this->_arrayToValuesIndexArray($categories);
-            $this->set('categories', compact('categories'));
+            $this->set('categories', $categories);
             $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
             $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
             $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);

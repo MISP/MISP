@@ -1524,20 +1524,6 @@ class Event extends AppModel
         return $this->delete($id, false);
     }
 
-    public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null)
-    {
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $url . '/shadow_attributes/getProposalsByUuidList';
-        $response = $HttpSocket->post($uri, json_encode($uuidList), $request);
-        if ($response->isOk()) {
-            return(json_decode($response->body, true));
-        } else {
-            return false;
-        }
-    }
-
     public function createEventConditions($user)
     {
         $conditions = array();
@@ -3692,7 +3678,7 @@ class Event extends AppModel
             $referencesToCapture = array();
             if (!empty($data['Event']['Object'])) {
                 foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Object->captureObject($object, $this->id, $user, $this->Log);
+                    $result = $this->Object->captureObject($object, $this->id, $user, $this->Log, false);
                 }
                 foreach ($data['Event']['Object'] as $object) {
                     if (isset($object['ObjectReference'])) {
@@ -4810,43 +4796,47 @@ class Event extends AppModel
             $proposal['objectType'] = 'proposal';
         }
 
-        $include = $filterType['proposal'] != 2;
+        $include = true;
+        if ($filterType) {
+            $include = $filterType['proposal'] != 2;
 
-        /* correlation */
-        if ($filterType['correlation'] == 0) { // `both`
-            // pass, do not consider as `both` is selected
-        } else if (in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
-            $include = $include && ($filterType['correlation'] == 1);
-        } else { // `exclude`
-            $include = $include && ($filterType['correlation'] == 2);
+            /* correlation */
+            if ($filterType['correlation'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
+                $include = $include && ($filterType['correlation'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['correlation'] == 2);
+            }
+
+            /* feed */
+            if ($filterType['feed'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($proposal['Feed'])) { // `include only`
+                $include = $include && ($filterType['feed'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['feed'] == 2);
+            }
+
+            /* server */
+            if ($filterType['server'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($attribute['Server'])) { // `include only`
+                $include = $include && ($filterType['server'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['server'] == 2);
+            }
+
+            /* TypeGroupings */
+            if (
+                $filterType['attributeFilter'] != 'all'
+                && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
+                && !in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+            ) {
+                $include = false;
+            }
         }
 
-        /* feed */
-        if ($filterType['feed'] == 0) { // `both`
-            // pass, do not consider as `both` is selected
-        } else if (!empty($proposal['Feed'])) { // `include only`
-            $include = $include && ($filterType['feed'] == 1);
-        } else { // `exclude`
-            $include = $include && ($filterType['feed'] == 2);
-        }
-
-        /* server */
-        if ($filterType['server'] == 0) { // `both`
-            // pass, do not consider as `both` is selected
-        } else if (!empty($attribute['Server'])) { // `include only`
-            $include = $include && ($filterType['server'] == 1);
-        } else { // `exclude`
-            $include = $include && ($filterType['server'] == 2);
-        }
-
-        /* TypeGroupings */
-        if (
-            $filterType['attributeFilter'] != 'all'
-            && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
-            && !in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
-        ) {
-            $include = false;
-        }
         $proposal = $this->__prepareGenericForView($proposal, $eventWarnings, $warningLists);
 
         /* warning */

@@ -481,9 +481,7 @@ function activateField(type, id, field, event) {
     if (type == 'denyForm') return;
     var objectType = 'attributes';
     var containerName = 'Attribute';
-    if (type == 'ShadowAttribute') {
-        objectType = 'shadow_attributes';
-    } else if (type == 'Object') {
+    if (type == 'Object') {
         objectType = 'objects';
         containerName = 'Object';
     }
@@ -624,9 +622,7 @@ function submitForm(type, id, field, context) {
     var object_type = 'attributes';
     var action = "editField";
     var name = '#' + type + '_' + id + '_' + field;
-    if (type == 'ShadowAttribute') {
-        object_type = 'shadow_attributes';
-    } else if (type == 'Object') {
+    if (type == 'Object') {
         object_type = 'objects';
     }
     $.ajax({
