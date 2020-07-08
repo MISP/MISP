@@ -70,7 +70,7 @@ class GalaxyCluster extends AppModel
     );
 
     private $__clusterCache = array();
-    private $deleteClusterUUID;
+    private $deletedClusterUUID;
 
     public $hasMany = array(
         'GalaxyElement' => array('dependent' => true),
@@ -142,7 +142,7 @@ class GalaxyCluster extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        // Update all relations IDs that are unkown but saved (UUID is set)
+        // Update all relations IDs that are unknown but saved
         parent::afterSave($created, $options);
         $cluster = $this->data[$this->alias];
         $cluster = $this->fetchAndSetUUID($cluster);
@@ -154,7 +154,7 @@ class GalaxyCluster extends AppModel
 
     public function afterDelete()
     {
-        // Remove all relations IDs now that the cluster is unkown
+        // Remove all relations IDs now that the cluster is unknown
         if (!empty($this->deletedClusterUUID)) {
             $this->GalaxyClusterRelation->updateAll(
                 array('GalaxyClusterRelation.referenced_galaxy_cluster_id' => 0),
@@ -177,7 +177,12 @@ class GalaxyCluster extends AppModel
             $this->deletedClusterUUID = null;
         }
     }
-
+    
+    /**
+     * arrangeData Move linked data into the cluster model key
+     *
+     * @return array The arranged cluster
+     */
     public function arrangeData($cluster)
     {
         $models = array('Galaxy', 'SharingGroup', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargetingClusterRelation');
@@ -204,8 +209,15 @@ class GalaxyCluster extends AppModel
         return $cluster;
     }
 
-    // Respecting ACL, save a cluster, its elements and set correct fields
-    public function saveCluster($user, $cluster, $allowEdit=false)
+    /**
+     * saveCluster Respecting ACL saves a cluster, its elements, relations and set correct fields where applicable
+     *
+     * @param  array $user
+     * @param  array $cluster
+     * @param  bool $allowEdit redirects to the edit function
+     * @return array The errors if any
+     */
+    public function saveCluster(array $user, array $cluster, $allowEdit=false)
     {
         $errors = array();
         if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
@@ -254,12 +266,14 @@ class GalaxyCluster extends AppModel
         if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
             $forkedCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['extends_uuid'])));
             if (!empty($forkedCluster) && $forkedCluster['GalaxyCluster']['galaxy_id'] != $galaxy['id']) {
-                $errors[] = __('Cluster forks always have to belong to the same galaxy as the parent');
+                $errors[] = __('Cluster forks have to belong to the same galaxy as the parent');
                 return $errors;
             }
         } else {
             $cluster['GalaxyCluster']['extends_version'] = null;
         }
+
+        // In contrary to the capture context, we make sure the cluster belongs to the organisation initiating the save
         $cluster['GalaxyCluster']['org_id'] = $user['Organisation']['id'];
         $cluster['GalaxyCluster']['orgc_id'] = $user['Organisation']['id'];
 
@@ -302,7 +316,16 @@ class GalaxyCluster extends AppModel
         return $errors;
     }
 
-    public function editCluster($user, $cluster, $fieldList = array(), $deleteOldElements=true)
+    /**
+     * editCluster Respecting ACL edits a cluster, its elements, relations and set correct fields where applicable
+     *
+     * @param  array $user
+     * @param  array $cluster
+     * @param  array $fieldList Only edit the fields provided
+     * @param  bool  $deleteOldElements Should already existing element be deleted or not
+     * @return array The errors if any
+     */
+    public function editCluster(array $user, array $cluster, array $fieldList = array(), $deleteOldElements=true)
     {
         $this->SharingGroup = ClassRegistry::init('SharingGroup');
         $errors = array();
@@ -319,10 +342,14 @@ class GalaxyCluster extends AppModel
         } else {
             // For users that are of the creating org of the cluster, always allow the edit
             // For users that are sync users, only allow the edit if the cluster is locked
-            if ($existingCluster['GalaxyCluster']['orgc_id'] === $user['org_id']
-            || ($user['Role']['perm_sync'] && $existingCluster['GalaxyCluster']['locked']) || $user['Role']['perm_site_admin']) {
+            if (
+                $existingCluster['GalaxyCluster']['orgc_id'] === $user['org_id'] ||
+                ($user['Role']['perm_sync'] && $existingCluster['GalaxyCluster']['locked']) || $user['Role']['perm_site_admin']
+            ) {
                 if ($user['Role']['perm_sync']) {
-                    if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])) {
+                    if (
+                        isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $cluster['GalaxyCluster']['sharing_group_id'])
+                    ) {
                         $errors[] = array(__('Galaxy Cluster could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.'));
                     }
                 }
@@ -362,8 +389,16 @@ class GalaxyCluster extends AppModel
         }
         return $errors;
     }
-
-    public function publishRouter($user, $cluster, $passAlong=null)
+    
+    /**
+     * publishRouter
+     *
+     * @param  array $user
+     * @param  array $cluster
+     * @param  int|null $passAlong The server id from which the publish is issued
+     * @return mixed The process id or the publish result depending on background jobs
+     */
+    public function publishRouter(array $user, array $cluster, $passAlong=null)
     {
         if (Configure::read('MISP.background_jobs')) {
             if (is_numeric($cluster)) {
@@ -405,7 +440,14 @@ class GalaxyCluster extends AppModel
         }
     }
 
-    public function publish($cluster, $passAlong=null)
+    /**
+     * publish
+     *
+     * @param  array $cluster
+     * @param  int|null $passAlong The server id from which the publish is issued
+     * @return bool The success of the publish operation
+     */
+    public function publish(array $cluster, $passAlong=null)
     {
         if (is_numeric($cluster)) {
             $clusterId = $cluster;
@@ -423,7 +465,7 @@ class GalaxyCluster extends AppModel
         return false;
     }
 
-    public function unpublish($cluster)
+    public function unpublish(array $cluster)
     {
         if (is_numeric($cluster)) {
             $this->id = $cluster;
@@ -435,7 +477,13 @@ class GalaxyCluster extends AppModel
         return false;
     }
 
-    // Upload this specific cluster to all remote servers
+    /**
+     * uploadClusterToServersRouter Upload the cluster to all remote servers
+     *
+     * @param  int $clusterId
+     * @param  int|null $passAlong The server id from which the publish is issued
+     * @return bool the upload result
+     */
     private function uploadClusterToServersRouter($clusterId, $passAlong=null)
     {
         $clusterOrgcId = $this->find('first', array(
@@ -460,7 +508,7 @@ class GalaxyCluster extends AppModel
         $cluster = $cluster[0];
 
         $this->Server = ClassRegistry::init('Server');
-        $conditions = array('push' => 1, 'push_galaxy_clusters' => 1);
+        $conditions = array('push' => 1, 'push_galaxy_clusters' => 1); // Notice: Cluster will be pushed only for servers having both these conditions
         if ($passAlong) {
             $conditions[] = array('Server.id !=' => $passAlong);
         }
@@ -585,13 +633,14 @@ class GalaxyCluster extends AppModel
                 $orgc = array('Orgc' => array('uuid' => $cluster['GalaxyCluster']['Orgc']['uuid']));
             }
             if ($cluster['GalaxyCluster']['orgc_id'] != 0 && $this->OrgBlacklist->hasAny(array('OrgBlacklist.org_uuid' => $orgc['Orgc']['uuid']))) {
-                $results['failed']++; // Organisation blacklisted
+                $results['errors'][] = __('Organisation blacklisted (%s)', $orgc['Orgc']['uuid']);
+                $results['ignored']++;
                 return $results;
             }
         }
 
         if ($cluster['GalaxyCluster']['default']) {
-            $results['errors'][] = __('Can only save non default clusters');
+            $results['errors'][] = __('Only non-default clusters can be saved');
             $results['failed']++;
             return $results;
         }
@@ -789,13 +838,16 @@ class GalaxyCluster extends AppModel
         return $conditions;
     }
 
-    // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
-    // options:
-    //     fields
-    //     contain
-    //     conditions
-    //     group
-    public function fetchGalaxyClusters($user, $options, $full=false)
+
+    /**
+     * fetchGalaxyClusters Very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
+     *
+     * @param  mixed $user
+     * @param  mixed $options
+     * @param  bool  $full
+     * @return array
+     */
+    public function fetchGalaxyClusters(array $user, array $options, $full=false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -870,7 +922,7 @@ class GalaxyCluster extends AppModel
         return $clusters;
     }
 
-    public function restSearch($user, $returnFormat, $filters, $paramsOnly=false, $jobId = false, &$elementCounter = 0)
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly=false, $jobId = false, &$elementCounter = 0)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
@@ -896,7 +948,7 @@ class GalaxyCluster extends AppModel
 
         $default_cluster_memory_coefficient = 80;
         if ($params['full']) {
-            $default_cluster_memory_coefficient = 0.5;
+            $default_cluster_memory_coefficient = 0.5; // Complete cluster can be massive
         }
         if ($params['minimal']) {
             $default_cluster_memory_coefficient = 100;
@@ -1053,8 +1105,15 @@ class GalaxyCluster extends AppModel
         }
         return $conditions;
     }
-
-    private function getClusterUUIDsFromAttachedTags($user, $eventId)
+    
+    /**
+     * getClusterUUIDsFromAttachedTags Extract UUIDs from clusters contained in the provided event
+     *
+     * @param  array $user
+     * @param  int $eventId
+     * @return array list of cluster UUIDs
+     */
+    private function getClusterUUIDsFromAttachedTags(array $user, $eventId)
     {
         $models = array('Attribute', 'Event');
         $clusterUUIDs = array();
@@ -1070,17 +1129,18 @@ class GalaxyCluster extends AppModel
             );
             if ($model == 'Attribute') {
                 // We have to make sure users have access to the event/attributes
-                // Otherwise, they might enumerate and  fetch tags from event/attributes they can't see
+                // Otherwise, they might enumerate and fetch tags from event/attributes they can't see
                 $this->Attribute = ClassRegistry::init('Attribute');
                 $attributes = $this->Attribute->fetchAttributes($user, array(
                     'conditions' => array('Attribute.event_id' => $eventId),
                     'fields' => array('Attribute.id'),
                     'flatten' => 1
                 ));
-                if (empty($attributes)) { // no attributes accessible
-                    $attributes = -1;
+                if (!empty($attributes)) {
+                    $attributeIds = Hash::extract($attributes, '{n}.Attribute.id');
+                } else { // no attributes accessible
+                    $attributeIds = -1;
                 }
-                $attributeIds = Hash::extract($attributes, '{n}.Attribute.id');
                 $joinCondition2['conditions']["${model}Tag.attribute_id"] = $attributeIds;
             }
             $options = array(
@@ -1103,8 +1163,16 @@ class GalaxyCluster extends AppModel
         $clusterUUIDs = array_unique($clusterUUIDs);
         return $clusterUUIDs;
     }
-
-    public function fetchClusterById($user, $clusterId, $full=false)
+    
+    /**
+     * fetchClusterById Simple ACL-aware method to fetch a cluster by Id or UUID
+     *
+     * @param  array $user
+     * @param  int|string $clusterId
+     * @param  bool  $full
+     * @return void
+     */
+    public function fetchClusterById(array $user, $clusterId, $full=false)
     {
         $alias = $this->alias;
         if (Validation::uuid($clusterId)) {
@@ -1125,8 +1193,18 @@ class GalaxyCluster extends AppModel
         return $cluster;
     }
 
-
-    public function fetchIfAuthorized($user, $cluster, $authorizations, $throwErrors=true, $full=false)
+    
+    /**
+     * fetchIfAuthorized Fetches a cluster and checks if the user has the authorization to perform the requested operation
+     *
+     * @param  array $user
+     * @param  int|string|array $cluster
+     * @param  mixed $authorizations the requested actions to be performed on the cluster
+     * @param  bool  $throwErrors Should the function throws excpetion if users is not allowed to perform the action
+     * @param  bool  $full
+     * @return array The cluster or an error message
+     */
+    public function fetchIfAuthorized(array $user, $cluster, $authorizations, $throwErrors=true, $full=false)
     {
         $authorizations = is_array($authorizations) ? $authorizations : array($authorizations);
         $possibleAuthorizations = array('view', 'edit', 'delete', 'publish');
@@ -1142,8 +1220,8 @@ class GalaxyCluster extends AppModel
                 }
                 return array('authorized' => false, 'error' => $message);
             }
+            $cluster = $cluster[0];
         }
-        $cluster = $cluster[0];
         if ($user['Role']['perm_site_admin']) {
             return $cluster;
         }
@@ -1323,14 +1401,17 @@ class GalaxyCluster extends AppModel
         $clusters = $this->fetchGalaxyClusters($user, $options, $full=false);
         return $clusters;
     }
-
+    
+    /**
+     * @return string|bool The result of the upload. True if success, a string otherwise
+     */
     public function uploadClusterToServer($cluster, $server, $HttpSocket, $user)
     {
         $this->Server = ClassRegistry::init('Server');
         $this->Log = ClassRegistry::init('Log');
         $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
         if (empty($push['canPush']) && empty($push['canPushGalaxyCluster'])) {
-            return 'The remote user is not a sightings user - the upload of the galaxy clusters has been blocked.';
+            return __('The remote user does not have the permission to manipulate galaxies - the upload of the galaxy clusters has been blocked.');
         }
         $updated = null;
         $newLocation = $newTextBody = '';
@@ -1368,6 +1449,9 @@ class GalaxyCluster extends AppModel
         return true;
     }
 
+    /**
+     * @return string|bool|int The result of the upload.
+     */
     public function restfulGalaxyClusterToServer($cluster, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
     {
         $cluster = $this->__prepareForPushToServer($cluster, $server);
@@ -1394,8 +1478,15 @@ class GalaxyCluster extends AppModel
         $response = $HttpSocket->post($uri, $data, $request);
         return $this->__handleRestfulGalaxyClusterToServerResponse($response, $newLocation, $newTextBody);
     }
-
-    private function __prepareForPushToServer($cluster, $server)
+    
+    /**
+     * __prepareForPushToServer Check distribution and alter the cluster for sync
+     *
+     * @param  array $cluster
+     * @param  array $server
+     * @return array The cluster ready to be pushed
+     */
+    private function __prepareForPushToServer(array $cluster, array $server)
     {
         if ($cluster['GalaxyCluster']['distribution'] == 4) {
             if (!empty($cluster['GalaxyCluster']['SharingGroup']['SharingGroupServer'])) {
@@ -1420,8 +1511,15 @@ class GalaxyCluster extends AppModel
         }
         return $cluster;
     }
-
-    private function __updateClusterForSync($cluster, $server)
+    
+    /**
+     * __updateClusterForSync Cleanup the cluster and adapt data for sync
+     *
+     * @param  array $cluster
+     * @param  array $server
+     * @return array The cluster ready do be sync
+     */
+    private function __updateClusterForSync(array $cluster, array $server)
     {
         $this->Event = ClassRegistry::init('Event');
         // cleanup the array from things we do not want to expose
@@ -1520,6 +1618,9 @@ class GalaxyCluster extends AppModel
         return $relation;
     }
 
+    /**
+     * @return string|bool|int The result of the upload.
+     */
     private function __handleRestfulGalaxyClusterToServerResponse($response, &$newLocation, &$newTextBody)
     {
         switch ($response->code) {
@@ -1557,27 +1658,41 @@ class GalaxyCluster extends AppModel
         $error = false;
         switch ($code) {
             case 403:
-                return 'The distribution level of the cluster blocks it from being pushed.';
+                return __('The distribution level of the cluster blocks it from being pushed.');
             case 405:
-                $error = 'The sync user on the remote instance does not have the required privileges to handle this cluster.';
+                $error = __('The sync user on the remote instance does not have the required privileges to handle this cluster.');
                 break;
         }
         if ($error) {
             $newTextBody = 'Uploading GalaxyCluster (' . $cluster['GalaxyCluster']['id'] . ') to Server (' . $server['Server']['id'] . ')';
+            $newTextBody = __('Uploading GalaxyCluster (%s) to Server (%s)', $cluster['GalaxyCluster']['id'], $server['Server']['id']);
             $this->Log->createLogEntry($user, 'push', 'GalaxyCluster', $cluster['GalaxyCluster']['id'], 'push', $newTextBody);
         }
         return $error;
     }
-
-    public function pullGalaxyClusters($user, $server, $technique = 'full')
+    
+    /**
+     * pullGalaxyClusters
+     *
+     * @param  array $user
+     * @param  array $server
+     * @param  string|int $technique The technique startegy used for pulling
+     *      allowed:
+     *          - int <event id>                    event containing the clusters to pulled
+     *          - string <full>                     pull everything
+     *          - string <update>                   pull updates of cluster present locally
+     *          - string <pull_relevant_clusters>   pull clusters based on tags present locally
+     * @return void The number of pulled clusters
+     */
+    public function pullGalaxyClusters(array $user, array $server, $technique = 'full')
     {
         $version = explode('.', $server['Server']['version']);
         if (
-            ($version[0] == 2 && $version[1] == 4 && $version[2] < 111) // FIXME: Use correct version
+            ($version[0] == 2 && $version[1] == 4 && $version[2] < 128) // FIXME: Use correct version
         ) {
             return 0;
         }
-        $clusterIds = $this->__getClusterIdListBasedOnPullTechnique($user, $technique, $server);
+        $clusterIds = $this->getClusterIdListBasedOnPullTechnique($user, $technique, $server);
         if (!isset($server['Server']['version'])) {
             $this->Server = ClassRegistry::init('Server');
             $server['Server']['version'] = $this->Server->getRemoteVersion($server['Server']['id']);
@@ -1593,8 +1708,16 @@ class GalaxyCluster extends AppModel
         }
         return count($successes);
     }
-
-    private function __getClusterIdListBasedOnPullTechnique($user, $technique, $server)
+    
+    /**
+     * getClusterIdListBasedOnPullTechnique Collect the list of remote cluster IDs to be pulled based on the technique
+     *
+     * @param  array $user
+     * @param  string|int $technique
+     * @param  array $server
+     * @return array cluster ID list to be pulled
+     */
+    private function getClusterIdListBasedOnPullTechnique(array $user, $technique, array $server)
     {
         $this->Server = ClassRegistry::init('Server');
         if ("update" === $technique) {
@@ -1638,7 +1761,7 @@ class GalaxyCluster extends AppModel
     {
         $cluster = $this->downloadGalaxyClusterFromServer($clusterId, $server);
         if (!empty($cluster)) {
-            $cluster = $this->__updatePulledClusterBeforeInsert($cluster, $server, $user);
+            $cluster = $this->updatePulledClusterBeforeInsert($cluster, $server, $user);
             $result = $this->captureCluster($user, $cluster, $fromPull=true, $orgId=$server['Server']['org_id']);
             if ($result['success']) {
                 $successes[] = $clusterId;
@@ -1664,7 +1787,7 @@ class GalaxyCluster extends AppModel
         return null;
     }
 
-    private function __updatePulledClusterBeforeInsert($cluster, $server, $user)
+    private function updatePulledClusterBeforeInsert($cluster, $server, $user)
     {
         // The cluster came from a pull, so it should be locked and distribution should be adapted.
         $cluster['GalaxyCluster']['locked'] = true;
@@ -1716,25 +1839,6 @@ class GalaxyCluster extends AppModel
                 if (!empty($relatedCluster)) {
                     $cluster['GalaxyCluster']['TargetingClusterRelation'][$k]['GalaxyCluster'] = $relatedCluster[0]['GalaxyCluster'];
                 }
-            }
-        }
-        return $cluster;
-    }
-
-    public function attachTargettingRelations($user, $cluster)
-    {
-        $targettingRelations = $this->GalaxyClusterRelation->fetchRelations($user, array(
-            'conditions' => array(
-                'referenced_galaxy_cluster_uuid' => $cluster['GalaxyCluster']['uuid']
-            ),
-            'contain' => array('GalaxyClusterRelationTag' => 'Tag')
-        ));
-        if (!empty($targettingRelations)) {
-            foreach ($targettingRelations as $k => $relation) {
-                if (!empty($relation['GalaxyClusterRelationTag'])) {
-                    $relation['GalaxyClusterRelation']['Tag'] = $relation['GalaxyClusterRelationTag'][0]['Tag'];
-                }
-                $cluster['GalaxyCluster']['TargetingClusterRelation'][] = $relation['GalaxyClusterRelation'];
             }
         }
         return $cluster;

@@ -2810,8 +2810,17 @@ class Server extends AppModel
         return "Error: got response code " . $response->code;
     }
 
-    // Get an array of cluster_ids that are present on the remote server and returns clusters that should be pulled
-    public function getElligibleClusterIdsFromServerForPull($server, $HttpSocket=null, $onlyUpdateLocalCluster=true, $elligibleClusters=array(), $conditions=array())
+    /**
+     * getElligibleClusterIdsFromServerForPull Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
+     *
+     * @param  array $server
+     * @param  mixed $HttpSocket
+     * @param  bool  $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
+     * @param  array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster 
+     * @param  array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
+     * @return array List of cluster IDs to be pulled
+     */
+    public function getElligibleClusterIdsFromServerForPull(array $server, $HttpSocket=null, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
     {
         $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket=null, $conditions=$conditions);
         if (!empty($clusterArray)) {
