@@ -116,14 +116,20 @@ class StixParser():
     ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##
     ################################################################################
 
-    def create_attribute_with_tag(self, attribute_dict, marking_refs):
-        attribute = MISPAttribute()
-        attribute.from_dict(**attribute_dict)
-        try:
-            self.marking_refs[attribute.uuid] = (marking.split('--')[1] for marking in marking_refs)
-        except AttributeError:
-            self.marking_refs = {attribute.uuid: (marking.split('--')[1] for marking in marking_refs)}
-        return attribute
+    def handle_markings(self):
+        if hasattr(self, 'marking_refs'):
+            for attribute in self.misp_event.attributes:
+                if attribute.uuid in self.marking_refs:
+                    for marking_uuid in self.marking_refs[attribute.uuid]:
+                        attribute.add_tag(self.marking_definition[marking_uuid]['object'])
+                        self.marking_definition[marking_uuid]['used'] = True
+        if self.marking_definition:
+            for marking_definition in self.marking_definition.values():
+                if not marking_definition['used']:
+                    self.tags.add(marking_definition['object'])
+        if self.tags:
+            for tag in self.tags:
+                self.misp_event.add_tag(tag)
 
     @staticmethod
     def _parse_email_body(body, references):
@@ -338,12 +344,19 @@ class StixParser():
     def _standard_test_filter(value, main_type):
         return isinstance(value, getattr(stix2, main_type))
 
+    def update_marking_refs(self, attribute_uuid, marking_refs):
+        try:
+            self.marking_refs[attribute_uuid] = tuple(marking.split('--')[1] for marking in marking_refs)
+        except AttributeError:
+            self.marking_refs = {attribute_uuid: tuple(marking.split('--')[1] for marking in marking_refs)}
+
 
 class StixFromMISPParser(StixParser):
     def __init__(self):
         super().__init__()
         self._stix2misp_mapping.update({'custom_object': '_parse_custom'})
         self._stix2misp_mapping.update({special_type: '_parse_undefined' for special_type in ('attack-pattern', 'course-of-action', 'vulnerability')})
+        self._custom_objects = tuple(filename.name.replace('_', '-') for filename  in _misp_objects_path.glob('*') if '_' in filename.name)
 
     def parse_event(self, stix_objects):
         for stix_object in stix_objects:
@@ -360,13 +373,7 @@ class StixFromMISPParser(StixParser):
             self.parse_galaxies()
         if hasattr(self, 'report'):
             self.parse_report()
-        if self.marking_definition:
-            for marking_definition in self.marking_definition.values():
-                if not marking_definition['used']:
-                    self.tags.add(marking_definition['object'])
-        if self.tags:
-            for tag in self.tags:
-                self.misp_event.add_tag(tag)
+        self.handle_markings()
 
     def _parse_custom(self, custom):
         if 'from_object' in custom['labels']:
@@ -450,11 +457,13 @@ class StixFromMISPParser(StixParser):
                      'category': self.get_misp_category(custom['labels']),
                      'uuid': custom['id'].split('--')[1]}
         if custom.get('object_marking_refs'):
-            attribute = self.create_attribute_with_tag(attribute, custom['object_marking_refs'])
+            self.update_marking_refs(attribute['uuid'], custom['object_marking_refs'])
         self.misp_event.add_attribute(**attribute)
 
     def parse_custom_object(self, custom):
         name = custom['type'].split('x-misp-object-')[1]
+        if name in self._custom_objects:
+            name = name.replace('-', '_')
         misp_object = MISPObject(name, misp_objects_path_custom=_misp_objects_path)
         misp_object.timestamp = self.getTimestampfromDate(custom['modified'])
         misp_object.uuid = custom['id'].split('--')[1]
@@ -463,7 +472,7 @@ class StixFromMISPParser(StixParser):
         except KeyError:
             misp_object.category = self.get_misp_category(custom['labels'])
         for key, value in custom['x_misp_values'].items():
-            attribute_type, object_relation = key.split('_')
+            attribute_type, object_relation = key.replace('_DOT_', '.').split('_')
             if isinstance(value, list):
                 for single_value in value:
                     misp_object.add_attribute(**{'type': attribute_type, 'value': single_value,
@@ -491,8 +500,6 @@ class StixFromMISPParser(StixParser):
             attribute.update({feature: value for feature, value in zip(('value', 'data'), (value, io.BytesIO(data.encode())))})
         else:
             attribute['value'] = self.parse_attribute_pattern(pattern)
-        if hasattr(indicator, 'object_marking_refs'):
-            attribute = self.create_attribute_with_tag(attribute, indicator.object_marking_refs)
         self.misp_event.add_attribute(**attribute)
 
     def parse_indicator_object(self, indicator):
@@ -519,8 +526,6 @@ class StixFromMISPParser(StixParser):
             value, data = value
             attribute['data'] = data
         attribute['value'] = value
-        if hasattr(observable, 'object_marking_refs'):
-            attribute = self.create_attribute_with_tag(attribute, observable.object_marking_refs)
         self.misp_event.add_attribute(**attribute)
 
     def parse_observable_object(self, observable):
@@ -1107,6 +1112,8 @@ class StixFromMISPParser(StixParser):
         if tags:
             attribute['Tag'] = tags
         attribute.update(self.parse_timeline(stix_object))
+        if hasattr(stix_object, 'object_marking_refs'):
+            self.update_marking_refs(attribute_uuid, stix_object.object_marking_refs)
         return attribute
 
     def create_misp_object(self, stix_object):
@@ -1194,9 +1201,7 @@ class ExternalStixParser(StixParser):
             self.parse_report()
         else:
             self.misp_event.info = 'Imported with the STIX to MISP import script.'
-        if self.tags:
-            for tag in self.tags:
-                self.misp_event.add_tag(tag)
+        self.handle_markings()
 
     def parse_galaxy(self, galaxy):
         if galaxy.name in self._synonyms_to_tag_names:
@@ -1987,6 +1992,8 @@ class ExternalStixParser(StixParser):
                 attribute.update(self.parse_timeline(stix_object))
                 if isinstance(stix_object, stix2.Indicator):
                     attribute['to_ids'] = True
+                if hasattr(stix_object, 'object_marking_refs'):
+                    self.update_marking_refs(attribute['uuid'], stix_object.object_marking_refs)
                 self.misp_event.add_attribute(**attribute)
         except IndexError:
             object_type = 'indicator' if isinstance(stix_object, stix2.Indicator) else 'observable objects'

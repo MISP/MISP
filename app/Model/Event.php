@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('RandomTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
 class Event extends AppModel
 {
@@ -1522,20 +1523,6 @@ class Event extends AppModel
             $queryTool->quickDelete($relation['table'], $relation['foreign_key'], $relation['value'], $this);
         }
         return $this->delete($id, false);
-    }
-
-    public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null)
-    {
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $url . '/shadow_attributes/getProposalsByUuidList';
-        $response = $HttpSocket->post($uri, json_encode($uuidList), $request);
-        if ($response->isOk()) {
-            return(json_decode($response->body, true));
-        } else {
-            return false;
-        }
     }
 
     public function createEventConditions($user)
@@ -3182,9 +3169,9 @@ class Event extends AppModel
                     'conditions' => array(
                         'User.id' => $event['Event']['user_id'],
                         'User.disabled' => 0,
-                        'User.org_id' => $event['Event']
+                        'User.org_id' => $event['Event']['orgc_id'],
                     ),
-                    'fields' => array('User.email', 'User.gpgkey', 'User.certif_public'),
+                    'fields' => array('User.email', 'User.gpgkey', 'User.certif_public', 'User.id', 'User.disabled'),
                     'recursive' => -1
             ));
             if (!empty($temp)) {
@@ -3215,10 +3202,10 @@ class Event extends AppModel
         $body .= "Someone wants to get in touch with you concerning a MISP event. \n";
         $body .= "\n";
         $body .= "You can reach them at " . $user['User']['email'] . "\n";
-        if (!$user['User']['gpgkey']) {
+        if (!empty($user['User']['gpgkey'])) {
             $body .= "Their GnuPG key is added as attachment to this email. \n";
         }
-        if (!$user['User']['certif_public']) {
+        if (!empty($user['User']['certif_public'])) {
             $body .= "Their Public certificate is added as attachment to this email. \n";
         }
         $body .= "\n";
@@ -3418,8 +3405,41 @@ class Event extends AppModel
         return $attributes;
     }
 
+    public function checkEventBlockRules($event)
+    {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $setting = $this->AdminSetting->find('first', [
+            'conditions' => ['setting' => 'eventBlockRule'],
+            'recursive' => -1
+        ]);
+        if (empty($setting) || empty($setting['AdminSetting']['value'])) {
+            return true;
+        }
+        $rules = json_decode($setting['AdminSetting']['value'], true);
+        if (empty($rules)) {
+            return true;
+        }
+        if (!empty($rules['tags'])) {
+            if (!is_array($rules['tags'])) {
+                $rules['tags'] = [$rules['tags']];
+            }
+            $eventTags = Hash::extract($event, 'Event.Tag.{n}.name');
+            if (empty($eventTags)) {
+                $eventTags = Hash::extract($event, 'Event.EventTag.{n}.Tag.name');
+            }
+            if (!empty($eventTags)) {
+                foreach ($rules['tags'] as $blockTag) {
+                    if (in_array($blockTag, $eventTags)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
     // Low level function to add an Event based on an Event $data array
-    public function _add(&$data, $fromXml, $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
+    public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
     {
         if ($jobId) {
             App::uses('AuthComponent', 'Controller/Component');
@@ -3430,6 +3450,9 @@ class Event extends AppModel
             if (!empty($r)) {
                 return 'Blocked by blacklist';
             }
+        }
+        if (!$this->checkEventBlockRules($data)) {
+            return 'Blocked by event block rules';
         }
         if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published'])) {
             $this->Log = ClassRegistry::init('Log');
@@ -3655,7 +3678,7 @@ class Event extends AppModel
             $referencesToCapture = array();
             if (!empty($data['Event']['Object'])) {
                 foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Object->captureObject($object, $this->id, $user, $this->Log);
+                    $result = $this->Object->captureObject($object, $this->id, $user, $this->Log, false);
                 }
                 foreach ($data['Event']['Object'] as $object) {
                     if (isset($object['ObjectReference'])) {
@@ -3686,7 +3709,7 @@ class Event extends AppModel
             }
             if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
                 // do the necessary actions to publish the event (email, upload,...)
-                if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || $server['Server']['publish_without_email'] == 0)) {
+                if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($this->getID(), $user);
                 }
                 $this->publish($this->getID(), $passAlong);
@@ -3731,7 +3754,7 @@ class Event extends AppModel
         }
     }
 
-    public function _edit(&$data, $user, $id, $jobId = null, $passAlong = null, $force = false)
+    public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false)
     {
         $data = $this->cleanupEventArrayFromXML($data);
         unset($this->Attribute->validate['event_id']);
@@ -3740,8 +3763,10 @@ class Event extends AppModel
         // reposition to get the event.id with given uuid
         if (isset($data['Event']['uuid'])) {
             $existingEvent = $this->findByUuid($data['Event']['uuid']);
-        } else {
+        } elseif ($id) {
             $existingEvent = $this->findById($id);
+        } else {
+            throw new InvalidArgumentException("No event UUID or ID provided.");
         }
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
@@ -4764,43 +4789,47 @@ class Event extends AppModel
             $proposal['objectType'] = 'proposal';
         }
 
-        $include = $filterType['proposal'] != 2;
+        $include = true;
+        if ($filterType) {
+            $include = $filterType['proposal'] != 2;
 
-        /* correlation */
-        if ($filterType['correlation'] == 0) { // `both`
-            // pass, do not consider as `both` is selected
-        } else if (in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
-            $include = $include && ($filterType['correlation'] == 1);
-        } else { // `exclude`
-            $include = $include && ($filterType['correlation'] == 2);
+            /* correlation */
+            if ($filterType['correlation'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
+                $include = $include && ($filterType['correlation'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['correlation'] == 2);
+            }
+
+            /* feed */
+            if ($filterType['feed'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($proposal['Feed'])) { // `include only`
+                $include = $include && ($filterType['feed'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['feed'] == 2);
+            }
+
+            /* server */
+            if ($filterType['server'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($attribute['Server'])) { // `include only`
+                $include = $include && ($filterType['server'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['server'] == 2);
+            }
+
+            /* TypeGroupings */
+            if (
+                $filterType['attributeFilter'] != 'all'
+                && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
+                && !in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+            ) {
+                $include = false;
+            }
         }
 
-        /* feed */
-        if ($filterType['feed'] == 0) { // `both`
-            // pass, do not consider as `both` is selected
-        } else if (!empty($proposal['Feed'])) { // `include only`
-            $include = $include && ($filterType['feed'] == 1);
-        } else { // `exclude`
-            $include = $include && ($filterType['feed'] == 2);
-        }
-
-        /* server */
-        if ($filterType['server'] == 0) { // `both`
-            // pass, do not consider as `both` is selected
-        } else if (!empty($attribute['Server'])) { // `include only`
-            $include = $include && ($filterType['server'] == 1);
-        } else { // `exclude`
-            $include = $include && ($filterType['server'] == 2);
-        }
-
-        /* TypeGroupings */
-        if (
-            $filterType['attributeFilter'] != 'all'
-            && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
-            && !in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
-        ) {
-            $include = false;
-        }
         $proposal = $this->__prepareGenericForView($proposal, $eventWarnings, $warningLists);
 
         /* warning */
@@ -5463,18 +5492,14 @@ class Event extends AppModel
         );
     }
 
-    public function getSightingData($event)
+    public function getSightingData(array $event)
     {
         $this->Sighting = ClassRegistry::init('Sighting');
         if (!empty($event['Sighting'])) {
-            $attributeSightings = array();
-            $attributeOwnSightings = array();
-            $attributeSightingsPopover = array();
             $sightingsData = array();
             $sparklineData = array();
             $startDates = array();
-            $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
-            $range = strtotime("-" . $range . " days", time());
+            $range = $this->Sighting->getMaximumRange();
             foreach ($event['Sighting'] as $sighting) {
                 $type = $this->Sighting->type[$sighting['type']];
                 if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
@@ -5516,22 +5541,21 @@ class Event extends AppModel
                 }
             }
             $csv = array();
+            $today = strtotime(date('Y-m-d', time()));
             foreach ($startDates as $k => $v) {
                 $startDates[$k] = date('Y-m-d', $v);
             }
-            $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
             foreach ($sparklineData as $aid => $data) {
                 if (!isset($startDates[$aid])) {
                     continue;
                 }
                 $startDate = $startDates[$aid];
-                if (strtotime($startDate) < strtotime('-' . $range . ' days', time())) {
+                if (strtotime($startDate) < $range) {
                     $startDate = date('Y-m-d');
                 }
                 $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
-                $to = date('Y-m-d', time());
                 $sighting = $data;
-                for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
+                for ($date = $startDate; strtotime($date) <= $today; $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
                     if (!isset($csv[$aid])) {
                         $csv[$aid] = 'Date,Close\n';
                     }
@@ -5830,7 +5854,7 @@ class Event extends AppModel
 
     private function __getTagNamesFromSynonyms($scriptDir)
     {
-        $synonymsToTagNames = $scriptDir . DS . 'synonymsToTagNames.json';
+        $synonymsToTagNames = $scriptDir . DS . 'tmp' . DS . 'synonymsToTagNames.json';
         if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
             if (empty($this->GalaxyCluster)) {
                 $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -6765,8 +6789,8 @@ class Event extends AppModel
                 $filters['published'] = 1;
             }
         }
-        $tmpfile = tmpfile();
-        fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $tmpfile = new TmpFileTool();
+        $tmpfile->write($exportTool->header($exportToolParams));
         $i = 0;
         if (!empty($filters['withAttachments'])) {
             $filters['includeAttachments'] = 1;
@@ -6794,7 +6818,7 @@ class Event extends AppModel
                         if ($i !== 0) {
                             $temp = $exportTool->separator($exportToolParams) . $temp;
                         }
-                        fwrite($tmpfile, $temp);
+                        $tmpfile->write($temp);
                         $i++;
                     }
                 }
@@ -6802,15 +6826,8 @@ class Event extends AppModel
         }
         unset($result);
         unset($temp);
-        fwrite($tmpfile, $exportTool->footer($exportToolParams));
-        fseek($tmpfile, 0);
-        if (fstat($tmpfile)['size'] > 0) {
-            $final = fread($tmpfile, fstat($tmpfile)['size']);
-        } else {
-            $final = 0;
-        }
-        fclose($tmpfile);
-        return $final;
+        $tmpfile->write($exportTool->footer($exportToolParams));
+        return $tmpfile->finish();
     }
 
     /*

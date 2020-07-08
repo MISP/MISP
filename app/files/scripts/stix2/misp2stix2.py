@@ -16,10 +16,14 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, datetime
+
+import json
+import os
 import re
+import sys
 import uuid
 import misp2stix2_mapping
+from datetime import datetime
 from stix2.base import STIXJSONEncoder
 from stix2.exceptions import InvalidValueError, TLPMarkingDefinitionError, AtLeastOnePropertyError
 from stix2.properties import DictionaryProperty, ListProperty, StringProperty, TimestampProperty
@@ -63,10 +67,10 @@ class StixBuilder():
             self.add_custom(self.links.pop(0))
         external_refs = [self.__parse_link(link) for link in self.links]
         report_args = {'type': 'report', 'id': self.report_id, 'name': self.misp_event['info'],
-                       'created_by_ref': self.identity_id, 'created': self.misp_event['date'],
+                       'created': datetime.strptime(self.misp_event['date'], '%Y-%m-%d'),
                        'published': self.get_datetime_from_timestamp(self.misp_event['publish_timestamp']),
                        'modified': self.get_datetime_from_timestamp(self.misp_event['timestamp']),
-                       'interoperability': True}
+                       'created_by_ref': self.identity_id, 'interoperability': True}
         labels = [tag for tag in _MISP_event_tags]
         if self.misp_event.get('Tag'):
             markings = []
@@ -339,9 +343,15 @@ class StixBuilder():
         sdo_id = "{}--{}".format(sdo_type, cluster_uuid)
         description = "{} | {}".format(galaxy['description'], cluster['description'])
         labels = ['misp:name=\"{}\"'.format(galaxy['name'])]
-        sdo_args = {'id': sdo_id, 'type': sdo_type, 'created': self.misp_event['date'],
-                    'modified': self.get_datetime_from_timestamp(self.misp_event['timestamp']),
-                    'name': cluster['value'], 'description': description, 'interoperability': True}
+        sdo_args = {
+            'id': sdo_id,
+            'type': sdo_type,
+            'created': datetime.strptime(self.misp_event['date'], '%Y-%m-%d'),
+            'modified': self.get_datetime_from_timestamp(self.misp_event['timestamp']),
+            'name': cluster['value'],
+            'description': description,
+            'interoperability': True
+        }
         if b_killchain:
             killchain = [{'kill_chain_name': 'misp-category',
                           'phase_name': galaxy['type']}]
@@ -400,6 +410,9 @@ class StixBuilder():
         custom_object_id = "x-misp-object-{}--{}".format(attribute_type, attribute['uuid'])
         custom_object_type = "x-misp-object-{}".format(attribute_type)
         labels, markings = self.create_labels(attribute)
+        stix_labels = ListProperty(StringProperty)
+        stix_labels.clean(labels)
+        stix_markings = ListProperty(StringProperty)
         timestamp = self.get_datetime_from_timestamp(attribute['timestamp'])
         custom_object_args = {'id': custom_object_id, 'x_misp_category': attribute['category'],
                               'created': timestamp, 'modified': timestamp, 'labels': labels,
@@ -409,15 +422,16 @@ class StixBuilder():
         if markings:
             markings = self.handle_tags(markings)
             custom_object_args['object_marking_refs'] = markings
+            stix_markings.clean(markings)
         if custom_object_type not in self.custom_objects:
             @CustomObject(custom_object_type, [
                 ('id', StringProperty(required=True)),
-                ('labels', ListProperty(labels, required=True)),
+                ('labels', ListProperty(stix_labels, required=True)),
                 ('x_misp_value', StringProperty(required=True)),
                 ('created', TimestampProperty(required=True, precision='millisecond')),
                 ('modified', TimestampProperty(required=True, precision='millisecond')),
                 ('created_by_ref', StringProperty(required=True)),
-                ('object_marking_refs', ListProperty(markings)),
+                ('object_marking_refs', ListProperty(stix_markings)),
                 ('x_misp_comment', StringProperty()),
                 ('x_misp_category', StringProperty())
             ])
@@ -536,11 +550,18 @@ class StixBuilder():
         self.append_object(vulnerability)
 
     def add_object_custom(self, misp_object, to_ids):
-        name = misp_object['name']
+        name = misp_object['name'].replace('_', '-')
         custom_object_id = 'x-misp-object-{}--{}'.format(name, misp_object['uuid'])
         custom_object_type = 'x-misp-object-{}'.format(name)
         category = misp_object.get('meta-category')
-        labels = self.create_object_labels(name, category, to_ids)
+        labels = [
+            f'misp:type="{name}"',
+            f'misp:category="{category}"',
+            f'misp:to_ids="{to_ids}"',
+            'from_object'
+        ]
+        stix_labels = ListProperty(StringProperty)
+        stix_labels.clean(labels)
         values = self.fetch_custom_values(misp_object['Attribute'], custom_object_id)
         timestamp = self.get_datetime_from_timestamp(misp_object['timestamp'])
         custom_object_args = {'id': custom_object_id, 'x_misp_values': values,
@@ -551,7 +572,7 @@ class StixBuilder():
         if custom_object_type not in self.custom_objects:
             @CustomObject(custom_object_type, [
                 ('id', StringProperty(required=True)),
-                ('labels', ListProperty(labels, required=True)),
+                ('labels', ListProperty(stix_labels, required=True)),
                 ('x_misp_values', DictionaryProperty(required=True)),
                 ('created', TimestampProperty(required=True, precision='millisecond')),
                 ('modified', TimestampProperty(required=True, precision='millisecond')),
@@ -656,9 +677,7 @@ class StixBuilder():
 
     @staticmethod
     def create_labels(attribute):
-        labels = ['misp:type="{}"'.format(attribute['type']),
-                  'misp:category="{}"'.format(attribute['category']),
-                  'misp:to_ids="{}"'.format(attribute['to_ids'])]
+        labels = [f'misp:{feature}="{attribute[feature]}"' for feature in ('type', 'category', 'to_ids')]
         markings = []
         if attribute.get('Tag'):
             for tag in attribute['Tag']:
@@ -668,10 +687,12 @@ class StixBuilder():
 
     @staticmethod
     def create_object_labels(name, category, to_ids):
-        return ['misp:type="{}"'.format(name),
-                'misp:category="{}"'.format(category),
-                'misp:to_ids="{}"'.format(to_ids),
-                'from_object']
+        return [
+            f'misp:type="{name}"',
+            f'misp:category="{category}"',
+            f'misp:to_ids="{to_ids}"',
+            'from_object'
+        ]
 
     def create_marking(self, tag):
         if tag in misp2stix2_mapping.tlp_markings:
@@ -718,7 +739,7 @@ class StixBuilder():
                 self.parse_galaxies(attribute['Galaxy'], object_id)
             except KeyError:
                 pass
-            attribute_type = '{}_{}'.format(attribute['type'], attribute['object_relation'])
+            attribute_type = '{}_{}'.format(attribute['type'], attribute['object_relation'].replace('.', '_DOT_'))
             values[attribute_type].append(attribute['value'])
         return {attribute_type: value[0] if len(value) == 1 else value for attribute_type, value in values.items()}
 
@@ -1749,7 +1770,7 @@ class StixBuilder():
 
     @staticmethod
     def get_datetime_from_timestamp(timestamp):
-        return datetime.datetime.utcfromtimestamp(int(timestamp))
+        return datetime.utcfromtimestamp(int(timestamp))
 
     @staticmethod
     def _handle_multiple_file_fields_observable(file_observable, values, feature):
@@ -1769,7 +1790,7 @@ class StixBuilder():
     def handle_time_fields(attribute, timestamp, stix_type):
         to_return = {'created': timestamp, 'modified': timestamp}
         for misp_field, stix_field in zip(('first_seen', 'last_seen'), _time_fields[stix_type]):
-            to_return[stix_field] = attribute[misp_field] if attribute[misp_field] else timestamp
+            to_return[stix_field] = datetime.strptime(attribute[misp_field].split('+')[0], '%Y-%m-%dT%H:%M:%S.%f') if attribute[misp_field] else timestamp
         return to_return
 
     @staticmethod

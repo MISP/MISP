@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
 class Feed extends AppModel
 {
@@ -161,10 +162,10 @@ class Feed extends AppModel
     /**
      * @param array $feed
      * @param HttpSocket $HttpSocket
-     * @return array
+     * @return Generator|array
      * @throws Exception
      */
-    public function getCache($feed, $HttpSocket)
+    public function getCache(array $feed, HttpSocket $HttpSocket)
     {
         $uri = $feed['Feed']['url'] . '/hashes.csv';
         $data = $this->feedGetUri($feed, $uri, $HttpSocket);
@@ -173,13 +174,16 @@ class Feed extends AppModel
             throw new Exception("File '$uri' with hashes for cache filling is empty.");
         }
 
-        $data = trim($data);
-        $data = explode("\n", $data);
-        $result = array();
-        foreach ($data as $v) {
-            $result[] = explode(',', $v);
+        // CSV file can be pretty big to do operations in memory, so we save content to temp and iterate line by line.
+        $tmpFile = new TmpFileTool();
+        $tmpFile->write(trim($data));
+        unset($data);
+
+        foreach ($tmpFile->lines() as $line) {
+            yield explode(',', rtrim($line));
         }
-        return $result;
+
+        return array();
     }
 
     /**
@@ -320,7 +324,6 @@ class Feed extends AppModel
                 foreach ($feeds as $k => $v) {
                     if ($redis->sismember('misp:feed_cache:' . $v['Feed']['id'], md5($value['value']))) {
                         $data[$key]['feed_correlations'][] = array($v);
-                    } else {
                     }
                 }
             }
@@ -637,13 +640,13 @@ class Feed extends AppModel
     /**
      * @param array $feed
      * @param string $uuid
-     * @param $user Not used
+     * @param array $user
      * @return array|bool
      * @throws Exception
      */
-    public function downloadAndSaveEventFromFeed($feed, $uuid, $user)
+    public function downloadAndSaveEventFromFeed(array $feed, $uuid, array $user)
     {
-        $event = $this->downloadEventFromFeed($feed, $uuid, $user);
+        $event = $this->downloadEventFromFeed($feed, $uuid);
         if (!is_array($event) || isset($event['code'])) {
             return false;
         }
@@ -653,11 +656,10 @@ class Feed extends AppModel
     /**
      * @param array $feed
      * @param string $uuid
-     * @param $user Not used
      * @return bool|string|array
      * @throws Exception
      */
-    public function downloadEventFromFeed($feed, $uuid, $user)
+    public function downloadEventFromFeed(array $feed, $uuid)
     {
         $filerRules = $this->__prepareFilterRules($feed);
         $HttpSocket = $this->isFeedLocal($feed) ? false : $this->__setupHttpSocket($feed);
@@ -665,7 +667,12 @@ class Feed extends AppModel
         return $this->__prepareEvent($event, $feed, $filerRules);
     }
 
-    private function __saveEvent($event, $user)
+    /**
+     * @param array $event
+     * @param array $user
+     * @return array
+     */
+    private function __saveEvent(array $event, array $user)
     {
         $this->Event = ClassRegistry::init('Event');
         $existingEvent = $this->Event->find('first', array(
@@ -677,7 +684,7 @@ class Feed extends AppModel
         if (!empty($existingEvent)) {
             $result['action'] = 'edit';
             if ($existingEvent['Event']['timestamp'] < $event['Event']['timestamp']) {
-                $result['result'] = $this->Event->_edit($event, true, $user);
+                $result['result'] = $this->Event->_edit($event, $user);
             } else {
                 $result['result'] = 'No change';
             }
@@ -1116,7 +1123,7 @@ class Feed extends AppModel
         }
     }
 
-    private function __cacheFreetextFeed($feed, $redis, $HttpSocket, $jobId = false)
+    private function __cacheFreetextFeed(array $feed, $redis, HttpSocket $HttpSocket, $jobId = false)
     {
         $feedId = $feed['Feed']['id'];
 
@@ -1124,19 +1131,23 @@ class Feed extends AppModel
             $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
         } catch (Exception $e) {
             $this->logException("Could not get freetext feed $feedId", $e);
-            $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
+            $this->jobProgress($jobId, 'Could not fetch freetext feed. See error log for more details.');
             return false;
         }
 
+        $pipe = $redis->multi(Redis::PIPELINE);
         foreach ($values as $k => $value) {
             $md5Value = md5($value['value']);
             $redis->sAdd('misp:feed_cache:' . $feedId, $md5Value);
             $redis->sAdd('misp:feed_cache:combined', $md5Value);
             if ($k % 1000 == 0) {
                 $this->jobProgress($jobId, "Feed $feedId: $k/" . count($values) . " values cached.");
+                $pipe->exec();
+                $pipe = $redis->multi(Redis::PIPELINE);
             }
         }
         $redis->set('misp:feed_cache_timestamp:' . $feedId, time());
+        $pipe->exec();
         return true;
     }
 
