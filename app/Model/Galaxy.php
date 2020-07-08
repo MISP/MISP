@@ -229,11 +229,15 @@ class Galaxy extends AppModel
      * Capture the Galaxy
      *
      * @param $user
-     * @param array $galaxy
+     * @param array $user
+     * @param array $galaxy The galaxy to be captured
      * @return array the captured galaxy
      */
-    public function captureGalaxy($user, $galaxy)
+    public function captureGalaxy(array $user, array $galaxy)
     {
+        if (empty($galaxy['uuid'])) {
+            return false;
+        }
         $existingGalaxy = $this->find('first', array(
             'recursive' => -1,
             'conditions' => array('Galaxy.uuid' => $galaxy['uuid'])
@@ -255,25 +259,25 @@ class Galaxy extends AppModel
     }
 
     /**
-     * Import all clusters into the Galaxy they are shipped with, creating the galaxy if it doesn't exists.
+     * Import all clusters into the Galaxy they are shipped with, creating the galaxy if not existant.
      *
+     * This function is meant to be used with manual import or push from remote instance
      * @param $user
      * @param array $clusters clusters to import
-     * @param bool $forceUpdate update clusters regardless of their version
-     * @return array
+     * @return array The import result with errors if any
      */
-    public function importGalaxyAndClusters($user, $clusters)
+    public function importGalaxyAndClusters($user, array $clusters)
     {
         $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
         foreach ($clusters as $k => $cluster) {
             $conditions = array();
             if (!empty($cluster['GalaxyCluster']['Galaxy'])) {
                 $existingGalaxy = $this->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy']);
-            } elseif ($cluster['type']) {
+            } elseif (!empty($cluster['GalaxyCluster']['type'])) {
                 $existingGalaxy = $this->find('first', array(
                     'recursive' => -1,
                     'fields' => array('id', 'version'),
-                    'conditions' => array('Galaxy.type' => $cluster['GalaxyCluster']['Galaxy']['type']),
+                    'conditions' => array('Galaxy.type' => $cluster['GalaxyCluster']['type']),
                 ));
                 if (empty($existingGalaxy)) { // We don't have enough info to create the galaxy
                     $results['failed']++;
@@ -618,8 +622,16 @@ class Galaxy extends AppModel
             }
         }
     }
-
-    public function generateForkTree($clusters, $galaxy, $pruneRootLeaves=true)
+    
+    /**
+     * generateForkTree
+     *
+     * @param  mixed $clusters The accessible cluster for the user to be arranged into a fork tree
+     * @param  mixed $galaxy The galaxy for which the fork tree is generated
+     * @param  bool $pruneRootLeaves Should the nonforked clusters be removed from the tree
+     * @return array The generated fork tree where the children of a node are contained in the `children` key
+     */
+    public function generateForkTree(array $clusters, array $galaxy, $pruneRootLeaves=true)
     {
         $tree = array();
         $lookup = array();

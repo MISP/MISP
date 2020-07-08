@@ -542,7 +542,7 @@ class GalaxiesController extends AppController
         $this->render('/Events/ajax/ajaxGalaxies');
     }
 
-    public function forkTree($galaxyId)
+    public function forkTree($galaxyId, $pruneRootLeaves=true)
     {
         $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
         if (empty($clusters)) {
@@ -556,7 +556,7 @@ class GalaxiesController extends AppController
             'recursive' => -1,
             'conditions' => array('Galaxy.id' => $galaxyId)
         ));
-        $tree = $this->Galaxy->generateForkTree($clusters, $galaxy, $pruneRootLeaves=true);
+        $tree = $this->Galaxy->generateForkTree($clusters, $galaxy, $pruneRootLeaves=$pruneRootLeaves);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($tree, $this->response->type());
         }
