@@ -22,11 +22,11 @@ def externalise_event(event):
 
 def get_external(event):
     externalise_event(event)
-    return ExternalStixParser(), stix2.parse(event, allow_custom=True, interoperability=True)
+    return ExternalStixParser(), stix2.parse(event, allow_custom=True)
 
 
 def get_internal(event):
-    return StixFromMISPParser(), stix2.parse(event, allow_custom=True, interoperability=True)
+    return StixFromMISPParser(), stix2.parse(event, allow_custom=True)
 
 
 def query_import(filename, externalise):

@@ -2033,7 +2033,7 @@ def from_misp(stix_objects):
 def main(args):
     filename = Path(os.path.dirname(args[0]), args[1])
     with open(filename, 'rt', encoding='utf-8') as f:
-        event = stix2.parse(f.read(), allow_custom=True, interoperability=True)
+        event = stix2.parse(f.read(), allow_custom=True)
     stix_parser = StixFromMISPParser() if from_misp(event.objects) else ExternalStixParser()
     stix_parser.handler(event, filename, args[2:])
     stix_parser.save_file()
