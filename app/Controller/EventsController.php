@@ -1410,17 +1410,15 @@ class EventsController extends AppController
         }
         $this->set('tagConflicts', $tagConflicts);
 
-        $startDate = null;
-        $modificationMap = array();
+        $modDate = date("Y-m-d", $event['Event']['timestamp']);
+        $modificationMap = array($modDate => 1);
+
         foreach ($event['Attribute'] as $k => $attribute) {
             if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
                 $oldest_timestamp = $attribute['timestamp'];
             }
-            if ($startDate === null || $attribute['timestamp'] < $startDate) {
-                $startDate = $attribute['timestamp'];
-            }
             $modDate = date("Y-m-d", $attribute['timestamp']);
-            $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
+            $modificationMap[$modDate] = !isset($modificationMap[$modDate]) ? 1 : $modificationMap[$modDate] + 1;
 
             $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
 
@@ -1436,22 +1434,14 @@ class EventsController extends AppController
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
         $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
-        $startDate = $event['Event']['timestamp'];
-        $modDate = date("Y-m-d", $event['Event']['timestamp']);
-        $modificationMap[$modDate] = 1;
+
         foreach ($event['Object'] as $k => $object) {
-            if ($startDate === null || $object['timestamp'] < $startDate) {
-                $startDate = $object['timestamp'];
-            }
             $modDate = date("Y-m-d", $object['timestamp']);
-            $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $object['timestamp'])] + 1;
+            $modificationMap[$modDate] = !isset($modificationMap[$modDate])? 1 : $modificationMap[$modDate] + 1;
             if (!empty($object['Attribute'])) {
                 foreach ($object['Attribute'] as $k2 => $attribute) {
-                    if ($startDate === null || $attribute['timestamp'] < $startDate) {
-                        $startDate = $attribute['timestamp'];
-                    }
                     $modDate = date("Y-m-d", $attribute['timestamp']);
-                    $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
+                    $modificationMap[$modDate] = !isset($modificationMap[$modDate])? 1 : $modificationMap[$modDate] + 1;
 
                     $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
 
@@ -1481,11 +1471,11 @@ class EventsController extends AppController
         sort($startDate);
         $startDate = $startDate[0];
         $this->set('startDate', $startDate);
-        $to = date('Y-m-d', time());
-        if ((strtotime($to) - 172800) > $startDate) {
-            $startDate = date('Y-m-d', strtotime($to) - 172800);
+        $today = strtotime(date('Y-m-d', time()));
+        if (($today - 172800) > $startDate) {
+            $startDate = date('Y-m-d', $today - 172800);
         }
-        for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
+        for ($date = $startDate; strtotime($date) <= $today; $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
             if (isset($modificationMap[$date])) {
                 $modificationMapCSV .= $date . ',' . $modificationMap[$date] . '\n';
             } else {
@@ -2202,93 +2192,106 @@ class EventsController extends AppController
         $this->set('stix_version', $stix_version);
     }
 
-    public function merge($target_id = null)
+    public function merge($target_id=null, $source_id=null)
     {
-        $this->Event->id = $target_id;
-        $eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
-        // check if event exists and is readable for the current user
-        if (!$this->Event->exists() || !in_array($target_id, $eIds)) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-        $this->Event->read(null, $target_id);
-        // check if private and user not authorised to edit
-        if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !($this->userRole['perm_modify']))) {
-            $this->Flash->error(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
-            $this->redirect(array('action' => 'view', $target_id));
-        }
-        $this->Event->insertLock($this->Auth->user(), $target_id);
         if ($this->request->is('post')) {
-            $source_id = trim($this->request->data['Event']['source_id']);
-            $to_ids = $this->request->data['Event']['to_ids'];
-            if (!is_numeric($source_id)) {
-                $this->Flash->error(__('Invalid event ID entered.'));
-                return;
+            if (empty($this->request->data['Event'])) {
+                $this->request->data = ['Event' => $this->request->data];
             }
-            $this->Event->read(null, $source_id);
-            if (!$this->_isSiteAdmin() && !in_array($source_id, $eIds)) {
-                $this->Flash->error(__('You are not authorised to read the selected event.'));
-                return;
-            }
-            $r = array('results' => []);
-            foreach ($this->Event->data['Attribute'] as $a) {
-                if ($to_ids && !$a['to_ids']) {
-                    continue;
-                }
-                $tmp = array();
-                $tmp['values']     = $a['value'];
-                $tmp['categories'] = $a['category'];
-                $tmp['types']      = $a['type'];
-                $tmp['to_ids']     = $a['to_ids'];
-                $tmp['comment']    = $a['comment'];
-                if ($this->Event->Attribute->typeIsAttachment($a['type'])) {
-                    $encodedFile = $this->Event->Attribute->base64EncodeAttachment($a);
-                    $tmp['data'] = $encodedFile;
-                    $tmp['data_is_handled'] = true;
-                }
-                $r['results'][] = $tmp;
-            }
-            $resultArray = $this->Event->handleModuleResult($r, $target_id);
-            $typeCategoryMapping = array();
-            foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
-                foreach ($cat['types'] as $type) {
-                    $typeCategoryMapping[$type][$k] = $k;
-                }
-            }
-            foreach ($resultArray as $key => $result) {
-                if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
-                    $pieces = explode('|', $result['value']);
-                    $or = array('Attribute.value1' => $pieces,
-                                'Attribute.value2' => $pieces);
+        }
+        $extractedParams = array('target_id', 'source_id');
+        foreach ($extractedParams as $param) {
+            if (empty(${$param})) {
+                if (!empty($this->request->data['Event'][$param])) {
+                    ${$param} = $this->request->data['Event'][$param];
                 } else {
-                    $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
+                    if ($param === 'target_id' || $this->request->is('post')) {
+                        throw new InvalidArgumentException(__('This action requires a target_id for GET requests and both a target_id and a source_id for POST requests.'));
+                    }
                 }
-                $options = array(
-                    'conditions' => array('OR' => $or),
-                    'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                    'order' => false
-                );
-                $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
             }
-
-            // combobox for distribution
+        }
+        $target_id = $this->Toolbox->findIdByUuid($this->Event, $target_id);
+        $this->request->data['Event']['target_id'] = $target_id;
+        if ($this->request->is('post')) {
+            $target_event = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $target_id]);
+            if (empty($target_event)) {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $source_id = $this->Toolbox->findIdByUuid($this->Event, $source_id);
+            $source_event = $this->Event->fetchEvent(
+                $this->Auth->user(),
+                [
+                    'eventid' => $source_id,
+                    'includeAllTags' => 1,
+                    'includeAttachments' => 1
+                ]
+            );
+            if (empty($source_event)) {
+                throw new NotFoundException(__('Invalid source event.'));
+            }
+            foreach ($source_event[0]['Attribute'] as &$attribute) {
+                unset($attribute['id']);
+                $attribute['uuid'] = CakeText::uuid();
+                unset($attribute['ShadowAttribute']);
+                $attribute['Tag'] = [];
+                foreach ($attribute['AttributeTag'] as $aT) {
+                    $attribute['Tag'][] = $aT['Tag'];
+                    $aT['Tag']['local'] = $aT['local'];
+                }
+                unset($attribute['AttributeTag']);
+            }
+            foreach ($source_event[0]['Object'] as &$object) {
+                unset($object['id']);
+                $object['uuid'] = CakeText::uuid();
+                foreach ($object['Attribute'] as &$attribute) {
+                    unset($attribute['id']);
+                    $attribute['uuid'] = CakeText::uuid();
+                    unset($attribute['ShadowAttribute']);
+                    $attribute['Tag'] = [];
+                    foreach ($attribute['AttributeTag'] as $aT) {
+                        $attribute['Tag'][] = $aT['Tag'];
+                        $aT['Tag']['local'] = $aT['local'];
+                    }
+                    unset($attribute['AttributeTag']);
+                }
+            }
+            $results = [
+                'results' => [
+                    'Object' => $source_event[0]['Object'],
+                    'Attribute' => $source_event[0]['Attribute']
+                ]
+            ];
+            if ($this->_isRest()) {
+                $this->loadModel('Log');
+                $save_results = ['attributes' => 0, 'objects' => 0];
+                foreach ($results['results']['Attribute'] as $attribute) {
+                    $this->Event->Attribute->captureAttribute($attribute, $target_id, $this->Auth->user(), false, $this->Log);
+                }
+                foreach ($results['results']['Object'] as $object) {
+                    $this->Event->Object->captureObject($object, $target_id, $this->Auth->user(), $this->Log);
+                }
+                $event = $this->Event->fetchEvent(
+                    $this->Auth->user(),
+                    [
+                        'eventid' => $target_id
+                    ]
+                );
+                return $this->RestResponse->viewData($event, $this->response->type());
+            }
+            $event = $this->Event->handleMispFormatFromModuleResult($results);
+            $event['Event'] = $target_event[0]['Event'];
             $distributions = $this->Event->Attribute->distributionLevels;
             $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
             if (empty($sgs)) {
                 unset($distributions[4]);
             }
-            $this->set('event', array('Event' => array('id' => $target_id)));
-            $this->set('resultArray', $resultArray);
-            $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-            $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
-            $this->set('typeCategoryMapping', $typeCategoryMapping);
             $this->set('distributions', $distributions);
             $this->set('sgs', $sgs);
-            $this->set('title', 'Merge Results');
+            $this->set('event', $event);
+            $this->set('title', __('Event merge results'));
             $this->set('importComment', 'Merged from event ' . $source_id);
-            $this->render('resolved_attributes');
-        } else {
-            // set the target event id in the form
-            $this->request->data['Event']['target_id'] = $target_id;
+            $this->render('resolved_misp_format');
         }
     }
 
