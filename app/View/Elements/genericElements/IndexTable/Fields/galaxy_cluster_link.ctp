@@ -1,4 +1,9 @@
 <?php
+    /**
+    * Display basic galaxy cluster info in the following compact way:
+    *   galaxy_type :: cluster_value
+    * If the target galaxy cluster is unknonw, uses its known UUIDs instead
+    */
     $cluster = Hash::extract($row, $field['data_path']);
     $relation = Hash::extract($row, $field['data_path_relation']);
     $url_param_data_paths = '';
