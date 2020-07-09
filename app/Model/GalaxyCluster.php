@@ -306,7 +306,7 @@ class GalaxyCluster extends AppModel
                 $this->GalaxyElement->updateElements(-1, $savedCluster['GalaxyCluster']['id'], $elementsToSave);
             }
             if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
-                $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $capture=true);
+                $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $captureTag=true);
             }
         } else {
             foreach ($this->validationErrors as $validationError) {
@@ -378,7 +378,7 @@ class GalaxyCluster extends AppModel
                         $this->GalaxyElement->updateElements($cluster['GalaxyCluster']['id'], $cluster['GalaxyCluster']['id'], $elementsToSave, $delete=$deleteOldElements);
                     }
                     if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
-                        $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $capture=true, $force=true);
+                        $this->GalaxyClusterRelation->saveRelations($user, $cluster['GalaxyCluster'], $cluster['GalaxyCluster']['GalaxyClusterRelation'], $captureTag=true, $force=true);
                     }
                 } else {
                     foreach ($this->validationErrors as $validationError) {
@@ -1210,6 +1210,9 @@ class GalaxyCluster extends AppModel
         $possibleAuthorizations = array('view', 'edit', 'delete', 'publish');
         if (!empty(array_diff($authorizations, $possibleAuthorizations))) {
             throw new NotFoundException(__('Invalid authorization requested'));
+        }
+        if (isset($cluster['uuid'])) {
+            $cluster[$this->alias] = $cluster;
         }
         if (!isset($cluster[$this->alias]['uuid'])) {
             $cluster = $this->fetchClusterById($user, $cluster, $full=$full);

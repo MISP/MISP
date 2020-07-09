@@ -212,7 +212,7 @@ class Galaxy extends AppModel
                         );
                     }
                     if (!empty($relations)) {
-                        $this->GalaxyCluster->GalaxyClusterRelation->saveRelations($tempUser, $cluster, $relations, $capture=true, $force=true);
+                        $this->GalaxyCluster->GalaxyClusterRelation->saveRelations($tempUser, $cluster, $relations, $captureTag=true, $force=true);
                     }
                 }
             }
