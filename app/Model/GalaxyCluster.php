@@ -1170,9 +1170,9 @@ class GalaxyCluster extends AppModel
      * @param  array $user
      * @param  int|string $clusterId
      * @param  bool  $full
-     * @return void
+     * @return array
      */
-    public function fetchClusterById(array $user, $clusterId, $full=false)
+    public function fetchClusterById(array $user, $clusterId, $throwErrors=true, $full=false)
     {
         $alias = $this->alias;
         if (Validation::uuid($clusterId)) {
@@ -1181,12 +1181,18 @@ class GalaxyCluster extends AppModel
                 'fields' => array("${alias}.id", "${alias}.uuid"),
                 'conditions' => array("${alias}.uuid" => $clusterId)
             ));
-            if ($temp === null) {
-                throw new NotFoundException(__('Invalid galaxy cluster'));
+            if (empty($temp)) {
+                if ($throwErrors) {
+                    throw new NotFoundException(__('Invalid galaxy cluster'));
+                }
+                return array();
             }
             $clusterId = $temp[$alias]['id'];
         } elseif (!is_numeric($clusterId)) {
-            throw new NotFoundException(__('Invalid galaxy cluster'));
+            if ($throwErrors) {
+                throw new NotFoundException(__('Invalid galaxy cluster'));
+            }
+            return array();
         }
         $conditions = array('conditions' => array("${alias}.id" => $clusterId));
         $cluster = $this->fetchGalaxyClusters($user, $conditions, $full=$full);
@@ -1215,7 +1221,7 @@ class GalaxyCluster extends AppModel
             $cluster[$this->alias] = $cluster;
         }
         if (!isset($cluster[$this->alias]['uuid'])) {
-            $cluster = $this->fetchClusterById($user, $cluster, $full=$full);
+            $cluster = $this->fetchClusterById($user, $cluster, $throwErrors=$throwErrors, $full=$full);
             if (empty($cluster)) {
                 $message = __('Invalid galaxy cluster');
                 if ($throwErrors) {
