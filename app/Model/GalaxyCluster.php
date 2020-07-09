@@ -443,11 +443,11 @@ class GalaxyCluster extends AppModel
     /**
      * publish
      *
-     * @param  array $cluster
+     * @param  mixed $cluster
      * @param  int|null $passAlong The server id from which the publish is issued
      * @return bool The success of the publish operation
      */
-    public function publish(array $cluster, $passAlong=null)
+    public function publish($cluster, $passAlong=null)
     {
         if (is_numeric($cluster)) {
             $clusterId = $cluster;
@@ -465,7 +465,7 @@ class GalaxyCluster extends AppModel
         return false;
     }
 
-    public function unpublish(array $cluster)
+    public function unpublish($cluster)
     {
         if (is_numeric($cluster)) {
             $this->id = $cluster;
