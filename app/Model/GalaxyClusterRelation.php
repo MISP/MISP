@@ -215,10 +215,12 @@ class GalaxyClusterRelation extends AppModel
                 $errors[] = __('referenced_galaxy_cluster_uuid not provided');
                 return $errors;
             }
-            $targetCluster = $this->TargetCluster->fetchIfAuthorized($user, $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'], 'view', $throwErrors=false, $full=false);
-            if (isset($targetCluster['authorized']) && !$targetCluster['authorized']) { // do not save the relation if referenced cluster is not accessible by the user (or does not exists)
-                $errors[] = array(__('Invalid referenced galaxy cluster'));
-                return $errors;
+            if (!$force) {
+                $targetCluster = $this->TargetCluster->fetchIfAuthorized($user, $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'], 'view', $throwErrors=false, $full=false);
+                if (isset($targetCluster['authorized']) && !$targetCluster['authorized']) { // do not save the relation if referenced cluster is not accessible by the user (or does not exists)
+                    $errors[] = array(__('Invalid referenced galaxy cluster'));
+                    return $errors;
+                }
             }
             $relation = $this->syncUUIDsAndIDs($user, $relation);
             $saveSuccess = $this->save($relation);

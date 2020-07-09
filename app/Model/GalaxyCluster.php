@@ -257,6 +257,9 @@ class GalaxyCluster extends AppModel
         } else {
             $cluster['GalaxyCluster']['uuid'] = CakeText::uuid();
         }
+        if (!isset($cluster['GalaxyCluster']['default'])) {
+            $cluster['GalaxyCluster']['default'] = false;
+        }
         if (!isset($cluster['GalaxyCluster']['published'])) {
             $cluster['GalaxyCluster']['published'] = false;
         }
