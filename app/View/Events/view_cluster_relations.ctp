@@ -1,4 +1,3 @@
-
 <?php if (empty($relations)): ?>
     <div class="alert alert-info">
         <?= __('There are no Cluster relationships in this Event.'); ?>
