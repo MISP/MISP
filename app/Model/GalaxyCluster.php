@@ -394,11 +394,11 @@ class GalaxyCluster extends AppModel
      * publishRouter
      *
      * @param  array $user
-     * @param  array $cluster
+     * @param  mixed $cluster
      * @param  int|null $passAlong The server id from which the publish is issued
      * @return mixed The process id or the publish result depending on background jobs
      */
-    public function publishRouter(array $user, array $cluster, $passAlong=null)
+    public function publishRouter(array $user, $cluster, $passAlong=null)
     {
         if (Configure::read('MISP.background_jobs')) {
             if (is_numeric($cluster)) {
