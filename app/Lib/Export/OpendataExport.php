@@ -105,7 +105,7 @@ class OpendataExport
         if (!empty($this->__setup['resources'])) {
             if (is_array($this->__setup['resources'])) {
                 foreach ($this->__setup['resources'] as $resource) {
-                    $cmd .= ' ' . $resource;
+                    $cmd .= " '" . $resource . "'";
                 }
             } else {
                 $cmd .= " '" . $this->__setup['resources'] . "'";

@@ -1,6 +1,6 @@
 <?php
-
 App::uses('AppModel', 'Model');
+App::uses('TmpFileTool', 'Tools');
 
 class MispObject extends AppModel
 {
@@ -1426,8 +1426,8 @@ class MispObject extends AppModel
                 $exportTool->additional_params
             );
         }
-        $tmpfile = tmpfile();
-        fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $tmpfile = new TmpFileTool();
+        $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
         if (empty($params['limit'])) {
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
@@ -1438,18 +1438,11 @@ class MispObject extends AppModel
             $params['page'] = 1;
         }
         $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
-        fwrite($tmpfile, $exportTool->footer($exportToolParams));
-        fseek($tmpfile, 0);
-        if (fstat($tmpfile)['size']) {
-            $final = fread($tmpfile, fstat($tmpfile)['size']);
-        } else {
-            $final = '';
-        }
-        fclose($tmpfile);
-        return $final;
+        $tmpfile->write($exportTool->footer($exportToolParams));
+        return $tmpfile->finish();
     }
 
-    private function __iteratedFetch($user, &$params, &$loop, &$tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
+    private function __iteratedFetch($user, &$params, &$loop, TmpFileTool $tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
     {
         $continue = true;
         while ($continue) {
@@ -1485,7 +1478,7 @@ class MispObject extends AppModel
             if (!$loop) {
                 $continue = false;
             }
-            fwrite($tmpfile, $temp);
+            $tmpfile->write($temp);
         }
         return true;
     }

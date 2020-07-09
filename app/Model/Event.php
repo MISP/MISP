@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('RandomTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
 class Event extends AppModel
 {
@@ -3168,9 +3169,9 @@ class Event extends AppModel
                     'conditions' => array(
                         'User.id' => $event['Event']['user_id'],
                         'User.disabled' => 0,
-                        'User.org_id' => $event['Event']
+                        'User.org_id' => $event['Event']['orgc_id'],
                     ),
-                    'fields' => array('User.email', 'User.gpgkey', 'User.certif_public'),
+                    'fields' => array('User.email', 'User.gpgkey', 'User.certif_public', 'User.id', 'User.disabled'),
                     'recursive' => -1
             ));
             if (!empty($temp)) {
@@ -3201,10 +3202,10 @@ class Event extends AppModel
         $body .= "Someone wants to get in touch with you concerning a MISP event. \n";
         $body .= "\n";
         $body .= "You can reach them at " . $user['User']['email'] . "\n";
-        if (!$user['User']['gpgkey']) {
+        if (!empty($user['User']['gpgkey'])) {
             $body .= "Their GnuPG key is added as attachment to this email. \n";
         }
-        if (!$user['User']['certif_public']) {
+        if (!empty($user['User']['certif_public'])) {
             $body .= "Their Public certificate is added as attachment to this email. \n";
         }
         $body .= "\n";
@@ -5853,7 +5854,7 @@ class Event extends AppModel
 
     private function __getTagNamesFromSynonyms($scriptDir)
     {
-        $synonymsToTagNames = $scriptDir . DS . 'synonymsToTagNames.json';
+        $synonymsToTagNames = $scriptDir . DS . 'tmp' . DS . 'synonymsToTagNames.json';
         if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
             if (empty($this->GalaxyCluster)) {
                 $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -6788,8 +6789,8 @@ class Event extends AppModel
                 $filters['published'] = 1;
             }
         }
-        $tmpfile = tmpfile();
-        fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $tmpfile = new TmpFileTool();
+        $tmpfile->write($exportTool->header($exportToolParams));
         $i = 0;
         if (!empty($filters['withAttachments'])) {
             $filters['includeAttachments'] = 1;
@@ -6817,7 +6818,7 @@ class Event extends AppModel
                         if ($i !== 0) {
                             $temp = $exportTool->separator($exportToolParams) . $temp;
                         }
-                        fwrite($tmpfile, $temp);
+                        $tmpfile->write($temp);
                         $i++;
                     }
                 }
@@ -6825,15 +6826,8 @@ class Event extends AppModel
         }
         unset($result);
         unset($temp);
-        fwrite($tmpfile, $exportTool->footer($exportToolParams));
-        fseek($tmpfile, 0);
-        if (fstat($tmpfile)['size'] > 0) {
-            $final = fread($tmpfile, fstat($tmpfile)['size']);
-        } else {
-            $final = 0;
-        }
-        fclose($tmpfile);
-        return $final;
+        $tmpfile->write($exportTool->footer($exportToolParams));
+        return $tmpfile->finish();
     }
 
     /*

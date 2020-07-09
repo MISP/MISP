@@ -5482,7 +5482,7 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         $results = array();
-        $extensions = array('redis', 'gd', 'ssdeep');
+        $extensions = array('redis', 'gd', 'ssdeep', 'zip');
         foreach ($extensions as $extension) {
             $results['web']['extensions'][$extension] = extension_loaded($extension);
         }
