@@ -3665,7 +3665,7 @@ class Event extends AppModel
                 'conditions' => array('Event.id' => $this->id),
                 'recursive' => -1
             ));
-            if (isset($data['Event']['Attribute']) && !empty($data['Event']['Attribute'])) {
+            if (!empty($data['Event']['Attribute'])) {
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $block = false;
                     for ($i = 0; $i < $k; $i++) {
