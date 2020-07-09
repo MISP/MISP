@@ -50,7 +50,7 @@
                 array(
                     'name' => __('Galaxy Cluster Source'),
                     'sort' => 'SourceCluster.tag_name',
-                    'element' => 'cluster_link',
+                    'element' => 'galaxy_cluster_link',
                     'data_path' => 'SourceCluster',
                     'data_path_relation' => 'GalaxyClusterRelation',
                     'url_params_data_paths' => 'SourceCluster.id',
@@ -59,7 +59,7 @@
                 array(
                     'name' => __('Galaxy Cluster Target'),
                     'sort' => 'TargetCluster.tag_name',
-                    'element' => 'cluster_link',
+                    'element' => 'galaxy_cluster_link',
                     'data_path' => 'TargetCluster',
                     'data_path_relation' => 'GalaxyClusterRelation',
                     'url_params_data_paths' => 'TargetCluster.id',
