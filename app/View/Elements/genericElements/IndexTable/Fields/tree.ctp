@@ -1,4 +1,18 @@
 <?php
+/** 
+ * Generate a tree like hierarchy from the provided data
+ * 
+ * @see tree_node.ctp
+ * @param array $field['parent'] If provided, will be echoed verbatim
+ * @param array $field['fields']['tree_data'] The data for each tree level, from parent to children:
+ *          array(
+ *              0 => array(
+ *                  $tree_node_data
+ *              ),
+ *              1 => array(...),
+ *          )
+ */
+
 if (isset($field['parent'])) {
     echo h($field['parent']);
 } else {
@@ -9,18 +23,17 @@ if (isset($field['parent'])) {
 }
 
 $htmlExtended = '';
-$datapathLevels = $field['fields']['extend_data'];
+$datapathLevels = $field['fields']['tree_data'];
 $levelSkiped = 0;
 foreach ($datapathLevels as $level => $datapathLevel) {
-    $dataForLevel = Hash::extract($row, $datapathLevel['extend_root_data_path']);
+    $dataForLevel = Hash::extract($row, $datapathLevel['main_data_path']);
     if (!empty($dataForLevel)) {
         $htmlExtended .= $this->element(
-            '/genericElements/IndexTable/Fields/extended_by',
+            '/genericElements/IndexTable/Fields/tree_node',
             array(
                 'datapath' => $datapathLevel,
                 'data' => $dataForLevel,
                 'level' => $level - $levelSkiped,
-                'k' => $k,
             )
         );
     } else {
