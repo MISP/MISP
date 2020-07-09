@@ -42,8 +42,17 @@ class GalaxyClusterRelationTag extends AppModel
     {
         $this->delete($id);
     }
-
-    public function attachTags($user, $galaxyClusterRelationId, $tags, $capture=false)
+    
+    /**
+     * attachTags
+     *
+     * @param  array $user
+     * @param  int   $galaxyClusterRelationId
+     * @param  array $tags list of tag names to be saved
+     * @param  bool  $capture
+     * @return void
+     */
+    public function attachTags(array $user, $galaxyClusterRelationId, array $tags, $capture=false)
     {
         $allSaved = true;
         $saveResult = false;

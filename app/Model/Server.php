@@ -2776,8 +2776,16 @@ class Server extends AppModel
         }
         return $filterRules;
     }
-
-    public function fetchCustomClusterIdsFromServer($server, $HttpSocket=null, $conditions=array())
+    
+    /**
+     * fetchCustomClusterIdsFromServer Fetch custom-published remote clusters' UUIDs and versions
+     *
+     * @param  array $server
+     * @param  mixed $HttpSocket
+     * @param  array $conditions
+     * @return mixed The list of clusters or the error
+     */
+    public function fetchCustomClusterIdsFromServer(array $server, $HttpSocket=null, array $conditions=array())
     {
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
@@ -2791,8 +2799,6 @@ class Server extends AppModel
             $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
             if ($response->isOk()) {
                 $clusterArray = json_decode($response->body, true);
-                // correct $eventArray if just one event
-                $clusterIds = array();
                 if (isset($clusterArray['response'])) {
                     $clusterArray = $clusterArray['response'];
                 }
@@ -2807,7 +2813,7 @@ class Server extends AppModel
         }
 
         // error, so return error message, since that is handled and everything is expecting an array
-        return "Error: got response code " . $response->code;
+        return __('Error: got response code %s', $response->code);
     }
 
     /**
@@ -3099,7 +3105,7 @@ class Server extends AppModel
                         $event = $event[0];
                         $event['Event']['locked'] = 1;
                         if ($push['canEditGalaxyCluster'] && "full" != $technique) {
-                            $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $technique=$technique, $event=$event);
+                            $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
                         } else {
                             $clustersSuccesses = array();
                         }
@@ -3192,8 +3198,18 @@ class Server extends AppModel
         }
         return $uuidList;
     }
-
-    public function syncGalaxyClusters($HttpSocket, $server, $user, $technique='full', $event=false)
+    
+    /**
+     * syncGalaxyClusters Push elligible clusters depending on the provided technique
+     *
+     * @param  mixed $HttpSocket
+     * @param  array $server
+     * @param  array $user
+     * @param  string|int $technique Either the 'full' string or the event id
+     * @param  bool  $event
+     * @return array List of successfully pushed clusters
+     */
+    public function syncGalaxyClusters($HttpSocket, array $server, array $user, $technique='full', $event=false)
     {
         $successes = array();
         if (!$server['Server']['push_galaxy_clusters']) {
@@ -3206,6 +3222,9 @@ class Server extends AppModel
         if ($technique == 'full') {
             $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
         } else {
+            if ($event === false) { // The event from which the cluster should be taken must be provided
+                return $successes;
+            }
             $tagNames = $this->Event->extractAllTagNames($event);
             if (!empty($tagNames)) {
                 $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $tagNames), $full=true);
