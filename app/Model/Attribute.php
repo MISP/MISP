@@ -936,13 +936,15 @@ class Attribute extends AppModel
 
     public function validCategory($fields)
     {
-        $validCategories = array_keys($this->categoryDefinitions);
-        if (in_array($fields['category'], $validCategories)) {
-            return true;
-        }
-        return false;
+        return isset($this->categoryDefinitions[$fields['category']]);
     }
 
+    /**
+     * Check if the attribute already exists in the same event.
+     *
+     * @param array $fields
+     * @return bool
+     */
     public function valueIsUnique($fields)
     {
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
@@ -952,31 +954,28 @@ class Attribute extends AppModel
         if (!empty($this->data['Attribute']['object_relation'])) {
             return true;
         }
-        $value = $fields['value'];
-        if (strpos($value, '|')) {
-            $value = explode('|', $value);
-            $value = array(
-                'Attribute.value1' => $value[0],
-                'Attribute.value2' => $value[1]
-            );
-        } else {
-            $value = array(
-                'Attribute.value1' => $value,
-            );
-        }
-        $eventId = $this->data['Attribute']['event_id'];
-        $type = $this->data['Attribute']['type'];
-        $category = $this->data['Attribute']['category'];
 
-        // check if the attribute already exists in the same event
+        $eventId = $this->data['Attribute']['event_id'];
+        $category = $this->data['Attribute']['category'];
+        $type = $this->data['Attribute']['type'];
+
         $conditions = array(
             'Attribute.event_id' => $eventId,
             'Attribute.type' => $type,
             'Attribute.category' => $category,
             'Attribute.deleted' => 0,
-            'Attribute.object_id' => 0
+            'Attribute.object_id' => 0,
         );
-        $conditions = array_merge($conditions, $value);
+
+        $value = $fields['value'];
+        if (in_array($type, $this->getCompositeTypes())) {
+            $value = explode('|', $value);
+            $conditions['Attribute.value1'] = $value[0];
+            $conditions['Attribute.value2'] = $value[1];
+        } else {
+            $conditions['Attribute.value1'] = $value;
+        }
+
         if (isset($this->data['Attribute']['id'])) {
             $conditions['Attribute.id !='] = $this->data['Attribute']['id'];
         }
@@ -1626,14 +1625,17 @@ class Attribute extends AppModel
 
     public function getCompositeTypes()
     {
-        // build the list of composite Attribute.type dynamically by checking if type contains a |
-        // default composite types
-        $compositeTypes = array('malware-sample');  // TODO hardcoded composite
-        // dynamically generated list
-        foreach (array_keys($this->typeDefinitions) as $type) {
-            $pieces = explode('|', $type);
-            if (2 == count($pieces)) {
-                $compositeTypes[] = $type;
+        static $compositeTypes;
+
+        if ($compositeTypes === null) {
+            // build the list of composite Attribute.type dynamically by checking if type contains a |
+            // default composite types
+            $compositeTypes = array('malware-sample');  // TODO hardcoded composite
+            // dynamically generated list
+            foreach ($this->typeDefinitions as $type => $foo) {
+                if (strpos($type, '|') !== false) {
+                    $compositeTypes[] = $type;
+                }
             }
         }
         return $compositeTypes;
