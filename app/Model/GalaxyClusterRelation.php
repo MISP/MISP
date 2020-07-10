@@ -313,7 +313,6 @@ class GalaxyClusterRelation extends AppModel
                     $errors[] = array(__('Invalid referenced galaxy cluster'));
                     return $errors;
                 }
-                $targetCluster = $targetCluster[0];
                 $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $targetCluster['TargetCluster']['id'];
                 $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'] = $targetCluster['TargetCluster']['uuid'];
                 $relation['GalaxyClusterRelation']['default'] = false;
