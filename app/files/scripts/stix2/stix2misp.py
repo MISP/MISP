@@ -216,9 +216,9 @@ class StixParser():
             self.fill_misp_object(section_object, section, 'pe_section_mapping')
             if hasattr(section, 'hashes'):
                 self.fill_misp_object(section_object, section.hashes, 'pe_section_mapping')
+            self.misp_event.add_object(section_object)
             pe_object.add_reference(section_object.uuid, 'includes')
-            self.misp_event.add_object(**section_object)
-        self.misp_event.add_object(**pe_object)
+        self.misp_event.add_object(pe_object)
         return pe_object.uuid
 
     def parse_relationships(self):
@@ -515,7 +515,7 @@ class StixFromMISPParser(StixParser):
             misp_object.add_reference(target_uuid, 'includes')
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
 
     def parse_observable_attribute(self, observable):
         attribute = self.create_attribute_dict(observable)
@@ -541,7 +541,7 @@ class StixFromMISPParser(StixParser):
             misp_object.add_reference(target_uuid, 'includes')
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
 
     def parse_vulnerability(self, vulnerability):
         attributes = self.fill_observable_attributes(vulnerability, 'vulnerability_mapping')
@@ -1066,9 +1066,9 @@ class StixFromMISPParser(StixParser):
                 attribute = deepcopy(stix2misp_mapping.pe_section_mapping[feature])
                 attribute['value'] = value
                 pe_section.add_attribute(**attribute)
+            self.misp_event.add_object(pe_section)
             pe.add_reference(pe_section.uuid, 'includes')
-            self.misp_event.add_object(**pe_section)
-        self.misp_event.add_object(**pe)
+        self.misp_event.add_object(pe)
         return attributes, pe.uuid
 
     def parse_process_pattern(self, pattern):
@@ -1342,7 +1342,7 @@ class ExternalStixParser(StixParser):
         file.add_reference(pe_uuid, 'includes')
         for attribute in attributes:
             file.add_attribute(**attribute)
-        self.misp_event.add_object(**file)
+        self.misp_event.add_object(file)
 
     @staticmethod
     def _is_reference(network_traffic, reference):
@@ -1757,15 +1757,15 @@ class ExternalStixParser(StixParser):
             pe_object = MISPObject('pe', misp_objects_path_custom=_misp_objects_path)
             sections = self._get_sections(pe_extension)
             self.fill_misp_object_from_dict(pe_object, pe_extension, 'pe_mapping')
-            file_object.add_reference(pe_object.uuid, 'includes')
             if sections:
                 for section in sections:
                     section_object = MISPObject('pe-section')
                     self.fill_misp_object_from_dict(section_object, section, 'pe_section_mapping')
+                    self.misp_event.add_object(section_object)
                     pe_object.add_reference(section_object.uuid, 'includes')
-                    self.misp_event.add_object(**section_object)
-            self.misp_event.add_object(**pe_object)
-        self.misp_event.add_object(**file_object)
+            self.misp_event.add_object(pe_object)
+            file_object.add_reference(pe_object.uuid, 'includes')
+        self.misp_event.add_object(file_object)
 
     def parse_ip_address_pattern(self, indicator, separator):
         self.add_attributes_from_indicator(indicator, 'ip-dst', separator)
