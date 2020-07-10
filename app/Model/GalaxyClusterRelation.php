@@ -395,6 +395,7 @@ class GalaxyClusterRelation extends AppModel
                     $relation['GalaxyClusterRelation']['id'] = $existingRelation['GalaxyClusterRelation']['id'];
                 }
             } else {
+                unset($relation['GalaxyClusterRelation']['id']);
                 $this->create();
             }
 

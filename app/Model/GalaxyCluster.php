@@ -659,6 +659,7 @@ class GalaxyCluster extends AppModel
         if (empty($existingGalaxyCluster)) {
             $galaxy = $this->Galaxy->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy']);
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
+            unset($cluster['GalaxyCluster']['id']);
             $this->create();
             $saveSuccess = $this->save($cluster);
         } else {
@@ -679,7 +680,7 @@ class GalaxyCluster extends AppModel
         if ($saveSuccess) {
             $results['imported']++;
             $savedCluster = $this->find('first', array(
-                'conditions' => array('id' =>  $this->id),
+                'conditions' => array('uuid' =>  $cluster['GalaxyCluster']['uuid']),
                 'recursive' => -1
             ));
             if (!empty($cluster['GalaxyCluster']['GalaxyElement'])) {
