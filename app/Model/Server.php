@@ -2699,13 +2699,19 @@ class Server extends AppModel
                 ));
             }
         }
-        $job->saveProgress($jobId, 'Pulling proposals.', 50);
+        if ($jobId) {
+            $job->saveProgress($jobId, 'Pulling proposals.', 50);
+        }
         $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
 
-        $job->saveProgress($jobId, 'Pulling sightings.', 75);
+        if ($jobId) {
+            $job->saveProgress($jobId, 'Pulling sightings.', 75);
+        }
         $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
 
-        $job->saveProgress($jobId, 'Pull completed.', 100);
+        if ($jobId) {
+            $job->saveProgress($jobId, 'Pull completed.', 100);
+        }
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
