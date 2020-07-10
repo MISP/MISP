@@ -2616,8 +2616,9 @@ class Server extends AppModel
 
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
     {
-        $this->Job = ClassRegistry::init('Job');
         if ($jobId) {
+            $job = ClassRegistry::init('Job');
+            $job->read(null, $jobId);
             $email = "Scheduled job";
         } else {
             $email = $user['email'];
@@ -2670,12 +2671,14 @@ class Server extends AppModel
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
-            $this->Job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
+            if ($jobId) {
+                $job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
+            }
             foreach ($eventIds as $k => $eventId) {
                 $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
                 if ($jobId) {
                     if ($k % 10 == 0) {
-                        $this->Job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
+                        $job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
                     }
                 }
             }
@@ -2696,13 +2699,13 @@ class Server extends AppModel
                 ));
             }
         }
-        $this->Job->saveProgress($jobId, 'Pulling proposals.', 50);
+        $job->saveProgress($jobId, 'Pulling proposals.', 50);
         $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
 
-        $this->Job->saveProgress($jobId, 'Pulling sightings.', 75);
+        $job->saveProgress($jobId, 'Pulling sightings.', 75);
         $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
 
-        $this->Job->saveProgress($jobId, 'Pull completed.', 100);
+        $job->saveProgress($jobId, 'Pull completed.', 100);
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
