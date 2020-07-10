@@ -663,7 +663,7 @@ class GalaxyCluster extends AppModel
             $this->create();
             $saveSuccess = $this->save($cluster);
         } else {
-            if ($fromPull && !$existingGalaxyCluster['GalaxyCluster']['locked'] && !$server['Server']['internal']) {
+            if (!$existingGalaxyCluster['GalaxyCluster']['locked'] && empty($server['Server']['internal'])) {
                 $results['errors'][] = __('Blocked an edit to an cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
                 $results['failed']++;
                 return $results;
