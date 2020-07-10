@@ -596,8 +596,8 @@ class GalaxyCluster extends AppModel
      *
      * @param $user
      * @param array $cluster Cluster to be saved
-     * @param bool $fromPull If the current capture is performed from a PULL sync
-     * @param int $orgId The organisation id that should own the cluster
+     * @param bool  $fromPull If the current capture is performed from a PULL sync
+     * @param int   $orgId The organisation id that should own the cluster
      * @param array $server The server for which to capture is ongoing
      * @return array
      */
@@ -1618,8 +1618,8 @@ class GalaxyCluster extends AppModel
                     if ($s['server_id'] == 0) {
                         $s['Server'] = array(
                             'id' => 0,
-                            'url' => $this->__getAnnounceBaseurl(),
-                            'name' => $this->__getAnnounceBaseurl()
+                            'url' => $this->Event->__getAnnounceBaseurl(),
+                            'name' => $this->Event->__getAnnounceBaseurl()
                         );
                     }
                 }
