@@ -131,7 +131,11 @@ class StixExport
     {
         foreach ($this->__filenames as $f => $filename) {
             if ($index >= $f) {
-                unlink($this->__tmp_dir . $filename);
+                try {
+                    unlink($this->__tmp_dir . $filename);
+                } catch (Exception $e) {
+                    unset($e);
+                }
             }
         }
         $this->__stix_file->close();
