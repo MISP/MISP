@@ -97,7 +97,7 @@ class StixExport
             $stix_event = ($this->__return_type == 'stix') ? $file->read() : substr($file->read(), 1, -1);
             $file->close();
             $file->delete();
-            unlink($this->__tmp_dir . $filename);
+            @unlink($this->__tmp_dir . $filename);
             $this->__stix_file->append($stix_event . $this->__framing['separator']);
             unset($stix_event);
         }
@@ -131,11 +131,7 @@ class StixExport
     {
         foreach ($this->__filenames as $f => $filename) {
             if ($index >= $f) {
-                try {
-                    unlink($this->__tmp_dir . $filename);
-                } catch (Exception $e) {
-                    unset($e);
-                }
+                @unlink($this->__tmp_dir . $filename);
             }
         }
         $this->__stix_file->close();
