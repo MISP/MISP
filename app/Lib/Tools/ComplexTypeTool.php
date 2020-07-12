@@ -4,37 +4,12 @@ class ComplexTypeTool
 {
     private $__refangRegexTable = array(
         array(
-            'from' => '/^(hxxp|hxtp|htxp)/i',
+            'from' => '/^(hxxp|hxtp|htxp|meow|h\[tt\]p)/i',
             'to' => 'http',
             'types' => array('link', 'url')
         ),
         array(
-            'from' => '/^meow/i',
-            'to' => 'http',
-            'types' => array('link', 'url')
-        ),
-        array(
-            'from' => '/^h\[tt\]p/i',
-            'to' => 'http',
-            'types' => array('link', 'url')
-        ),
-        array(
-            'from' => '/\[\.\]/',
-            'to' => '.',
-            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
-        ),
-        array(
-            'from' => '/\[dot\]/',
-            'to' => '.',
-            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
-        ),
-        array(
-            'from' => '/\(dot\)/',
-            'to' => '.',
-            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
-        ),
-        array(
-            'from' => '/\\\\\./',
+            'from' => '/(\[\.\]|\[dot\]|\(dot\)|\\\\\.)/',
             'to' => '.',
             'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
         ),
@@ -65,7 +40,7 @@ class ComplexTypeTool
     public function refangValue($value, $type)
     {
         foreach ($this->__refangRegexTable as $regex) {
-            if (!isset($regex['types']) || in_array($type, $regex['types'])) {
+            if (in_array($type, $regex['types'])) {
                 $value = preg_replace($regex['from'], $regex['to'], $value);
             }
         }

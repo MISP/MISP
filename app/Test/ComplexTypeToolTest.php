@@ -158,4 +158,21 @@ class ComplexTypeToolTest extends TestCase
             $this->assertEquals('url', $results[0]['default_type']);
         }
     }
+
+    public function testRefangValueUrl(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        foreach (['meow://example.com', 'h[tt]p://example.com'] as $test) {
+            $this->assertEquals('http://example.com', $complexTypeTool->refangValue($test, 'url'));
+            $this->assertEquals('http://example.com', $complexTypeTool->refangValue($test, 'link'));
+        }
+    }
+
+    public function testRefangValueDot(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        foreach (['127.0.0.1', '127[.]0.0.1', '127[.]0[.]0[.]1', '127[dot]0[dot]0[dot]1', '127(dot)0(dot)0(dot)1', '127\.0.0.1'] as $test) {
+            $this->assertEquals('127.0.0.1', $complexTypeTool->refangValue($test, 'ip-src'));
+        }
+    }
 }
