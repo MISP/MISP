@@ -58,9 +58,11 @@ class OpendataExport
 
     public function footer()
     {
-        $authParam = ' --auth ' . $this->__auth;
         $my_server = ClassRegistry::init('Server');
-        $cmd = $my_server->getPythonVersion() . ' ' . $this->__scripts_dir . $this->__script_name . $authParam;
+        $cmd = $my_server->getPythonVersion() . ' ' . $this->__scripts_dir . $this->__script_name;
+        if (!empty($this->__auth)) {
+            $cmd .= ' --auth ' . $this->__auth;
+        }
         return $this->__delete ? $this->__delete_query($cmd) : $this->__add_query($cmd);
     }
 
