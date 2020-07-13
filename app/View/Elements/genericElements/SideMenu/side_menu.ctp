@@ -1150,6 +1150,13 @@
                         'url' => '/galaxies/index',
                         'text' => __('List Galaxies')
                     ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'index_blocklist',
+                            'url' => '/galaxy_cluster_blocklists/index',
+                            'text' => __('List Cluster Blocklists')
+                        )); 
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/galaxy_cluster_relations/index',
                         'text' => __('List Relationships')
@@ -1291,6 +1298,13 @@
                         'url' => '/galaxies/index',
                         'text' => __('List Galaxies')
                     ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'index',
+                            'url' => '/galaxy_cluster_blocklists/index',
+                            'text' => __('List Cluster Blocklists')
+                        )); 
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'index',
                         'url' => '/galaxy_cluster_relations/index',

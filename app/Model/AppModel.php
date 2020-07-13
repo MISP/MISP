@@ -1414,8 +1414,10 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `extends_version` int(11) DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `published` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_galaxy_editor` tinyint(1) NOT NULL DEFAULT 0;";
+
                 $sqlArray[] = "UPDATE `roles` SET `perm_galaxy_editor`=1 WHERE `perm_tag_editor`=1;";
                 $sqlArray[] = "UPDATE `galaxy_clusters` SET `distribution`=3, `default`=1 WHERE `org_id`=0;";
+
                 $sqlArray[] = "ALTER TABLE `galaxy_reference` RENAME `galaxy_cluster_relations`;";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `galaxy_cluster_uuid` varchar(40) COLLATE utf8_bin NOT NULL;";
                 $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
@@ -1428,12 +1430,25 @@ class AppModel extends Model
                     `tag_id` int(11) NOT NULL,
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+
                 $sqlArray[] = "ALTER TABLE `tags` ADD `is_galaxy` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `tags` ADD `is_custom_galaxy` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "UPDATE `tags` SET `is_galaxy`=1 WHERE `name` LIKE 'misp-galaxy:%';";
                 $sqlArray[] = "UPDATE `tags` SET `is_custom_galaxy`=1 WHERE `name` REGEXP '^misp-galaxy:[^:=\"]+=\"[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\"$';";
+
                 $sqlArray[] = "ALTER TABLE `servers` ADD `push_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_sightings`;";
                 $sqlArray[] = "ALTER TABLE `servers` ADD `pull_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_galaxy_clusters`;";
+
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_blocklists` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `cluster_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                    `created` datetime NOT NULL,
+                    `cluster_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+                    `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `cluster_orgc` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+
                 $indexArray[] = array('galaxy_clusters', 'org_id');
                 $indexArray[] = array('galaxy_clusters', 'orgc_id');
                 $indexArray[] = array('galaxy_clusters', 'sharing_group_id');
@@ -1445,6 +1460,8 @@ class AppModel extends Model
                 $indexArray[] = array('galaxy_cluster_relations', 'default');
                 $indexArray[] = array('galaxy_cluster_relation_tags', 'galaxy_cluster_relation_id');
                 $indexArray[] = array('galaxy_cluster_relation_tags', 'tag_id');
+                $indexArray[] = array('galaxy_cluster_blocklists', 'cluster_uuid');
+                $indexArray[] = array('galaxy_cluster_blocklists', 'cluster_orgc');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
