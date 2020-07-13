@@ -42,19 +42,19 @@
                 ),
                 array(
                     'name' => __('Created'),
-                    'sort' => 'type',
+                    'sort' => 'created',
                     'class' => 'short',
                     'data_path' => 'GalaxyClusterBlocklist.created',
                 ),
                 array(
-                    'name' => __('Cluster info'),
-                    'sort' => 'type',
+                    'name' => __('Cluster value'),
+                    'sort' => 'value',
                     'class' => 'short',
                     'data_path' => 'GalaxyClusterBlocklist.cluster_info',
                 ),
                 array(
                     'name' => __('Comment'),
-                    'sort' => 'type',
+                    'sort' => 'comment',
                     'class' => 'short',
                     'data_path' => 'GalaxyClusterBlocklist.comment',
                 ),

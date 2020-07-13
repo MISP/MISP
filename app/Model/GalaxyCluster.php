@@ -479,11 +479,28 @@ class GalaxyCluster extends AppModel
         }
         return false;
     }
-
+    
+    /**
+     * deleteCluster Delete the cluster. Also creates an entry in the cluster blocklist when hard-deleting
+     *
+     * @param  int  $id
+     * @param  bool $hard
+     * @return bool
+     */
     public function deleteCluster($id, $hard=false)
     {
         if ($hard) {
-            return $this->delete($id, true);
+            $cluster = $this->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
+            $this->GalaxyClusterBlocklist = ClassRegistry::init('GalaxyClusterBlocklist');
+            $this->GalaxyClusterBlocklist->create();
+            $orgc = $this->Orgc->find('first', array(
+                'conditions' => array('Orgc.id' => $cluster['GalaxyCluster']['orgc_id']),
+                'recursive' => -1,
+                'fields' => array('Orgc.name')
+            ));
+            $this->GalaxyClusterBlocklist->save(array('cluster_uuid' => $cluster['GalaxyCluster']['uuid'], 'cluster_info' => $cluster['GalaxyCluster']['value'], 'cluster_orgc' => $orgc['Orgc']['name']));
+            $deleteResult = $this->delete($id, true);
+            return $deleteResult;
         } else {
             return $this->save(array(
                 'id' => $id,
