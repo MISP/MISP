@@ -10,16 +10,20 @@ class ComplexTypeToolTest extends TestCase
         $complexTypeTool = new ComplexTypeTool();
         $results = $complexTypeTool->checkFreeText(<<<EOT
 # LAST 1000 # UTC UPDATE 2020-07-13 08:15:00
-127.0.0.1,(127.0.0.2),  <127.0.0.3>
+127.0.0.1,(127.0.0.2),  <127.0.0.3>; "127.0.0.4" '127.0.0.5'
 EOT
 );
-        $this->assertCount(3, $results);
+        $this->assertCount(5, $results);
         $this->assertEquals('127.0.0.1', $results[0]['value']);
         $this->assertEquals('ip-dst', $results[0]['default_type']);
         $this->assertEquals('127.0.0.2', $results[1]['value']);
         $this->assertEquals('ip-dst', $results[1]['default_type']);
         $this->assertEquals('127.0.0.3', $results[2]['value']);
         $this->assertEquals('ip-dst', $results[2]['default_type']);
+        $this->assertEquals('127.0.0.4', $results[3]['value']);
+        $this->assertEquals('ip-dst', $results[3]['default_type']);
+        $this->assertEquals('127.0.0.5', $results[4]['value']);
+        $this->assertEquals('ip-dst', $results[4]['default_type']);
     }
 
     public function testCheckFreeTextIpv4(): void
@@ -38,6 +42,7 @@ EOT
         $this->assertCount(1, $results);
         $this->assertEquals('127.0.0.1|8080', $results[0]['value']);
         $this->assertEquals('ip-dst|port', $results[0]['default_type']);
+        $this->assertEquals('On port 8080', $results[0]['comment']);
     }
 
     public function testCheckFreeTextIpv4Cidr(): void
@@ -83,6 +88,7 @@ EOT
         $this->assertCount(1, $results);
         $this->assertEquals('1fff:0:a88:85a3::ac1f|8001', $results[0]['value']);
         $this->assertEquals('ip-dst|port', $results[0]['default_type']);
+        $this->assertEquals('On port 8001', $results[0]['comment']);
     }
 
     public function testCheckFreeTextDomain(): void
@@ -149,6 +155,15 @@ EOT
         $this->assertEquals('filename', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextRegkey(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion');
+        $this->assertCount(1, $results);
+        $this->assertEquals('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion', $results[0]['value']);
+        $this->assertEquals('regkey', $results[0]['default_type']);
+    }
+
     public function testCheckFreeTextDomainWithPort(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -156,6 +171,7 @@ EOT
         $this->assertCount(1, $results);
         $this->assertEquals('example.com', $results[0]['value']);
         $this->assertEquals('domain', $results[0]['default_type']);
+        $this->assertEquals('On port 80', $results[0]['comment']);
     }
 
     public function testCheckFreeTextDomainUppercase(): void
@@ -331,11 +347,9 @@ EOT
     {
         $complexTypeTool = new ComplexTypeTool();
         $results = $complexTypeTool->checkFreeText('as0 AS0');
-        $this->assertCount(2, $results);
+        $this->assertCount(1, $results);
         $this->assertEquals('AS0', $results[0]['value']);
         $this->assertEquals('AS', $results[0]['default_type']);
-        $this->assertEquals('AS0', $results[1]['value']);
-        $this->assertEquals('AS', $results[1]['default_type']);
     }
 
     public function testCheckFreeTextMd5(): void
@@ -377,6 +391,22 @@ EOT
         $complexTypeTool = new ComplexTypeTool();
         $results = $complexTypeTool->checkFreeText('');
         $this->assertCount(0, $results);
+    }
+
+    public function testCheckFreeTextEmptyValues(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        foreach (['|', '&', '$', '0', ':80', '1.2', '[]:80', '\.', '.', ':', 'a:b', 'a:b:c'] as $char) {
+            $results = $complexTypeTool->checkFreeText($char);
+            $this->assertCount(0, $results);
+        }
+    }
+
+    public function testCheckFreeTextRemoveDuplicates(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('1.2.3.4 1.2.3.4');
+        $this->assertCount(1, $results);
     }
 
     public function testRefangValueUrl(): void

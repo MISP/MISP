@@ -3677,14 +3677,6 @@ class EventsController extends AppController
                 $resultArray[$key]['types'] = $temp;
             }
 
-            // remove all duplicates
-            foreach ($resultArray as $k => $v) {
-                for ($i = 0; $i < $k; $i++) {
-                    if (isset($resultArray[$i]) && $v == $resultArray[$i]) {
-                        unset($resultArray[$k]);
-                    }
-                }
-            }
             if ($this->_isRest()) {
                 if ($returnMetaAttributes || !empty($this->request->data['Attribute']['returnMetaAttributes'])) {
                     return $this->RestResponse->viewData($resultArray, $this->response->type());

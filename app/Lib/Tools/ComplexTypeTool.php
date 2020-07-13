@@ -221,9 +221,13 @@ class ComplexTypeTool
             if ($typeArray === false) {
                 continue;
             }
-            $resultArray[] = $typeArray;
+            // Remove duplicates
+            if (isset($resultArray[$typeArray['value']])) {
+                continue;
+            }
+            $resultArray[$typeArray['value']] = $typeArray;
         }
-        return $resultArray;
+        return array_values($resultArray);
     }
 
     private $__hexHashTypes = array(
@@ -305,7 +309,7 @@ class ComplexTypeTool
         $hash = $this->__resolveHash($input['raw']);
         if ($hash) {
             $types = $hash['single'];
-            if (!empty($this->__checkForBTC($input))) {
+            if ($this->__checkForBTC($input)) {
                 $types[] = 'btc';
             }
             return array('types' => $types, 'to_ids' => true, 'default_type' => $hash['single'][0], 'value' => $input['raw']);
@@ -321,12 +325,11 @@ class ComplexTypeTool
     {
         // note down and remove the port if it's a url / domain name / hostname / ip
         // input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
-        if (preg_match('/(:[0-9]{2,5})$/', $input['refanged'], $input['port'])) {
-            $input['comment'] = 'On port ' . substr($input['port'][0], 1);
-            $input['refanged_no_port'] = str_replace($input['port'][0], '', $input['refanged']);
-            $input['port'] = substr($input['port'][0], 1);
+        if (preg_match('/(:[0-9]{2,5})$/', $input['refanged'], $port)) {
+            $input['comment'] = 'On port ' . substr($port[0], 1);
+            $input['refanged_no_port'] = str_replace($port[0], '', $input['refanged']);
+            $input['port'] = substr($port[0], 1);
         } else {
-            unset($input['port']);
             $input['comment'] = false;
             $input['refanged_no_port'] = $input['refanged'];
         }
@@ -385,7 +388,11 @@ class ComplexTypeTool
             ];
         }
         // IPv6 with port in `[1fff:0:a88:85a3::ac1f]:8001` format
-        if (isset($input['port']) && $input['refanged_no_port'][0] === '[' && filter_var(substr($input['refanged_no_port'], 1, -1), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        if (isset($input['port']) &&
+            !empty($input['refanged_no_port']) &&
+            $input['refanged_no_port'][0] === '[' &&
+            filter_var(substr($input['refanged_no_port'], 1, -1), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)
+        ) {
             $value = substr($input['refanged_no_port'], 1, -1); // remove brackets
             return [
                 'types' => ['ip-dst|port', 'ip-src|port', 'ip-src|port/ip-dst|port'],
@@ -398,10 +405,8 @@ class ComplexTypeTool
         // it could still be a CIDR block
         if (strpos($input['refanged_no_port'], '/')) {
             $temp = explode('/', $input['refanged_no_port']);
-            if (count($temp) == 2) {
-                if (filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) {
-                    return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
-                }
+            if (count($temp) === 2 && filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) {
+                return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
             }
         }
         return false;
@@ -409,13 +414,11 @@ class ComplexTypeTool
 
     private function __checkForDomainOrFilename(array $input)
     {
-        if (strpos($input['refanged'], '.') !== false) {
-            $temp = explode('.', $input['refanged']);
+        if (strpos($input['refanged_no_port'], '.') !== false) {
+            $temp = explode('.', $input['refanged_no_port']);
             $domainDetection = true;
-            if (preg_match('/^([-\pL\pN]+\.)+[a-z0-9-]+(:[0-9]{2,5})?$/iu', $input['refanged'])) {
-                // Remove port
-                $tldExploded = explode(':', $temp[count($temp)-1]);
-                if (!$this->isTld($tldExploded[0])) {
+            if (preg_match('/^([-\pL\pN]+\.)+[a-z0-9-]+$/iu', $input['refanged_no_port'])) {
+                if (!$this->isTld(end($temp))) {
                     $domainDetection = false;
                 }
             } else {
@@ -447,11 +450,11 @@ class ComplexTypeTool
         }
         if (strpos($input['raw'], '\\') !== false) {
             $temp = explode('\\', $input['raw']);
-            if (strpos($temp[count($temp)-1], '.') || preg_match('/^.:/i', $temp[0])) {
-                if ($this->__resolveFilename($temp[count($temp)-1])) {
+            if (strpos(end($temp), '.') || preg_match('/^.:/i', $temp[0])) {
+                if ($this->__resolveFilename(end($temp))) {
                     return array('types' => array('filename'), 'categories' => array('Payload installation'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $input['raw']);
                 }
-            } else {
+            } else if (!empty($temp[0])) {
                 return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey', 'value' => $input['raw']);
             }
         }
@@ -462,7 +465,7 @@ class ComplexTypeTool
     {
         if ((preg_match('/^.:/', $param) || strpos($param, '.') != 0)) {
             $parts = explode('.', $param);
-            if (!is_numeric($parts[count($parts)-1]) && ctype_alnum($parts[count($parts)-1])) {
+            if (!is_numeric(end($parts)) && ctype_alnum(end($parts))) {
                 return true;
             }
         }
