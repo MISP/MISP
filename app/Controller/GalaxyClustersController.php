@@ -697,7 +697,11 @@ class GalaxyClustersController extends AppController
             $result = $this->GalaxyCluster->deleteCluster($cluster['GalaxyCluster']['id'], $hard=$hard);
             $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
             if ($result) {
-                $message = __('Galaxy cluster successfuly %s deleted.', $hard ? __('hard') : __('soft'));
+                $message = __(
+                    'Galaxy cluster successfuly %s deleted%s.',
+                    $hard ? __('hard') : __('soft'),
+                    $hard ? __(' and added to the block list') : ''
+                );
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $this->response->type());
                 } else {

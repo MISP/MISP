@@ -78,7 +78,7 @@ class BlackListComponent extends Component
                 $this->set('message', $message);
                 $this->set('_serialize', array('message', 'result'));
             } else {
-                $this->controller->Session->setFlash($message);
+                $this->controller->Flash->success($message);
                 $this->controller->redirect(array('action' => 'index'));
             }
         }
@@ -92,7 +92,7 @@ class BlackListComponent extends Component
             $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', array('conditions' => array('id' => $id)));
         }
         if (empty($blockEntry)) {
-            throw new NotFoundException('Blacklist item not found.');
+            throw new NotFoundException(__('Blacklist item not found.'));
         }
         $this->controller->set('blockEntry', $blockEntry);
         if ($this->controller->request->is('post')) {
@@ -123,14 +123,14 @@ class BlackListComponent extends Component
                     $this->controller->set('message', array('Blacklist item added.'));
                     $this->controller->set('_serialize', array('message'));
                 } else {
-                    $this->controller->Session->setFlash(__('Blacklist item added.'));
+                    $this->controller->Flash->success(__('Blacklist item added.'));
                     $this->controller->redirect(array('action' => 'index'));
                 }
             } else {
                 if ($rest) {
                     throw new MethodNotAllowedException('Could not save the blacklist item.');
                 } else {
-                    $this->controller->Session->setFlash(__('Could not save the blacklist item'));
+                    $this->controller->Flash->error(__('Could not save the blacklist item'));
                     $this->controller->redirect(array('action' => 'index'));
                 }
             }
@@ -156,9 +156,9 @@ class BlackListComponent extends Component
         }
 
         if ($this->controller->{$this->controller->defaultModel}->delete()) {
-            $this->controller->Session->setFlash(__('Blacklist entry removed'));
+            $this->controller->Flash->success(__('Blacklist entry removed'));
         } else {
-            $this->controller->Session->setFlash(__('Could not remove the blacklist entry'));
+            $this->controller->Flash->error(__('Could not remove the blacklist entry'));
         }
         $this->controller->redirect(array('action' => 'index'));
     }

@@ -40,11 +40,14 @@ class GalaxyClusterBlocklistsController extends AppController
     public function add()
     {
         $this->BlackList->add($this->_isRest());
+        $this->set('action', 'add');
     }
 
     public function edit($id)
     {
         $this->BlackList->edit($this->_isRest(), $id);
+        $this->set('action', 'edit');
+        $this->render('add');
     }
 
     public function delete($id)
