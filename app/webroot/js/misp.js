@@ -5022,15 +5022,23 @@ function resetDashboardGrid(grid) {
 
 function setHomePage() {
     $.ajax({
-        type: 'POST',
+        type: 'GET',
         url: baseurl + '/userSettings/setHomePage',
-        data: {
-            path: window.location.pathname
-        },
         success:function (data, textStatus) {
-            showMessage('success', 'Homepage set.');
-            $('#setHomePage').addClass('orange');
-        },
+            $('#ajax_hidden_container').html(data);
+            var currentPage = $('#setHomePage').data('current-page');
+            $('#UserSettingPath').val(currentPage);
+            $.ajax({
+                type: 'POST',
+                url: baseurl + '/userSettings/setHomePage',
+                data: $('#UserSettingSetHomePageForm').serialize(),
+                success:function (data, textStatus) {
+                    showMessage('success', 'Homepage set.');
+                    $('#setHomePage').addClass('orange');
+                },
+            });
+
+        }
     });
 }
 
