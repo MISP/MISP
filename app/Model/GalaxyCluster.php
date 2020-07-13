@@ -480,6 +480,28 @@ class GalaxyCluster extends AppModel
         return false;
     }
 
+    public function deleteCluster($id, $hard=false)
+    {
+        if ($hard) {
+            return $this->delete($id, true);
+        } else {
+            return $this->save(array(
+                'id' => $id,
+                'published' => false,
+                'deleted' => true,
+            ), array('fieldList' => array('published', 'deleted')));
+        }
+    }
+
+    public function restoreCluster($id)
+    {
+        return $this->save(array(
+            'id' => $id,
+            'published' => false,
+            'deleted' => false,
+        ), array('fieldList' => array('published', 'deleted')));
+    }
+
     /**
      * uploadClusterToServersRouter Upload the cluster to all remote servers
      *

@@ -18,17 +18,22 @@
                             array(
                                 'active' => $context === 'default',
                                 'url' => sprintf('%s/galaxies/view/%s/context:default', $baseurl, $galaxy_id),
-                                'text' => __('Default Galaxy Clusters'),
+                                'text' => __('Default'),
                             ),
                             array(
                                 'active' => $context === 'custom',
                                 'url' => sprintf('%s/galaxies/view/%s/context:custom', $baseurl, $galaxy_id),
-                                'text' => __('Custom Galaxy Clusters'),
+                                'text' => __('Custom'),
                             ),
                             array(
                                 'active' => $context === 'org',
                                 'url' => sprintf('%s/galaxies/view/%s/context:org', $baseurl, $galaxy_id),
-                                'text' => __('My Galaxy Clusters'),
+                                'text' => __('My Clusters'),
+                            ),
+                            array(
+                                'active' => $context === 'deleted',
+                                'url' => sprintf('%s/galaxies/view/%s/context:deleted', $baseurl, $galaxy_id),
+                                'text' => __('Deleted'),
                             ),
                             array(
                                 'active' => $context === 'fork_tree',
@@ -157,6 +162,28 @@
             ),
             'actions' => array(
                 array(
+                    'title' => 'Restore Cluster',
+                    'url' => '/galaxy_clusters/restore',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.id'
+                    ),
+                    'icon' => 'trash-restore',
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to restore the Galaxy Cluster?'),
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return ($options['me']['Role']['perm_site_admin'] || $options['me']['org_id'] == $options['datapath']['orgc']) && $options['datapath']['deleted'];
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'orgc' => 'GalaxyCluster.orgc_id',
+                                'deleted' => 'GalaxyCluster.deleted'
+                            )
+                        )
+                    ),
+                ),
+                array(
                     'title' => 'Publish Cluster',
                     'url' => '/galaxy_clusters/publish',
                     'url_params_data_paths' => array(
@@ -227,13 +254,9 @@
                 ),
                 array(
                     'title' => 'Delete',
-                    'url' => '/galaxy_clusters/delete',
-                    'url_params_data_paths' => array(
-                        'GalaxyCluster.id'
-                    ),
-                    'postLink' => true,
-                    'postLinkConfirm' => __('Are you sure you want to delete the Galaxy Cluster?'),
-                    'icon' => 'trash'
+                    'icon' => 'trash',
+                    'onclick' => 'simplePopup(\'' . $baseurl . '/galaxy_clusters/delete/[onclick_params_data_path]\');',
+                    'onclick_params_data_path' => 'GalaxyCluster.id',
                 ),
             )
         )

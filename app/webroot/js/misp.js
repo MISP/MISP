@@ -137,6 +137,7 @@ function cancelPrompt(isolated) {
     if (isolated == undefined) {
         $("#gray_out").fadeOut();
     }
+    $("#popover_form").fadeOut();
     $("#confirmation_box").fadeOut();
     $("#confirmation_box").empty();
     $('.have-a-popover').popover('destroy');

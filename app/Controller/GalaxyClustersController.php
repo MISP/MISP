@@ -31,21 +31,19 @@ class GalaxyClustersController extends AppController
         if (empty($filters['context'])) {
             $filters['context'] = 'all';
         } else {
-            $contextConditions = array();
-            if ($filters['context'] == 'default') {
-                $contextConditions = array(
-                    'GalaxyCluster.default' => true
-                );
-            } elseif ($filters['context'] == 'custom') {
-                $contextConditions = array(
-                    'GalaxyCluster.default' => false
-                );
-            } elseif ($filters['context'] == 'org') {
-                $contextConditions = array(
-                    'GalaxyCluster.org_id' => $this->Auth->user('org_id')
-                );
-            }
+            $contextConditions = array('GalaxyCluster.deleted' => false);
         }
+
+        if ($filters['context'] == 'default') {
+                $contextConditions['GalaxyCluster.default'] = true;
+        } elseif ($filters['context'] == 'custom') {
+            $contextConditions['GalaxyCluster.default'] = false;
+        } elseif ($filters['context'] == 'org') {
+            $contextConditions['GalaxyCluster.org_id'] = $this->Auth->user('org_id');
+        } elseif ($filters['context'] == 'deleted') {
+            $contextConditions['GalaxyCluster.deleted'] = true;
+        }
+
         $this->set('passedArgsArray', array('context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''));
         $this->set('context', $filters['context']);
         $searchConditions = array();
@@ -692,15 +690,14 @@ class GalaxyClustersController extends AppController
     /**
      * @param  mixed $id ID or UUID of the cluster
      */
-    public function delete($id)
+    public function delete($id, $hard=false)
     {
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
-            $result = false;
-            $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
-            $result = $this->GalaxyCluster->delete($cluster['GalaxyCluster']['id'], true);
+            $result = $this->GalaxyCluster->deleteCluster($cluster['GalaxyCluster']['id'], $hard=$hard);
             $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
             if ($result) {
-                $message = __('Galaxy cluster successfuly deleted.');
+                $message = __('Galaxy cluster successfuly %s deleted.', $hard ? __('hard') : __('soft'));
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $this->response->type());
                 } else {
@@ -708,21 +705,50 @@ class GalaxyClustersController extends AppController
                     $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxyId));
                 }
             } else {
-                $message = __('Galaxy cluster could not be deleted.');
+                $message = __('Galaxy cluster could not be %s deleted.', $hard ? __('hard') : __('soft'));
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
                 } else {
                     $this->Flash->error($message);
-                    $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+                    $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxyId));
                 }
             }
         } else {
             if ($this->request->is('ajax')) {
                 $this->set('id', $cluster['GalaxyCluster']['id']);
+                $this->set('cluster', $cluster['GalaxyCluster']);
                 $this->render('ajax/galaxy_cluster_delete_confirmation');
             } else {
                 throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
             }
+        }
+    }
+
+    public function restore($id)
+    {
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
+        if ($this->request->is('post')) {
+            $result = $this->GalaxyCluster->restoreCluster($cluster['GalaxyCluster']['id']);
+            $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
+            if ($result) {
+                $message = __('Galaxy cluster successfuly restored.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'restore', $cluster['GalaxyCluster']['id'], $this->response->type());
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxyId));
+                }
+            } else {
+                $message = __('Galaxy cluster could not be %s restored.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'restore', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                    $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxyId));
+                }
+            }
+        } else {
+            throw new MethodNotAllowedException(__('This function can only be reached via POST.'));
         }
     }
 
