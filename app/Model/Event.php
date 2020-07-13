@@ -3652,7 +3652,7 @@ class Event extends AppModel
                 'conditions' => array('Event.id' => $this->id),
                 'recursive' => -1
             ));
-            if (isset($data['Event']['Attribute']) && !empty($data['Event']['Attribute'])) {
+            if (!empty($data['Event']['Attribute'])) {
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $block = false;
                     for ($i = 0; $i < $k; $i++) {
@@ -3779,7 +3779,8 @@ class Event extends AppModel
                     'Server.name',
                     'Server.id',
                     'Server.unpublish_event',
-                    'Server.publish_without_email'
+                    'Server.publish_without_email',
+                    'Server.internal',
                 )
             ));
         } else {
@@ -5825,7 +5826,7 @@ class Event extends AppModel
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result) {
-                if ($original_file) {
+                if ($original_file && !is_numeric($result)) {
                     $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
                 }
                 if ($publish && $user['Role']['perm_publish']) {

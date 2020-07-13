@@ -142,7 +142,7 @@ class StixParser():
             else:
                 print(f'Unknown content disposition in the following email body: {body_multipart}', file=sys.stderr)
                 continue
-            if isinstance(reference, stix2.Artifact):
+            if isinstance(reference, stix2.v20.observables.Artifact):
                 attribute.update({
                     'value': body_multipart['content_disposition'].split('=')[-1].strip("'"),
                     'data': reference.payload_bin,
@@ -216,9 +216,9 @@ class StixParser():
             self.fill_misp_object(section_object, section, 'pe_section_mapping')
             if hasattr(section, 'hashes'):
                 self.fill_misp_object(section_object, section.hashes, 'pe_section_mapping')
+            self.misp_event.add_object(section_object)
             pe_object.add_reference(section_object.uuid, 'includes')
-            self.misp_event.add_object(**section_object)
-        self.misp_event.add_object(**pe_object)
+        self.misp_event.add_object(pe_object)
         return pe_object.uuid
 
     def parse_relationships(self):
@@ -338,11 +338,11 @@ class StixParser():
     @staticmethod
     def _process_test_filter(value, main_type):
         _is_main_process = any(feature in value for feature in ('parent_ref', 'child_refs'))
-        return isinstance(value, getattr(stix2, main_type)) and _is_main_process
+        return isinstance(value, getattr(stix2.v20.observables, main_type)) and _is_main_process
 
     @staticmethod
     def _standard_test_filter(value, main_type):
-        return isinstance(value, getattr(stix2, main_type))
+        return isinstance(value, getattr(stix2.v20.observables, main_type))
 
     def update_marking_refs(self, attribute_uuid, marking_refs):
         try:
@@ -515,7 +515,7 @@ class StixFromMISPParser(StixParser):
             misp_object.add_reference(target_uuid, 'includes')
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
 
     def parse_observable_attribute(self, observable):
         attribute = self.create_attribute_dict(observable)
@@ -541,7 +541,7 @@ class StixFromMISPParser(StixParser):
             misp_object.add_reference(target_uuid, 'includes')
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
 
     def parse_vulnerability(self, vulnerability):
         attributes = self.fill_observable_attributes(vulnerability, 'vulnerability_mapping')
@@ -617,7 +617,7 @@ class StixFromMISPParser(StixParser):
         attributes = []
         mapping = 'asn_mapping'
         for observable_object in observable.values():
-            if isinstance(observable_object, stix2.AutonomousSystem):
+            if isinstance(observable_object, stix2.v20.observables.AutonomousSystem):
                 attributes.extend(self.fill_observable_attributes(observable_object, mapping))
             else:
                 attributes.append(self._parse_observable_reference(observable_object, mapping))
@@ -855,7 +855,7 @@ class StixFromMISPParser(StixParser):
     def parse_url_observable(observable):
         attributes = []
         for object in observable.values():
-            feature = 'dst_port' if isinstance(object, stix2.NetworkTraffic) else 'value'
+            feature = 'dst_port' if isinstance(object, stix2.v20.observables.NetworkTraffic) else 'value'
             attribute = deepcopy(stix2misp_mapping.url_mapping[object._type])
             attribute.update({'value': getattr(object, feature), 'to_ids': False})
             attributes.append(attribute)
@@ -1066,9 +1066,9 @@ class StixFromMISPParser(StixParser):
                 attribute = deepcopy(stix2misp_mapping.pe_section_mapping[feature])
                 attribute['value'] = value
                 pe_section.add_attribute(**attribute)
+            self.misp_event.add_object(pe_section)
             pe.add_reference(pe_section.uuid, 'includes')
-            self.misp_event.add_object(**pe_section)
-        self.misp_event.add_object(**pe)
+        self.misp_event.add_object(pe)
         return attributes, pe.uuid
 
     def parse_process_pattern(self, pattern):
@@ -1299,7 +1299,7 @@ class ExternalStixParser(StixParser):
     @staticmethod
     def _fetch_reference_type(references, object_type):
         for key, reference in references.items():
-            if isinstance(reference, getattr(stix2, object_type)):
+            if isinstance(reference, getattr(stix2.v20.observables, object_type)):
                 return key
         return None
 
@@ -1342,7 +1342,7 @@ class ExternalStixParser(StixParser):
         file.add_reference(pe_uuid, 'includes')
         for attribute in attributes:
             file.add_attribute(**attribute)
-        self.misp_event.add_object(**file)
+        self.misp_event.add_object(file)
 
     @staticmethod
     def _is_reference(network_traffic, reference):
@@ -1422,7 +1422,7 @@ class ExternalStixParser(StixParser):
         if references:
             filename = file_object.name if hasattr(file_object, 'name') else 'unknown_filename'
             for key, reference in references.items():
-                if isinstance(reference, stix2.Artifact):
+                if isinstance(reference, stix2.v20.observables.Artifact):
                     _is_content_ref = 'content_ref' in file_object and file_object.content_ref == key
                     attribute_type, value = self._handle_attachment_type(reference, _is_content_ref, filename)
                     attribute = {
@@ -1434,7 +1434,7 @@ class ExternalStixParser(StixParser):
                     if hasattr(reference, 'payload_bin'):
                         attribute['data'] = reference.payload_bin
                     attributes.append(attribute)
-                elif isinstance(reference, stix2.Directory):
+                elif isinstance(reference, stix2.v20.observables.Directory):
                     attribute = {
                         'type': 'text',
                         'object_relation': 'path',
@@ -1757,15 +1757,15 @@ class ExternalStixParser(StixParser):
             pe_object = MISPObject('pe', misp_objects_path_custom=_misp_objects_path)
             sections = self._get_sections(pe_extension)
             self.fill_misp_object_from_dict(pe_object, pe_extension, 'pe_mapping')
-            file_object.add_reference(pe_object.uuid, 'includes')
             if sections:
                 for section in sections:
                     section_object = MISPObject('pe-section')
                     self.fill_misp_object_from_dict(section_object, section, 'pe_section_mapping')
+                    self.misp_event.add_object(section_object)
                     pe_object.add_reference(section_object.uuid, 'includes')
-                    self.misp_event.add_object(**section_object)
-            self.misp_event.add_object(**pe_object)
-        self.misp_event.add_object(**file_object)
+            self.misp_event.add_object(pe_object)
+            file_object.add_reference(pe_object.uuid, 'includes')
+        self.misp_event.add_object(file_object)
 
     def parse_ip_address_pattern(self, indicator, separator):
         self.add_attributes_from_indicator(indicator, 'ip-dst', separator)
