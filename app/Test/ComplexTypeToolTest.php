@@ -31,6 +31,24 @@ EOT
         $this->assertEquals('ip-dst', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextIpv4WithPort(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('127.0.0.1:8080');
+        $this->assertCount(1, $results);
+        $this->assertEquals('127.0.0.1|8080', $results[0]['value']);
+        $this->assertEquals('ip-dst|port', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextIpv4Cidr(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('127.0.0.1/32');
+        $this->assertCount(1, $results);
+        $this->assertEquals('127.0.0.1/32', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
     // Issue https://github.com/MISP/MISP/issues/6009
     public function testCheckFreeTextIpv6(): void
     {
@@ -38,6 +56,23 @@ EOT
         $results = $complexTypeTool->checkFreeText('2a00:1450:4005:80a::2003');
         $this->assertCount(1, $results);
         $this->assertEquals('2a00:1450:4005:80a::2003', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
+    // Issue https://github.com/MISP/MISP/issues/3383
+    public function testCheckFreeTextIpv6Invalid(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('fe80:0000:f2cd:7d80:3f37:52c6');
+        $this->assertCount(0, $results);
+    }
+
+    public function testCheckFreeTextIpv6Cidr(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('2a00:1450:4005:80a::2003/128');
+        $this->assertCount(1, $results);
+        $this->assertEquals('2a00:1450:4005:80a::2003/128', $results[0]['value']);
         $this->assertEquals('ip-dst', $results[0]['default_type']);
     }
 
@@ -57,6 +92,61 @@ EOT
         $this->assertCount(1, $results);
         $this->assertEquals('example.com', $results[0]['value']);
         $this->assertEquals('domain', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextDomainThirdLevel(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('example.example.com');
+        $this->assertCount(1, $results);
+        $this->assertEquals('example.example.com', $results[0]['value']);
+        $this->assertEquals('hostname', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextDomainDot(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('example.com.');
+        $this->assertCount(1, $results);
+        $this->assertEquals('example.com', $results[0]['value']);
+        $this->assertEquals('domain', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextDomainNotExistsTld(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $complexTypeTool->setTLDs(['com']);
+        $results = $complexTypeTool->checkFreeText('example.example');
+        $this->assertCount(1, $results);
+        $this->assertEquals('example.example', $results[0]['value']);
+        $this->assertEquals('filename', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextFilenameMultipleExt(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('example.txt.zip');
+        $this->assertCount(1, $results);
+        $this->assertEquals('example.txt.zip', $results[0]['value']);
+        $this->assertEquals('filename', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextFilenameWithPathUnix(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('/var/log/example.txt.zip');
+        $this->assertCount(1, $results);
+        $this->assertEquals('/var/log/example.txt.zip', $results[0]['value']);
+        $this->assertEquals('filename', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextFilenameWithPathWindows(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('C:\example.txt.zip');
+        $this->assertCount(1, $results);
+        $this->assertEquals('C:\example.txt.zip', $results[0]['value']);
+        $this->assertEquals('filename', $results[0]['default_type']);
     }
 
     public function testCheckFreeTextDomainWithPort(): void
@@ -152,6 +242,40 @@ EOT
         $this->assertEquals('url', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextUrlWithoutProtocol(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('github.com/MISP/MISP');
+        $this->assertCount(1, $results);
+        $this->assertEquals('github.com/MISP/MISP', $results[0]['value']);
+        $this->assertEquals('url', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextUrlVirusTotal(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('https://www.virustotal.com/example https://virustotal.com/example');
+        $this->assertCount(2, $results);
+
+        $this->assertEquals('https://www.virustotal.com/example', $results[0]['value']);
+        $this->assertEquals('link', $results[0]['default_type']);
+        $this->assertFalse($results[0]['to_ids']);
+
+        $this->assertEquals('https://virustotal.com/example', $results[1]['value']);
+        $this->assertEquals('link', $results[1]['default_type']);
+        $this->assertFalse($results[1]['to_ids']);
+    }
+
+    public function testCheckFreeTextUrlHybridAnalysis(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('https://www.hybrid-analysis.com/example');
+        $this->assertCount(1, $results);
+        $this->assertEquals('https://www.hybrid-analysis.com/example', $results[0]['value']);
+        $this->assertEquals('link', $results[0]['default_type']);
+        $this->assertFalse($results[0]['to_ids']);
+    }
+
     // Issue https://github.com/MISP/MISP/issues/4908
     public function testCheckFreeTextUrlReplace(): void
     {
@@ -174,6 +298,85 @@ EOT
             $this->assertEquals('https://example.com', $results[0]['value']);
             $this->assertEquals('url', $results[0]['default_type']);
         }
+    }
+
+    public function testCheckFreeTextBtc(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa');
+        $this->assertCount(1, $results);
+        $this->assertEquals('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', $results[0]['value']);
+        $this->assertEquals('btc', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextSsdeep(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('24:VGXGP7L5e/Ixt3af/WKPPaYpzg4m3XWMCsXNCRs0:kYDxcfPZpelCs9Cm0');
+        $this->assertCount(1, $results);
+        $this->assertEquals('24:VGXGP7L5e/Ixt3af/WKPPaYpzg4m3XWMCsXNCRs0:kYDxcfPZpelCs9Cm0', $results[0]['value']);
+        $this->assertEquals('ssdeep', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextCve(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('CVE-2019-16202');
+        $this->assertCount(1, $results);
+        $this->assertEquals('CVE-2019-16202', $results[0]['value']);
+        $this->assertEquals('vulnerability', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextAs(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('as0 AS0');
+        $this->assertCount(2, $results);
+        $this->assertEquals('AS0', $results[0]['value']);
+        $this->assertEquals('AS', $results[0]['default_type']);
+        $this->assertEquals('AS0', $results[1]['value']);
+        $this->assertEquals('AS', $results[1]['default_type']);
+    }
+
+    public function testCheckFreeTextMd5(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('9e107d9d372bb6826bd81d3542a419d6');
+        $this->assertCount(1, $results);
+        $this->assertEquals('9e107d9d372bb6826bd81d3542a419d6', $results[0]['value']);
+        $this->assertEquals('md5', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextSha1(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('da39a3ee5e6b4b0d3255bfef95601890afd80709');
+        $this->assertCount(1, $results);
+        $this->assertEquals('da39a3ee5e6b4b0d3255bfef95601890afd80709', $results[0]['value']);
+        $this->assertEquals('sha1', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextFilenameWithMd5(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('ahoj.txt|9e107d9d372bb6826bd81d3542a419d6');
+        $this->assertCount(1, $results);
+        $this->assertEquals('ahoj.txt|9e107d9d372bb6826bd81d3542a419d6', $results[0]['value']);
+        $this->assertEquals('filename|md5', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextRandomString(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('cK753n3MVw');
+        $this->assertCount(0, $results);
+    }
+
+    public function testCheckFreeTextEmpty(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('');
+        $this->assertCount(0, $results);
     }
 
     public function testRefangValueUrl(): void

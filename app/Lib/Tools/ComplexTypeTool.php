@@ -255,13 +255,13 @@ class ComplexTypeTool
         return false;
     }
 
-	private function __checkForBTC($input)
-	{
-		if (preg_match("#^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$#i", $input['raw'])) {
-			return array('types' => array('btc'), 'categories' => array('Financial fraud'), 'to_ids' => true, 'default_type' => 'btc', 'value' => $input['raw']);
+    private function __checkForBTC($input)
+    {
+        if (preg_match("#^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$#i", $input['raw'])) {
+            return array('types' => array('btc'), 'categories' => array('Financial fraud'), 'to_ids' => true, 'default_type' => 'btc', 'value' => $input['raw']);
         }
-		return false;
-	}
+        return false;
+    }
 
     private function __checkForEmail($input)
     {
@@ -274,13 +274,14 @@ class ComplexTypeTool
         return false;
     }
 
-	private function __checkForAS($input)
-	{
-		if (preg_match('#^as[0-9]+$#i', $input['raw'])) {
-			$input['raw'] = strtoupper($input['raw']);
-			return array('types' => array('AS'), 'to_ids' => false, 'default_type' => 'AS', 'value' => $input['raw']);
-		}
-	}
+    private function __checkForAS($input)
+    {
+        if (preg_match('#^as[0-9]+$#i', $input['raw'])) {
+            $input['raw'] = strtoupper($input['raw']);
+            return array('types' => array('AS'), 'to_ids' => false, 'default_type' => 'AS', 'value' => $input['raw']);
+        }
+        return false;
+    }
 
     private function __checkForHashes($input)
     {
@@ -289,12 +290,11 @@ class ComplexTypeTool
             $compositeParts = explode('|', $input['raw']);
             if (count($compositeParts) == 2) {
                 if ($this->__resolveFilename($compositeParts[0])) {
-                    foreach ($this->__hexHashTypes as $k => $v) {
-                        if (strlen($compositeParts[1]) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $compositeParts[1])) {
-                            return array('types' => $v['composite'], 'to_ids' => true, 'default_type' => $v['composite'][0], 'value' => $input['raw']);
-                        }
+                    $hash = $this->__resolveHash($compositeParts[1]);
+                    if ($hash) {
+                        return array('types' => $hash['composite'], 'to_ids' => true, 'default_type' => $hash['composite'][0], 'value' => $input['raw']);
                     }
-                    if (preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $compositeParts[1]) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $compositeParts[1])) {
+                    if ($this->__resolveSsdeep($compositeParts[1])) {
                         return array('types' => array('filename|ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep', 'value' => $input['raw']);
                     }
                 }
@@ -302,18 +302,16 @@ class ComplexTypeTool
         }
 
         // check for hashes
-        $rawLength = strlen($input['raw']);
-        foreach ($this->__hexHashTypes as $k => $v) {
-            if ($rawLength === $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input['raw'])) {
-                $types = $v['single'];
-                if (!empty($this->__checkForBTC($input))) {
-                    $types[] = 'btc';
-                }
-                return array('types' => $types, 'to_ids' => true, 'default_type' => $v['single'][0], 'value' => $input['raw']);
+        $hash = $this->__resolveHash($input['raw']);
+        if ($hash) {
+            $types = $hash['single'];
+            if (!empty($this->__checkForBTC($input))) {
+                $types[] = 'btc';
             }
+            return array('types' => $types, 'to_ids' => true, 'default_type' => $hash['single'][0], 'value' => $input['raw']);
         }
         // ssdeep has a different pattern
-        if (preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $input['raw']) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $input['raw'])) {
+        if ($this->__resolveSsdeep($input['raw'])) {
             return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep', 'value' => $input['raw']);
         }
         return false;
@@ -342,13 +340,13 @@ class ComplexTypeTool
             $input['refanged'] = preg_replace($regex['from'], $regex['to'], $input['refanged']);
         }
         $input['refanged'] = rtrim($input['refanged'], ".");
-		$input['refanged'] = preg_replace_callback(
-			'/\[.\]/',
-			function ($matches) {
-				return trim($matches[0], '[]');
-        	},
-        	$input['refanged']
-		);
+        $input['refanged'] = preg_replace_callback(
+            '/\[.\]/',
+            function ($matches) {
+                return trim($matches[0], '[]');
+            },
+            $input['refanged']
+        );
         return $input;
     }
 
@@ -358,14 +356,13 @@ class ComplexTypeTool
         if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input['raw'])) {
             return array('types' => array('vulnerability'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'vulnerability', 'value' => $input['raw']);
         }
-	        // Phone numbers - for automatic recognition, needs to start with + or include dashes
-		if (!empty($input['raw'])) {
-	        if ($input['raw'][0] === '+' || strpos($input['raw'], '-')) {
-	            if (!preg_match('#^[0-9]{4}-[0-9]{2}-[0-9]{2}$#i', $input['raw']) && preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) {
-	                return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'categories' => array('Other'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
-	            }
-	        }
-		}
+        // Phone numbers - for automatic recognition, needs to start with + or include dashes
+        if ($input['raw'][0] === '+' || strpos($input['raw'], '-')) {
+            if (!preg_match('#^[0-9]{4}-[0-9]{2}-[0-9]{2}$#i', $input['raw']) && preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) {
+                return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'categories' => array('Other'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
+            }
+        }
+        return false;
     }
 
     private function __checkForIP(array $input)
@@ -389,7 +386,7 @@ class ComplexTypeTool
         }
         // IPv6 with port in `[1fff:0:a88:85a3::ac1f]:8001` format
         if (isset($input['port']) && $input['refanged_no_port'][0] === '[' && filter_var(substr($input['refanged_no_port'], 1, -1), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            $value = substr($input['refanged_no_port'], 1, -1);
+            $value = substr($input['refanged_no_port'], 1, -1); // remove brackets
             return [
                 'types' => ['ip-dst|port', 'ip-src|port', 'ip-src|port/ip-dst|port'],
                 'to_ids' => true,
@@ -407,6 +404,7 @@ class ComplexTypeTool
                 }
             }
         }
+        return false;
     }
 
     private function __checkForDomainOrFilename(array $input)
@@ -435,11 +433,8 @@ class ComplexTypeTool
                 if (count($temp) > 1 && (filter_var($input['refanged_no_port'], FILTER_VALIDATE_URL) || filter_var('http://' . $input['refanged_no_port'], FILTER_VALIDATE_URL))) {
                     // Even though some domains are valid, we want to exclude them as they are known security vendors / etc
                     // TODO, replace that with the appropriate warninglist.
-                    if (preg_match('/^https:\/\/(www.)?virustotal.com\//i', $input['refanged_no_port'])) {
+                    if (preg_match('/^(https:\/\/(www.)?virustotal.com\/|https:\/\/www\.hybrid-analysis\.com\/)/i', $input['refanged_no_port'])) {
                         return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
-                    }
-                    if (preg_match('/^https:\/\/www\.hybrid-analysis\.com\//i', $input['refanged_no_port'])) {
-                        return array('types' => array('link'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
                     }
                     if (strpos($input['refanged_no_port'], '/')) {
                         return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
@@ -465,11 +460,33 @@ class ComplexTypeTool
 
     private function __resolveFilename($param)
     {
-        if ((preg_match('/^.:/', $param) || strpos($param, '.') !=0)) {
+        if ((preg_match('/^.:/', $param) || strpos($param, '.') != 0)) {
             $parts = explode('.', $param);
             if (!is_numeric($parts[count($parts)-1]) && ctype_alnum($parts[count($parts)-1])) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    /**
+     * @param string $value
+     * @return bool
+     */
+    private function __resolveSsdeep($value)
+    {
+        return preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $value) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $value);
+    }
+
+    /**
+     * @param string $value
+     * @return bool|string[][]
+     */
+    private function __resolveHash($value)
+    {
+        $strlen = strlen($value);
+        if (isset($this->__hexHashTypes[$strlen]) && preg_match("#[0-9a-f]{" . $strlen . "}$#i", $value)) {
+            return $this->__hexHashTypes[$strlen];
         }
         return false;
     }
