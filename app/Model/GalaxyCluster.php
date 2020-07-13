@@ -235,7 +235,14 @@ class GalaxyCluster extends AppModel
         }
         unset($cluster['GalaxyCluster']['id']);
         $cluster['GalaxyCluster']['locked'] = false;
+
         if (isset($cluster['GalaxyCluster']['uuid'])) {
+            $this->GalaxyClusterBlocklist = ClassRegistry::init('GalaxyClusterBlocklist');
+            if ($this->GalaxyClusterBlocklist->checkIfBlocked($cluster['GalaxyCluster']['uuid'])) {
+                $errors[] = __('Blocked by blocklist');
+                return $errors;
+            }
+
             // check if the uuid already exists
             $existingGalaxyCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid'])));
             if ($existingGalaxyCluster) {
@@ -274,6 +281,12 @@ class GalaxyCluster extends AppModel
             }
         } else {
             $cluster['GalaxyCluster']['extends_version'] = null;
+        }
+        if (!isset($cluster['GalaxyCluster']['distribution'])) {
+            $cluster['GalaxyCluster']['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
+        }
+        if ($cluster['GalaxyCluster']['distribution'] != 4) {
+            $cluster['GalaxyCluster']['sharing_group_id'] = null;
         }
 
         // In contrary to the capture context, we make sure the cluster belongs to the organisation initiating the save
@@ -367,6 +380,9 @@ class GalaxyCluster extends AppModel
                 $cluster['GalaxyCluster']['default'] = false;
                 if (!isset($cluster['GalaxyCluster']['published'])) {
                     $cluster['GalaxyCluster']['published'] = false;
+                }
+                if ($cluster['GalaxyCluster']['distribution'] != 4) {
+                    $cluster['GalaxyCluster']['sharing_group_id'] = null;
                 }
                 if (empty($fieldList)) {
                     $fieldList = array('value', 'description', 'version', 'source', 'authors', 'distribution', 'sharing_group_id', 'default', 'published');
@@ -638,7 +654,7 @@ class GalaxyCluster extends AppModel
      * @param bool  $fromPull If the current capture is performed from a PULL sync
      * @param int   $orgId The organisation id that should own the cluster
      * @param array $server The server for which to capture is ongoing
-     * @return array
+     * @return array Result of the capture including successes, fails and errors
      */
     public function captureCluster($user, $cluster, $fromPull=false, $orgId=0, $server=false)
     {
@@ -648,6 +664,13 @@ class GalaxyCluster extends AppModel
             $cluster['GalaxyCluster']['org_id'] = $orgId;
         } else {
             $cluster['GalaxyCluster']['org_id'] = $user['Organisation']['id'];
+        }
+
+        $this->GalaxyClusterBlocklist = ClassRegistry::init('GalaxyClusterBlocklist');
+        if ($this->GalaxyClusterBlocklist->checkIfBlocked($cluster['GalaxyCluster']['uuid'])) {
+            $results['errors'][] = __('Blocked by blocklist');
+            $results['ignored']++;
+            return $results;
         }
 
         if (!isset($cluster['GalaxyCluster']['orgc_id']) && !isset($cluster['Orgc'])) {
@@ -692,6 +715,12 @@ class GalaxyCluster extends AppModel
             'GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid']
         )));
         $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $cluster['GalaxyCluster']['type'], $cluster['GalaxyCluster']['uuid']);
+        if (!isset($cluster['GalaxyCluster']['distribution'])) {
+            $cluster['GalaxyCluster']['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
+        }
+        if ($cluster['GalaxyCluster']['distribution'] != 4) {
+            $cluster['GalaxyCluster']['sharing_group_id'] = null;
+        }
         if (!isset($cluster['GalaxyCluster']['published'])) {
             $cluster['GalaxyCluster']['published'] = false;
         }

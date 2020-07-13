@@ -41,4 +41,13 @@ class GalaxyClusterBlocklist extends AppModel
         }
         return true;
     }
+
+    public function checkIfBlocked($clusterUUID)
+    {
+        $entry = $this->find('first', array('conditions' => array('cluster_uuid' => $clusterUUID)));
+        if (!empty($entry)) {
+            return true;
+        }
+        return false;
+    }
 }

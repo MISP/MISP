@@ -297,9 +297,6 @@ class GalaxyClustersController extends AppController
             } else {
                 $cluster['GalaxyCluster']['extends_uuid'] = null;
             }
-            if ($cluster['GalaxyCluster']['distribution'] != 4) {
-                $cluster['GalaxyCluster']['sharing_group_id'] = null;
-            }
             $errors = $this->GalaxyCluster->saveCluster($this->Auth->user(), $cluster);
             if (!empty($errors)) {
                 $message = implode(', ', $errors);
