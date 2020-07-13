@@ -52,6 +52,15 @@ class GalaxyClusterBlocklistsController extends AppController
 
     public function delete($id)
     {
+        if (Validation::uuid($id)) {
+            $entry = $this->GalaxyClusterBlocklist->find('first', array(
+                'conditions' => array('cluster_uuid' => $id)
+            ));
+            if (empty($entry)) {
+                throw new NotFoundException(__('Invalid blacklist entry'));
+            }
+            $id = $entry['GalaxyClusterBlocklist']['id'];
+        }
         $this->BlackList->delete($this->_isRest(), $id);
     }
 

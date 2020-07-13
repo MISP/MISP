@@ -59,7 +59,7 @@
                 array(
                     'name' => __('Galaxy Cluster Target'),
                     'sort' => 'TargetCluster.tag_name',
-                    'element' => 'galaxy_cluster_link',
+                    'element' => 'cluster_link',
                     'data_path' => 'TargetCluster',
                     'data_path_relation' => 'GalaxyClusterRelation',
                     'url_params_data_paths' => 'TargetCluster.id',

@@ -1300,7 +1300,7 @@
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'index',
+                            'element_id' => 'index_blocklist',
                             'url' => '/galaxy_cluster_blocklists/index',
                             'text' => __('List Cluster Blocklists')
                         )); 
