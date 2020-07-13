@@ -60,17 +60,13 @@ class ComplexTypeTool
         switch ($type) {
             case 'File':
                 return $this->checkComplexFile($input);
-                break;
             case 'CnC':
                 return $this->checkComplexCnC($input);
-                break;
             case 'freetext':
             case 'FreeText':
                 return $this->checkFreeText($input, $settings);
-                break;
             case 'csv':
                 return $this->checkCSV($input, $settings);
-                break;
             default:
                 return false;
         }
@@ -198,7 +194,7 @@ class ComplexTypeTool
 
     public function checkFreeText($input, $settings = array())
     {
-        $charactersToTrim = array('\'', '"', ',', '(', ')', ' ');
+        $charactersToTrim = '\'",() ' . "\t\n\r\0\x0B"; // custom + default PHP trim
         $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
         $quotedText = explode('"', $input);
         foreach ($quotedText as $k => $temp) {
@@ -211,32 +207,21 @@ class ComplexTypeTool
         }
         $iocArray = array_merge($iocArray, $this->__returnOddElements($quotedText));
         $resultArray = array();
-        if (!empty($iocArray)) {
-            foreach ($iocArray as $ioc) {
-                $ioc = trim($ioc);
-                $ioc = str_replace("\xc2\xa0", '', $ioc);
-                foreach ($charactersToTrim as $c) {
-                    $ioc = trim($ioc, $c);
-                }
-                $ioc = preg_replace('/\p{C}+/u', '', $ioc);
-                if (empty($ioc)) {
-                    continue;
-                }
-                if (isset($settings['excluderegex']) && !empty($settings['excluderegex'])) {
-                    if (preg_match($settings['excluderegex'], $ioc)) {
-                        continue;
-                    }
-                }
-                $typeArray = $this->__resolveType($ioc);
-                if ($typeArray === false) {
-                    continue;
-                }
-                $temp = $typeArray;
-                if (!isset($temp['value'])) {
-                    $temp['value'] = $ioc;
-                }
-                $resultArray[] = $temp;
+        foreach ($iocArray as $ioc) {
+            $ioc = str_replace("\xc2\xa0", '', $ioc); // remove non breaking space
+            $ioc = trim($ioc, $charactersToTrim);
+            $ioc = preg_replace('/\p{C}+/u', '', $ioc);
+            if (empty($ioc)) {
+                continue;
             }
+            if (!empty($settings['excluderegex']) && preg_match($settings['excluderegex'], $ioc)) {
+                continue;
+            }
+            $typeArray = $this->__resolveType($ioc);
+            if ($typeArray === false) {
+                continue;
+            }
+            $resultArray[] = $typeArray;
         }
         return $resultArray;
     }

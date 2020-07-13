@@ -5,6 +5,23 @@ use PHPUnit\Framework\TestCase;
 
 class ComplexTypeToolTest extends TestCase
 {
+    public function testCheckFreeTextHeader(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText(<<<EOT
+# LAST 1000 # UTC UPDATE 2020-07-13 08:15:00
+127.0.0.1,(127.0.0.2),  <127.0.0.3>
+EOT
+);
+        $this->assertCount(3, $results);
+        $this->assertEquals('127.0.0.1', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+        $this->assertEquals('127.0.0.2', $results[1]['value']);
+        $this->assertEquals('ip-dst', $results[1]['default_type']);
+        $this->assertEquals('127.0.0.3', $results[2]['value']);
+        $this->assertEquals('ip-dst', $results[2]['default_type']);
+    }
+
     public function testCheckFreeTextIpv4(): void
     {
         $complexTypeTool = new ComplexTypeTool();
