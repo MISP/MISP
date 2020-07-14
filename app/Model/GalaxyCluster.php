@@ -470,13 +470,11 @@ class GalaxyCluster extends AppModel
     {
         if (is_numeric($cluster)) {
             $clusterId = $cluster;
-            $this->id = $cluster;
-            $saved = $this->saveField('published', 1);
         } elseif (isset($cluster['GalaxyCluster'])) {
             $clusterId = $cluster['GalaxyCluster']['id'];
-            $cluster['GalaxyCluster']['published'] = true;
-            $saved = $this->save($cluster, array('fieldList' => array('published')));
         }
+        $this->id = $clusterId;
+        $saved = $this->saveField('published', True);
         if ($saved) {
             $uploaded = $this->uploadClusterToServersRouter($clusterId);
             return $uploaded;
@@ -488,12 +486,10 @@ class GalaxyCluster extends AppModel
     {
         if (is_numeric($cluster)) {
             $this->id = $cluster;
-            return $this->saveField('published', 0);
         } elseif (isset($cluster['GalaxyCluster'])) {
-            $cluster['GalaxyCluster']['published'] = false;
-            return $this->save($cluster, array('fieldList' => array('published')));
+            $this->id = $cluster['GalaxyCluster']['id'];
         }
-        return false;
+        return $this->saveField('published', False);
     }
     
     /**
