@@ -350,10 +350,15 @@ class GalaxiesController extends AppController
     public function selectCluster($target_id, $target_type = 'event', $selectGalaxy = false)
     {
         $conditions = array();
-        $conditions = array('OR' => array(
-            'GalaxyCluster.published' => true,
-            'GalaxyCluster.default' => true,
-        ));
+        $conditions = array(
+            'OR' => array(
+                'GalaxyCluster.published' => true,
+                'GalaxyCluster.default' => true,
+            ),
+            'AND' => array(
+                'GalaxyCluster.deleted' => false,
+            )
+        );
         if ($selectGalaxy) {
             $conditions['GalaxyCluster.galaxy_id'] = $selectGalaxy;
         }
