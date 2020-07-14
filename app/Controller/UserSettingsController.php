@@ -326,7 +326,7 @@ class UserSettingsController extends AppController
     public function setHomePage()
     {
         if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('This endpoint only aaccepts POST requests.'));
+            throw new MethodNotAllowedException(__('This endpoint only accepts POST requests.'));
         }
         if (empty($this->request->data['path'])) {
             $this->request->data = array('path' => $this->request->data);
