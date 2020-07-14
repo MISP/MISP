@@ -147,6 +147,7 @@ before_script:
     - popd
 
 script:
+    - ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
     - pushd tests
     - ./curl_tests.sh $AUTH
     - popd

@@ -89,4 +89,27 @@ class FuzzyCorrelateSsdeep extends AppModel
         $this->saveAll($to_save);
         return $result;
     }
+
+    /**
+     * @param int|null $eventId
+     * @param int|null $attributeId
+     * @return bool True on success, false on failure
+     */
+    public function purge($eventId = null, $attributeId = null)
+    {
+        if (!$eventId && !$attributeId) {
+            $this->query('TRUNCATE TABLE fuzzy_correlate_ssdeep;');
+        } elseif (!$attributeId) {
+            $this->Attribute = ClassRegistry::init('Attribute');
+            $attributeId = $this->Attribute->find('list', array(
+                'conditions' => array(
+                    'Attribute.event_id' => $eventId,
+                    'Attribute.type' => 'ssdeep',
+                ),
+                'fields' => 'Attribute.id',
+            ));
+        }
+
+        return $this->deleteAll(array('FuzzyCorrelateSsdeep.attribute_id' => $attributeId));
+    }
 }
