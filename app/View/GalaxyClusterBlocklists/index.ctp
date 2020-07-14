@@ -72,7 +72,7 @@
                 ),
                 array(
                     'title' => 'Delete',
-                    'url' => '/galaxy_cluster_blocklists/delete',
+                    'url' => $baseurl . '/galaxy_cluster_blocklists/delete',
                     'url_params_data_paths' => array(
                         'GalaxyClusterBlocklist.id'
                     ),
