@@ -243,6 +243,13 @@ class ACLComponent extends Component
                 'view' => array('*'),
                 'viewGraph' => array('*'),
             ),
+            'galaxyClusterBlocklists' => array(
+                'add' => array(),
+                'delete' => array(),
+                'edit' => array(),
+                'index' => array(),
+                'massDelete' => array(),
+            ),
             'galaxyClusters' => array(
                 'add' => array('perm_galaxy_editor'),
                 'attachToEvent' => array('perm_tagger'),
@@ -251,6 +258,7 @@ class ACLComponent extends Component
                 'edit' => array('perm_galaxy_editor'),
                 'index' => array('*'),
                 'publish' => array('perm_galaxy_editor'),
+                'restore' => array('perm_galaxy_editor'),
                 'restSearch' => array('*'),
                 'unpublish' => array('perm_galaxy_editor'),
                 'updateCluster' => array('perm_galaxy_editor'),
