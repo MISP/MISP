@@ -6,6 +6,7 @@ App::uses('File', 'Utility');
 App::uses('FinancialTool', 'Tools');
 App::uses('RandomTool', 'Tools');
 App::uses('MalwareTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
 class Attribute extends AppModel
 {
@@ -822,6 +823,10 @@ class Attribute extends AppModel
                 ),
                 false
             );
+            if ($this->data['Attribute']['type'] === 'ssdeep') {
+                $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
+                $this->FuzzyCorrelateSsdeep->purge(null, $this->data['Attribute']['id']);
+            }
         }
     }
 
@@ -935,13 +940,15 @@ class Attribute extends AppModel
 
     public function validCategory($fields)
     {
-        $validCategories = array_keys($this->categoryDefinitions);
-        if (in_array($fields['category'], $validCategories)) {
-            return true;
-        }
-        return false;
+        return isset($this->categoryDefinitions[$fields['category']]);
     }
 
+    /**
+     * Check if the attribute already exists in the same event.
+     *
+     * @param array $fields
+     * @return bool
+     */
     public function valueIsUnique($fields)
     {
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
@@ -951,31 +958,28 @@ class Attribute extends AppModel
         if (!empty($this->data['Attribute']['object_relation'])) {
             return true;
         }
-        $value = $fields['value'];
-        if (strpos($value, '|')) {
-            $value = explode('|', $value);
-            $value = array(
-                'Attribute.value1' => $value[0],
-                'Attribute.value2' => $value[1]
-            );
-        } else {
-            $value = array(
-                'Attribute.value1' => $value,
-            );
-        }
-        $eventId = $this->data['Attribute']['event_id'];
-        $type = $this->data['Attribute']['type'];
-        $category = $this->data['Attribute']['category'];
 
-        // check if the attribute already exists in the same event
+        $eventId = $this->data['Attribute']['event_id'];
+        $category = $this->data['Attribute']['category'];
+        $type = $this->data['Attribute']['type'];
+
         $conditions = array(
             'Attribute.event_id' => $eventId,
             'Attribute.type' => $type,
             'Attribute.category' => $category,
             'Attribute.deleted' => 0,
-            'Attribute.object_id' => 0
+            'Attribute.object_id' => 0,
         );
-        $conditions = array_merge($conditions, $value);
+
+        $value = $fields['value'];
+        if (in_array($type, $this->getCompositeTypes())) {
+            $value = explode('|', $value);
+            $conditions['Attribute.value1'] = $value[0];
+            $conditions['Attribute.value2'] = $value[1];
+        } else {
+            $conditions['Attribute.value1'] = $value;
+        }
+
         if (isset($this->data['Attribute']['id'])) {
             $conditions['Attribute.id !='] = $this->data['Attribute']['id'];
         }
@@ -1625,14 +1629,17 @@ class Attribute extends AppModel
 
     public function getCompositeTypes()
     {
-        // build the list of composite Attribute.type dynamically by checking if type contains a |
-        // default composite types
-        $compositeTypes = array('malware-sample');  // TODO hardcoded composite
-        // dynamically generated list
-        foreach (array_keys($this->typeDefinitions) as $type) {
-            $pieces = explode('|', $type);
-            if (2 == count($pieces)) {
-                $compositeTypes[] = $type;
+        static $compositeTypes;
+
+        if ($compositeTypes === null) {
+            // build the list of composite Attribute.type dynamically by checking if type contains a |
+            // default composite types
+            $compositeTypes = array('malware-sample');  // TODO hardcoded composite
+            // dynamically generated list
+            foreach ($this->typeDefinitions as $type => $foo) {
+                if (strpos($type, '|') !== false) {
+                    $compositeTypes[] = $type;
+                }
             }
         }
         return $compositeTypes;
@@ -1923,11 +1930,9 @@ class Attribute extends AppModel
                     'Correlation.attribute_id' => $a['id']))
             );
         }
-        if ($a['type'] == 'ssdeep') {
+        if ($a['type'] === 'ssdeep') {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-            $this->FuzzyCorrelateSsdeep->deleteAll(
-                array('FuzzyCorrelateSsdeep.attribute_id' => $a['id'])
-            );
+            $this->FuzzyCorrelateSsdeep->purge(null, $a['id']);
         }
     }
 
@@ -2030,18 +2035,13 @@ class Attribute extends AppModel
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $cidrList = $this->getSetCIDRList();
             foreach ($cidrList as $cidr) {
-                $cidr_ip = explode('/', $cidr)[0];
-                if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    if ($ip_version === 4) {
-                        if ($this->__ipv4InCidr($ip, $cidr)) {
-                            $ipValues[] = $cidr;
-                        }
+                if (strpos($cidr, '.') !== false) {
+                    if ($ip_version === 4 && $this->__ipv4InCidr($ip, $cidr)) {
+                        $ipValues[] = $cidr;
                     }
                 } else {
-                    if ($ip_version === 6) {
-                        if ($this->__ipv6InCidr($ip, $cidr)) {
-                            $ipValues[] = $cidr;
-                        }
+                    if ($ip_version === 6 && $this->__ipv6InCidr($ip, $cidr)) {
+                        $ipValues[] = $cidr;
                     }
                 }
             }
@@ -2808,6 +2808,10 @@ class Attribute extends AppModel
     {
         $this->Correlation = ClassRegistry::init('Correlation');
         $this->purgeCorrelations($eventId);
+
+        $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
+        $this->FuzzyCorrelateSsdeep->purge($eventId, $attributeId);
+
         // get all attributes..
         if (!$eventId) {
             $eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
@@ -3907,7 +3911,7 @@ class Attribute extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis) {
-            if ($redis->sCard('misp:cidr_cache_list') === 0) {
+            if (!$redis->exists('misp:cidr_cache_list')) {
                 $cidrList = $this->setCIDRList();
             } else {
                 $cidrList = $redis->smembers('misp:cidr_cache_list');
@@ -4588,8 +4592,9 @@ class Attribute extends AppModel
                 $exportTool->additional_params
             );
         }
-        $tmpfile = tmpfile();
-        fwrite($tmpfile, $exportTool->header($exportToolParams));
+
+        $tmpfile = new TmpFileTool();
+        $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
         if (empty($params['limit'])) {
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
@@ -4602,22 +4607,15 @@ class Attribute extends AppModel
         if (empty($exportTool->mock_query_only)) {
             $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
         }
-        fwrite($tmpfile, $exportTool->footer($exportToolParams));
-        fseek($tmpfile, 0);
-        if (fstat($tmpfile)['size']) {
-            $final = fread($tmpfile, fstat($tmpfile)['size']);
-        } else {
-            $final = '';
-        }
-        fclose($tmpfile);
-        return $final;
+        $tmpfile->write($exportTool->footer($exportToolParams));
+        return $tmpfile->finish();
     }
 
-    private function __iteratedFetch($user, &$params, &$loop, &$tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
+    private function __iteratedFetch($user, &$params, &$loop, TmpFileTool $tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
     {
+        $this->Whitelist = ClassRegistry::init('Whitelist');
         $continue = true;
         while ($continue) {
-            $this->Whitelist = ClassRegistry::init('Whitelist');
             $results = $this->fetchAttributes($user, $params, $continue);
             if ($params['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
@@ -4625,7 +4623,6 @@ class Attribute extends AppModel
             }
             $params['page'] += 1;
             $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
-            $results = array_values($results);
             $i = 0;
             $temp = '';
             foreach ($results as $attribute) {
@@ -4645,7 +4642,7 @@ class Attribute extends AppModel
             if ($continue) {
                 $temp .= $exportTool->separator($exportToolParams);
             }
-            fwrite($tmpfile, $temp);
+            $tmpfile->write($temp);
         }
         return true;
     }

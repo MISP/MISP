@@ -23,16 +23,22 @@ function stringToRGB(str){
     return "#" + "00000".substring(0, 6 - c.length) + c;
 }
 
-function deleteObject(type, action, id, event) {
-    var destination = 'attributes';
-    var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'galaxy_clusters', 'objects', 'object_references'];
-    if (alternateDestinations.indexOf(type) > -1) destination = type;
-    else destination = type;
-    url = "/" + destination + "/" + action + "/" + id;
+function xhrFailCallback(xhr) {
+    if (xhr.status === 403) {
+        showMessage('fail', 'Not allowed.');
+    } else if (xhr.status === 404) {
+        showMessage('fail', 'Resource not found.');
+    } else {
+        showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details.');
+    }
+}
+
+function deleteObject(type, action, id) {
+    var url = "/" + type + "/" + action + "/" + id;
     $.get(url, function(data) {
         openPopup("#confirmation_box");
         $("#confirmation_box").html(data);
-    });
+    }).fail(xhrFailCallback)
 }
 
 function quickDeleteSighting(id, rawId, context) {
@@ -40,7 +46,7 @@ function quickDeleteSighting(id, rawId, context) {
     $.get(url, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
-    });
+    }).fail(xhrFailCallback)
 }
 
 function fetchAddSightingForm(type, attribute_id, page, onvalue) {
@@ -1799,11 +1805,7 @@ function getPopup(id, context, target, admin, popupType) {
         error:function(xhr) {
             $(".loading").hide();
             $("#gray_out").fadeOut();
-            if (xhr.status === 403) {
-                showMessage('fail', 'Not allowed.');
-            } else {
-                showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
-            }
+            xhrFailCallback(xhr);
         },
         url: url
     });
@@ -1925,13 +1927,7 @@ function simplePopup(url) {
         error:function(xhr) {
             $(".loading").hide();
             $("#gray_out").fadeOut();
-            if (xhr.status == 403) {
-                showMessage('fail', 'Not allowed.');
-            } else if (xhr.status == 404) {
-                showMessage('fail', 'Resource not found.');
-            } else {
-                showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
-            }
+            xhrFailCallback(xhr);
         },
         url: url,
     });
@@ -5056,15 +5052,23 @@ function resetDashboardGrid(grid) {
 
 function setHomePage() {
     $.ajax({
-        type: 'POST',
+        type: 'GET',
         url: baseurl + '/userSettings/setHomePage',
-        data: {
-            path: window.location.pathname
-        },
         success:function (data, textStatus) {
-            showMessage('success', 'Homepage set.');
-            $('#setHomePage').addClass('orange');
-        },
+            $('#ajax_hidden_container').html(data);
+            var currentPage = $('#setHomePage').data('current-page');
+            $('#UserSettingPath').val(currentPage);
+            $.ajax({
+                type: 'POST',
+                url: baseurl + '/userSettings/setHomePage',
+                data: $('#UserSettingSetHomePageForm').serialize(),
+                success:function (data, textStatus) {
+                    showMessage('success', 'Homepage set.');
+                    $('#setHomePage').addClass('orange');
+                },
+            });
+
+        }
     });
 }
 

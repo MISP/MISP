@@ -393,14 +393,7 @@ class ServersController extends AppController
             $this->set('externalOrganisations', $externalOrganisations);
             $this->set('allOrganisations', $allOrgs);
 
-            // list all tags for the rule picker
-            $this->loadModel('Tag');
-            $temp = $this->Tag->find('all', array('recursive' => -1));
-            $allTags = array();
-            foreach ($temp as $t) {
-                $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
-            }
-            $this->set('allTags', $allTags);
+            $this->set('allTags', $this->__getTags());
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
             $this->render('edit');
         }
@@ -586,14 +579,7 @@ class ServersController extends AppController
             $this->set('externalOrganisations', $externalOrganisations);
             $this->set('allOrganisations', $allOrgs);
 
-            // list all tags for the rule picker
-            $this->loadModel('Tag');
-            $temp = $this->Tag->find('all', array('recursive' => -1));
-            $allTags = array();
-            foreach ($temp as $t) {
-                $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
-            }
-            $this->set('allTags', $allTags);
+            $this->set('allTags', $this->__getTags());
             $this->set('server', $s);
             $this->set('id', $id);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
@@ -2322,5 +2308,25 @@ misp.direct_call(relative_path, body)
             $this->layout = false;
             $this->set('data', $data);
         }
+    }
+
+    /**
+     * List all tags for the rule picker.
+     *
+     * @return array
+     */
+    private function __getTags()
+    {
+        $this->loadModel('Tag');
+        $list = $this->Tag->find('list', array(
+            'recursive' => -1,
+            'order' => array('LOWER(TRIM(Tag.name))' => 'ASC'),
+            'fields' => array('name'),
+        ));
+        $allTags = array();
+        foreach ($list as $id => $name) {
+            $allTags[] = array('id' => $id, 'name' => trim($name));
+        }
+        return $allTags;
     }
 }

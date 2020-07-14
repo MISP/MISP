@@ -12,7 +12,6 @@ class EventsController extends AppController
             'Email',
             'RequestHandler',
             'IOCImport',
-            'Cidr'
     );
 
     public $paginate = array(
@@ -1410,17 +1409,15 @@ class EventsController extends AppController
         }
         $this->set('tagConflicts', $tagConflicts);
 
-        $startDate = null;
-        $modificationMap = array();
+        $modDate = date("Y-m-d", $event['Event']['timestamp']);
+        $modificationMap = array($modDate => 1);
+
         foreach ($event['Attribute'] as $k => $attribute) {
             if ($oldest_timestamp == false || $oldest_timestamp > $attribute['timestamp']) {
                 $oldest_timestamp = $attribute['timestamp'];
             }
-            if ($startDate === null || $attribute['timestamp'] < $startDate) {
-                $startDate = $attribute['timestamp'];
-            }
             $modDate = date("Y-m-d", $attribute['timestamp']);
-            $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
+            $modificationMap[$modDate] = !isset($modificationMap[$modDate]) ? 1 : $modificationMap[$modDate] + 1;
 
             $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
 
@@ -1436,22 +1433,14 @@ class EventsController extends AppController
         $attributeTagsName = $this->Event->Attribute->AttributeTag->extractAttributeTagsNameFromEvent($event, 'both');
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
         $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
-        $startDate = $event['Event']['timestamp'];
-        $modDate = date("Y-m-d", $event['Event']['timestamp']);
-        $modificationMap[$modDate] = 1;
+
         foreach ($event['Object'] as $k => $object) {
-            if ($startDate === null || $object['timestamp'] < $startDate) {
-                $startDate = $object['timestamp'];
-            }
             $modDate = date("Y-m-d", $object['timestamp']);
-            $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $object['timestamp'])] + 1;
+            $modificationMap[$modDate] = !isset($modificationMap[$modDate])? 1 : $modificationMap[$modDate] + 1;
             if (!empty($object['Attribute'])) {
                 foreach ($object['Attribute'] as $k2 => $attribute) {
-                    if ($startDate === null || $attribute['timestamp'] < $startDate) {
-                        $startDate = $attribute['timestamp'];
-                    }
                     $modDate = date("Y-m-d", $attribute['timestamp']);
-                    $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
+                    $modificationMap[$modDate] = !isset($modificationMap[$modDate])? 1 : $modificationMap[$modDate] + 1;
 
                     $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
 
@@ -1481,11 +1470,11 @@ class EventsController extends AppController
         sort($startDate);
         $startDate = $startDate[0];
         $this->set('startDate', $startDate);
-        $to = date('Y-m-d', time());
-        if ((strtotime($to) - 172800) > $startDate) {
-            $startDate = date('Y-m-d', strtotime($to) - 172800);
+        $today = strtotime(date('Y-m-d', time()));
+        if (($today - 172800) > $startDate) {
+            $startDate = date('Y-m-d', $today - 172800);
         }
-        for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
+        for ($date = $startDate; strtotime($date) <= $today; $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
             if (isset($modificationMap[$date])) {
                 $modificationMapCSV .= $date . ',' . $modificationMap[$date] . '\n';
             } else {
@@ -1591,9 +1580,6 @@ class EventsController extends AppController
         // find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
         $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event'));
-        }
         $conditions = array('eventid' => $id);
         if (!$this->_isRest()) {
             $conditions['includeAllTags'] = true;
@@ -2548,9 +2534,6 @@ class EventsController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event'));
-        }
         $this->Event->recursive = -1;
         $event = $this->Event->read(null, $id);
         if (!$this->_isSiteAdmin()) {
@@ -2651,9 +2634,6 @@ class EventsController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         $this->Event->id = $id;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event'));
-        }
         // update the event and set the from field to the current instance's organisation from the bootstrap. We also need to save id and info for the logs.
         $this->Event->recursive = -1;
         $event = $this->Event->read(null, $id);
@@ -3699,14 +3679,6 @@ class EventsController extends AppController
                 $resultArray[$key]['types'] = $temp;
             }
 
-            // remove all duplicates
-            foreach ($resultArray as $k => $v) {
-                for ($i = 0; $i < $k; $i++) {
-                    if (isset($resultArray[$i]) && $v == $resultArray[$i]) {
-                        unset($resultArray[$k]);
-                    }
-                }
-            }
             if ($this->_isRest()) {
                 if ($returnMetaAttributes || !empty($this->request->data['Attribute']['returnMetaAttributes'])) {
                     return $this->RestResponse->viewData($resultArray, $this->response->type());

@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('RandomTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
 class Event extends AppModel
 {
@@ -3169,9 +3170,9 @@ class Event extends AppModel
                     'conditions' => array(
                         'User.id' => $event['Event']['user_id'],
                         'User.disabled' => 0,
-                        'User.org_id' => $event['Event']
+                        'User.org_id' => $event['Event']['orgc_id'],
                     ),
-                    'fields' => array('User.email', 'User.gpgkey', 'User.certif_public'),
+                    'fields' => array('User.email', 'User.gpgkey', 'User.certif_public', 'User.id', 'User.disabled'),
                     'recursive' => -1
             ));
             if (!empty($temp)) {
@@ -3202,10 +3203,10 @@ class Event extends AppModel
         $body .= "Someone wants to get in touch with you concerning a MISP event. \n";
         $body .= "\n";
         $body .= "You can reach them at " . $user['User']['email'] . "\n";
-        if (!$user['User']['gpgkey']) {
+        if (!empty($user['User']['gpgkey'])) {
             $body .= "Their GnuPG key is added as attachment to this email. \n";
         }
-        if (!$user['User']['certif_public']) {
+        if (!empty($user['User']['certif_public'])) {
             $body .= "Their Public certificate is added as attachment to this email. \n";
         }
         $body .= "\n";
@@ -3652,7 +3653,7 @@ class Event extends AppModel
                 'conditions' => array('Event.id' => $this->id),
                 'recursive' => -1
             ));
-            if (isset($data['Event']['Attribute']) && !empty($data['Event']['Attribute'])) {
+            if (!empty($data['Event']['Attribute'])) {
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $block = false;
                     for ($i = 0; $i < $k; $i++) {
@@ -3779,7 +3780,8 @@ class Event extends AppModel
                     'Server.name',
                     'Server.id',
                     'Server.unpublish_event',
-                    'Server.publish_without_email'
+                    'Server.publish_without_email',
+                    'Server.internal',
                 )
             ));
         } else {
@@ -5581,99 +5583,6 @@ class Event extends AppModel
         return array('data' => array(), 'csv' => array());
     }
 
-    public function setSimpleConditions($parameterKey, $parameterValue, $conditions, $restrictScopeToEvents = false)
-    {
-        if (is_array($parameterValue)) {
-            $elements = $parameterValue;
-        } else {
-            $elements = explode('&&', $parameterValue);
-        }
-        App::uses('CIDRTool', 'Tools');
-        $cidr = new CIDRTool();
-        $subcondition = array();
-        foreach ($elements as $v) {
-            if ($v === '') {
-                continue;
-            }
-            if (substr($v, 0, 1) === '!') {
-                // check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
-                if ($parameterKey === 'value' && $cidr->checkCIDR(substr($v, 1), 4)) {
-                    $cidrresults = $cidr->CIDR(substr($v, 1));
-                    foreach ($cidrresults as $result) {
-                        $subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
-                    }
-                } else {
-                    if ($parameterKey === 'org') {
-                        $found_orgs = $this->Org->find('all', array(
-                            'recursive' => -1,
-                            'conditions' => array('name' => substr($v, 1)),
-                        ));
-                        foreach ($found_orgs as $o) {
-                            $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
-                        }
-                    } elseif ($parameterKey === 'eventid') {
-                        if ($restrictScopeToEvents) {
-                            $subcondition['AND'][] = array('Event.id !=' => substr($v, 1));
-                        } else {
-                            $subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
-                        }
-                    } elseif ($parameterKey === 'uuid') {
-                        $subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
-                        $subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
-                    } else {
-                        $lookup = substr($v, 1);
-                        if (strlen($lookup) != strlen(trim($lookup, '%'))) {
-                            $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => $lookup);
-                        } else {
-                            $subcondition['AND'][] = array('NOT' => array('Attribute.' . $parameterKey => $lookup));
-                        }
-                    }
-                }
-            } else {
-                // check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
-                if ($parameterKey === 'value' && $cidr->checkCIDR($v, 4)) {
-                    $cidrresults = $cidr->CIDR($v);
-                    foreach ($cidrresults as $result) {
-                        if (!empty($result)) {
-                            $subcondition['OR'][] = array('Attribute.value LIKE' => $result);
-                        }
-                    }
-                } else {
-                    if ($parameterKey === 'org') {
-                        $found_orgs = $this->Org->find('all', array(
-                                'recursive' => -1,
-                                'conditions' => array('name' => $v),
-                        ));
-                        foreach ($found_orgs as $o) {
-                            $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
-                        }
-                    } elseif ($parameterKey === 'eventid') {
-                        if ($restrictScopeToEvents) {
-                            $subcondition['OR'][] = array('Event.id' => $v);
-                        } else {
-                            $subcondition['OR'][] = array('Attribute.event_id' => $v);
-                        }
-                    } elseif ($parameterKey === 'uuid') {
-                        $subcondition['OR'][] = array('Attribute.uuid' => $v);
-                        $subcondition['OR'][] = array('Event.uuid' => $v);
-                    } else {
-                        if (!empty($v)) {
-                            if (strlen($v) != strlen(trim($v, '%'))) {
-                                $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' LIKE' => $v);
-                            } else {
-                                $subcondition['AND'][] = array('Attribute.' . $parameterKey => $v);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if (!empty($subcondition)) {
-            array_push($conditions['AND'], $subcondition);
-        }
-        return $conditions;
-    }
-
     public function cacheSgids($user, $useCache = false)
     {
         if ($useCache && isset($this->__assetCache['sgids'])) {
@@ -5832,7 +5741,7 @@ class Event extends AppModel
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result) {
-                if ($original_file) {
+                if ($original_file && !is_numeric($result)) {
                     $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
                 }
                 if ($publish && $user['Role']['perm_publish']) {
@@ -5861,7 +5770,7 @@ class Event extends AppModel
 
     private function __getTagNamesFromSynonyms($scriptDir)
     {
-        $synonymsToTagNames = $scriptDir . DS . 'synonymsToTagNames.json';
+        $synonymsToTagNames = $scriptDir . DS . 'tmp' . DS . 'synonymsToTagNames.json';
         if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
             if (empty($this->GalaxyCluster)) {
                 $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -6796,8 +6705,8 @@ class Event extends AppModel
                 $filters['published'] = 1;
             }
         }
-        $tmpfile = tmpfile();
-        fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $tmpfile = new TmpFileTool();
+        $tmpfile->write($exportTool->header($exportToolParams));
         $i = 0;
         if (!empty($filters['withAttachments'])) {
             $filters['includeAttachments'] = 1;
@@ -6825,7 +6734,7 @@ class Event extends AppModel
                         if ($i !== 0) {
                             $temp = $exportTool->separator($exportToolParams) . $temp;
                         }
-                        fwrite($tmpfile, $temp);
+                        $tmpfile->write($temp);
                         $i++;
                     }
                 }
@@ -6833,15 +6742,8 @@ class Event extends AppModel
         }
         unset($result);
         unset($temp);
-        fwrite($tmpfile, $exportTool->footer($exportToolParams));
-        fseek($tmpfile, 0);
-        if (fstat($tmpfile)['size'] > 0) {
-            $final = fread($tmpfile, fstat($tmpfile)['size']);
-        } else {
-            $final = 0;
-        }
-        fclose($tmpfile);
-        return $final;
+        $tmpfile->write($exportTool->footer($exportToolParams));
+        return $tmpfile->finish();
     }
 
     /*
