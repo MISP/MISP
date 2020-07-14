@@ -65,7 +65,11 @@
             )
         )
     ));
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $action === 'add' ? 'add' : 'editEvent'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array(
+        'menuList' => $action === 'add' ? 'event-collection' : 'event',
+        'menuItem' => $action === 'add' ? 'add' : 'editEvent',
+        'event' => isset($event) ? $event : null,
+    ));
 ?>
 
 <script type="text/javascript">
