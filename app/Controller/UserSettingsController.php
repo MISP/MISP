@@ -342,7 +342,7 @@ class UserSettingsController extends AppController
                 )
             );
             $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
-            return $this->RestResponse->saveSuccessResponse('UserSettings', 'setHomePage', false, $this->response->type(), 'Homepage set to ' . $this->request->data['path']);
+            return $this->RestResponse->saveSuccessResponse('UserSettings', 'setHomePage', false, 'json', 'Homepage set to ' . $this->request->data['path']);
         } else {
             $this->layout = false;
         }
