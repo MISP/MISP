@@ -462,6 +462,9 @@ class GalaxyClustersController extends AppController
             if (Configure::read('MISP.background_jobs')) {
                 $message = __('Publish job queued. Job ID: %s', $success);
                 $this->Flash->success($message);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->viewData(array('message' => $message), $this->response->type());
+                }
             } else {
                 if (!$success) {
                     $message = __('Could not publish galaxy cluster');
