@@ -5,25 +5,84 @@ use PHPUnit\Framework\TestCase;
 
 class ComplexTypeToolTest extends TestCase
 {
+    public function testCheckCSV(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $csv = <<<CSV
+# Downloaded from 1.1.1.1
+
+127.0.0.1
+"127.0.0.2"
+CSV;
+        $results = $complexTypeTool->checkCSV($csv);
+        $this->assertCount(2, $results);
+    }
+
+    public function testCheckCSVTabulator(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $csv = <<<CSV
+###########################################################################################
+# Downloaded from 1.1.1.1
+###########################################################################################
+127.0.0.1\t127.0.0.3
+"127.0.0.2"
+   58.214.25.190
+   58.214.239.53
+CSV;
+        $results = $complexTypeTool->checkCSV($csv, ['delimiter' => '\t']);
+        $this->assertCount(5, $results);
+    }
+
+    public function testCheckCSVValues(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $csv = <<<CSV
+127.0.0.1\t127.0.0.2
+127.0.0.3\t127.0.0.4
+CSV;
+        $results = $complexTypeTool->checkCSV($csv, ['value' => '1', 'delimiter' => '\t']);
+        $this->assertCount(2, $results);
+        foreach (['127.0.0.1', '127.0.0.3'] as $k => $test) {
+            $this->assertEquals($test, $results[$k]['value']);
+            $this->assertEquals('ip-dst', $results[$k]['default_type']);
+        }
+    }
+
+    public function testCheckCSVEmpty(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkCSV('');
+        $this->assertCount(0, $results);
+    }
+
+    public function testCheckCSVEmptyLines(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkCSV(",,,\t\n,,,,,");
+        $this->assertCount(0, $results);
+    }
+
+    public function testCheckCSVTestFile(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkCSV(file_get_contents(__DIR__ . '/../../tests/event.csv'));
+        $this->assertCount(37, $results);
+    }
+
     public function testCheckFreeTextHeader(): void
     {
         $complexTypeTool = new ComplexTypeTool();
-        $results = $complexTypeTool->checkFreeText(<<<EOT
+        $text = <<<EOT
 # LAST 1000 # UTC UPDATE 2020-07-13 08:15:00
-127.0.0.1,(127.0.0.2),  <127.0.0.3>; "127.0.0.4" '127.0.0.5'
-EOT
-);
+127.0.0.1,(127.0.0.2),  <127.0.0.3>; "127.0.0.4" "'127.0.0.5'"
+EOT;
+        $results = $complexTypeTool->checkFreeText($text);
         $this->assertCount(5, $results);
-        $this->assertEquals('127.0.0.1', $results[0]['value']);
-        $this->assertEquals('ip-dst', $results[0]['default_type']);
-        $this->assertEquals('127.0.0.2', $results[1]['value']);
-        $this->assertEquals('ip-dst', $results[1]['default_type']);
-        $this->assertEquals('127.0.0.3', $results[2]['value']);
-        $this->assertEquals('ip-dst', $results[2]['default_type']);
-        $this->assertEquals('127.0.0.4', $results[3]['value']);
-        $this->assertEquals('ip-dst', $results[3]['default_type']);
-        $this->assertEquals('127.0.0.5', $results[4]['value']);
-        $this->assertEquals('ip-dst', $results[4]['default_type']);
+        foreach (['127.0.0.1', '127.0.0.2', '127.0.0.3', '127.0.0.4', '127.0.0.5'] as $k => $test) {
+            $this->assertEquals($test, $results[$k]['value']);
+            $this->assertEquals('ip-dst', $results[$k]['default_type']);
+        }
     }
 
     public function testCheckFreeTextIpv4(): void
@@ -255,6 +314,15 @@ EOT
         $results = $complexTypeTool->checkFreeText('https://example.com');
         $this->assertCount(1, $results);
         $this->assertEquals('https://example.com', $results[0]['value']);
+        $this->assertEquals('url', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextUrlWithPort(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('https://github.com:443/MISP/MISP');
+        $this->assertCount(1, $results);
+        $this->assertEquals('https://github.com:443/MISP/MISP', $results[0]['value']);
         $this->assertEquals('url', $results[0]['default_type']);
     }
 

@@ -38,6 +38,31 @@ class TmpFileTool
     }
 
     /**
+     * Get one line from file parsed as CSV.
+     *
+     * @param string $delimiter
+     * @param string $enclosure
+     * @param string $escape
+     * @return Generator
+     * @throws Exception
+     */
+    public function csv($delimiter = ',', $enclosure = '"', $escape = "\\")
+    {
+        $this->rewind();
+        $line = 0;
+        while (!feof($this->tmpfile)) {
+            $result = fgetcsv($this->tmpfile, 0, $delimiter, $enclosure, $escape);
+            if ($result === false) {
+                throw new Exception("Could not read line $line from temporary CSV file.");
+            }
+            $line++;
+            yield $result;
+        }
+        fclose($this->tmpfile);
+        $this->tmpfile = null;
+    }
+
+    /**
      * @return Generator
      * @throws Exception
      */
