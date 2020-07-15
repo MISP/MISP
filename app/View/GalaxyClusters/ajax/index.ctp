@@ -242,12 +242,13 @@
                     'icon' => 'edit',
                     'complex_requirement' => array(
                         'function' => function($row, $options) {
-                            return $options['me']['Role']['perm_site_admin'] || ($options['me']['org_id'] == $options['datapath']['org']);
+                            return !$options['datapath']['default'] && ($options['me']['Role']['perm_site_admin'] || ($options['me']['org_id'] == $options['datapath']['org']));
                         },
                         'options' => array(
                             'me' => $me,
                             'datapath' => array(
-                                'org' => 'GalaxyCluster.org_id'
+                                'org' => 'GalaxyCluster.org_id',
+                                'default' => 'GalaxyCluster.default'
                             )
                         )
                     ),
