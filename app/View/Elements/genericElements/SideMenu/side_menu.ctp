@@ -1196,26 +1196,35 @@
                             ));
                         }
                     }
-                    if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster' || $menuItem === 'update_cluster') {
+                    if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster' || $menuItem === 'update_cluster' || $menuItem === 'add_cluster' || $menuItem === 'edit_cluster') {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'url' => '/galaxies/view/' . h($galaxy_id),
                             'text' => __('View Galaxy')
                         ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'view_cluster',
-                            'url' => '/galaxy_clusters/view/' . h($id),
-                            'text' => __('View Cluster')
-                        ));
-                        if (!$defaultCluster && ($isSiteAdmin || $me['Role']['perm_galaxy_editor'])) {
+                        if ($menuItem !== 'add_cluster') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'view_cluster',
+                                'url' => '/galaxy_clusters/view/' . h($id),
+                                'text' => __('View Cluster')
+                            ));
+                        }
+                        if ($menuItem !== 'add_cluster' && !$defaultCluster && ($isSiteAdmin || $me['Role']['perm_galaxy_editor'])) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit_cluster',
                                 'url' => '/galaxy_clusters/edit/' . h($id),
                                 'text' => __('Edit Cluster')
                             ));
                         }
                         if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'add_cluster',
+                                'url' => '/galaxy_clusters/add/' . h($galaxy_id),
+                                'text' => __('Add Cluster')
+                            ));
+                        }
+                        if ($menuItem !== 'add_cluster' && ($isSiteAdmin || $me['Role']['perm_galaxy_editor'])) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => '/galaxy_clusters/add/' . h($galaxy_id) . '/forkUuid:' . h($cluster['GalaxyCluster']['uuid']),
                                 'text' => __('Fork Cluster')
@@ -1237,12 +1246,14 @@
                                 ));
                             }
                         }
-                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'viewGraph',
-                            'url' => '/galaxies/viewGraph/' . h($id),
-                            'text' => __('View Correlation Graph')
-                        ));
+                        if ($menuItem !== 'add_cluster') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'viewGraph',
+                                'url' => '/galaxies/viewGraph/' . h($id),
+                                'text' => __('View Correlation Graph')
+                            ));
+                        }
                     }
                     if ($menuItem === 'view' || $menuItem === 'export') {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');

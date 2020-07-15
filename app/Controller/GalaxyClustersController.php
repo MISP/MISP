@@ -433,6 +433,8 @@ class GalaxyClustersController extends AppController
             'elements' => __('Valid JSON array composed from Object of the form {key: keyname, value: actualValue}'),
             'distribution' => Hash::extract($this->Attribute->distributionDescriptions, '{n}.formdesc'),
         );
+        $this->set('id', $cluster['GalaxyCluster']['id']);
+        $this->set('cluster', $cluster);
         $this->set('fieldDesc', $fieldDesc);
         $this->set('distributionLevels', $distributionLevels);
         $this->set('initialDistribution', $initialDistribution);

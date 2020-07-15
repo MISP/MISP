@@ -84,7 +84,7 @@
             )
         )
     ));
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxy_cluster', 'menuItem' => $this->action === 'add' ? 'add' : 'edit'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => $this->action === 'add' ? 'add_cluster' : 'edit_cluster'));
 ?>
 
 <script type="text/javascript">
