@@ -13,7 +13,7 @@ class GalaxyCluster extends AppModel
     private $__assetCache = array();
 
     public $validate = array(
-        'name' => array(
+        'value' => array(
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty')
             )
