@@ -36,7 +36,7 @@
             echo $this->Form->input('is_proposal', array(
                 'type' => 'checkbox',
                 'label' => __('Create proposals'),
-                'checked' => true
+                'checked' => false
             ));
             ?>
                 <div class="input clear"></div>
