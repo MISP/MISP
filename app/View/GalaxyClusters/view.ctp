@@ -68,8 +68,8 @@
                         ):
                         '<span>0</span>'
                     );
-    $table_data[] = array('key' => __('Extended From'), 'html' => $extendedFromHtml);
-    $table_data[] = array('key' => __('Extended By'), 'html' => $extendedByHtml);
+    $table_data[] = array('key' => __('Forked From'), 'html' => $extendedFromHtml);
+    $table_data[] = array('key' => __('Forked By'), 'html' => $extendedByHtml);
 ?>
 
 <div class='view'>
