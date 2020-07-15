@@ -976,7 +976,13 @@ class RestResponseComponent extends Component
                     'autoclose' => true
                 ),
                 'help' => __('The date from which the event was published')
-             ),
+            ),
+            'galaxy_cluster_uuid' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => __('Source galaxy cluster UUID')
+            ),
             'gpgkey' => array(
                 'input' => 'text',
                 'type' => 'string',
@@ -1351,6 +1357,18 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('Allow the upload of sightings to the server')
+            ),
+            'referenced_galaxy_cluster_uuid' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('Destination galaxy cluster UUID')
+                ),
+            'referenced_galaxy_cluster_type' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('The type of the relation. Example: `is`, `related-to`, ...')
             ),
             'releasability' => array(
                 'input' => 'text',
