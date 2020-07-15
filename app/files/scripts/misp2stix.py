@@ -7,6 +7,7 @@ import datetime
 import re
 import ntpath
 import socket
+import traceback
 from misp2stix_mapping import *
 from collections import defaultdict
 from copy import deepcopy
@@ -156,6 +157,7 @@ class StixBuilder(object):
             print(json.dumps({'success': 1}))
         except Exception as e:
             print(json.dumps({'error': e.__str__()}))
+            traceback.print_tb()
 
     def generate_package(self, event):
         self.objects_to_parse = defaultdict(dict)

@@ -803,20 +803,18 @@ class ShadowAttributesController extends AppController
 
     public function delete($id)
     {
-        if (strlen($id) == 36) {
-            $this->ShadowAttribute->Event->recursive = -1;
-            $temp = $this->ShadowAttribute->Event->Attribute->find('first', array('recursive' => -1, 'conditions' => array('Attribute.uuid' => $id), 'fields' => array('id')));
-            if ($temp == null) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $id = $temp['Attribute']['id'];
+        if (is_numeric($id)) {
+            $conditions = ['Attribute.id' => $id];
+        } else if (Validation::uuid($id)) {
+            $conditions = ['Attribute.uuid' => $id];
+        } else {
+            throw new NotFoundException(__('Invalid attribute'));
         }
 
-        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
-        if (empty($existingAttribute)) {
-            throw new NotFoundException(__('Invalid attribute.'));
-        }
-
+        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes(
+            $this->Auth->user(),
+            array('conditions' => $conditions, 'flatten' => true)
+        );
         if ($this->request->is('post')) {
             if (empty($existingAttribute)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid Attribute.')), 'status'=>200, 'type' => 'json'));
@@ -850,7 +848,7 @@ class ShadowAttributesController extends AppController
             }
         } else {
             if (empty($existingAttribute)) {
-                throw new NotFoundException(__('Invalid Attribute'));
+                throw new NotFoundException(__('Invalid attribute'));
             }
             $existingAttribute = $existingAttribute[0];
             $this->set('id', $id);

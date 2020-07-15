@@ -42,10 +42,19 @@ class misphelper(object):
                 print("Removing IDS flag in event '{}' on attr '{}'".format(mevent.id, attr["value"]))
                 changed = True
                 attr["to_ids"] = False
+                self.misp.update_attribute(attr)
+        for obj in mevent.objects:
+            for attr in obj.Attribute:
+                if (attr["type"] == "ip-dst" or attr["type"] == "ip-src") and attr["to_ids"]:
+                    print("Removing IDS flag in event '{}' on attr '{}'".format(mevent.id, attr["value"]))
+                    changed = True
+                    attr["to_ids"] = False
+                    self.misp.update_attribute(attr)
 
         self.misp.tag(mevent, self.expiredTag, True)
         if changed:
-            res = self.misp.update_event(mevent.id, mevent)
+            self.misp.update_event(mevent.id, mevent)
+            self.misp.publish(mevent)
 
     def findEventsAfterRetention(self, events, retention):
         for event in events:
@@ -70,7 +79,7 @@ class misphelper(object):
         for tag in res['entries']:
             m = re.match(r"^retention:([0-9]+)([d,w,m,y])$", tag["tag"])
             if m:
-                tagSearch = self.misp.build_complex_query(and_parameters = tag["tag"], not_parameters = self.expiredTag)
+                tagSearch = self.misp.build_complex_query(and_parameters = [tag["tag"]], not_parameters = [self.expiredTag])
                 events = self.misp.search(published=True, tags=tagSearch)
                 self.findEventsAfterRetention(events, (m.group(1), m.group(2)))
 

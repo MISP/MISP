@@ -413,8 +413,9 @@
                 'type' => 'root',
                 'url' => '#',
                 'html' => sprintf(
-                    '<span class="fas fa-star %s" id="setHomePage" title="Set the current page as your home page in MISP"></span>',
-                    (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : ''
+                    '<span class="fas fa-star %s" id="setHomePage" title="Set the current page as your home page in MISP" data-current-page="%s"></span>',
+                    (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : '',
+                    $this->here
                 )
             ),
             array(

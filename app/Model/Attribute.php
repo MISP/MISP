@@ -823,6 +823,10 @@ class Attribute extends AppModel
                 ),
                 false
             );
+            if ($this->data['Attribute']['type'] === 'ssdeep') {
+                $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
+                $this->FuzzyCorrelateSsdeep->purge(null, $this->data['Attribute']['id']);
+            }
         }
     }
 
@@ -1926,11 +1930,9 @@ class Attribute extends AppModel
                     'Correlation.attribute_id' => $a['id']))
             );
         }
-        if ($a['type'] == 'ssdeep') {
+        if ($a['type'] === 'ssdeep') {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-            $this->FuzzyCorrelateSsdeep->deleteAll(
-                array('FuzzyCorrelateSsdeep.attribute_id' => $a['id'])
-            );
+            $this->FuzzyCorrelateSsdeep->purge(null, $a['id']);
         }
     }
 
@@ -2806,6 +2808,10 @@ class Attribute extends AppModel
     {
         $this->Correlation = ClassRegistry::init('Correlation');
         $this->purgeCorrelations($eventId);
+
+        $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
+        $this->FuzzyCorrelateSsdeep->purge($eventId, $attributeId);
+
         // get all attributes..
         if (!$eventId) {
             $eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
