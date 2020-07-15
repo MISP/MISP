@@ -74,14 +74,16 @@
         $(this).data('popover-callback-function', setSourceUUIDAfterSelect);
         var target_id = 0;
         var target_type = 'galaxyClusterRelation';
-        popoverPopup(this, target_id + '/' + target_type, 'galaxies', 'selectGalaxyNamespace');
+        var noGalaxyMatrix = 1;
+        popoverPopup(this, target_id + '/' + target_type + '/' + noGalaxyMatrix, 'galaxies', 'selectGalaxyNamespace');
     }
     function pickerTarget() {
         $(this).data('popover-no-submit', true);
         $(this).data('popover-callback-function', setTargetUUIDAfterSelect);
         var target_id = 0;
         var target_type = 'galaxyClusterRelation';
-        popoverPopup(this, target_id + '/' + target_type, 'galaxies', 'selectGalaxyNamespace');
+        var noGalaxyMatrix = 1;
+        popoverPopup(this, target_id + '/' + target_type + '/' + noGalaxyMatrix, 'galaxies', 'selectGalaxyNamespace');
     }
     function pickerTags() {
         $(this).data('popover-no-submit', true);
@@ -90,15 +92,15 @@
         var target_type = 'galaxyClusterRelation';
         popoverPopup(this, target_id + '/' + target_type, 'tags', 'selectTaxonomy')
     }
-    function setSourceUUIDAfterSelect(selected, additionalData){
+    function setSourceUUIDAfterSelect(selected, additionalData) {
         selectedUUID = additionalData.itemOptions[selected].uuid;
         $('#GalaxyClusterRelationGalaxyClusterUuid').val(selectedUUID);
     }
-    function setTargetUUIDAfterSelect(selected, additionalData){
+    function setTargetUUIDAfterSelect(selected, additionalData) {
         selectedUUID = additionalData.itemOptions[selected].uuid;
         $('#GalaxyClusterRelationReferencedGalaxyClusterUuid').val(selectedUUID);
     }
-    function setTagsAfterSelect(selected, additionalData){
+    function setTagsAfterSelect(selected, additionalData) {
         selectedTags = [];
         selected.forEach(function(selection) {
             selectedTags.push(additionalData.itemOptions[selection].tag_name);

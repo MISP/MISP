@@ -266,7 +266,7 @@ class GalaxiesController extends AppController
         }
     }
 
-    public function selectGalaxy($target_id, $target_type='event', $namespace='misp')
+    public function selectGalaxy($target_id, $target_type='event', $namespace='misp', $noGalaxyMatrix = false)
     {
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
         $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
@@ -285,7 +285,7 @@ class GalaxiesController extends AppController
             )
         );
         foreach ($galaxies as $galaxy) {
-            if (!isset($galaxy['Galaxy']['kill_chain_order'])) {
+            if (!isset($galaxy['Galaxy']['kill_chain_order']) || $noGalaxyMatrix) {
                 $items[] = array(
                     'name' => h($galaxy['Galaxy']['name']),
                     'value' => "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local,
@@ -319,7 +319,7 @@ class GalaxiesController extends AppController
         $this->render('/Elements/generic_picker');
     }
 
-    public function selectGalaxyNamespace($target_id, $target_type='event')
+    public function selectGalaxyNamespace($target_id, $target_type='event', $noGalaxyMatrix = false)
     {
         $namespaces = $this->Galaxy->find('list', array(
             'recursive' => -1,
@@ -331,12 +331,12 @@ class GalaxiesController extends AppController
         $items = array();
         $items[] = array(
             'name' => __('All namespaces'),
-            'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/local:' . $local
+            'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/' . $noGalaxyMatrix . '/local:' . $local
         );
         foreach ($namespaces as $namespace) {
             $items[] = array(
                 'name' => $namespace,
-                'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/local:' . $local
+                'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/' . $noGalaxyMatrix . '/local:' . $local
             );
         }
 
