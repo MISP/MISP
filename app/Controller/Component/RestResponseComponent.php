@@ -105,13 +105,36 @@ class RestResponseComponent extends Component
             )
         ),
         'GalaxyCluster' => array(
-            // 'add' => array(),
-            // 'edit' => array(),
+            'add' => array(
+                'description' => "POST a MISP GalaxyCluster JSON to this API to create a GalaxyCluster. Contained objects can also be included (such as relations, elements, tags, etc).",
+                'mandatory' => array('value', 'description'),
+                'optional' => array('distribution', 'sharing_group_id', 'uuid', 'version', 'extends_uuid', 'extends_version', 'elements', 'GalaxyClusterRelation'),
+                'params' => array('galaxy_id')
+            ),
+            'edit' => array(
+                'description' => "POST a MISP GalaxyCluster JSON to this API to edit a GalaxyCluster",
+                'mandatory' => array('value', 'description'),
+                'optional' => array('distribution', 'sharing_group_id', 'uuid', 'version', 'extends_uuid', 'extends_version', 'elements'),
+                'params' => array('cluster_id')
+            ),
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. This API allows pagination via the page and limit parameters.",
-                'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org', 'orgc', 'tag', 'custom', 'minimal',),
                 'params' => array()
+            ),
+        ),
+        'GalaxyClusterRelation' => array(
+            'add' => array(
+                'description' => "POST a MISP GalaxyClusterRelation JSON to this API to create a GalaxyCluster relation. Contained objects can also be included (such as tags).",
+                'mandatory' => array('galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type'),
+                'optional' => array('distribution', 'sharing_group_id', 'tags'),
+                'params' => array()
+            ),
+            'edit' => array(
+                'description' => "POST a MISP GalaxyClusterRelation JSON to this API to edit a GalaxyCluster relation. Contained objects can also be included (such as tags).",
+                'mandatory' => array('galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type'),
+                'optional' => array('distribution', 'sharing_group_id', 'tags'),
+                'params' => array('relation_id')
             ),
         ),
         'Log' => array(
