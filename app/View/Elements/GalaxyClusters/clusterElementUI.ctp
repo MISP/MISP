@@ -74,11 +74,15 @@
     function parseTable() {
         var elements = [];
         $('#elementTableBody > tr').each(function(i, row) {
-            row = $(row);
-            elements.push({
-                key: row.find('.elementKey').val(),
-                value: row.find('.elementValue').val()
-            });
+            var row = $(row);
+            var k = row.find('.elementKey').val();
+            var v = row.find('.elementValue').val();
+            if (k !== '' && v !== '') {
+                elements.push({
+                    key: k,
+                    value: v
+                });
+            }
         })
         return elements;
     }

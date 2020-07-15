@@ -55,7 +55,9 @@
                 ),
                 array(
                     'field' => 'description',
-                    'type' => 'textarea'
+                    'type' => 'textarea',
+                    'class' => 'input span6',
+                    'div' => 'input clear'
                 ),
                 array(
                     'field' => 'authors',
@@ -70,6 +72,8 @@
                     'field' => 'elements',
                     'label' => __("Galaxy Cluster Elements"),
                     'type' => 'textarea',
+                    'class' => 'input span6',
+                    'div' => 'input clear',
                     'picker' => array(
                         'text' => __('Toggle UI'),
                         'function' => 'initClusterElementUI'
