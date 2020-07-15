@@ -425,7 +425,7 @@ class GalaxyClustersController extends AppController
             ),
             'fields' => array('Tag.name, COUNT(DISTINCT event_id) as tag_count'),
             'recursive' => -1,
-            'group' => array('Tag.name')
+            'group' => array('Tag.name', 'Tag.id')
         ));
 
         // fetch all related tags belonging to attack pattern or belonging to an event having this cluster
@@ -440,7 +440,7 @@ class GalaxyClustersController extends AppController
             ),
             'fields' => array('Tag.name, COUNT(DISTINCT event_id) as tag_count'),
             'recursive' => -1,
-            'group' => array('Tag.name')
+            'group' => array('Tag.name', 'Tag.id')
         ));
 
         $scores = array();
