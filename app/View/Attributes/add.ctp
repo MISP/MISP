@@ -81,7 +81,7 @@
                 'action' => $action,
                 'ajaxSubmit' => sprintf(
                     'submitPopoverForm(%s, %s, 0, 1)',
-                    "'" . ($action == 'add' ? h($event_id) : h($attribute['Attribute']['id'])) . "'",
+                    "'" . ($action == 'add' ? h($event['Event']['id']) : h($attribute['Attribute']['id'])) . "'",
                     "'" . h($action) . "'"
                 )
             ),
@@ -91,7 +91,6 @@
         )
     ));
     if (!$ajax) {
-        $event = ['Event' => ['id' => $event_id, 'published' => $published ]];
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
     }
 ?>

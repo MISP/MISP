@@ -1529,6 +1529,7 @@ class Event extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
+            $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $sgids = $this->cacheSgids($user, true);
             $conditions['AND']['OR'] = array(
                 'Event.org_id' => $user['org_id'],
@@ -1536,14 +1537,14 @@ class Event extends AppModel
                     'AND' => array(
                         'Event.distribution >' => 0,
                         'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+                        $unpublishedPrivate ? array('Event.published =' => 1) : array(),
                     ),
                 ),
                 array(
                     'AND' => array(
                         'Event.sharing_group_id' => $sgids,
                         'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+                        $unpublishedPrivate ? array('Event.published =' => 1) : array(),
                     )
                 )
             );
@@ -1738,6 +1739,32 @@ class Event extends AppModel
             'fields' => array('Event.id')
         )));
         return $results;
+    }
+
+    /**
+     * @param array $user
+     * @param int|string $eventId Event ID or UUID
+     * @param bool $includeOrgc
+     * @return array|null
+     */
+    public function fetchSimpleEvent(array $user, $eventId, $includeOrgc = false)
+    {
+        $conditions = $this->createEventConditions($user);
+        if (is_numeric($eventId)) {
+            $conditions['Event.id'] = $eventId;
+        } else if (Validation::uuid($eventId)) {
+            $conditions['Event.uuid'] = $eventId;
+        } else {
+            return null;
+        }
+        $params = [
+            'conditions' => $conditions,
+            'recursive' => -1,
+        ];
+        if ($includeOrgc) {
+            $params['contain'] = ['Orgc.id', 'Orgc.name', 'Orgc.local'];
+        }
+        return $this->find('first', $params);
     }
 
     public function fetchSimpleEvents($user, $params, $includeOrgc = false)

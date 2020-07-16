@@ -115,27 +115,15 @@ class AttributesController extends AppController
             throw new MethodNotAllowedException(__('You do not have permissions to create attributes'));
         }
         $this->loadModel('Event');
-        if (Validation::uuid($eventId)) {
-            $temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $eventId)));
-            if (empty($temp)) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            $eventId = $temp['Event']['id'];
-        } elseif (!is_numeric($eventId)) {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $eventId, true);
+        if (!$event) {
             throw new NotFoundException(__('Invalid event'));
         }
-        $this->Event->id = $eventId;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-        // remove the published flag from the event
-        $this->Event->recursive = -1;
-        $this->Event->read(null, $eventId);
-        if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+        if (!$this->_isSiteAdmin() && ($event['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
             throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         if (!$this->_isRest()) {
-            $this->Event->insertLock($this->Auth->user(), $this->Event->data['Event']['id']);
+            $this->Event->insertLock($this->Auth->user(), $eventId);
         }
         if ($this->request->is('ajax')) {
             $this->set('ajax', true);
@@ -147,7 +135,6 @@ class AttributesController extends AppController
             if ($this->request->is('ajax')) {
                 $this->autoRender = false;
             }
-            $date = new DateTime();
             if (!isset($this->request->data['Attribute'])) {
                 $this->request->data = array('Attribute' => $this->request->data);
             }
@@ -160,7 +147,6 @@ class AttributesController extends AppController
             //
             // multiple attributes in batch import
             //
-            $attributes = array();
             if (!empty($this->request->data['Attribute']['batch_import']) || (!empty($this->request->data['Attribute']['value']) && is_array($this->request->data['Attribute']['value']))) {
                 $attributes = array();
                 if (is_array($this->request->data['Attribute']['value'])) {
@@ -179,7 +165,6 @@ class AttributesController extends AppController
             if (!isset($attributes[0])) {
                 $attributes = array(0 => $attributes);
             }
-            $uuids = array();
             $this->Warninglist = ClassRegistry::init('Warninglist');
             $fails = array();
             $successes = 0;
@@ -234,8 +219,6 @@ class AttributesController extends AppController
                     }
                 }
             } else {
-                $message = '';
-                $redirect = '/events/view/' . $eventId;
                 if (empty($fails)) {
                     $message = 'Attributes saved.';
                 } else {
@@ -306,13 +289,6 @@ class AttributesController extends AppController
         $categories = array_keys($this->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
-        $this->loadModel('Event');
-        $events = $this->Event->findById($eventId);
-        $this->set('event_id', $events['Event']['id']);
-        // combobox for distribution
-        $this->set('currentDist', $events['Event']['distribution']);
-        // tooltip for distribution
-
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
@@ -339,11 +315,11 @@ class AttributesController extends AppController
         }
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
-        $this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
+        $this->set('notice_list_triggers', json_encode($notice_list_triggers));
         $this->set('fieldDesc', $fieldDesc);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        $this->set('published', $events['Event']['published']);
+        $this->set('event', $event);
         $this->set('action', $this->action);
     }
 
