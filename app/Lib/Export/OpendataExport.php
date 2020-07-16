@@ -10,6 +10,7 @@ class OpendataExport
     private $__auth = null;
     private $__delete = false;
     private $__scope = null;
+    private $__search = false;
     private $__setup = array();
     private $__url = null;
 
@@ -45,13 +46,24 @@ class OpendataExport
             $this->__url = $this->__default_filters['misp-url'];
             unset($this->__default_filters['misp-url']);
         }
-        if (!empty($this->__default_filters['portal-url'])) {
-            $this->__url .= ' --portal_url ' . $this->__default_filters['portal-url'];
-            unset($this->__default_filters['portal-url']);
-        }
+        $simple_query = false;
         if (!empty($this->__default_filters['delete'])) {
             $this->__delete = true;
             unset($this->__default_filters['delete']);
+            $simple_query = true;
+        }
+        if (!empty($this->__default_filters['search'])) {
+            $this->__search = true;
+            unset($this->__default_filters['search']);
+            $simple_query = true;
+        }
+        if (!empty($this->__default_filters['portal-url'])) {
+            if ($simple_query) {
+                $this->__url = ' --portal_url ' . $this->__default_filters['portal-url'];
+            } else {
+                $this->__url .= ' --portal_url ' . $this->__default_filters['portal-url'];
+            }
+            unset($this->__default_filters['portal-url']);
         }
         return '';
     }
@@ -62,6 +74,9 @@ class OpendataExport
         $cmd = $my_server->getPythonVersion() . ' ' . $this->__scripts_dir . $this->__script_name;
         if (!empty($this->__auth)) {
             $cmd .= ' --auth ' . $this->__auth;
+        }
+        if ($this->__search){
+            return $this->__search_query($cmd);
         }
         return $this->__delete ? $this->__delete_query($cmd) : $this->__add_query($cmd);
     }
@@ -105,7 +120,18 @@ class OpendataExport
 
     private function __delete_query($cmd)
     {
-        $cmd .= " -d '" . $this->__setup['dataset'] . "'";
+        $cmd .= $this->__url . " -d '" . $this->__setup['dataset'] . "'";
+        return $this->__simple_query($cmd);
+    }
+
+    private function __search_query($cmd)
+    {
+        $cmd .= $this->__url . " -s '" . $this->__setup['dataset'] . "'";
+        return $this->__simple_query($cmd);
+    }
+
+    private function __simple_query($cmd)
+    {
         if (!empty($this->__setup['resources'])) {
             if (is_array($this->__setup['resources'])) {
                 foreach ($this->__setup['resources'] as $resource) {
