@@ -91,7 +91,7 @@ jq ntp ntpdate imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev \
 net-tools -qqy
 
-sudo apt install libapache2-mod-php php php-cli php-mbstring php-dev php-json php-xml php-mysql php7.0-opcache php-readline php-redis php-gnupg php-gd -qqy
+sudo apt install libapache2-mod-php php php-cli php-mbstring php-dev php-json php-xml php-mysql php7.0-opcache php-readline php-redis php-gnupg php-gd php-zip -qqy
 
 sudo apt install \
 mariadb-client \

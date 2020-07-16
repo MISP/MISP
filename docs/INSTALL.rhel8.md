@@ -148,6 +148,7 @@ yumInstallCoreDeps () {
        php-bcmath \
        php-opcache \
        php-json \
+       php-zip \
        php-gd -y
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
