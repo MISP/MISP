@@ -1180,20 +1180,21 @@ function openGenericModal(url, modalData, callback) {
         url: url,
         success: function (data) {
             $('#genericModal').remove();
+            var htmlData;
             if (modalData !== undefined) {
-                $modal = $('<div id="genericModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true"></div>');
+                var $modal = $('<div id="genericModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true"></div>');
                 if (modalData.classes !== undefined) {
                     $modal.addClass(modalData.classes);
                 }
-                $modalHeaderText = $('<h3 id="genericModalLabel"></h3>');
+                var $modalHeaderText = $('<h3 id="genericModalLabel"></h3>');
                 if (modalData.header !== undefined) {
                     $modalHeaderText.text(modalData.header)
                 }
-                $modalHeader = $('<div class="modal-header"></div>').append(
+                var $modalHeader = $('<div class="modal-header"></div>').append(
                     $('<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>'),
                     $modalHeaderText
                 );
-                $modalBody = $('<div class="modal-body"></div>').html(data);
+                var $modalBody = $('<div class="modal-body"></div>').html(data);
                 if (modalData.bodyStyle !== undefined) {
                     $modalBody.css(modalData.bodyStyle);
                 }
