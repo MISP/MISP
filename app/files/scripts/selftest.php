@@ -1,5 +1,5 @@
 <?php
-$extensions = array('redis', 'gd', 'ssdeep', 'zip');
+$extensions = array('redis', 'gd', 'ssdeep', 'zip', 'intl');
 $results = array();
 $results['phpversion'] = phpversion();
 foreach ($extensions as $extension) {

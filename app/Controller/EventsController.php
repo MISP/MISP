@@ -1625,6 +1625,9 @@ class EventsController extends AppController
         } else {
             $this->set('extended', 0);
         }
+        if (isset($this->params['named']['excludeLocalTags'])) {
+            $conditions['excludeLocalTags'] = $this->params['named']['excludeLocalTags'];
+        }
         $conditions['includeFeedCorrelations'] = 1;
         if (!$this->_isRest()) {
             $conditions['includeGranularCorrelations'] = 1;

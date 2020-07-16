@@ -1201,7 +1201,7 @@ class Attribute extends AppModel
                 return true;
 
             case 'port':
-                if (!is_numeric($value) || $value < 1 || $value > 65535) {
+                if (!$this->isPortValid($value)) {
                     $returnValue = __('Port numbers have to be positive integers between 1 and 65535.');
                 } else {
                     $returnValue = true;
@@ -1210,10 +1210,8 @@ class Attribute extends AppModel
             case 'ip-dst|port':
             case 'ip-src|port':
                 $parts = explode('|', $value);
-                if (filter_var($parts[0], FILTER_VALIDATE_IP)) {
-                    if (!is_numeric($parts[1]) || $parts[1] > 1 || $parts[1] < 65536) {
-                        $returnValue = true;
-                    }
+                if (filter_var($parts[0], FILTER_VALIDATE_IP) && $this->isPortValid($parts[1])) {
+                    $returnValue = true;
                 }
                 break;
             case 'mac-address':
@@ -1228,7 +1226,7 @@ class Attribute extends AppModel
                 break;
             case 'hostname':
             case 'domain':
-                if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}[\.]?$#i", $value)) {
+                if ($this->isDomainValid($value)) {
                     $returnValue = true;
                 } else {
                     $returnValue = ucfirst($type) . __(' name has an invalid format. Please double check the value or select type "other".');
@@ -1236,10 +1234,8 @@ class Attribute extends AppModel
                 break;
             case 'hostname|port':
                 $parts = explode('|', $value);
-                if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $parts[0])) {
-                    if (!is_numeric($parts[1]) || $parts[1] > 1 || $parts[1] < 65536) {
-                        $returnValue = true;
-                    }
+                if ($this->isDomainValid($parts[0]) && $this->isPortValid($parts[1])) {
+                    $returnValue = true;
                 }
                 break;
             case 'domain|ip':
@@ -1497,11 +1493,25 @@ class Attribute extends AppModel
             case 'domain':
                 $value = strtolower($value);
                 $value = trim($value, '.');
+                // Domain is not valid, try to convert to punycode
+                if (!$this->isDomainValid($value) && function_exists('idn_to_ascii')) {
+                    $punyCode = idn_to_ascii($value);
+                    if ($punyCode !== false) {
+                        $value = $punyCode;
+                    }
+                }
                 break;
             case 'domain|ip':
                 $value = strtolower($value);
                 $parts = explode('|', $value);
                 $parts[0] = trim($parts[0], '.');
+                // Domain is not valid, try to convert to punycode
+                if (!$this->isDomainValid($parts[0]) && function_exists('idn_to_ascii')) {
+                    $punyCode = idn_to_ascii($parts[0]);
+                    if ($punyCode !== false) {
+                        $parts[0] = $punyCode;
+                    }
+                }
                 if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                     // convert IPv6 address to compressed format
                     $parts[1] = inet_ntop(inet_pton($value));
@@ -4693,5 +4703,23 @@ class Attribute extends AppModel
                 unset($attribute['AttributeTag'][$k]);
             }
         }
+    }
+
+    /**
+     * @param string $value
+     * @return bool
+     */
+    private function isDomainValid($value)
+    {
+        return preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $value) === 1;
+    }
+
+    /**
+     * @param string $value
+     * @return bool
+     */
+    private function isPortValid($value)
+    {
+        return is_numeric($value) && $value >= 1 && $value <= 65535;
     }
 }
