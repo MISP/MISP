@@ -20,8 +20,8 @@
     echo '<table class="table table-striped table-hover table-condensed">';
     foreach ($data['unlocked'] as $item) {
       echo '<tr>';
-      echo '<td><img width=64 height=64 src='.h($item['icon']).' alt="badge"/></td>';
-      echo '<td><span>'.h($item['title']).'</span></td>';
+      echo '<td><img class="badge-img" width=48 src='.h($item['icon']).' alt="badge"/></td>';
+      echo '<td><div class="badge-description">'.h($item['title']).'</div></td>';
       echo '</tr>';
     }
     echo '</table>';
@@ -33,8 +33,8 @@
     echo '<table class="table table-striped table-hover table-condensed">';
     foreach ($data['locked'] as $item) {
       echo '<tr>';
-      echo '<td><img width=64 height=64 src='.h($item['icon']).' alt="badge"/></td>';
-      echo '<td><span>'.h($item['title']).'</span></td>';
+      echo '<td><img class="badge-img" width=48 src='.h($item['icon']).' alt="badge"/></td>';
+      echo '<td><div class="badge-description">'.h($item['title']).'</div></td>';
       if(!empty($item['help_page'])) {
         echo '<td><a href='.h($item['help_page']).' target="_blank">'.__("Read more here").'</a></td>';
       }
@@ -44,3 +44,17 @@
   }
 ?>
 </div>
+
+<style widget-scoped>
+.badge-description {
+  font-size: 11pt;
+  padding: 5px;
+  height: 43px;
+  width: 100%;
+}
+.badge-img {
+  padding-top: 5px;
+  width: 48px;
+  max-width: 48px;
+}
+</style>

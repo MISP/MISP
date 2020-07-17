@@ -4,19 +4,29 @@ class AchievementsWidget
   /*
   * Note: for this widget to display as expected, you need all icons to be accessible in your webroot. (img/custom)
   * Icons used:
-  * - relationship.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/simple_png/64/relationship.png
-  * - report.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/64/report.png
-  * - tlp_green.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/64/tlp_green.png
+  * - misp_event.png --> https://user-images.githubusercontent.com/1073662/87687773-6eff6d80-c786-11ea-9dcf-009a158a276c.png
+  * - misp_object.png --> https://user-images.githubusercontent.com/1073662/87687775-6f980400-c786-11ea-985c-b3c15c01d63e.png
+  * - tlp_green.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/48/tlp_green.png
+  * - attack.png --> https://github.com/mitre-attack/attack-website/blob/master/attack-theme/static/images/attack-logo.png
+  * - taxonomy.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/48/taxonomy.png
+  * - galaxy.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/48/galaxy.png
+  *
   */
 
-	public $render = 'Achievements';
+  public $render = 'Achievements';
   public $title = 'Achievements of my organization';
   public $description = 'Earn badges and improve your usage of MISP.';
-	public $width = 4;
-	public $height = 8;
-	public $params = array();
-	public $cacheLifetime = false;
-	public $autoRefreshDelay = false;
+  public $width = 4;
+  public $height = 10;
+  public $cacheLifetime = false;
+  public $autoRefreshDelay = false;
+  public $params = array(
+      'past_days' => 'The past number of days considered to look for criteria satisfaction (default 180)'
+  );
+  public $placeholder =
+'{
+  "past_days": "180"
+}';
 
 
   /*
@@ -26,20 +36,35 @@ class AchievementsWidget
   */
 
   private $badges = array(
-    "objects" => array(
-      "icon" => "/img/custom/relationship.png",
-      "title" => "To enhance the structure of your events, use MISP Objects.",
-      "help_page" => "https://github.com/MISP/misp-objects/blob/main/README.md"
-    ),
      "events" => array(
-       "icon" => "/img/custom/report.png",
-       "title" => "MISP is all about sharing relevant data with each other. Start by creating your first event",
+       "icon" => "/img/custom/misp_event.png",
+       "title" => "MISP is all about sharing relevant data with each other. Start by creating your first event.",
        "help_page" => "https://www.circl.lu/doc/misp/using-the-system/#creating-an-event"
      ),
      "tags" => array(
        "icon" => "/img/custom/tlp_green.png",
        "title" => "By adding tags to your events, they can be categorized more easily.",
        "help_page" => "https://www.circl.lu/doc/misp/using-the-system/#tagging"
+     ),
+     "objects" => array(
+       "icon" => "/img/custom/misp_object.png",
+       "title" => "To enhance the structure of your events, use MISP Objects.",
+       "help_page" => "https://github.com/MISP/misp-objects/blob/main/README.md"
+     ),
+     "taxonomies" => array(
+       "icon" => "/img/custom/taxonomy.png",
+       "title" => "Make sure to speak the same language as your conterparts by using existing taxonomies for your tags.",
+       "help_page" => "https://www.circl.lu/doc/misp/taxonomy/"
+     ),
+     "galaxies" => array (
+       "icon" => "/img/custom/galaxy.png",
+       "title" => "Go above and beyond local tags, use tags from existing galaxies.",
+       "help_page" => "https://www.circl.lu/doc/misp/galaxy/"
+     ),
+     "attack" => array(
+       "icon" => "/img/custom/attack.png",
+       "title" => "Add the TTPs following the MITRE ATT&CK framework to make your events even more interesting.",
+       "help_page" => "https://www.misp-project.org/2018/06/27/MISP.2.4.93.released.html"
      )
   );
 
@@ -47,8 +72,26 @@ class AchievementsWidget
   private $unlocked_badges = array(
     "objects" => "The data you share has now a better structure thanks to the MISP Objects you used.",
     "events" => "Congratulations, you have shared your first event!",
-    "tags" => "You have been using tags, good job!"
+    "tags" => "You have been using tags, good job!",
+    "taxonomies" => "Taxonomies have been used in your events.",
+    "galaxies" => "You have discovered how to use the galaxies.",
+    "attack" => "MISP & MITRE ATT&CK is a great combo."
   );
+
+
+
+  private function check_taxonomies($org_id) {
+    return $this->lookup_tag_name_value($org_id, '%:%');
+  }
+
+  private function check_galaxies($org_id) {
+    return $this->lookup_tag_name_value($org_id, 'misp-galaxy:%');
+  }
+
+  private function check_attack($org_id) {
+    return $this->lookup_tag_name_value($org_id, 'misp-galaxy:mitre%');
+  }
+
 
   private function check_tags($org_id) {
     $options['joins'] = array(
@@ -88,12 +131,39 @@ class AchievementsWidget
     return $events > 0;
   }
 
+  private function lookup_tag_name_value($org_id, $value) {
+    $options['joins'] = array(
+        array('table' => 'event_tags',
+            'alias' => 'EventTag',
+            'type' => 'INNER',
+            'conditions' => array(
+                'EventTag.event_id = Event.id',
+            )
+        ),
+        array('table' => 'tags',
+              'alias' => 'Tag',
+              'type' => 'INNER',
+              'conditions' => array(
+                'Tag.id = EventTag.tag_id'
+              )
+        )
+    );
+    $conditions = array('Event.orgc_id' => $org_id, 'Event.published' => 1, 'Event.timestamp >=' => $this->start_timestamp, 'Tag.name LIKE' => $value);
+    $options['conditions'] = array('AND' => $conditions);
+    $events = $this->Event->find('count', $options);
+    return $events > 0;
+  }
+
   public function handler($user, $options = array())
   {
     $this->Org = ClassRegistry::init('Organisation');
     $this->Event = ClassRegistry::init('Event');
-    //TODO take it from config
-    $this->start_timestamp = $this->Event->resolveTimeDelta('180d');
+
+    $days = 180;
+    if(!empty($options['past_days'])) {
+      $days = (int) $options['past_days'];
+    }
+    $this->start_timestamp = $this->Event->resolveTimeDelta($days.'d');
 
     $org_id = $user['Organisation']['id'];
     $locked = array();
