@@ -12,11 +12,11 @@ class AchievementsWidget
 	public $render = 'Achievements';
   public $title = 'Achievements of my organization';
   public $description = 'Earn badges and improve your usage of MISP.';
-	public $width = 4;
-	public $height = 8;
-	public $params = array();
-	public $cacheLifetime = false;
-	public $autoRefreshDelay = false;
+  public $width = 4;
+  public $height = 8;
+  public $params = array();
+  public $cacheLifetime = false;
+  public $autoRefreshDelay = false;
 
 
   /*
