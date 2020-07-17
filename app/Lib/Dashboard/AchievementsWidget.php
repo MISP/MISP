@@ -38,44 +38,44 @@ class AchievementsWidget
   private $badges = array(
      "events" => array(
        "icon" => "/img/custom/misp_event.png",
-       "title" => "MISP is all about sharing relevant data with each other. Start by creating your first event.",
+       "title" => __("MISP is all about sharing relevant data with each other. Start by creating your first event."),
        "help_page" => "https://www.circl.lu/doc/misp/using-the-system/#creating-an-event"
      ),
      "tags" => array(
        "icon" => "/img/custom/tlp_green.png",
-       "title" => "By adding tags to your events, they can be categorized more easily.",
+       "title" => __("By adding tags to your events, they can be categorized more easily."),
        "help_page" => "https://www.circl.lu/doc/misp/using-the-system/#tagging"
      ),
      "objects" => array(
        "icon" => "/img/custom/misp_object.png",
-       "title" => "To enhance the structure of your events, use MISP Objects.",
+       "title" => __("To enhance the structure of your events, use MISP Objects."),
        "help_page" => "https://github.com/MISP/misp-objects/blob/main/README.md"
      ),
      "taxonomies" => array(
        "icon" => "/img/custom/taxonomy.png",
-       "title" => "Make sure to speak the same language as your conterparts by using existing taxonomies for your tags.",
+       "title" => __("Make sure to speak the same language as your conterparts by using existing taxonomies for your tags."),
        "help_page" => "https://www.circl.lu/doc/misp/taxonomy/"
      ),
      "galaxies" => array (
        "icon" => "/img/custom/galaxy.png",
-       "title" => "Go above and beyond local tags, use tags from existing galaxies.",
+       "title" => __("Go above and beyond local tags, use tags from existing galaxies."),
        "help_page" => "https://www.circl.lu/doc/misp/galaxy/"
      ),
      "attack" => array(
        "icon" => "/img/custom/attack.png",
-       "title" => "Add the TTPs following the MITRE ATT&CK framework to make your events even more interesting.",
+       "title" => __("Add the TTPs following the MITRE ATT&CK framework to make your events even more interesting."),
        "help_page" => "https://www.misp-project.org/2018/06/27/MISP.2.4.93.released.html"
      )
   );
 
   // The title is modified if the badge is unlocked
   private $unlocked_badges = array(
-    "objects" => "The data you share has now a better structure thanks to the MISP Objects you used.",
-    "events" => "Congratulations, you have shared your first event!",
-    "tags" => "You have been using tags, good job!",
-    "taxonomies" => "Taxonomies have been used in your events.",
-    "galaxies" => "You have discovered how to use the galaxies.",
-    "attack" => "MISP & MITRE ATT&CK is a great combo."
+    "objects" => __("The data you share has now a better structure thanks to the MISP Objects you used."),
+    "events" => __("Congratulations, you have shared your first event!"),
+    "tags" => __("You have been using tags, good job!"),
+    "taxonomies" => __("Taxonomies have been used in your events."),
+    "galaxies" => __("You have discovered how to use the galaxies."),
+    "attack" => __("MISP & MITRE ATT&CK is a great combo.")
   );
 
 

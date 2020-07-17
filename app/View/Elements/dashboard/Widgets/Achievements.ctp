@@ -13,7 +13,7 @@
 * So the structure of the $data parameter must be something like:
 * { 'locked': [{ 'icon': '/path/to/img.png', 'title': 'my great achievement', 'help_page': 'http://wikimedia'}, {...}], 'unlocked': [{...}]}
 */
-  echo '<h3>'.__("Achievements Unlocked").'</h3>';
+  echo '<h3>'.__("Achievements Unlocked!").'</h3>';
   if(empty($data['unlocked'])) {
     echo '<p>'.__("You don't have any achievement yet. Check them below to get started!").'</p>';
   } else {
@@ -26,7 +26,7 @@
     }
     echo '</table>';
   }
-  echo '<h3>'.__("Next on your list").'</h3>';
+  echo '<h3>'.__("Next on your list:").'</h3>';
   if(empty($data['locked'])) {
     echo '<p>'.__("Well done! You got them all.").'</p>';
   } else {
