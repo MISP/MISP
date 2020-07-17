@@ -2825,8 +2825,10 @@ class Attribute extends AppModel
         // get all attributes..
         if (!$eventId) {
             $eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
+            $full = true;
         } else {
             $eventIds = array($eventId);
+            $full = false;
         }
         $attributeCount = 0;
         if (Configure::read('MISP.background_jobs') && $jobId) {
@@ -2862,7 +2864,7 @@ class Attribute extends AppModel
             }
             $attributes = $this->find('all', array('recursive' => -1, 'conditions' => $attributeConditions, 'order' => array()));
             foreach ($attributes as $k => $attribute) {
-                $this->__afterSaveCorrelation($attribute['Attribute'], true, $event);
+                $this->__afterSaveCorrelation($attribute['Attribute'], $full, $event);
                 $attributeCount++;
             }
         }

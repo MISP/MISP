@@ -5217,10 +5217,6 @@ class EventsController extends AppController
         if (!$this->_isSiteAdmin() && !Configure::read('MISP.allow_disabling_correlation')) {
             throw new MethodNotAllowedException(__('Disabling the correlation is not permitted on this instance.'));
         }
-        $this->Event->id = $id;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid Event.'));
-        }
         if (!$this->Auth->user('Role')['perm_modify']) {
             throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
         }
@@ -5242,13 +5238,7 @@ class EventsController extends AppController
             if ($event['Event']['disable_correlation']) {
                 $event['Event']['disable_correlation'] = 0;
                 $this->Event->save($event);
-                $attributes = $this->Event->Attribute->find('all', array(
-                    'conditions' => array('Attribute.event_id' => $id),
-                    'recursive' => -1
-                ));
-                foreach ($attributes as $attribute) {
-                    $this->Event->Attribute->__afterSaveCorrelation($attribute['Attribute'], false, $event);
-                }
+                $this->Event->Attribute->generateCorrelation(false, 0, $id);
             } else {
                 $event['Event']['disable_correlation'] = 1;
                 $this->Event->save($event);
