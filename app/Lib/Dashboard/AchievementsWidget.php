@@ -9,7 +9,7 @@ class AchievementsWidget
   * - tlp_green.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/64/tlp_green.png
   */
 
-	public $render = 'Achievements';
+  public $render = 'Achievements';
   public $title = 'Achievements of my organization';
   public $description = 'Earn badges and improve your usage of MISP.';
   public $width = 4;
