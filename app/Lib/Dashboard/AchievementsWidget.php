@@ -53,7 +53,7 @@ class AchievementsWidget
          ),
          "taxonomies" => array(
              "icon" => "/img/custom/taxonomy.png",
-             "title" => __("Make sure to speak the same language as your conterparts by using existing taxonomies for your tags."),
+             "title" => __("Make sure to speak the same language as your counterparts by using taxonomies for your tags."),
              "help_page" => "https://www.circl.lu/doc/misp/taxonomy/"
          ),
          "galaxies" => array (
@@ -74,7 +74,7 @@ class AchievementsWidget
         "events" => __("Congratulations, you have shared your first event!"),
         "tags" => __("You have been using tags, good job!"),
         "taxonomies" => __("Taxonomies have been used in your events."),
-        "galaxies" => __("You have discovered how to use the galaxies."),
+        "galaxies" => __("Galaxies have no secrets for you in this Threat Sharing universe."),
         "attack" => __("MISP & MITRE ATT&CK is a great combo.")
     );
 
