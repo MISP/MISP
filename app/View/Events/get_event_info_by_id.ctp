@@ -15,7 +15,7 @@
           'Tag' => __('Tags'),
           'Event.info' => __('Info'),
       );
-      foreach ($fields as  $fieldData => $field) {
+      foreach ($fields as $fieldData => $field) {
         if ($fieldData === 'Tag') {
           echo '<div><span class="blue bold">Tags</span>: ';
           if (!empty($event['EventTag'])) {
@@ -27,7 +27,11 @@
           if ($fieldData === 'Event.analysis') {
             $data[0] = $analysisLevels[intval($data[0])];
           }
-          echo '<span class="blue bold">' . $field . '</span>: ' . h($data[0]) . '<br>';
+          if ($fieldData === 'Event.id') {
+              echo '<span class="blue bold">' . $field . '</span>: <a href="' . $baseurl . '/events/view/' . $data[0] . '">' . h($data[0]) . '</a><br>';
+          } else {
+              echo '<span class="blue bold">' . $field . '</span>: ' . h($data[0]) . '<br>';
+          }
         }
       }
     }
