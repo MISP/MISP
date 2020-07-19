@@ -1453,8 +1453,7 @@ function showMessage(success, message, context) {
     }
     $("#ajax_" + success).html(message);
     var duration = 1000 + (message.length * 40);
-    $("#ajax_" + success + "_container").fadeIn("slow");
-    $("#ajax_" + success + "_container").delay(duration).fadeOut("slow");
+    $("#ajax_" + success + "_container").fadeIn("slow").delay(duration).fadeOut("slow");
 }
 
 function cancelPopoverForm(id) {
@@ -4409,20 +4408,19 @@ function changeObjectReferenceSelectOption(selected, additionalData) {
     }
 }
 
-function previewEventBasedOnUuids() {
-    var currentValue = $("#EventExtendsUuid").val();
-    if (currentValue == '') {
-        $('#extended_event_preview').hide();
+function previewEventBasedOnUuids(currentValue) {
+    if (currentValue === '') {
+        $('#event_preview').hide();
     } else {
         $.ajax({
             url: "/events/getEventInfoById/" + currentValue,
             type: "get",
-            error: function() {
-                $('#extended_event_preview').hide();
+            error: function(xhr) {
+                $('#event_preview').hide();
+                xhrFailCallback(xhr);
             },
             success: function(data) {
-                $('#extended_event_preview').show();
-                $('#extended_event_preview').html(data);
+                $('#event_preview').html(data).show();
             }
         });
     }
