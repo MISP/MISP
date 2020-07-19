@@ -77,12 +77,11 @@
         checkSharingGroup('Event');
     });
 
-    $("#EventExtendsUuid").keyup(function() {
-        previewEventBasedOnUuids($(this).val());
-    });
-
-    $(document).ready(function() {
+    $(function() {
         checkSharingGroup('Event');
+        $("#EventExtendsUuid").keyup(delay(function() {
+            previewEventBasedOnUuids($(this).val());
+        }, 100));
         previewEventBasedOnUuids($("#EventExtendsUuid").val());
     });
 </script>

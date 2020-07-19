@@ -23,10 +23,10 @@ echo $this->element('genericElements/Form/genericForm', array(
 echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'merge', 'event' => $target_event));
 ?>
 <script type="text/javascript">
-    $("#EventSourceId").keyup(function() {
-        previewEventBasedOnUuids($(this).val());
-    });
     $(function() {
+        $("#EventSourceId").keyup(delay(function() {
+            previewEventBasedOnUuids($(this).val());
+        }, 100));
         previewEventBasedOnUuids($('#EventSourceId').val());
     });
 </script>
