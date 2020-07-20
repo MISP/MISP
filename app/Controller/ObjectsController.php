@@ -2,6 +2,9 @@
 
 App::uses('AppController', 'Controller');
 
+/**
+ * @property MispObject $MispObject
+ */
 class ObjectsController extends AppController
 {
     public $uses = 'MispObject';
@@ -29,11 +32,6 @@ class ObjectsController extends AppController
             throw new MethodNotAllowedException(__('This action can only be reached via POST requests'));
         }
         $this->request->data = $this->MispObject->attributeCleanup($this->request->data);
-        $eventFindParams = array(
-            'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array('Event.id' => $event_id)
-        );
         $template = $this->MispObject->ObjectTemplate->find('first', array(
             'conditions' => array('ObjectTemplate.id' => $template_id),
             'recursive' => -1,
@@ -41,9 +39,12 @@ class ObjectsController extends AppController
                 'ObjectTemplateElement'
             )
         ));
-        $event = $this->MispObject->Event->find('first', $eventFindParams);
-        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $event_id);
+        if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $sharing_groups = array();
         if ($this->request->data['Object']['distribution'] == 4) {
@@ -157,13 +158,8 @@ class ObjectsController extends AppController
     public function add($eventId, $templateId = false, $version = false)
     {
         if (!$this->userRole['perm_modify']) {
-            throw new MethodNotAllowedException(__('You don\'t have permissions to create objects.'));
+            throw new ForbiddenException(__('You don\'t have permissions to create objects.'));
         }
-        $eventFindParams = array(
-            'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array()
-        );
 
         if (!empty($templateId) && Validation::uuid($templateId)) {
             $conditions = array('ObjectTemplate.uuid' => $templateId);
@@ -189,16 +185,12 @@ class ObjectsController extends AppController
             }
         }
         // Find the event that is to be updated
-        if (Validation::uuid($eventId)) {
-            $eventFindParams['conditions']['Event.uuid'] = $eventId;
-        } elseif (is_numeric($eventId)) {
-            $eventFindParams['conditions']['Event.id'] = $eventId;
-        } else {
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
         }
-        $event = $this->MispObject->Event->find('first', $eventFindParams);
-        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
-            throw new NotFoundException(__('Invalid event.'));
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $eventId = $event['Event']['id'];
         if (!$this->_isRest()) {
@@ -380,10 +372,10 @@ class ObjectsController extends AppController
             throw new NotFoundException(__('Invalid object.'));
         }
         $object = $object[0];
-        if ((!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
-            throw new MethodNotAllowedException(__('Insufficient permissions to edit this object.'));
-        }
         $event = $this->MispObject->Event->fetchEvent($this->Auth->user(), array('eventid' => $object['Event']['id'], 'metadata' => 1))[0];
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('Insufficient permissions to edit this object.'));
+        }
         if (!$this->_isRest()) {
             $this->MispObject->Event->insertLock($this->Auth->user(), $object['Event']['id']);
         }
@@ -536,7 +528,7 @@ class ObjectsController extends AppController
             }
             $id = $temp['Object']['id'];
         } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid event id.'));
+            throw new NotFoundException(__('Invalid object id.'));
         }
         if ((!$this->request->is('post') && !$this->request->is('put'))) {
             throw new MethodNotAllowedException(__('This function can only be accessed via POST or PUT'));
@@ -549,14 +541,8 @@ class ObjectsController extends AppController
         if (empty($object)) {
             return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid object');
         }
-        if (!$this->_isSiteAdmin()) {
-            if ($this->MispObject->data['Event']['orgc_id'] == $this->Auth->user('org_id')
-            && (($this->userRole['perm_modify'] && $this->MispObject->data['Event']['user_id'] != $this->Auth->user('id'))
-            || $this->userRole['perm_modify_org'])) {
-                // Allow the edit
-            } else {
-                return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid attribute');
-            }
+        if (!$this->__canModifyEvent($object)) {
+            return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'You do not have permission to do that.');
         }
         $validFields = array('comment', 'distribution', 'first_seen', 'last_seen');
         $changed = false;
@@ -665,14 +651,8 @@ class ObjectsController extends AppController
             throw new NotFoundException(__('Invalid attribute'));
         }
         $object = $object[0];
-        if (!$this->_isSiteAdmin()) {
-            if ($object['Event']['orgc_id'] == $this->Auth->user('org_id')
-            && (($this->userRole['perm_modify'] && $object['Event']['user_id'] != $this->Auth->user('id'))
-                    || $this->userRole['perm_modify_org'])) {
-                // Allow the edit
-            } else {
-                throw new NotFoundException(__('Invalid object'));
-            }
+        if (!$this->__canModifyEvent($object)) {
+            throw new NotFoundException(__('Invalid object'));
         }
         $this->layout = 'ajax';
         if ($field == 'distribution') {
@@ -686,15 +666,8 @@ class ObjectsController extends AppController
     }
 
     // Construct a template with valid object attributes to add to an object
-    public function quickFetchTemplateWithValidObjectAttributes($id) {
-        $this->MispObject->id = $id;
-        if (!$this->MispObject->exists()) {
-            if ($this->request->is('ajax')) {
-                return $this->RestResponse->saveFailResponse('Objects', 'add', false, 'Invalid object', $this->response->type());
-            } else {
-                throw new NotFoundException(__('Invalid object'));
-            }
-        }
+    public function quickFetchTemplateWithValidObjectAttributes($id)
+    {
         $fields = array('template_uuid', 'template_version', 'id');
         $params = array(
             'conditions' => array('Object.id' => $id),
@@ -771,20 +744,20 @@ class ObjectsController extends AppController
      * GET: Returns a form allowing to add a valid object attribute to an object
      * POST/PUT: Add the attribute to the object
      */
-    public function quickAddAttributeForm($id, $fieldName = null) {
+    public function quickAddAttributeForm($id, $fieldName = null)
+    {
         if ($this->request->is('GET')) {
             if (!isset($fieldName)) {
                 throw new MethodNotAllowedException('No field requested.');
-            }
-            $this->MispObject->id = $id;
-            if (!$this->MispObject->exists()) {
-                throw new NotFoundException(__('Invalid object'));
             }
             $fields = array('template_uuid', 'template_version', 'id', 'event_id');
             $params = array(
                 'conditions' => array('Object.id' => $id),
                 'fields' => $fields,
                 'flatten' => 1,
+                'contain' => array(
+                    'Event'
+                )
             );
             // fetchObjects restrict access based on user
             $object = $this->MispObject->fetchObjects($this->Auth->user(), $params);
@@ -792,6 +765,9 @@ class ObjectsController extends AppController
                 throw new NotFoundException(__('Invalid object'));
             } else {
                 $object = $object[0];
+            }
+            if (!$this->__canModifyEvent($object)) {
+                throw new ForbiddenException(__('You do not have permission to do that.'));
             }
             $template = $this->MispObject->ObjectTemplate->find('first', array(
                 'conditions' => array(
@@ -807,7 +783,7 @@ class ObjectsController extends AppController
                 )
             ));
             if (empty($template)) {
-                throw new NotFoundException(__('Invalid object'));
+                throw new NotFoundException(__('Invalid template'));
             }
             if (empty($template['ObjectTemplateElement'])) {
                 throw new NotFoundException(__('Invalid fields') . ' `' . h($fieldName) . '`');
@@ -843,7 +819,7 @@ class ObjectsController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if (!$this->userRole['perm_modify']) {
-            throw new MethodNotAllowedException(__('You don\'t have permissions to delete objects.'));
+            throw new ForbiddenException(__('You don\'t have permissions to delete objects.'));
         }
         $object = $this->MispObject->find('first', array(
             'recursive' => -1,
@@ -854,12 +830,12 @@ class ObjectsController extends AppController
             )
         ));
         if (empty($object)) {
-            throw new NotFoundException(__('Invalid event.'));
+            throw new NotFoundException(__('Invalid object.'));
+        }
+        if (!$this->__canModifyEvent($object)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $eventId = $object['Event']['id'];
-        if (!$this->_isSiteAdmin() && ($object['Event']['orgc_id'] != $this->Auth->user('org_id') || !$this->userRole['perm_modify'])) {
-            throw new UnauthorizedException(__('You do not have permission to do that.'));
-        }
         if (!$this->_isRest()) {
             $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
         }
@@ -1308,5 +1284,4 @@ class ObjectsController extends AppController
             $this->set('object_references', $object_references);
         }
     }
-
 }

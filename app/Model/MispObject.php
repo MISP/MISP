@@ -2,6 +2,9 @@
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
 
+/**
+ * @property Event $Event
+ */
 class MispObject extends AppModel
 {
     public $name = 'Object';

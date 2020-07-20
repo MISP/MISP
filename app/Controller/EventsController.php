@@ -1889,7 +1889,7 @@ class EventsController extends AppController
     public function add()
     {
         if (!$this->userRole['perm_add']) {
-            throw new MethodNotAllowedException(__('You don\'t have permissions to create events'));
+            throw new MethodNotAllowedException(__('You do not have permissions to create events.'));
         }
         $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         if ($this->request->is('post')) {
@@ -2053,7 +2053,7 @@ class EventsController extends AppController
     {
         $this->Event->recursive = -1;
         $this->Event->read(null, $id);
-        if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+        if (!$this->__canModifyEvent($this->Event->data)) {
             throw new UnauthorizedException(__('You do not have permission to do that.'));
         }
         if ($this->request->is('post')) {
@@ -2201,6 +2201,9 @@ class EventsController extends AppController
         if (empty($target_event)) {
             throw new NotFoundException(__('Invalid target event.'));
         }
+       if (!$this->__canModifyEvent($target_event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
         if ($this->request->is('post')) {
             $source_id = $this->Toolbox->findIdByUuid($this->Event, $source_id);
             $source_event = $this->Event->fetchEvent(
@@ -2301,15 +2304,13 @@ class EventsController extends AppController
         }
         $this->Event->read(null, $id);
         // check if private and user not authorised to edit
-        if (!$this->_isSiteAdmin() && !($this->userRole['perm_sync'] && $this->_isRest())) {
-            if (($this->Event->data['Event']['orgc_id'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
-                $message = __('You are not authorised to do that. Please consider using the \'propose attribute\' feature.');
-                if ($this->_isRest()) {
-                    throw new MethodNotAllowedException($message);
-                } else {
-                    $this->Flash->error($message);
-                    $this->redirect(array('controller' => 'events', 'action' => 'index'));
-                }
+        if (!$this->__canModifyEvent($this->Event->data) && !($this->userRole['perm_sync'] && $this->_isRest())) {
+            $message = __('You are not authorised to do that.');
+            if ($this->_isRest()) {
+                throw new ForbiddenException($message);
+            } else {
+                $this->Flash->error($message);
+                $this->redirect(array('controller' => 'events', 'action' => 'index'));
             }
         }
         if (!$this->_isRest()) {
@@ -2456,17 +2457,15 @@ class EventsController extends AppController
                 }
                 $event = $this->Event->find('first', array(
                     'conditions' => array('Event.id' => $eid),
-                    'fields' => array('Event.orgc_id', 'Event.id'),
+                    'fields' => array('Event.orgc_id', 'Event.id', 'Event.user_id'),
                     'recursive' => -1
                 ));
                 if (empty($event)) {
                     $fails[] = $eid;
                 } else {
-                    if (!$this->_isSiteAdmin()) {
-                        if ($event['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify']) {
-                            $fails[] = $eid;
-                            continue;
-                        }
+                    if (!$this->__canModifyEvent($event)) {
+                        $fails[] = $eid;
+                        continue;
                     }
                     $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
                     if ($this->Event->quickDelete($event)) {
@@ -2523,10 +2522,8 @@ class EventsController extends AppController
         $this->Event->id = $id;
         $this->Event->recursive = -1;
         $event = $this->Event->read(null, $id);
-        if (!$this->_isSiteAdmin()) {
-            if (!$this->userRole['perm_modify'] || $this->Auth->user('org_id') !== $this->Event->data['Event']['orgc_id']) {
-                throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
-            }
+        if (!$this->__canModifyEvent($this->Event->data)) {
+            throw new ForbiddenException(__('You do not have the permission to do that.'));
         }
         $this->Event->insertLock($this->Auth->user(), $id);
         if ($this->request->is('post') || $this->request->is('put')) {
@@ -2626,7 +2623,7 @@ class EventsController extends AppController
         $event = $this->Event->read(null, $id);
         if (!$this->_isSiteAdmin()) {
             if (!$this->userRole['perm_publish'] || $this->Auth->user('org_id') !== $this->Event->data['Event']['orgc_id']) {
-                throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
+                throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
             }
         }
         $this->Event->insertLock($this->Auth->user(), $id);
@@ -2697,7 +2694,7 @@ class EventsController extends AppController
         $this->Event->read(null, $id);
         if (!$this->_isSiteAdmin()) {
             if (!$this->userRole['perm_publish'] || $this->Auth->user('org_id') !== $this->Event->data['Event']['orgc_id']) {
-                throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
+                throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
             }
         }
         $errors = array();
@@ -3630,15 +3627,14 @@ class EventsController extends AppController
         if (!$this->userRole['perm_add']) {
             throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
         }
-        $event = $this->Event->find('first', array(
-                'conditions' => array('Event.id' => $id),
-                'fields' => array('id', 'orgc_id'),
-                'recursive' => -1
-        ));
-        $this->set('event_id', $id);
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event)) {
+            throw new MethodNotAllowedException(__('Invalid event.'));
+        }
+        $this->set('event_id', $event['Event']['id']);
         if ($this->request->is('get')) {
             $this->layout = 'ajax';
-            $this->request->data['Attribute']['event_id'] = $id;
+            $this->request->data['Attribute']['event_id'] = $event['Event']['id'];
         }
 
         if ($this->request->is('post')) {
@@ -3712,7 +3708,7 @@ class EventsController extends AppController
                 unset($distributions[4]);
             }
 
-            $this->set('proposals', $event['Event']['orgc_id'] != $this->Auth->user('org_id') && !$this->_isSiteAdmin());
+            $this->set('proposals', !$this->__canModifyEvent($event));
             $this->set('distributions', $distributions);
             $this->set('sgs', $sgs);
             $this->set('event', $event);
@@ -3908,7 +3904,6 @@ class EventsController extends AppController
                 foreach ($this->request->data as $k => $sa) {
                     if (isset($event['ShadowAttribute'])) {
                         foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
-                            $temp = json_encode($oldsa);
                             if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids']) {
                                 if ($oldsa['timestamp'] < $sa['timestamp']) {
                                     $this->Event->ShadowAttribute->delete($oldsa['id']);
@@ -3958,11 +3953,10 @@ class EventsController extends AppController
         if (!is_numeric($id)) {
             throw new MethodNotAllowedException(__('Invalid ID'));
         }
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
             throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
         }
-        $event = $event[0];
         // #TODO i18n
         $exports = array(
             'xml' => array(
@@ -4099,11 +4093,10 @@ class EventsController extends AppController
             if (!is_numeric($id)) {
                 throw new MethodNotAllowedException(__('Invalid ID'));
             }
-            $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
             if (empty($event)) {
                 throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
             }
-            $event = $event[0];
             $imports = array(
                     'freetext' => array(
                             'url' => '/events/freeTextImport/' . $id,
@@ -5208,38 +5201,28 @@ class EventsController extends AppController
         if (!$this->_isSiteAdmin() && !Configure::read('MISP.allow_disabling_correlation')) {
             throw new MethodNotAllowedException(__('Disabling the correlation is not permitted on this instance.'));
         }
-        if (!$this->Auth->user('Role')['perm_modify']) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
-        }
-        $conditions = array('Event.id' => $id);
-        if (!$this->_isSiteAdmin()) {
-            $conditions['Event.orgc_id'] = $this->Auth->user('org_id');
-        }
-        $event = $this->Event->find('first', array(
-            'conditions' => $conditions,
-            'recursive' => -1
-        ));
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
-            throw new NotFoundException(__('Invalid Event.'));
+            throw new NotFoundException(__('Invalid event'));
         }
-        if (!$this->Auth->user('Role')['perm_modify_org'] && $this->Auth->user('id') != $event['Event']['user_id']) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You don\'t have permission to do that.'));
         }
         if ($this->request->is('post')) {
             if ($event['Event']['disable_correlation']) {
                 $event['Event']['disable_correlation'] = 0;
                 $this->Event->save($event);
-                $this->Event->Attribute->generateCorrelation(false, 0, $id);
+                $this->Event->Attribute->generateCorrelation(false, 0, $event['Event']['id']);
             } else {
                 $event['Event']['disable_correlation'] = 1;
                 $this->Event->save($event);
-                $this->Event->Attribute->purgeCorrelations($id);
+                $this->Event->Attribute->purgeCorrelations($event['Event']['id']);
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('events', 'toggleCorrelation', $id, false, 'Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
+                return $this->RestResponse->saveSuccessResponse('events', 'toggleCorrelation', $event['Event']['id'], false, 'Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
             } else {
                 $this->Flash->success('Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
-                $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+                $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
             }
         } else {
             $this->set('event', $event);
@@ -5249,11 +5232,11 @@ class EventsController extends AppController
 
     public function checkPublishedStatus($id)
     {
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('metadata' => 1, 'eventid' => $id));
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
         }
-        return new CakeResponse(array('body'=> h($event[0]['Event']['published']), 'status'=>200, 'type' => 'txt'));
+        return new CakeResponse(array('body' => $event['Event']['published'], 'status' => 200, 'type' => 'txt'));
     }
     // #TODO i18n
     public function pushEventToZMQ($id)
@@ -5365,14 +5348,12 @@ class EventsController extends AppController
 
     public function enrichEvent($id)
     {
-        if (Validation::uuid($id)) {
-            $conditions = array('Event.uuid' => $id);
-        } else {
-            $conditions = array('Event.id' => $id);
-        }
-        $event = $this->Event->find('first', array('conditions' => $conditions, 'recursive' => -1));
-        if (empty($event) || (!$this->_isSiteAdmin() && ($this->Auth->user('org_id') != $event['Event']['orgc_id'] || !$this->userRole['perm_modify']))) {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid Event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
         if ($this->request->is('post')) {
