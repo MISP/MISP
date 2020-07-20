@@ -345,7 +345,7 @@ class EventShell extends AppShell
             $inputData['attributes'],
             $inputData['id'],
             $inputData['default_comment'],
-            $inputData['force'],
+            $inputData['proposals'],
             $inputData['adhereToWarninglists'],
             $inputData['jobId']
         );

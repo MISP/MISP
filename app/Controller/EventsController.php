@@ -3650,7 +3650,7 @@ class EventsController extends AppController
                 } else {
                     return $this->__pushFreetext(
                         $resultArray,
-                        $id,
+                        $event,
                         isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : false,
                         isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : false,
                         $adhereToWarninglists
@@ -3696,6 +3696,7 @@ class EventsController extends AppController
             $this->set('distributions', $distributions);
             $this->set('sgs', $sgs);
             $this->set('event', $event);
+            $this->set('mayModify', $this->__canModifyEvent($event));
             $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
             $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
             $this->set('typeCategoryMapping', $typeCategoryMapping);
@@ -3724,9 +3725,8 @@ class EventsController extends AppController
         }
     }
 
-    public function __pushFreetext($attributes, $id, $distribution = false, $sg = false, $adhereToWarninglists = false)
+    private function __pushFreetext($attributes, array $event, $distribution = false, $sg = false, $adhereToWarninglists = false)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
         if ($distribution === false) {
             if (Configure::read('MISP.default_attribute_distribution') != null) {
                 if (Configure::read('MISP.default_attribute_distribution') == 'event') {
@@ -3750,11 +3750,12 @@ class EventsController extends AppController
                 $attribute['category'] = $this->Event->Attribute->defaultCategories[$attribute['type']];
             }
             $attribute['distribution'] = $distribution;
-            $attribute['event_id'] = $id;
+            $attribute['event_id'] = $event['Event']['id'];
             $attributes[$k] = $attribute;
         }
         // actually save the attribute now
-        $temp = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, '', false, $adhereToWarninglists, empty(Configure::read('MISP.background_jobs')));
+        $proposals = !$this->__canModifyEvent($event);
+        $temp = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $event['Event']['id'], '', $proposals, $adhereToWarninglists, empty(Configure::read('MISP.background_jobs')));
         if (empty(Configure::read('MISP.background_jobs'))) {
             $attributes = $temp;
         }
@@ -3768,15 +3769,16 @@ class EventsController extends AppController
         if (!$this->userRole['perm_add']) {
             throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
         }
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
         if ($this->request->is('post')) {
-            if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
-                throw new MethodNotAllowedException(__('Invalid event.'));
-            }
             $this->Event->insertLock($this->Auth->user(), $id);
             $attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
             $default_comment = $this->request->data['Attribute']['default_comment'];
-            $force = $this->_isSiteAdmin() && $this->request->data['Attribute']['force'];
-            $flashMessage = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, $default_comment, $force);
+            $proposals = !$this->__canModifyEvent($event) || (isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']);
+            $flashMessage = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, $default_comment, $proposals);
             $this->Flash->info($flashMessage);
             $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
         } else {
@@ -4977,35 +4979,39 @@ class EventsController extends AppController
 
     public function handleModuleResults($id)
     {
-        if (!$this->userRole['perm_add']) {
-            throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
-        }
-        if ($this->request->is('post')) {
-            if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
-                throw new MethodNotAllowedException(__('Invalid event.'));
-            }
-            $resolved_data = json_decode($this->request->data['Event']['JsonObject'], true);
-            $data = json_decode($this->request->data['Event']['data'], true);
-            if (!empty($data['initialObject'])) {
-                $resolved_data['initialObject'] = $data['initialObject'];
-            }
-            unset($data);
-            $default_comment = $this->request->data['Event']['default_comment'];
-            $flashMessage = $this->Event->processModuleResultsDataRouter($this->Auth->user(), $resolved_data, $id, $default_comment);
-            $this->Flash->info($flashMessage);
-            $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
-        } else {
+        if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This endpoint requires a POST request.');
         }
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You don\'t have permission to do that.'));
+        }
+
+        $resolved_data = json_decode($this->request->data['Event']['JsonObject'], true);
+        $data = json_decode($this->request->data['Event']['data'], true);
+        if (!empty($data['initialObject'])) {
+            $resolved_data['initialObject'] = $data['initialObject'];
+        }
+        unset($data);
+        $default_comment = $this->request->data['Event']['default_comment'];
+        $flashMessage = $this->Event->processModuleResultsDataRouter($this->Auth->user(), $resolved_data, $event['Event']['id'], $default_comment);
+        $this->Flash->info($flashMessage);
+        $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
     }
 
     public function importModule($module, $eventId)
     {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $eventId = $event['Event']['id'];
+
         $this->loadModel('Module');
         $moduleName = $module;
-        if (!$this->Event->checkIfAuthorised($this->Auth->user(), $eventId)) {
-            throw new MethodNotAllowedException(__('Invalid event.'));
-        }
         $module = $this->Module->getEnabledModule($module, 'Import');
         if (!is_array($module)) {
             throw new MethodNotAllowedException($module);
@@ -5017,7 +5023,7 @@ class EventsController extends AppController
             $fail = false;
             $modulePayload = array(
                     'module' => $module['name'],
-                    'event_id' => $eventId
+                    'event_id' => $eventId,
             );
             if (isset($module['meta']['config'])) {
                 foreach ($module['meta']['config'] as $conf) {
@@ -5091,7 +5097,7 @@ class EventsController extends AppController
                     if (!empty($filename)) {
                         $modulePayload['filename'] = $filename;
                     }
-                    $result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
+                    $result = $this->Module->queryModuleServer('/query', json_encode($modulePayload), false, $moduleFamily = 'Import');
                     if (!$result) {
                         throw new Exception(__('Import service not reachable.'));
                     }
@@ -5117,7 +5123,7 @@ class EventsController extends AppController
                         if ($this->_isRest()) {
                             return $this->__pushFreetext(
                                 $resultArray,
-                                $eventId,
+                                $event,
                                 false,
                                 false,
                                 'soft'
@@ -5144,7 +5150,7 @@ class EventsController extends AppController
                             );
                             $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
                         }
-                        $this->set('event', array('Event' => array('id' => $eventId)));
+                        $this->set('event', $event);
                         $this->set('resultArray', $resultArray);
                         $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
                         $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
@@ -5216,7 +5222,7 @@ class EventsController extends AppController
 
     public function checkPublishedStatus($id)
     {
-        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['fields' => 'Event.published']);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
         }
