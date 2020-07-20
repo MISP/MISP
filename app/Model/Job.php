@@ -23,10 +23,8 @@ class Job extends AppModel
         $date = date('Y-m-d H:i:s');
         if (empty($this->data['Job']['id'])) {
             $this->data['Job']['date_created'] = $date;
-            $this->data['Job']['date_modified'] = $date;
-        } else {
-            $this->data['Job']['date_modified'] = $date;
         }
+        $this->data['Job']['date_modified'] = $date;
     }
 
     public function cache($type, $user)
@@ -73,30 +71,68 @@ class Job extends AppModel
      * @param int|null $jobId
      * @param string|null $message
      * @param int|null $progress
-     * @return bool
+     * @return bool|null
      */
     public function saveProgress($jobId = null, $message = null, $progress = null)
     {
-        if ($jobId) {
-            $jobData = array($this->primaryKey => $jobId);
-            if ($message !== null) {
-                $jobData['message'] = $message;
-            }
-            if ($progress !== null) {
-                $jobData['progress'] = $progress;
-                if ($progress >= 100) {
-                    $jobData['status'] = self::STATUS_COMPLETED;
-                }
-            }
-            try {
-                $this->save($jobData);
-                return true;
-            } catch (Exception $e) {
-                // ignore error during saving information about job
-                return false;
-            }
+        if ($jobId === null) {
+            return null;
         }
 
-        return null;
+        $jobData = array(
+            $this->primaryKey => $jobId,
+        );
+        if ($message !== null) {
+            $jobData['message'] = $message;
+        }
+        if ($progress !== null) {
+            $jobData['progress'] = $progress;
+            if ($progress >= 100) {
+                $jobData['status'] = self::STATUS_COMPLETED;
+            }
+        }
+        try {
+            if ($this->save($jobData)) {
+                return true;
+            }
+            $this->log("Could not save progress for job $jobId because of validation errors: " . json_encode($this->validationErrors), LOG_NOTICE);
+        } catch (Exception $e) {
+            $this->logException("Could not save progress for job $jobId", $e, LOG_NOTICE);
+        }
+        return false;
+    }
+
+    /**
+     * @param int|null $jobId
+     * @param bool $success
+     * @param string|null $message
+     * @return bool|null
+     */
+    public function saveStatus($jobId = null, $success = true, $message = null)
+    {
+        if ($jobId === null) {
+            return null;
+        }
+
+        if (!$message) {
+            $message = $success ? __('Job done.') : __('Job failed.');
+        }
+
+        $jobData = array(
+            $this->primaryKey => $jobId,
+            'status' => $success ? self::STATUS_COMPLETED : self::STATUS_FAILED,
+            'message' => $message,
+            'progress' => 100,
+        );
+
+        try {
+            if ($this->save($jobData)) {
+                return true;
+            }
+            $this->log("Could not save status for job $jobId because of validation errors: " . json_encode($this->validationErrors), LOG_NOTICE);
+        } catch (Exception $e) {
+            $this->logException("Could not save progress for job $jobId", $e, LOG_NOTICE);
+        }
+        return false;
     }
 }

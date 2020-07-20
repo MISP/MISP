@@ -1745,6 +1745,31 @@ class Event extends AppModel
         return $results;
     }
 
+    /**
+     * @param array $user
+     * @param string|int $id Event ID or UUID
+     * @param array $params
+     * @return array|null
+     */
+    public function fetchSimpleEvent(array $user, $id, array $params = array())
+    {
+        $conditions = $this->createEventConditions($user);
+
+        if (is_numeric($id)) {
+            $conditions['AND'][]['Event.id'] = $id;
+        } else if (Validation::uuid($id)) {
+            $conditions['AND'][]['Event.uuid'] = $id;
+        } else {
+            return null;
+        }
+        if (isset($params['conditions'])) {
+            $conditions['AND'][] = $params['conditions'];
+        }
+        $params['conditions'] = $conditions;
+        $params['recursive'] = -1;
+        return $this->find('first', $params);
+    }
+
     public function fetchSimpleEvents($user, $params, $includeOrgc = false)
     {
         $conditions = $this->createEventConditions($user);
