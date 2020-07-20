@@ -2210,13 +2210,11 @@ class EventsController extends AppController
                 }
             }
         }
-        $target_id = $this->Toolbox->findIdByUuid($this->Event, $target_id);
-        $this->request->data['Event']['target_id'] = $target_id;
+        $target_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $target_id);
+        if (empty($target_event)) {
+            throw new NotFoundException(__('Invalid target event.'));
+        }
         if ($this->request->is('post')) {
-            $target_event = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $target_id]);
-            if (empty($target_event)) {
-                throw new NotFoundException(__('Invalid event.'));
-            }
             $source_id = $this->Toolbox->findIdByUuid($this->Event, $source_id);
             $source_event = $this->Event->fetchEvent(
                 $this->Auth->user(),
@@ -2279,7 +2277,7 @@ class EventsController extends AppController
                 return $this->RestResponse->viewData($event, $this->response->type());
             }
             $event = $this->Event->handleMispFormatFromModuleResult($results);
-            $event['Event'] = $target_event[0]['Event'];
+            $event['Event'] = $target_event['Event'];
             $distributions = $this->Event->Attribute->distributionLevels;
             $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
             if (empty($sgs)) {
@@ -2291,6 +2289,8 @@ class EventsController extends AppController
             $this->set('title', __('Event merge results'));
             $this->set('importComment', 'Merged from event ' . $source_id);
             $this->render('resolved_misp_format');
+        } else {
+            $this->set('target_event', $target_event);
         }
     }
 
@@ -2713,8 +2713,6 @@ class EventsController extends AppController
                 throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
             }
         }
-        $success = true;
-        $message = '';
         $errors = array();
         // only allow form submit CSRF protection
         if ($this->request->is('post') || $this->request->is('put')) {
@@ -5365,30 +5363,10 @@ class EventsController extends AppController
         if (empty($id)) {
             throw new MethodNotAllowedException(__('Invalid ID.'));
         }
-        $conditions = array('Event.id' => $id);
-        if (Validation::uuid($id)) {
-            $conditions = array('Event.uuid' => $id);
-        } elseif (!is_numeric($id)) {
-            $conditions = array('Event.uuid' => -1);
-        }
-        $event = $this->Event->find('first', array(
-            'conditions' => $conditions,
-            'fields' => array('Event.id', 'Event.distribution', 'Event.sharing_group_id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.analysis'),
-            'contain' => array('Orgc.id', 'Orgc.name', 'EventTag' => array('Tag.id', 'Tag.name', 'Tag.colour'), 'ThreatLevel.name'),
-            'recursive' => -1
-        ));
-        if (!empty($event) && !$this->_isSiteAdmin() && $event['Event']['org_id'] != $this->Auth->user('org_id')) {
-            if (!in_array($event['Event']['distribution'], array(1, 2, 3))) {
-                if ($event['Event']['distribution'] == 4) {
-                    $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
-                    if (!in_array($event['Event']['sharing_group_id'], $sharingGroups)) {
-                        $event = array();
-                    }
-                } else {
-                    $event = array();
-                }
-            }
-        }
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, [
+            'fields' => ['Event.id', 'Event.info', 'Event.threat_level_id', 'Event.analysis'],
+            'contain' => ['EventTag' => ['Tag.id', 'Tag.name', 'Tag.colour'], 'ThreatLevel.name'],
+        ]);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($event, $this->response->type());
         } else {
