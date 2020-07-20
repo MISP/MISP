@@ -6018,7 +6018,7 @@ class Event extends AppModel
         return false;
     }
 
-    public function processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false, $jobId = false, $returnRawResults = false)
+    public function processFreeTextData($user, $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $jobId = false, $returnRawResults = false)
     {
         $event = $this->find('first', array(
             'conditions' => array('id' => $id),
@@ -6029,13 +6029,7 @@ class Event extends AppModel
             return false;
         }
         $results = array();
-        if (!$user['Role']['perm_site_admin'] && !empty($event) && $event['Event']['orgc_id'] != $user['org_id']) {
-            $objectType = 'ShadowAttribute';
-        } elseif ($user['Role']['perm_site_admin'] && isset($force) && $force) {
-            $objectType = 'ShadowAttribute';
-        } else {
-            $objectType = 'Attribute';
-        }
+        $objectType = $proposals ? 'ShadowAttribute' : 'Attribute';
 
         if ($adhereToWarninglists) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
@@ -6049,7 +6043,6 @@ class Event extends AppModel
         $total = count($attributeSources);
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
-            $this->Job->id = $jobId;
         }
         foreach ($attributeSources as $sourceKey => $source) {
             foreach (${$source} as $k => $attribute) {
@@ -6125,9 +6118,8 @@ class Event extends AppModel
                     }
                 }
                 if ($jobId) {
-                    if ($i % 20 == 0) {
-                        $this->Job->saveField('message', 'Attribute ' . $i . '/' . $total);
-                        $this->Job->saveField('progress', $i * 80 / $total);
+                    if ($i % 20 === 0) {
+                        $this->Job->saveProgress($jobId, 'Attribute ' . $i . '/' . $total, $i * 80 / $total);
                     }
                 }
             }
@@ -6164,10 +6156,7 @@ class Event extends AppModel
             $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '.';
         }
         if ($jobId) {
-            if ($i % 20 == 0) {
-                $this->Job->saveField('message', 'Processing complete. ' . $message);
-                $this->Job->saveField('progress', 100);
-            }
+            $this->Job->saveStatus($jobId, true, __('Processing complete. %s', $message));
         }
         if (!empty($returnRawResults)) {
             return $results;
@@ -6530,23 +6519,23 @@ class Event extends AppModel
         return $attribute_save;
     }
 
-    public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false, $returnRawResults = false)
+    public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $returnRawResults = false)
     {
         if (Configure::read('MISP.background_jobs')) {
             list($job, $randomFileName, $tempFile) = $this->__initiateProcessJob($user, $id);
             $tempData = array(
-                    'user' => $user,
-                    'attributes' => $attributes,
-                    'id' => $id,
-                    'default_comment' => $default_comment,
-                    'force' => $force,
-                    'adhereToWarninglists' => $adhereToWarninglists,
-                    'jobId' => $job->id
+                'user' => $user,
+                'attributes' => $attributes,
+                'id' => $id,
+                'default_comment' => $default_comment,
+                'proposals' => $proposals,
+                'adhereToWarninglists' => $adhereToWarninglists,
+                'jobId' => $job->id,
             );
 
             $writeResult = $tempFile->write(json_encode($tempData));
             if (!$writeResult) {
-                return ($this->processFreeTextData($user, $attributes, $id, $default_comment, $force, $adhereToWarninglists, false, $returnRawResults));
+                return $this->processFreeTextData($user, $attributes, $id, $default_comment, $proposals, $adhereToWarninglists, false, $returnRawResults);
             }
             $tempFile->close();
             $process_id = CakeResque::enqueue(
@@ -6558,7 +6547,7 @@ class Event extends AppModel
             $job->saveField('process_id', $process_id);
             return 'Freetext ingestion queued for background processing. Attributes will be added to the event as they are being processed.';
         } else {
-            return $this->processFreeTextData($user, $attributes, $id, $default_comment, $force, $adhereToWarninglists, false, $returnRawResults);
+            return $this->processFreeTextData($user, $attributes, $id, $default_comment, $proposals, $adhereToWarninglists, false, $returnRawResults);
         }
     }
 
