@@ -730,6 +730,7 @@ class EventsController extends AppController
             ),
         ));
         $this->loadModel('GalaxyCluster');
+        $sgids = $this->Event->cacheSgids($this->Auth->user(), true);
 
         // for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
         if ($this->_isRest()) {
@@ -839,6 +840,10 @@ class EventsController extends AppController
                 }
                 $events = $this->GalaxyCluster->attachClustersToEventIndex($events);
                 foreach ($events as $key => $event) {
+                    if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
+                        unset($events[$key]);
+                        continue;
+                    }
                     $temp = $events[$key]['Event'];
                     $temp['Org'] = $event['Org'];
                     $temp['Orgc'] = $event['Orgc'];
@@ -865,6 +870,10 @@ class EventsController extends AppController
         } else {
             $events = $this->paginate();
             foreach ($events as $k => $event) {
+                if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
+                    unset($events[$k]);
+                    continue;
+                }
                 if (empty($event['SharingGroup']['name'])) {
                     unset($events[$k]['SharingGroup']);
                 }
