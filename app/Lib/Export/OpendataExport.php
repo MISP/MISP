@@ -10,6 +10,7 @@ class OpendataExport
     private $__auth = null;
     private $__delete = false;
     private $__scope = null;
+    private $__search = false;
     private $__setup = array();
     private $__url = null;
 
@@ -24,40 +25,59 @@ class OpendataExport
     public function header($options = array())
     {
         $this->__scope = $options['scope'];
-        if (isset($this->__default_filters['auth'])) {
+        if (!empty($this->__default_filters['auth'])) {
             $this->__auth = $this->__default_filters['auth'];
             unset($this->__default_filters['auth']);
         }
-        if (isset($this->__default_filters['setup'])) {
-            $this->__setup = $this->__default_filters['setup'];
-            $this->__check_setup_filter();
-            unset($this->__default_filters['setup']);
-        } else {
+        if (empty($this->__default_filters['setup'])) {
             throw new Exception(__('Missing "setup" filter containing the dataset and resource(s) information.'));
         }
-        if (isset($this->__default_filters['url'])) {
-            $this->__url = $this->__default_filters['url'];
-            unset($this->__default_filters['url']);
-        } else {
+        $this->__setup = $this->__default_filters['setup'];
+        $this->__check_setup_filter();
+        unset($this->__default_filters['setup']);
+        if (empty($this->__default_filters['misp-url'])) {
             $external_baseurl = Configure::read('MISP.external_baseurl');
             $baseurl = !empty($external_baseurl) ? $external_baseurl : Configure::read('MISP.baseurl');
             if (empty($baseurl)) {
                 throw new Exception(__('Missing url of the MISP instance, and baseurl is not set.'));
             }
             $this->__url = $baseurl;
+        } else {
+            $this->__url = $this->__default_filters['misp-url'];
+            unset($this->__default_filters['misp-url']);
         }
+        $simple_query = false;
         if (!empty($this->__default_filters['delete'])) {
             $this->__delete = true;
             unset($this->__default_filters['delete']);
+            $simple_query = true;
+        }
+        if (!empty($this->__default_filters['search'])) {
+            $this->__search = true;
+            unset($this->__default_filters['search']);
+            $simple_query = true;
+        }
+        if (!empty($this->__default_filters['portal-url'])) {
+            if ($simple_query) {
+                $this->__url = ' --portal_url ' . $this->__default_filters['portal-url'];
+            } else {
+                $this->__url .= ' --portal_url ' . $this->__default_filters['portal-url'];
+            }
+            unset($this->__default_filters['portal-url']);
         }
         return '';
     }
 
     public function footer()
     {
-        $authParam = ' --auth ' . $this->__auth;
         $my_server = ClassRegistry::init('Server');
-        $cmd = $my_server->getPythonVersion() . ' ' . $this->__scripts_dir . $this->__script_name . $authParam;
+        $cmd = $my_server->getPythonVersion() . ' ' . $this->__scripts_dir . $this->__script_name;
+        if (!empty($this->__auth)) {
+            $cmd .= ' --auth ' . $this->__auth;
+        }
+        if ($this->__search){
+            return $this->__search_query($cmd);
+        }
         return $this->__delete ? $this->__delete_query($cmd) : $this->__add_query($cmd);
     }
 
@@ -76,8 +96,7 @@ class OpendataExport
         $setup = json_encode($this->__setup);
         $setupFilename = $this->__generateSetupFile($setup);
         $setupParam = ' --setup ' . $setupFilename;
-        $urlParam = ' --url ' . $this->__url;
-
+        $urlParam = ' --misp_url ' . $this->__url;
         $cmd .= $bodyParam . $setupParam . $levelParam . $urlParam;
         $results = shell_exec($cmd);
         unlink($bodyFilename);
@@ -101,7 +120,18 @@ class OpendataExport
 
     private function __delete_query($cmd)
     {
-        $cmd .= " -d '" . $this->__setup['dataset'] . "'";
+        $cmd .= $this->__url . " -d '" . $this->__setup['dataset'] . "'";
+        return $this->__simple_query($cmd);
+    }
+
+    private function __search_query($cmd)
+    {
+        $cmd .= $this->__url . " -s '" . $this->__setup['dataset'] . "'";
+        return $this->__simple_query($cmd);
+    }
+
+    private function __simple_query($cmd)
+    {
         if (!empty($this->__setup['resources'])) {
             if (is_array($this->__setup['resources'])) {
                 foreach ($this->__setup['resources'] as $resource) {

@@ -1247,15 +1247,17 @@ class Event extends AppModel
     }
 
     // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
-    public function __removeNonExportableTags($data, $dataType)
+    public function __removeNonExportableTags($data, $dataType, $server = [])
     {
-        if (!empty($data[$dataType . 'Tag'])) {
-            foreach ($data[$dataType . 'Tag'] as $k => $tag) {
-                if (!$tag['Tag']['exportable'] || !empty($tag['local'])) {
-                    unset($data[$dataType . 'Tag'][$k]);
-                } else {
-                    unset($tag['org_id']);
-                    $data['Tag'][] = $tag['Tag'];
+        if (isset($data[$dataType . 'Tag'])) {
+            if (!empty($data[$dataType . 'Tag'])) {
+                foreach ($data[$dataType . 'Tag'] as $k => $tag) {
+                    if (!$tag['Tag']['exportable'] || (!empty($tag['local']) && empty($server['Server']['internal']))) {
+                        unset($data[$dataType . 'Tag'][$k]);
+                    } else {
+                        unset($tag['org_id']);
+                        $data['Tag'][] = $tag['Tag'];
+                    }
                 }
             }
             unset($data[$dataType . 'Tag']);
@@ -1272,7 +1274,7 @@ class Event extends AppModel
                 if (empty($data['Attribute'][$key])) {
                     unset($data['Attribute'][$key]);
                 } else {
-                    $data['Attribute'][$key] = $this->__removeNonExportableTags($data['Attribute'][$key], 'Attribute');
+                    $data['Attribute'][$key] = $this->__removeNonExportableTags($data['Attribute'][$key], 'Attribute', $server);
                 }
             }
             $data['Attribute'] = array_values($data['Attribute']);
@@ -1300,7 +1302,7 @@ class Event extends AppModel
     private function __updateEventForSync($event, $server)
     {
         $event = $this->__rearrangeEventStructureForSync($event);
-        $event['Event'] = $this->__removeNonExportableTags($event['Event'], 'Event');
+        $event['Event'] = $this->__removeNonExportableTags($event['Event'], 'Event', $server);
         // Add the local server to the list of instances in the SG
         if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
             foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
@@ -1423,6 +1425,9 @@ class Event extends AppModel
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
+        if (!empty($server['Server']['internal'])) {
+            $uri = $uri . '/excludeLocalTags:1';
+        }
         $response = $HttpSocket->get($uri, $data = '', $request);
 
         if ($response === false) {
@@ -1738,6 +1743,31 @@ class Event extends AppModel
             'fields' => array('Event.id')
         )));
         return $results;
+    }
+
+    /**
+     * @param array $user
+     * @param string|int $id Event ID or UUID
+     * @param array $params
+     * @return array|null
+     */
+    public function fetchSimpleEvent(array $user, $id, array $params = array())
+    {
+        $conditions = $this->createEventConditions($user);
+
+        if (is_numeric($id)) {
+            $conditions['AND'][]['Event.id'] = $id;
+        } else if (Validation::uuid($id)) {
+            $conditions['AND'][]['Event.uuid'] = $id;
+        } else {
+            return null;
+        }
+        if (isset($params['conditions'])) {
+            $conditions['AND'][] = $params['conditions'];
+        }
+        $params['conditions'] = $conditions;
+        $params['recursive'] = -1;
+        return $this->find('first', $params);
     }
 
     public function fetchSimpleEvents($user, $params, $includeOrgc = false)
@@ -3890,10 +3920,6 @@ class Event extends AppModel
                     }
                 }
             }
-            if (isset($data['Event']['EventTag'])) {
-                $data['Event']['Tag'] = $data['Event']['EventTag']['Tag'];
-                unset($data['Event']['EventTag']);
-            }
             if (isset($data['Event']['Tag']) && $user['Role']['perm_tagger']) {
                 foreach ($data['Event']['Tag'] as $tag) {
                     $tag_id = $this->EventTag->Tag->captureTag($tag, $user);
@@ -4177,6 +4203,9 @@ class Event extends AppModel
                     'deleted' => array(0,1),
                     'excludeGalaxy' => 1
                 ));
+                if (!empty($server['Server']['internal'])) {
+                    $params['excludeLocalTags'] = 0;
+                }
                 $event = $this->fetchEvent($elevatedUser, $params);
                 $event = $event[0];
                 $event['Event']['locked'] = 1;
@@ -5080,9 +5109,6 @@ class Event extends AppModel
         &$eventWarnings,
         $warningLists
     ) {
-        if (!$this->__fTool) {
-            $this->__fTool = new FinancialTool();
-        }
         if ($this->Attribute->isImage($object)) {
             if (!empty($object['data'])) {
                 $object['image'] = $object['data'];
@@ -5102,11 +5128,12 @@ class Event extends AppModel
         if (isset($object['distribution']) && $object['distribution'] != 4) {
             unset($object['SharingGroup']);
         }
-        if ($object['objectType'] !== 'object') {
-            if ($object['category'] === 'Financial fraud') {
-                if (!$this->__fTool->validateRouter($object['type'], $object['value'])) {
-                    $object['validationIssue'] = true;
-                }
+        if ($object['objectType'] !== 'object' && $object['category'] === 'Financial fraud') {
+            if (!$this->__fTool) {
+                $this->__fTool = new FinancialTool();
+            }
+            if (!$this->__fTool->validateRouter($object['type'], $object['value'])) {
+                $object['validationIssue'] = true;
             }
         }
         $object = $this->Warninglist->checkForWarning($object, $eventWarnings, $warningLists);
