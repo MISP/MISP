@@ -523,7 +523,7 @@ class Feed extends AppModel
 
         $result = array(
             'header' => array(
-                'Accept' => array('application/json', 'text/plain'),
+                'Accept' => array('application/json', 'text/plain', 'text/*'),
                 'MISP-version' => $version,
                 'MISP-uuid' => Configure::read('MISP.uuid'),
             )
