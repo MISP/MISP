@@ -129,6 +129,140 @@ misp_indicator_type.update(
 )
 cybox_validation = {"AutonomousSystem": "isInt"}
 
+## ATTRIBUTES MAPPING
+simple_type_to_method = {
+    'attachment': 'resolve_attachment',
+    'domain|ip': 'generate_domain_ip_observable',
+    'email-attachment': 'generate_email_attachment_observable',
+    'filename': 'resolve_file_observable',
+    'mac-address': 'resolve_system_observable',
+    'malware-sample': 'resolve_malware_sample',
+    'named pipe': 'generate_pipe_observable',
+    'port': 'generate_port_observable',
+}
+simple_type_to_method.update(
+    dict.fromkeys(
+        list(hash_type_attributes["single"]),
+        'resolve_file_observable'
+    )
+)
+simple_type_to_method.update(
+    dict.fromkeys(
+        list(hash_type_attributes["composite"]),
+        'resolve_file_observable'
+    )
+)
+simple_type_to_method.update(
+    dict.fromkeys(
+        [
+            "ip-src",
+            "ip-dst"
+        ],
+        'generate_ip_observable'
+    )
+)
+simple_type_to_method.update(
+    dict.fromkeys(
+        [
+            "ip-src|port",
+            "ip-dst|port",
+            "hostname|port"
+        ],
+        'generate_socket_address_observable'
+    )
+)
+simple_type_to_method.update(
+    dict.fromkeys(
+        [
+            "regkey",
+            "regkey|value"
+        ],
+        'generate_regkey_observable'
+    )
+)
+simple_type_to_method.update(
+    dict.fromkeys(
+        [
+            "hostname",
+            "domain",
+            "url",
+            "AS",
+            "mutex",
+            "named pipe",
+            "link",
+            "windows-service-name"
+        ],
+        'generate_simple_observable'
+    )
+)
+simple_type_to_method.update(
+    dict.fromkeys(
+        [
+            "email-src",
+            "email-dst",
+            "email-subject",
+            "email-reply-to"
+        ],
+        'resolve_email_observable'
+    )
+)
+simple_type_to_method.update(
+    dict.fromkeys(
+        [
+            "http-method",
+            "user-agent"
+        ],
+        'resolve_http_observable'
+    )
+)
+simple_type_to_method.update(
+    dict.fromkeys(
+        [
+            "pattern-in-file",
+            "pattern-in-traffic",
+            "pattern-in-memory"
+        ],
+        'resolve_pattern_observable'
+    )
+)
+simple_type_to_method.update(
+    dict.fromkeys(
+        [
+            'x509-fingerprint-md5',
+            'x509-fingerprint-sha1',
+            'x509-fingerprint-sha256'
+        ],
+        'parse_x509_object'
+    )
+)
+
+## OBJECTS MAPPING
+ttp_names = {
+    'attack-pattern': 'parse_attack_pattern',
+    'course-of-action': 'parse_course_of_action',
+    'vulnerability': 'parse_vulnerability',
+    'weakness': 'parse_weakness'
+}
+objects_mapping = {
+    "asn": 'parse_asn_object',
+    "credential": 'parse_credential_object',
+    "domain-ip": 'parse_domain_ip_object',
+    "email": 'parse_email_object',
+    "file": 'parse_file_object',
+    "ip-port": 'parse_ip_port_object',
+    "network-connection": 'parse_network_connection_object',
+    "network-socket": 'parse_network_socket_object',
+    "pe": 'store_pe',
+    "pe-section": 'store_pe',
+    "process": 'parse_process_object',
+    "registry-key": 'parse_regkey_object',
+    "url": 'parse_url_object',
+    "user-account": 'parse_user_account_object',
+    "whois": 'parse_whois',
+    "x509": 'parse_x509_object'
+}
+
+## GALAXIES MAPPING
 galaxy_types_mapping = {'branded-vulnerability': 'parse_vulnerability_galaxy'}
 galaxy_types_mapping.update(
     dict.fromkeys(
