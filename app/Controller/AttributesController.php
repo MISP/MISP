@@ -1419,13 +1419,12 @@ class AttributesController extends AppController
             $changeInAttribute = ($this->request->data['Attribute']['to_ids'] != 2) || ($this->request->data['Attribute']['distribution'] != 6) || ($this->request->data['Attribute']['comment'] != null);
 
             if (!$changeInAttribute && !$changeInTagOrCluster) {
-                $this->autoRender = false;
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
             }
 
             if ($this->request->data['Attribute']['to_ids'] != 2) {
                 foreach ($attributes as $key => $attribute) {
-                    $attributes[$key]['Attribute']['to_ids'] = ($this->request->data['Attribute']['to_ids'] == 0 ? false : true);
+                    $attributes[$key]['Attribute']['to_ids'] = $this->request->data['Attribute']['to_ids'] == 0 ? false : true;
                 }
             }
 
@@ -1477,30 +1476,28 @@ class AttributesController extends AppController
                     if (!$this->_isRest()) {
                         $this->Attribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
                     }
-                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $event['Event']['timestamp'] = $timestamp;
                     $event['Event']['published'] = 0;
-                    $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info', 'id')));
-                    $this->autoRender = false;
+                    $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'id')));
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
                 } else {
-                    $this->autoRender = false;
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
                 }
             }
 
             // apply changes in tag/cluster
             foreach ($attributes as $key => $attribute) {
-                foreach ($tags_ids_remove as $t => $tag_id) {
+                foreach ($tags_ids_remove as $tag_id) {
                     $this->removeTag($attributes[$key]['Attribute']['id'], $tag_id);
                 }
-                foreach ($tags_ids_add as $t => $tag_id) {
+                foreach ($tags_ids_add as $tag_id) {
                     $this->addTag($attributes[$key]['Attribute']['id'], $tag_id);
                 }
                 $this->Galaxy = ClassRegistry::init('Galaxy');
-                foreach ($clusters_ids_remove as $c => $cluster_id) {
+                foreach ($clusters_ids_remove as $cluster_id) {
                     $this->Galaxy->detachCluster($this->Auth->user(), 'attribute', $attributes[$key]['Attribute']['id'], $cluster_id);
                 }
-                foreach ($clusters_ids_add as $c => $cluster_id) {
+                foreach ($clusters_ids_add as $cluster_id) {
                     $this->Galaxy->attachCluster($this->Auth->user(), 'attribute', $attributes[$key]['Attribute']['id'], $cluster_id);
                 }
             }

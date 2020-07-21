@@ -3417,7 +3417,8 @@ class Attribute extends AppModel
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
         }
-        if (Configure::read('MISP.unpublishedprivate')) {
+        // Site admin can access even unpublished event attributes if `unpublishedprivate` option is enabled
+        if (!$user['Role']['perm_site_admin'] && Configure::read('MISP.unpublishedprivate')) {
             $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id'], 'Event.org_id' => $user['org_id']));
         }
         if (!empty($options['list'])) {
