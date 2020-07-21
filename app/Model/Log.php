@@ -38,6 +38,7 @@ class Log extends AppModel
                     'enrichment',
                     'error',
                     'export',
+                    'fetchEvent',
                     'file_upload',
                     'galaxy',
                     'include_formula',
