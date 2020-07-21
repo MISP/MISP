@@ -595,6 +595,26 @@ class StixBuilder(object):
         ttp.add_exploit_target(ET)
         self.ttps[uuid] = ttp
 
+    def generate_x509_observable(self, attributes_dict, uuid):
+        x509_object = X509Certificate()
+        if 'raw_certificate' in attributes_dict:
+            raw_certificate = attributes_dict.pop('raw_certificate')
+            x509_object.raw_certificate = raw_certificate['pem'] if 'pem' in raw_certificate else raw_certificate['raw-base64']
+        if 'signature' in attributes_dict:
+            signature = attributes_dict.pop('signature')
+            x509_object.certificate_signature = self.fill_x509_signature(signature)
+        x509_cert = self.fill_x509_contents(attributes_dict.pop('contents')) if 'contents' in attributes_dict else X509Cert()
+        if 'validity' in attributes_dict:
+            x509_cert.validity = self.fill_x509_validity(attributes_dict.pop('validity'))
+        if attributes_dict:
+            x509_cert.subject_public_key = self.fill_x509_pubkey(attributes_dict)
+        if x509_cert.to_dict():
+            x509_object.certificate = x509_cert
+        x509_object.parent.id_ = "{}:x509CertificateObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(x509_object)
+        observable.id_ = "{}:x509Certificate-{}".format(self.namespace_prefix, uuid)
+        return observable
+
     def parse_asn_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
         auto_sys = AutonomousSystem()
@@ -1117,26 +1137,17 @@ class StixBuilder(object):
         return registrants
 
     def parse_x509_object(self, misp_object):
-        to_ids, attributes_dict = self.create_x509_attributes_dict(misp_object['Attribute'])
-        x509_object = X509Certificate()
-        if 'raw_certificate' in attributes_dict:
-            raw_certificate = attributes_dict.pop('raw_certificate')
-            x509_object.raw_certificate = raw_certificate['pem'] if 'pem' in raw_certificate else raw_certificate['raw-base64']
-        if 'signature' in attributes_dict:
-            signature = attributes_dict.pop('signature')
-            x509_object.certificate_signature = self.fill_x509_signature(signature)
-        x509_cert = self.fill_x509_contents(attributes_dict.pop('contents')) if 'contents' in attributes_dict else X509Cert()
-        if 'validity' in attributes_dict:
-            x509_cert.validity = self.fill_x509_validity(attributes_dict.pop('validity'))
-        if attributes_dict:
-            x509_cert.subject_public_key = self.fill_x509_pubkey(attributes_dict)
-        if x509_cert.to_dict():
-            x509_object.certificate = x509_cert
         uuid = misp_object['uuid']
-        x509_object.parent.id_ = "{}:x509CertificateObject-{}".format(self.namespace_prefix, uuid)
-        observable = Observable(x509_object)
-        observable.id_ = "{}:x509Certificate-{}".format(self.namespace_prefix, uuid)
-        return to_ids, observable
+        if 'Attribute' in misp_object:
+            to_ids, attributes_dict = self.create_x509_attributes_dict(misp_object['Attribute'])
+            observable = self.generate_x509_observable(attributes_dict, uuid)
+            return to_ids, observable
+        attributes_dict = {
+            misp2stix_mapping.x509_creation_mapping[misp_object['type']]: {
+                misp_object['type']: misp_object['value']
+            }
+        }
+        return self.generate_x509_observable(attributes_dict, uuid)
 
     @staticmethod
     def fill_x509_contents(contents):
