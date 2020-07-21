@@ -1011,11 +1011,15 @@ class Feed extends AppModel
                 ));
                 foreach ($attributesToDelete as $k => $attribute) {
                     $attributesToDelete[$k]['Attribute']['deleted'] = 1;
+                    unset($attributesToDelete[$k]['Attribute']['timestamp']);
                 }
                 $this->Event->Attribute->saveMany($attributesToDelete); // We need to trigger callback methods
+                if (!empty($attributesToDelete)) {
+                    $this->Event->unpublishEvent($feed['Feed']['event_id']);
+                }
             }
         }
-        if (empty($data)) {
+        if (empty($data) && empty($attributesToDelete)) {
             return true;
         }
 
@@ -1040,7 +1044,7 @@ class Feed extends AppModel
                 $this->jobProgress($jobId, null, 50 + round(($k + 1) / count($data) * 50));
             }
         }
-        if (!empty($data)) {
+        if (!empty($data) || !empty($attributesToDelete)) {
             unset($event['Event']['timestamp']);
             unset($event['Event']['attribute_count']);
             $this->Event->save($event);

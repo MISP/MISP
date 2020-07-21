@@ -247,7 +247,7 @@ class ServerShell extends AppShell
                     $this->Job->saveStatus($jobId, false);
                     echo 'Job failed.' . PHP_EOL;
                 } else {
-                    $this->Job->saveStatus($jobId, false);
+                    $this->Job->saveStatus($jobId, true);
                     echo 'Job done.' . PHP_EOL;
                 }
             } else {
