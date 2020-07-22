@@ -4,6 +4,7 @@ App::uses('Xml', 'Utility');
 
 /**
  * @property Event $Event
+ * @property User $User
  */
 class EventsController extends AppController
 {
@@ -1562,12 +1563,16 @@ class EventsController extends AppController
         $this->set('title_for_layout', __('Event #%s', $event['Event']['id']));
     }
 
-    public function view($id = null, $continue=false, $fromEvent=null)
+    public function view($id = null, $continue = false, $fromEvent = null)
     {
-        // find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
-        $this->Event->id = $id;
-        $conditions = array('eventid' => $id);
+        if (is_numeric($id)) {
+            $conditions = array('eventid' => $id);
+        } else if (Validation::uuid($id)) {
+            $conditions = array('event_uuid' => $id);
+        } else {
+            throw new NotFoundException(__('Invalid event'));
+        }
+
         if (!$this->_isRest()) {
             $conditions['includeAllTags'] = true;
         } else {
@@ -1612,6 +1617,7 @@ class EventsController extends AppController
         } else {
             $this->set('extended', 0);
         }
+        $conditions['excludeLocalTags'] = false;
         if (isset($this->params['named']['excludeLocalTags'])) {
             $conditions['excludeLocalTags'] = $this->params['named']['excludeLocalTags'];
         }
@@ -1655,11 +1661,12 @@ class EventsController extends AppController
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
         }
-        //if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
-        if ($this->userRole['perm_admin'] && !$this->_isSiteAdmin() && ($results[0]['Org']['id'] == $this->Auth->user('org_id'))) {
-            $results[0]['User']['email'] = $this->User->field('email', array('id' => $results[0]['Event']['user_id']));
-        }
         $event = $results[0];
+        $this->Event->id = $event['Event']['id'];
+        //if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
+        if ($this->userRole['perm_admin'] && !$this->_isSiteAdmin() && ($event['Org']['id'] == $this->Auth->user('org_id'))) {
+            $event['User']['email'] = $this->User->field('email', array('id' => $event['Event']['user_id']));
+        }
         if (isset($this->params['named']['searchFor']) && $this->params['named']['searchFor'] !== '') {
             $this->__applyQueryString($event, $this->params['named']['searchFor']);
         }
@@ -1677,7 +1684,7 @@ class EventsController extends AppController
         $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
         $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
         if (!$this->_isRest()) {
-            if ($this->_isSiteAdmin() && $results[0]['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+            if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
                 $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
             }
             $this->__viewUI($event, $continue, $fromEvent);
