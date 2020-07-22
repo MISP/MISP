@@ -972,7 +972,7 @@ class MispObject extends AppModel
         return 'fail';
     }
 
-    public function editObject($object, $eventId, $user, $log, $force = false)
+    public function editObject($object, $eventId, $user, $log, $force = false, &$nothingToChange = false)
     {
         $object['event_id'] = $eventId;
         if (isset($object['uuid'])) {
@@ -999,6 +999,7 @@ class MispObject extends AppModel
                 }
                 if (isset($object['timestamp'])) {
                     if ($force || $existingObject['Object']['timestamp'] >= $object['timestamp']) {
+                        $nothingToChange = true;
                         return true;
                     }
                 } else {
