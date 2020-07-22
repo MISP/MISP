@@ -70,18 +70,20 @@ class SharingGroupOrg extends AppModel
         }
     }
 
+    /**
+     * Returns sharing groups IDs that are accessible by given organisation ID.
+     *
+     * @param int $org_id
+     * @return array
+     */
     public function fetchAllAuthorised($org_id)
     {
-        $sgs = $this->find('all', array(
+        $sgs = $this->find('list', array(
             'conditions' => array('org_id' => $org_id),
             'recursive' => -1,
-            'fields' => array('org_id', 'sharing_group_id'),
+            'fields' => array('sharing_group_id'),
         ));
-        $ids = array();
-        foreach ($sgs as $sg) {
-            $ids[] = $sg['SharingGroupOrg']['sharing_group_id'];
-        }
-        return $ids;
+        return array_values($sgs);
     }
 
     // pass a sharing group ID and an organisation ID, returns true if it has a matching attached organisation object

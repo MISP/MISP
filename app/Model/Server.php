@@ -2894,10 +2894,7 @@ class Server extends AppModel
                     'change' => $message
             ));
             if ($jobId) {
-                $job->id = $jobId;
-                $job->saveField('progress', 100);
-                $job->saveField('message', $message);
-                $job->saveField('status', 4);
+                $job->saveStatus($jobId, false, $message);
             }
             return $push;
         }
@@ -3036,10 +3033,7 @@ class Server extends AppModel
                 'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
         ));
         if ($jobId) {
-            $job->id = $jobId;
-            $job->saveField('progress', 100);
-            $job->saveField('message', 'Push to server ' . $id . ' complete.');
-            $job->saveField('status', 4);
+            $job->saveStatus($jobId, true, __('Push to server %s complete.', $id));
         } else {
             return array($successes, $fails);
         }
@@ -4998,7 +4992,7 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '>1.2.0.9', 'cybox' => '>2.1.0.21', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>1.2.0', 'pymisp' => '>2.4.120');
+        $expected = array('stix' => '>1.2.0.9', 'cybox' => '>2.1.0.21', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>2.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
@@ -5482,7 +5476,7 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         $results = array();
-        $extensions = array('redis', 'gd', 'ssdeep', 'zip');
+        $extensions = array('redis', 'gd', 'ssdeep', 'zip', 'intl');
         foreach ($extensions as $extension) {
             $results['web']['extensions'][$extension] = extension_loaded($extension);
         }

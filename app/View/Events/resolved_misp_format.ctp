@@ -59,8 +59,7 @@
                     }
                 }
             }
-            $objects_string = $objects_count > 1 ? ' Objects)' : 'Object)';
-            $count = $attributes_count . ' (' . $objects_count . $objects_string;
+            $count = __n('%s (%s object)', '%s (%s objects)', $objects_count, $attributes_count, $objects_count);
             if (!empty($event['Tag'])) {
                 $table_data[] = array(
                     'key' => __('Tags'),

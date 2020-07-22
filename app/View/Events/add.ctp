@@ -58,7 +58,7 @@
                     'label' => __("Extends Event"),
                     'default' => isset($extends_uuid) ? $extends_uuid : ''
                 ),
-                '<div id="extended_event_preview" style="width:446px;"></div>'
+                '<div id="event_preview" style="width:446px;"></div>'
             ),
             'submit' => array(
                 'action' => $action
@@ -77,13 +77,12 @@
         checkSharingGroup('Event');
     });
 
-    $("#EventExtendsUuid").keyup(function() {
-        previewEventBasedOnUuids();
-    });
-
-    $(document).ready(function() {
+    $(function() {
         checkSharingGroup('Event');
-        previewEventBasedOnUuids();
+        $("#EventExtendsUuid").keyup(delay(function() {
+            previewEventBasedOnUuids($(this).val());
+        }, 100));
+        previewEventBasedOnUuids($("#EventExtendsUuid").val());
     });
 </script>
 <?php echo $this->Js->writeBuffer();

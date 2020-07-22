@@ -1745,6 +1745,31 @@ class Event extends AppModel
         return $results;
     }
 
+    /**
+     * @param array $user
+     * @param string|int $id Event ID or UUID
+     * @param array $params
+     * @return array|null
+     */
+    public function fetchSimpleEvent(array $user, $id, array $params = array())
+    {
+        $conditions = $this->createEventConditions($user);
+
+        if (is_numeric($id)) {
+            $conditions['AND'][]['Event.id'] = $id;
+        } else if (Validation::uuid($id)) {
+            $conditions['AND'][]['Event.uuid'] = $id;
+        } else {
+            return null;
+        }
+        if (isset($params['conditions'])) {
+            $conditions['AND'][] = $params['conditions'];
+        }
+        $params['conditions'] = $conditions;
+        $params['recursive'] = -1;
+        return $this->find('first', $params);
+    }
+
     public function fetchSimpleEvents($user, $params, $includeOrgc = false)
     {
         $conditions = $this->createEventConditions($user);
@@ -5098,9 +5123,6 @@ class Event extends AppModel
         &$eventWarnings,
         $warningLists
     ) {
-        if (!$this->__fTool) {
-            $this->__fTool = new FinancialTool();
-        }
         if ($this->Attribute->isImage($object)) {
             if (!empty($object['data'])) {
                 $object['image'] = $object['data'];
@@ -5120,11 +5142,12 @@ class Event extends AppModel
         if (isset($object['distribution']) && $object['distribution'] != 4) {
             unset($object['SharingGroup']);
         }
-        if ($object['objectType'] !== 'object') {
-            if ($object['category'] === 'Financial fraud') {
-                if (!$this->__fTool->validateRouter($object['type'], $object['value'])) {
-                    $object['validationIssue'] = true;
-                }
+        if ($object['objectType'] !== 'object' && $object['category'] === 'Financial fraud') {
+            if (!$this->__fTool) {
+                $this->__fTool = new FinancialTool();
+            }
+            if (!$this->__fTool->validateRouter($object['type'], $object['value'])) {
+                $object['validationIssue'] = true;
             }
         }
         $object = $this->Warninglist->checkForWarning($object, $eventWarnings, $warningLists);

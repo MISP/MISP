@@ -969,8 +969,10 @@ class StixFromMISPParser(StixParser):
                                    'value': value if isinstance(value, str) else value.value})
         if attributes:
             if len(attributes) == 1 and attributes[0]['object_relation'] == 'id':
-                attributes[0]['uuid'] = uuid
-                self.misp_event.add_attribute(**attributes[0])
+                attributes = attributes[0]
+                attributes['uuid'] = uuid
+                attributes['type'] = 'vulnerability'
+                self.misp_event.add_attribute(**attributes)
             else:
                 vulnerability_object = MISPObject('vulnerability')
                 vulnerability_object.uuid = uuid
