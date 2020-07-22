@@ -458,37 +458,26 @@ class TagsController extends AppController
 
     public function showEventTag($id)
     {
-        $this->loadModel('EventTag');
         $this->loadModel('Taxonomy');
-        if (!$this->EventTag->Event->checkIfAuthorised($this->Auth->user(), $id)) {
-            throw new MethodNotAllowedException('Invalid event.');
+
+        $event = $this->Tag->EventTag->Event->fetchSimpleEvent($this->Auth->user(), $id, [
+            'fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'],
+            'contain' => [
+                'EventTag' => array(
+                    'Tag' => array('order' => false),
+                    'order' => false
+                )
+            ],
+        ]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event.'));
         }
-        $this->loadModel('GalaxyCluster');
-        $cluster_names = $this->GalaxyCluster->find('list', array(
-            'fields' => array('GalaxyCluster.tag_name'),
-            'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')
-        ));
-        $this->helpers[] = 'TextColour';
-        $conditions = array(
-                'event_id' => $id,
-                'Tag.name !=' => $cluster_names
-        );
-        $tags = $this->EventTag->find('all', array(
-                'conditions' => $conditions,
-                'contain' => array('Tag'),
-                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name', 'EventTag.local'),
-        ));
-        foreach ($tags as $k => $tag) {
-            $tags[$k]['local'] = $tag['EventTag']['local'];
-        }
-        $this->set('tags', $tags);
-        $event = $this->Tag->EventTag->Event->find('first', array(
-                'recursive' => -1,
-                'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
-                'conditions' => array('Event.id' => $id)
-        ));
-        $this->set('required_taxonomies', $this->EventTag->Event->getRequiredTaxonomies());
-        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($tags);
+        // Remove galaxy tags
+        $event = $this->Tag->EventTag->Event->massageTags($event, 'Event', false, true);
+
+        $this->set('tags', $event['EventTag']);
+        $this->set('required_taxonomies', $this->Tag->EventTag->Event->getRequiredTaxonomies());
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
         $this->set('tagConflicts', $tagConflicts);
         $this->set('event', $event);
         $this->layout = 'ajax';
@@ -498,38 +487,26 @@ class TagsController extends AppController
     public function showAttributeTag($id)
     {
         $this->helpers[] = 'TextColour';
-        $this->loadModel('AttributeTag');
+        $this->loadModel('Attribute');
         $this->loadModel('Taxonomy');
 
-        $this->Tag->AttributeTag->Attribute->id = $id;
-        if (!$this->Tag->AttributeTag->Attribute->exists()) {
+        $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), [
+            'conditions' => ['Attribute.id' => $id],
+            'includeAllTags' => true,
+            'flatten' => true,
+            'contain' => array(
+                'Event',
+            ),
+        ]);
+        if (empty($attributes)) {
             throw new NotFoundException(__('Invalid attribute'));
         }
-        $this->Tag->AttributeTag->Attribute->read();
-        $eventId = $this->Tag->AttributeTag->Attribute->data['Attribute']['event_id'];
+        $attribute = $attributes[0];
+        // Remove galaxy tags
+        $attribute = $this->Tag->EventTag->Event->massageTags($attribute, 'Attribute', false, true);
+        $attributeTags = $attribute['AttributeTag'];
 
-        $conditions = array('attribute_id' => $id);
-        $attributeTags = $this->AttributeTag->find('all', array(
-            'conditions' => $conditions,
-            'contain' => array('Tag'),
-            'fields' => array('Tag.id', 'Tag.colour', 'Tag.name', 'AttributeTag.local'),
-        ));
-        foreach ($attributeTags as $k => $at) {
-            $attributeTags[$k]['local'] = $at['AttributeTag']['local'];
-        }
-        $this->loadModel('GalaxyCluster');
-        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
-        foreach ($attributeTags as $k => $attributeTag) {
-            if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                unset($attributeTags[$k]);
-            }
-        }
-        $event = $this->Tag->AttributeTag->Attribute->Event->find('first', array(
-            'recursive' => -1,
-            'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
-            'conditions' => array('Event.id' => $eventId)
-        ));
-        $this->set('event', $event);
+        $this->set('event', ['Event' => $attribute['Event']]);
         $this->set('attributeTags', $attributeTags);
         $this->set('attributeId', $id);
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attributeTags);

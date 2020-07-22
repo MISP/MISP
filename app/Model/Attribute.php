@@ -3341,9 +3341,6 @@ class Attribute extends AppModel
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
         }
-        if (!empty($options['includeGalaxy'])) {
-            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        }
         if (
             Configure::read('MISP.proposals_block_attributes') &&
             !empty($options['allow_proposal_blocking'])
