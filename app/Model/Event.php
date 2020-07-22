@@ -3836,11 +3836,17 @@ class Event extends AppModel
             } else {
                 return (array('error' => 'Event could not be saved: Event in the request not newer than the local copy.'));
             }
+            $changed = false;
             // If a field is not set in the request, just reuse the old value
+            // Also, compare the event to the existing event and see whether this is a meaningful change
             $recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date');
             foreach ($recoverFields as $rF) {
                 if (!isset($data['Event'][$rF])) {
                     $data['Event'][$rF] = $existingEvent['Event'][$rF];
+                } else {
+                    if ($data['Event'][$rF] != $existingEvent['Event'][$rF]) {
+                        $changed = true;
+                    }
                 }
             }
         } else {
@@ -3872,24 +3878,36 @@ class Event extends AppModel
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
-                    $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, $this->Log, $force);
+                    $nothingToChange = false;
+                    $result = $this->Attribute->editAttribute($attribute, $this->id, $user, 0, $this->Log, $force, $nothingToChange);
                     if ($result !== true) {
                         $validationErrors['Attribute'][] = $result;
+                    }
+                    if (!$nothingToChange) {
+                        $changed = true;
                     }
                 }
             }
             if (isset($data['Event']['Object'])) {
                 $data['Event']['Object'] = array_values($data['Event']['Object']);
                 foreach ($data['Event']['Object'] as $k => $object) {
-                    $result = $this->Object->editObject($object, $this->id, $user, $this->Log, $force);
+                    $nothingToChange = false;
+                    $result = $this->Object->editObject($object, $this->id, $user, $this->Log, $force, $nothingToChange);
                     if ($result !== true) {
                         $validationErrors['Object'][] = $result;
+                    }
+                    if (!$nothingToChange) {
+                        $changed = true;
                     }
                 }
                 foreach ($data['Event']['Object'] as $object) {
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
-                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user, $this->Log, $force);
+                            $nothingToChange = false;
+                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user, $this->Log, $force, $nothingToChange);
+                            if ($result && !$nothingToChange) {
+                                $changed = true;
+                            }
                         }
                     }
                 }
@@ -3898,7 +3916,11 @@ class Event extends AppModel
                 foreach ($data['Event']['Tag'] as $tag) {
                     $tag_id = $this->EventTag->Tag->captureTag($tag, $user);
                     if ($tag_id) {
-                        $this->EventTag->attachTagToEvent($this->id, $tag_id);
+                        $nothingToChange = false;
+                        $result = $this->EventTag->attachTagToEvent($this->id, $tag_id, $nothingToChange);
+                        if ($result && !$nothingToChange) {
+                            $changed = true;
+                        }
                     } else {
                         // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
                         // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
@@ -3927,7 +3949,7 @@ class Event extends AppModel
                 }
             }
             // if published -> do the actual publishing
-            if ((!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
+            if ($changed && (!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
                 // The edited event is from a remote server ?
                 if ($passAlong) {
                     if ($server['Server']['publish_without_email'] == 0) {
@@ -3960,7 +3982,7 @@ class Event extends AppModel
                     ));
                 }
                 // do the necessary actions to publish the event (email, upload,...)
-                if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || $server['Server']['publish_without_email'] == 0)) {
+                if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
                 }
                 $this->publish($existingEvent['Event']['id']);
