@@ -1301,4 +1301,30 @@ class AppController extends Controller
         }
         return false;
     }
+
+    /**
+     * Returns true if user can add or remove tags for given event.
+     *
+     * @param array $event
+     * @param bool $isTagLocal
+     * @return bool
+     */
+    protected function __canModifyTag(array $event, $isTagLocal = false)
+    {
+        // Site admin can add any tag
+        if ($this->userRole['perm_site_admin']) {
+            return true;
+        }
+        // User must have tagger or sync permission
+        if (!$this->userRole['perm_tagger'] && !$this->userRole['perm_sync']) {
+            return false;
+        }
+        if ($this->__canModifyEvent($event)) {
+            return true; // full access
+        }
+        if ($isTagLocal && Configure::read('MISP.host_org_id') == $this->Auth->user('org_id')) {
+            return true;
+        }
+        return false;
+    }
 }

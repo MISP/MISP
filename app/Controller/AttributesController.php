@@ -2586,7 +2586,7 @@ class AttributesController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
-        $this->Taxonomy = $log = ClassRegistry::init('Taxonomy');
+        $this->Taxonomy = ClassRegistry::init('Taxonomy');
         $rearrangeRules = array(
             'request' => false,
             'Attribute' => false,
@@ -2689,15 +2689,9 @@ class AttributesController extends AppController
                 } else {
                     $attribute = $attributes[0];
                 }
-                if (!$this->userRole['perm_tagger']) {
+                if (!$this->__canModifyTag($attribute, $local)) {
                     $fails++;
                     continue;
-                }
-                if ((!$this->userRole['perm_sync'] && !$this->_isSiteAdmin()) && $attribute['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
-                    if (Configure::read('MISP.host_org_id') != $this->Auth->user('org_id') || !$local) {
-                        $fails++;
-                        continue;
-                    }
                 }
                 $eventId = $attribute['Attribute']['event_id'];
                 $event = $this->Attribute->Event->find('first', array(
@@ -2870,19 +2864,7 @@ class AttributesController extends AppController
                 'recursive' => -1,
             ));
             // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
-            if (
-                (
-                    (
-                        $this->Auth->user('org_id') !== $event['Event']['orgc_id'] ||
-                        (
-                            $this->Auth->user('org_id') != Configure::read('MISP.host_org_id') &&
-                            !empty($attributeTag['AttributeTag']['local'])
-                        )
-                    ) ||
-                    !$this->userRole['perm_tagger']
-                ) &&
-                !$this->_isSiteAdmin()
-            ) {
+            if (!$this->__canModifyTag($event, !empty($attributeTag['AttributeTag']['local']))) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You do not have permission to do that.')), 'status' => 200, 'type' => 'json'));
             }
 

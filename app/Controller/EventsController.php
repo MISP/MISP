@@ -3383,17 +3383,8 @@ class EventsController extends AppController
             if ($tag_id === false) {
                 $tag_id = $this->request->data['tag'];
             }
-            if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-                if (
-                    !$this->userRole['perm_tagger'] ||
-                    (
-                        $this->Auth->user('org_id') !== $event['Event']['orgc_id']
-                    )
-                ) {
-                    if (Configure::read('MISP.host_org_id') != $this->Auth->user('org_id') || !$local) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
-                    }
-                }
+            if (!$this->__canModifyTag($event, $local)) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
             $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
             if (!$this->_isSiteAdmin()) {
@@ -3570,28 +3561,14 @@ class EventsController extends AppController
                 ),
                 'recursive' => -1,
             ));
-
+            if (!$eventTag) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')), 'status'=>200, 'type' => 'json'));
+            }
             // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
-            if (
-                (
-                    (
-                        $this->Auth->user('org_id') !== $event['Event']['orgc_id'] ||
-                        (
-                            $this->Auth->user('org_id') != Configure::read('MISP.host_org_id') &&
-                            !empty($eventTag['EventTag']['local'])
-                        )
-                    ) ||
-                    !$this->userRole['perm_tagger']
-                ) &&
-                !$this->_isSiteAdmin()
-            ) {
+            if (!$this->__canModifyTag($event, $eventTag['EventTag']['local'])) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
             $this->Event->insertLock($this->Auth->user(), $id);
-            $this->autoRender = false;
-            if (empty($eventTag)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')), 'status'=>200, 'type' => 'json'));
-            }
             $tag = $this->Event->EventTag->Tag->find('first', array(
                 'conditions' => array('Tag.id' => $tag_id),
                 'recursive' => -1,
