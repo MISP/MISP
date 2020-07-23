@@ -592,7 +592,7 @@ class StixParser():
                 attribute.uuid = referenced_uuid
                 self.misp_event.add_attribute(**attribute)
                 misp_object.add_reference(referenced_uuid, 'observable', None, **attribute)
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
 
     # Parse attributes of a portable executable, create the corresponding object,
     # and return its uuid to build the reference for the file object generated at the same time
@@ -709,7 +709,7 @@ class StixParser():
             if "process_uuid" in compl_data:
                 for uuid in compl_data["process_uuid"]:
                     misp_object.add_reference(uuid, 'connected-to')
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
 
     ################################################################################
     ##              GALAXY PARSING FUNCTIONS USED BY BOTH SUBCLASSES              ##
