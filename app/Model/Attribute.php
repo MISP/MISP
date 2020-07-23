@@ -4178,7 +4178,7 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false, $force = false)
+    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false, $force = false, &$nothingToChange = false)
     {
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId;
@@ -4223,6 +4223,7 @@ class Attribute extends AppModel
                 // Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
                 if (isset($attribute['timestamp'])) {
                     if (!$force && $attribute['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
+                        $nothingToChange = true;
                         return true;
                     }
                 } else {

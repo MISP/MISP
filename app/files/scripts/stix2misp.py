@@ -1139,10 +1139,12 @@ class StixFromMISPParser(StixParser):
     def handle_composition(self, misp_object, observables, to_ids):
         for observable in observables:
             properties = observable.object_.properties
-            misp_attribute = MISPAttribute()
-            misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True, observable_id=observable.id_)
-            misp_attribute.to_ids = to_ids
-            misp_object.add_attribute(**misp_attribute)
+            attribute = MISPAttribute()
+            attribute.type, attribute.value, attribute.object_relation = self.handle_attribute_type(properties)
+            if 'Port' in observable.id_:
+                attribute.object_relation = f"{observable.id_.split('-')[0].split(':')[1][:3]}-{attribute.object_relation}"
+            attribute.to_ids = to_ids
+            misp_object.add_attribute(**attribute)
         return misp_object
 
     # Create a MISP attribute and add it in its MISP object
