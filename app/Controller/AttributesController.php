@@ -881,10 +881,10 @@ class AttributesController extends AppController
                 throw new NotFoundException(__('Invalid Event.'));
             }
             if ($existingAttribute['Attribute']['object_id']) {
-                $result = $this->Attribute->save($this->request->data, array('Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.comment', 'Attribute.distribution', 'Attribute.sharing_group_id'));
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => $this->Attribute->editableFieds));
                 $this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
             } else {
-                $result = $this->Attribute->save($this->request->data);
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => $this->Attribute->editableFieds));
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
                     if ($result) {
