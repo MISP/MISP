@@ -429,19 +429,25 @@ class ObjectsController extends AppController
                 }
                 $error_message = __('Object could not be saved.') . PHP_EOL . implode(PHP_EOL, $object_validation_errors);
             }
+            $savedObject = array();
+            if (is_numeric($objectToSave)) {
+                $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
+                if (!empty($savedObject) && isset($this->request->data['deleted']) && $this->request->data['deleted']) {
+                    $this->MispObject->deleteObject($savedObject[0], $hard=false, $unpublish=false);
+                }
+            }
             // we pre-validate the attributes before we create an object at this point
             // This allows us to stop the process and return an error (API) or return
             //  to the add form
             if ($this->_isRest()) {
                 if (is_numeric($objectToSave)) {
-                    $objectToSave = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
-                    if (!empty($objectToSave)) {
-                        $objectToSave = $objectToSave[0];
-                        $objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
-                        unset($objectToSave['Attribute']);
+                    if (!empty($savedObject)) {
+                        $savedObject = $savedObject[0];
+                        $savedObject['Object']['Attribute'] = $savedObject['Attribute'];
+                        unset($savedObject['Attribute']);
+                        $this->MispObject->Event->unpublishEvent($savedObject['Object']['event_id']);
                     }
-                    $this->MispObject->Event->unpublishEvent($objectToSave['Object']['event_id']);
-                    return $this->RestResponse->viewData($objectToSave, $this->response->type());
+                    return $this->RestResponse->viewData($savedObject, $this->response->type());
                 } else {
                     return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $id, $this->response->type());
                 }
@@ -906,86 +912,15 @@ class ObjectsController extends AppController
 
     private function __delete($id, $hard)
     {
-        $this->MispObject->id = $id;
-        if (!$this->MispObject->exists()) {
-            return false;
-        }
-        $object = $this->MispObject->find('first', array(
-            'conditions' => array('Object.id' => $id),
-            'fields' => array('Object.*'),
-            'contain' => array(
-                'Event' => array(
-                    'fields' => array('Event.*')
-                ),
-                'Attribute' => array(
-                    'fields' => array('Attribute.*')
-                )
-            ),
-        ));
+        $options = array(
+            'conditions' => array('Object.id' => $id)
+        );
+        $object = $this->MispObject->fetchObjects($this->Auth->user(), $options);
         if (empty($object)) {
             throw new MethodNotAllowedException(__('Object not found or not authorised.'));
         }
-
-        // check for permissions
-        if (!$this->_isSiteAdmin()) {
-            if ($object['Event']['locked']) {
-                if ($this->Auth->user('org_id') != $object['Event']['org_id'] || !$this->userRole['perm_sync']) {
-                    throw new MethodNotAllowedException(__('Object not found or not authorised.'));
-                }
-            } else {
-                if ($this->Auth->user('org_id') != $object['Event']['orgc_id']) {
-                    throw new MethodNotAllowedException(__('Object not found or not authorised.'));
-                }
-            }
-        }
-        $date = new DateTime();
-        if ($hard) {
-            // For a hard delete, simply run the delete, it will cascade
-            $this->MispObject->delete($id);
-            return true;
-        } else {
-            // For soft deletes, sanitise the object first if the setting is enabled
-            if (Configure::read('Security.sanitise_attribute_on_delete')) {
-                $object['Object']['name'] = 'N/A';
-                $object['Object']['category'] = 'N/A';
-                $object['Object']['description'] = 'N/A';
-                $object['Object']['template_uuid'] = 'N/A';
-                $object['Object']['template_version'] = 0;
-                $object['Object']['comment'] = '';
-            }
-            $object['Object']['deleted'] = 1;
-            $object['Object']['timestamp'] = $date->getTimestamp();
-            $this->MispObject->save($object);
-            foreach ($object['Attribute'] as $attribute) {
-                if (Configure::read('Security.sanitise_attribute_on_delete')) {
-                    $attribute['category'] = 'Other';
-                    $attribute['type'] = 'comment';
-                    $attribute['value'] = 'deleted';
-                    $attribute['comment'] = '';
-                    $attribute['to_ids'] = 0;
-                }
-                $attribute['deleted'] = 1;
-                $attribute['timestamp'] = $date->getTimestamp();
-                $this->MispObject->Attribute->save(array('Attribute' => $attribute));
-                $this->MispObject->Event->ShadowAttribute->deleteAll(
-                    array('ShadowAttribute.old_id' => $attribute['id']),
-                    false
-                );
-            }
-            $this->MispObject->Event->unpublishEvent($object['Event']['id']);
-            $object_refs = $this->MispObject->ObjectReference->find('all', array(
-                'conditions' => array(
-                    'ObjectReference.referenced_type' => 1,
-                    'ObjectReference.referenced_id' => $id,
-                ),
-                'recursive' => -1
-            ));
-            foreach ($object_refs as $ref) {
-                $ref['ObjectReference']['deleted'] = 1;
-                $this->MispObject->ObjectReference->save($ref);
-            }
-            return true;
-        }
+        $object = $object[0];
+        return $this->MispObject->deleteObject($object, $hard=$hard);
     }
 
     public function view($id)

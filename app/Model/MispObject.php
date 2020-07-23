@@ -1055,6 +1055,63 @@ class MispObject extends AppModel
         return true;
     }
 
+    public function deleteObject($object, $hard=false, $unpublish=true)
+    {
+        $id = $object['Object']['id'];
+        if ($hard) {
+            // For a hard delete, simply run the delete, it will cascade
+            $this->delete($id);
+        } else {
+            // For soft deletes, sanitise the object first if the setting is enabled
+            if (Configure::read('Security.sanitise_attribute_on_delete')) {
+                $object['Object']['name'] = 'N/A';
+                $object['Object']['category'] = 'N/A';
+                $object['Object']['description'] = 'N/A';
+                $object['Object']['template_uuid'] = 'N/A';
+                $object['Object']['template_version'] = 0;
+                $object['Object']['comment'] = '';
+            }
+            $date = new DateTime();
+            $object['Object']['deleted'] = 1;
+            $object['Object']['timestamp'] = $date->getTimestamp();
+            $saveResult = $this->save($object);
+            if (!$saveResult) {
+                return $saveResult;
+            }
+            foreach ($object['Attribute'] as $attribute) {
+                if (Configure::read('Security.sanitise_attribute_on_delete')) {
+                    $attribute['category'] = 'Other';
+                    $attribute['type'] = 'comment';
+                    $attribute['value'] = 'deleted';
+                    $attribute['comment'] = '';
+                    $attribute['to_ids'] = 0;
+                }
+                $attribute['deleted'] = 1;
+                $attribute['timestamp'] = $date->getTimestamp();
+                $this->Attribute->save(array('Attribute' => $attribute));
+                $this->Event->ShadowAttribute->deleteAll(
+                    array('ShadowAttribute.old_id' => $attribute['id']),
+                    false
+                );
+            }
+            if ($unpublish) {
+                $this->Event->unpublishEvent($object['Event']['id']);
+            }
+            $object_refs = $this->ObjectReference->find('all', array(
+                'conditions' => array(
+                    'ObjectReference.referenced_type' => 1,
+                    'ObjectReference.referenced_id' => $id,
+                ),
+                'recursive' => -1
+            ));
+            foreach ($object_refs as $ref) {
+                $ref['ObjectReference']['deleted'] = 1;
+                $this->ObjectReference->save($ref);
+            }
+        }
+        return true;
+    }
+
     public function updateTimestamp($id, $timestamp = false)
     {
         $date = new DateTime();
