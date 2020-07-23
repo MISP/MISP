@@ -7,7 +7,7 @@ class AchievementsWidget
     * - misp_event.png --> https://user-images.githubusercontent.com/1073662/87687773-6eff6d80-c786-11ea-9dcf-009a158a276c.png
     * - misp_object.png --> https://user-images.githubusercontent.com/1073662/87687775-6f980400-c786-11ea-985c-b3c15c01d63e.png
     * - tlp_green.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/48/tlp_green.png
-    * - attack.png --> https://github.com/mitre-attack/attack-website/blob/master/attack-theme/static/images/attack-logo.png
+    * - attack.png --> https://raw.githubusercontent.com/mitre-attack/attack-website/master/attack-theme/static/images/attack-logo.png
     * - taxonomy.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/48/taxonomy.png
     * - galaxy.png --> https://raw.githubusercontent.com/MISP/intelligence-icons/master/square_png/48/galaxy.png
     *
@@ -35,48 +35,55 @@ class AchievementsWidget
     * The check function returns true if the badge is granted
     */
 
-    private $badges = array(
-         "events" => array(
-             "icon" => "/img/custom/misp_event.png",
-             "title" => __("MISP is all about sharing relevant data with each other. Start by creating your first event."),
-             "help_page" => "https://www.circl.lu/doc/misp/using-the-system/#creating-an-event"
-         ),
-         "tags" => array(
-             "icon" => "/img/custom/tlp_green.png",
-             "title" => __("By adding tags to your events, they can be categorized more easily."),
-             "help_page" => "https://www.circl.lu/doc/misp/using-the-system/#tagging"
-         ),
-         "objects" => array(
-             "icon" => "/img/custom/misp_object.png",
-             "title" => __("To enhance the structure of your events, use MISP Objects."),
-             "help_page" => "https://github.com/MISP/misp-objects/blob/main/README.md"
-         ),
-         "taxonomies" => array(
-             "icon" => "/img/custom/taxonomy.png",
-             "title" => __("Make sure to speak the same language as your counterparts by using taxonomies for your tags."),
-             "help_page" => "https://www.circl.lu/doc/misp/taxonomy/"
-         ),
-         "galaxies" => array (
-             "icon" => "/img/custom/galaxy.png",
-             "title" => __("Go above and beyond tags and taxonomies, and start using galaxies."),
-             "help_page" => "https://www.circl.lu/doc/misp/galaxy/"
-         ),
-         "attack" => array(
-             "icon" => "/img/custom/attack.png",
-             "title" => __("Add the TTPs following the MITRE ATT&CK framework to make your events even more interesting."),
-             "help_page" => "https://www.misp-project.org/2018/06/27/MISP.2.4.93.released.html"
-         )
-    );
+    private $badges;
+    private $unlocked_badges;
 
-    // The title is modified if the badge is unlocked
-    private $unlocked_badges = array(
-        "objects" => __("The data you share has now a better structure thanks to the MISP Objects you used."),
-        "events" => __("Congratulations, you have shared your first event!"),
-        "tags" => __("You have been using tags, good job!"),
-        "taxonomies" => __("Taxonomies have been used in your events."),
-        "galaxies" => __("Galaxies have no secrets for you in this Threat Sharing universe."),
-        "attack" => __("MISP & MITRE ATT&CK is a great combo.")
-    );
+    public function __construct(){
+        $this->badges = array(
+           "events" => array(
+               "icon" => "/img/custom/misp_event.png",
+               "title" => __("MISP is all about sharing relevant data with each other. Start by creating your first event."),
+               "help_page" => "https://www.circl.lu/doc/misp/using-the-system/#creating-an-event"
+           ),
+           "tags" => array(
+               "icon" => "/img/custom/tlp_green.png",
+               "title" => __("By adding tags to your events, they can be categorized more easily."),
+               "help_page" => "https://www.circl.lu/doc/misp/using-the-system/#tagging"
+           ),
+           "objects" => array(
+               "icon" => "/img/custom/misp_object.png",
+               "title" => __("To enhance the structure of your events, use MISP Objects."),
+               "help_page" => "https://github.com/MISP/misp-objects/blob/main/README.md"
+           ),
+           "taxonomies" => array(
+               "icon" => "/img/custom/taxonomy.png",
+               "title" => __("Make sure to speak the same language as your counterparts by using taxonomies for your tags."),
+               "help_page" => "https://www.circl.lu/doc/misp/taxonomy/"
+           ),
+           "galaxies" => array (
+               "icon" => "/img/custom/galaxy.png",
+               "title" => __("Go above and beyond tags and taxonomies, and start using galaxies."),
+               "help_page" => "https://www.circl.lu/doc/misp/galaxy/"
+           ),
+           "attack" => array(
+               "icon" => "/img/custom/attack.png",
+               "title" => __("Add the TTPs following the MITRE ATT&CK framework to make your events even more interesting."),
+               "help_page" => "https://www.misp-project.org/2018/06/27/MISP.2.4.93.released.html"
+           )
+      );
+
+        // The title is modified if the badge is unlocked
+        $this->unlocked_badges = array(
+            "objects" => __("The data you share has now a better structure thanks to the MISP Objects you used."),
+            "events" => __("Congratulations, you have shared your first event!"),
+            "tags" => __("You have been using tags, good job!"),
+            "taxonomies" => __("Taxonomies have been used in your events."),
+            "galaxies" => __("Galaxies have no secrets for you in this Threat Sharing universe."),
+            "attack" => __("MISP & MITRE ATT&CK is a great combo.")
+        );
+    }
+
+
 
 
 
@@ -103,16 +110,18 @@ class AchievementsWidget
                         )
                 )
         );
+        $options['fields'] = 'Event.id';
+        $options['limit'] = 1;
         $conditions = array('Event.orgc_id' => $org_id, 'Event.published' => 1, 'Event.timestamp >=' => $this->start_timestamp);
         $options['conditions'] = array('AND' => $conditions);
-        $events = $this->Event->find('count', $options);
-        return $events > 0;
+        $events = $this->Event->find('all', $options);
+        return count($events) > 0;
     }
 
     private function check_events($org_id) {
         $conditions = array('Event.orgc_id' => $org_id, 'Event.published' => 1, 'Event.timestamp >=' => $this->start_timestamp);
-        $events = $this->Event->find('count', array('conditions' => array('AND' => $conditions)));
-        return $events > 0;
+        $events = $this->Event->find('all', array('limit' => 1, 'conditions' => array('AND' => $conditions)));
+        return count($events) > 0;
     }
 
     private function check_objects($org_id) {
@@ -125,10 +134,12 @@ class AchievementsWidget
                         )
                 )
         );
+        $options['fields'] = 'Event.id';
+        $options['limit'] = 1;
         $conditions = array('Event.orgc_id' => $org_id, 'Event.published' => 1, 'Event.timestamp >=' => $this->start_timestamp);
         $options['conditions'] = array('AND' => $conditions);
-        $events = $this->Event->find('count', $options);
-        return $events > 0;
+        $events = $this->Event->find('all', $options);
+        return count($events) > 0;
     }
 
     private function lookup_tag_name_value($org_id, $value) {
@@ -148,10 +159,12 @@ class AchievementsWidget
                             )
                 )
         );
+        $options['fields'] = 'Event.id';
+        $options['limit'] = 1;
         $conditions = array('Event.orgc_id' => $org_id, 'Event.published' => 1, 'Event.timestamp >=' => $this->start_timestamp, 'Tag.name LIKE' => $value);
         $options['conditions'] = array('AND' => $conditions);
-        $events = $this->Event->find('count', $options);
-        return $events > 0;
+        $events = $this->Event->find('all', $options);
+        return count($events) > 0;
     }
 
     public function handler($user, $options = array())
