@@ -825,7 +825,7 @@ class MispObject extends AppModel
                                     if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
                                         $newAttribute[$f] = 0;
                                     }
-                                    if ($newAttribute[$f] != $originalAttribute[$f]) {
+                                    if (isset($newAttribute[$f]) && $newAttribute[$f] != $originalAttribute[$f]) {
                                         $different = true;
                                     }
                                     // Set seen of object at attribute level
@@ -849,20 +849,7 @@ class MispObject extends AppModel
                                     $newAttribute['event_id'] = $object['Object']['event_id'];
                                     $newAttribute['object_id'] = $object['Object']['id'];
                                     $newAttribute['timestamp'] = $date->getTimestamp();
-                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
-                                        'category',
-                                        'value',
-                                        'to_ids',
-                                        'distribution',
-                                        'sharing_group_id',
-                                        'comment',
-                                        'timestamp',
-                                        'object_id',
-                                        'event_id',
-                                        'disable_correlation',
-                                        'first_seen',
-                                        'last_seen'
-                                    ));
+                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => $this->Attribute->editableFieds));
                                 }
                                 unset($object['Attribute'][$origKey]);
                                 continue 2;
@@ -897,7 +884,7 @@ class MispObject extends AppModel
                 }
                 foreach ($object['Attribute'] as $origKey => $originalAttribute) {
                     $originalAttribute['deleted'] = 1;
-                    $this->Event->Attribute->save($originalAttribute);
+                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => $this->Attribute->editableFieds));
                 }
             }
         } else { // we only add the new attribute
