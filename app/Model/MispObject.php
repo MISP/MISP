@@ -825,7 +825,7 @@ class MispObject extends AppModel
                                     if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
                                         $newAttribute[$f] = 0;
                                     }
-                                    if ($newAttribute[$f] != $originalAttribute[$f]) {
+                                    if (isset($newAttribute[$f]) && $newAttribute[$f] != $originalAttribute[$f]) {
                                         $different = true;
                                     }
                                     // Set seen of object at attribute level
@@ -849,20 +849,7 @@ class MispObject extends AppModel
                                     $newAttribute['event_id'] = $object['Object']['event_id'];
                                     $newAttribute['object_id'] = $object['Object']['id'];
                                     $newAttribute['timestamp'] = $date->getTimestamp();
-                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
-                                        'category',
-                                        'value',
-                                        'to_ids',
-                                        'distribution',
-                                        'sharing_group_id',
-                                        'comment',
-                                        'timestamp',
-                                        'object_id',
-                                        'event_id',
-                                        'disable_correlation',
-                                        'first_seen',
-                                        'last_seen'
-                                    ));
+                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => $this->Attribute->editableFieds));
                                 }
                                 unset($object['Attribute'][$origKey]);
                                 continue 2;
@@ -897,7 +884,7 @@ class MispObject extends AppModel
                 }
                 foreach ($object['Attribute'] as $origKey => $originalAttribute) {
                     $originalAttribute['deleted'] = 1;
-                    $this->Event->Attribute->save($originalAttribute);
+                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => $this->Attribute->editableFieds));
                 }
             }
         } else { // we only add the new attribute
@@ -1050,6 +1037,63 @@ class MispObject extends AppModel
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
                 $result = $this->Attribute->editAttribute($attribute, $eventId, $user, $object['id'], $log, $force);
+            }
+        }
+        return true;
+    }
+
+    public function deleteObject($object, $hard=false, $unpublish=true)
+    {
+        $id = $object['Object']['id'];
+        if ($hard) {
+            // For a hard delete, simply run the delete, it will cascade
+            $this->delete($id);
+        } else {
+            // For soft deletes, sanitise the object first if the setting is enabled
+            if (Configure::read('Security.sanitise_attribute_on_delete')) {
+                $object['Object']['name'] = 'N/A';
+                $object['Object']['category'] = 'N/A';
+                $object['Object']['description'] = 'N/A';
+                $object['Object']['template_uuid'] = 'N/A';
+                $object['Object']['template_version'] = 0;
+                $object['Object']['comment'] = '';
+            }
+            $date = new DateTime();
+            $object['Object']['deleted'] = 1;
+            $object['Object']['timestamp'] = $date->getTimestamp();
+            $saveResult = $this->save($object);
+            if (!$saveResult) {
+                return $saveResult;
+            }
+            foreach ($object['Attribute'] as $attribute) {
+                if (Configure::read('Security.sanitise_attribute_on_delete')) {
+                    $attribute['category'] = 'Other';
+                    $attribute['type'] = 'comment';
+                    $attribute['value'] = 'deleted';
+                    $attribute['comment'] = '';
+                    $attribute['to_ids'] = 0;
+                }
+                $attribute['deleted'] = 1;
+                $attribute['timestamp'] = $date->getTimestamp();
+                $this->Attribute->save(array('Attribute' => $attribute));
+                $this->Event->ShadowAttribute->deleteAll(
+                    array('ShadowAttribute.old_id' => $attribute['id']),
+                    false
+                );
+            }
+            if ($unpublish) {
+                $this->Event->unpublishEvent($object['Event']['id']);
+            }
+            $object_refs = $this->ObjectReference->find('all', array(
+                'conditions' => array(
+                    'ObjectReference.referenced_type' => 1,
+                    'ObjectReference.referenced_id' => $id,
+                ),
+                'recursive' => -1
+            ));
+            foreach ($object_refs as $ref) {
+                $ref['ObjectReference']['deleted'] = 1;
+                $this->ObjectReference->save($ref);
             }
         }
         return true;
