@@ -3942,7 +3942,8 @@ class Event extends AppModel
                     $tag_id = $this->EventTag->Tag->captureTag($tag, $user);
                     if ($tag_id) {
                         $nothingToChange = false;
-                        $result = $this->EventTag->attachTagToEvent($this->id, $tag_id, $nothingToChange);
+                        $tag['id'] = $tag_id;
+                        $result = $this->EventTag->handleEventTag($this->id, $tag, $nothingToChange);
                         if ($result && !$nothingToChange) {
                             $changed = true;
                         }

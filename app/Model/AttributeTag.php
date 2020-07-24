@@ -85,6 +85,30 @@ class AttributeTag extends AppModel
         $this->delete($id);
     }
 
+    public function handleAttributeTags($attribute, $event_id)
+    {
+        if (isset($attribute['Tag'])) {
+            foreach ($attribute['Tag'] as $tag) {
+                if (!isset($tag['id'])) {
+                    $tag_id = $this->Tag->lookupTagIdFromName($tag['name']);
+                    $tag['id'] = $tag_id;
+                }
+                if ($tag['id'] > 0) {
+                    $this->handleAttributeTag($attribute['id'], $event_id, $tag);
+                }
+            }
+        }
+    }
+
+    public function handleAttributeTag($attribute_id, $event_id, $tag)
+    {
+        if (empty($tag['deleted'])) {
+            $this->attachTagToAttribute($attribute_id, $event_id, $tag['id']);
+        } else {
+            $this->detachTagFromAttribute($attribute_id, $event_id, $tag['id']);
+        }
+    }
+
     public function attachTagToAttribute($attribute_id, $event_id, $tag_id)
     {
         $existingAssociation = $this->find('first', array(
@@ -101,6 +125,26 @@ class AttributeTag extends AppModel
             }
         }
         return true;
+    }
+
+    public function detachTagFromAttribute($attribute_id, $event_id, $tag_id)
+    {
+        $existingAssociation = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'tag_id' => $tag_id,
+                'event_id' => $event_id,
+                'attribute_id' => $attribute_id
+            )
+        ));
+
+        if (!empty($existingAssociation)) {
+            $result = $this->delete($existingAssociation['AttributeTag']['id']);
+            if ($result) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // This function help mirroring the tags at attribute level. It will delete tags that are not present on the remote attribute
