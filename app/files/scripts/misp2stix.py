@@ -29,7 +29,7 @@ from cybox.objects.network_connection_object import NetworkConnection
 from cybox.objects.network_socket_object import NetworkSocket
 from cybox.objects.pipe_object import Pipe
 from cybox.objects.port_object import Port
-from cybox.objects.process_object import Process
+from cybox.objects.process_object import ChildPIDList, Process
 from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.system_object import System, NetworkInterface, NetworkInterfaceList
 from cybox.objects.unix_user_account_object import UnixUserAccount
@@ -919,8 +919,12 @@ class StixBuilder(object):
                 setattr(process_object, feature.replace('-', '_'), attributes_dict[feature][0])
         if 'child-pid' in attributes_dict:
             # child-pid = attributes['child-pid']
-            for child in attributes['child-pid']:
-                process_object.child_pid_list.append(child)
+            for child in attributes_dict['child-pid']:
+                try:
+                    process_object.child_pid_list.append(child)
+                except AttributeError:
+                    process_object.child_pid_list = ChildPIDList()
+                    process_object.child_pid_list.append(child)
         # if 'port' in attributes_dict:
         #     for port in attributes['port']:
         #         process_object.port_list.append(self.create_port_object(port['value']))
