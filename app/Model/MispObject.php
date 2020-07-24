@@ -850,6 +850,9 @@ class MispObject extends AppModel
                                     $newAttribute['object_id'] = $object['Object']['id'];
                                     $newAttribute['timestamp'] = $date->getTimestamp();
                                     $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => $this->Attribute->editableFieds));
+                                    if ($result) {
+                                        $this->Event->Attribute->AttributeTag->handleAttributeTags($newAttribute, $newAttribute['event_id']);
+                                    }
                                 }
                                 unset($object['Attribute'][$origKey]);
                                 continue 2;
@@ -878,7 +881,11 @@ class MispObject extends AppModel
                             $newAttribute['distribution'] = 5;
                         }
                     }
-                    $this->Event->Attribute->save($newAttribute);
+                    $saveResult = $this->Event->Attribute->save($newAttribute);
+                    if ($saveResult) {
+                        $newAttribute['id'] = $this->Event->Attribute->id;
+                        $this->Event->Attribute->AttributeTag->handleAttributeTags($newAttribute, $newAttribute['event_id']);
+                    }
                     $attributeArrays['add'][] = $newAttribute;
                     unset($objectToSave['Attribute'][$newKey]);
                 }

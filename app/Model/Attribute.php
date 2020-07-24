@@ -3732,7 +3732,12 @@ class Attribute extends AppModel
             }
             unset($attribute['Attachment']);
             $this->create();
-            $saveResult = $saveResult && $this->save($attribute);
+            $currentSave = $this->save($attribute);
+            $saveResult = $saveResult && $currentSave;
+            if ($currentSave) {
+                $attribute['id'] = $this->id;
+                $this->Attribute->AttributeTag->handleAttributeTags($attribute, $attribute['event_id']);
+            }
         }
         return $saveResult;
     }
