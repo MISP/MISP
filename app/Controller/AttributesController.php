@@ -2900,6 +2900,9 @@ class AttributesController extends AppController
 
     public function toggleCorrelation($id)
     {
+        if (!$this->_isSiteAdmin() && !Configure::read('MISP.allow_disabling_correlation')) {
+            throw new MethodNotAllowedException(__('Disabling the correlation is not permitted on this instance.'));
+        }
         $attribute = $this->Attribute->find('first', array(
             'conditions' => array('Attribute.id' => $id),
             'recursive' => -1,
