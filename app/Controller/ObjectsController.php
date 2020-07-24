@@ -56,33 +56,8 @@ class ObjectsController extends AppController
             }
         }
         if (!empty($sharing_groups)) {
-            $sgs = $this->MispObject->SharingGroup->find('all', array(
-                'conditions' => array('SharingGroup.id' => array_keys($sharing_groups)),
-                'recursive' => -1,
-                'fields' => array('SharingGroup.id', 'SharingGroup.name'),
-                'order' => false
-            ));
-            foreach ($sgs as $sg) {
-                $sharing_groups[$sg['SharingGroup']['id']] = $sg;
-            }
-            foreach ($sharing_groups as $k => $sg) {
-                if (empty($sg)) {
-                    throw new NotFoundException(__('Invalid sharing group.'));
-                }
-            }
-            $this->set('sharing_groups', $sharing_groups);
-        }
-        if ($this->request->data['Object']['distribution'] == 4) {
-            $sg = $this->MispObject->SharingGroup->find('first', array(
-                'conditions' => array('SharingGroup.id' => $this->request->data['Object']['sharing_group_id']),
-                'recursive' => -1,
-                'fields' => array('SharingGroup.id', 'SharingGroup.name'),
-                'order' => false
-            ));
-            if (empty($sg)) {
-                throw new NotFoundException(__('Invalid sharing group.'));
-            }
-            $this->set('sg', $sg);
+            $sgs = $this->MispObject->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', false, array_keys($sharing_groups));
+            $this->set('sharing_groups', $sgs);
         }
         $multiple_template_elements = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[multiple=true]'));
         $multiple_attribute_allowed = array();
@@ -366,13 +341,14 @@ class ObjectsController extends AppController
 
     public function edit($id, $update_template_available=false, $onlyAddNewAttribute=false)
     {
-        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
-        $object = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
+        $object = $this->MispObject->fetchObjects($this->Auth->user(), array(
+            'conditions' => $this->__objectIdToConditions($id),
+        ));
         if (empty($object)) {
             throw new NotFoundException(__('Invalid object.'));
         }
         $object = $object[0];
-        $event = $this->MispObject->Event->fetchEvent($this->Auth->user(), array('eventid' => $object['Event']['id'], 'metadata' => 1))[0];
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $object['Event']['id']);
         if (!$this->__canModifyEvent($event)) {
             throw new ForbiddenException(__('Insufficient permissions to edit this object.'));
         }
@@ -520,21 +496,11 @@ class ObjectsController extends AppController
     // ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
     public function editField($id)
     {
-        if (Validation::uuid($id)) {
-            $this->MispObject->recursive = -1;
-            $temp = $this->MispObject->findByUuid($id);
-            if ($temp == null) {
-                throw new NotFoundException(__('Invalid object'));
-            }
-            $id = $temp['Object']['id'];
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid object id.'));
-        }
         if ((!$this->request->is('post') && !$this->request->is('put'))) {
             throw new MethodNotAllowedException(__('This function can only be accessed via POST or PUT'));
         }
         $object = $this->MispObject->find('first', array(
-            'conditions' => array('Object.id' => $id),
+            'conditions' => $this->__objectIdToConditions($id),
             'contain' => 'Event',
             'recursive' => -1
         ));
@@ -575,18 +541,10 @@ class ObjectsController extends AppController
         $object['Object']['timestamp'] = $date->getTimestamp();
         $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements);
         if ($this->MispObject->save($object)) {
-            $event = $this->MispObject->Event->find('first', array(
-                'recursive' => -1,
-                'fields' => array('id', 'published', 'timestamp', 'info', 'uuid'),
-                'conditions' => array(
-                    'id' => $object['Object']['event_id'],
-            )));
-            $event['Event']['timestamp'] = $date->getTimestamp();
-            $event['Event']['published'] = 0;
+            $this->MispObject->Event->unpublishEvent($object['Event']['id']);
             if ($seen_changed) {
                 $this->MispObject->Attribute->saveAttributes($object['Attribute'], $this->Auth->user());
             }
-            $this->MispObject->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
             return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'Field updated');
         } else {
             return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $this->MispObject->validationErrors);
@@ -817,14 +775,13 @@ class ObjectsController extends AppController
 
     public function delete($id, $hard = false)
     {
-        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if (!$this->userRole['perm_modify']) {
             throw new ForbiddenException(__('You don\'t have permissions to delete objects.'));
         }
         $object = $this->MispObject->find('first', array(
             'recursive' => -1,
-            'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array('Object.id' => $id),
+            'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id'),
+            'conditions' => $this->__objectIdToConditions($id),
             'contain' => array(
                 'Event'
             )
@@ -840,7 +797,7 @@ class ObjectsController extends AppController
             $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
         }
         if ($this->request->is('post') || $this->request->is('delete')) {
-            if ($this->__delete($id, $hard)) {
+            if ($this->__delete($object['Object']['id'], $hard)) {
                 $message = 'Object deleted.';
                 if ($this->request->is('ajax')) {
                     return new CakeResponse(
@@ -859,12 +816,12 @@ class ObjectsController extends AppController
                     return $this->RestResponse->saveSuccessResponse(
                         'Objects',
                         'delete',
-                        $id,
+                        $eventId,
                         $this->response->type()
                     );
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Event']['id']));
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                 }
             } else {
                 $message = 'Object could not be deleted.';
@@ -898,7 +855,7 @@ class ObjectsController extends AppController
             if ($this->request->is('ajax') && $this->request->is('get')) {
                 $this->set('hard', $hard);
                 $this->set('id', $id);
-                $this->set('event_id', $object['Event']['id']);
+                $this->set('event_id', $eventId);
                 $this->render('ajax/delete');
             }
         }
@@ -919,9 +876,10 @@ class ObjectsController extends AppController
 
     public function view($id)
     {
-        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if ($this->_isRest()) {
-            $objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
+            $objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
+                'conditions' => $this->__objectIdToConditions($id),
+            ));
             if (!empty($objects)) {
                 $object = $objects[0];
                 if (!empty($object['Event'])) {
@@ -1163,15 +1121,18 @@ class ObjectsController extends AppController
         $this->set('event_id', $event_id);
     }
 
-    function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
+    public function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
     {
         $event = $this->MispObject->Event->find('first', array(
             'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.publish_timestamp'),
+            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id', 'Event.publish_timestamp'),
             'conditions' => array('Event.id' => $event_id)
         ));
-        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+        if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $hard_delete_attribute = $event['Event']['publish_timestamp'] == 0;
         if (!$this->request->is('ajax')) {
@@ -1191,12 +1152,7 @@ class ObjectsController extends AppController
             $selected_attribute_ids = json_decode($this->request->data['Object']['selectedAttributeIds'], true);
             $selected_object_relation_mapping = json_decode($this->request->data['Object']['selectedObjectRelationMapping'], true);
             if ($distribution == 4) {
-                $sg = $this->MispObject->SharingGroup->find('first', array(
-                    'conditions' => array('SharingGroup.id' => $sharing_group_id),
-                    'recursive' => -1,
-                    'fields' => array('SharingGroup.id', 'SharingGroup.name'),
-                    'order' => false
-                ));
+                $sg = $this->MispObject->SharingGroup->fetchSG($sharing_group_id, $this->Auth->user());
                 if (empty($sg)) {
                     throw new NotFoundException(__('Invalid sharing group.'));
                 }
@@ -1283,5 +1239,17 @@ class ObjectsController extends AppController
             $this->set('skipped_attributes', $skipped_attributes);
             $this->set('object_references', $object_references);
         }
+    }
+
+    private function __objectIdToConditions($id)
+    {
+        if (is_numeric($id)) {
+            $conditions = array('Object.id' => $id);
+        } elseif (Validation::uuid($id)) {
+            $conditions = array('Object.uuid' => $id);
+        } else {
+            throw new NotFoundException(__('Invalid object ID.'));
+        }
+        return $conditions;
     }
 }
