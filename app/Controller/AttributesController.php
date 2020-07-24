@@ -881,7 +881,7 @@ class AttributesController extends AppController
                 throw new NotFoundException(__('Invalid Event.'));
             }
             if ($existingAttribute['Attribute']['object_id']) {
-                $result = $this->Attribute->save($this->request->data, array('fieldList' => $this->Attribute->editableFieds));
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => $this->Attribute->editableFields));
                 if ($result) {
                     $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $event['Event']['id'], $capture=true);
                 }
