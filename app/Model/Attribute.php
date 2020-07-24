@@ -4267,25 +4267,11 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
-        $fieldList = array(
-            'event_id',
-            'category',
-            'type',
-            'value',
-            'value1',
-            'value2',
-            'to_ids',
-            'uuid',
-            'revision',
-            'distribution',
-            'timestamp',
-            'comment',
-            'sharing_group_id',
-            'deleted',
-            'disable_correlation',
-            'first_seen',
-            'last_seen'
-        );
+        $fieldList = $this->editableFields;
+        if (empty($existingAttribute)) {
+            $addableFieldList = array('event_id', 'type', 'uuid');
+            $fieldList = array_merge($fieldList, $addableFieldList);
+        }
         if ($objectId) {
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
