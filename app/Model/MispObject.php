@@ -872,7 +872,7 @@ class MispObject extends AppModel
                             $newAttribute['value'] = $forcedSeenOnElements['last_seen'];
                         }
                     }
-                    if (!isset($newAttribute['timestamp'])) {
+                    if (!isset($newAttribute['distribution'])) {
                         $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
                         if ($newAttribute['distribution'] == 'event') {
                             $newAttribute['distribution'] = 5;
@@ -906,7 +906,7 @@ class MispObject extends AppModel
                 $newAttribute['last_seen'] = $object['Object']['last_seen'];
                 $different = true;
             }
-            if (!isset($newAttribute['timestamp'])) {
+            if (!isset($newAttribute['distribution'])) {
                 $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
                 if ($newAttribute['distribution'] == 'event') {
                     $newAttribute['distribution'] = 5;
