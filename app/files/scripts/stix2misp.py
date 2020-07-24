@@ -38,15 +38,6 @@ _MISP_objects_path = '{_MISP_dir}/app/files/misp-objects/objects'.format(_MISP_d
 sys.path.append(_PyMISP_dir)
 from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
 
-cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
-                        "EmailMessage": "email", "NetworkConnection": "network-connection",
-                        "NetworkSocket": "network-socket", "Process": "process",
-                        "UnixUserAccount": "user-account", "UserAccount": "user-account",
-                        "WindowsUserAccount": "user-account", "x509Certificate": "x509",
-                        "Whois": "whois"}
-
-threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
-
 with open("{_PyMISP_dir}/pymisp/data/describeTypes.json".format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
     categories = json.loads(f.read())['result'].get('categories')
 
@@ -84,7 +75,6 @@ class StixParser():
         self.misp_event.distribution = event_distribution
         self.__attribute_distribution = attribute_distribution
         self.from_misp = from_misp
-        self.load_mapping()
 
     def build_misp_event(self, event):
         self.build_misp_dict(event)
@@ -101,53 +91,12 @@ class StixParser():
         with open(self.outputname, 'wt', encoding='utf-8') as f:
             f.write(eventDict)
 
-    # Load the mapping dictionary for STIX object types
-    def load_mapping(self):
-        self.attribute_types_mapping = {
-            "AccountObjectType": 'handle_credential',
-            'AddressObjectType': 'handle_address',
-            "ArtifactObjectType": 'handle_attachment',
-            "ASObjectType": 'handle_as',
-            "CustomObjectType": 'handle_custom',
-            "DNSRecordObjectType": 'handle_dns',
-            'DomainNameObjectType': 'handle_domain_or_url',
-            'EmailMessageObjectType': 'handle_email_attribute',
-            'FileObjectType': 'handle_file',
-            'HostnameObjectType': 'handle_hostname',
-            'HTTPSessionObjectType': 'handle_http',
-            'LinkObjectType': 'handle_link',
-            'MutexObjectType': 'handle_mutex',
-            'NetworkConnectionObjectType': 'handle_network_connection',
-            'NetworkSocketObjectType': 'handle_network_socket',
-            'PDFFileObjectType': 'handle_file',
-            'PipeObjectType': 'handle_pipe',
-            'PortObjectType': 'handle_port',
-            'ProcessObjectType': 'handle_process',
-            'SocketAddressObjectType': 'handle_socket_address',
-            'SystemObjectType': 'handle_system',
-            'UnixUserAccountObjectType': 'handle_unix_user',
-            'URIObjectType': 'handle_domain_or_url',
-            'UserAccountObjectType': 'handle_user',
-            "WhoisObjectType": 'handle_whois',
-            "WindowsFileObjectType": 'handle_file',
-            'WindowsRegistryKeyObjectType': 'handle_regkey',
-            "WindowsExecutableFileObjectType": 'handle_pe',
-            "WindowsServiceObjectType": 'handle_windows_service',
-            'WindowsUserAccountObjectType': 'handle_windows_user',
-            "X509CertificateObjectType": 'handle_x509'
-        }
-
-        self.marking_mapping = {
-            'AIS:AISMarkingStructure': 'parse_AIS_marking',
-            'tlpMarking:TLPMarkingStructureType': 'parse_TLP_marking'
-        }
-
     def parse_marking(self, handling):
         tags = []
         if hasattr(handling, 'marking_structures') and handling.marking_structures:
             for marking in handling.marking_structures:
                 try:
-                    tags.extend(getattr(self, self.marking_mapping[marking._XSI_TYPE])(marking))
+                    tags.extend(getattr(self, stix2misp_mapping.marking_mapping[marking._XSI_TYPE])(marking))
                 except KeyError:
                     print(marking._XSI_TYPE, file=sys.stderr)
                     continue
@@ -213,17 +162,12 @@ class StixParser():
     # Define type & value of an attribute or object in MISP
     def handle_attribute_type(self, properties, is_object=False, title=None, observable_id=None):
         xsi_type = properties._XSI_TYPE
-        # try:
         args = [properties]
         if xsi_type in ("FileObjectType", "PDFFileObjectType", "WindowsFileObjectType"):
             args.append(is_object)
         elif xsi_type == "ArtifactObjectType":
             args.append(title)
-        return getattr(self, self.attribute_types_mapping[xsi_type])(*args)
-        # except AttributeError:
-        #     # ATM USED TO TEST TYPES
-        #     print("Unparsed type: {}".format(xsi_type))
-        #     sys.exit(1)
+        return getattr(self, stix2misp_mapping.attribute_types_mapping[xsi_type])(*args)
 
     # Return type & value of an ip address attribute
     @staticmethod
@@ -648,7 +592,7 @@ class StixParser():
                 attribute.uuid = referenced_uuid
                 self.misp_event.add_attribute(**attribute)
                 misp_object.add_reference(referenced_uuid, 'observable', None, **attribute)
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
 
     # Parse attributes of a portable executable, create the corresponding object,
     # and return its uuid to build the reference for the file object generated at the same time
@@ -673,13 +617,13 @@ class StixParser():
             if file_header.size_of_optional_header:
                 header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
                                                "value": file_header.size_of_optional_header.value})
-            self.misp_event.add_object(**header_object)
+            self.misp_event.add_object(header_object)
             misp_object.add_reference(header_object.uuid, 'header-of')
         if properties.sections:
             for section in properties.sections:
                 section_uuid = self.parse_pe_section(section)
                 misp_object.add_reference(section_uuid, 'includes')
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
         return {"pe_uuid": misp_object.uuid}
 
     # Parse attributes of a portable executable section, create the corresponding object,
@@ -765,7 +709,7 @@ class StixParser():
             if "process_uuid" in compl_data:
                 for uuid in compl_data["process_uuid"]:
                     misp_object.add_reference(uuid, 'connected-to')
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
 
     ################################################################################
     ##              GALAXY PARSING FUNCTIONS USED BY BOTH SUBCLASSES              ##
@@ -1019,7 +963,7 @@ class StixFromMISPParser(StixParser):
                     _, category, attribute_type = entry_type.split('[')
                     self.misp_event.add_attribute(**{'type': attribute_type[:-1], 'category': category[:-1], 'value': entry_value})
                 elif entry_type == "Event Threat Level":
-                    self.misp_event.threat_level_id = threat_level_mapping[entry_value]
+                    self.misp_event.threat_level_id = stix2misp_mapping.threat_level_mapping[entry_value]
             except ValueError:
                 continue
 
@@ -1185,8 +1129,8 @@ class StixFromMISPParser(StixParser):
         if relationship == "network":
             if "ObservableComposition" in observable_id:
                 return observable_id.split("_")[0].split(":")[1]
-            return cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
-        return cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
+            return stix2misp_mapping.cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
+        return stix2misp_mapping.cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
 
     def fetch_event_info(self):
         info = self.get_event_info()
