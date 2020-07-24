@@ -84,17 +84,31 @@ class AttributeTag extends AppModel
     {
         $this->delete($id);
     }
-
-    public function handleAttributeTags($attribute, $event_id)
+    
+    /**
+     * handleAttributeTags
+     *
+     * @param  array $attribute
+     * @param  int   $event_id
+     * @param  bool  $capture
+     * @return void
+     */
+    public function handleAttributeTags($user, array $attribute, $event_id, $capture = false)
     {
-        if (isset($attribute['Tag'])) {
-            foreach ($attribute['Tag'] as $tag) {
-                if (!isset($tag['id'])) {
-                    $tag_id = $this->Tag->lookupTagIdFromName($tag['name']);
-                    $tag['id'] = $tag_id;
-                }
-                if ($tag['id'] > 0) {
-                    $this->handleAttributeTag($attribute['id'], $event_id, $tag);
+        if ($user['Role']['perm_tagger']) {
+            if (isset($attribute['Tag'])) {
+                foreach ($attribute['Tag'] as $tag) {
+                    if (!isset($tag['id'])) {
+                        if ($capture && $user !== false) {
+                            $tag_id = $this->Tag->captureTag($tag, $user);
+                        } else {
+                            $tag_id = $this->Tag->lookupTagIdFromName($tag['name']);
+                        }
+                        $tag['id'] = $tag_id;
+                    }
+                    if ($tag['id'] > 0) {
+                        $this->handleAttributeTag($attribute['id'], $event_id, $tag);
+                    }
                 }
             }
         }

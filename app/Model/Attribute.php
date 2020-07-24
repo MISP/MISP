@@ -3712,7 +3712,7 @@ class Attribute extends AppModel
         }
     }
 
-    public function saveAttributes($attributes)
+    public function saveAttributes($attributes, $user)
     {
         $defaultDistribution = 5;
         if (Configure::read('MISP.default_attribute_distribution') != null) {
@@ -3736,7 +3736,7 @@ class Attribute extends AppModel
             $saveResult = $saveResult && $currentSave;
             if ($currentSave) {
                 $attribute['id'] = $this->id;
-                $this->Attribute->AttributeTag->handleAttributeTags($attribute, $attribute['event_id']);
+                $this->AttributeTag->handleAttributeTags($user, $attribute, $attribute['event_id'], $capture=true);
             }
         }
         return $saveResult;
