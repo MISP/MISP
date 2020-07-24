@@ -29,7 +29,7 @@ from cybox.objects.network_connection_object import NetworkConnection
 from cybox.objects.network_socket_object import NetworkSocket
 from cybox.objects.pipe_object import Pipe
 from cybox.objects.port_object import Port
-from cybox.objects.process_object import ChildPIDList, ImageInfo, Process
+from cybox.objects.process_object import ChildPIDList, ImageInfo, PortList, Process
 from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.system_object import System, NetworkInterface, NetworkInterfaceList
 from cybox.objects.unix_user_account_object import UnixUserAccount
@@ -924,6 +924,14 @@ class StixBuilder(object):
                 except AttributeError:
                     process_object.child_pid_list = ChildPIDList()
                     process_object.child_pid_list.append(child)
+        if 'port' in attributes_dict:
+            for port in attributes_dict['port']:
+                port_object = self.create_port_object(port)
+                try:
+                    process_object.port_list.append(port_object)
+                except AttributeError:
+                    process_object.port_list = PortList()
+                    process_object.port_list.append(port_object)
         for key, feature in zip(('image', 'command-line'), ('file_name', 'command_line')):
             if key in attributes_dict:
                 try:
