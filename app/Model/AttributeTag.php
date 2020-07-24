@@ -99,7 +99,7 @@ class AttributeTag extends AppModel
             if (isset($attribute['Tag'])) {
                 foreach ($attribute['Tag'] as $tag) {
                     if (!isset($tag['id'])) {
-                        if ($capture && $user !== false) {
+                        if ($capture) {
                             $tag_id = $this->Tag->captureTag($tag, $user);
                         } else {
                             $tag_id = $this->Tag->lookupTagIdFromName($tag['name']);
