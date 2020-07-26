@@ -2890,4 +2890,31 @@ class AppModel extends Model
     {
         return Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
     }
+
+    /**
+     * Decodes JSON string and throws exception if string is not valid JSON or if is not array.
+     *
+     * @param string $json
+     * @return array
+     * @throws JsonException
+     * @throws UnexpectedValueException
+     */
+    protected function jsonDecode($json)
+    {
+        if (defined('JSON_THROW_ON_ERROR')) {
+            // JSON_THROW_ON_ERROR is supported since PHP 7.3
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } else {
+            $decoded = json_decode($json, true);
+            if ($decoded === null) {
+                throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+            }
+        }
+
+        if (!is_array($decoded)) {
+            throw new UnexpectedValueException('JSON must be array type, get ' . gettype($decoded));
+        }
+
+        return $decoded;
+    }
 }

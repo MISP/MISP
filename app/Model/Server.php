@@ -2709,12 +2709,12 @@ class Server extends AppModel
         if (empty($filter_rules)) {
             return $final;
         }
-        $filter_rules = json_decode($filter_rules, true);
+        $filter_rules = $this->jsonDecode($filter_rules);
         $url_params = array();
         foreach ($filter_rules as $field => $rules) {
             $temp = array();
             if ($field === 'url_params') {
-                $url_params = json_decode($rules, true);
+                $url_params = $this->jsonDecode($rules);
             } else {
                 foreach ($rules as $operator => $elements) {
                     foreach ($elements as $k => $element) {
@@ -4249,7 +4249,7 @@ class Server extends AppModel
             }
             if ($response->code == '405') {
                 try {
-                    $responseText = json_decode($response->body, true)['message'];
+                    $responseText = $this->jsonDecode($response->body)['message'];
                 } catch (Exception $e) {
                     return array('status' => 3);
                 }
@@ -4452,7 +4452,12 @@ class Server extends AppModel
 
     public function isJson($string)
     {
-        return (json_last_error() == JSON_ERROR_NONE);
+        try {
+            $this->jsonDecode($string);
+            return true;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     public function captureServer($server, $user)
@@ -4995,9 +5000,19 @@ class Server extends AppModel
         $expected = array('stix' => '>1.2.0.9', 'cybox' => '>2.1.0.21', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>2.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
-        $scriptResult = json_decode($scriptResult, true);
-        if ($scriptResult == null) {
-            return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'stix2' => array('expected' => $expected['stix2']), 'pymisp' => array('expected' => $expected['pymisp']));
+        try {
+            $scriptResult = $this->jsonDecode($scriptResult);
+        } catch (Exception $e) {
+            $this->logException('Invalid JSON returned from stixtest', $e);
+            return array(
+                'operational' => 0,
+                'stix' => array('expected' => $expected['stix']),
+                'cybox' => array('expected' => $expected['cybox']),
+                'mixbox' => array('expected' => $expected['mixbox']),
+                'maec' => array('expected' => $expected['maec']),
+                'stix2' => array('expected' => $expected['stix2']),
+                'pymisp' => array('expected' => $expected['pymisp'])
+            );
         }
         $scriptResult['operational'] = $scriptResult['success'];
         if ($scriptResult['operational'] == 0) {
@@ -5944,11 +5959,14 @@ class Server extends AppModel
         }
         if ($response->isOk()) {
             try {
-                $response = json_decode($response->body, true);
+                $response = $this->jsonDecode($response->body);
             } catch (Exception $e) {
+                $message = 'Invalid response received from the remote instance.';
+
+                $this->logException($message, $e);
+
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
-                $message = 'Invalid response received from the remote instance.';
                 $this->Log->save(array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',
