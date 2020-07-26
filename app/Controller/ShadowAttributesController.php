@@ -290,11 +290,6 @@ class ShadowAttributesController extends AppController
         } else {
             $this->set('ajax', false);
         }
-        if (empty($eventId)) {
-            if (empty($event)) {
-                throw new NotFoundException(__('Invalid Event'));
-            }
-        }
         $event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
@@ -457,14 +452,15 @@ class ShadowAttributesController extends AppController
         $categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
-        foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+
+        $fieldDesc = ['category' => [], 'type' => []];
+        foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
+            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
-        foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
+            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
-        $this->set('info', $info);
-        $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
+        $this->set('fieldDesc', $fieldDesc);
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
     }
 

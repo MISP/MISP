@@ -38,7 +38,7 @@
     <div class="input clear"></div>
     <?php
         echo $this->Form->input('to_ids', array(
-                'label' => __('IDS Signature?'),
+                'label' => __('For Intrusion Detection System'),
         ));
         echo $this->Form->input('first_seen', array(
             'type' => 'text',
