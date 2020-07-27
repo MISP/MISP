@@ -40,7 +40,7 @@ class Attribute extends AppModel
         'id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'to_ids', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'comment', 'deleted', 'disable_correlation', 'first_seen', 'last_seen'
     );
 
-    public $editableFieds = array('timestamp', 'category', 'value', 'value1', 'value2', 'to_ids', 'comment', 'distribution', 'sharing_group_id', 'deleted', 'disable_correlation', 'first_seen', 'last_seen');
+    public $editableFields = array('timestamp', 'category', 'value', 'value1', 'value2', 'to_ids', 'comment', 'distribution', 'sharing_group_id', 'deleted', 'disable_correlation', 'first_seen', 'last_seen');
 
     public $distributionDescriptions = array(
         0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
@@ -3712,7 +3712,7 @@ class Attribute extends AppModel
         }
     }
 
-    public function saveAttributes($attributes)
+    public function saveAttributes($attributes, $user)
     {
         $defaultDistribution = 5;
         if (Configure::read('MISP.default_attribute_distribution') != null) {
@@ -3732,7 +3732,12 @@ class Attribute extends AppModel
             }
             unset($attribute['Attachment']);
             $this->create();
-            $saveResult = $saveResult && $this->save($attribute);
+            $currentSave = $this->save($attribute);
+            $saveResult = $saveResult && $currentSave;
+            if ($currentSave) {
+                $attribute['id'] = $this->id;
+                $this->AttributeTag->handleAttributeTags($user, $attribute, $attribute['event_id'], $capture=true);
+            }
         }
         return $saveResult;
     }
@@ -4267,25 +4272,11 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
-        $fieldList = array(
-            'event_id',
-            'category',
-            'type',
-            'value',
-            'value1',
-            'value2',
-            'to_ids',
-            'uuid',
-            'revision',
-            'distribution',
-            'timestamp',
-            'comment',
-            'sharing_group_id',
-            'deleted',
-            'disable_correlation',
-            'first_seen',
-            'last_seen'
-        );
+        $fieldList = $this->editableFields;
+        if (empty($existingAttribute)) {
+            $addableFieldList = array('event_id', 'type', 'uuid');
+            $fieldList = array_merge($fieldList, $addableFieldList);
+        }
         if ($objectId) {
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
@@ -4317,8 +4308,9 @@ class Attribute extends AppModel
                     foreach ($attribute['Tag'] as $tag) {
                         $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
                         if ($tag_id) {
+                            $tag['id'] = $tag_id;
                             // fix the IDs here
-                            $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
+                            $this->AttributeTag->handleAttributeTag($this->id, $attribute['event_id'], $tag);
                         } else {
                             // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
                             // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor

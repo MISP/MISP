@@ -881,10 +881,16 @@ class AttributesController extends AppController
                 throw new NotFoundException(__('Invalid Event.'));
             }
             if ($existingAttribute['Attribute']['object_id']) {
-                $result = $this->Attribute->save($this->request->data, array('fieldList' => $this->Attribute->editableFieds));
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => $this->Attribute->editableFields));
+                if ($result) {
+                    $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $event['Event']['id'], $capture=true);
+                }
                 $this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
             } else {
-                $result = $this->Attribute->save($this->request->data, array('fieldList' => $this->Attribute->editableFieds));
+                $result = $this->Attribute->save($this->request->data);
+                if ($result) {
+                    $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $event['Event']['id'], $capture=true);
+                }
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
                     if ($result) {
@@ -908,20 +914,22 @@ class AttributesController extends AppController
                         $this->Attribute->Object->save($object);
                     }
                 }
-                if ($this->_isRest() || $this->response->type() === 'application/json') {
-                    $saved_attribute = $this->Attribute->find('first', array(
-                            'conditions' => array('id' => $this->Attribute->id),
-                            'recursive' => -1,
-                            'fields' => $this->Attribute->defaultFields
-                    ));
-                    $response = array('response' => array('Attribute' => $saved_attribute['Attribute']));
-                    $this->set('response', $response);
-                    if ($this->response->type() === 'application/json') {
-                        $this->render('/Attributes/json/view');
-                    } else {
-                        $this->render('view');
-                    }
-                    return;
+                if ($this->_isRest()) {
+                  $saved_attribute = $this->Attribute->find('first', array(
+                          'conditions' => array('id' => $this->Attribute->id),
+                          'recursive' => -1,
+                          'contain' => array('AttributeTag' => array('Tag'))
+                  ));
+                  if ($this->response->type() === 'application/json') {
+                      $type = 'json';
+                  } else {
+                      $type = 'xml';
+                  }
+                  App::uses(strtoupper($type) . 'ConverterTool', 'Tools');
+                  $tool = strtoupper($type) . 'ConverterTool';
+                  $converter = new $tool();
+                  $saved_attribute = $converter->convertAttribute($saved_attribute, true);
+                  return $this->RestResponse->viewData($saved_attribute, $type);
                 } else {
                     $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                 }

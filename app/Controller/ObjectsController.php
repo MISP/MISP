@@ -420,7 +420,7 @@ class ObjectsController extends AppController
                 unset($this->request->data['Object']);
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
-            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute);
+            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $this->Auth->user());
             $error_message = __('Object could not be saved.');
             if (!is_numeric($objectToSave)){
                 $object_validation_errors = array();
@@ -581,7 +581,7 @@ class ObjectsController extends AppController
             $event['Event']['timestamp'] = $date->getTimestamp();
             $event['Event']['published'] = 0;
             if ($seen_changed) {
-                $this->MispObject->Attribute->saveAttributes($object['Attribute']);
+                $this->MispObject->Attribute->saveAttributes($object['Attribute'], $this->Auth->user());
             }
             $this->MispObject->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
             return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'Field updated');

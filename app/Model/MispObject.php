@@ -381,7 +381,7 @@ class MispObject extends AppModel
                     $object['Attribute'][$k]['last_seen'] = $object['Object']['last_seen'];
                 }
             }
-            $this->Attribute->saveAttributes($object['Attribute']);
+            $this->Attribute->saveAttributes($object['Attribute'], $user);
         } else {
             $result = $this->validationErrors;
         }
@@ -770,7 +770,7 @@ class MispObject extends AppModel
         return $object;
     }
 
-    public function deltaMerge($object, $objectToSave, $onlyAddNewAttribute=false)
+    public function deltaMerge($object, $objectToSave, $onlyAddNewAttribute=false, $user)
     {
         if (!isset($objectToSave['Object'])) {
             $dataToBackup = array('ObjectReferences', 'Attribute', 'ShadowAttribute');
@@ -849,7 +849,10 @@ class MispObject extends AppModel
                                     $newAttribute['event_id'] = $object['Object']['event_id'];
                                     $newAttribute['object_id'] = $object['Object']['id'];
                                     $newAttribute['timestamp'] = $date->getTimestamp();
-                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => $this->Attribute->editableFieds));
+                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => $this->Attribute->editableFields));
+                                    if ($result) {
+                                        $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
+                                    }
                                 }
                                 unset($object['Attribute'][$origKey]);
                                 continue 2;
@@ -878,13 +881,17 @@ class MispObject extends AppModel
                             $newAttribute['distribution'] = 5;
                         }
                     }
-                    $this->Event->Attribute->save($newAttribute);
+                    $saveResult = $this->Event->Attribute->save($newAttribute);
+                    if ($saveResult) {
+                        $newAttribute['id'] = $this->Event->Attribute->id;
+                        $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
+                    }
                     $attributeArrays['add'][] = $newAttribute;
                     unset($objectToSave['Attribute'][$newKey]);
                 }
                 foreach ($object['Attribute'] as $origKey => $originalAttribute) {
                     $originalAttribute['deleted'] = 1;
-                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => $this->Attribute->editableFieds));
+                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => $this->Attribute->editableFields));
                 }
             }
         } else { // we only add the new attribute
@@ -912,7 +919,7 @@ class MispObject extends AppModel
                     $newAttribute['distribution'] = 5;
                 }
             }
-            $saveAttributeResult = $this->Attribute->saveAttributes(array($newAttribute));
+            $saveAttributeResult = $this->Attribute->saveAttributes(array($newAttribute), $user);
             return $saveAttributeResult ? $this->id : $this->validationErrors;
         }
         return $this->id;

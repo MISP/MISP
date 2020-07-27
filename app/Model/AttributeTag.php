@@ -84,6 +84,44 @@ class AttributeTag extends AppModel
     {
         $this->delete($id);
     }
+    
+    /**
+     * handleAttributeTags
+     *
+     * @param  array $attribute
+     * @param  int   $event_id
+     * @param  bool  $capture
+     * @return void
+     */
+    public function handleAttributeTags($user, array $attribute, $event_id, $capture = false)
+    {
+        if ($user['Role']['perm_tagger']) {
+            if (isset($attribute['Tag'])) {
+                foreach ($attribute['Tag'] as $tag) {
+                    if (!isset($tag['id'])) {
+                        if ($capture) {
+                            $tag_id = $this->Tag->captureTag($tag, $user);
+                        } else {
+                            $tag_id = $this->Tag->lookupTagIdFromName($tag['name']);
+                        }
+                        $tag['id'] = $tag_id;
+                    }
+                    if ($tag['id'] > 0) {
+                        $this->handleAttributeTag($attribute['id'], $event_id, $tag);
+                    }
+                }
+            }
+        }
+    }
+
+    public function handleAttributeTag($attribute_id, $event_id, $tag)
+    {
+        if (empty($tag['deleted'])) {
+            $this->attachTagToAttribute($attribute_id, $event_id, $tag['id']);
+        } else {
+            $this->detachTagFromAttribute($attribute_id, $event_id, $tag['id']);
+        }
+    }
 
     public function attachTagToAttribute($attribute_id, $event_id, $tag_id)
     {
@@ -101,6 +139,26 @@ class AttributeTag extends AppModel
             }
         }
         return true;
+    }
+
+    public function detachTagFromAttribute($attribute_id, $event_id, $tag_id)
+    {
+        $existingAssociation = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'tag_id' => $tag_id,
+                'event_id' => $event_id,
+                'attribute_id' => $attribute_id
+            )
+        ));
+
+        if (!empty($existingAssociation)) {
+            $result = $this->delete($existingAssociation['AttributeTag']['id']);
+            if ($result) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // This function help mirroring the tags at attribute level. It will delete tags that are not present on the remote attribute
