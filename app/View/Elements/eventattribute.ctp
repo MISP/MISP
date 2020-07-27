@@ -172,7 +172,7 @@
                     $fieldCount += 1;
                 }
                 if ($includeDecayScore) {
-                    sprintf(
+                    echo sprintf(
                         '<th class="decayingScoreField" title="%s">%s</th>',
                         __('Decaying Score'),
                         __('Score')
