@@ -1312,7 +1312,6 @@ class MispObject extends AppModel
     }
 
     public function reviseObject($revised_object, $object, $template) {
-        $revised_object = json_decode(base64_decode($revised_object), true);
         $revised_object_both = array('mergeable' => array(), 'notMergeable' => array());
 
         // Loop through attributes to inject and perform the correct action
