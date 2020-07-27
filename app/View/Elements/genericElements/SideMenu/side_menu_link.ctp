@@ -4,8 +4,12 @@ if (empty($element_id) && !empty($url)) {
     $urlparts = explode('/', $url);
     $element_id = end($urlparts);
 }
-if ($active === $element_id) {
-    $class .= ' active';
+if (isset($element_id) && $active === $element_id) {
+    if (empty($class)) {
+        $class = 'active';
+    } else {
+        $class .= ' active';
+    }
 }
 if (!empty($element_id)) {
     $li = ' id="li' . h($element_id) . '"';
