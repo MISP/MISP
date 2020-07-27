@@ -54,7 +54,7 @@
                 array(
                     'field' => 'to_ids',
                     'type' => 'checkbox',
-                    'label' => __("for Intrusion Detection System"),
+                    'label' => __("For Intrusion Detection System"),
                     //'stayInLine' => 1
                 ),
                 array(
@@ -75,7 +75,6 @@
                     'type' => 'text',
                     'hidden' => true
                 ),
-                '<div id="extended_event_preview" style="width:446px;"></div>'
             ),
             'submit' => array(
                 'action' => $action,

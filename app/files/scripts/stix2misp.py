@@ -406,9 +406,14 @@ class StixParser():
         if properties.child_pid_list:
             for child in properties.child_pid_list:
                 attributes.append(["text", child.value, "child-pid"])
-        # if properties.port_list:
-        #     for port in properties.port_list:
-        #         attributes.append(["src-port", port.port_value.value, "port"])
+        if properties.port_list:
+            for port in properties.port_list:
+                attributes.append(["port", port.port_value.value, "port"])
+        if properties.image_info:
+            if properties.image_info.file_name:
+                attributes.append(["filename", properties.image_info.file_name.value, "image"])
+            if properties.image_info.command_line:
+                attributes.append(["text", properties.image_info.command_line.value, "command-line"])
         if properties.network_connection_list:
             references = []
             for connection in properties.network_connection_list:

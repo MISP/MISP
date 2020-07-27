@@ -3908,13 +3908,14 @@ function getFormInfoContent(property, field) {
 
 function formCategoryChanged(id) {
     // fill in the types
-    var options = $('#' + id +'Type').prop('options');
-    $('option', $('#' + id +'Type')).remove();
-    $.each(category_type_mapping[$('#' + id +'Category').val()], function(val, text) {
+    var $type = $('#' + id + 'Type');
+    var options = $type.prop('options');
+    $('option', $type).remove();
+    $.each(category_type_mapping[$('#' + id + 'Category').val()], function(val, text) {
         options[options.length] = new Option(text, val);
     });
     // enable the form element
-    $('#AttributeType').prop('disabled', false);
+    $type.prop('disabled', false);
 }
 
 function malwareCheckboxSetter(context) {
