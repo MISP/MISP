@@ -222,6 +222,9 @@ class User extends AppModel
         'Containable'
     );
 
+    /** @var Crypt_GPG|null|false */
+    private $gpg;
+
     public function beforeValidate($options = array())
     {
         if (!isset($this->data['User']['id'])) {
@@ -311,20 +314,18 @@ class User extends AppModel
         }
 
         // we have a clean, hopefully public, key here
+        $gpg = $this->initializeGpg();
+        if (!$gpg) {
+            return true;
+        }
         try {
-            $gpg = $this->initializeGpg();
-            try {
-                $keyImportOutput = $gpg->importKey($check['gpgkey']);
-                if (!empty($keyImportOutput['fingerprint'])) {
-                    return true;
-                }
-            } catch (Exception $e) {
-                $this->logException("Exception during importing GPG key", $e);
-                return false;
+            $keyImportOutput = $gpg->importKey($check['gpgkey']);
+            if (!empty($keyImportOutput['fingerprint'])) {
+                return true;
             }
         } catch (Exception $e) {
-            $this->logException("Exception during initializing GPG", $e);
-            return true;
+            $this->logException("Exception during importing GPG key", $e);
+            return false;
         }
     }
 
@@ -451,12 +452,11 @@ class User extends AppModel
                 )));
     }
 
-    public function verifySingleGPG($user, $gpg = false)
+    public function verifySingleGPG($user, $gpg = null)
     {
-        if (!$gpg) {
-            try {
-                $gpg = $this->initializeGpg();
-            } catch (Exception $e) {
+        if ($gpg === null) {
+            $gpg = $this->initializeGpg();
+            if (!$gpg) {
                 $result[2] = 'GnuPG is not configured on this system.';
                 $result[0] = true;
                 return $result;
@@ -504,7 +504,6 @@ class User extends AppModel
     public function verifyGPG($id = false)
     {
         $this->Behaviors->detach('Trim');
-        $results = array();
         $conditions = array('not' => array('gpgkey' => ''));
         if ($id !== false) {
             $conditions['User.id'] = $id;
@@ -514,9 +513,13 @@ class User extends AppModel
             'recursive' => -1,
         ));
         if (empty($users)) {
-            return $results;
+            return [];
         }
         $gpg = $this->initializeGpg();
+        if (!$gpg) {
+            return [];
+        }
+        $results = [];
         foreach ($users as $k => $user) {
             $results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
         }
@@ -703,14 +706,15 @@ class User extends AppModel
         return $users;
     }
 
-    public function sendEmailExternal($user, $params)
+    /**
+     * @param $user - deprecated
+     * @param array $params
+     * @throws Crypt_GPG_Exception
+     * @throws SendEmailException
+     */
+    public function sendEmailExternal($user, array $params)
     {
-        try {
-            $gpg = $this->initializeGpg();
-        } catch (Exception $e) {
-            $gpg = null;
-        }
-
+        $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
         $sendEmail->sendExternal($params);
     }
@@ -727,13 +731,7 @@ class User extends AppModel
         $this->Log = ClassRegistry::init('Log');
         $replyToLog = $replyToUser ? ' from ' . $replyToUser['User']['email'] : '';
 
-        try {
-            $gpg = $this->initializeGpg();
-        } catch (Exception $e) {
-            $this->logException("GPG couldn't be initialized, GPG encryption and signing will be not available.", $e, LOG_NOTICE);
-            $gpg = null;
-        }
-
+        $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
         try {
             $encrypted = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc ?: null, $replyToUser ?: array());
@@ -1145,16 +1143,6 @@ class User extends AppModel
         $syslog->write('notice', "$description -- $action" . (empty($fieldResult) ? '' : ' -- ' . $result['Log']['change']));
     }
 
-    /**
-     * @return Crypt_GPG
-     * @throws Exception
-     */
-    private function initializeGpg()
-    {
-        $gpgTool = new GpgTool();
-        return $gpgTool->initializeGpg();
-    }
-
     public function getOrgActivity($orgId, $params=array())
     {
         $conditions = array();
@@ -1287,6 +1275,31 @@ class User extends AppModel
             $this->Inbox->delete($registration['id']);
             return true;
         }
+    }
 
+    /**
+     * Initialize GPG. Returns `null` if initialization failed.
+     *
+     * @return null|Crypt_GPG
+     */
+    private function initializeGpg()
+    {
+        if ($this->gpg !== null) {
+            if ($this->gpg === false) { // initialization failed
+                return null;
+            }
+
+            return $this->gpg;
+        }
+
+        try {
+            $gpgTool = new GpgTool();
+            $this->gpg = $gpgTool->initializeGpg();
+            return $this->gpg;
+        } catch (Exception $e) {
+            $this->logException("GPG couldn't be initialized, GPG encryption and signing will be not available.", $e, LOG_NOTICE);
+            $this->gpg = false;
+            return null;
+        }
     }
 }

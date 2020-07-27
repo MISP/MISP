@@ -260,9 +260,15 @@ class SendEmail
     /**
      * @param CryptGpgExtended|null $gpg
      */
-    public function __construct($gpg = null)
+    public function __construct(CryptGpgExtended $gpg = null)
     {
-        $this->gpg = $gpg;
+        if ($gpg) {
+            $gpg->clearDecryptKeys()
+                ->clearEncryptKeys()
+                ->clearSignKeys()
+                ->clearPassphrases();
+            $this->gpg = $gpg;
+        }
     }
 
     /**
@@ -380,7 +386,7 @@ class SendEmail
         $signed = false;
         if (Configure::read('GnuPG.sign')) {
             if (!$this->gpg) {
-                throw new SendEmailException("GPG signing is enabled, but GPG is not configured.");
+                throw new SendEmailException("GPG signing is enabled, but GPG is not initialized. Check debug log why GPG could not be initialized.");
             }
 
             try {
@@ -398,7 +404,7 @@ class SendEmail
         $encrypted = false;
         if ($canEncryptGpg) {
             if (!$this->gpg) {
-                throw new SendEmailException("GPG encryption is enabled, but GPG is not configured.");
+                throw new SendEmailException("GPG signing is enabled, but GPG is not initialized. Check debug log why GPG could not be initialized.");
             }
             
             try {
@@ -445,6 +451,8 @@ class SendEmail
     }
 
     /**
+     * Test if S/MIME certificate is valid for email encrypting.
+     *
      * @param string $certificate
      * @return bool
      * @throws Exception
