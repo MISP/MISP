@@ -71,7 +71,8 @@ class AttributesController extends AppController
             'AttributeTag' => array('Tag'),
             'Object' => array(
                 'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-            )
+            ),
+            'SharingGroup' => ['fields' => ['SharingGroup.name']],
         );
         $this->Attribute->contain(array('AttributeTag' => array('Tag')));
         $this->set('isSearch', 0);
@@ -82,20 +83,12 @@ class AttributesController extends AppController
             }
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
-        $org_ids = array();
-        $orgs = $this->Attribute->Event->Orgc->find('list', array(
-                'conditions' => array('Orgc.id' => $org_ids),
-                'fields' => array('Orgc.id', 'Orgc.name')
+        list($attributes, $sightingsData) = $this->__searchUI($attributes);
+        $this->set('sightingsData', $sightingsData);
+        $orgTable = $this->Attribute->Event->Orgc->find('list', array(
+            'fields' => array('Orgc.id', 'Orgc.name')
         ));
-        if (!$this->_isRest()) {
-            $temp = $this->__searchUI($attributes);
-            $this->loadModel('Galaxy');
-            $this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
-            $attributes = $temp[0];
-            $sightingsData = $temp[1];
-            $this->set('sightingsData', $sightingsData);
-        }
-        $this->set('orgs', $orgs);
+        $this->set('orgTable', $orgTable);
         $this->set('shortDist', $this->Attribute->shortDist);
         $this->set('attributes', $attributes);
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
@@ -1744,7 +1737,8 @@ class AttributesController extends AppController
                 'AttributeTag' => array('Tag'),
                 'Object' => array(
                     'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-                )
+                ),
+                'SharingGroup' => ['fields' => ['SharingGroup.name']],
             );
             $attributes = $this->paginate();
             if (!$this->_isRest()) {
@@ -1803,6 +1797,10 @@ class AttributesController extends AppController
                     $attribute['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
                 }
                 $attributes[$k] = $attribute;
+            }
+
+            if ($attribute['Attribute']['distribution'] == 4) {
+                $attributes[$k]['Attribute']['SharingGroup'] = $attribute['SharingGroup'];
             }
 
             $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
