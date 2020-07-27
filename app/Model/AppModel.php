@@ -2899,7 +2899,7 @@ class AppModel extends Model
      * @throws JsonException
      * @throws UnexpectedValueException
      */
-    protected function jsonDecode($json)
+    public function jsonDecode($json)
     {
         if (defined('JSON_THROW_ON_ERROR')) {
             // JSON_THROW_ON_ERROR is supported since PHP 7.3

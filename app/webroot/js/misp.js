@@ -992,7 +992,8 @@ function multiSelectAction(event, context) {
 
 function editSelectedAttributes(event) {
     var selectedAttributeIds = getSelected();
-    simplePopup("/attributes/editSelected/" + event + "/" + selectedAttributeIds);
+    var data = { selected_ids: selectedAttributeIds }
+    simplePopup("/attributes/getMassEditForm/" + event, type='POST', data=data);
 }
 
 function addSelectedTaxonomies(taxonomy) {
@@ -1877,7 +1878,9 @@ function submitPopover(clicked) {
     }
 }
 
-function simplePopup(url) {
+function simplePopup(url, requestType, data) {
+    requestType = requestType === undefined ? 'GET' : requestType
+    data = data === undefined ? [] : data
     $("#gray_out").fadeIn();
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
@@ -1897,6 +1900,8 @@ function simplePopup(url) {
             xhrFailCallback(xhr);
         },
         url: url,
+        type: requestType,
+        data: data
     });
 }
 
