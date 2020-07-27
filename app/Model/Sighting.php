@@ -3,6 +3,9 @@ App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 
+/**
+ * @property Attribute $Attribute
+ */
 class Sighting extends AppModel
 {
     public $useTable = 'sightings';
@@ -201,32 +204,41 @@ class Sighting extends AppModel
         return $result;
     }
 
-    public function attachToEvent($event, $user = array(), $attribute_id = false, $extraConditions = false)
+    /**
+     * @param array $event
+     * @param array $user
+     * @param array|int|null $attribute Attribute array or attribute ID
+     * @param bool $extraConditions
+     * @return array|int
+     */
+    public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false)
     {
-        if (empty($user)) {
-            $user = array(
-                'org_id' => -1,
-                'Role' => array(
-                    'perm_site_admin' => 0
-                )
-            );
-        }
         $ownEvent = false;
         if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) {
             $ownEvent = true;
         }
+
+        $contain = [];
         $conditions = array('Sighting.event_id' => $event['Event']['id']);
-        if ($attribute_id) {
-            $attribute = $this->Attribute->fetchAttribute($attribute_id);
-            $conditions['Sighting.attribute_id'] = $attribute_id;
+        if (is_array($attribute)) {
+            $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
+        } elseif (is_numeric($attribute)) {
+            $conditions['Sighting.attribute_id'] = $attribute;
+            $attribute = $this->Attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $attribute],
+                'fields' => ['Attribute.uuid']
+            ]);
+        } else {
+            $contain['Attribute'] = ['fields' => 'Attribute.uuid'];
         }
+
         if (!$ownEvent && (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0)) {
             $conditions['Sighting.org_id'] = $user['org_id'];
         }
         if ($extraConditions !== false) {
             $conditions['AND'] = $extraConditions;
         }
-        $contain = array();
         if (Configure::read('MISP.showorg')) {
             $contain['Organisation'] = array('fields' => array('Organisation.id', 'Organisation.uuid', 'Organisation.name'));
         }
@@ -265,10 +277,11 @@ class Sighting extends AppModel
                 $sightings[$k]['Sighting']['Organisation'] = $sightings[$k]['Organisation'];
             }
             // zeroq: add attribute UUID to sighting to make synchronization easier
-            if (!isset($attribute)) {
-                $attribute = $this->Attribute->fetchAttribute($sighting['Sighting']['attribute_id']);
+            if (isset($sighting['Attribute']['uuid'])) {
+                $sightings[$k]['Sighting']['attribute_uuid'] = $sighting['Attribute']['uuid'];
+            } else {
+                $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
             }
-            $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
 
             $sightings[$k] = $sightings[$k]['Sighting'] ;
         }

@@ -1809,7 +1809,7 @@ class AttributesController extends AppController
 
             $sightingsData = array_merge(
                 $sightingsData,
-                $this->Sighting->attachToEvent($attribute, $user, $attributeId, $extraConditions = false)
+                $this->Sighting->attachToEvent($attribute, $user, $attribute, $extraConditions = false)
             );
             $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeId, false, false, 'attribute');
             if (!empty($correlations)) {
