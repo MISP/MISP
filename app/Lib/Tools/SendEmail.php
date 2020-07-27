@@ -133,7 +133,6 @@ class MimeMultipart
     private $additionalTypes;
 
     /**
-     * MimeMultipart constructor.
      * @param string $subtype
      * @param array $additionalTypes
      */
@@ -258,6 +257,9 @@ class SendEmail
      */
     private $gpg;
 
+    /**
+     * @param CryptGpgExtended|null $gpg
+     */
     public function __construct($gpg = null)
     {
         $this->gpg = $gpg;
@@ -266,6 +268,7 @@ class SendEmail
     /**
      * @param array $params
      * @return array|bool
+     * @throws Crypt_GPG_Exception
      * @throws SendEmailException
      */
     public function sendExternal(array $params)
@@ -347,6 +350,8 @@ class SendEmail
      * @param string|null $bodyWithoutEncryption
      * @param array $replyToUser
      * @return bool True if e-mail is encrypted, false if not.
+     * @throws Crypt_GPG_BadPassphraseException
+     * @throws Crypt_GPG_Exception
      * @throws SendEmailException
      */
     public function sendToUser(array $user, $subject, $body, $bodyWithoutEncryption = null, array $replyToUser = array())
@@ -522,6 +527,9 @@ class SendEmail
     /**
      * @param CakeEmailExtended $email
      * @param array $replyToUser
+     * @throws Crypt_GPG_BadPassphraseException
+     * @throws Crypt_GPG_Exception
+     * @throws Crypt_GPG_KeyNotFoundException
      */
     private function signByGpg(CakeEmailExtended $email, array $replyToUser = array())
     {
@@ -582,6 +590,8 @@ class SendEmail
 
     /**
      * @param CakeEmailExtended $email
+     * @throws Crypt_GPG_Exception
+     * @throws Crypt_GPG_KeyNotFoundException
      */
     private function encryptByGpg(CakeEmailExtended $email)
     {
@@ -766,8 +776,12 @@ class SendEmail
 
     /**
      * Check if public key is not expired and can encrypt.
+     *
      * @param string $gpgKey
      * @return string|bool Fingerprint if key is valid, false otherwise.
+     * @throws Crypt_GPG_BadPassphraseException
+     * @throws Crypt_GPG_Exception
+     * @throws Crypt_GPG_NoDataException
      */
     private function importAndValidateGpgPublicKey($gpgKey)
     {
@@ -788,19 +802,15 @@ class SendEmail
     }
 
     /**
-     * This method generates Message-ID (RFC 2392) according to recommendation from https://www.jwz.org/doc/mid.html.
-     * CakePHP by default uses CakeText::uuid() method for first part, but UUID leaks machine IP address.
+     * This method generates Message-ID (RFC 2392).
      *
      * @param CakeEmail $email
      * @return string
      */
     private function generateMessageId(CakeEmail $email)
     {
-        list($microseconds, $seconds) = explode(' ', microtime());
-        $microseconds = intval((float) $microseconds * 1000000);
-        $first = base_convert($seconds, 10, 36) . base_convert($microseconds, 10, 36);
-        $second = base_convert(mt_rand(), 10, 36) . base_convert(mt_rand(), 10, 36);
-        return "<$first.$second@{$email->domain()}>";
+        $uuid = str_replace('-', '', CakeText::uuid());
+        return "<$uuid@{$email->domain()}>";
     }
 
     /**
@@ -814,6 +824,7 @@ class SendEmail
      * @param string|null $gpgKey
      * @param bool $preferEncrypt
      * @return string|null
+     * @throws Crypt_GPG_Exception
      */
     private function generateAutocrypt($address, $gpgKey = null, $preferEncrypt = true)
     {
