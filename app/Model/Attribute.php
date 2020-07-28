@@ -731,7 +731,7 @@ class Attribute extends AppModel
                         'perm_site_admin' => 1
                     )
                 );
-                $attribute['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attribute, $user, $this->id);
+                $attribute['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attribute, $user, $attribute);
                 if (empty($attribute['Object']['id'])) {
                     unset($attribute['Object']);
                 }
