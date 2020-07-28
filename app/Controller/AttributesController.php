@@ -1402,11 +1402,8 @@ class AttributesController extends AppController
 
     public function getMassEditForm($eventId)
     {
-        if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException(__('This method can only be accessed via AJAX.'));
-        }
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
+        if (!$this->request->is('ajax') || !$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This method can only be accessed via AJAX and POST.'));
         }
         if (!isset($eventId)) {
             throw new MethodNotAllowedException(__('No event ID provided.'));
@@ -1423,6 +1420,9 @@ class AttributesController extends AppController
             }
         }
         $selectedAttributeIds = $this->Attribute->jsonDecode($this->request->data['selected_ids']);
+        if (empty($selectedAttributeIds)) {
+            throw new MethodNotAllowedException(__('No attributes selected'));
+        }
 
         // tags to remove
         $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $eventId, $selectedAttributeIds);
@@ -1450,7 +1450,7 @@ class AttributesController extends AppController
         foreach ($clusters as $k => $cluster) {
             $name = $cluster['value'];
             $optionName = $cluster['value'];
-            $synom = $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
+            $synom = $cluster['synonyms_string'] !== '' ? sprintf(' (%s)', $cluster['synonyms_string']) : '';
             $optionName .= $synom;
 
             $temp = array(
@@ -1466,51 +1466,44 @@ class AttributesController extends AppController
             }
             $clusterItemsRemove[] = $temp;
         }
-        unset($clusters);
-        $conditions = array();
-        if (!$this->_isSiteAdmin()) {
-            $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
-            $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
-            $conditions = array('Tag.hide_tag' => 0);
+
+        // clusters to add
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $clusters = $this->GalaxyCluster->find('list', array(
+            'fields' => array('id', 'value', 'tag_name'),
+            'recursive' => -1
+        ));
+        $clusterItemsAdd = array();
+        foreach ($clusters as $tagName => $cluster) {
+            $value = reset($cluster);
+            $id = key($cluster);
+            $clusterItemsAdd[] = array(
+                'name' => $value,
+                'value' => $id
+            );
         }
-        $allTags = $this->Attribute->AttributeTag->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1));
-        $tags = array();
-        foreach ($allTags as $i => $tag) {
-            $tags[$tag['Tag']['id']] = $tag['Tag'];
-        }
-        unset($allTags);
+
+        $tags = $this->Attribute->AttributeTag->Tag->fetchUsableTags($this->Auth->user());
         $tagItemsAdd = array();
         foreach ($tags as $k => $tag) {
-            $tagName = $tag['name'];
+            $tagName = $tag['Tag']['name'];
+            if (isset($clusters[$tagName])) {
+                continue; // skip galaxy cluster tags
+            }
             $tagItemsAdd[] = array(
                 'name' => $tagName,
-                'value' => $tag['id'],
+                'value' => $tag['Tag']['id'],
                 'template' => array(
                     'name' => array(
                         'name' => $tagName,
                         'label' => array(
-                            'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
+                            'background' => isset($tag['Tag']['colour']) ? $tag['Tag']['colour'] : '#ffffff'
                         )
                     ),
                 )
 
             );
         }
-
-        // clusters to add
-        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $clusters = $this->GalaxyCluster->find('all', array(
-            'fields' => array('value', 'id'),
-            'recursive' => -1
-        ));
-        $clusterItemsAdd = array();
-        foreach ($clusters as $k => $cluster) {
-            $clusterItemsAdd[] = array(
-                'name' => $cluster['GalaxyCluster']['value'],
-                'value' => $cluster['GalaxyCluster']['id']
-            );
-        }
-        unset($clusters);
 
         $this->layout = 'ajax';
         $this->set('id', $eventId);
