@@ -127,13 +127,14 @@ class Feed extends AppModel
 
     /**
      * Gets the event UUIDs from the feed by ID
-     * Returns an array with the UUIDs of events that are new or that need updating
+     * Returns an array with the UUIDs of events that are new or that need updating.
+     *
      * @param array $feed
-     * @param HttpSocket $HttpSocket
+     * @param HttpSocket|null $HttpSocket
      * @return array
      * @throws Exception
      */
-    public function getNewEventUuids($feed, $HttpSocket)
+    public function getNewEventUuids($feed, HttpSocket $HttpSocket = null)
     {
         $manifest = $this->downloadManifest($feed, $HttpSocket);
         $this->Event = ClassRegistry::init('Event');
@@ -161,11 +162,11 @@ class Feed extends AppModel
 
     /**
      * @param array $feed
-     * @param HttpSocket $HttpSocket
+     * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @return Generator|array
      * @throws Exception
      */
-    public function getCache(array $feed, HttpSocket $HttpSocket)
+    public function getCache(array $feed, HttpSocket $HttpSocket = null)
     {
         $uri = $feed['Feed']['url'] . '/hashes.csv';
         $data = $this->feedGetUri($feed, $uri, $HttpSocket);
@@ -188,11 +189,11 @@ class Feed extends AppModel
 
     /**
      * @param array $feed
-     * @param HttpSocket $HttpSocket
+     * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @return array
      * @throws Exception
      */
-    private function downloadManifest($feed, $HttpSocket)
+    private function downloadManifest($feed, HttpSocket $HttpSocket = null)
     {
         $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
         $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket, true);
@@ -207,11 +208,11 @@ class Feed extends AppModel
 
     /**
      * @param array $feed
-     * @param HttpSocket $HttpSocket
+     * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @return array
      * @throws Exception
      */
-    public function getManifest($feed, $HttpSocket)
+    public function getManifest($feed, HttpSocket $HttpSocket = null)
     {
         $events = $this->downloadManifest($feed, $HttpSocket);
         $events = $this->__filterEventsIndex($events, $feed);
@@ -220,7 +221,7 @@ class Feed extends AppModel
 
     /**
      * @param array $feed
-     * @param HttpSocket $HttpSocket
+     * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @param string $type
      * @param int|string $page
      * @param int $limit
@@ -228,7 +229,7 @@ class Feed extends AppModel
      * @return array|bool
      * @throws Exception
      */
-    public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array())
+    public function getFreetextFeed($feed, HttpSocket $HttpSocket = null, $type = 'freetext', $page = 1, $limit = 60, &$params = array())
     {
         $isLocal = $this->isFeedLocal($feed);
         $data = false;
@@ -468,7 +469,7 @@ class Feed extends AppModel
         return $objects;
     }
 
-    public function downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId = false)
+    public function downloadFromFeed($actions, $feed, HttpSocket $HttpSocket = null, $user, $jobId = false)
     {
         $total = count($actions['add']) + count($actions['edit']);
         $currentItem = 0;
@@ -662,7 +663,7 @@ class Feed extends AppModel
     public function downloadEventFromFeed(array $feed, $uuid)
     {
         $filerRules = $this->__prepareFilterRules($feed);
-        $HttpSocket = $this->isFeedLocal($feed) ? false : $this->__setupHttpSocket($feed);
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket($feed);
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         return $this->__prepareEvent($event, $feed, $filerRules);
     }
@@ -771,11 +772,11 @@ class Feed extends AppModel
     {
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
-        return ($syncTool->setupHttpSocketFeed($feed));
+        return $syncTool->setupHttpSocketFeed($feed);
     }
 
     /**
-     * @param HttpSocket $HttpSocket
+     * @param HttpSocket|null $HttpSocket
      * @param array $feed
      * @param string $uuid
      * @param $user
@@ -783,7 +784,7 @@ class Feed extends AppModel
      * @return array|bool|string
      * @throws Exception
      */
-    private function __addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules)
+    private function __addEventFromFeed(HttpSocket $HttpSocket = null, $feed, $uuid, $user, $filterRules)
     {
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
@@ -796,7 +797,7 @@ class Feed extends AppModel
     }
 
     /**
-     * @param HttpSocket $HttpSocket
+     * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @param array $feed
      * @param string $uuid
      * @param int $eventId
@@ -805,7 +806,7 @@ class Feed extends AppModel
      * @return mixed
      * @throws Exception
      */
-    private function __updateEventFromFeed($HttpSocket, $feed, $uuid, $eventId, $user, $filterRules)
+    private function __updateEventFromFeed(HttpSocket $HttpSocket = null, $feed, $uuid, $eventId, $user, $filterRules)
     {
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
@@ -845,7 +846,7 @@ class Feed extends AppModel
             $this->data['Feed']['settings'] = json_decode($this->data['Feed']['settings'], true);
         }
 
-        $HttpSocket = $this->isFeedLocal($this->data) ? false : $this->__setupHttpSocket($this->data);
+        $HttpSocket = $this->isFeedLocal($this->data) ? null : $this->__setupHttpSocket($this->data);
         if ($this->data['Feed']['source_format'] == 'misp') {
             $this->jobProgress($jobId, 'Fetching event manifest.');
             try {
@@ -870,7 +871,7 @@ class Feed extends AppModel
                 $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
             } catch (Exception $e) {
                 $this->logException("Could not get freetext feed $feedId", $e);
-                $this->jobProgress($jobId, 'Could not fetch freetext feed. See log for more details.');
+                $this->jobProgress($jobId, 'Could not fetch freetext feed. See error log for more details.');
                 return false;
             }
 
@@ -1119,7 +1120,7 @@ class Feed extends AppModel
 
     private function __cacheFeed($feed, $redis, $jobId = false)
     {
-        $HttpSocket = $this->isFeedLocal($feed) ? false : $this->__setupHttpSocket($feed);
+        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket($feed);
         if ($feed['Feed']['source_format'] == 'misp') {
             return $this->__cacheMISPFeed($feed, $redis, $HttpSocket, $jobId);
         } else {
@@ -1127,7 +1128,7 @@ class Feed extends AppModel
         }
     }
 
-    private function __cacheFreetextFeed(array $feed, $redis, HttpSocket $HttpSocket, $jobId = false)
+    private function __cacheFreetextFeed(array $feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
     {
         $feedId = $feed['Feed']['id'];
 
@@ -1155,10 +1156,9 @@ class Feed extends AppModel
         return true;
     }
 
-    private function __cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId = false)
+    private function __cacheMISPFeedTraditional($feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
     {
         $feedId = $feed['Feed']['id'];
-        $this->Attribute = ClassRegistry::init('Attribute');
         try {
             $manifest = $this->getManifest($feed, $HttpSocket);
         } catch (Exception $e) {
@@ -1178,6 +1178,7 @@ class Feed extends AppModel
             }
 
             if (!empty($event['Event']['Attribute'])) {
+                $this->Attribute = ClassRegistry::init('Attribute');
                 $pipe = $redis->multi(Redis::PIPELINE);
                 foreach ($event['Event']['Attribute'] as $attribute) {
                     if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
@@ -1207,7 +1208,7 @@ class Feed extends AppModel
         return true;
     }
 
-    private function __cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId = false)
+    private function __cacheMISPFeedCache($feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
     {
         $feedId = $feed['Feed']['id'];
 
@@ -1229,7 +1230,7 @@ class Feed extends AppModel
         return true;
     }
 
-    private function __cacheMISPFeed($feed, $redis, $HttpSocket, $jobId = false)
+    private function __cacheMISPFeed($feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
     {
         $result = true;
         if (!$this->__cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId)) {
@@ -1608,13 +1609,14 @@ class Feed extends AppModel
 
     /**
      * Download and parse event from feed.
+     *
      * @param array $feed
      * @param string $eventUuid
-     * @param HttpSocket $HttpSocket
+     * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @return array
      * @throws Exception
      */
-    private function downloadAndParseEventFromFeed($feed, $eventUuid, $HttpSocket)
+    private function downloadAndParseEventFromFeed($feed, $eventUuid, HttpSocket $HttpSocket = null)
     {
         if (!Validation::uuid($eventUuid)) {
             throw new InvalidArgumentException("Given event UUID '$eventUuid' is invalid.");
@@ -1633,12 +1635,12 @@ class Feed extends AppModel
     /**
      * @param array $feed
      * @param string $uri
-     * @param HttpSocket $HttpSocket
+     * @param HttpSocket|null $HttpSocket Null can be for local feed
      * @param bool $followRedirect
      * @return string
      * @throws Exception
      */
-    private function feedGetUri($feed, $uri, $HttpSocket, $followRedirect = false)
+    private function feedGetUri($feed, $uri, HttpSocket $HttpSocket = null, $followRedirect = false)
     {
         if ($this->isFeedLocal($feed)) {
             if (file_exists($uri)) {
@@ -1650,6 +1652,10 @@ class Feed extends AppModel
             } else {
                 throw new Exception("Local file '$uri' doesn't exists.");
             }
+        }
+
+        if ($HttpSocket === null) {
+            throw new Exception("Feed {$feed['Feed']['name']} is not local, but HttpSocket is not initialized.");
         }
 
         $request = $this->__createFeedRequest($feed['Feed']['headers']);
@@ -1800,7 +1806,7 @@ class Feed extends AppModel
     private function unzipFirstFile(File $zipFile)
     {
         if (!class_exists('ZipArchive')) {
-            throw new Exception("ZIP archive decompressing is not supported.");
+            throw new Exception('ZIP archive decompressing is not supported. ZIP support is missing in PHP.');
         }
 
         $zip = new ZipArchive();
