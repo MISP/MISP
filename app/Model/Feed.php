@@ -198,12 +198,11 @@ class Feed extends AppModel
         $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
         $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket, true);
 
-        $manifest = json_decode($data, true);
-        if ($manifest === null) {
-            throw new Exception('Could not parse manifest JSON: ' . json_last_error_msg(), json_last_error());
+        try {
+            return $this->jsonDecode($data);
+        } catch (Exception $e) {
+            throw new Exception("Could not parse '$manifestUrl' manifest JSON", 0, $e);
         }
-
-        return $manifest;
     }
 
     /**
@@ -1624,12 +1623,12 @@ class Feed extends AppModel
 
         $path = $feed['Feed']['url'] . '/' . $eventUuid . '.json';
         $data = $this->feedGetUri($feed, $path, $HttpSocket);
-        $event = json_decode($data, true);
-        if ($event === null) {
-            throw new Exception('Could not parse event JSON: ' . json_last_error_msg(), json_last_error());
-        }
 
-        return $event;
+        try {
+            return $this->jsonDecode($data);
+        } catch (Exception $e) {
+            throw new Exception("Could not parse event JSON with UUID '$eventUuid' from feed", 0, $e);
+        }
     }
 
     /**
