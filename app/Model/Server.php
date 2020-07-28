@@ -2714,7 +2714,7 @@ class Server extends AppModel
         foreach ($filter_rules as $field => $rules) {
             $temp = array();
             if ($field === 'url_params') {
-                $url_params = $this->jsonDecode($rules);
+                $url_params = empty($rules) ? [] : $this->jsonDecode($rules);
             } else {
                 foreach ($rules as $operator => $elements) {
                     foreach ($elements as $k => $element) {
