@@ -1400,7 +1400,7 @@ class AttributesController extends AppController
         }
     }
 
-    public function getMassEditForm($id)
+    public function getMassEditForm($eventId)
     {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This method can only be accessed via AJAX.'));
@@ -1408,12 +1408,15 @@ class AttributesController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
-        if (!isset($id)) {
+        if (!isset($eventId)) {
             throw new MethodNotAllowedException(__('No event ID provided.'));
         }
-        $event = $this->Attribute->Event->fetchSimpleEvent($this->Auth->user(), $id, $params = array(
+        $event = $this->Attribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId, $params = array(
             'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
         ));
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
         if (!$this->_isSiteAdmin()) {
             if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
                 throw new MethodNotAllowedException(__('You are not authorized to edit this event.'));
@@ -1422,7 +1425,7 @@ class AttributesController extends AppController
         $selectedAttributeIds = $this->Attribute->jsonDecode($this->request->data['selected_ids']);
 
         // tags to remove
-        $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $id, $selectedAttributeIds);
+        $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $eventId, $selectedAttributeIds);
         $tagItemsRemove = array();
         foreach ($tags as $k => $tag) {
             $tagName = $tag['name'];
@@ -1442,7 +1445,7 @@ class AttributesController extends AppController
         unset($tags);
 
         // clusters to remove
-        $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $id, $selectedAttributeIds);
+        $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $eventId, $selectedAttributeIds);
         $clusterItemsRemove = array();
         foreach ($clusters as $k => $cluster) {
             $name = $cluster['value'];
@@ -1510,7 +1513,7 @@ class AttributesController extends AppController
         unset($clusters);
 
         $this->layout = 'ajax';
-        $this->set('id', $id);
+        $this->set('id', $eventId);
         $this->set('selectedAttributeIds', $selectedAttributeIds);
         $this->set('sgs', $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true));
         $this->set('distributionLevels', $this->Attribute->distributionLevels);
@@ -1526,7 +1529,7 @@ class AttributesController extends AppController
             'flag_redraw_chosen' => true,
             'select_options' => array(
                 'additionalData' => array(
-                    'event_id' => $id,
+                    'event_id' => $eventId,
                 ),
             ),
         ));
