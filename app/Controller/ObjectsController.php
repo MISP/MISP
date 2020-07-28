@@ -6,7 +6,7 @@ class ObjectsController extends AppController
 {
     public $uses = 'MispObject';
 
-    public $components = array('Security' ,'RequestHandler', 'Session', 'Cookie');
+    public $components = array('Security' ,'RequestHandler', 'Session');
 
     public $paginate = array(
             'limit' => 20,
@@ -120,7 +120,7 @@ class ObjectsController extends AppController
         // Make sure the cookie applies to this object. User might be prompted to perform a merge with another object if the cookie is somehow not cleaned
         $curObjectTmpUuid = CakeText::uuid();
         $this->set('cur_object_tmp_uuid', $curObjectTmpUuid);
-        $this->Cookie->write('object_being_created', array(
+        $this->Session->write('object_being_created', array(
             'cur_object_tmp_uuid' => $curObjectTmpUuid,
             'data' => $this->request->data
         ));
@@ -404,12 +404,12 @@ class ObjectsController extends AppController
         $templateData = $this->MispObject->resolveUpdatedTemplate($template, $object, $update_template_available);
         $this->set('updateable_attribute', $templateData['updateable_attribute']);
         $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
-        if (!empty($this->Cookie->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
-            $revisedObjectData = $this->Cookie->read('object_being_created');
+        if (!empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
+            $revisedObjectData = $this->Session->read('object_being_created');
             if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed cookie is for the correct object
                 $revisedObjectData = $revisedObjectData['data'];
             } else {
-                $this->Cookie->delete('object_being_created');
+                $this->Session->delete('object_being_created');
                 $revisedObjectData = array();
             }
         }
@@ -422,7 +422,7 @@ class ObjectsController extends AppController
           $template = $this->MispObject->prepareTemplate($templateData['template'], $object);
         }
         if ($this->request->is('post') || $this->request->is('put')) {
-            $this->Cookie->delete('object_being_created');
+            $this->Session->delete('object_being_created');
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
             }
