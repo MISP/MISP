@@ -403,7 +403,7 @@ class ObjectsController extends AppController
             $object = $revisedData['object'];
         }
         if (!empty($templateData['template'])) {
-          $template = $this->MispObject->prepareTemplate($templateData['template'], $object);
+            $template = $this->MispObject->prepareTemplate($templateData['template'], $object);
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             if (isset($this->request->data['request'])) {
