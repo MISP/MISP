@@ -792,6 +792,9 @@ class MispObject extends AppModel
         if (isset($objectToSave['Object']['comment'])) {
             $object['Object']['comment'] = $objectToSave['Object']['comment'];
         }
+        if (isset($objectToSave['Object']['template_version'])) {
+            $object['Object']['template_version'] = $objectToSave['Object']['template_version'];
+        }
         if (isset($objectToSave['Object']['distribution'])) {
             $object['Object']['distribution'] = $objectToSave['Object']['distribution'];
             if ($object['Object']['distribution'] == 4) {
