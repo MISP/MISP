@@ -65,7 +65,7 @@ class StatisticsShell extends AppShell {
             'endpoints' => []
         ];
         $this->User = ClassRegistry::init('User');
-        $emails = $this->User->find('list', [
+        $users = $this->User->find('list', [
             'fields' => ['id', 'email']
         ]);
         foreach ($raw as $line) {
