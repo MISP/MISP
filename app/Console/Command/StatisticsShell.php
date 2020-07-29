@@ -117,7 +117,7 @@ class StatisticsShell extends AppShell {
         echo "\n\n==================================\nSlow queries by user excluding sync\n==================================\nCount | User  | Email\n";
         foreach ($data['non_sync_action_users'] as $user_id => $count) {
             echo sprintf(
-                "%s | %s\n",
+                "%s | %s | %s\n",
                 str_pad($count, 5),
                 str_pad($user_id, 5),
                 !empty($users[$user_id]) ? $users[$user_id] : ''
