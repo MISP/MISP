@@ -1467,6 +1467,7 @@ class Attribute extends AppModel
     // do some last second modifications before the validation
     public function modifyBeforeValidation($type, $value)
     {
+        $value = $this->handle4ByteUnicode($value);
         switch ($type) {
             case 'md5':
             case 'sha1':

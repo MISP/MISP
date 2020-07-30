@@ -427,8 +427,8 @@ class Tag extends AppModel
     public function checkForOverride($tags)
     {
         $userId = Configure::read('CurrentUserId');
-        $this->UserSetting = ClassRegistry::init('UserSetting');
         if ($this->tagOverrides === false && $userId > 0) {
+            $this->UserSetting = ClassRegistry::init('UserSetting');
             $this->tagOverrides = $this->UserSetting->getTagNumericalValueOverride($userId);
         }
         foreach ($tags as $k => $tag) {

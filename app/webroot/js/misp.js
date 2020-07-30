@@ -1328,6 +1328,9 @@ function handleAjaxModalResponse(response, context_id, url, referer, context, co
             showMessage("fail", responseArray.errors);
         }
     } else {
+        if (responseArray.errors) {
+            showMessage("fail", responseArray.errors);
+        }
         var savedArray = saveValuesForPersistance();
         $.ajax({
             async:true,
@@ -3350,7 +3353,7 @@ function testConnection(id) {
                 $("#connection_test_" + id).html('<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>');
                 break;
             case 8:
-                $("#connection_test_" + id).html('<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Syncing sightings only</span>');
+                $("#connection_test_" + id).html('<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, syncing sightings only</span>');
                 break;
             }
         }
