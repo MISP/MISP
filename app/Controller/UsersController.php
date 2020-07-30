@@ -2656,9 +2656,9 @@ class UsersController extends AppController
                 }
             } else {
                 if (empty($results['fails']) && !empty($results['successes'])) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'success' => $message)), 'status'=>200, 'type' => 'json'));
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
                 }
             }
         }
