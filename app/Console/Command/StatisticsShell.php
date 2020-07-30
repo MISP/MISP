@@ -53,4 +53,84 @@ class StatisticsShell extends AppShell {
         }
         return $results;
     }
+
+    public function analyse_slow_logs()
+    {
+        $path = $this->args[0];
+        $raw = file_get_contents($path);
+        $raw = explode("\n", $raw);
+        $data = [
+            'users' => [],
+            'non_sync_action_users' => [],
+            'endpoints' => []
+        ];
+        $this->User = ClassRegistry::init('User');
+        $users = $this->User->find('list', [
+            'fields' => ['id', 'email']
+        ]);
+        foreach ($raw as $line) {
+            if (empty($line)) {
+                continue;
+            }
+            if ($line[0] === '/' && $line[1] === '*') {
+                $temp = preg_match('/\/\*\s\[User\:\s([0-9]+)\]/', $line, $matches);
+                if (!empty($matches[1])) {
+                    $user = $matches[1];
+                    if (isset($data['users'][$user])) {
+                        $data['users'][$user] += 1;
+                    } else {
+                        $data['users'][$user] = 1;
+                    }
+                }
+                $temp = preg_match('/\]\s([a-z\:\s]*)/', $line, $matches);
+                if (!empty($matches[1])) {
+                    $endpoint = $matches[1];
+                    $endpoint = trim($endpoint);
+                    if (isset($data['endpoints'][$endpoint])) {
+                        $data['endpoints'][$endpoint] += 1;
+                    } else {
+                        $data['endpoints'][$endpoint] = 1;
+                    }
+                }
+                if (!in_array($endpoint, ['events :: add', 'events :: edit', 'events :: index'])) {
+                    if (isset($data['non_sync_action_users'][$user])) {
+                        $data['non_sync_action_users'][$user] += 1;
+                    } else {
+                        $data['non_sync_action_users'][$user] = 1;
+                    }
+                }
+            }
+        }
+        arsort($data['endpoints']);
+        arsort($data['users']);
+        arsort($data['non_sync_action_users']);
+        echo "\n\n==================================\nCount | User\n";
+        echo "\n\n==================================\nSlow queries by user general\n==================================\nCount | User  | Email\n";
+        foreach ($data['users'] as $user_id => $count) {
+            echo sprintf(
+                "%s | %s | %s\n",
+                str_pad($count, 5),
+                str_pad($user_id, 5),
+                !empty($users[$user_id]) ? $users[$user_id] : ''
+            );
+        }
+        echo "\n\n==================================\nSlow queries by user excluding sync\n==================================\nCount | User  | Email\n";
+        foreach ($data['non_sync_action_users'] as $user_id => $count) {
+            echo sprintf(
+                "%s | %s | %s\n",
+                str_pad($count, 5),
+                str_pad($user_id, 5),
+                !empty($users[$user_id]) ? $users[$user_id] : ''
+            );
+        }
+        echo "\n\n==================================\nSlow queries by endpoint\n==================================\nCount | Endpoint\n";
+        foreach ($data['endpoints'] as $endpoint => $count) {
+            echo sprintf(
+                "%s | %s\n",
+                str_pad($count, 5),
+                $endpoint
+            );
+        }
+        echo "==================================\n\n";
+    }
 }
