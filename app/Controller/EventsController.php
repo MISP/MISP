@@ -1130,6 +1130,7 @@ class EventsController extends AppController
         }
         $conditions['includeAllTags'] = true;
         $conditions['includeGranularCorrelations'] = 1;
+        $conditions['includeEventCorrelations'] = false;
         if (!empty($filters['includeRelatedTags'])) {
             $this->set('includeRelatedTags', 1);
             $conditions['includeRelatedTags'] = 1;
@@ -1266,9 +1267,12 @@ class EventsController extends AppController
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('defaultFilteringRules', $this->defaultFilteringRules);
+        $orgTable = $this->Event->Orgc->find('list', array(
+            'fields' => array('Orgc.id', 'Orgc.name')
+        ));
+        $this->set('orgTable', $orgTable);
         $this->disableCache();
         $this->layout = 'ajax';
-        $this->loadModel('Sighting');
         $uriArray = explode('/', $this->params->here);
         foreach ($uriArray as $k => $v) {
             if (strpos($v, ':')) {
@@ -1282,7 +1286,6 @@ class EventsController extends AppController
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($this->Auth->user()));
         }
-        $this->set('sightingTypes', $this->Sighting->type);
         $this->set('currentUri', $this->params->here);
         $this->layout = false;
         $this->render('/Elements/eventattribute');
@@ -1525,8 +1528,6 @@ class EventsController extends AppController
         }
         $this->set('contributors', $contributors);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
-        $this->loadModel('Sighting');
-        $this->set('sightingTypes', $this->Sighting->type);
         $attributeUri = '/events/viewEventAttributes/' . $event['Event']['id'];
         foreach ($this->params->named as $k => $v) {
             if (!is_numeric($k)) {
@@ -3679,8 +3680,13 @@ class EventsController extends AppController
             foreach ($resultArray as $key => $result) {
                 if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
                     $pieces = explode('|', $result['value']);
-                    $or = array('Attribute.value1' => $pieces,
-                                'Attribute.value2' => $pieces);
+                    if (in_array($result['default_type'], $this->Event->Attribute->primaryOnlyCorrelatingTypes)) {
+                        $or = array('Attribute.value1' => $pieces[0],
+                                    'Attribute.value2' => $pieces[0]);
+                    } else {
+                        $or = array('Attribute.value1' => $pieces,
+                                    'Attribute.value2' => $pieces);
+                    }
                 } else {
                     $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
                 }
@@ -3688,6 +3694,7 @@ class EventsController extends AppController
                     'conditions' => array('OR' => $or),
                     'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
                     'order' => false,
+                    'limit' => 11,
                     'flatten' => 1
                 );
                 $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);

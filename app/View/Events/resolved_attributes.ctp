@@ -88,7 +88,7 @@
             </td>
             <td class="shortish">
                 <?php
-                    foreach ($item['related'] as $relation):
+                    foreach (array_slice($item['related'], 0, 10) as $relation):
                         $popover = array(
                             'Event ID' => $relation['Event']['id'],
                             'Event Info' => $relation['Event']['info'],
@@ -105,7 +105,7 @@
                         <a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
                 <?php
                     endforeach;
-                    $correlationPopover = array('<span>', );
+                    echo count($item['related']) > 10 ? sprintf('<div><i class="muted">%s</i></div>', __('10 +more')) : '';
                 ?>
             </td>
             <td class="short">

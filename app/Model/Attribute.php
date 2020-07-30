@@ -731,7 +731,7 @@ class Attribute extends AppModel
                         'perm_site_admin' => 1
                     )
                 );
-                $attribute['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attribute, $user, $this->id);
+                $attribute['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attribute, $user, $attribute);
                 if (empty($attribute['Object']['id'])) {
                     unset($attribute['Object']);
                 }
@@ -1467,6 +1467,7 @@ class Attribute extends AppModel
     // do some last second modifications before the validation
     public function modifyBeforeValidation($type, $value)
     {
+        $value = $this->handle4ByteUnicode($value);
         switch ($type) {
             case 'md5':
             case 'sha1':
