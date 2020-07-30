@@ -6876,7 +6876,8 @@
         ],
         "feeds": [
             "id",
-            "input_source"
+            "input_source",
+            "orgc_id"
         ],
         "fuzzy_correlate_ssdeep": [
             "id",
