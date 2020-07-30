@@ -182,8 +182,8 @@ class Feed extends AppModel
         foreach ($tmpFile->lines() as $line) {
             yield explode(',', rtrim($line));
         }
-
-        return array();
+        $result = array();
+        return $result;
     }
 
     /**
