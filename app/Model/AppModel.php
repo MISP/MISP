@@ -2914,7 +2914,23 @@ class AppModel extends Model
         if (!is_array($decoded)) {
             throw new UnexpectedValueException('JSON must be array type, get ' . gettype($decoded));
         }
-
         return $decoded;
+    }
+
+    /*
+     *  Temporary solution for utf8 columns until we migrate to utf8mb4
+     *  via https://stackoverflow.com/questions/16496554/can-php-detect-4-byte-encoded-utf8-chars
+     */
+    public function handle4ByteUnicode($input)
+    {
+        return preg_replace(
+            '%(?:
+            \xF0[\x90-\xBF][\x80-\xBF]{2}
+            | [\xF1-\xF3][\x80-\xBF]{3}
+            | \xF4[\x80-\x8F][\x80-\xBF]{2}
+            )%xs',
+            '?',
+            $input
+        );
     }
 }
