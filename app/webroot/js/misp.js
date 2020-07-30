@@ -1328,6 +1328,9 @@ function handleAjaxModalResponse(response, context_id, url, referer, context, co
             showMessage("fail", responseArray.errors);
         }
     } else {
+        if (responseArray.errors) {
+            showMessage("fail", responseArray.errors);
+        }
         var savedArray = saveValuesForPersistance();
         $.ajax({
             async:true,
