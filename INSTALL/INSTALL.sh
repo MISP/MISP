@@ -1282,30 +1282,7 @@ prepareDB () {
     else
       pw=${MISP_PASSWORD}
     fi
-
-    expect -f - <<-EOF
-      set timeout 10
-      spawn sudo -k mysql_secure_installation
-      expect "*Enter current password*"
-      send -- "${pw}\r"
-      expect "Enter current password for root (enter for none):"
-      send -- "\r"
-      expect "Set root password?"
-      send -- "y\r"
-      expect "New password:"
-      send -- "${DBPASSWORD_ADMIN}\r"
-      expect "Re-enter new password:"
-      send -- "${DBPASSWORD_ADMIN}\r"
-      expect "Remove anonymous users?"
-      send -- "y\r"
-      expect "Disallow root login remotely?"
-      send -- "y\r"
-      expect "Remove test database and access to it?"
-      send -- "y\r"
-      expect "Reload privilege tables now?"
-      send -- "y\r"
-      expect eof
-EOF
+    echo -e "\ny\n${DBPASSWORD_ADMIN}\n${DBPASSWORD_ADMIN}\ny\ny\ny\ny\n " | sudo mysql_secure_installation 2>/dev/null
     sudo apt-get purge -y expect ; sudo apt autoremove -qy
   fi 
 
