@@ -117,7 +117,7 @@ class ObjectsController extends AppController
         $this->set('object_id', $object_id);
         $this->set('event', $event);
         $this->set('data', $this->request->data);
-        // Make sure the cookie applies to this object. User might be prompted to perform a merge with another object if the cookie is somehow not cleaned
+        // Make sure the data stored in the session applies to this object. User might be prompted to perform a merge with another object if the session's data is somehow not cleaned
         $curObjectTmpUuid = CakeText::uuid();
         $this->set('cur_object_tmp_uuid', $curObjectTmpUuid);
         $this->Session->write('object_being_created', array(
@@ -406,7 +406,7 @@ class ObjectsController extends AppController
         $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
         if (!empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
             $revisedObjectData = $this->Session->read('object_being_created');
-            if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed cookie is for the correct object
+            if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed session data is for the correct object
                 $revisedObjectData = $revisedObjectData['data'];
             } else {
                 $this->Session->delete('object_being_created');
