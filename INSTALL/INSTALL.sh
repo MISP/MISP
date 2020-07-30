@@ -1270,6 +1270,9 @@ installDepsPhp70 () {
 
 prepareDB () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
+    #Make sure initial tables are created in MySQL
+    sudo mysql_install_db
+    sudo mysqld
     debug "Setting up database"
 
     # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
@@ -1282,9 +1285,8 @@ prepareDB () {
 
     expect -f - <<-EOF
       set timeout 10
-
       spawn sudo -k mysql_secure_installation
-      expect "*?assword*"
+      expect "*Enter current password*"
       send -- "${pw}\r"
       expect "Enter current password for root (enter for none):"
       send -- "\r"
