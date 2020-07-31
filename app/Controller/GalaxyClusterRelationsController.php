@@ -165,7 +165,7 @@ class GalaxyClusterRelationsController extends AppController
             } else {
                 if (empty($errors)) {
                     $this->Flash->success($message);
-                    $this->redirect($this->referer());
+                    $this->redirect(array('action' => 'index'));
                 } else {
                     $message .= __(' Reason: %s', json_encode($this->GalaxyClusterRelation->validationErrors, true));
                     $this->Flash->error($message);
