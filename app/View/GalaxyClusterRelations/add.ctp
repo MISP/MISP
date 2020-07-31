@@ -1,4 +1,7 @@
 <?php
+    $fieldDesc = array(
+        'referenced_galaxy_cluster_type' => __('relationships which can be used to link clusters together and explain the context of the relationship.'),
+    );
     echo $this->element('genericElements/Form/genericForm', array(
         'form' => $this->Form,
         'data' => array(
@@ -36,6 +39,7 @@
                 array(
                     'field' => 'referenced_galaxy_cluster_type',
                     'label' => __('Relationship Type'),
+                    'placeholder' => __('is-similar'),
                     'type' => 'text',
                 ),
                 array(
@@ -52,7 +56,8 @@
             'submit' => array(
                 'ajaxSubmit' => ''
             )
-        )
+        ),
+        'fieldDesc' => $fieldDesc,
     ));
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxy_cluster_relations', 'menuItem' => $this->action === 'add' ? 'add' : 'edit'));
 ?>
