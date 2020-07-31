@@ -24,8 +24,7 @@ App::uses('AppHelper', 'View/Helper');
                         (int)$size,
                         (int)$size
                     );
-
-                    if (!$raw) {
+                    if (!$raw && !empty($options['id'])) {
                         $result = sprintf(
                             '<a href="/organisations/view/%s">%s</a>',
                             (empty($options['id']) ? h($options['name']) : h($options['id'])),
