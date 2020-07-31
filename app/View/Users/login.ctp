@@ -49,9 +49,8 @@
                 );
             ?>
             </div>
-            <button class="btn btn-primary" type="button" onclick="submitLoginForm()"><?= __('Login') ?></button>
+            <button class="btn btn-primary" type="submit" onclick="submitLoginForm()"><?= __('Login') ?></button>
         <?php
-            echo $this->Form->button(__('Login'), array('class' => 'btn btn-primary hidden'));
             echo $this->Form->end();
             if (Configure::read('ApacheShibbAuth') == true) {
                 echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
