@@ -915,7 +915,7 @@ class TagsController extends AppController
         return $object;
     }
 
-    public function attachTagToObject($uuid = false, $tag = false, $local = false)
+    public function attachTagToObject($uuid = false, $tags = false, $local = false)
     {
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This method is only accessible via POST requests.');
@@ -930,94 +930,118 @@ class TagsController extends AppController
         if (!Validation::uuid($uuid)) {
             throw new InvalidArgumentException('Invalid UUID');
         }
-        if (empty($tag)) {
+        if (empty($tags)) {
             if (!empty($this->request->data['tag'])) {
-                $tag = $this->request->data['tag'];
+                $tags = $this->request->data['tag'];
             } else {
                 throw new MethodNotAllowedException('Invalid tag');
             }
         }
-        if (is_numeric($tag)) {
-            $conditions = array('Tag.id' => $tag);
-        } else {
-            $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
+        if (!is_array($tags)) {
+            $tags = array($tags);
         }
-        if (empty($local)) {
-            if (!empty($this->request->data['local'])) {
-                $local = $this->request->data['local'];
-            }
-        }
-        if (!empty($local) && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
-            throw new MethodNotAllowedException(__('Local tags can only be added by users of the host organisation.'));
-        }
-        $objectType = '';
-        $object = $this->__findObjectByUuid($uuid, $objectType, $local ? 'view' : 'modify');
-        $existingTag = $this->Tag->find('first', array('conditions' => $conditions, 'recursive' => -1));
-        if (empty($existingTag)) {
-            if (!is_numeric($tag)) {
-                if (!$this->userRole['perm_tag_editor']) {
-                    throw new MethodNotAllowedException('Tag not found and insufficient privileges to create it.');
-                }
-                $this->Tag->create();
-                $result = $this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
-                if (!$result) {
-                    return $this->RestResponse->saveFailResponse('Tags', 'attachTagToObject', false, __('Unable to create tag. Reason: ' . json_encode($this->Tag->validationErrors)), $this->response->type());
-                }
-                $existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
+        $successes = 0;
+        $fails = array();
+        foreach ($tags as $k => $tag) {
+            if (is_numeric($tag)) {
+                $conditions = array('Tag.id' => $tag);
             } else {
-                throw new NotFoundException('Invalid Tag.');
+                $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
             }
-        }
-        if (!$this->_isSiteAdmin()) {
-            if (!in_array($existingTag['Tag']['org_id'], array(0, $this->Auth->user('org_id')))) {
-                throw new MethodNotAllowedException('Invalid Tag. This tag can only be set by a fixed organisation.');
+            if (empty($local)) {
+                if (!empty($this->request->data['local'])) {
+                    $local = $this->request->data['local'];
+                }
             }
-            if (!in_array($existingTag['Tag']['user_id'], array(0, $this->Auth->user('id')))) {
-                throw new MethodNotAllowedException('Invalid Tag. This tag can only be set by a fixed user.');
+            if (!empty($local) && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
+                $fails[] = __('Local tags can only be added by users of the host organisation.');
+                continue;
             }
-        }
-        $this->loadModel($objectType);
-        $connectorObject = $objectType . 'Tag';
-        $conditions = array(
-            strtolower($objectType) . '_id' => $object[$objectType]['id'],
-            'tag_id' => $existingTag['Tag']['id'],
-            'local' => ($local ? 1 : 0)
-        );
-        $existingAssociation = $this->$objectType->$connectorObject->find('first', array(
-            'conditions' => $conditions
-        ));
-        if (!empty($existingAssociation)) {
-            return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $objectType . ' already has the requested tag attached, no changes had to be made.');
-        }
-        $this->$objectType->$connectorObject->create();
-        $data = array(
-            $connectorObject => $conditions
-        );
-        if ($objectType == 'Attribute') {
-            $data[$connectorObject]['event_id'] = $object['Event']['id'];
-        }
-        $result = $this->$objectType->$connectorObject->save($data);
-        if ($result) {
-            $tempObject = $this->$objectType->find('first', array(
-                'recursive' => -1,
-                'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
+            $objectType = '';
+            $object = $this->__findObjectByUuid($uuid, $objectType, $local ? 'view' : 'modify');
+            $existingTag = $this->Tag->find('first', array('conditions' => $conditions, 'recursive' => -1));
+            if (empty($existingTag)) {
+                if (!is_numeric($tag)) {
+                    if (!$this->userRole['perm_tag_editor']) {
+                        $fails[] = __('Tag not found and insufficient privileges to create it.');
+                        continue;
+                    }
+                    $this->Tag->create();
+                    $result = $this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
+                    if (!$result) {
+                        $fails[] = __('Unable to create tag. Reason: ' . json_encode($this->Tag->validationErrors));
+                        continue;
+                    }
+                    $existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
+                } else {
+                    $fails[] = __('Invalid Tag.');
+                    continue;
+                }
+            }
+            if (!$this->_isSiteAdmin()) {
+                if (!in_array($existingTag['Tag']['org_id'], array(0, $this->Auth->user('org_id')))) {
+                    $fails[] = __('Invalid Tag. This tag can only be set by a fixed organisation.');
+                    continue;
+                }
+                if (!in_array($existingTag['Tag']['user_id'], array(0, $this->Auth->user('id')))) {
+                    $fails[] = __('Invalid Tag. This tag can only be set by a fixed user.');
+                    continue;
+                }
+            }
+            $this->loadModel($objectType);
+            $connectorObject = $objectType . 'Tag';
+            $conditions = array(
+                strtolower($objectType) . '_id' => $object[$objectType]['id'],
+                'tag_id' => $existingTag['Tag']['id'],
+                'local' => ($local ? 1 : 0)
+            );
+            $existingAssociation = $this->$objectType->$connectorObject->find('first', array(
+                'conditions' => $conditions
             ));
-            $date = new DateTime();
-            $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
-            $this->$objectType->save($tempObject);
-            if($local) {
-                $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
-            } else {
-                if ($objectType === 'Attribute') {
-                    $this->$objectType->Event->unpublishEvent($object['Event']['id']);
-                } else if ($objectType === 'Event') {
-                    $this->Event->unpublishEvent($object['Event']['id']);
-                }
-                $message = 'Global tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
+            if (!empty($existingAssociation)) {
+                $fails[] = __('%s already has the requested tag attached, no changes had to be made.', $objectType);
+                continue;
             }
+            $this->$objectType->$connectorObject->create();
+            $data = array(
+                $connectorObject => $conditions
+            );
+            if ($objectType == 'Attribute') {
+                $data[$connectorObject]['event_id'] = $object['Event']['id'];
+            }
+            $result = $this->$objectType->$connectorObject->save($data);
+            if ($result) {
+                $tempObject = $this->$objectType->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
+                ));
+                $date = new DateTime();
+                $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
+                $this->$objectType->save($tempObject);
+                if ($local) {
+                    $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
+                } else {
+                    if ($objectType === 'Attribute') {
+                        $this->$objectType->Event->unpublishEvent($object['Event']['id']);
+                    } elseif ($objectType === 'Event') {
+                        $this->Event->unpublishEvent($object['Event']['id']);
+                    }
+                    $message = 'Global tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
+                }
+                $successes++;
+            } else {
+                $fails[] = __('Failed to attach tag to object.');
+            }
+        }
+        if (!empty($fails)) {
+            $failedMessage = __('Failed to attach %s tags. Reasons: %s', count($fails), json_encode($fails,  JSON_FORCE_OBJECT));
+        }
+        if ($successes > 0) {
+            $message = __('Successfully attached %s tags to %s (%s)', $successes, $objectType, $object[$objectType]['id']);
+            $message .= !empty($fails) ? PHP_EOL . $failedMessage : '';
             return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);
         } else {
-            return $this->RestResponse->saveFailResponse('Tags', 'attachTagToObject', false, 'Failed to attach tag to object.', $this->response->type());
+            return $this->RestResponse->saveFailResponse('Tags', 'attachTagToObject', false, $failedMessage, $this->response->type());
         }
     }
 
