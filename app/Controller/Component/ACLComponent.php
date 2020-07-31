@@ -53,6 +53,7 @@ class ACLComponent extends Component
                     'fetchEditForm' => array('perm_add'),
                     'fetchViewValue' => array('*'),
                     'generateCorrelation' => array(),
+                    'getMassEditForm' => array('perm_add'),
                     'hoverEnrichment' => array('perm_add'),
                     'index' => array('*'),
                     'pruneOrphanedAttributes' => array(),

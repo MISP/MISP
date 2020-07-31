@@ -8,7 +8,7 @@
         <div class="add_attribute_fields">
             <?php
             echo $this->Form->hidden('event_id', array('value' => $id));
-            echo $this->Form->input('attribute_ids', array('style' => 'display:none;', 'label' => false));
+            echo $this->Form->hidden('attribute_ids', array('value' => json_encode($selectedAttributeIds)));
             $distributionLevels[] = __('Do not alter current settings');
             echo $this->Form->input('distribution', array(
                 'options' => array($distributionLevels),
