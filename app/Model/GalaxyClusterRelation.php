@@ -64,7 +64,7 @@ class GalaxyClusterRelation extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {
-            if (isset($results[$k]['TargetCluster']['id']) && is_null($results[$k]['TargetCluster']['id'])) {
+            if (isset($results[$k]['TargetCluster']) && key_exists('id', $results[$k]['TargetCluster']) && is_null($results[$k]['TargetCluster']['id'])) {
                 $results[$k]['TargetCluster'] = array();
             }
             if (isset($results[$k]['GalaxyClusterRelation']['distribution']) && $results[$k]['GalaxyClusterRelation']['distribution'] != 4) {

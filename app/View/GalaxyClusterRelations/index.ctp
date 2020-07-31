@@ -59,7 +59,7 @@
                 array(
                     'name' => __('Galaxy Cluster Target'),
                     'sort' => 'TargetCluster.tag_name',
-                    'element' => 'cluster_link',
+                    'element' => 'galaxy_cluster_link',
                     'data_path' => 'TargetCluster',
                     'data_path_relation' => 'GalaxyClusterRelation',
                     'url_params_data_paths' => 'TargetCluster.id',
@@ -99,12 +99,13 @@
                     'icon' => 'edit',
                     'complex_requirement' => array(
                         'function' => function($row, $options) {
-                            return $options['me']['Role']['perm_site_admin'] || ($options['me']['org_id'] == $options['datapath']['org']);
+                            return !$options['datapath']['default'] && ($options['me']['Role']['perm_site_admin'] || ($options['me']['org_id'] == $options['datapath']['org']));
                         },
                         'options' => array(
                             'me' => $me,
                             'datapath' => array(
-                                'org' => 'SourceCluster.org_id'
+                                'org' => 'SourceCluster.org_id',
+                                'default' => 'SourceCluster.default'
                             )
                         )
                     ),
