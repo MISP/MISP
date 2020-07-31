@@ -17,7 +17,8 @@
         h($data['model']);
     $fieldsString = '';
     $simpleFieldWhitelist = array(
-        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'checked', 'multiple', 'selected', 'legend'
+        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'checked', 'multiple', 'selected', 'legend',
+        'disabled',
     );
     $fieldsArrayForPersistence = array();
     $formOptions = isset($formOptions) ? $formOptions : array();

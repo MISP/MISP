@@ -7,26 +7,27 @@ class GalaxyClusterBlocklist extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
-            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
-                    'userModel' => 'User',
-                    'userKey' => 'user_id',
-                    'change' => 'full'),
-            'Containable',
+        'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
+            'userModel' => 'User',
+            'userKey' => 'user_id',
+            'change' => 'full'
+        ),
+        'Containable',
     );
 
     public $blacklistFields = array('cluster_uuid', 'comment', 'cluster_info', 'cluster_orgc');
 
     public $validate = array(
-            'cluster_uuid' => array(
-                    'unique' => array(
-                            'rule' => 'isUnique',
-                            'message' => 'Galaxy Cluster already blocklisted.'
-                    ),
-                    'uuid' => array(
-                            'rule' => array('uuid'),
-                            'message' => 'Please provide a valid UUID'
-                    ),
-            )
+        'cluster_uuid' => array(
+            'unique' => array(
+                    'rule' => 'isUnique',
+                    'message' => 'Galaxy Cluster already blocklisted.'
+            ),
+            'uuid' => array(
+                    'rule' => array('uuid'),
+                    'message' => 'Please provide a valid UUID'
+            ),
+        )
     );
 
     public function beforeValidate($options = array())
