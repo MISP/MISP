@@ -34,6 +34,7 @@ class AttributesController extends AppController
         if ('search' == $this->request->params['action']) {
             $this->Security->csrfCheck = false;
         }
+        $this->Security->unlockedActions[] = 'getMassEditForm';
         if ($this->action == 'add_attachment') {
             $this->Security->disabledFields = array('values');
         }
@@ -1392,11 +1393,137 @@ class AttributesController extends AppController
         }
     }
 
-    public function editSelected($id, $selectedAttributeIds = "[]")
+    public function getMassEditForm($eventId)
     {
-        if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException(__('This method can only be accessed via AJAX.'));
+        if (!$this->request->is('ajax') || !$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This method can only be accessed via AJAX and POST.'));
         }
+        if (!isset($eventId)) {
+            throw new MethodNotAllowedException(__('No event ID provided.'));
+        }
+        $event = $this->Attribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId, $params = array(
+            'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
+        ));
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->_isSiteAdmin()) {
+            if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
+                throw new MethodNotAllowedException(__('You are not authorized to edit this event.'));
+            }
+        }
+        $selectedAttributeIds = $this->Attribute->jsonDecode($this->request->data['selected_ids']);
+        if (empty($selectedAttributeIds)) {
+            throw new MethodNotAllowedException(__('No attributes selected'));
+        }
+
+        // tags to remove
+        $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $eventId, $selectedAttributeIds);
+        $tagItemsRemove = array();
+        foreach ($tags as $k => $tag) {
+            $tagName = $tag['name'];
+            $tagItemsRemove[] = array(
+                'name' => $tagName,
+                'value' => $tag['id'],
+                'template' => array(
+                    'name' => array(
+                        'name' => $tagName,
+                        'label' => array(
+                            'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
+                        )
+                    ),
+                )
+            );
+        }
+        unset($tags);
+
+        // clusters to remove
+        $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $eventId, $selectedAttributeIds);
+        $clusterItemsRemove = array();
+        foreach ($clusters as $k => $cluster) {
+            $name = $cluster['value'];
+            $optionName = $cluster['value'];
+            $synom = $cluster['synonyms_string'] !== '' ? sprintf(' (%s)', $cluster['synonyms_string']) : '';
+            $optionName .= $synom;
+
+            $temp = array(
+                'name' => $optionName,
+                'value' => $cluster['id'],
+                'template' => array(
+                    'name' => $name,
+                    'infoExtra' => $cluster['description']
+                )
+            );
+            if ($cluster['synonyms_string'] !== '') {
+                $temp['infoContextual'] = __('Synonyms: ') . $cluster['synonyms_string'];
+            }
+            $clusterItemsRemove[] = $temp;
+        }
+
+        // clusters to add
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $clusters = $this->GalaxyCluster->find('list', array(
+            'fields' => array('id', 'value', 'tag_name'),
+            'recursive' => -1
+        ));
+        $clusterItemsAdd = array();
+        foreach ($clusters as $tagName => $cluster) {
+            $value = reset($cluster);
+            $id = key($cluster);
+            $clusterItemsAdd[] = array(
+                'name' => $value,
+                'value' => $id
+            );
+        }
+
+        $tags = $this->Attribute->AttributeTag->Tag->fetchUsableTags($this->Auth->user());
+        $tagItemsAdd = array();
+        foreach ($tags as $k => $tag) {
+            $tagName = $tag['Tag']['name'];
+            if (isset($clusters[$tagName])) {
+                continue; // skip galaxy cluster tags
+            }
+            $tagItemsAdd[] = array(
+                'name' => $tagName,
+                'value' => $tag['Tag']['id'],
+                'template' => array(
+                    'name' => array(
+                        'name' => $tagName,
+                        'label' => array(
+                            'background' => isset($tag['Tag']['colour']) ? $tag['Tag']['colour'] : '#ffffff'
+                        )
+                    ),
+                )
+
+            );
+        }
+
+        $this->layout = 'ajax';
+        $this->set('id', $eventId);
+        $this->set('selectedAttributeIds', $selectedAttributeIds);
+        $this->set('sgs', $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true));
+        $this->set('distributionLevels', $this->Attribute->distributionLevels);
+        $this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
+        $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+        $this->set('tagItemsRemove', $tagItemsRemove);
+        $this->set('tagItemsAdd', $tagItemsAdd);
+        $this->set('clusterItemsAdd', $clusterItemsAdd);
+        $this->set('clusterItemsRemove', $clusterItemsRemove);
+        $this->set('options', array( // set chosen (select picker) options
+            'multiple' => -1,
+            'disabledSubmitButton' => true,
+            'flag_redraw_chosen' => true,
+            'select_options' => array(
+                'additionalData' => array(
+                    'event_id' => $eventId,
+                ),
+            ),
+        ));
+        $this->render('ajax/attributeEditMassForm');
+    }
+
+    public function editSelected($id)
+    {
         if ($this->request->is('post')) {
             $event = $this->Attribute->Event->find('first', array(
                 'conditions' => array('id' => $id),
@@ -1408,7 +1535,7 @@ class AttributesController extends AppController
                     throw new MethodNotAllowedException(__('You are not authorized to edit this event.'));
                 }
             }
-            $attribute_ids = json_decode($this->request->data['Attribute']['attribute_ids']);
+            $attribute_ids = $this->Attribute->jsonDecode($this->request->data['Attribute']['attribute_ids']);
             $attributes = $this->Attribute->find('all', array(
                 'conditions' => array(
                     'id' => $attribute_ids,
@@ -1516,125 +1643,6 @@ class AttributesController extends AppController
             }
 
             return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
-
-        } else {
-            if (!isset($id)) {
-                throw new MethodNotAllowedException(__('No event ID provided.'));
-            }
-            $selectedAttributeIds = json_decode($selectedAttributeIds);
-            if ($selectedAttributeIds === null) {
-                $selectedAttributeIds = array();
-            }
-
-            // tags to remove
-            $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $id, $selectedAttributeIds);
-            $tagItemsRemove = array();
-            foreach ($tags as $k => $tag) {
-                $tagName = $tag['name'];
-                $tagItemsRemove[] = array(
-                    'name' => $tagName,
-                    'value' => $tag['id'],
-                    'template' => array(
-                        'name' => array(
-                            'name' => $tagName,
-                            'label' => array(
-                                'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
-                            )
-                        ),
-                    )
-                );
-            }
-            unset($tags);
-
-            // clusters to remove
-            $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $id, $selectedAttributeIds);
-            $clusterItemsRemove = array();
-            foreach ($clusters as $k => $cluster) {
-                $name = $cluster['value'];
-                $optionName = $cluster['value'];
-                $synom = $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
-                $optionName .= $synom;
-
-                $temp = array(
-                    'name' => $optionName,
-                    'value' => $cluster['id'],
-                    'template' => array(
-                        'name' => $name,
-                        'infoExtra' => $cluster['description']
-                    )
-                );
-                if ($cluster['synonyms_string'] !== '') {
-                    $temp['infoContextual'] = __('Synonyms: ') . $cluster['synonyms_string'];
-                }
-                $clusterItemsRemove[] = $temp;
-            }
-            unset($clusters);
-            $conditions = array();
-            if (!$this->_isSiteAdmin()) {
-                $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
-                $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
-                $conditions = array('Tag.hide_tag' => 0);
-            }
-            $allTags = $this->Attribute->AttributeTag->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1));
-            $tags = array();
-            foreach ($allTags as $i => $tag) {
-                $tags[$tag['Tag']['id']] = $tag['Tag'];
-            }
-            unset($allTags);
-            $tagItemsAdd = array();
-            foreach ($tags as $k => $tag) {
-                $tagName = $tag['name'];
-                $tagItemsAdd[] = array(
-                    'name' => $tagName,
-                    'value' => $tag['id'],
-                    'template' => array(
-                        'name' => array(
-                            'name' => $tagName,
-                            'label' => array(
-                                'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
-                            )
-                        ),
-                    )
-
-                );
-            }
-
-            // clusters to add
-            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            $clusters = $this->GalaxyCluster->find('all', array(
-                'fields' => array('value', 'id'),
-                'recursive' => -1
-            ));
-            $clusterItemsAdd = array();
-            foreach ($clusters as $k => $cluster) {
-                $clusterItemsAdd[] = array(
-                    'name' => $cluster['GalaxyCluster']['value'],
-                    'value' => $cluster['GalaxyCluster']['id']
-                );
-            }
-            unset($clusters);
-
-            $this->layout = 'ajax';
-            $this->set('id', $id);
-            $this->set('sgs', $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true));
-            $this->set('distributionLevels', $this->Attribute->distributionLevels);
-            $this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
-            $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-            $this->set('tagItemsRemove', $tagItemsRemove);
-            $this->set('tagItemsAdd', $tagItemsAdd);
-            $this->set('clusterItemsAdd', $clusterItemsAdd);
-            $this->set('clusterItemsRemove', $clusterItemsRemove);
-            $this->set('options', array( // set chosen (select picker) options
-                'multiple' => -1,
-                'disabledSubmitButton' => true,
-                'flag_redraw_chosen' => true,
-                'select_options' => array(
-                    'additionalData' => array(
-                        'event_id' => $id,
-                    ),
-                ),
-            ));
-            $this->render('ajax/attributeEditMassForm');
         }
     }
 
