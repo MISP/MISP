@@ -993,7 +993,7 @@ function multiSelectAction(event, context) {
 function editSelectedAttributes(event) {
     var selectedAttributeIds = getSelected();
     var data = { selected_ids: selectedAttributeIds }
-    simplePopup("/attributes/getMassEditForm/" + event, type='POST', data=data);
+    simplePopup("/attributes/getMassEditForm/" + event, 'POST', data);
 }
 
 function addSelectedTaxonomies(taxonomy) {
