@@ -220,6 +220,7 @@ class GalaxyClusterRelationsController extends AppController
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
                 $errors = array($clusterSource['error']);
             }
+            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterSource['SourceCluster']['id'];
 
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
