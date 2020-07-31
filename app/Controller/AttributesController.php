@@ -34,7 +34,7 @@ class AttributesController extends AppController
         if ('search' == $this->request->params['action']) {
             $this->Security->csrfCheck = false;
         }
-        $this->Security->unlockedActions = array('getMassEditForm');
+        $this->Security->unlockedActions[] = 'getMassEditForm';
         if ($this->action == 'add_attachment') {
             $this->Security->disabledFields = array('values');
         }
