@@ -250,8 +250,8 @@ class GalaxiesController extends AppController
             $clusters = $this->Galaxy->GalaxyCluster->unsetFieldsForExport($clusters);
             $content = json_encode($clusters, JSON_PRETTY_PRINT);
             $this->response->body($content);
+            $this->response->type('json');
             if ($this->request->data['download'] == 'download') {
-                $this->response->type('json');
                 $this->response->download(sprintf('galaxy_%s_%s.json', $galaxy['Galaxy']['uuid'], time()));
             }
             return $this->response;
