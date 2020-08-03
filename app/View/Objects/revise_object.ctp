@@ -11,6 +11,8 @@
       'div' => false
     );
     echo $this->Form->input('data', $formSettings);
+    $formSettings['value'] = $cur_object_tmp_uuid;
+    echo $this->Form->input('cur_object_tmp_uuid', $formSettings);
   ?>
     <div class='hidden'>
   <?php
@@ -149,7 +151,8 @@ function setMergeObject(clicked) {
     var update_template = $clicked.data('updatetemplate');
     update_template = update_template === undefined ? false : update_template;
     var cur_object = $('input[name="data[Object][data]"]').val();
-    window.location = "<?php echo $baseurl . '/objects/edit/'; ?>" + object_id + (update_template ? '/1' : '') + "/revised_object:" + btoa(cur_object);
+    var cur_object_tmp_uuid = $('input[name="data[Object][cur_object_tmp_uuid]"]').val();
+    window.location = "<?php echo $baseurl . '/objects/edit/'; ?>" + object_id + (update_template ? '/1' : '') + "/cur_object_tmp_uuid:" + cur_object_tmp_uuid;
 }
 
 function highlight_rows($panel, state) {
