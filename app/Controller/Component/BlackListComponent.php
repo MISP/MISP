@@ -163,23 +163,20 @@ class BlackListComponent extends Component
 
     public function delete($rest = false, $id)
     {
-        if (strlen($id) == 36) {
-            $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', array(
-                'fields' => array('id'),
-                'conditions' => array('event_uuid' => $id),
-            ));
-            $id = $blockEntry[$this->controller->defaultModel]['id'];
+        if (Validation::uuid($id)) {
+            $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', [
+                'conditions' => array(
+                    $this->controller->{$this->controller->defaultModel}->blacklistTarget . '_uuid' => $id
+                )
+            ]);
+        } else {
+            $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', array('conditions' => array('id' => $id)));
         }
-        if (!$this->controller->request->is('post') && !$rest) {
-            throw new MethodNotAllowedException();
-        }
-
-        $this->controller->{$this->controller->defaultModel}->id = $id;
-        if (!$this->controller->{$this->controller->defaultModel}->exists()) {
+        if (empty($blockEntry)) {
             throw new NotFoundException(__('Invalid blacklist entry'));
         }
 
-        if ($this->controller->{$this->controller->defaultModel}->delete()) {
+        if ($this->controller->{$this->controller->defaultModel}->delete($blockEntry[$this->controller->defaultModel]['id'])) {
             $message = __('Blacklist entry removed');
             if ($rest) {
                 return $this->RestResponse->saveSuccessResponse($this->controller->defaultModel, 'delete', $id, false, $message);
