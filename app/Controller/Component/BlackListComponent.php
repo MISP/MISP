@@ -9,6 +9,7 @@ class BlackListComponent extends Component
     public $settings = array();
     public $defaultModel = '';
 
+    public $components = array('RestResponse');
 
     public function index($rest = false, $filters = array())
     {
@@ -44,6 +45,9 @@ class BlackListComponent extends Component
             } else {
                 $data = $this->controller->request->data;
             }
+            if (!isset($data[$this->controller->defaultModel])) {
+                $data = [$this->controller->defaultModel => $data];
+            }
             if (is_array($data[$this->controller->defaultModel]['uuids'])) {
                 $uuids = $data[$this->controller->defaultModel]['uuids'];
             } else {
@@ -74,9 +78,14 @@ class BlackListComponent extends Component
             }
             $message = sprintf(__('Done. Added %d new entries to the blacklist. %d entries could not be saved.'), count($successes), count($fails));
             if ($rest) {
-                $this->set('result', array('successes' => $successes, 'fails' => $fails));
-                $this->set('message', $message);
-                $this->set('_serialize', array('message', 'result'));
+                $result = [
+                    'result' => [
+                        'successes' => $successes,
+                        'fails' => $fails
+                    ],
+                    'message' => $message
+                ];
+                return $this->RestResponse->viewData($result);
             } else {
                 $this->controller->Session->setFlash($message);
                 $this->controller->redirect(array('action' => 'index'));
