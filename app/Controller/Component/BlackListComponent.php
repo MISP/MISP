@@ -48,6 +48,9 @@ class BlackListComponent extends Component
             if (!isset($data[$this->controller->defaultModel])) {
                 $data = [$this->controller->defaultModel => $data];
             }
+            if (!isset($data[$this->controller->defaultModel])) {
+                throw new InvalidArgumentException(__('Pass a list of uuids via the "uuids" key in the request object.'));
+            }
             if (is_array($data[$this->controller->defaultModel]['uuids'])) {
                 $uuids = $data[$this->controller->defaultModel]['uuids'];
             } else {
