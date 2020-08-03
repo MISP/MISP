@@ -44,10 +44,10 @@ class AppController extends Controller
 
     public $debugMode = false;
 
-    public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
+    public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '98';
-    public $pyMispVersion = '2.4.121';
+    private $__queryVersion = '108';
+    public $pyMispVersion = '2.4.128';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $pythonmin = '3.6';
@@ -57,11 +57,14 @@ class AppController extends Controller
     public $baseurl = '';
     public $sql_dump = false;
 
+    private $isRest = null;
+
     // Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
     // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
     public $automationArray = array(
         'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
         'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
+        'objects' => array('restSearch')
     );
 
     protected $_legacyParams = array();
@@ -119,7 +122,6 @@ class AppController extends Controller
         } else {
             $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
         }
-
         $this->__sessionMassage();
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers
@@ -135,6 +137,7 @@ class AppController extends Controller
                 $this->_stop();
             }
         }
+        $this->response->header('X-XSS-Protection', '1; mode=block');
 
         if (!empty($this->params['named']['sql'])) {
             $this->sql_dump = intval($this->params['named']['sql']);
@@ -181,6 +184,8 @@ class AppController extends Controller
         if (!empty($this->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
+        Configure::write('CurrentController', $this->params['controller']);
+        Configure::write('CurrentAction', $this->params['action']);
         $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
@@ -201,7 +206,14 @@ class AppController extends Controller
             $this->Security->unlockedActions = array($this->action);
         }
 
-        if (!$userLoggedIn) {
+        if (
+            !$userLoggedIn &&
+            (
+                $this->params['controller'] !== 'users' ||
+                $this->params['action'] !== 'register' ||
+                empty(Configure::read('Security.allow_self_registration'))
+            )
+        ) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access
@@ -297,6 +309,16 @@ class AppController extends Controller
         }
 
         if ($this->Auth->user()) {
+            Configure::write('CurrentUserId', $this->Auth->user('id'));
+            $this->User->setMonitoring($this->Auth->user());
+            if (Configure::read('MISP.log_user_ips')) {
+                $redis = $this->{$this->modelClass}->setupRedis();
+                if ($redis) {
+                    $redis->set('misp:ip_user:' . trim($_SERVER['REMOTE_ADDR']), $this->Auth->user('id'));
+                    $redis->expire('misp:ip_user:' . trim($_SERVER['REMOTE_ADDR']), 60*60*24*30);
+                    $redis->sadd('misp:user_ip:' . $this->Auth->user('id'), trim($_SERVER['REMOTE_ADDR']));
+                }
+            }
             // update script
             if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->{$this->modelClass}->runUpdates();
@@ -341,7 +363,11 @@ class AppController extends Controller
                 }
             }
         } else {
-            if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
+            $pre_auth_actions = array('login', 'register');
+            if (!empty(Configure::read('Security.email_otp_enabled'))) {
+                $pre_auth_actions[] = 'email_otp';
+            }
+            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], $pre_auth_actions)) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
@@ -436,11 +462,32 @@ class AppController extends Controller
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
             $this->userRole = $role;
-            if (Configure::read('MISP.log_paranoid')) {
+
+            $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
+            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+            } else {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+            }
+            $this->set('notifications', $notifications);
+
+            if (
+                Configure::read('MISP.log_paranoid') ||
+                !empty(Configure::read('Security.monitored'))
+            ) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
                 $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
-                if (($this->request->is('post') || $this->request->is('put')) && !empty(Configure::read('MISP.log_paranoid_include_post_body'))) {
+                if (
+                    (
+                        $this->request->is('post') ||
+                        $this->request->is('put')
+                    ) &&
+                    (
+                        !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
+                        !empty(Configure::read('Security.monitored'))
+                    )
+                ) {
                     $payload = $this->request->input();
                     if (!empty($payload['_Token'])) {
                         unset($payload['_Token']);
@@ -461,9 +508,8 @@ class AppController extends Controller
         } else {
             $this->set('me', false);
         }
-        $this->set('br', '<br />');
-        $this->set('bold', array('<span class="bold">', '</span>'));
-        if ($this->_isSiteAdmin()) {
+
+        if ($this->Auth->user() && $this->_isSiteAdmin()) {
             if (Configure::read('Session.defaults') == 'database') {
                 $db = ConnectionManager::getDataSource('default');
                 $sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
@@ -477,13 +523,6 @@ class AppController extends Controller
             }
         }
 
-        $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-        if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
-        } else {
-            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
-        }
-        $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
         if ($this->_isRest()) {
             $this->__rateLimitCheck();
@@ -501,6 +540,18 @@ class AppController extends Controller
             }
         }
         $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
+        $this->loadModel('UserSetting');
+        $homepage = $this->UserSetting->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'UserSetting.user_id' => $this->Auth->user('id'),
+                'UserSetting.setting' => 'homepage'
+            ),
+            'contain' => array('User.id', 'User.org_id')
+        ));
+        if (!empty($homepage)) {
+            $this->set('homepage', $homepage['UserSetting']['value']);
+        }
     }
 
     private function __rateLimitCheck()
@@ -572,7 +623,7 @@ class AppController extends Controller
             ConnectionManager::create('default', $db->config);
         }
         $dataSource = $dataSourceConfig['datasource'];
-        if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
+        if (!in_array($dataSource, array('Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver'))) {
             throw new Exception('datasource not supported: ' . $dataSource);
         }
     }
@@ -636,6 +687,11 @@ class AppController extends Controller
 
     protected function _isRest()
     {
+        // This method is surprisingly slow and called many times for one request, so it make sense to cache the result.
+        if ($this->isRest !== null) {
+            return $this->isRest;
+        }
+
         $api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
         if (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson() || $this->_isCsv())) {
             if ($this->_isJson()) {
@@ -643,8 +699,10 @@ class AppController extends Controller
                     throw new MethodNotAllowedException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.');
                 }
             }
+            $this->isRest = true;
             return true;
         } else {
+            $this->isRest = false;
             return false;
         }
     }
@@ -1006,7 +1064,11 @@ class AppController extends Controller
                 !Configure::check('Plugin.CustomAuth_use_header_namespace') ||
                 (Configure::check('Plugin.CustomAuth_use_header_namespace') && Configure::read('Plugin.CustomAuth_use_header_namespace'))
             ) {
-                $headerNamespace = Configure::read('Plugin.CustomAuth_header_namespace');
+                if (Configure::check('Plugin.CustomAuth_header_namespace')) {
+                    $headerNamespace = Configure::read('Plugin.CustomAuth_header_namespace');
+                } else {
+                    $headerNamespace = 'HTTP_';
+                }
             } else {
                 $headerNamespace = '';
             }
@@ -1162,10 +1224,13 @@ class AppController extends Controller
 
     public function restSearch()
     {
-        if (empty($this->RestSearch->paramArray[$this->modelClass])) {
+        $scope = empty($this->scopeOverride) ? $this->modelClass : $this->scopeOverride;
+        if ($scope === 'MispObject') {
+            $scope = 'Object';
+        }
+        if (empty($this->RestSearch->paramArray[$scope])) {
             throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
         }
-        $scope = empty($this->scopeOverride) ? $this->modelClass : $this->scopeOverride;
         if (!isset($this->$scope)) {
             $this->loadModel($scope);
         }

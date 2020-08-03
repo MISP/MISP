@@ -85,7 +85,8 @@
         );
         $rows = '';
         foreach ($dbSchemaDiagnostics as $tableName => $tableDiagnostic) {
-            $rows .= sprintf('<tr data-tablename="%s">', $tableName);
+            $tableContainsCritical = array_filter(Hash::extract($tableDiagnostic, '{n}.is_critical'));
+            $rows .= sprintf('<tr class="%s" data-tablename="%s">', $tableContainsCritical ? '' : 'noncritical', $tableName);
                 $rows .= sprintf('<td rowspan="%s" colspan="0" class="bold">%s</td>', count($tableDiagnostic)+1, h($tableName));
             $rows .= '</tr>';
 
@@ -113,9 +114,10 @@
                     $rows .= sprintf('<td class="" data-table="%s" data-index="%s">%s</td>', h($tableName), h($i),
                         empty($columnDiagnostic['sql']) ? '' :
                             sprintf(
-                                '<i class="fa fa-wrench useCursorPointer" onclick="quickFixSchema(this, \'%s\')" title="%s" data-query="%s"></i>',
+                                '<i class="fa fa-wrench useCursorPointer" onclick="quickFixSchema(this, \'%s\')" title="%s" aria-label="%s" tabindex="0" role="link" data-query="%s"></i>',
                                 h($columnDiagnostic['sql']),
                                 __('Fix Database schema'),
+                                __('Fix Database schema'),				
                                 h($columnDiagnostic['sql'])
                             )
                     );

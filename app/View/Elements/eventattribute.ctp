@@ -9,8 +9,7 @@
     $mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
     $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
     $mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
-    $possibleAction = 'Proposal';
-    if ($mayModify) $possibleAction = 'Attribute';
+    $possibleAction = $mayModify ? 'attribute' : 'shadow_attribute';
     $all = false;
     if (isset($this->params->params['paging']['Event']['page'])) {
         if ($this->params->params['paging']['Event']['page'] == 0) $all = true;
@@ -173,7 +172,7 @@
                     $fieldCount += 1;
                 }
                 if ($includeDecayScore) {
-                    sprintf(
+                    echo sprintf(
                         '<th class="decayingScoreField" title="%s">%s</th>',
                         __('Decaying Score'),
                         __('Score')

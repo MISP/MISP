@@ -12,7 +12,9 @@
                 'external' => array('selected' => false, 'text' => __('Known remote organisations')),
                 'all' => array('selected' => false, 'text' => __('All organisations'))
         );
-        $types[$scope]['selected'] = true;
+        if (isset($types[$scope])) {
+            $types[$scope]['selected'] = true;
+        }
     ?>
     <h4><?php echo __('Organisation list');?></h4>
     <p><?php echo __('Quick overview over the organisations residing on or known by this instance.');?></p>

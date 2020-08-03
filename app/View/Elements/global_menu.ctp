@@ -3,7 +3,7 @@
         $menu = array(
             array(
                 'type' => 'root',
-                'url' => $baseurl . '/',
+                'url' =>empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
                 'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : __('Home'))
             ),
             array(
@@ -137,7 +137,7 @@
             array(
                 'type' => 'root',
                 'text' => __('Global Actions'),
-                'url' => '/users/dashboard',
+                'url' => '/dashboards',
                 'children' => array(
                     array(
                         'text' => __('News'),
@@ -157,7 +157,7 @@
                     ),
                     array(
                         'text' => __('Dashboard'),
-                        'url' => '/users/dashboard'
+                        'url' => '/dashboards'
                     ),
                     array(
                         'text' => __('Organisations'),
@@ -305,6 +305,10 @@
                         'url' => '/admin/users/email'
                     ),
                     array(
+                        'text' => __('User Registrations'),
+                        'url' => '/users/registrations'
+                    ),
+                    array(
                         'type' => 'separator'
                     ),
                     array(
@@ -352,6 +356,11 @@
                         'text' => __('Scheduled Tasks'),
                         'url' => '/tasks',
                         'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
+                    ),
+                    array(
+                        'text' => __('Event Block Rules'),
+                        'url' => '/servers/eventBlockRule',
+                        'requirement' => $isSiteAdmin
                     ),
                     array(
                         'type' => 'separator',
@@ -402,12 +411,21 @@
         $menu_right = array(
             array(
                 'type' => 'root',
-                'url' => $baseurl . '/',
+                'url' => '#',
+                'html' => sprintf(
+                    '<span class="fas fa-star %s" id="setHomePage" title="Set the current page as your home page in MISP" data-current-page="%s"></span>',
+                    (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : '',
+                    $this->here
+                )
+            ),
+            array(
+                'type' => 'root',
+                'url' =>empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
                 'html' => '<span class="logoBlueStatic bold" id="smallLogo">MISP</span>'
             ),
             array(
                 'type' => 'root',
-                'url' => '/users/dashboard',
+                'url' => '/dashboards',
                 'html' => sprintf(
                     '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                     h($me['email']),
@@ -450,3 +468,11 @@
   </div>
 </div>
 <input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#setHomePage').click(function(event) {
+            event.preventDefault();
+            setHomePage();
+        })
+    });
+</script>

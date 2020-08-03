@@ -25,6 +25,11 @@ class UserSettingsController extends AppController
         )
     );
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+    }
+
     public function index()
     {
         $filterData = array(
@@ -172,49 +177,7 @@ class UserSettingsController extends AppController
             $userSetting = array(
                 'user_id' => $this->Auth->user('id')
             );
-            if (!empty($this->request->data['UserSetting']['user_id']) && is_numeric($this->request->data['UserSetting']['user_id'])) {
-                $user = $this->UserSetting->User->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('User.id' => $this->request->data['UserSetting']['user_id']),
-                    'fields' => array('User.org_id')
-                ));
-                if (
-                    $this->_isSiteAdmin() ||
-                    ($this->_isAdmin() && ($user['User']['org_id'] == $this->Auth->user('org_id')))
-                ) {
-                    $userSetting['user_id'] = $this->request->data['UserSetting']['user_id'];
-                }
-            }
-            if (empty($this->request->data['UserSetting']['setting']) || !isset($this->request->data['UserSetting']['setting'])) {
-                throw new MethodNotAllowedException(__('This endpoint expects both a setting and a value to be set.'));
-            }
-            if (!$this->UserSetting->checkSettingValidity($this->request->data['UserSetting']['setting'])) {
-                throw new MethodNotAllowedException(__('Invalid setting.'));
-            }
-            $settingPermCheck = $this->UserSetting->checkSettingAccess($this->Auth->user(), $this->request->data['UserSetting']['setting']);
-            if ($settingPermCheck !== true) {
-                throw new MethodNotAllowedException(__('This setting is restricted and requires the following permission(s): %s', $settingPermCheck));
-            }
-            $userSetting['setting'] = $this->request->data['UserSetting']['setting'];
-            if ($this->request->data['UserSetting']['value'] !== '') {
-                $userSetting['value'] = json_encode(json_decode($this->request->data['UserSetting']['value'], true));
-            } else {
-                $userSetting['value'] = '';
-            }
-            $existingSetting = $this->UserSetting->find('first', array(
-                'recursive' => -1,
-                'conditions' => array(
-                    'UserSetting.user_id' => $userSetting['user_id'],
-                    'UserSetting.setting' => $userSetting['setting']
-                )
-            ));
-            if (empty($existingSetting)) {
-                $this->UserSetting->create();
-            } else {
-                $userSetting['id'] = $existingSetting['UserSetting']['id'];
-            }
-            // save the setting
-            $result = $this->UserSetting->save(array('UserSetting' => $userSetting));
+            $result = $this->UserSetting->setSetting($this->Auth->user(), $this->request->data);
             if ($result) {
                 // if we've managed to save our setting
                 if ($this->_isRest()) {
@@ -356,6 +319,32 @@ class UserSettingsController extends AppController
             $this->redirect($this->referer());
         } else {
             throw new MethodNotAllowedException(__('Expecting POST or DELETE request.'));
+        }
+    }
+
+    public function setHomePage()
+    {
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['UserSetting'])) {
+                $this->request->data = $this->request->data['UserSetting'];
+            }
+            if (!isset($this->request->data['path'])) {
+                $this->request->data = array('path' => $this->request->data);
+            }
+            if (empty($this->request->data['path'])) {
+                throw new InvalidArgumentException(__('No path POSTed.'));
+            }
+            $setting = array(
+                'UserSetting' => array(
+                    'user_id' => $this->Auth->user('id'),
+                    'setting' => 'homepage',
+                    'value' => json_encode(array('path' => $this->request->data['path']))
+                )
+            );
+            $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
+            return $this->RestResponse->saveSuccessResponse('UserSettings', 'setHomePage', false, 'json', 'Homepage set to ' . $this->request->data['path']);
+        } else {
+            $this->layout = false;
         }
     }
 }

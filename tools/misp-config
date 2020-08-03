@@ -1,0 +1,215 @@
+#!/usr/bin/env perl
+#
+# Author: Sebastien Tricaud <sebastien@honeynet.org>
+# This script is written in Perl because it is default to most distributions
+# without any dependency.
+#
+# MISP Configuration is handled mostly via its UI. This script helps to configure
+# MISP for anything that can be configured. For now this is mostly CakePHP stuff.
+#
+# How to use?
+# 1) dump the configuration options that are already set:
+# misp-config --create
+# -> Will dump in /etc/misp/misp.conf.d/ unless to add a --prefix option, such as:
+# misp-config --misp-path /var/www/MISP --prefix /var/www/MISP/etc/ --create
+#
+# 2) set the configuration manually from /etc/misp/misp.conf.d/ with your favorite text editor (emacs)
+# then load to MISP using:
+# misp-config --apply
+# Of course, if your MISP instance is installed in /var/www/MISP you should do:
+# misp-config --misp-path /var/www/MISP --apply
+#
+# Note there is a configuration, Internal.conf, which where CakePHP has no control, for example
+# it will change the source code where there was a lack of configuration capability.
+# 
+
+
+use strict;
+use warnings;
+use File::Path qw(make_path);
+
+use JSON;
+
+my $misp_user="www-data";
+my $misp_path="/usr/share/misp";
+my $misp_config_path="/etc/misp/";
+my $prefix="";
+my $create=0;
+my $apply=0;
+my %CATEGORIES_CREATED = ();
+
+sub print_help_exit {
+    print "\nUsage: misp-config --user www-data
+            \t   --misp-path /usr/share/misp
+            \t   --prefix /usr/local
+            \t   --apply: Applies configuration from $misp_config_path
+            \t   --create: Create configuration from all available options\n\n";
+    exit;
+}
+
+if ($#ARGV < 0) {
+    print_help_exit();
+}
+
+sub replace_inplace_content {
+    my ($filename, $buftoreplace, $replacement) = @_;
+
+    open my $fp, "<:encoding(UTF-8)", $filename or die "unable to open $filename!";
+    local $/ = undef;
+    my $data = <$fp>;
+    close $fp;
+
+    $data =~ s/$buftoreplace/$replacement/g;
+    
+    open $fp, ">:encoding(UTF-8)", $filename or die "Could not write to '$filename'";
+    print $fp $data;
+    close $fp;
+}
+
+while (my ($i, $arg) = each @ARGV) {
+    if ($arg eq "--user") {
+	$misp_user = $ARGV[$i+1];
+    }
+    if ($arg eq "--misp-path") {
+	$misp_path = $ARGV[$i+1];
+    }
+    if ($arg eq "--prefix") {
+	$prefix = $ARGV[$i+1];
+	$misp_config_path = "$prefix/$misp_config_path"
+    }
+    if ($arg eq "--create") {
+	$create = 1;
+    }
+    if ($arg eq "--apply") {
+	$apply = 1;
+    }    
+    if ($arg eq "--help") {
+	print_help_exit();
+    }    
+}
+
+if ( ! $apply && ! $create ) {
+    print "Argument missing: Please use either --apply or --create.\n";
+    exit;
+}
+
+if ( $apply && $create ) {
+    print "Argument error: Cannot use both --apply and --create.\n";
+    exit;
+}
+
+if ($create) {
+    my $misp_config_path = "$misp_config_path/misp.conf.d";
+    make_path($misp_config_path);
+
+    unless(-e "$misp_config_path/Internal.conf") {
+	open(my $internalfh, ">", "$misp_config_path/Internal.conf");
+	print $internalfh "redis_host localhost\n";
+	close $internalfh;
+    }
+
+    my $settings = `sudo -u $misp_user $misp_path/app/Console/cake admin getSetting all | tail -n +7`;
+    my $jsonconfig = decode_json($settings);
+
+    foreach my $item (@$jsonconfig) {
+	my $setting = $item->{'setting'};
+	my $value = $item->{'value'};
+	
+	my $category = "";
+	my $key = "";
+	my $section = "";	
+	# Plugin.S3_aws_secret_key -> false
+	# ^      ^
+	# |      |- Section (S3)
+	# |      |- Key (S3_aws_secret_key)
+	# |-- Category 
+	#
+	# We also have:
+	# Proxy.host -> ""
+	# Which won't create a section because of the missing _	    
+	if ($setting =~ m/(\w+)\.(\w+)/) {
+	    $category = $1;
+	    $key = $2;
+	    # print "Setting category: $1 and key: $2\n";
+	    if ($key =~ m/(.*?)_/) {
+		$section = $1
+		# print "Section: $1\n";
+	    } else { # There is no _, so the section is the key
+		$section = $key;
+	    }
+	} else {
+	    # Orphan settings are debug settings:
+	    $category = "Debug";
+	    $key = $setting;
+	    #		print "Orphan setting:$setting\n";
+	}
+
+	#
+	# We have all we needed, we can write the files
+	#
+	my $conf_to_write = "$misp_config_path/$category.conf";
+	unless($CATEGORIES_CREATED{"$category"}) {
+	    if (-e $conf_to_write) {
+		die "We cannot overwrite $conf_to_write, it already exists. Remove it manually.\n";
+	    }
+	}
+	$CATEGORIES_CREATED{"$category"} = 1;
+	open(my $fh, ">>", "$conf_to_write");
+	print $fh "#$key $value\n";
+	close $fh;
+    }
+}
+
+if ($apply) {
+    my $misp_config_path = "$misp_config_path/misp.conf.d";
+
+    unless(-d $misp_config_path) {
+	die "MISP Configuration Path does not exists: $misp_config_path\n";
+    }
+    
+    foreach my $fp (glob("$misp_config_path/*.conf")) {
+	my $category = substr($fp, length($misp_config_path)+1, -5);
+	my $cake_config = $category eq "Internal" ? 0 : 1;
+	# print "$category:$cake_config\n";
+	#	print "$fp\n";
+	open(my $fh, "<", $fp) or die "$!";
+	while (my $line = <$fh>) {
+	    chomp $line;
+	    $line =~ /(\S+) (.*)/;
+	    my $key = "";
+
+	    my $config_el = $1;
+	    my $first_config_char = substr($config_el, 0, 1);
+	    my $is_comment = 0;
+	    if ($first_config_char eq "#") {
+		$is_comment = 1;
+	    }
+	    
+	    # print("config element: $config_el\n");
+
+	    if ($category eq "Debug") {
+	    	# The Debug category does not... have a category
+		$key = $config_el;
+	    } elsif ($category eq "Internal") {
+		# Internal means we are patching portions of the code to configure
+		if ($config_el eq "redis_host") {
+		    replace_inplace_content("$misp_path/app/Lib/Tools/PubSubTool.php", "localhost", $2);
+		    replace_inplace_content("$misp_path/app/Plugin/CakeResque/Config/config.php", "localhost", $2);
+		    replace_inplace_content("$misp_path/app/Vendor/kamisama/php-resque-ex/lib/Resque.php", "localhost", $2);
+		    replace_inplace_content("$misp_path/app/Vendor/monolog/monolog/src/Monolog/Handler/RedisHandler.php", "localhost", $2);
+		}
+	    } else {
+		$key = "$category.$config_el";
+	    }
+
+	    if ($cake_config && !$is_comment) {
+#		print("sudo -u $misp_user $misp_path/app/Console/cake admin setSetting $key $2\n");
+		system("sudo -u $misp_user $misp_path/app/Console/cake admin setSetting $key $2");
+	    }
+	    
+	}
+	close($fh);
+    }
+
+}
+

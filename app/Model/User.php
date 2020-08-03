@@ -910,7 +910,21 @@ class User extends AppModel
             }
         }
         $Email->attachments($attachments);
-        $result = $Email->send($body);
+        try {
+            $result = $Email->send($body);
+        } catch (Exception $e) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'User',
+                'model_id' => $user['User']['id'],
+                'email' => $user['User']['email'],
+                'action' => 'send_mail',
+                'title' => sprintf(__('Could not send mail. Reasons: %s'), $e->getMessage()),
+                'change' => null,
+            ));
+            $result = false;
+        }
         $Email->reset();
         return $result;
     }
@@ -1144,7 +1158,7 @@ class User extends AppModel
     public function initiatePasswordReset($user, $firstTime = false, $simpleReturn = false, $fixedPassword = false)
     {
         $org = Configure::read('MISP.org');
-        $options = array('passwordResetText', 'newUserText');
+        $options = array('newUserText', 'passwordResetText');
         $subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
         $textToFetch = $options[($firstTime ? 0 : 1)];
         $subject = $subjects[($firstTime ? 0 : 1)];
@@ -1483,5 +1497,87 @@ class User extends AppModel
             'orgId' => $orgId
         );
         return $data;
+    }
+
+    /*
+     *  Set the monitoring flag in Configure for the current user
+     *  Reads the state from redis
+     */
+    public function setMonitoring($user)
+    {
+        if (
+            !empty(Configure::read('Security.user_monitoring_enabled'))
+        ) {
+            $redis = $this->setupRedis();
+            if (!empty($redis->sismember('misp:monitored_users', $user['id']))) {
+                Configure::write('Security.monitored', 1);
+                return true;
+            }
+        }
+        Configure::write('Security.monitored', 0);
+    }
+
+    public function registerUser($added_by, $registration, $org_id, $role_id) {
+        $user = array(
+                'email' => $registration['data']['email'],
+                'gpgkey' => empty($registration['data']['pgp']) ? '' : $registration['data']['pgp'],
+                'disabled' => 0,
+                'newsread' => 0,
+                'change_pw' => 1,
+                'authkey' => $this->generateAuthKey(),
+                'termsaccepted' => 0,
+                'org_id' => $org_id,
+                'role_id' => $role_id,
+                'invited_by' => $added_by['id'],
+                'contactalert' => 1,
+                'autoalert' => Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : 1
+        );
+        $this->create();
+        $this->Log = ClassRegistry::init('Log');
+        $result = $this->save(array('User' => $user));
+        $currentOrg = $this->Organisation->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Organisation.id' => $org_id)
+        ));
+        if (!empty($currentOrg) && empty($currentOrg['Organisation']['local'])) {
+            $currentOrg['Organisation']['local'] = 1;
+            $this->Organisation->save($currentOrg);
+        }
+        if (empty($result)) {
+            $error = array();
+            foreach ($this->validationErrors as $key => $errors) {
+                $error[$key] = $key . ': ' . implode(', ', $errors);
+            }
+            $error = implode(PHP_EOL, $error);
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'User',
+                    'model_id' => $added_by['id'],
+                    'email' => $added_by['email'],
+                    'action' => 'registration_error',
+                    'title' => 'User registration failed for ' . $user['email'] . '. Reason(s): ' . $error,
+                    'change' => null,
+            ));
+            return false;
+        } else {
+            $user = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('id' => $this->id)
+            ));
+            $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'User',
+                'model_id' => $added_by['id'],
+                'email' => $added_by['email'],
+                'action' => 'registration',
+                'title' => sprintf('User registration success for %s (id=%s)', $user['User']['email'], $user['User']['id']),
+                'change' => null,
+            ));
+            $this->initiatePasswordReset($user, true, true, false);
+            $this->Inbox = ClassRegistry::init('Inbox');
+            $this->Inbox->delete($registration['id']);
+            return true;
+        }
+
     }
 }

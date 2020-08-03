@@ -420,9 +420,12 @@ function drawBarChart(data) {
 }
 
 $(document).ready(function() {
-    var rightBtn = '<div style="float:right;"><span type="button" id="reloadDistributionGraph" title="Reload Distribution Graph" class="fas fa-sync useCursorPointer" aria-hidden="true" style="margin-left: 5px;" onclick="fetchDistributionData(function(data) { construct_piechart(data); });"></span></div>';
+    var rightBtns = '<div style="float:right;">'
+    rightBtns += '<span type="button" id="reloadDistributionGraph" title="Reload Distribution Graph" class="fas fa-sync useCursorPointer" aria-hidden="true" style="margin-left: 5px;" onclick="fetchDistributionData(function(data) { construct_piechart(data); });"></span>';
+    rightBtns += '<button type="button" class="close" style="margin-left: 5px;" onclick="$(\'.distribution_graph\').popover(\'hide\');">×</button>';
+    rightBtns += '</div>';
     var pop = $('.distribution_graph').popover({
-        title: "<b>Distribution graph</b> [atomic event]" + rightBtn,
+        title: "<b>Distribution graph</b> [atomic event]" + rightBtns,
         html: true,
         content: function() { return $('#distribution_graph_container').html(); },
         template : '<div class="popover" role="tooltip" style="z-index: 1;"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="padding-left: '+spanOffset_orig+'px; padding-right: '+spanOffset_orig*2+'px;"></div></div>'

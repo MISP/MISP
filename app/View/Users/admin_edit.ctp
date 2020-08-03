@@ -31,13 +31,14 @@
         <?php
             echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password')));
         ?>
+        <a class="useCursorPointer" onclick="$('#resetAuthKeyForm').submit();"><?= __('Reset Auth Key') ?></a>
         <div id="PasswordDiv">
             <div class="clear"></div>
             <?php
                 $passwordPopover = '<span class=\"blue bold\">' . __('Length') .'</span>: ' . h($length) . '<br />';
                 $passwordPopover .= '<span class=\"blue bold\">' . __('Complexity') .'</span>: ' . h($complexity);
                 echo $this->Form->input('password', array(
-                    'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+                    'label' => __('Password') . ' <span id="PasswordPopover" class="fas fa-info-circle"></span>'
                 ));
                 echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
             ?>
@@ -70,8 +71,6 @@
         echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => __('Change Password')));
         echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
         echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
-
-        echo $this->Html->link(__('Reset Auth Key'), array('controller' => 'users', 'action' => 'resetauthkey', $currentId));
     ?>
         <div class="clear"></div>
     <?php
@@ -89,7 +88,13 @@
     </div>
 <?php
     echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
-echo $this->Form->end();?>
+    echo $this->Form->end();
+    echo $this->Form->create('User', array(
+        'url' => array('controller' => 'users', 'action' => 'resetauthkey', $id),
+        'id' => 'resetAuthKeyForm'
+    ));
+    echo $this->Form->end();
+?>
 </div>
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'editUser'));

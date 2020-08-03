@@ -18,6 +18,7 @@
             'jquery-ui',
             'chosen.min',
             'main',
+            'jquery-jvectormap-2.0.5',
             array('print', array('media' => 'print'))
         );
         if (Configure::read('MISP.custom_css')) {
@@ -87,6 +88,7 @@
     <div id = "ajax_fail_container" class="ajax_container">
         <div id="ajax_fail" class="ajax_result ajax_fail"></div>
     </div>
+    <div id = "ajax_hidden_container" class="hidden"></div>
     <div class="loading">
         <div class="spinner"></div>
         <div class="loadingText"><?php echo __('Loading');?></div>

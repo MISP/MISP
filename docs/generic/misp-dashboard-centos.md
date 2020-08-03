@@ -2,6 +2,9 @@
 --------------
 
 !!! warning
+    Currently defunct due to upstream dependency changes
+
+!!! warning
     Does not work on RHEL 8
 
 ```bash
@@ -11,7 +14,7 @@ mispDashboard () {
   sudo yum install wget screen -y
   sudo mkdir /var/www/misp-dashboard
   sudo chown $WWW_USER:$WWW_USER /var/www/misp-dashboard
-  $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git /var/www/misp-dashboard
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git /var/www/misp-dashboard; done
   cd /var/www/misp-dashboard
   sudo sed -i -E 's/sudo apt/#sudo apt/' install_dependencies.sh
   sudo sed -i -E 's/virtualenv -p python3 DASHENV/\/usr\/bin\/scl enable rh-python36 \"virtualenv -p python3 DASHENV\"/' install_dependencies.sh

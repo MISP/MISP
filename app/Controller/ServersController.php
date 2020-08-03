@@ -391,14 +391,7 @@ class ServersController extends AppController
             $this->set('externalOrganisations', $externalOrganisations);
             $this->set('allOrganisations', $allOrgs);
 
-            // list all tags for the rule picker
-            $this->loadModel('Tag');
-            $temp = $this->Tag->find('all', array('recursive' => -1));
-            $allTags = array();
-            foreach ($temp as $t) {
-                $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
-            }
-            $this->set('allTags', $allTags);
+            $this->set('allTags', $this->__getTags());
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
             $this->render('edit');
         }
@@ -584,14 +577,7 @@ class ServersController extends AppController
             $this->set('externalOrganisations', $externalOrganisations);
             $this->set('allOrganisations', $allOrgs);
 
-            // list all tags for the rule picker
-            $this->loadModel('Tag');
-            $temp = $this->Tag->find('all', array('recursive' => -1));
-            $allTags = array();
-            foreach ($temp as $t) {
-                $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
-            }
-            $this->set('allTags', $allTags);
+            $this->set('allTags', $this->__getTags());
             $this->set('server', $s);
             $this->set('id', $id);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
@@ -634,6 +620,49 @@ class ServersController extends AppController
             $this->Flash->error($message);
             $this->redirect(array('action' => 'index'));
         }
+    }
+
+    public function eventBlockRule()
+    {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $setting = $this->AdminSetting->find('first', [
+            'conditions' => ['setting' => 'eventBlockRule'],
+            'recursive' => -1
+        ]);
+        if (empty($setting)) {
+            $setting = ['setting' => 'eventBlockRule'];
+            if ($this->request->is('post')) {
+                $this->AdminSetting->create();
+            }
+        }
+        if ($this->request->is('post')) {
+            if (!empty($this->request->data['Server'])) {
+                $this->request->data = $this->request->data['Server'];
+            }
+            $setting['AdminSetting']['setting'] = 'eventBlockRule';
+            $setting['AdminSetting']['value'] = $this->request->data['value'];
+            $result = $this->AdminSetting->save($setting);
+            if ($result) {
+                $message = __('Settings saved');
+            } else {
+                $message = __('Could not save the settings. Invalid input.');
+            }
+            if ($this->_isRest()) {
+                if ($result) {
+                    return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
+                } else {
+                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', $message, $this->response->type());
+                }
+            } else {
+                if ($result) {
+                    $this->Flash->success($message);
+                    $this->redirect('/');
+                } else {
+                    $this->Flash->error($message);
+                }
+            }
+        }
+        $this->set('setting', $setting);
     }
 
     /**
@@ -992,13 +1021,15 @@ class ServersController extends AppController
             if ($tab == 'diagnostics' || $tab == 'download' || $this->_isRest()) {
                 $php_ini = php_ini_loaded_file();
                 $this->set('php_ini', $php_ini);
-                $advanced_attachments = shell_exec($this->Server->getPythonVersion() . ' ' . APP . 'files/scripts/generate_file_objects.py -c');
 
+                $malwareTool = new MalwareTool();
                 try {
-                    $advanced_attachments = json_decode($advanced_attachments, true);
+                    $advanced_attachments = $malwareTool->checkAdvancedExtractionStatus($this->Server->getPythonVersion());
                 } catch (Exception $e) {
+                    $this->log($e->getMessage(), LOG_NOTICE);
                     $advanced_attachments = false;
                 }
+
                 $this->set('advanced_attachments', $advanced_attachments);
                 // check if the current version of MISP is outdated or not
                 $version = $this->__checkVersion();
@@ -1367,6 +1398,18 @@ class ServersController extends AppController
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }
 
+    public function restartDeadWorkers()
+    {
+        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        $this->Server->restartDeadWorkers($this->Auth->user());
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'restartDeadWorkers', false, $this->response->type(), __('Restarting workers.'));
+        }
+        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
+    }
+
     private function __manageFiles()
     {
         if (!$this->_isSiteAdmin()) {
@@ -1610,6 +1653,7 @@ class ServersController extends AppController
         $result = $pubSubTool->statusCheck();
         if (!empty($result)) {
             $this->set('events', $result['publishCount']);
+            $this->set('messages', $result['messageCount']);
             $this->set('time', date('Y/m/d H:i:s', $result['timestamp']));
             $this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
         }
@@ -2254,5 +2298,25 @@ misp.direct_call(relative_path, body)
             $this->layout = false;
             $this->set('data', $data);
         }
+    }
+
+    /**
+     * List all tags for the rule picker.
+     *
+     * @return array
+     */
+    private function __getTags()
+    {
+        $this->loadModel('Tag');
+        $list = $this->Tag->find('list', array(
+            'recursive' => -1,
+            'order' => array('LOWER(TRIM(Tag.name))' => 'ASC'),
+            'fields' => array('name'),
+        ));
+        $allTags = array();
+        foreach ($list as $id => $name) {
+            $allTags[] = array('id' => $id, 'name' => trim($name));
+        }
+        return $allTags;
     }
 }

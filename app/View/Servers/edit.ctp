@@ -10,16 +10,14 @@
     echo $this->Form->input('name', array(
             'label' => __('Instance name'),
     ));
-    if (!empty($host_org_id) && !empty($this->request->data['Server']) && $this->request->data['Server']['remote_org_id'] == $host_org_id) {
-        echo sprintf(
-            '<div id="InternalDiv" class = "input clear" style="width:100%%;"><hr /><p class="red" style="width:50%%;">%s</p>%s</div>',
-            __('You can set this instance up as an internal instance by checking the checkbox below. This means that any synchronisation between this instance and the remote will not be automatically degraded as it would in a normal synchronisation scenario. Please make sure that you own both instances and that you are OK with this otherwise dangerous change. This also requires that the current instance\'s host organisation and the remote sync organisation are the same.'),
-            $this->Form->input('internal', array(
-                    'label' => __('Internal instance'),
-                    'type' => 'checkbox',
-            ))
-        );
-    }
+    echo sprintf(
+        '<div id="InternalDiv" class = "input clear" style="width:100%%;"><hr /><p class="red" style="width:50%%;">%s</p>%s</div>',
+        __('You can set this instance up as an internal instance by checking the checkbox below. This means that any synchronisation between this instance and the remote will not be automatically degraded as it would in a normal synchronisation scenario. Please make sure that you own both instances and that you are OK with this otherwise dangerous change. This also requires that the current instance\'s host organisation and the remote sync organisation are the same.'),
+        $this->Form->input('internal', array(
+                'label' => __('Internal instance'),
+                'type' => 'checkbox',
+        ))
+    );
     ?>
         <div class="input clear"></div>
         <div class="input clear" style="width:100%;">
@@ -43,8 +41,12 @@
             <select id="ServerExternal">
                 <?php
                     foreach ($externalOrganisations as $k => $v) {
-                        if ($k == $oldRemoteOrg) echo '<option value="' . $k . '" selected="selected">' . h($v) . '</option>';
-                        else echo '<option value="' . $k . '">' . h($v) . '</option>';
+                        if (isset($oldRemoteOrg)) {
+                            if ($k == $oldRemoteOrg) echo '<option value="' . h($k) . '" selected="selected">' . h($v) . '</option>';
+                            else echo '<option value="' . h($k) . '">' . h($v) . '</option>';
+                        } else {
+                            echo '<option value="' . h($k) . '">' . h($v) . '</option>';
+                        }
                     }
                 ?>
             </select>
@@ -54,8 +56,12 @@
             <select id="ServerLocal">
                 <?php
                     foreach ($localOrganisations as $k => $v) {
-                        if ($k == $oldRemoteOrg) echo '<option value="' . $k . '" selected="selected">' . h($v) . '</option>';
-                        else echo '<option value="' . $k . '">' . h($v) . '</option>';
+                        if (isset($oldRemoteOrg)) {
+                            if ($k == $oldRemoteOrg) echo '<option value="' . h($k) . '" selected="selected">' . h($v) . '</option>';
+                            else echo '<option value="' . h($k) . '">' . h($v) . '</option>';
+                        } else {
+                            echo '<option value="' . h($k) . '">' . h($v) . '</option>';
+                        }
                     }
                 ?>
             </select>
@@ -65,7 +71,7 @@
             <input type="text" id="ServerExternalName" <?php if (isset($this->request->data['Server']['external_name'])) echo 'value="' . $this->request->data['Server']['external_name'] . '"';?>>
         </div>
         <div id="ServerExternalUuidContainer" class="input select hiddenField" style="display:none;">
-            <label for="ServerExternalUuid"><?php echo __('Remote Organisation\'s Uuid');?></label>
+            <label for="ServerExternalUuid"><?php echo __('Remote Organisation\'s UUID');?></label>
             <input type="text" id="ServerExternalUuid" <?php if (isset($this->request->data['Server']['external_uuid'])) echo 'value="' . $this->request->data['Server']['external_uuid'] . '"';?>>
         </div>
     <?php
@@ -265,5 +271,6 @@ $(document).ready(function() {
     $('#ServerOrganisationType, #ServerLocal').change(function() {
         serverOwnerOrganisationChange(host_org_id);
     });
+    serverOwnerOrganisationChange(host_org_id);
 });
 </script>

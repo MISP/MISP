@@ -287,7 +287,17 @@ class Taxonomy extends AppModel
             $tags = $this->Tag->getTagsByName($tag_names, false);
             if (isset($taxonomy['entries'])) {
                 foreach ($taxonomy['entries'] as $key => $temp) {
-                    $taxonomy['entries'][$key]['existing_tag'] = isset($tags[strtoupper($temp['tag'])]) ? $tags[strtoupper($temp['tag'])] : false;
+                    if (isset($tags[strtoupper($temp['tag'])])) {
+                        $existingTag = $tags[strtoupper($temp['tag'])];
+                        $taxonomy['entries'][$key]['existing_tag'] = $existingTag;
+                        // numerical_value is overridden at tag level. Propagate the override further up
+                        if (isset($existingTag['Tag']['original_numerical_value'])) {
+                            $taxonomy['entries'][$key]['original_numerical_value'] = $existingTag['Tag']['original_numerical_value'];
+                            $taxonomy['entries'][$key]['numerical_value'] = $existingTag['Tag']['numerical_value'];
+                        }
+                    } else {
+                        $taxonomy['entries'][$key]['existing_tag'] = false;
+                    }
                 }
             }
         }

@@ -1,5 +1,9 @@
 #### MISP Dashboard
 --------------
+
+!!! warning
+    Currently defunct due to upstream dependency changes
+
 ```bash
 # <snippet-begin 4_misp-dashboard.sh>
 # Main MISP Dashboard install function
@@ -12,7 +16,7 @@ mispDashboard () {
   sudo mkdir misp-dashboard
   sudo chown $WWW_USER:$WWW_USER misp-dashboard
 
-  $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
+  false; while [[ $? -ne 0 ]]; do $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git; done
   cd misp-dashboard
   sudo -H /var/www/misp-dashboard/install_dependencies.sh
   sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg

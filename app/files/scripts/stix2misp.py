@@ -38,15 +38,6 @@ _MISP_objects_path = '{_MISP_dir}/app/files/misp-objects/objects'.format(_MISP_d
 sys.path.append(_PyMISP_dir)
 from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
 
-cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
-                        "EmailMessage": "email", "NetworkConnection": "network-connection",
-                        "NetworkSocket": "network-socket", "Process": "process",
-                        "UnixUserAccount": "user-account", "UserAccount": "user-account",
-                        "WindowsUserAccount": "user-account", "x509Certificate": "x509",
-                        "Whois": "whois"}
-
-threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
-
 with open("{_PyMISP_dir}/pymisp/data/describeTypes.json".format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
     categories = json.loads(f.read())['result'].get('categories')
 
@@ -54,8 +45,8 @@ class StixParser():
     def __init__(self):
         super(StixParser, self).__init__()
         self.misp_event = MISPEvent()
-        self.galaxies = defaultdict(list)
         self.references = defaultdict(list)
+        self.galaxies = set()
 
     ################################################################################
     ##            LOADING & UTILITY FUNCTIONS USED BY BOTH SUBCLASSES.            ##
@@ -78,17 +69,20 @@ class StixParser():
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
             attribute_distribution = 5
+        synonyms_to_tag_names = args[2] if len(args) > 2 else '/var/www/MISP/app/files/scripts/synonymsToTagNames.json'
+        with open(synonyms_to_tag_names, 'rt', encoding='utf-8') as f:
+            self.synonyms_to_tag_names = json.loads(f.read())
         self.misp_event.distribution = event_distribution
         self.__attribute_distribution = attribute_distribution
         self.from_misp = from_misp
-        self.load_mapping()
 
     def build_misp_event(self, event):
         self.build_misp_dict(event)
         if self.references:
             self.build_references()
         if self.galaxies:
-            self.build_galaxies()
+            for galaxy in self.galaxies:
+                self.misp_event.add_tag(galaxy)
 
     # Convert the MISP event we create from the STIX document into json format
     # and write it in the output file
@@ -97,53 +91,12 @@ class StixParser():
         with open(self.outputname, 'wt', encoding='utf-8') as f:
             f.write(eventDict)
 
-    # Load the mapping dictionary for STIX object types
-    def load_mapping(self):
-        self.attribute_types_mapping = {
-            "AccountObjectType": 'handle_credential',
-            'AddressObjectType': 'handle_address',
-            "ArtifactObjectType": 'handle_attachment',
-            "ASObjectType": 'handle_as',
-            "CustomObjectType": 'handle_custom',
-            "DNSRecordObjectType": 'handle_dns',
-            'DomainNameObjectType': 'handle_domain_or_url',
-            'EmailMessageObjectType': 'handle_email_attribute',
-            'FileObjectType': 'handle_file',
-            'HostnameObjectType': 'handle_hostname',
-            'HTTPSessionObjectType': 'handle_http',
-            'LinkObjectType': 'handle_link',
-            'MutexObjectType': 'handle_mutex',
-            'NetworkConnectionObjectType': 'handle_network_connection',
-            'NetworkSocketObjectType': 'handle_network_socket',
-            'PDFFileObjectType': 'handle_file',
-            'PipeObjectType': 'handle_pipe',
-            'PortObjectType': 'handle_port',
-            'ProcessObjectType': 'handle_process',
-            'SocketAddressObjectType': 'handle_socket_address',
-            'SystemObjectType': 'handle_system',
-            'UnixUserAccountObjectType': 'handle_unix_user',
-            'URIObjectType': 'handle_domain_or_url',
-            'UserAccountObjectType': 'handle_user',
-            "WhoisObjectType": 'handle_whois',
-            "WindowsFileObjectType": 'handle_file',
-            'WindowsRegistryKeyObjectType': 'handle_regkey',
-            "WindowsExecutableFileObjectType": 'handle_pe',
-            "WindowsServiceObjectType": 'handle_windows_service',
-            'WindowsUserAccountObjectType': 'handle_windows_user',
-            "X509CertificateObjectType": 'handle_x509'
-        }
-
-        self.marking_mapping = {
-            'AIS:AISMarkingStructure': 'parse_AIS_marking',
-            'tlpMarking:TLPMarkingStructureType': 'parse_TLP_marking'
-        }
-
     def parse_marking(self, handling):
         tags = []
         if hasattr(handling, 'marking_structures') and handling.marking_structures:
             for marking in handling.marking_structures:
                 try:
-                    tags.extend(getattr(self, self.marking_mapping[marking._XSI_TYPE])(marking))
+                    tags.extend(getattr(self, stix2misp_mapping.marking_mapping[marking._XSI_TYPE])(marking))
                 except KeyError:
                     print(marking._XSI_TYPE, file=sys.stderr)
                     continue
@@ -156,17 +109,6 @@ class StixParser():
             misp_object.distribution = self.__attribute_distribution
             for attribute in misp_object.attributes:
                 attribute.distribution = self.__attribute_distribution
-
-    def build_galaxies(self):
-        galaxies = []
-        for name, clusters in self.galaxies.items():
-            galaxy_type = stix2misp_mapping._galaxy_mapping[name]
-            galaxy = {'type': galaxy_type, 'name': name, 'GalaxyCluster': []}
-            for cluster in clusters:
-                galaxy['GalaxyCluster'].append(cluster)
-                self.misp_event.add_tag(cluster['tag_name'])
-            galaxies.append(galaxy)
-        self.misp_event['Galaxy'] = galaxies
 
     # Make references between objects
     def build_references(self):
@@ -220,17 +162,12 @@ class StixParser():
     # Define type & value of an attribute or object in MISP
     def handle_attribute_type(self, properties, is_object=False, title=None, observable_id=None):
         xsi_type = properties._XSI_TYPE
-        # try:
         args = [properties]
         if xsi_type in ("FileObjectType", "PDFFileObjectType", "WindowsFileObjectType"):
             args.append(is_object)
         elif xsi_type == "ArtifactObjectType":
             args.append(title)
-        return getattr(self, self.attribute_types_mapping[xsi_type])(*args)
-        # except AttributeError:
-        #     # ATM USED TO TEST TYPES
-        #     print("Unparsed type: {}".format(xsi_type))
-        #     sys.exit(1)
+        return getattr(self, stix2misp_mapping.attribute_types_mapping[xsi_type])(*args)
 
     # Return type & value of an ip address attribute
     @staticmethod
@@ -469,9 +406,14 @@ class StixParser():
         if properties.child_pid_list:
             for child in properties.child_pid_list:
                 attributes.append(["text", child.value, "child-pid"])
-        # if properties.port_list:
-        #     for port in properties.port_list:
-        #         attributes.append(["src-port", port.port_value.value, "port"])
+        if properties.port_list:
+            for port in properties.port_list:
+                attributes.append(["port", port.port_value.value, "port"])
+        if properties.image_info:
+            if properties.image_info.file_name:
+                attributes.append(["filename", properties.image_info.file_name.value, "image"])
+            if properties.image_info.command_line:
+                attributes.append(["text", properties.image_info.command_line.value, "command-line"])
         if properties.network_connection_list:
             references = []
             for connection in properties.network_connection_list:
@@ -633,6 +575,30 @@ class StixParser():
         file_type, file_value, _ = self.handle_file(properties, False)
         return file_type, file_value, pe_uuid
 
+    # Parse a course of action and add a MISP object to the event
+    def parse_course_of_action(self, course_of_action):
+        misp_object = MISPObject('course-of-action', misp_objects_path_custom=_MISP_objects_path)
+        misp_object.uuid = self.fetch_uuid(course_of_action.id_)
+        if course_of_action.title:
+            attribute = {'type': 'text', 'object_relation': 'name',
+                         'value': course_of_action.title}
+            misp_object.add_attribute(**attribute)
+        for prop, properties_key in stix2misp_mapping._coa_mapping.items():
+            if getattr(course_of_action, prop):
+                attribute = {'type': 'text', 'object_relation': prop.replace('_', ''),
+                             'value': attrgetter('{}.{}'.format(prop, properties_key))(course_of_action)}
+                misp_object.add_attribute(**attribute)
+        if course_of_action.parameter_observables:
+            for observable in course_of_action.parameter_observables.observables:
+                properties = observable.object_.properties
+                attribute = MISPAttribute()
+                attribute.type, attribute.value, _ = self.handle_attribute_type(properties)
+                referenced_uuid = str(uuid.uuid4())
+                attribute.uuid = referenced_uuid
+                self.misp_event.add_attribute(**attribute)
+                misp_object.add_reference(referenced_uuid, 'observable', None, **attribute)
+        self.misp_event.add_object(misp_object)
+
     # Parse attributes of a portable executable, create the corresponding object,
     # and return its uuid to build the reference for the file object generated at the same time
     def parse_pe(self, properties):
@@ -656,13 +622,13 @@ class StixParser():
             if file_header.size_of_optional_header:
                 header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
                                                "value": file_header.size_of_optional_header.value})
-            self.misp_event.add_object(**header_object)
+            self.misp_event.add_object(header_object)
             misp_object.add_reference(header_object.uuid, 'header-of')
         if properties.sections:
             for section in properties.sections:
                 section_uuid = self.parse_pe_section(section)
                 misp_object.add_reference(section_uuid, 'includes')
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
         return {"pe_uuid": misp_object.uuid}
 
     # Parse attributes of a portable executable section, create the corresponding object,
@@ -733,8 +699,8 @@ class StixParser():
 
     # The value returned by the indicators or observables parser is a list of dictionaries
     # These dictionaries are the attributes we add in an object, itself added in the MISP event
-    def handle_object_case(self, attribute_type, attribute_value, compl_data, to_ids=False, object_uuid=None):
-        misp_object = MISPObject(attribute_type, misp_objects_path_custom=_MISP_objects_path)
+    def handle_object_case(self, name, attribute_value, compl_data, to_ids=False, object_uuid=None):
+        misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
         if object_uuid:
             misp_object.uuid = object_uuid
         for attribute in attribute_value:
@@ -748,7 +714,64 @@ class StixParser():
             if "process_uuid" in compl_data:
                 for uuid in compl_data["process_uuid"]:
                     misp_object.add_reference(uuid, 'connected-to')
-        self.misp_event.add_object(**misp_object)
+        self.misp_event.add_object(misp_object)
+
+    ################################################################################
+    ##              GALAXY PARSING FUNCTIONS USED BY BOTH SUBCLASSES              ##
+    ################################################################################
+
+    @staticmethod
+    def _get_galaxy_name(galaxy, feature):
+        if hasattr(galaxy, feature) and getattr(galaxy, feature):
+            return getattr(galaxy, feature)
+        for name in ('name', 'names'):
+            if hasattr(galaxy, name) and getattr(galaxy, name):
+                return list(value.value for value in getattr(galaxy, name))
+        return
+
+    def _parse_courses_of_action(self, courses_of_action):
+        for course_of_action in courses_of_action:
+            self.parse_galaxy(course_of_action, 'title', 'mitre-course-of-action')
+
+    def _parse_threat_actors(self, threat_actors):
+        for threat_actor in threat_actors:
+            self.parse_galaxy(threat_actor, 'title', 'threat-actor')
+
+    def _parse_ttp(self, ttp):
+        if ttp.behavior:
+            if ttp.behavior.attack_patterns:
+                for attack_pattern in ttp.behavior.attack_patterns:
+                    self.parse_galaxy(attack_pattern, 'title', 'misp-attack-pattern')
+            if ttp.behavior.malware_instances:
+                for malware_instance in ttp.behavior.malware_instances:
+                    if not malware_instance._XSI_TYPE or 'stix-maec' not in malware_instance._XSI_TYPE:
+                        self.parse_galaxy(malware_instance, 'title', 'ransomware')
+        elif ttp.exploit_targets:
+            if ttp.exploit_targets.exploit_target:
+                for exploit_target in ttp.exploit_targets.exploit_target:
+                    if exploit_target.item.vulnerabilities:
+                        for vulnerability in exploit_target.item.vulnerabilities:
+                            self.parse_galaxy(vulnerability, 'title', 'branded_vulnerability')
+        elif ttp.resources:
+            if ttp.resources.tools:
+                for tool in ttp.resources.tools:
+                    self.parse_galaxy(tool, 'name', 'tool')
+
+    def parse_galaxy(self, galaxy, feature, default_value):
+        names = self._get_galaxy_name(galaxy, feature)
+        if names:
+            if isinstance(names, list):
+                for name in names:
+                    self._resolve_galaxy(name, default_value)
+            else:
+                self._resolve_galaxy(names, default_value)
+
+    def _resolve_galaxy(self, name, default_value):
+        if name in self.synonyms_to_tag_names:
+            self.galaxies.update(self.synonyms_to_tag_names[name])
+        else:
+            self.galaxies.add('misp-galaxy:{}="{}"'.format(default_value, name))
+
 
     ################################################################################
     ##              UTILITY FUNCTIONS USED BY PARSING FUNCTION ABOVE              ##
@@ -793,7 +816,7 @@ class StixParser():
     @staticmethod
     def fetch_uuid(object_id):
         try:
-            return "-".join(object_id.split("-")[-5:])
+            return uuid.UUID('-'.join(object_id.split("-")[1:]))
         except Exception:
             return str(uuid.uuid4())
 
@@ -840,49 +863,35 @@ class StixFromMISPParser(StixParser):
             if self.event.information_source and self.event.information_source.references:
                 for reference in self.event.information_source.references:
                     self.misp_event.add_attribute(**{'type': 'link', 'value': reference})
+            if package.courses_of_action:
+                self._parse_courses_of_action(package.courses_of_action)
+            if package.threat_actors:
+                self._parse_threat_actors(package.threat_actors)
             if package.ttps:
-                for ttp in package.ttps.ttps:
+                for ttp in package.ttps.ttp:
                     ttp_id = '-'.join((part for part in ttp.id_.split('-')[-5:]))
-                    ttp_type = 'galaxy' if ttp_id in self.galaxies_references else 'object'
+                    ttp_type = 'galaxy' if ttp_id in self.object_references else 'object'
                     self.parse_ttp(ttp, ttp_type, ttp_id)
                     # if ttp.handling:
                     #     self.parse_tlp_marking(ttp.handling)
         self.set_event_fields()
 
     def parse_ttp(self, ttp, ttp_type, ttp_id):
-        if ttp.behavior:
-            if ttp.behavior.attack_patterns:
-                to_call = 'parse_attack_pattern_{}'.format(ttp_type)
-                for attack_pattern in ttp.behavior.attack_patterns:
-                    getattr(self, to_call)(attack_pattern, ttp_id)
-            if ttp.behavior.malware_instances:
-                for malware in ttp.behavior.malware_instances:
-                    self.parse_malware_galaxy(malware, ttp_id)
-        elif ttp.exploit_targets:
-            if ttp.exploit_targets.exploit_target:
-                for et in ttp.exploit_targets.exploit_target:
-                    if et.item.vulnerabilities:
-                        to_call = 'parse_vulnerability_{}'.format(ttp_type)
-                        for vulnerability in et.item.vulnerabilities:
-                            getattr(self, to_call)(vulnerability, ttp_id)
-                    elif et.item.weaknesses:
-                        for weakness in et.item.weaknesses:
+        if ttp_type == 'object':
+            if ttp.behavior:
+                if ttp.behavior.attack_patterns:
+                    for attack_pattern in ttp.behavior.attack_patterns:
+                        self.parse_attack_pattern_object(attack_pattern, ttp_id)
+            elif ttp.exploit_targets and ttp.exploit_targets.exploit_target:
+                for exploit_target in ttp.exploit_targets.exploit_target:
+                    if exploit_target.item.vulnerabilities:
+                        for vulnerability in exploit_target.item.vulnerabilities:
+                            self.parse_vulnerability_object(vulnerability, ttp_id)
+                    if exploit_target.item.weaknesses:
+                        for weakness in exploit_target.item.weaknesses:
                             self.parse_weakness_object(weakness, ttp_id)
-        elif ttp.resources:
-            if ttp.resources.tools:
-                for tool in ttp.resources.tools:
-                    self.parse_tool_galaxy(tool, ttp_id)
-
-    def parse_attack_pattern_galaxy(self, attack_pattern, uuid):
-        name, value = attack_pattern.title.split(': ')
-        cluster_type = stix2misp_mapping._galaxy_mapping[name]
-        cluster = {'type': cluster_type, 'name': name, 'value': value,
-                   'tag_name': 'misp-galaxy:{}="{}"'.format(cluster_type, value)}
-        if attack_pattern.description:
-            cluster['description'] = attack_pattern.description.value
-        if attack_pattern.capec_id:
-            cluster['meta'] = {'external_id': [attack_pattern.capec_id]}
-        self.galaxies[name].append(cluster)
+        else:
+            self._parse_ttp(ttp)
 
     def parse_attack_pattern_object(self, attack_pattern, uuid):
         attribute_type = 'text'
@@ -899,42 +908,6 @@ class StixFromMISPParser(StixParser):
                 attack_pattern_object.add_attribute(**attribute)
             self.misp_event.add_object(**attack_pattern_object)
 
-    def parse_malware_galaxy(self, malware, uuid):
-        name, value = malware.title.split(': ')
-        cluster_type = stix2misp_mapping._galaxy_mapping[name]
-        cluster = {'type': cluster_type, 'name': name, 'value': value,
-                   'tag_name': 'misp-galaxy:{}="{}"'.format(cluster_type, value)}
-        if malware.description:
-            cluster['description'] = malware.description.value
-        if malware.names:
-            cluster['meta'] = {'synonyms': [name.value for name in malware.names]}
-        self.galaxies[name].append(cluster)
-
-    def parse_tool_galaxy(self, tool, uuid):
-        name, value = tool.name.split(': ')
-        cluster_type = stix2misp_mapping._galaxy_mapping[name]
-        cluster = {'type': cluster_type, 'name': name, 'value': value,
-                   'tag_name': 'misp-galaxy:{}="{}"'.format(cluster_type, value)}
-        if tool.description:
-            cluster['description'] = tool.description.value
-        self.galaxies[name].append(cluster)
-
-    def parse_vulnerability_galaxy(self, vulnerability, uuid):
-        name = 'Branded Vulnerability'
-        value = vulnerability.title
-        cluster = {'type': 'branded-vulnerability', 'name': name, 'value': value,
-                   'tag_name': 'misp-galaxy:branded-vulnerability="{}"'.format(value)}
-        if vulnerability.description:
-            cluster['description'] = vulnerability.description.value
-        meta = {}
-        if vulnerability.cve_id:
-            meta['aliases'] = [vulnerability.cve_id]
-        if vulnerability.references:
-            meta['refs'] = [reference for reference in vulnerability.references]
-        if meta:
-            cluster['meta'] = meta
-        self.galaxies[name].append(cluster)
-
     def parse_vulnerability_object(self, vulnerability, uuid):
         attributes = []
         for key, mapping in stix2misp_mapping._vulnerability_object_mapping.items():
@@ -945,8 +918,10 @@ class StixFromMISPParser(StixParser):
                                    'value': value if isinstance(value, str) else value.value})
         if attributes:
             if len(attributes) == 1 and attributes[0]['object_relation'] == 'id':
-                attributes[0]['uuid'] = uuid
-                self.misp_event.add_attribute(**attributes[0])
+                attributes = attributes[0]
+                attributes['uuid'] = uuid
+                attributes['type'] = 'vulnerability'
+                self.misp_event.add_attribute(**attributes)
             else:
                 vulnerability_object = MISPObject('vulnerability')
                 vulnerability_object.uuid = uuid
@@ -993,7 +968,7 @@ class StixFromMISPParser(StixParser):
                     _, category, attribute_type = entry_type.split('[')
                     self.misp_event.add_attribute(**{'type': attribute_type[:-1], 'category': category[:-1], 'value': entry_value})
                 elif entry_type == "Event Threat Level":
-                    self.misp_event.threat_level_id = threat_level_mapping[entry_value]
+                    self.misp_event.threat_level_id = stix2misp_mapping.threat_level_mapping[entry_value]
             except ValueError:
                 continue
 
@@ -1064,29 +1039,15 @@ class StixFromMISPParser(StixParser):
 
     # Parse STIX object that we know will give MISP objects
     def parse_misp_object_indicator(self, indicator):
-        item = indicator.item
-        name = item.title.split(' ')[0]
+        name = self._define_name(indicator.item.observable, indicator.relationship)
         if name not in ('passive-dns'):
-            self.fill_misp_object(item, name, to_ids=True)
+            self.fill_misp_object(indicator.item, name, to_ids=True)
         else:
             if str(indicator.relationship) != "misc":
-                print("Unparsed Object type: {}".format(name), file=sys.stderr)
+                print(f"Unparsed Object type: {name}\n{indicator.to_json()}", file=sys.stderr)
 
     def parse_misp_object_observable(self, observable):
-        object_type = str(observable.relationship)
-        observable = observable.item
-        observable_id = observable.id_
-        if object_type == "file":
-            name = "registry-key" if "WinRegistryKey" in observable_id else "file"
-        elif "Custom" in observable_id:
-            name = observable_id.split("Custom")[0].split(":")[1]
-        elif object_type == "network":
-            if "ObservableComposition" in observable_id:
-                name = observable_id.split("_")[0].split(":")[1]
-            else:
-                name = cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
-        else:
-            name = cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
+        name = self._define_name(observable.item, observable.relationship)
         try:
             self.fill_misp_object(observable, name)
         except Exception:
@@ -1127,10 +1088,12 @@ class StixFromMISPParser(StixParser):
     def handle_composition(self, misp_object, observables, to_ids):
         for observable in observables:
             properties = observable.object_.properties
-            misp_attribute = MISPAttribute()
-            misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True, observable_id=observable.id_)
-            misp_attribute.to_ids = to_ids
-            misp_object.add_attribute(**misp_attribute)
+            attribute = MISPAttribute()
+            attribute.type, attribute.value, attribute.object_relation = self.handle_attribute_type(properties)
+            if 'Port' in observable.id_:
+                attribute.object_relation = f"{observable.id_.split('-')[0].split(':')[1][:3]}-{attribute.object_relation}"
+            attribute.to_ids = to_ids
+            misp_object.add_attribute(**attribute)
         return misp_object
 
     # Create a MISP attribute and add it in its MISP object
@@ -1152,16 +1115,27 @@ class StixFromMISPParser(StixParser):
                     self.misp_event.add_attribute(**{'type': 'vulnerability', 'value': vulnerability.cve_id})
 
     def parse_related_galaxies(self):
-        galaxies_references = []
-        for feature in ('coa_taken', 'coa_requested'):
-            coas = getattr(self.event, feature)
-            if coas:
-                galaxies_references.extend([coa.course_of_action.idref for coa in coas])
+        object_references = []
+        for coa_taken in self.event.coa_taken:
+            self.parse_course_of_action(coa_taken.course_of_action)
         if self.event.attributed_threat_actors:
-            galaxies_references.extend([ta.item.idref for ta in self.event.attributed_threat_actors.threat_actor])
+            object_references.extend([ta.item.idref for ta in self.event.attributed_threat_actors.threat_actor])
         if self.event.leveraged_ttps and self.event.leveraged_ttps.ttp:
-            galaxies_references.extend([ttp.item.idref for ttp in self.event.leveraged_ttps.ttp])
-        self.galaxies_references = tuple('-'.join((r for r in ref.split('-')[-5:])) for ref in galaxies_references)
+            object_references.extend([ttp.item.idref for ttp in self.event.leveraged_ttps.ttp])
+        self.object_references = tuple('-'.join((r for r in ref.split('-')[-5:])) for ref in object_references if ref is not None)
+
+    @staticmethod
+    def _define_name(observable, relationship):
+        observable_id = observable.id_
+        if relationship == "file":
+            return "registry-key" if "WinRegistryKey" in observable_id else "file"
+        if "Custom" in observable_id:
+            return observable_id.split("Custom")[0].split(":")[1]
+        if relationship == "network":
+            if "ObservableComposition" in observable_id:
+                return observable_id.split("_")[0].split(":")[1]
+            return stix2misp_mapping.cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
+        return stix2misp_mapping.cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
 
     def fetch_event_info(self):
         info = self.get_event_info()
@@ -1204,10 +1178,13 @@ class ExternalStixParser(StixParser):
             self.parse_external_indicators(self.event.indicators)
         if self.event.observables:
             self.parse_external_observable(self.event.observables.observables)
-        if self.event.ttps:
-            self.parse_ttps(self.event.ttps.ttps)
-        if self.event.courses_of_action:
-            self.parse_coa(self.event.courses_of_action)
+        if any(getattr(self.event, feature) for feature in ('ttps', 'courses_of_action', 'threat_actors')):
+            if self.event.ttps:
+                self.parse_ttps(self.event.ttps.ttp)
+            if self.event.courses_of_action:
+                self.parse_coa(self.event.courses_of_action)
+            if self.event.threat_actors:
+                self._parse_threat_actors(self.event.threat_actors)
         if self.dns_objects:
             self.resolve_dns_objects()
         self.set_distribution()
@@ -1235,26 +1212,7 @@ class ExternalStixParser(StixParser):
     # Parse the courses of action field of an external STIX document
     def parse_coa(self, courses_of_action):
         for coa in courses_of_action:
-            misp_object = MISPObject('course-of-action', misp_objects_path_custom=_MISP_objects_path)
-            if coa.title:
-                attribute = {'type': 'text', 'object_relation': 'name',
-                             'value': coa.title}
-                misp_object.add_attribute(**attribute)
-            for prop, properties_key in stix2misp_mapping._coa_mapping.items():
-                if getattr(coa, prop):
-                    attribute = {'type': 'text', 'object_relation': prop.replace('_', ''),
-                                 'value': attrgetter('{}.{}'.format(prop, properties_key))(coa)}
-                    misp_object.add_attribute(**attribute)
-            if coa.parameter_observables:
-                for observable in coa.parameter_observables.observables:
-                    properties = observable.object_.properties
-                    attribute = MISPAttribute()
-                    attribute.type, attribute.value, _ = self.handle_attribute_type(properties)
-                    referenced_uuid = str(uuid.uuid4())
-                    attribute.uuid = referenced_uuid
-                    self.misp_event.add_attribute(**attribute)
-                    misp_object.add_reference(referenced_uuid, 'observable', None, **attribute)
-            self.misp_event.add_object(**misp_object)
+            self.parse_course_of_action(coa)
 
     # Parse description of an external indicator or observable and add it in the MISP event as an attribute
     def parse_description(self, stix_object):
@@ -1342,21 +1300,8 @@ class ExternalStixParser(StixParser):
 
     # Parse the ttps field of an external STIX document
     def parse_ttps(self, ttps):
-        galaxy_types = {value: key for key, value in stix2misp_mapping._galaxy_mapping.items() if 'malware' in value}
         for ttp in ttps:
-            if ttp.behavior and ttp.behavior.malware_instances:
-                mi = ttp.behavior.malware_instances[0]
-                mi_types = mi.types
-                mi_name = mi_types[0].value if mi_types and mi_types[0].value in galaxy_types else "Malware"
-                cluster_type = stix2misp_mapping._galaxy_mapping[mi_name]
-                value = ttp.title
-                cluster = {'name': mi_name, 'type': cluster_type, 'value': value,
-                           'tag_name': 'misp-galaxy:{}="{}"'.format(cluster_type, value)}
-                if mi.description:
-                    cluster['description'] = mi.description.value
-                if mi.names:
-                    cluster['meta'] = {'synonyms': [name.value for name in mi.names]}
-                self.galaxies[mi_name].append(cluster)
+            self._parse_ttp(ttp)
 
     # Parse a DNS object
     def resolve_dns_objects(self):

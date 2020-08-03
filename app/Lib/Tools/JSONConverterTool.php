@@ -11,6 +11,46 @@ class JSONConverterTool
         return ']}' . PHP_EOL;
     }
 
+    public function convertAttribute($attribute, $raw = false)
+    {
+        $toRearrange = array('AttributeTag');
+        foreach ($toRearrange as $object) {
+          if (isset($attribute[$object])) {
+            $attribute['Attribute'][$object] = $attribute[$object];
+            unset($attribute[$object]);
+          }
+        }
+
+        // Submit as list to the attribute cleaner but obtain the only attribute
+        $attribute['Attribute'] = $this->__cleanAttributes(array($attribute['Attribute']))[0];
+        if ($raw) {
+            return $attribute;
+        }
+        return json_encode($attribute, JSON_PRETTY_PRINT);
+    }
+
+    public function convertObject($object, $isSiteAdmin = false, $raw = false)
+    {
+        $toRearrange = array('SharingGroup', 'Attribute', 'ShadowAttribute', 'Event');
+        foreach ($toRearrange as $element) {
+            if (isset($object[$element])) {
+                $object['Object'][$element] = $object[$element];
+                unset($object[$element]);
+            }
+            if ($element == 'SharingGroup' && isset($object['Object']['SharingGroup']) && empty($object['Object']['SharingGroup'])) {
+                unset($object['Object']['SharingGroup']);
+            }
+        }
+        $result = array('Object' => $object['Object']);
+        if (isset($event['errors'])) {
+            $result = array_merge($result, array('errors' => $event['errors']));
+        }
+        if ($raw) {
+            return $result;
+        }
+        return json_encode($result, JSON_PRETTY_PRINT);
+    }
+
     public function convert($event, $isSiteAdmin=false, $raw = false)
     {
         $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object');
@@ -23,10 +63,12 @@ class JSONConverterTool
                 unset($event['Event']['SharingGroup']);
             }
             if ($object == 'Galaxy') {
-                foreach ($event['Event']['Galaxy'] as $k => $galaxy) {
-                    foreach ($galaxy['GalaxyCluster'] as $k2 => $cluster) {
-                        if (empty($cluster['meta'])) {
-                            $event['Event']['Galaxy'][$k]['GalaxyCluster'][$k2]['meta'] = new stdclass();
+                if (!empty($event['Event']['Galaxy'])) {
+                    foreach ($event['Event']['Galaxy'] as $k => $galaxy) {
+                        foreach ($galaxy['GalaxyCluster'] as $k2 => $cluster) {
+                            if (empty($cluster['meta'])) {
+                                $event['Event']['Galaxy'][$k]['GalaxyCluster'][$k2]['meta'] = new stdclass();
+                            }
                         }
                     }
                 }

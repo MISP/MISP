@@ -53,6 +53,7 @@ class ACLComponent extends Component
                     'fetchEditForm' => array('perm_add'),
                     'fetchViewValue' => array('*'),
                     'generateCorrelation' => array(),
+                    'getMassEditForm' => array('perm_add'),
                     'hoverEnrichment' => array('perm_add'),
                     'index' => array('*'),
                     'pruneOrphanedAttributes' => array(),
@@ -70,6 +71,18 @@ class ACLComponent extends Component
                     'updateAttributeValues' => array('perm_add'),
                     'view' => array('*'),
                     'viewPicture' => array('*'),
+            ),
+            'dashboards' => array(
+                'getForm' => array('*'),
+                'index' => array('*'),
+                'updateSettings' => array('*'),
+                'getEmptyWidget' => array('*'),
+                'renderWidget' => array('*'),
+                'listTemplates' => array('*'),
+                'saveTemplate' => array('*'),
+                'export' => array('*'),
+                'import' => array('*'),
+                'deleteTemplate' => array('*')
             ),
             'decayingModel' => array(
                 "update" => array(),
@@ -205,6 +218,7 @@ class ACLComponent extends Component
                     'getEvent' => array(),
                     'importFeeds' => array(),
                     'index' => array('*'),
+                    'loadDefaultFeeds' => array('perm_site_admin'),
                     'previewEvent' => array('*'),
                     'previewIndex' => array('*'),
                     'searchCaches' => array('*'),
@@ -272,21 +286,22 @@ class ACLComponent extends Component
                     'view' => array('*')
             ),
             'objects' => array(
-                'add' => array('perm_add'),
-                'addValueField' => array('perm_add'),
-                'delete' => array('perm_add'),
-                'edit' => array('perm_add'),
-                'get_row' => array('perm_add'),
-                'orphanedObjectDiagnostics' => array(),
-                'editField' => array('perm_add'),
-                'fetchEditForm' => array('perm_add'),
-                'fetchViewValue' => array('*'),
-                'quickAddAttributeForm' => array('perm_add'),
-                'quickFetchTemplateWithValidObjectAttributes' => array('perm_add'),
-                'proposeObjectsFromAttributes' => array('*'),
-                'groupAttributesIntoObject' => array('perm_add'),
-                'revise_object' => array('perm_add'),
-                'view' => array('*'),
+                    'add' => array('perm_add'),
+                    'addValueField' => array('perm_add'),
+                    'delete' => array('perm_add'),
+                    'edit' => array('perm_add'),
+                    'get_row' => array('perm_add'),
+                    'orphanedObjectDiagnostics' => array(),
+                    'editField' => array('perm_add'),
+                    'fetchEditForm' => array('perm_add'),
+                    'fetchViewValue' => array('*'),
+                    'quickAddAttributeForm' => array('perm_add'),
+                    'quickFetchTemplateWithValidObjectAttributes' => array('perm_add'),
+                    'restSearch' => array('*'),
+                    'proposeObjectsFromAttributes' => array('*'),
+                    'groupAttributesIntoObject' => array('perm_add'),
+                    'revise_object' => array('perm_add'),
+                    'view' => array('*'),
             ),
             'objectReferences' => array(
                 'add' => array('perm_add'),
@@ -321,7 +336,7 @@ class ACLComponent extends Component
                     'admin_edit' => array(),
                     'admin_generateuuid' => array(),
                     'admin_merge' => array(),
-                    'fetchOrgsForSG' => array('*'),
+                    'fetchOrgsForSG' => array('perm_sharing_group'),
                     'fetchSGOrgRow' => array('*'),
                     'getUUIDs' => array('perm_sync'),
                     'index' => array('*'),
@@ -370,7 +385,8 @@ class ACLComponent extends Component
                     'delete' => array(),
                     'deleteFile' => array(),
                     'edit' => array(),
-                    'fetchServersForSG' => array('*'),
+                    'eventBlockRule' => array(),
+                    'fetchServersForSG' => array('perm_sharing_group'),
                     'filterEventIndex' => array(),
                     'getApiInfo' => array('*'),
                     'getGit' => array(),
@@ -394,6 +410,7 @@ class ACLComponent extends Component
                     'releaseUpdateLock' => array(),
                     'resetRemoteAuthKey' => array(),
                     'rest' => array('perm_auth'),
+                    'restartDeadWorkers' => array(),
                     'restartWorkers' => array(),
                     'serverSettings' => array(),
                     'serverSettingsEdit' => array(),
@@ -421,11 +438,7 @@ class ACLComponent extends Component
                     'discardSelected' => array('perm_add'),
                     'download' => array('*'),
                     'edit' => array('perm_add'),
-                    'editField' => array('perm_add'),
-                    'fetchEditForm' => array('perm_add'),
                     'generateCorrelation' => array(),
-                    'getProposalsByUuid' => array('perm_sync'),
-                    'getProposalsByUuidList' => array('perm_sync'),
                     'index' => array('*'),
                     'view' => array('*'),
             ),
@@ -536,12 +549,14 @@ class ACLComponent extends Component
                     'viewEvent' => array('*'),
             ),
             'users' => array(
+                    'acceptRegistrations' => array('perm_site_admin'),
                     'admin_add' => array('perm_admin'),
                     'admin_delete' => array('perm_admin'),
                     'admin_edit' => array('perm_admin'),
                     'admin_email' => array('perm_admin'),
                     'admin_filterUserIndex' => array('perm_admin'),
                     'admin_index' => array('perm_admin'),
+                    'admin_monitor' => array('perm_site_admin'),
                     'admin_quickEmail' => array('perm_admin'),
                     'admin_view' => array('perm_admin'),
                     'attributehistogram' => array('*'),
@@ -550,14 +565,18 @@ class ACLComponent extends Component
                     'checkIfLoggedIn' => array('*'),
                     'dashboard' => array('*'),
                     'delete' => array('perm_admin'),
+                    'discardRegistrations' => array('perm_site_admin'),
                     'downloadTerms' => array('*'),
                     'edit' => array('*'),
+                    'email_otp' => array('*'),
                     'searchGpgKey' => array('*'),
                     'fetchGpgKey' => array('*'),
                     'histogram' => array('*'),
                     'initiatePasswordReset' => array('perm_admin'),
                     'login' => array('*'),
                     'logout' => array('*'),
+                    'register' => array('*'),
+                    'registrations' => array('perm_site_admin'),
                     'resetAllSyncAuthKeys' => array(),
                     'resetauthkey' => array('*'),
                     'request_API' => array('*'),
@@ -575,7 +594,8 @@ class ACLComponent extends Component
                     'view' => array('*'),
                     'setSetting' => array('*'),
                     'getSetting' => array('*'),
-                    'delete' => array('*')
+                    'delete' => array('*'),
+                    'setHomePage' => array('*')
             ),
             'warninglists' => array(
                     'checkValue' => array('perm_auth'),
@@ -673,12 +693,23 @@ class ACLComponent extends Component
         }
     }
 
-    // The check works like this:
-    // If the user is a site admin, return true
-    // If the requested action has an OR-d list, iterate through the list. If any of the permissions are set for the user, return true
-    // If the requested action has an AND-ed list, iterate through the list. If any of the permissions for the user are not set, turn the check to false. Otherwise return true.
-    // If the requested action has a permission, check if the user's role has it flagged. If yes, return true
-    // If we fall through all of the checks, return an exception.
+    /**
+     * The check works like this:
+     * - If the user is a site admin, return true
+     * - If the requested action has an OR-d list, iterate through the list. If any of the permissions are set for the user, return true
+     * - If the requested action has an AND-ed list, iterate through the list. If any of the permissions for the user are not set, turn the check to false. Otherwise return true.
+     * - If the requested action has a permission, check if the user's role has it flagged. If yes, return true
+     * - If we fall through all of the checks, return an exception.
+     *
+     * @param array|null $user
+     * @param string $controller
+     * @param string $action
+     * @param bool $soft If true, instead of exception, HTTP error code is retuned as int.
+     * @return bool|int
+     * @throws NotFoundException
+     * @throws MethodNotAllowedException
+     * @throws InternalErrorException
+     */
     public function checkAccess($user, $controller, $action, $soft = false)
     {
         $controller = lcfirst(Inflector::camelize($controller));
@@ -688,14 +719,11 @@ class ACLComponent extends Component
             $aclList[$k] = array_change_key_case($v);
         }
         $this->__checkLoggedActions($user, $controller, $action);
-        if ($user['Role']['perm_site_admin']) {
+        if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
         if (!isset($aclList[$controller])) {
             return $this->__error(404, 'Invalid controller.', $soft);
-        }
-        if ($user['Role']['perm_site_admin']) {
-            return true;
         }
         if (isset($aclList[$controller][$action]) && !empty($aclList[$controller][$action])) {
             if (in_array('*', $aclList[$controller][$action])) {

@@ -1,6 +1,6 @@
 <?php
-
 App::uses('AppModel', 'Model');
+App::uses('TmpFileTool', 'Tools');
 
 class MispObject extends AppModel
 {
@@ -46,6 +46,10 @@ class MispObject extends AppModel
         ),
     );
 
+    public $validFormats = array(
+        'json' => array('json', 'JsonExport', 'json')
+    );
+
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
 
     public $validate = array(
@@ -71,6 +75,94 @@ class MispObject extends AppModel
             'message' => array('Invalid ISO 8601 format')
         )
     );
+
+    public function buildFilterConditions($user, &$params)
+    {
+        $conditions = $this->buildConditions($user);
+        if (isset($params['wildcard'])) {
+            $temp = array();
+            $options = array(
+                'filter' => 'wildcard',
+                'scope' => 'Object',
+                'pop' => false,
+                'context' => 'Event'
+            );
+            $conditions['AND'][] = array('OR' => $this->Event->set_filter_wildcard_attributes($params, $temp, $options));
+        } else {
+            $attribute_conditions = array();
+            $object_conditions = array();
+            if (isset($params['ignore'])) {
+                $params['to_ids'] = array(0, 1);
+                $params['published'] = array(0, 1);
+            }
+            $simple_params = array(
+                'Object' => array(
+                    'object_name' => array('function' => 'set_filter_object_name'),
+                    'object_template_uuid' => array('function' => 'set_filter_object_template_uuid'),
+                    'object_template_version' => array('function' => 'set_filter_object_template_version'),
+                    'deleted' => array('function' => 'set_filter_deleted')
+                ),
+                'Event' => array(
+                    'eventid' => array('function' => 'set_filter_eventid'),
+                    'eventinfo' => array('function' => 'set_filter_eventinfo'),
+                    'ignore' => array('function' => 'set_filter_ignore'),
+                    'from' => array('function' => 'set_filter_timestamp'),
+                    'to' => array('function' => 'set_filter_timestamp'),
+                    'date' => array('function' => 'set_filter_date'),
+                    'tags' => array('function' => 'set_filter_tags'),
+                    'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'publish_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'org' => array('function' => 'set_filter_org'),
+                    'uuid' => array('function' => 'set_filter_uuid'),
+                    'published' => array('function' => 'set_filter_published')
+                ),
+                'Attribute' => array(
+                    'value' => array('function' => 'set_filter_value'),
+                    'category' => array('function' => 'set_filter_simple_attribute'),
+                    'type' => array('function' => 'set_filter_simple_attribute'),
+                    'object_relation' => array('function' => 'set_filter_simple_attribute'),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+                    'uuid' => array('function' => 'set_filter_uuid'),
+                    'deleted' => array('function' => 'set_filter_deleted'),
+                    'timestamp' => array('function' => 'set_filter_timestamp'),
+                    'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'first_seen' => array('function' => 'set_filter_seen'),
+                    'last_seen' => array('function' => 'set_filter_seen'),
+                    'to_ids' => array('function' => 'set_filter_to_ids'),
+                    'comment' => array('function' => 'set_filter_comment')
+                )
+            );
+            foreach ($params as $param => $paramData) {
+                foreach ($simple_params as $scope => $simple_param_scoped) {
+                    if (isset($simple_param_scoped[$param]) && isset($params[$param]) && $params[$param] !== false) {
+                        $options = array(
+                            'filter' => $param,
+                            'scope' => $scope,
+                            'pop' => !empty($simple_param_scoped[$param]['pop']),
+                            'context' => 'Attribute'
+                        );
+                        if ($scope === 'Attribute') {
+                            $subQueryOptions = array(
+                                'fields' => ['Attribute.object_id'],
+                                'group' => 'Attribute.object_id',
+                                'recursive' => -1,
+                                'conditions' => array(
+                                    'Attribute.object_id NOT' => 0,
+                                    $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options)
+                                )
+                            );
+                            $conditions['AND'][] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Object.id');
+                        } else {
+                            $conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
+                        }
+                    }
+                }
+            }
+        }
+        return $conditions;
+    }
 
      // check whether the variable is null or datetime
      public function datetimeOrNull($fields)
@@ -289,7 +381,7 @@ class MispObject extends AppModel
                     $object['Attribute'][$k]['last_seen'] = $object['Object']['last_seen'];
                 }
             }
-            $this->Attribute->saveAttributes($object['Attribute']);
+            $this->Attribute->saveAttributes($object['Attribute'], $user);
         } else {
             $result = $this->validationErrors;
         }
@@ -425,9 +517,12 @@ class MispObject extends AppModel
                         'Tag'
                     )
                 )
-            )
+            ),
         );
-        if (empty($options['includeAllTags'])) {
+        if (!empty($options['metadata'])) {
+            unset($params['contain']['Attribute']);
+        }
+        if (empty($options['metadata']) && empty($options['includeAllTags'])) {
             $params['contain']['Attribute']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
         if (isset($options['contain'])) {
@@ -435,7 +530,12 @@ class MispObject extends AppModel
         } else {
             $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
         }
-        if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
+        if (
+            empty($options['metadata']) &&
+            Configure::read('MISP.proposals_block_attributes') &&
+            isset($options['conditions']['AND']['Attribute.to_ids']) &&
+            $options['conditions']['AND']['Attribute.to_ids'] == 1
+        ) {
             $this->Attribute->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
                     'ShadowAttribute' => array(
@@ -453,9 +553,6 @@ class MispObject extends AppModel
             );
             $params['contain'] = array_merge($params['contain']['Attribute'], $proposalRestriction);
         }
-        if (isset($options['fields'])) {
-            $params['fields'] = $options['fields'];
-        }
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
         }
@@ -468,11 +565,17 @@ class MispObject extends AppModel
         if (!isset($options['enforceWarninglist'])) {
             $options['enforceWarninglist'] = false;
         }
-        if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
+        if (empty($options['metadata']) && (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted'])) {
             $params['contain']['Attribute']['conditions']['AND']['Attribute.deleted'] = 0;
         }
         if (isset($options['group'])) {
             $params['group'] = array_merge(array('Object.id'), $options['group']);
+        }
+        if (isset($options['limit'])) {
+            $params['limit'] = $options['limit'];
+            if (isset($options['page'])) {
+                $params['page'] = $options['page'];
+            }
         }
         if (Configure::read('MISP.unpublishedprivate')) {
             $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
@@ -484,23 +587,25 @@ class MispObject extends AppModel
         }
         $results = array_values($results);
         $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
-        foreach ($results as $key => $objects) {
-            foreach ($objects as $key2 => $attribute) {
-                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
-                    unset($results[$key][$key2]);
-                    continue;
-                }
-                if ($proposals_block_attributes) {
-                    if (!empty($attribute['ShadowAttribute'])) {
+        if (empty($options['metadata'])) {
+            foreach ($results as $key => $objects) {
+                foreach ($objects as $key2 => $attribute) {
+                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
                         unset($results[$key][$key2]);
-                    } else {
-                        unset($results[$key][$key2]['ShadowAttribute']);
+                        continue;
                     }
-                }
-                if ($options['withAttachments']) {
-                    if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
-                        $encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-                        $results[$key][$key2]['Attribute']['data'] = $encodedFile;
+                    if ($proposals_block_attributes) {
+                        if (!empty($attribute['ShadowAttribute'])) {
+                            unset($results[$key][$key2]);
+                        } else {
+                            unset($results[$key][$key2]['ShadowAttribute']);
+                        }
+                    }
+                    if ($options['withAttachments']) {
+                        if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
+                            $encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
+                            $results[$key][$key2]['Attribute']['data'] = $encodedFile;
+                        }
                     }
                 }
             }
@@ -665,7 +770,7 @@ class MispObject extends AppModel
         return $object;
     }
 
-    public function deltaMerge($object, $objectToSave, $onlyAddNewAttribute=false)
+    public function deltaMerge($object, $objectToSave, $onlyAddNewAttribute=false, $user)
     {
         if (!isset($objectToSave['Object'])) {
             $dataToBackup = array('ObjectReferences', 'Attribute', 'ShadowAttribute');
@@ -686,6 +791,9 @@ class MispObject extends AppModel
         }
         if (isset($objectToSave['Object']['comment'])) {
             $object['Object']['comment'] = $objectToSave['Object']['comment'];
+        }
+        if (isset($objectToSave['Object']['template_version'])) {
+            $object['Object']['template_version'] = $objectToSave['Object']['template_version'];
         }
         if (isset($objectToSave['Object']['distribution'])) {
             $object['Object']['distribution'] = $objectToSave['Object']['distribution'];
@@ -720,7 +828,7 @@ class MispObject extends AppModel
                                     if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
                                         $newAttribute[$f] = 0;
                                     }
-                                    if ($newAttribute[$f] != $originalAttribute[$f]) {
+                                    if (isset($newAttribute[$f]) && $newAttribute[$f] != $originalAttribute[$f]) {
                                         $different = true;
                                     }
                                     // Set seen of object at attribute level
@@ -744,20 +852,10 @@ class MispObject extends AppModel
                                     $newAttribute['event_id'] = $object['Object']['event_id'];
                                     $newAttribute['object_id'] = $object['Object']['id'];
                                     $newAttribute['timestamp'] = $date->getTimestamp();
-                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
-                                        'category',
-                                        'value',
-                                        'to_ids',
-                                        'distribution',
-                                        'sharing_group_id',
-                                        'comment',
-                                        'timestamp',
-                                        'object_id',
-                                        'event_id',
-                                        'disable_correlation',
-                                        'first_seen',
-                                        'last_seen'
-                                    ));
+                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => $this->Attribute->editableFields));
+                                    if ($result) {
+                                        $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
+                                    }
                                 }
                                 unset($object['Attribute'][$origKey]);
                                 continue 2;
@@ -780,19 +878,23 @@ class MispObject extends AppModel
                             $newAttribute['value'] = $forcedSeenOnElements['last_seen'];
                         }
                     }
-                    if (!isset($newAttribute['timestamp'])) {
+                    if (!isset($newAttribute['distribution'])) {
                         $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
                         if ($newAttribute['distribution'] == 'event') {
                             $newAttribute['distribution'] = 5;
                         }
                     }
-                    $this->Event->Attribute->save($newAttribute);
+                    $saveResult = $this->Event->Attribute->save($newAttribute);
+                    if ($saveResult) {
+                        $newAttribute['id'] = $this->Event->Attribute->id;
+                        $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
+                    }
                     $attributeArrays['add'][] = $newAttribute;
                     unset($objectToSave['Attribute'][$newKey]);
                 }
                 foreach ($object['Attribute'] as $origKey => $originalAttribute) {
                     $originalAttribute['deleted'] = 1;
-                    $this->Event->Attribute->save($originalAttribute);
+                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => $this->Attribute->editableFields));
                 }
             }
         } else { // we only add the new attribute
@@ -814,19 +916,19 @@ class MispObject extends AppModel
                 $newAttribute['last_seen'] = $object['Object']['last_seen'];
                 $different = true;
             }
-            if (!isset($newAttribute['timestamp'])) {
+            if (!isset($newAttribute['distribution'])) {
                 $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
                 if ($newAttribute['distribution'] == 'event') {
                     $newAttribute['distribution'] = 5;
                 }
             }
-            $saveAttributeResult = $this->Attribute->saveAttributes(array($newAttribute));
+            $saveAttributeResult = $this->Attribute->saveAttributes(array($newAttribute), $user);
             return $saveAttributeResult ? $this->id : $this->validationErrors;
         }
         return $this->id;
     }
 
-    public function captureObject($object, $eventId, $user, $log = false)
+    public function captureObject($object, $eventId, $user, $log = false, $unpublish = true)
     {
         $this->create();
         if (!isset($object['Object'])) {
@@ -840,7 +942,9 @@ class MispObject extends AppModel
         }
         $object['Object']['event_id'] = $eventId;
         if ($this->save($object)) {
-            $this->Event->unpublishEvent($eventId);
+            if ($unpublish) {
+                $this->Event->unpublishEvent($eventId);
+            }
             $objectId = $this->id;
             $partialFails = array();
             if (!empty($object['Object']['Attribute'])) {
@@ -865,7 +969,7 @@ class MispObject extends AppModel
         return 'fail';
     }
 
-    public function editObject($object, $eventId, $user, $log)
+    public function editObject($object, $eventId, $user, $log, $force = false, &$nothingToChange = false)
     {
         $object['event_id'] = $eventId;
         if (isset($object['uuid'])) {
@@ -891,7 +995,8 @@ class MispObject extends AppModel
                     return true;
                 }
                 if (isset($object['timestamp'])) {
-                    if ($existingObject['Object']['timestamp'] >= $object['timestamp']) {
+                    if ($force || $existingObject['Object']['timestamp'] >= $object['timestamp']) {
+                        $nothingToChange = true;
                         return true;
                     }
                 } else {
@@ -941,7 +1046,64 @@ class MispObject extends AppModel
         }
         if (!empty($object['Attribute'])) {
             foreach ($object['Attribute'] as $attribute) {
-                $result = $this->Attribute->editAttribute($attribute, $eventId, $user, $object['id'], $log);
+                $result = $this->Attribute->editAttribute($attribute, $eventId, $user, $object['id'], $log, $force);
+            }
+        }
+        return true;
+    }
+
+    public function deleteObject($object, $hard=false, $unpublish=true)
+    {
+        $id = $object['Object']['id'];
+        if ($hard) {
+            // For a hard delete, simply run the delete, it will cascade
+            $this->delete($id);
+        } else {
+            // For soft deletes, sanitise the object first if the setting is enabled
+            if (Configure::read('Security.sanitise_attribute_on_delete')) {
+                $object['Object']['name'] = 'N/A';
+                $object['Object']['category'] = 'N/A';
+                $object['Object']['description'] = 'N/A';
+                $object['Object']['template_uuid'] = 'N/A';
+                $object['Object']['template_version'] = 0;
+                $object['Object']['comment'] = '';
+            }
+            $date = new DateTime();
+            $object['Object']['deleted'] = 1;
+            $object['Object']['timestamp'] = $date->getTimestamp();
+            $saveResult = $this->save($object);
+            if (!$saveResult) {
+                return $saveResult;
+            }
+            foreach ($object['Attribute'] as $attribute) {
+                if (Configure::read('Security.sanitise_attribute_on_delete')) {
+                    $attribute['category'] = 'Other';
+                    $attribute['type'] = 'comment';
+                    $attribute['value'] = 'deleted';
+                    $attribute['comment'] = '';
+                    $attribute['to_ids'] = 0;
+                }
+                $attribute['deleted'] = 1;
+                $attribute['timestamp'] = $date->getTimestamp();
+                $this->Attribute->save(array('Attribute' => $attribute));
+                $this->Event->ShadowAttribute->deleteAll(
+                    array('ShadowAttribute.old_id' => $attribute['id']),
+                    false
+                );
+            }
+            if ($unpublish) {
+                $this->Event->unpublishEvent($object['Event']['id']);
+            }
+            $object_refs = $this->ObjectReference->find('all', array(
+                'conditions' => array(
+                    'ObjectReference.referenced_type' => 1,
+                    'ObjectReference.referenced_id' => $id,
+                ),
+                'recursive' => -1
+            ));
+            foreach ($object_refs as $ref) {
+                $ref['ObjectReference']['deleted'] = 1;
+                $this->ObjectReference->save($ref);
             }
         }
         return true;
@@ -1152,8 +1314,7 @@ class MispObject extends AppModel
         return $toReturn;
     }
 
-    public function reviseObject($revised_object, $object) {
-        $revised_object = json_decode(base64_decode($revised_object), true);
+    public function reviseObject($revised_object, $object, $template) {
         $revised_object_both = array('mergeable' => array(), 'notMergeable' => array());
 
         // Loop through attributes to inject and perform the correct action
@@ -1208,5 +1369,171 @@ class MispObject extends AppModel
             'object' => $object,
             'revised_object_both' => $revised_object_both
         );
+    }
+
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
+    {
+        if (!isset($this->validFormats[$returnFormat][1])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        App::uses($this->validFormats[$returnFormat][1], 'Export');
+        $exportTool = new $this->validFormats[$returnFormat][1]();
+        if (empty($exportTool->non_restrictive_export)) {
+            if (!isset($filters['to_ids'])) {
+                $filters['to_ids'] = 1;
+            }
+            if (!isset($filters['published'])) {
+                $filters['published'] = 1;
+            }
+            $filters['allow_proposal_blocking'] = 1;
+        }
+        if (!empty($filters['quickFilter'])) {
+            $filters['searchall'] = $filters['quickFilter'];
+            if (!empty($filters['value'])) {
+                unset($filters['value']);
+            }
+        }
+        if (!empty($exportTool->renderView)) {
+            $renderView = $exportTool->renderView;
+        }
+        if (isset($filters['searchall'])) {
+            if (!empty($filters['value'])) {
+                $filters['wildcard'] = $filters['value'];
+                unset($filters['value']);
+            } else {
+                $filters['wildcard'] = $filters['searchall'];
+            }
+        }
+        $subqueryElements = $this->Event->harvestSubqueryElements($filters);
+        $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
+        $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
+        $conditions = $this->buildFilterConditions($user, $filters);
+        $params = array(
+                'conditions' => $conditions,
+                'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Object.*'),
+                'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
+                'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
+                'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
+                'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
+                'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
+                'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
+                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
+                'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
+                'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
+                'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
+                'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
+                'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
+                'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
+                'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0,
+                'metadata' => !empty($filters['metadata']) ? $filters['metadata'] : 0,
+        );
+        if (!empty($filters['attackGalaxy'])) {
+            $params['attackGalaxy'] = $filters['attackGalaxy'];
+        }
+        if (isset($filters['include_event_uuid'])) {
+            $params['includeEventUuid'] = $filters['include_event_uuid'];
+        }
+        if (isset($filters['limit'])) {
+            $params['limit'] = $filters['limit'];
+            if (!isset($filters['page'])) {
+                $filters['page'] = 1;
+            }
+        }
+        if (isset($filters['page'])) {
+            $params['page'] = $filters['page'];
+        }
+        if (!empty($filters['deleted'])) {
+            $params['deleted'] = $filters['deleted'];
+        }
+        if (!empty($filters['excludeDecayed'])) {
+            $params['excludeDecayed'] = $filters['excludeDecayed'];
+            $params['includeDecayScore'] = 1;
+        }
+        if (!empty($filters['decayingModel'])) {
+            $params['decayingModel'] = $filters['decayingModel'];
+        }
+        if (!empty($filters['modelOverrides'])) {
+            $params['modelOverrides'] = $filters['modelOverrides'];
+        }
+        if (!empty($filters['score'])) {
+            $params['score'] = $filters['score'];
+        }
+        if (!empty($filters['metadata'])) {
+            $params['metadata'] = $filters['metadata'];
+        }
+        if ($paramsOnly) {
+            return $params;
+        }
+        if (method_exists($exportTool, 'modify_params')) {
+            $params = $exportTool->modify_params($user, $params);
+        }
+        $exportToolParams = array(
+            'user' => $user,
+            'params' => $params,
+            'returnFormat' => $returnFormat,
+            'scope' => 'Object',
+            'filters' => $filters
+        );
+        if (!empty($exportTool->additional_params)) {
+            $params = array_merge_recursive(
+                $params,
+                $exportTool->additional_params
+            );
+        }
+        $tmpfile = new TmpFileTool();
+        $tmpfile->write($exportTool->header($exportToolParams));
+        $loop = false;
+        if (empty($params['limit'])) {
+            $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+            $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
+            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
+            $params['limit'] = $memory_in_mb * $memory_scaling_factor / 10;
+            $loop = true;
+            $params['page'] = 1;
+        }
+        $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+        $tmpfile->write($exportTool->footer($exportToolParams));
+        return $tmpfile->finish();
+    }
+
+    private function __iteratedFetch($user, &$params, &$loop, TmpFileTool $tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
+    {
+        $continue = true;
+        while ($continue) {
+            $temp = '';
+            $this->Whitelist = ClassRegistry::init('Whitelist');
+            $results = $this->fetchObjects($user, $params, $continue);
+            if (empty($results)) {
+                $loop = false;
+                return true;
+            }
+            if ($elementCounter !== 0 && !empty($results)) {
+                $temp .= $exportTool->separator($exportToolParams);
+            }
+            if ($params['includeSightingdb']) {
+                $this->Sightingdb = ClassRegistry::init('Sightingdb');
+                $results = $this->Sightingdb->attachToObjects($results, $user);
+            }
+            $params['page'] += 1;
+            $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+            $results = array_values($results);
+            $i = 0;
+            foreach ($results as $object) {
+                $elementCounter++;
+                $handlerResult = $exportTool->handler($object, $exportToolParams);
+                $temp .= $handlerResult;
+                if ($handlerResult !== '') {
+                    if ($i != count($results) -1) {
+                        $temp .= $exportTool->separator($exportToolParams);
+                    }
+                }
+                $i++;
+            }
+            if (!$loop) {
+                $continue = false;
+            }
+            $tmpfile->write($temp);
+        }
+        return true;
     }
 }

@@ -23,16 +23,22 @@ function stringToRGB(str){
     return "#" + "00000".substring(0, 6 - c.length) + c;
 }
 
-function deleteObject(type, action, id, event) {
-    var destination = 'attributes';
-    var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'galaxy_clusters', 'objects', 'object_references'];
-    if (alternateDestinations.indexOf(type) > -1) destination = type;
-    else destination = type;
-    url = "/" + destination + "/" + action + "/" + id;
+function xhrFailCallback(xhr) {
+    if (xhr.status === 403) {
+        showMessage('fail', 'Not allowed.');
+    } else if (xhr.status === 404) {
+        showMessage('fail', 'Resource not found.');
+    } else {
+        showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details.');
+    }
+}
+
+function deleteObject(type, action, id) {
+    var url = "/" + type + "/" + action + "/" + id;
     $.get(url, function(data) {
         openPopup("#confirmation_box");
         $("#confirmation_box").html(data);
-    });
+    }).fail(xhrFailCallback)
 }
 
 function quickDeleteSighting(id, rawId, context) {
@@ -40,7 +46,7 @@ function quickDeleteSighting(id, rawId, context) {
     $.get(url, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
-    });
+    }).fail(xhrFailCallback)
 }
 
 function fetchAddSightingForm(type, attribute_id, page, onvalue) {
@@ -56,7 +62,7 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
     });
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page, placement) {
+function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placement) {
     var $clicked = $(clicked);
     var hoverbroken = false;
     $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
@@ -480,9 +486,7 @@ function activateField(type, id, field, event) {
     if (type == 'denyForm') return;
     var objectType = 'attributes';
     var containerName = 'Attribute';
-    if (type == 'ShadowAttribute') {
-        objectType = 'shadow_attributes';
-    } else if (type == 'Object') {
+    if (type == 'Object') {
         objectType = 'objects';
         containerName = 'Object';
     }
@@ -623,9 +627,7 @@ function submitForm(type, id, field, context) {
     var object_type = 'attributes';
     var action = "editField";
     var name = '#' + type + '_' + id + '_' + field;
-    if (type == 'ShadowAttribute') {
-        object_type = 'shadow_attributes';
-    } else if (type == 'Object') {
+    if (type == 'Object') {
         object_type = 'objects';
     }
     $.ajax({
@@ -990,7 +992,8 @@ function multiSelectAction(event, context) {
 
 function editSelectedAttributes(event) {
     var selectedAttributeIds = getSelected();
-    simplePopup("/attributes/editSelected/" + event + "/" + selectedAttributeIds);
+    var data = { selected_ids: selectedAttributeIds }
+    simplePopup("/attributes/getMassEditForm/" + event, 'POST', data);
 }
 
 function addSelectedTaxonomies(taxonomy) {
@@ -1185,7 +1188,23 @@ function openGenericModal(url) {
     });
 }
 
-function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dissmis_id_to_close) {
+function openGenericModalPost(url, body) {
+    $.ajax({
+        data: body,
+        type: "post",
+        url: url,
+        success: function (data) {
+            $('#genericModal').remove();
+            $('body').append(data);
+            $('#genericModal').modal();
+        },
+        error: function (data, textStatus, errorThrown) {
+            showMessage('fail', textStatus + ": " + errorThrown);
+        }
+    });
+}
+
+function submitPopoverForm(context_id, referer, update_context_id, modal, popover_dismiss_id_to_close) {
     var url = null;
     var context = 'event';
     var contextNamingConvention = 'Attribute';
@@ -1225,8 +1244,11 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             url = "/objectReferences/add/" + context_id;
             break;
         case 'quickAddAttributeForm':
-           url = "/objects/quickAddAttributeForm/" + context_id;
-           break;
+            url = "/objects/quickAddAttributeForm/" + context_id;
+            break;
+        case 'acceptUserRegistrations':
+            url = "/users/acceptRegistrations/" + context_id
+            break;
     }
     if ($("#submitButton").parent().hasClass('modal-footer')) {
         var $form = $("#submitButton").parent().parent().find('.modal-body form');
@@ -1245,8 +1267,8 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 if (closePopover) {
                     $("#gray_out").fadeOut();
                     $("#popover_form").fadeOut();
-                    if (popover_dissmis_id_to_close !== undefined) {
-                        $('[data-dismissid="' + popover_dissmis_id_to_close + '"]').popover('destroy');
+                    if (popover_dismiss_id_to_close !== undefined) {
+                        $('[data-dismissid="' + popover_dismiss_id_to_close + '"]').popover('destroy');
                     }
                     $(".loading").show();
                 }
@@ -1307,6 +1329,9 @@ function handleAjaxModalResponse(response, context_id, url, referer, context, co
             showMessage("fail", responseArray.errors);
         }
     } else {
+        if (responseArray.errors) {
+            showMessage("fail", responseArray.errors);
+        }
         var savedArray = saveValuesForPersistance();
         $.ajax({
             async:true,
@@ -1432,8 +1457,7 @@ function showMessage(success, message, context) {
     }
     $("#ajax_" + success).html(message);
     var duration = 1000 + (message.length * 40);
-    $("#ajax_" + success + "_container").fadeIn("slow");
-    $("#ajax_" + success + "_container").delay(duration).fadeOut("slow");
+    $("#ajax_" + success + "_container").fadeIn("slow").delay(duration).fadeOut("slow");
 }
 
 function cancelPopoverForm(id) {
@@ -1752,11 +1776,7 @@ function getPopup(id, context, target, admin, popupType) {
         error:function(xhr) {
             $(".loading").hide();
             $("#gray_out").fadeOut();
-            if (xhr.status === 403) {
-                showMessage('fail', 'Not allowed.');
-            } else {
-                showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
-            }
+            xhrFailCallback(xhr);
         },
         url: url
     });
@@ -1815,7 +1835,6 @@ function popoverConfirm(clicked, message, placement) {
         popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" style="margin-right: 5px;" onclick=submitPopover(this)>Yes</button>';
         popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</button>';
     popoverContent += '</div>';
-    placement = placement === undefined ? 'auto' : placement;
     openPopover($clicked, popoverContent, undefined, placement);
     $("#popoverConfirmOK")
     .focus()
@@ -1862,7 +1881,9 @@ function submitPopover(clicked) {
     }
 }
 
-function simplePopup(url) {
+function simplePopup(url, requestType, data) {
+    requestType = requestType === undefined ? 'GET' : requestType
+    data = data === undefined ? [] : data
     $("#gray_out").fadeIn();
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
@@ -1879,15 +1900,11 @@ function simplePopup(url) {
         error:function(xhr) {
             $(".loading").hide();
             $("#gray_out").fadeOut();
-            if (xhr.status == 403) {
-                showMessage('fail', 'Not allowed.');
-            } else if (xhr.status == 404) {
-                showMessage('fail', 'Resource not found.');
-            } else {
-                showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
-            }
+            xhrFailCallback(xhr);
         },
         url: url,
+        type: requestType,
+        data: data
     });
 }
 
@@ -2094,7 +2111,7 @@ function quickFilter(passedArgs, url) {
         var passedArgs = [];
     }
     if( $('#quickFilterField').val().trim().length > 0){
-        passedArgs["searchall"] = $('#quickFilterField').val().trim();
+        passedArgs["searchall"] = encodeURIComponent($('#quickFilterField').val().trim());
         for (var key in passedArgs) {
             if (key !== 'page') {
                 url += "/" + key + ":" + passedArgs[key];
@@ -2129,7 +2146,7 @@ function runIndexQuickFilter(preserveParams) {
         searchKey = $('#quickFilterField').data('searchkey');
     }
     if ( $('#quickFilterField').val().trim().length > 0){
-        passedArgsArray[searchKey] = $('#quickFilterField').val().trim();
+        passedArgsArray[searchKey] = encodeURIComponent($('#quickFilterField').val().trim());
     }
     url = here;
     if (typeof preserveParams !== "undefined") {
@@ -2149,7 +2166,7 @@ function executeFilter(passedArgs, url) {
 }
 
 function quickFilterTaxonomy(taxonomy_id, passedArgs) {
-    var url = "/taxonomies/view/" + taxonomy_id + "/filter:" + $('#quickFilterField').val();
+    var url = "/taxonomies/view/" + taxonomy_id + "/filter:" + encodeURIComponent($('#quickFilterField').val());
     window.location.href=url;
 }
 
@@ -2157,7 +2174,7 @@ function quickFilterRemoteEvents(passedArgs, id) {
     passedArgs["searchall"] = $('#quickFilterField').val();
     var url = "/servers/previewIndex/" + id;
     for (var key in passedArgs) {
-        url += "/" + key + ":" + passedArgs[key];
+        url += "/" + key + ":" + encodeURIComponent(passedArgs[key]);
     }
     window.location.href=url;
 }
@@ -2278,28 +2295,28 @@ function indexAddRule(param) {
     var found = false;
     if (filterContext == 'event') {
         if (param.data.param1 == "date") {
-            var val1 = escape($('#EventSearch' + param.data.param1 + 'from').val());
-            var val2 = escape($('#EventSearch' + param.data.param1 + 'until').val());
+            var val1 = encodeURIComponent($('#EventSearch' + param.data.param1 + 'from').val());
+            var val2 = encodeURIComponent($('#EventSearch' + param.data.param1 + 'until').val());
             if (val1 != "") filtering.date.from = val1;
             if (val2 != "") filtering.date.until = val2;
         } else if (param.data.param1 == "published") {
-            var value = escape($('#EventSearchpublished').val());
+            var value = encodeURIComponent($('#EventSearchpublished').val());
             if (value != "") filtering.published = value;
         } else if (param.data.param1 == "hasproposal") {
-            var value = escape($('#EventSearchhasproposal').val());
+            var value = encodeURIComponent($('#EventSearchhasproposal').val());
             if (value != "") filtering.hasproposal = value;
         } else {
-            var value = escape($('#EventSearch' + param.data.param1).val());
-            var operator = operators[escape($('#EventSearchbool').val())];
+            var value = encodeURIComponent($('#EventSearch' + param.data.param1).val());
+            var operator = operators[encodeURIComponent($('#EventSearchbool').val())];
             if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
         }
     } else if (filterContext == 'user') {
         if (differentFilters.indexOf(param.data.param1) != -1) {
-            var value = escape($('#UserSearch' + param.data.param1).val());
+            var value = encodeURIComponent($('#UserSearch' + param.data.param1).val());
             if (value != "") filtering[param.data.param1] = value;
         } else {
-            var value = escape($('#UserSearch' + param.data.param1).val());
-            var operator = operators[escape($('#UserSearchbool').val())];
+            var value = encodeURIComponent($('#UserSearch' + param.data.param1).val());
+            var operator = operators[encodeURIComponent($('#UserSearchbool').val())];
             if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
         }
     }
@@ -2518,7 +2535,7 @@ function serverSettingSubmitForm(name, setting, id) {
 }
 
 function updateOrgCreateImageField(string) {
-    string = escape(string);
+    string = encodeURIComponent(string);
     $.ajax({
         url:'/img/orgs/' + string + '.png',
         type:'HEAD',
@@ -3341,7 +3358,7 @@ function testConnection(id) {
                 $("#connection_test_" + id).html('<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>');
                 break;
             case 8:
-                $("#connection_test_" + id).html('<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Syncing sightings only</span>');
+                $("#connection_test_" + id).html('<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, syncing sightings only</span>');
                 break;
             }
         }
@@ -3586,11 +3603,11 @@ function syncUserSelected() {
 function filterAttributes(filter, id) {
     url = "/events/viewEventAttributes/" + id;
     if(filter === 'value'){
-        filter = $('#quickFilterField').val().trim();
+        filter = encodeURIComponent($('#quickFilterField').val().trim());
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     } else if(filter !== 'all') {
         url += "/attributeFilter:" + filter
-        filter = $('#quickFilterField').val().trim();
+        filter = encodeURIComponent($('#quickFilterField').val().trim());
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     }
     if (deleted) url += '/deleted:true';
@@ -3899,13 +3916,14 @@ function getFormInfoContent(property, field) {
 
 function formCategoryChanged(id) {
     // fill in the types
-    var options = $('#' + id +'Type').prop('options');
-    $('option', $('#' + id +'Type')).remove();
-    $.each(category_type_mapping[$('#' + id +'Category').val()], function(val, text) {
+    var $type = $('#' + id + 'Type');
+    var options = $type.prop('options');
+    $('option', $type).remove();
+    $.each(category_type_mapping[$('#' + id + 'Category').val()], function(val, text) {
         options[options.length] = new Option(text, val);
     });
     // enable the form element
-    $('#AttributeType').prop('disabled', false);
+    $type.prop('disabled', false);
 }
 
 function malwareCheckboxSetter(context) {
@@ -3920,6 +3938,7 @@ function feedFormUpdate() {
     switch($('#FeedSourceFormat').val()) {
         case 'freetext':
             $('#TargetDiv').show();
+            $('#OrgcDiv').show();
             $('#OverrideIdsDiv').show();
             $('#PublishDiv').show();
             if ($('#FeedTarget').val() != 0) {
@@ -3930,6 +3949,7 @@ function feedFormUpdate() {
             break;
         case 'csv':
             $('#TargetDiv').show();
+            $('#OrgcDiv').show();
             $('#OverrideIdsDiv').show();
             $('#PublishDiv').show();
             if ($('#FeedTarget').val() != 0) {
@@ -4194,7 +4214,7 @@ function checkRolePerms() {
         $('.permFlags').show();
     }
     if ($("#RolePermSiteAdmin").prop('checked')) {
-        $('.checkbox').prop('checked', true);
+        $('.site_admin_enforced').prop('checked', true);
     }
 }
 
@@ -4397,20 +4417,30 @@ function changeObjectReferenceSelectOption(selected, additionalData) {
     }
 }
 
-function previewEventBasedOnUuids() {
-    var currentValue = $("#EventExtendsUuid").val();
-    if (currentValue == '') {
-        $('#extended_event_preview').hide();
+function delay(callback, ms) {
+    var timer = 0;
+    return function() {
+        var context = this, args = arguments;
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            callback.apply(context, args);
+        }, ms || 0);
+    };
+}
+
+function previewEventBasedOnUuids(currentValue) {
+    if (currentValue === '') {
+        $('#event_preview').hide();
     } else {
         $.ajax({
             url: "/events/getEventInfoById/" + currentValue,
             type: "get",
-            error: function() {
-                $('#extended_event_preview').hide();
+            error: function(xhr) {
+                $('#event_preview').hide();
+                xhrFailCallback(xhr);
             },
             success: function(data) {
-                $('#extended_event_preview').show();
-                $('#extended_event_preview').html(data);
+                $('#event_preview').html(data).show();
             }
         });
     }
@@ -4443,7 +4473,25 @@ function checkNoticeList(type) {
 
 }
 
+function quickSelect(target) {
+    var range = document.createRange();
+    var selection = window.getSelection();
+    range.selectNodeContents(target);
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
 $(document).ready(function() {
+    // Show popover for disabled input that contains `data-disabled-reason`.
+    $('input:disabled[data-disabled-reason]').popover("destroy").popover({
+        placement: 'right',
+        html: 'true',
+        trigger: 'hover',
+        content: function () {
+            return $(this).data('disabled-reason');
+        }
+    });
+
     $('#quickFilterField').bind("enterKey",function(e){
         $('#quickFilterButton').trigger("click");
     });
@@ -4483,11 +4531,7 @@ $(document).ready(function() {
     // clicking on an element with this class will select all of its contents in a
     // single click
     $('.quickSelect').click(function() {
-        var range = document.createRange();
-        var selection = window.getSelection();
-        range.selectNodeContents(this);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        quickSelect(this);
     });
     $(".cortex-json").click(function() {
         var cortex_data = $(this).data('cortex-json');
@@ -4522,16 +4566,16 @@ $(document).ready(function() {
     $('.quickToggleCheckbox').toggle(function() {
         var url = $(this).data('checkbox-url');
     });
-    $(".correlation-expand-button").on("click", function() {
-        $(this).parent().children(".correlation-expanded-area").show();
-        $(this).parent().children(".correlation-collapse-button").show();
-        $(this).hide();
-    });
-    $(".correlation-collapse-button").on("click", function() {
-        $(this).parent().children(".correlation-expanded-area").hide();
-        $(this).parent().children(".correlation-expand-button").show();
-        $(this).hide();
-    });
+});
+
+$("body").on("click", ".correlation-expand-button", function() {
+    $(this).parent().children(".correlation-expanded-area").show();
+    $(this).parent().children(".correlation-collapse-button").show();
+    $(this).hide();
+}).on("click", ".correlation-collapse-button", function() {
+    $(this).parent().children(".correlation-expanded-area").hide();
+    $(this).parent().children(".correlation-expand-button").show();
+    $(this).hide();
 });
 
 function queryEventLock(event_id, user_org_id) {
@@ -4859,3 +4903,160 @@ function queryDeprecatedEndpointUsage() {
         format: 'yyyy-mm-dd',
     });
 }());
+
+function submitDashboardForm(id) {
+    var configData = $('#DashboardConfig').val();
+    if (configData != '') {
+        configData = JSON.parse(configData);
+    } else {
+        configData = {};
+    }
+    configData = JSON.stringify(configData);
+    $('#' + id).attr('config', configData);
+    $('#genericModal').modal('hide');
+    saveDashboardState();
+}
+
+function submitDashboardAddWidget() {
+    var widget = $('#DashboardWidget').val();
+    var config = $('#DashboardConfig').val();
+    var width = $('#DashboardWidth').val();
+    var height = $('#DashboardHeight').val();
+    var el = null;
+    var k = $('#last-element-counter').data('element-counter');
+    $.ajax({
+        url: baseurl + '/dashboards/getEmptyWidget/' + widget + '/' + (k+1),
+        type: 'GET',
+        success: function(data) {
+            el = data;
+            grid.addWidget(
+                el,
+                {
+                    "width": width,
+                    "height": height,
+                    "autoposition": 1
+                }
+            );
+            if (config !== '') {
+                config = JSON.parse(config);
+                config = JSON.stringify(config);
+            } else {
+                config = '[]';
+            }
+            $('#widget_' + (k+1)).attr('config', config);
+            saveDashboardState();
+            $('#last-element-counter').data('element-counter', (k+1));
+        },
+        complete: function(data) {
+            $('#genericModal').modal('hide');
+        },
+        error: function(data) {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not fetch empty widget.']});
+        }
+    });
+}
+
+function saveDashboardState() {
+    var dashBoardSettings = [];
+    $('.grid-stack-item').each(function(index) {
+        if ($(this).attr('config') !== undefined && $(this).attr('widget') !== undefined) {
+            var config = $(this).attr('config');
+            config = JSON.parse(config);
+            var temp = {
+                'widget': $(this).attr('widget'),
+                'config': config,
+                'position': {
+                    'x': $(this).attr('data-gs-x'),
+                    'y': $(this).attr('data-gs-y'),
+                    'width': $(this).attr('data-gs-width'),
+                    'height': $(this).attr('data-gs-height')
+                }
+            };
+            dashBoardSettings.push(temp);
+        }
+    });
+    $.ajax({
+        data: {value: dashBoardSettings},
+        success:function (data, textStatus) {
+            showMessage('success', 'Dashboard settings saved.');
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            showMessage('fail', textStatus + ": " + errorThrown);
+        },
+        type: "post",
+        url: baseurl + '/dashboards/updateSettings',
+    });
+}
+
+function updateDashboardWidget(element) {
+    element = $(element);
+    if (element.length) {
+        var container_id = $(element).attr('id').substring(7);
+        var container = $(element).find('.widgetContent');
+        var titleText = $(element).find('.widgetTitleText');
+        var temp = JSON.parse($(element).attr('config'));
+        if (temp['alias'] !== undefined) {
+            titleText.text(temp['alias']);
+        }
+        $.ajax({
+            type: 'POST',
+            url: baseurl + '/dashboards/renderWidget/' + container_id,
+            data: {
+                config: $(element).attr('config'),
+                widget: $(element).attr('widget')
+            },
+            success:function (data, textStatus) {
+                container.html(data);
+            }
+        });
+    }
+}
+
+function resetDashboardGrid(grid) {
+    $('.grid-stack-item').each(function() {
+        updateDashboardWidget(this);
+    });
+    saveDashboardState();
+    $('.edit-widget').click(function() {
+        el = $(this).closest('.grid-stack-item');
+        data = {
+            id: el.attr('id'),
+            config: JSON.parse(el.attr('config')),
+            widget: el.attr('widget'),
+            alias: el.attr('alias')
+        }
+        openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
+    });
+    $('.remove-widget').click(function() {
+        el = $(this).closest('.grid-stack-item');
+        grid.removeWidget(el);
+        saveDashboardState();
+    });
+}
+
+function setHomePage() {
+    $.ajax({
+        type: 'GET',
+        url: baseurl + '/userSettings/setHomePage',
+        success:function (data, textStatus) {
+            $('#ajax_hidden_container').html(data);
+            var currentPage = $('#setHomePage').data('current-page');
+            $('#UserSettingPath').val(currentPage);
+            $.ajax({
+                type: 'POST',
+                url: baseurl + '/userSettings/setHomePage',
+                data: $('#UserSettingSetHomePageForm').serialize(),
+                success:function (data, textStatus) {
+                    showMessage('success', 'Homepage set.');
+                    $('#setHomePage').addClass('orange');
+                },
+            });
+
+        }
+    });
+}
+
+function changeLocationFromIndexDblclick(row_index) {
+    var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
+    window.location = href;
+}

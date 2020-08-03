@@ -110,7 +110,17 @@ class EventTag extends AppModel
         return $eventIDs;
     }
 
-    public function attachTagToEvent($event_id, $tag_id)
+    public function handleEventTag($event_id, $tag, &$nothingToChange = false)
+    {
+        if (empty($tag['deleted'])) {
+            $result = $this->attachTagToEvent($event_id, $tag['id'], $nothingToChange);
+        } else {
+            $result = $this->detachTagFromEvent($event_id, $tag['id'], $nothingToChange);
+        }
+        return $result;
+    }
+
+    public function attachTagToEvent($event_id, $tag_id, &$nothingToChange = false)
     {
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
@@ -124,8 +134,31 @@ class EventTag extends AppModel
             if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag_id))) {
                 return false;
             }
+        } else {
+            $nothingToChange = true;
         }
         return true;
+    }
+
+    public function detachTagFromEvent($event_id, $tag_id, &$nothingToChange = false)
+    {
+        $existingAssociation = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'tag_id' => $tag_id,
+                'event_id' => $event_id
+            )
+        ));
+
+        if (!empty($existingAssociation)) {
+            $result = $this->delete($existingAssociation['EventTag']['id']);
+            if ($result) {
+                return true;
+            }
+        } else {
+            $nothingToChange = true;
+        }
+        return false;
     }
 
     public function getSortedTagList($context = false)

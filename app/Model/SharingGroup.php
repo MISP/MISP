@@ -54,6 +54,10 @@ class SharingGroup extends AppModel
     );
 
     private $__sgoCache = array();
+    private $__sgAuthorisationCache = array(
+        'save' => array(),
+        'access' => array()
+    );
 
 
     public function beforeValidate($options = array())
@@ -265,7 +269,7 @@ class SharingGroup extends AppModel
                     }
                 }
             }
-            if (isset($sg['SharingGroupServer'])) {
+            if (!empty($sg['SharingGroupServer'])) {
                 foreach ($sg['SharingGroupServer'] as $server) {
                     if (isset($server['Server'][0])) {
                         $server['Server'] = $server['Server'][0];
@@ -353,6 +357,9 @@ class SharingGroup extends AppModel
     // returns true if the SG exists and the user is allowed to see it
     public function checkIfAuthorised($user, $id, $adminCheck = true)
     {
+        if (isset($this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id])) {
+            return $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id];
+        }
         if (Validation::uuid($id)) {
             $sgid = $this->SharingGroup->find('first', array(
                 'conditions' => array('SharingGroup.uuid' => $id),
@@ -372,8 +379,10 @@ class SharingGroup extends AppModel
             return false;
         }
         if (($adminCheck && $user['Role']['perm_site_admin']) || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id'])) {
+            $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id] = true;
             return true;
         }
+        $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id] = false;
         return false;
     }
 
@@ -485,8 +494,9 @@ class SharingGroup extends AppModel
         return $results;
     }
 
-    public function captureSG($sg, $user)
+    public function captureSG($sg, $user, $syncLocal=false)
     {
+        $this->Log = ClassRegistry::init('Log');
         $existingSG = !isset($sg['uuid']) ? null : $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('SharingGroup.uuid' => $sg['uuid']),
@@ -501,6 +511,34 @@ class SharingGroup extends AppModel
             if (!$user['Role']['perm_sharing_group']) {
                 return false;
             }
+            // check if current user is contained in the SG and we are in a local sync setup
+            if (!empty($sg['uuid'])) {
+                if (isset($this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']])) {
+                    $authorisedToSave = $this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']];
+                } else {
+                    $authorisedToSave = $this->checkIfAuthorisedToSave($user, $sg);
+                    $this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']] = $authorisedToSave;
+                }
+            } else {
+                $authorisedToSave = $this->checkIfAuthorisedToSave($user, $sg);
+            }
+            if (!$user['Role']['perm_site_admin'] &&
+                !($user['Role']['perm_sync'] && $syncLocal ) &&
+                !$authorisedToSave
+            ) {
+                $this->Log->create();
+                $entry = array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'SharingGroup',
+                        'model_id' => $sg['SharingGroup']['uuid'],
+                        'email' => $user['email'],
+                        'action' => 'error',
+                        'user_id' => $user['id'],
+                        'title' => 'Tried to save a sharing group but the user does not belong to it.'
+                );
+                $this->Log->save($entry);
+                return false;
+            }
             $this->create();
             $newSG = array();
             $attributes = array(
@@ -511,7 +549,8 @@ class SharingGroup extends AppModel
                 'organisation_uuid' => array('default' => $user['Organisation']['uuid']),
                 'created' => array('default' => $date = date('Y-m-d H:i:s')),
                 'modified' => array('default' => $date = date('Y-m-d H:i:s')),
-                'active' => array('default' => 1)
+                'active' => array('default' => 1),
+                'roaming' => array('default' => false),
             );
             foreach (array_keys($attributes) as $a) {
                 if (isset($sg[$a])) {

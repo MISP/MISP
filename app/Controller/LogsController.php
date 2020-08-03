@@ -146,32 +146,18 @@ class LogsController extends AppController
     }
 
     // Shows a minimalistic history for the currently selected event
-    public function event_index($id, $org = null)
+    public function event_index($id)
     {
         // check if the user has access to this event...
         $mayModify = false;
-        $mineOrAdmin = false;
         $this->loadModel('Event');
-        if (!is_numeric($id) || $id < 1) {
-            $id = -1;
-        }
         $event = $this->Event->fetchEvent($this->Auth->user(), array(
             'eventid' => $id,
             'includeAllTags' => 1,
             'sgReferenceOnly' => 1,
-            'deleted' => 1,
+            'deleted' => [0, 1],
             'deleted_proposals' => 1
         ));
-        $conditions = array(
-            'OR' => array(
-                array(
-                    'AND' => array(
-                        'Log.model' => 'Event',
-                        'Log.model_id' => $id
-                    )
-                )
-            )
-        );
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
         }
@@ -179,8 +165,6 @@ class LogsController extends AppController
         $attribute_ids = array();
         $object_ids = array();
         $proposal_ids = array();
-        $event_tag_ids = array();
-        $attribute_tag_ids = array();
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $aa) {
                 $attribute_ids[] = $aa['id'];
@@ -349,21 +333,25 @@ class LogsController extends AppController
                 }
                 $this->set('list', $list);
 
-                // and store into session
-                $this->Session->write('paginate_conditions_log', $this->paginate);
-                $this->Session->write('paginate_conditions_log_email', $filters['email']);
-                $this->Session->write('paginate_conditions_log_org', $filters['org']);
-                $this->Session->write('paginate_conditions_log_action', $filters['action']);
-                $this->Session->write('paginate_conditions_log_model', $filters['model']);
-                $this->Session->write('paginate_conditions_log_model_id', $filters['model_id']);
-                $this->Session->write('paginate_conditions_log_title', $filters['title']);
-                $this->Session->write('paginate_conditions_log_change', $filters['change']);
-                if (Configure::read('MISP.log_client_ip')) {
-                    $this->Session->write('paginate_conditions_log_ip', $filters['ip']);
-                }
+                if ($this->_isRest()) {
+                    return $this->RestResponse->viewData($list, $this->response->type());
+                } else {
+                    // and store into session
+                    $this->Session->write('paginate_conditions_log', $this->paginate);
+                    $this->Session->write('paginate_conditions_log_email', $filters['email']);
+                    $this->Session->write('paginate_conditions_log_org', $filters['org']);
+                    $this->Session->write('paginate_conditions_log_action', $filters['action']);
+                    $this->Session->write('paginate_conditions_log_model', $filters['model']);
+                    $this->Session->write('paginate_conditions_log_model_id', $filters['model_id']);
+                    $this->Session->write('paginate_conditions_log_title', $filters['title']);
+                    $this->Session->write('paginate_conditions_log_change', $filters['change']);
+                    if (Configure::read('MISP.log_client_ip')) {
+                        $this->Session->write('paginate_conditions_log_ip', $filters['ip']);
+                    }
 
-                // set the same view as the index page
-                $this->render('admin_index');
+                    // set the same view as the index page
+                    $this->render('admin_index');
+                }
             } else {
                 // get from Session
                 $filters['email'] = $this->Session->read('paginate_conditions_log_email');
@@ -392,7 +380,7 @@ class LogsController extends AppController
 
                 // re-get pagination
                 $this->{$this->defaultModel}->recursive = 0;
-                $this->paginate = $this->Session->read('paginate_conditions_log');
+                $this->paginate = array_merge_recursive($this->Session->read('paginate_conditions_log'), $this->paginate);
                 if (!isset($this->paginate['order'])) {
                     $this->paginate['order'] = array('Log.id' => 'DESC');
                 }

@@ -191,6 +191,13 @@ div.actions {
   width:170px;
 }
 
+div.menuless-form {
+    padding: 10px;
+    padding-bottom:40px;
+    margin: 0 auto;
+    width:550px;
+}
+
 
 div.actions h3 {
   padding-top:0;
@@ -2514,4 +2521,23 @@ table tr:hover .down-expand-button {
     background-color: #3b3b3b;
     color: white;
     border-radius: 3px;
+}
+
+.widgetTitle {
+    font-weight: bold;
+    color: #0088cc;
+    width: 100%;
+    font-size: 125%;
+    margin:5px;
+}
+
+.grid-stack-item-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.widgetContent, .widgetContentInner, .widgetContentInner > div {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }

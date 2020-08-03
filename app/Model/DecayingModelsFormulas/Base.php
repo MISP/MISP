@@ -24,6 +24,12 @@ abstract class DecayingModelBase
             $pieces['predicate'] = $pieces[1];
             $pieces['2tag'] = sprintf('%s:%s', $pieces[0], $pieces[1]);
             $pieces['base'] = $pieces[0];
+        } else {
+            $pieces['complete'] = $tagName;
+            $pieces['namespace'] = '';
+            $pieces['predicate'] = '';
+            $pieces['2tag'] = '';
+            $pieces['base'] = $tagName;
         }
         return $pieces;
     }
@@ -130,15 +136,25 @@ abstract class DecayingModelBase
             $all_sightings = $this->Sighting->listSightings($user, $attribute['id'], 'attribute', false, 0, true);
             if (!empty($all_sightings)) {
                 $last_sighting_timestamp = $all_sightings[0]['Sighting']['date_sighting'];
+            } elseif (!is_null($attribute['last_seen'])) {
+                $last_sighting_timestamp = (new DateTime($attribute['last_seen']))->format('U');
             } else {
-                $last_sighting_timestamp = $attribute['timestamp']; // if no sighting, take the last update time
+                $last_sighting_timestamp = $attribute['timestamp']; // if no sighting nor valid last_seen, take the last update time
             }
         }
         if ($attribute['timestamp'] > $last_sighting_timestamp) { // The attribute was modified after the last sighting
-            $last_sighting_timestamp = $attribute['timestamp'];
+            if (!is_null($attribute['last_seen'])) {
+                $last_sighting_timestamp = (new DateTime($attribute['last_seen']))->format('U');
+            } else {
+                $last_sighting_timestamp = $attribute['timestamp'];
+            }
         }
         $timestamp = time();
-        return $this->computeScore($model, $attribute, $base_score, $timestamp - $last_sighting_timestamp);
+        $scores = array(
+            'score' => $this->computeScore($model, $attribute, $base_score, $timestamp - $last_sighting_timestamp),
+            'base_score' => $base_score
+        );
+        return $scores;
     }
 
     // Compute the score for the provided attribute according to the elapsed time with the provided model

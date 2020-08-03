@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for OpenBSD 6.5-amd64
+## for OpenBSD 6.7-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
@@ -85,29 +85,19 @@ doas pkg_add -v mariadb-server
 
 #### Install misc dependencies
 
-!!! notice
-    You need to install python 3.x when asked, option 2.
-    autoconf wants to be version 2.69, option 16
-    automake wants to be version 1.16, option 7
-
 ```bash
-doas pkg_add -v curl git python redis libmagic autoconf automake libtool unzip
+doas pkg_add -v curl git python--%3.7 redis libmagic autoconf--%2.69 automake--%1.16 libtool unzip--iconv
 ```
 
-!!! notice
-    GnuPG 2.x is best, option 3.
-
 ```bash
-doas pkg_add -v gnupg
+doas pkg_add -v gnupg--%gnupg2
 doas ln -s /usr/local/bin/gpg2 /usr/local/bin/gpg
 ```
 
 #### Install postfix (optional)
-!!! notice
-    When asked, the standard postfix will be enough for a basic setup, option 9.
 
 ```bash
-doas pkg_add -v postfix
+doas pkg_add -v postfix--%stable
 doas /usr/local/sbin/postfix-enable 
 ```
 
@@ -146,21 +136,17 @@ doas cp /etc/examples/httpd.conf /etc # adjust by hand, or copy/paste the config
 ```
 
 ```
-# $OpenBSD: httpd.conf,v 1.18 2018/03/23 11:36:41 florian Exp $
+# $OpenBSD: httpd.conf,v 1.20 2018/06/13 15:08:24 reyk Exp $
 
 #
 # Macros
 #
-ext4_addr="*"
-ext6_addr="::"
+ext_addr="*"
 
 server "default" {
         #listen on $ext4_addr port 80 block return 301 "https://$SERVER_NAME$REQUEST_URI"
-        listen on $ext4_addr port 80
-        listen on $ext4_addr tls port 443
-        #listen on $ext6_addr port 80 block return 301 "https://$SERVER_NAME$REQUEST_URI"
-        listen on $ext6_addr port 80
-        listen on $ext6_addr tls port 443
+        listen on $ext_addr port 80
+        listen on $ext_addr tls port 443
 
         root "/htdocs/MISP/app/webroot"
 
@@ -242,11 +228,11 @@ doas rcctl enable httpd
 
 #### Install Python virtualenv
 ```bash
-doas ln -sf /usr/local/bin/pip3.6 /usr/local/bin/pip
-doas ln -s /usr/local/bin/python3.6 /usr/local/bin/python
-doas pkg_add -v py-virtualenv
+doas pkg_add -v py3-virtualenv py3-pip
+doas ln -sf /usr/local/bin/pip3.7 /usr/local/bin/pip
+doas ln -s /usr/local/bin/python3.7 /usr/local/bin/python
 doas mkdir /usr/local/virtualenvs
-doas virtualenv -ppython3 /usr/local/virtualenvs/MISP
+doas virtualenv-3 /usr/local/virtualenvs/MISP
 ```
 
 #### Install ssdeep
@@ -264,44 +250,42 @@ doas pkg_add -v fcgi-cgi fcgi
 !!! notice
     php-5.6 is marked as end-of-life starting December 2018, use php 7.0 instead.
     Option 2.
-    If on OpenBSD 6.3, upgrade to 6.5 to make your life much easier.
+    If on OpenBSD 6.3, upgrade to 6.7 to make your life much easier.
 
 ```
-doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl73-redis php-gd
+doas pkg_add -v php-mysqli--%7.4 php-pcntl--%7.4 php-pdo_mysql--%7.4 php-apache--%7.4 pecl74-redis php-gd--%7.4
 ```
 
-#### /etc/php-7.3.ini 
+#### /etc/php-7.4.ini 
 ```
-## TODO: sed foo as .ini exists
-allow_url_fopen = On
+doas sed -i "s/^allow_url_fopen = Off/allow_url_fopen = On/g" /etc/php-7.4.ini
 ```
 
 ```bash
-cd /etc/php-7.3
-doas cp ../php-7.3.sample/* .
+cd /etc/php-7.4
+doas cp ../php-7.4.sample/* .
 ```
 
 #### php symlinks
 ```bash
-doas ln -s /usr/local/bin/php-7.3 /usr/local/bin/php
-doas ln -s /usr/local/bin/phpize-7.3 /usr/local/bin/phpize
-doas ln -s /usr/local/bin/php-config-7.3 /usr/local/bin/php-config
+doas ln -s /usr/local/bin/php-7.4 /usr/local/bin/php
+doas ln -s /usr/local/bin/phpize-7.4 /usr/local/bin/phpize
+doas ln -s /usr/local/bin/php-config-7.4 /usr/local/bin/php-config
 ```
 
 #### Enable php fpm 
 ```bash
-doas rcctl enable php73_fpm
+doas rcctl enable php74_fpm
 ```
 
 #### Configure fpm
 ```
 doas vi /etc/php-fpm.conf
 
-# pid = /var/www/run/php-fpm.pid
-# error_log = /var/www/logs/php-fpm.log
+doas sed -i "s/^;pid = run\/php-fpm.pid/pid = \/var\/www\/run\/php-fpm.pid/g" /etc/php-fpm.conf
+doas sed -i "s/^;error_log = log\/php-fpm.log/error_log = \/var\/www\/logs\/php-fpm.log/g" /etc/php-fpm.conf
 
-doas mkdir /etc/php-fpm.d
-doas vi /etc/php-fpm.d/default.conf
+doas mkdir -p /etc/php-fpm.d
 echo ";;;;;;;;;;;;;;;;;;;;
 ; Pool Definitions ;
 ;;;;;;;;;;;;;;;;;;;;
@@ -320,7 +304,7 @@ pm.min_spare_servers = 1
 pm.max_spare_servers = 3
 chroot = /var/www" | doas tee /etc/php-fpm.d/default.conf
 
-doas /etc/rc.d/php73_fpm start 
+doas /etc/rc.d/php74_fpm start 
 ```
 
 !!! notice
@@ -339,6 +323,7 @@ doas /usr/local/bin/mysql_install_db
 doas rcctl set mysqld status on
 doas rcctl set mysqld flags --bind-address=127.0.0.1
 doas /etc/rc.d/mysqld start
+echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
 doas mysql_secure_installation
 ```
 
@@ -349,22 +334,22 @@ doas mysql_secure_installation
 doas mkdir /var/www/htdocs/MISP
 doas chown www:www /var/www/htdocs/MISP
 cd /var/www/htdocs/MISP
-doas -u www git clone https://github.com/MISP/MISP.git /var/www/htdocs/MISP
-doas -u www git submodule update --init --recursive
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MISP/MISP.git /var/www/htdocs/MISP; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git submodule update --progress --init --recursive; done
 # Make git ignore filesystem permission differences for submodules
-doas -u www git submodule foreach --recursive git config core.filemode false
+${SUDO_WWW} git submodule foreach --recursive git config core.filemode false
 
 # Make git ignore filesystem permission differences
-doas -u www git config core.filemode false
+${SUDO_WWW} git config core.filemode false
 
-doas pkg_add py-pip py3-pip libxml libxslt py3-jsonschema
+doas pkg_add -v py3-pip libxml libxslt py3-jsonschema
 doas /usr/local/virtualenvs/MISP/bin/pip install -U pip
 
 cd /var/www/htdocs/MISP/app/files/scripts
-doas -u www git clone https://github.com/CybOXProject/mixbox.git
-doas -u www git clone https://github.com/CybOXProject/python-cybox.git
-doas -u www git clone https://github.com/STIXProject/python-stix.git
-doas -u www git clone https://github.com/MAECProject/python-maec.git
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git; done
+false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git; done
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-cybox
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
@@ -383,9 +368,6 @@ doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 cd /var/www/htdocs/MISP/PyMISP
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# FIXME: Remove once stix-fixed
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
-
 # install support for STIX 2.0
 cd /var/www/htdocs/MISP/cti-python-stix2
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
@@ -402,15 +384,10 @@ doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
 doas mkdir /var/www/.composer ; doas chown www:www /var/www/.composer
-EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
-doas -u www php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-doas -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-doas -u www env HOME=/var/www php composer-setup.php
-doas -u www php -r "unlink('composer-setup.php');"
-doas -u www env HOME=/var/www php composer.phar install
+${SUDO_WWW} env HOME=/var/www php composer.phar install
 
 # To use the scheduler worker for scheduled tasks, do the following:
-doas -u www cp -f /var/www/htdocs/MISP/INSTALL/setup/config.php /var/www/htdocs/MISP/app/Plugin/CakeResque/Config/config.php
+${SUDO_WWW} cp -f /var/www/htdocs/MISP/INSTALL/setup/config.php /var/www/htdocs/MISP/app/Plugin/CakeResque/Config/config.php
 ```
 
 ### 4/ Set the permissions
@@ -432,8 +409,11 @@ doas mysql -u root -p
 ```
 
 ```
+echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
+echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
+
 MariaDB [(none)]> create database misp;
-MariaDB [(none)]> grant usage on *.* to misp@localhost identified by 'XXXXdbpasswordhereXXXXX';
+MariaDB [(none)]> grant usage on *.* to misp@localhost identified by '${DBPASSWORD_MISP}';
 MariaDB [(none)]> grant all privileges on misp.* to misp@localhost;
 MariaDB [(none)]> flush privileges;
 MariaDB [(none)]> exit
@@ -441,7 +421,7 @@ MariaDB [(none)]> exit
 
 ```bash
 # Import the empty MISP database from MYSQL.sql
-doas -u www sh -c "mysql -u misp -p misp < /var/www/htdocs/MISP/INSTALL/MYSQL.sql"
+${SUDO_WWW} sh -c "mysql -u misp -p${DBPASSWORD_MISP} misp < /var/www/htdocs/MISP/INSTALL/MYSQL.sql"
 # enter the password you set previously
 ```
 
@@ -528,7 +508,7 @@ DirectoryIndex index.php
 ```
 
 ```bash
-doas ln -sf /var/www/conf/modules.sample/php-7.3.conf /var/www/conf/modules/php.conf
+doas ln -sf /var/www/conf/modules.sample/php-7.4.conf /var/www/conf/modules/php.conf
 # Restart apache
 doas /etc/rc.d/apache2 restart
 ``` 
@@ -542,13 +522,13 @@ doas /etc/rc.d/apache2 restart
 ---------------------
 ``` 
 # There are 4 sample configuration files in /var/www/htdocs/MISP/app/Config that need to be copied
-doas -u www cp /var/www/htdocs/MISP/app/Config/bootstrap.default.php /var/www/htdocs/MISP/app/Config/bootstrap.php
-doas -u www cp /var/www/htdocs/MISP/app/Config/database.default.php /var/www/htdocs/MISP/app/Config/database.php
-doas -u www cp /var/www/htdocs/MISP/app/Config/core.default.php /var/www/htdocs/MISP/app/Config/core.php
-doas -u www cp /var/www/htdocs/MISP/app/Config/config.default.php /var/www/htdocs/MISP/app/Config/config.php
+${SUDO_WWW} cp /var/www/htdocs/MISP/app/Config/bootstrap.default.php /var/www/htdocs/MISP/app/Config/bootstrap.php
+${SUDO_WWW} cp /var/www/htdocs/MISP/app/Config/database.default.php /var/www/htdocs/MISP/app/Config/database.php
+${SUDO_WWW} cp /var/www/htdocs/MISP/app/Config/core.default.php /var/www/htdocs/MISP/app/Config/core.php
+${SUDO_WWW} cp /var/www/htdocs/MISP/app/Config/config.default.php /var/www/htdocs/MISP/app/Config/config.php
 
 # Configure the fields in the newly created files:
-doas -u www vi /var/www/htdocs/MISP/app/Config/database.php
+${SUDO_WWW} vi /var/www/htdocs/MISP/app/Config/database.php
 ``` 
 ``` 
 # DATABASE_CONFIG has to be filled
@@ -577,7 +557,7 @@ doas -u www vi /var/www/htdocs/MISP/app/Config/database.php
 
 ``` 
 # Change base url in config.php
-doas -u www vi /var/www/htdocs/MISP/app/Config/config.php
+${SUDO_WWW} vi /var/www/htdocs/MISP/app/Config/config.php
 # example: 'baseurl' => 'https://<your.FQDN.here>',
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
 # 'baseurl' => '',
@@ -604,7 +584,7 @@ echo "%echo Generating a default key
     # Do a commit here, so that we can later print "done"
     %commit
 %echo done" > /tmp/gen-key-script
-doas -u www mkdir /var/www/htdocs/MISP/.gnupg
+${SUDO_WWW} mkdir /var/www/htdocs/MISP/.gnupg
 doas chmod 700 /var/www/htdocs/MISP/.gnupg
 doas gpg2 --homedir /var/www/htdocs/MISP/.gnupg --batch --gen-key /tmp/gen-key-script
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
@@ -616,7 +596,7 @@ doas sh -c "gpg2 --homedir /var/www/htdocs/MISP/.gnupg --export --armor $GPG_EMA
 doas chmod +x /var/www/htdocs/MISP/app/Console/worker/start.sh
 doas vi /etc/rc.local
 # Add the following line before the last line (exit 0). Make sure that you replace www with your apache user:
-doas -u www bash /var/www/htdocs/MISP/app/Console/worker/start.sh
+${SUDO_WWW} bash /var/www/htdocs/MISP/app/Console/worker/start.sh
 ``` 
 
 {!generic/INSTALL.done.md!}
@@ -626,7 +606,9 @@ doas -u www bash /var/www/htdocs/MISP/app/Console/worker/start.sh
 #### MISP Modules
 ```
 doas pkg_add -v jpeg yara
+mkdir -p /usr/local/src/
 cd /usr/local/src/
+doas chown ${MISP_USER} /usr/local/src
 doas -u misp git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip3 install
@@ -636,8 +618,8 @@ doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/VirusTot
 doas /usr/local/virtualenvs/MISP/bin/pip install wand
 ##doas gem install pygments.rb
 ##doas gem install asciidoctor-pdf --pre
-doas -u www /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &
-echo "doas -u www /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &" |doas tee -a /etc/rc.local
+${SUDO_WWW} /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &
+echo "${SUDO_WWW} /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &" |doas tee -a /etc/rc.local
 ```
 
 !!! notice
@@ -655,7 +637,11 @@ echo "doas -u www /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &" 
 
 ```bash
 doas $CAKE Live $MISP_LIVE
-AUTH_KEY=$(mysql -u misp -p misp -e "SELECT authkey FROM users;" | tail -1)
+AUTH_KEY=$(mysql -u misp -p${DBPASSWORD_MISP} misp -e "SELECT authkey FROM users;" | tail -1)
+$CAKE userInit -q
+$CAKE Admin runUpdates
+$CAKE Admin setSetting "MISP.python_bin" "/usr/local/virtualenvs/MISP/bin/python"
+
 # Update the galaxies…
 doas $CAKE Admin updateGalaxies
 
@@ -666,12 +652,10 @@ doas $CAKE Admin updateTaxonomies
 doas $CAKE Admin updateWarningLists
 
 # Updating the notice lists…
-## doas $CAKE Admin updateNoticeLists
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
+doas $CAKE Admin updateNoticeLists
 
 # Updating the object templates…
-##doas $CAKE Admin updateObjectTemplates
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
+doas $CAKE Admin updateObjectTemplates "1337"
 
 # Tune global time outs
 doas $CAKE Admin setSetting "Session.autoRegenerate" 0
@@ -680,7 +664,7 @@ doas $CAKE Admin setSetting "Session.cookie_timeout" 3600
 
 # Enable GnuPG
 doas $CAKE Admin setSetting "GnuPG.email" "admin@admin.test"
-doas $CAKE Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
+doas $CAKE Admin setSetting "GnuPG.homedir" "${PATH_TO_MISP}/.gnupg"
 doas $CAKE Admin setSetting "GnuPG.password" "Password1234"
 
 # Enable Enrichment set better timeouts
@@ -855,7 +839,7 @@ doas /usr/local/virtualenvs/MISP/bin/pip install pyzmq
 cd /var/www
 doas mkdir misp-dashboard
 doas chown www:www misp-dashboard
-doas -u www git clone https://github.com/MISP/misp-dashboard.git
+${SUDO_WWW} git clone https://github.com/MISP/misp-dashboard.git
 cd misp-dashboard
 #/!\ Made on Linux, the next script will fail
 #doas /var/www/misp-dashboard/install_dependencies.sh
@@ -863,7 +847,7 @@ doas virtualenv -ppython3 /usr/local/virtualenvs/DASHENV
 doas /usr/local/virtualenvs/DASHENV/bin/pip install -U pip argparse redis zmq geoip2 flask phonenumbers pycountry
 
 doas sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
-doas sed -i -e '$i \doas -u www bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
+doas sed -i -e '$i \${SUDO_WWW} bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
 #/!\ Add port 8001 as a listener
 #doas sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf
 doas pkg_add -v ap2-mod_wsgi
@@ -909,7 +893,7 @@ echo "<VirtualHost *:8001>
 doas ln -s /etc/apache2/sites-available/misp-dashboard.conf /etc/apache2/sites-enabled/misp-dashboard.conf
 ```
 
-Add this to /etc/httpd2.conf
+Add this to /etc/httpd.conf
 ```
 LoadModule wsgi_module /usr/local/lib/apache2/mod_wsgi.so
 Listen 8001

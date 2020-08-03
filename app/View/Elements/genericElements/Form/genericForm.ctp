@@ -6,7 +6,8 @@
      * - model: The model used to create the form (such as Attribute, Event)
      * - fields: an array with each element generating an input field
      *     - field is the actual field name (such as org_id, name, etc) which is required
-     *     - optional fields: default, type, options, placeholder, label - these are passed directly to $this->Form->input()
+     *     - optional fields: default, type, options, placeholder, label - these are passed directly to $this->Form->input(),
+     *     - requirements: boolean, if false is passed the field is skipped
      * - metafields: fields that are outside of the scope of the form itself
            - use these to define dynamic form fields, or anything that will feed into the regular fields via JS population
      * - submit: The submit button itself. By default it will simply submit to the form as defined via the 'model' field
@@ -16,12 +17,15 @@
         h($data['model']);
     $fieldsString = '';
     $simpleFieldWhitelist = array(
-        'default', 'type', 'options', 'placeholder', 'label', 'empty'
+        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required'
     );
     $fieldsArrayForPersistence = array();
     $formCreate = $this->Form->create($modelForForm);
     if (!empty($data['fields'])) {
         foreach ($data['fields'] as $fieldData) {
+            if (isset($fieldData['requirements']) && !$fieldData['requirements']) {
+                continue;
+            }
             if (is_array($fieldData)) {
                 if (empty($fieldData['label'])) {
                     $fieldData['label'] = Inflector::humanize($fieldData['field']);
@@ -96,7 +100,8 @@
             sprintf(
                 '<div class="modal-body modal-body-long">%s</div>',
                 sprintf(
-                    '%s<fieldset>%s%s</fieldset>%s%s',
+                    '%s%s<fieldset>%s%s</fieldset>%s%s',
+                    empty($data['description']) ? '' : $data['description'],
                     $formCreate,
                     $ajaxFlashMessage,
                     $fieldsString,
@@ -111,10 +116,12 @@
         );
     } else {
         echo sprintf(
-            '<div class="form">%s<fieldset><legend>%s</legend>%s%s</fieldset>%s%s%s</div>',
+            '<div class="%s">%s<fieldset><legend>%s</legend>%s<div class="clear" style="padding-bottom:10px;">%s</div>%s</fieldset>%s%s%s</div>',
+            empty($data['skip_side_menu']) ? 'form' : 'menuless-form',
             $formCreate,
             empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title']),
             $ajaxFlashMessage,
+            empty($data['description']) ? '' : $data['description'],
             $fieldsString,
             $formEnd,
             $metaFieldString,

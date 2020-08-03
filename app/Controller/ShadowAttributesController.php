@@ -290,11 +290,6 @@ class ShadowAttributesController extends AppController
         } else {
             $this->set('ajax', false);
         }
-        if (empty($eventId)) {
-            if (empty($event)) {
-                throw new NotFoundException(__('Invalid Event'));
-            }
-        }
         $event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
@@ -456,15 +451,16 @@ class ShadowAttributesController extends AppController
         // combobox for categories
         $categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
-        $this->set('categories', compact('categories'));
-        foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
-            $info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+        $this->set('categories', $categories);
+
+        $fieldDesc = ['category' => [], 'type' => []];
+        foreach ($this->ShadowAttribute->categoryDefinitions as $key => $value) {
+            $fieldDesc['category'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
-        foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
-            $info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+        foreach ($this->ShadowAttribute->typeDefinitions as $key => $value) {
+            $fieldDesc['type'][$key] = isset($value['formdesc']) ? $value['formdesc'] : $value['desc'];
         }
-        $this->set('info', $info);
-        $this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
+        $this->set('fieldDesc', $fieldDesc);
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
     }
 
@@ -803,20 +799,18 @@ class ShadowAttributesController extends AppController
 
     public function delete($id)
     {
-        if (strlen($id) == 36) {
-            $this->ShadowAttribute->Event->recursive = -1;
-            $temp = $this->ShadowAttribute->Event->Attribute->find('first', array('recursive' => -1, 'conditions' => array('Attribute.uuid' => $id), 'fields' => array('id')));
-            if ($temp == null) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $id = $temp['Attribute']['id'];
+        if (is_numeric($id)) {
+            $conditions = ['Attribute.id' => $id];
+        } else if (Validation::uuid($id)) {
+            $conditions = ['Attribute.uuid' => $id];
+        } else {
+            throw new NotFoundException(__('Invalid attribute'));
         }
 
-        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
-        if (empty($existingAttribute)) {
-            throw new NotFoundException(__('Invalid attribute.'));
-        }
-
+        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes(
+            $this->Auth->user(),
+            array('conditions' => $conditions, 'flatten' => true)
+        );
         if ($this->request->is('post')) {
             if (empty($existingAttribute)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid Attribute.')), 'status'=>200, 'type' => 'json'));
@@ -850,7 +844,7 @@ class ShadowAttributesController extends AppController
             }
         } else {
             if (empty($existingAttribute)) {
-                throw new NotFoundException(__('Invalid Attribute'));
+                throw new NotFoundException(__('Invalid attribute'));
             }
             $existingAttribute = $existingAttribute[0];
             $this->set('id', $id);
@@ -950,7 +944,7 @@ class ShadowAttributesController extends AppController
             'contain' => array(
                     'Event' => array(
                             'fields' => array('id', 'org_id', 'info', 'orgc_id', 'uuid'),
-                            'Orgc' => array('fields' => array('Orgc.name'))
+                            'Orgc' => array('fields' => array('Orgc.name', 'Orgc.id', 'Orgc.uuid'))
                     ),
                     'Org' => array(
                         'fields' => array('name', 'uuid'),
@@ -1000,154 +994,6 @@ class ShadowAttributesController extends AppController
             }
             $this->set('shadowAttributes', $results);
             $this->set('all', $all);
-        }
-    }
-
-    // takes a uuid and finds all proposals that belong to an event with the given uuid. These are then returned.
-    public function getProposalsByUuid($uuid)
-    {
-        if (!$this->_isRest() || !$this->userRole['perm_sync']) {
-            throw new MethodNotAllowedException(__('This feature is only available using the API to Sync users'));
-        }
-        if (strlen($uuid) != 36) {
-            throw new NotFoundException(__('Invalid UUID'));
-        }
-        $temp = $this->ShadowAttribute->find('all', array(
-                'conditions' => array('event_uuid' => $uuid),
-                'recursive' => -1,
-                'contain' => array(
-                    'Org' => array('fields' => array('uuid', 'name')),
-                    'EventOrg' => array('fields' => array('uuid', 'name')),
-                )
-        ));
-        foreach ($temp as $key => $t) {
-            if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
-                $temp[$key]['ShadowAttribute']['data'] = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
-            }
-        }
-        if ($temp == null) {
-            $this->response->statusCode(404);
-            $this->set('name', 'No proposals found.');
-            $this->set('message', 'No proposals found');
-            $this->set('errors', 'No proposals found');
-            $this->set('url', '/shadow_attributes/getProposalsByUuid/' . $uuid);
-            $this->set('_serialize', array('name', 'message', 'url', 'errors'));
-            $this->response->send();
-            return false;
-        } else {
-            $this->set('proposal', $temp);
-            $this->render('get_proposals_by_uuid');
-        }
-    }
-
-    // deprecated function, returns empty array - proposal sync on more modern versions (>=2.4.111) happens via the shadow_attributes/index endpoint
-    public function getProposalsByUuidList()
-    {
-        return $this->RestResponse->viewData(array());
-    }
-
-    public function fetchEditForm($id, $field = null)
-    {
-        $validFields = array('value', 'comment', 'type', 'category', 'to_ids');
-        if (!isset($field) || !in_array($field, $validFields)) {
-            throw new MethodNotAllowedException(__('Invalid field requested.'));
-        }
-        $this->loadModel('Attribute');
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            throw new NotFoundException(__('Invalid attribute'));
-        }
-
-        $fields = array('id', 'distribution', 'event_id');
-        if ($field == 'category' || $field == 'type') {
-            $fields[] = 'type';
-            $fields[] = 'category';
-        } else {
-            $fields[] = $field;
-        }
-        $attribute = $this->Attribute->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Attribute.id' => $id),
-                'fields' => $fields,
-                'contain' => array(
-                        'Event' => array(
-                                'fields' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id'),
-                        )
-                )
-        ));
-        if (!$this->_isSiteAdmin()) {
-            if ($attribute['Event']['orgc_id'] != $this->Auth->user('org_id') && ($attribute['Event']['org_id'] == $this->Auth->user('org_id') || $attribute['Event']['distribution'] > 0)) {
-                // Allow the edit
-            } else {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-        }
-        $this->layout = 'ajax';
-        if ($field == 'distribution') {
-            $this->set('distributionLevels', $this->Attribute->distributionLevels);
-        }
-        if ($field == 'category') {
-            $typeCategory = array();
-            foreach ($this->Attribute->categoryDefinitions as $k => $category) {
-                foreach ($category['types'] as $type) {
-                    $typeCategory[$type][] = $k;
-                }
-            }
-            $this->set('typeCategory', $typeCategory);
-        }
-        if ($field == 'type') {
-            $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        }
-        $this->set('object', $attribute['Attribute']);
-        $fieldURL = ucfirst($field);
-        $this->render('ajax/attributeEdit' . $fieldURL . 'Form');
-    }
-
-    // ajax edit - post a single edited field and this method will attempt to create a proposal and return a json with the validation errors if they occur.
-    public function editField($id)
-    {
-        if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('Attribute');
-        $this->Attribute->id = $id;
-        if (!$this->Attribute->exists()) {
-            throw new NotFoundException(__('Invalid attribute'));
-        }
-        $this->Attribute->recursive = -1;
-        $this->Attribute->contain('Event');
-        $attribute = $this->Attribute->read();
-
-        if (!$this->_isSiteAdmin()) {
-            if ($attribute['Event']['orgc_id'] != $this->Auth->user('org_id') && ($attribute['Event']['org_id'] == $this->Auth->user('org_id') || $attribute['Event']['distribution'] > 0)) {
-                // Allow the edit
-            } else {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-        }
-
-        $keys = array_flip(array('uuid', 'event_id', 'value', 'type', 'category', 'to_ids', 'first_seen', 'last_seen'));
-
-        $proposal = array_intersect_key($attribute['Attribute'], $keys);
-        $proposal['email'] = $this->Auth->user('email');
-        $proposal['org_id'] = $this->Auth->user('org_id');
-        $proposal['event_uuid'] = $attribute['Event']['uuid'];
-        $proposal['event_org_id'] = $attribute['Event']['orgc_id'];
-        $proposal['old_id'] = $attribute['Attribute']['id'];
-        foreach ($this->request->data['ShadowAttribute'] as $changedKey => $changedField) {
-            if ($proposal[$changedKey] == $changedField) {
-                $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode('nochange'), 'status'=>200, 'type' => 'json'));
-            }
-            $proposal[$changedKey] = $changedField;
-        }
-
-        if ($this->ShadowAttribute->save($proposal)) {
-            $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status'=>200, 'type' => 'json'));
-        } else {
-            $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => $this->ShadowAttribute->validationErrors)), 'status'=>200, 'type' => 'json'));
         }
     }
 

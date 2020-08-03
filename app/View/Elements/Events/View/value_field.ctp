@@ -69,9 +69,25 @@ switch ($object['type']) {
         echo '<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="icon-repeat hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
         break;
 
+    /** @noinspection PhpMissingBreakStatementInspection */
+    case 'domain':
+        if (strpos($sigDisplay, 'xn--') !== false && function_exists('idn_to_utf8')) {
+            echo '<span title="' . h(idn_to_utf8($sigDisplay)) . '">' . h($sigDisplay) . '</span>';
+            break;
+        }
+
     default:
         if (strpos($object['type'], '|') !== false) {
-            $separator = in_array($object['type'], array('ip-dst|port', 'ip-src|port')) ? ':' : '<br />';
+            if (in_array($object['type'], array('ip-dst|port', 'ip-src|port'))) {
+                if (substr_count($object['value'], ':') >= 2) {
+                    $object['value'] = '[' . $object['value']; // prepend `[` for a nicer display
+                    $separator = ']:';
+                } else {
+                    $separator = ':';
+                }
+            } else {
+                $separator = '<br />';
+            }
             $valuePieces = explode('|', $object['value']);
             foreach ($valuePieces as $k => $v) {
                 $valuePieces[$k] = h($v);

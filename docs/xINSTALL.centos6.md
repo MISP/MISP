@@ -129,62 +129,62 @@ sudo service redis start
 ------------
 ```bash
 # Download MISP using git in the /var/www/ directory.
-sudo mkdir $PATH_TO_MISP
-sudo chown apache:apache $PATH_TO_MISP
+sudo mkdir ${PATH_TO_MISP}
+sudo chown apache:apache ${PATH_TO_MISP}
 cd /var/www
-$SUDO_WWW git clone https://github.com/MISP/MISP.git
-cd $PATH_TO_MISP
-##$SUDO_WWW git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+${SUDO_WWW} git clone https://github.com/MISP/MISP.git
+cd ${PATH_TO_MISP}
+##${SUDO_WWW} git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
 # example: git checkout tags/v2.4.XY
 # the message regarding a "detached HEAD state" is expected behaviour
 # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
 # Fetch submodules
-$SUDO_WWW git submodule update --init --recursive
+${SUDO_WWW} git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
-$SUDO_WWW git submodule foreach --recursive git config core.filemode false
+${SUDO_WWW} git submodule foreach --recursive git config core.filemode false
 
 # Create a python3 virtualenv
-$SUDO_WWW $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
+${SUDO_WWW} $RUN_PYTHON "virtualenv -p python3 ${PATH_TO_MISP}/venv"
 sudo mkdir /var/www/.cache
 sudo chown apache:apache /var/www/.cache
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U pip setuptools
 
 # install Mitre's STIX and its dependencies by running the following commands:
 sudo yum install python-importlib python-lxml python-dateutil python-six -y
-cd $PATH_TO_MISP/app/files/scripts
-$SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-$SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-cd $PATH_TO_MISP/app/files/scripts/python-cybox
+cd ${PATH_TO_MISP}/app/files/scripts
+${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git
+${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git
+cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
 # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
-cd $PATH_TO_MISP/app/files/scripts/python-stix
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+cd ${PATH_TO_MISP}/app/files/scripts/python-stix
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install maec
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U maec
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U maec
 
 # install zmq
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U zmq
 
 # install redis
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U redis
 
 # lief needs manual compilation
 sudo yum install devtoolset-7 cmake3 -y
 
 sudo yum install http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
 sudo yum install git -y
-cd $PATH_TO_MISP/app/files/scripts
-$SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
+cd ${PATH_TO_MISP}/app/files/scripts
+${SUDO_WWW} git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
 
 # TODO: Fix static path with PATH_TO_MISP
-cd $PATH_TO_MISP/app/files/scripts/lief
-$SUDO_WWW mkdir build
+cd ${PATH_TO_MISP}/app/files/scripts/lief
+${SUDO_WWW} mkdir build
 cd build
-$SUDO_WWW scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
+${SUDO_WWW} scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
 -DLIEF_PYTHON_API=on \
 -DLIEF_DOC=off \
 -DCMAKE_INSTALL_PREFIX=$LIEF_INSTALL \
@@ -192,33 +192,49 @@ $SUDO_WWW scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
 -DPYTHON_VERSION=3.6 \
 -DPYTHON_EXECUTABLE=/var/www/MISP/venv/bin/python \
 .."'
-$SUDO_WWW make -j3
+${SUDO_WWW} make -j3
 sudo make install
 cd api/python/lief_pybind11-prefix/src/lief_pybind11
-$SUDO_WWW $PATH_TO_MISP/venv/bin/python setup.py install
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/python setup.py install
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install lief
 
 # install magic, pydeep
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U python-magic
 ## pydeep does not compile ):
 ## git+https://github.com/kbandla/pydeep.git
 
 # install mixbox to accommodate the new STIX dependencies:
-cd $PATH_TO_MISP/app/files/scripts/
-$SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
-cd $PATH_TO_MISP/app/files/scripts/mixbox
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-# FIXME: Remove once stix-fixed
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
+cd ${PATH_TO_MISP}/app/files/scripts/
+${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git
+cd ${PATH_TO_MISP}/app/files/scripts/mixbox
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install STIX2.0 library to support STIX 2.0 export:
-cd $PATH_TO_MISP/cti-python-stix2
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+cd ${PATH_TO_MISP}/cti-python-stix2
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
-cd $PATH_TO_MISP/PyMISP
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+cd ${PATH_TO_MISP}/PyMISP
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
+
+# FIXME: Remove libfaup etc once the egg has the library baked-in
+# BROKEN: This needs to be tested on RHEL/CentOS
+##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+cd /tmp
+[[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+[[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+cd gtcaca
+$SUDO_CMD mkdir -p build
+cd build
+$SUDO_CMD cmake .. && $SUDO_CMD make
+sudo make install
+cd ../../faup
+$SUDO_CMD mkdir -p build
+cd build
+$SUDO_CMD cmake .. && $SUDO_CMD make
+sudo make install
+sudo ldconfig
 
 # Enable python3 for php-fpm
 echo 'source scl_source enable rh-python36' | sudo tee -a /etc/opt/rh/rh-php70/sysconfig/php-fpm
@@ -238,17 +254,17 @@ sudo service rh-php70-php-fpm restart
 #### CakePHP is now included as a submodule of MISP and has been fetch by a previous step.
 #### Install CakeResque along with its dependencies if you intend to use the built in background jobs.
 ```bash
-sudo chown -R apache:apache $PATH_TO_MISP
+sudo chown -R apache:apache ${PATH_TO_MISP}
 sudo mkdir /var/www/.composer/
 sudo chown apache:apache /var/www/.composer/
-cd $PATH_TO_MISP/app
+cd ${PATH_TO_MISP}/app
 # Update composer.phar (optional)
 #EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
-#$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-#$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-#$SUDO_WWW $RUN_PHP "php composer-setup.php"
-#$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
-$SUDO_WWW $RUN_PHP "php composer.phar install"
+#${SUDO_WWW} $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+#${SUDO_WWW} $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+#${SUDO_WWW} $RUN_PHP "php composer-setup.php"
+#${SUDO_WWW} $RUN_PHP -- php -r "unlink('composer-setup.php');"
+${SUDO_WWW} $RUN_PHP "php composer.phar install"
 
 sudo yum install php-redis -y
 sudo service rh-php70-php-fpm restart
@@ -268,30 +284,30 @@ do
 done
 sudo service rh-php70-php-fpm restart
 # To use the scheduler worker for scheduled tasks, do the following:
-sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
+sudo cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 ```
 
 ### 5/ Set the permissions
 ----------------------
 ```bash
 # Make sure the permissions are set correctly using the following commands as root:
-sudo chown -R apache:apache $PATH_TO_MISP
-sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
-sudo chmod -R g+r,o= $PATH_TO_MISP
-sudo chmod -R 750 $PATH_TO_MISP
-sudo chmod -R g+xws $PATH_TO_MISP/app/tmp
-sudo chmod -R g+ws $PATH_TO_MISP/app/files
-sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
-sudo chmod -R g+rw $PATH_TO_MISP/venv
-sudo chmod -R g+rw $PATH_TO_MISP/.git
-sudo chown apache:apache $PATH_TO_MISP/app/files
-sudo chown apache:apache $PATH_TO_MISP/app/files/terms
-sudo chown apache:apache $PATH_TO_MISP/app/files/scripts/tmp
-sudo chown apache:apache $PATH_TO_MISP/app/Plugin/CakeResque/tmp
-sudo chown -R apache:apache $PATH_TO_MISP/app/Config
-sudo chown -R apache:apache $PATH_TO_MISP/app/tmp
-sudo chown -R apache:apache $PATH_TO_MISP/app/webroot/img/orgs
-sudo chown -R apache:apache $PATH_TO_MISP/app/webroot/img/custom
+sudo chown -R apache:apache ${PATH_TO_MISP}
+sudo find ${PATH_TO_MISP} -type d -exec chmod g=rx {} \;
+sudo chmod -R g+r,o= ${PATH_TO_MISP}
+sudo chmod -R 750 ${PATH_TO_MISP}
+sudo chmod -R g+xws ${PATH_TO_MISP}/app/tmp
+sudo chmod -R g+ws ${PATH_TO_MISP}/app/files
+sudo chmod -R g+ws ${PATH_TO_MISP}/app/files/scripts/tmp
+sudo chmod -R g+rw ${PATH_TO_MISP}/venv
+sudo chmod -R g+rw ${PATH_TO_MISP}/.git
+sudo chown apache:apache ${PATH_TO_MISP}/app/files
+sudo chown apache:apache ${PATH_TO_MISP}/app/files/terms
+sudo chown apache:apache ${PATH_TO_MISP}/app/files/scripts/tmp
+sudo chown apache:apache ${PATH_TO_MISP}/app/Plugin/CakeResque/tmp
+sudo chown -R apache:apache ${PATH_TO_MISP}/app/Config
+sudo chown -R apache:apache ${PATH_TO_MISP}/app/tmp
+sudo chown -R apache:apache ${PATH_TO_MISP}/app/webroot/img/orgs
+sudo chown -R apache:apache ${PATH_TO_MISP}/app/webroot/img/custom
 ```
 
 ### 6/ Create a database and user
@@ -362,7 +378,7 @@ sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
 
 #### Import the empty MySQL database from MYSQL.sql
 ```bash
-$SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 ```
 
 
@@ -378,10 +394,10 @@ $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSW
     If it is disabled, you can ignore the **chcon/setsebool/semanage/checkmodule/semodule*** commands.
 
 ```bash
-# Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
-# A sample vhost can be found in $PATH_TO_MISP/INSTALL/old/apache.misp.centos6
+# Now configure your apache server with the DocumentRoot ${PATH_TO_MISP}/app/webroot/
+# A sample vhost can be found in ${PATH_TO_MISP}/INSTALL/old/apache.misp.centos6
 
-sudo cp $PATH_TO_MISP/INSTALL/old/apache.misp.centos6 /etc/httpd/conf.d/misp.conf
+sudo cp ${PATH_TO_MISP}/INSTALL/old/apache.misp.centos6 /etc/httpd/conf.d/misp.conf
 
 # Allow httpd to connect to the redis server and php-fpm over tcp/ip
 sudo setsebool -P httpd_can_network_connect on
@@ -411,20 +427,20 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 ### 8/ Log rotation
 ---------------
 ```bash
-# MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
+# MISP saves the stdout and stderr of its workers in ${PATH_TO_MISP}/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
-sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+sudo cp ${PATH_TO_MISP}/INSTALL/misp.logrotate /etc/logrotate.d/misp
 sudo chmod 0640 /etc/logrotate.d/misp
 
 # Now make logrotate work under SELinux as well
 # Allow logrotate to modify the log files
-sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
-sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
-sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp/logs
+sudo semanage fcontext -a -t httpd_log_t "${PATH_TO_MISP}/app/tmp/logs(/.*)?"
+sudo chcon -R -t httpd_log_t ${PATH_TO_MISP}/app/tmp/logs
+sudo chcon -R -t httpd_sys_rw_content_t ${PATH_TO_MISP}/app/tmp/logs
 
 # Allow logrotate to read /var/www
-sudo checkmodule -M -m -o /tmp/misplogrotate.mod $PATH_TO_MISP/INSTALL/misplogrotate.te
+sudo checkmodule -M -m -o /tmp/misplogrotate.mod ${PATH_TO_MISP}/INSTALL/misplogrotate.te
 sudo semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
 sudo semodule -i /tmp/misplogrotate.pp
 ```
@@ -432,11 +448,11 @@ sudo semodule -i /tmp/misplogrotate.pp
 ### 9/ MISP configuration
 ---------------------
 ```bash
-# There are 4 sample configuration files in $PATH_TO_MISP/app/Config that need to be copied
-$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
-$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
-$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
-$SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
+# There are 4 sample configuration files in ${PATH_TO_MISP}/app/Config that need to be copied
+${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
+${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
+${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
+${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
 
 echo "<?php
 class DATABASE_CONFIG {
@@ -453,7 +469,7 @@ class DATABASE_CONFIG {
                 'prefix' => '',
                 'encoding' => 'utf8',
         );
-}" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
+}" | ${SUDO_WWW} tee ${PATH_TO_MISP}/app/Config/database.php
 
 # Configure the fields in the newly created files:
 # config.php   : baseurl (example: 'baseurl' => 'http://misp',) - don't use "localhost" it causes issues when browsing externally
@@ -475,14 +491,14 @@ class DATABASE_CONFIG {
 #   );
 #}
 
-# Important! Change the salt key in $PATH_TO_MISP/app/Config/config.php
+# Important! Change the salt key in ${PATH_TO_MISP}/app/Config/config.php
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # If you want to be able to change configuration parameters from the webinterface:
-sudo chown apache:apache $PATH_TO_MISP/app/Config/config.php
-sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config/config.php
+sudo chown apache:apache ${PATH_TO_MISP}/app/Config/config.php
+sudo chcon -t httpd_sys_rw_content_t ${PATH_TO_MISP}/app/Config/config.php
 
 # Generate a GPG encryption key.
 cat >/tmp/gen-key-script <<EOF
@@ -500,17 +516,17 @@ cat >/tmp/gen-key-script <<EOF
     %echo done
 EOF
 
-sudo gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
+sudo gpg --homedir ${PATH_TO_MISP}/.gnupg --batch --gen-key /tmp/gen-key-script
 sudo rm -f /tmp/gen-key-script
-sudo chown -R apache:apache $PATH_TO_MISP/.gnupg
+sudo chown -R apache:apache ${PATH_TO_MISP}/.gnupg
 
 # And export the public key to the webroot
-sudo gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS |sudo tee $PATH_TO_MISP/app/webroot/gpg.asc
-sudo chown apache:apache $PATH_TO_MISP/app/webroot/gpg.asc
+sudo gpg --homedir ${PATH_TO_MISP}/.gnupg --export --armor $GPG_EMAIL_ADDRESS |sudo tee ${PATH_TO_MISP}/app/webroot/gpg.asc
+sudo chown apache:apache ${PATH_TO_MISP}/app/webroot/gpg.asc
 
 # Start the workers to enable background jobs
-sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-$SUDO_WWW $RUN_PHP $PATH_TO_MISP/app/Console/worker/start.sh
+sudo chmod +x ${PATH_TO_MISP}/app/Console/worker/start.sh
+${SUDO_WWW} $RUN_PHP ${PATH_TO_MISP}/app/Console/worker/start.sh
 
 if [ ! -e /etc/rc.local ]
 then
@@ -535,21 +551,21 @@ sudo yum install -y openjpeg-devel
 sudo chmod 2777 /usr/local/src
 sudo chown root:users /usr/local/src
 cd /usr/local/src/
-$SUDO_WWW git clone https://github.com/MISP/misp-modules.git
+${SUDO_WWW} git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip install
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
 # The following fails
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 sudo yum install rubygem-rouge rubygem-asciidoctor -y
 ##sudo gem install asciidoctor-pdf --pre
 
 # install additional dependencies for extended object generation and extraction
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install maec python-magic pathlib
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install maec python-magic pathlib
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 
 # TODO: Fix static path with PATH_TO_MISP
 sudo sed -i -e '$i \sudo -u apache /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
