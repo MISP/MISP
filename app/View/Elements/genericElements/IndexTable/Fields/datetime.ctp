@@ -1,9 +1,4 @@
 <?php
-<<<<<<< HEAD
-    $timestamp = Hash::extract($row, $field['data_path'])[0];
-    $datetime = (new DateTime())->setTimestamp($timestamp);
-    echo h($datetime->format('D, d M Y H:i'));
-=======
     $data = Hash::extract($row, $field['data_path']);
     if (is_array($data)) {
         if (count($data) > 1) {
@@ -28,5 +23,4 @@
         );
     }
     echo $data;
->>>>>>> 31225680f351556d21ca6f215663fb23db8a6365
 ?>
