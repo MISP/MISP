@@ -1273,8 +1273,8 @@ class ExternalStixParser(StixParser):
             if properties:
                 try:
                     attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
-                except KeyError:
-                    # print("Error with an object of type: {}\n{}".format(properties._XSI_TYPE, observable.to_json()))
+                except Exception:
+                    print(f'Error with the following {properties._XSI_TYPE} object:\n{observable.to_json()}', file=sys.stderr)
                     continue
                 object_uuid = self.fetch_uuid(observable_object.id_)
                 if isinstance(attribute_value, (str, int)):
