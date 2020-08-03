@@ -81,7 +81,7 @@ class AppModel extends Model
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
-        51 => false, 52 => false, 53 => false, 54 => false, 55 => false,
+        51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
     );
 
     public $advanced_updates_description = array(
@@ -244,6 +244,9 @@ class AppModel extends Model
             case 48:
                 $dbUpdateSuccess = $this->__generateCorrelations();
                 break;
+            case 56:
+                $dbUpdateSuccess = $this->removeDuplicatedUUIDs();
+                break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
                 break;
@@ -339,6 +342,14 @@ class AppModel extends Model
             case 'makeEventUUIDsUnique':
                 $this->__dropIndex('events', 'uuid');
                 $sqlArray[] = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
+                break;
+            case 'makeObjectUUIDsUnique':
+                $this->__dropIndex('objects', 'uuid');
+                $sqlArray[] = 'ALTER TABLE `objects` ADD UNIQUE (uuid);';
+                break;
+            case 'makeClusterUUIDsUnique':
+                $this->__dropIndex('galaxy_clusters', 'uuid');
+                $sqlArray[] = 'ALTER TABLE `galaxy_clusters` ADD UNIQUE (uuid);';
                 break;
             case 'cleanSessionTable':
                 $sqlArray[] = 'DELETE FROM cake_sessions WHERE expires < ' . time() . ';';
@@ -1471,6 +1482,11 @@ class AppModel extends Model
                 $indexArray[] = array('shadow_attributes', 'first_seen');
                 $indexArray[] = array('shadow_attributes', 'last_seen');
                 break;
+            case 'createUUIDsConstraints':
+                $sqlArray[] = "ALTER TABLE events ADD CONSTRAINT `uuid` UNIQUE (uuid);";
+                $sqlArray[] = "ALTER TABLE attributes ADD CONSTRAINT `uuid` UNIQUE (uuid);";
+                $sqlArray[] = "ALTER TABLE objects ADD CONSTRAINT `uuid` UNIQUE (uuid);";
+                break;
             default:
                 return false;
                 break;
@@ -2232,6 +2248,139 @@ class AppModel extends Model
             $Job->saveField('process_id', $process_id);
         }
         return true;
+    }
+
+    public function removeDuplicatedUUIDs()
+    {
+        $removedResults = array(
+            'Event' => $this->removeDuplicateEventUUIDs(),
+            'Attribute' => $this->removeDuplicateAttributeUUIDs(),
+            'Object' => $this->removeDuplicateObjectUUIDs(),
+            // 'GalaxyCluster' => $this->removeDuplicateClusterUUIDs(),
+        );
+        $res = $this->updateDatabase('createUUIDsConstraints');
+    }
+
+    public function removeDuplicateAttributeUUIDs()
+    {
+        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $this->Attribute->find('all', array(
+            'fields' => array('Attribute.uuid', 'count(*) as occurance'),
+            'recursive' => -1,
+            'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
+        ));
+        $counter = 0;
+        foreach ($duplicates as $duplicate) {
+            $attributes = $this->Attribute->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
+            ));
+            foreach ($attributes as $k => $attribute) {
+                if ($k > 0) {
+                    $this->Attribute->delete($attribute['Attribute']['id']);
+                    $this->Log->createLogEntry('SYSTEM', 'delete', 'Attribute', $attribute['Attribute']['id'], __('Removed attribute (%s)', $attribute['Attribute']['id']), __('Attribute\'s UUID duplicated (%s)', $attribute['Attribute']['uuid']));
+                    $counter++;
+                }
+            }
+        }
+        $this->updateDatabase('makeAttributeUUIDsUnique');
+        return $counter;
+    }
+
+    public function removeDuplicateEventUUIDs()
+    {
+        $this->Event = ClassRegistry::init('Event');
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $this->Event->find('all', array(
+                'fields' => array('Event.uuid', 'count(*) as occurance'),
+                'recursive' => -1,
+                'group' => array('Event.uuid HAVING COUNT(*) > 1'),
+        ));
+        $counter = 0;
+
+        // load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
+        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+            $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+        }
+
+        foreach ($duplicates as $duplicate) {
+            $events = $this->Event->find('all', array(
+                    'recursive' => -1,
+                    'conditions' => array('uuid' => $duplicate['Event']['uuid'])
+            ));
+            foreach ($events as $k => $event) {
+                if ($k > 0) {
+                    $uuid = $event['Event']['uuid'];
+                    $this->Event->delete($event['Event']['id']);
+                    $this->Log->createLogEntry('SYSTEM', 'delete', 'Event', $event['Event']['id'], __('Removed event (%s)', $event['Event']['id']), __('Event\'s UUID duplicated (%s)', $event['Event']['uuid']));
+                    $counter++;
+                    // remove the blacklist entry that we just created with the event deletion, if the feature is enabled
+                    // We do not want to block the UUID, since we just deleted a copy
+                    if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+                        $this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
+                    }
+                }
+            }
+        }
+        $this->updateDatabase('makeEventUUIDsUnique');
+        return $counter;
+    }
+
+    public function removeDuplicateObjectUUIDs()
+    {
+        $this->MispObject = ClassRegistry::init('MispObject');
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $this->MispObject->find('all', array(
+            'fields' => array('Object.uuid', 'count(*) as occurance'),
+            'recursive' => -1,
+            'group' => array('Object.uuid HAVING COUNT(*) > 1'),
+        ));
+        $counter = 0;
+        foreach ($duplicates as $duplicate) {
+            $objects = $this->MispObject->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate['Object']['uuid'])
+            ));
+            foreach ($objects as $k => $object) {
+                if ($k > 0) {
+                    $this->MispObject->delete($object['Object']['id']);
+                    $this->Log->createLogEntry('SYSTEM', 'delete', 'MispObject', $object['Object']['id'], __('Removed object (%s)', $object['Object']['id']), __('Object\'s UUID duplicated (%s)', $object['Object']['uuid']));
+                    $counter++;
+                }
+            }
+        }
+        $this->updateDatabase('makeObjectUUIDsUnique');
+        return $counter;
+    }
+
+    public function removeDuplicateClusterUUIDs()
+    {
+        // Mitre clusters have lots of duplicates. Better find another solution
+        return;
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $this->GalaxyCluster->find('all', array(
+            'fields' => array('GalaxyCluster.uuid', 'count(*) as occurance'),
+            'recursive' => -1,
+            'group' => array('GalaxyCluster.uuid HAVING COUNT(*) > 1'),
+        ));
+        $counter = 0;
+        foreach ($duplicates as $duplicate) {
+            $clusters = $this->GalaxyCluster->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate['GalaxyCluster']['uuid'])
+            ));
+            foreach ($clusters as $k => $cluster) {
+                if ($k > 0) {
+                    $this->GalaxyCluster->delete($cluster['GalaxyCluster']['id']);
+                    $this->Log->createLogEntry('SYSTEM', 'delete', 'GalaxyCluster', $cluster['GalaxyCluster']['id'], __('Removed cluster (%s)', $cluster['GalaxyCluster']['id']), __('Cluster\'s UUID duplicated (%s)', $cluster['GalaxyCluster']['uuid']));
+                    $counter++;
+                }
+            }
+        }
+        $this->updateDatabase('makeClusterUUIDsUnique');
+        return $counter;
     }
 
     public function populateNotifications($user, $mode = 'full')

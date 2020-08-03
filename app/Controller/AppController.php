@@ -929,26 +929,7 @@ class AppController extends Controller
         if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
-        $this->loadModel('Attribute');
-        $duplicates = $this->Attribute->find('all', array(
-            'fields' => array('Attribute.uuid', 'count(*) as occurance'),
-            'recursive' => -1,
-            'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
-        ));
-        $counter = 0;
-        foreach ($duplicates as $duplicate) {
-            $attributes = $this->Attribute->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
-            ));
-            foreach ($attributes as $k => $attribute) {
-                if ($k > 0) {
-                    $this->Attribute->delete($attribute['Attribute']['id']);
-                    $counter++;
-                }
-            }
-        }
-        $this->Server->updateDatabase('makeAttributeUUIDsUnique');
+        $counter = $this->Server->removeDuplicateAttributeUUIDs();
         $this->Flash->success('Done. Deleted ' . $counter . ' duplicate attribute(s).');
         $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
     }
@@ -958,38 +939,7 @@ class AppController extends Controller
         if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
-        $this->loadModel('Event');
-        $duplicates = $this->Event->find('all', array(
-                'fields' => array('Event.uuid', 'count(*) as occurance'),
-                'recursive' => -1,
-                'group' => array('Event.uuid HAVING COUNT(*) > 1'),
-        ));
-        $counter = 0;
-
-        // load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
-        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-            $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-        }
-
-        foreach ($duplicates as $duplicate) {
-            $events = $this->Event->find('all', array(
-                    'recursive' => -1,
-                    'conditions' => array('uuid' => $duplicate['Event']['uuid'])
-            ));
-            foreach ($events as $k => $event) {
-                if ($k > 0) {
-                    $uuid = $event['Event']['uuid'];
-                    $this->Event->delete($event['Event']['id']);
-                    $counter++;
-                    // remove the blacklist entry that we just created with the event deletion, if the feature is enabled
-                    // We do not want to block the UUID, since we just deleted a copy
-                    if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-                        $this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
-                    }
-                }
-            }
-        }
-        $this->Server->updateDatabase('makeEventUUIDsUnique');
+        $counter = $this->Server->removeDuplicateEventUUIDs();
         $this->Flash->success('Done. Removed ' . $counter . ' duplicate events.');
         $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
     }
