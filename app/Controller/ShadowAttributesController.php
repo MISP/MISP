@@ -944,7 +944,7 @@ class ShadowAttributesController extends AppController
             'contain' => array(
                     'Event' => array(
                             'fields' => array('id', 'org_id', 'info', 'orgc_id', 'uuid'),
-                            'Orgc' => array('fields' => array('Orgc.name'))
+                            'Orgc' => array('fields' => array('Orgc.name', 'Orgc.id', 'Orgc.uuid'))
                     ),
                     'Org' => array(
                         'fields' => array('name', 'uuid'),
