@@ -46,7 +46,7 @@ class EventBlacklistsController extends AppController
         }
         $this->set('passedArgs', json_encode($passedArgs));
         $this->set('passedArgsArray', $passedArgsArray);
-        $this->BlackList->index($this->_isRest(), $params);
+        return $this->BlackList->index($this->_isRest(), $params);
     }
 
     public function add()
@@ -56,12 +56,12 @@ class EventBlacklistsController extends AppController
 
     public function edit($id)
     {
-        $this->BlackList->edit($this->_isRest(), $id);
+        return $this->BlackList->edit($this->_isRest(), $id);
     }
 
     public function delete($id)
     {
-        $this->BlackList->delete($this->_isRest(), $id);
+        return $this->BlackList->delete($this->_isRest(), $id);
     }
 
     public function massDelete()
