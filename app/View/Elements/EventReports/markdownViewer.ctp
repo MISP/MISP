@@ -25,11 +25,15 @@
         <?= __('Toggle Split Edit') ?>
     </a>
 </div>
-<div class="viewer-container">
+<div class="split-container">
     <div id="editor-container" style="display: flex;">
         <textarea id="editor"></textarea>
     </div>
-    <div id="viewer">
+    <div id="viewer-container">
+        <div id="lastModifiedField">
+            <?= isset($lastModified) ? h($lastModified) : '' ?>
+        </div>
+        <div id="viewer"></div>
     </div>
 </div>
 
@@ -47,13 +51,14 @@
     var renderTimer;
     var renderDelay = 50;
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
-    var $editorContainer, $editor, $viewer, $saveMarkdownButton, $linkSplitEdit, $linkMonoEdit, $cancelEditButton, $toggleEditButton
+    var $editorContainer, $editor, $viewer, $viewerContainer, $saveMarkdownButton, $linkSplitEdit, $linkMonoEdit, $cancelEditButton, $toggleEditButton
     var editTurnedOn = false
     var splitEdit = true
     $(document).ready(function() {
         $editorContainer = $('#editor-container')
         $editor = $('#editor')
         $viewer = $('#viewer')
+        $viewerContainer = $('#viewer-container')
         $saveMarkdownButton = $('#saveMarkdownButton')
         $cancelEditButton = $('#cancelEditButton')
         $toggleEditButton = $('#toggleEditButton')
@@ -92,9 +97,9 @@
         $linkSplitEdit.toggleClass('link-not-active')
         $linkMonoEdit.toggleClass('link-not-active')
         if (splitEdit) {
-            $viewer.show()
+            $viewerContainer.show()
         } else {
-            $viewer.hide()
+            $viewerContainer.hide()
         }
     }
 
@@ -157,11 +162,11 @@
 </script>
 
 <style> 
-.viewer-container {
+.split-container {
     display: flex;
 }
 
-.viewer-container > div {
+.split-container > div {
     flex-grow: 1;
     margin-left: 10px;
 }
