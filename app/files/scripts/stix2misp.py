@@ -733,10 +733,6 @@ class StixParser():
         for course_of_action in courses_of_action:
             self.parse_galaxy(course_of_action, 'title', 'mitre-course-of-action')
 
-    def _parse_threat_actors(self, threat_actors):
-        for threat_actor in threat_actors:
-            self.parse_galaxy(threat_actor, 'title', 'threat-actor')
-
     def _parse_ttp(self, ttp):
         if ttp.behavior:
             if ttp.behavior.attack_patterns:
@@ -907,6 +903,10 @@ class StixFromMISPParser(StixParser):
             for attribute in attributes:
                 attack_pattern_object.add_attribute(**attribute)
             self.misp_event.add_object(**attack_pattern_object)
+
+    def _parse_threat_actors(self, threat_actors):
+        for threat_actor in threat_actors:
+            self.parse_galaxy(threat_actor, 'title', 'threat-actor')
 
     def parse_vulnerability_object(self, vulnerability, uuid):
         attributes = []
@@ -1297,6 +1297,24 @@ class ExternalStixParser(StixParser):
                             relationship = related_object.relationship.value.lower().replace('_', '-')
                             self.references[object_uuid].append({"idref": self.fetch_uuid(related_object.idref),
                                                                  "relationship": relationship})
+
+    def _parse_threat_actors(self, threat_actors):
+        for threat_actor in threat_actors:
+            if hasattr(threat_actor, 'title') and threat_actor.title:
+                self.parse_galaxy(threat_actor, 'title', 'threat-actor')
+            else:
+                if hasattr(threat_actor, 'identity') and threat_actor.identity:
+                    identity = threat_actor.identity
+                    if hasattr(identity, 'name') and identity.name:
+                        self._resolve_galaxy(identity.name, 'threat-actor')
+                    elif hasattr(identity, 'specification') and hasattr(identity.specification, 'party_name') and identity.specification.party_name:
+                        party_name = identity.specification.party_name
+                        if hasattr(party_name, 'person_names') and party_name.person_names:
+                            for person_name in party_name.person_names:
+                                self._resolve_galaxy(person_name.name_elements[0].value, 'threat-actor')
+                        elif hasattr(party_name, 'organisation_names') and party_name.organisation_names:
+                            for organisation_name in party_name.organisation_names:
+                                self._resolve_galaxy(organisation_name.name_elements[0].value, 'threat-actor')
 
     # Parse the ttps field of an external STIX document
     def parse_ttps(self, ttps):
