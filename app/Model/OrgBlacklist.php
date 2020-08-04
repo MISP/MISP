@@ -15,7 +15,7 @@ class OrgBlacklist extends AppModel
     );
     public $blacklistFields = array('org_uuid', 'comment', 'org_name');
 
-    public $blacklistTarget = 'event';
+    public $blacklistTarget = 'org';
 
     public $validate = array(
             'org_uuid' => array(
