@@ -62,11 +62,35 @@ class EventReportsController extends AppController
         $this->set('initialDistribution', $initialDistribution);
         $sgs = $this->EventReport->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
+        $this->set('action', 'add');
     }
 
 
-    public function view($report_id)
+    public function view($report_id, $ajax=false)
     {
+        $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $report_id)));
+        if (empty($report)) {
+            throw new NotFoundException(__('Invalid Event Report'));
+        }
+        $report = $report[0];
+        $this->set('id', $report_id);
+        $this->set('report', $report);
+        $this->set('ajax', $ajax);
+        $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
+        $this->set('distributionLevels', $distributionLevels);
+    }
+
+    public function viewSummary($report_id)
+    {
+        $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $report_id)));
+        if (empty($report)) {
+            throw new NotFoundException(__('Invalid Event Report'));
+        }
+        $report = $report[0];
+        $this->set('id', $report_id);
+        $this->set('report', $report);
+        $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
+        $this->set('distributionLevels', $distributionLevels);
     }
 
     public function edit($id)
@@ -118,6 +142,7 @@ class EventReportsController extends AppController
 
     public function delete($id)
     {
+        $this->delete($id);
     }
 
 

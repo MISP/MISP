@@ -366,6 +366,17 @@
                 </div>
             <?php endif; ?>
 
+            <?php if (!empty($event['EventReport'])): ?>
+                <h3><?php echo __('Event Reports');?></h3>
+                <div class="inline correlation-container">
+                    <?=
+                        $this->element('/EventReports/quickIndex', array(
+                            'reports' => $event['EventReport']
+                        ))
+                    ?>
+                </div>
+            <?php endif; ?>
+
             <?php
                 if (!empty($event['RelatedEvent'])):
             ?>
@@ -516,9 +527,6 @@
         </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attackmatrix_toggle" data-toggle-type="attackmatrix" onclick="enable_attack_matrix();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>" style="vertical-align:top;"></span><?php echo __('ATT&CK matrix');?>
-        </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="report_toggle" data-toggle-type="eventreport" onclick="enable_event_report();">
-            <span class="icon-plus icon-white" title="<?php echo __('Toggle Event report');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event report');?>" style="vertical-align:top;"></span><?php echo __('Event report');?>
         </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
             <span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>

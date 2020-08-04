@@ -385,7 +385,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                 break;
 
-                case 'event-report':
+                case 'eventReports':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'index',
                         'url' => '/eventReports/index',

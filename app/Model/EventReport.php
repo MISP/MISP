@@ -139,7 +139,7 @@ class EventReport extends AppModel
             }
         }
         $fieldList = array('name', 'content', 'timestamp', 'distribution', 'sharing_group_id', 'deleted');
-        $saveSuccess = $this->edit($report, array('fieldList' => $fieldList));
+        // $saveSuccess = $this->save($report, array('fieldList' => $fieldList));
         return $errors;
     }
 

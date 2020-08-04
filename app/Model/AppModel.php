@@ -1406,7 +1406,7 @@ class AppModel extends Model
             case 56:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS event_reports (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+                    `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
                     `event_id` int(11) NOT NULL,
                     `name` varchar(255) NOT NULL,
                     `content` text,
@@ -1415,6 +1415,7 @@ class AppModel extends Model
                     `timestamp` int(11) NOT NULL,
                     `deleted` tinyint(1) NOT NULL DEFAULT 0,
                     PRIMARY KEY (id),
+                    CONSTRAINT u_uuid UNIQUE (uuid),
                     INDEX `name` (`name`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
                 break;

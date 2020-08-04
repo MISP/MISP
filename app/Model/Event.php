@@ -2145,7 +2145,8 @@ class Event extends AppModel
                 'EventTag' => array(
                     'Tag' => array('conditions' => $tagConditions, 'order' => false),
                     'order' => false
-                 )
+                ),
+                'EventReport' => array()
             )
         );
         if (!empty($options['excludeLocalTags'])) {

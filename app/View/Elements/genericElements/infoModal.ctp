@@ -23,7 +23,8 @@
     $action = $this->request->params['action'];
     $controller = $this->request->params['controller'];
     echo sprintf(
-        '<div id="genericModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true">%s%s%s</div>',
+        '<div id="genericModal" class="modal %s hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true">%s%s%s</div>',
+        isset($type) ? sprintf('modal-%s', $type) : '',
         sprintf(
             '<div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button><h3 id="genericModalLabel">%s</h3></div>',
             empty($data['title']) ?

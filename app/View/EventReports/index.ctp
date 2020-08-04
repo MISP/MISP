@@ -68,6 +68,6 @@
     ));
     if(!$embedded_view) {
         echo '</div>';
-        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-report', 'menuItem' => 'index'));
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'eventReports', 'menuItem' => 'index'));
     }
 ?>
