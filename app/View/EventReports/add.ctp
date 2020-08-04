@@ -35,7 +35,8 @@
                 )
             ),
             'submit' => array(
-                'action' => $this->request->params['action']
+                'action' => $this->request->params['action'],
+                'ajaxSubmit' => '',
             )
         )
     ));

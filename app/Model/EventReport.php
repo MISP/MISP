@@ -68,35 +68,6 @@ class EventReport extends AppModel
         return true;
     }
 
-    // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
-    // options:
-    //     fields
-    //     contain
-    //     conditions
-    //     order
-    //     group
-    public function fetchReports($user, $options = array(), $full=false)
-    {
-        $params = array(
-            'conditions' => $this->buildConditions($user),
-            'recursive' => -1
-        );
-        if ($full) {
-            $params['recursive'] = 1;
-        }
-        if (isset($options['fields'])) {
-            $params['fields'] = $options['fields'];
-        }
-        if (isset($options['conditions'])) {
-            $params['conditions']['AND'][] = $options['conditions'];
-        }
-        if (isset($options['group'])) {
-            $params['group'] = empty($options['group']) ? $options['group'] : false;
-        }
-        $reports = $this->find('all', $params);
-        return $reports;
-    }
-
     // Gets a report then save it.
     public function captureReport($user, $report)
     {
@@ -129,18 +100,28 @@ class EventReport extends AppModel
     public function editReport($user, $report, $fromPull = false)
     {
         $errors = array();
-        if (!$user['Role']['perm_modify'] && !$user['Role']['perm_site_admin']) {
-            $errors[] = __('Incorrect permission');
+        $permissionCheck = $this->canEditReport($user, $report);
+        if ($permissionCheck !== true) {
+            $errors[] = $permissionCheck;
         }
-        if (empty($errors)) {
-            $date = new DateTime();
-            if (!$fromPull) {
-                unset($report['EventReport']['timestamp']);
-            }
+        if (!empty($errors)) {
+            return $errors;
+        }
+        if (!$fromPull) {
+            unset($report['EventReport']['timestamp']);
         }
         $fieldList = array('name', 'content', 'timestamp', 'distribution', 'sharing_group_id', 'deleted');
-        // $saveSuccess = $this->save($report, array('fieldList' => $fieldList));
+        $saveSuccess = $this->save($report, array('fieldList' => $fieldList));
         return $errors;
+    }
+
+    
+    private function captureSG($user, $report)
+    {
+        if (isset($report['EventReport']['distribution']) && $report['EventReport']['distribution'] == 4) {
+            $report['EventReport'] = $this->Event->__captureSGForElement($report['EventReport'], $user);
+        }
+        return $report;
     }
 
     public function buildConditions($user)
@@ -169,11 +150,120 @@ class EventReport extends AppModel
         return $conditions;
     }
 
-    private function captureSG($user, $report)
+    /**
+     * fetchById Simple ACL-aware method to fetch a report by Id or UUID
+     *
+     * @param  array $user
+     * @param  int|string $reportId
+     * @param  bool  $full
+     * @return array
+     */
+    public function simpleFetchById(array $user, $reportId, $throwErrors=true, $full=false)
     {
-        if (isset($report['EventReport']['distribution']) && $report['EventReport']['distribution'] == 4) {
-            $report['EventReport'] = $this->Event->__captureSGForElement($report['EventReport'], $user);
+        if (Validation::uuid($reportId)) {
+            $temp = $this->find('first', array(
+                'recursive' => -1,
+                'fields' => array("EventReport.id", "EventReport.uuid"),
+                'conditions' => array("EventReport.uuid" => $reportId)
+            ));
+            if (empty($temp)) {
+                if ($throwErrors) {
+                    throw new NotFoundException(__('Invalid report'));
+                }
+                return array();
+            }
+            $reportId = $temp['EventReport']['id'];
+        } elseif (!is_numeric($reportId)) {
+            if ($throwErrors) {
+                throw new NotFoundException(__('Invalid report'));
+            }
+            return array();
         }
+        $options = array('conditions' => array("EventReport.id" => $reportId));
+        $report = $this->fetchReports($user, $options, $full=$full);
         return $report;
+    }
+
+    public function fetchReports($user, $options = array(), $full=false)
+    {
+        $params = array(
+            'conditions' => $this->buildConditions($user),
+            'recursive' => -1
+        );
+        if ($full) {
+            $params['recursive'] = 1;
+        }
+        if (isset($options['fields'])) {
+            $params['fields'] = $options['fields'];
+        }
+        if (isset($options['conditions'])) {
+            $params['conditions']['AND'][] = $options['conditions'];
+        }
+        if (isset($options['group'])) {
+            $params['group'] = empty($options['group']) ? $options['group'] : false;
+        }
+        $reports = $this->find('all', $params);
+        return $reports;
+    }
+
+    /**
+     * fetchIfAuthorized Fetches a report and checks if the user has the authorization to perform the requested operation
+     *
+     * @param  array $user
+     * @param  int|string|array $report
+     * @param  mixed $authorizations the requested actions to be performed on the report
+     * @param  bool  $throwErrors Should the function throws excpetion if users is not allowed to perform the action
+     * @param  bool  $full
+     * @return array The report or an error message
+     */
+    public function fetchIfAuthorized(array $user, $report, $authorizations, $throwErrors=true, $full=false)
+    {
+        $authorizations = is_array($authorizations) ? $authorizations : array($authorizations);
+        $possibleAuthorizations = array('view', 'edit', 'delete');
+        if (!empty(array_diff($authorizations, $possibleAuthorizations))) {
+            throw new NotFoundException(__('Invalid authorization requested'));
+        }
+        if (isset($report['uuid'])) {
+            $report['EventReport'] = $report;
+        }
+        if (!isset($report['EventReport']['uuid'])) {
+            $report = $this->simpleFetchById($user, $report, $throwErrors=$throwErrors, $full=$full);
+            if (empty($report)) {
+                $message = __('Invalid report');
+                if ($throwErrors) {
+                    throw new NotFoundException($message);
+                }
+                return array('authorized' => false, 'error' => $message);
+            }
+            $report = $report[0];
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return $report;
+        }
+
+        if (in_array('view', $authorizations) && count($authorizations) == 1) {
+            return $report;
+        } else {
+            if (in_array('edit', $authorizations) || in_array('delete', $authorizations)) {
+                $checkResult = $this->canEditReport($user, $report);
+                if ($checkResult !== true) {
+                    if ($throwErrors) {
+                        throw new MethodNotAllowedException($checkResult);
+                    }
+                    return array('authorized' => false, 'error' => $checkResult);
+                }
+            }
+            return $report;
+        }
+    }
+
+    public function canEditReport($user, $report)
+    {
+        // if ($report['EventReport']['orgc_id'] != $user['org_id']) {
+        if (false) {
+            $message = __('Only the creator organisation can modify the galaxy report');
+            return $message;
+        }
+        return true;
     }
 }

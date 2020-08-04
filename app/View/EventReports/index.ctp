@@ -8,6 +8,21 @@
             'top_bar' => array(
                 'children' => array(
                     array(
+                        'type' => 'simple',
+                        'children' => array(
+                            array(
+                                'active' => $context === 'all',
+                                'url' => sprintf('%s/event_reports/index', $baseurl),
+                                'text' => __('All'),
+                            ),
+                            array(
+                                'active' => $context === 'deleted',
+                                'url' => sprintf('%s/event_reports/index/context:deleted', $baseurl),
+                                'text' => __('Deleted'),
+                            ),
+                        )
+                    ),
+                    array(
                         'type' => 'search',
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
@@ -62,7 +77,17 @@
                         'EventReport.id'
                     ),
                     'icon' => 'edit'
-                )
+                ),
+                array(
+                    'title' => __('Delete'),
+                    'url' => $baseurl . '/event_reports/delete',
+                    'url_params_data_paths' => array(
+                        'EventReport.id'
+                    ),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to delete the report?'),
+                    'icon' => 'trash'
+                ),
             )
         )
     ));

@@ -97,29 +97,19 @@ class EventReportsController extends AppController
     {
         if ($this->request->is('post') || $this->request->is('put')) {
             $report = $this->request->data;
+            if (!isset($report['EventReport'])) {
+                $report = array('EventReport' => $report);
+            }
+            $report['EventReport']['id'] = $id;
             $errors = $this->EventReport->editReport($this->Auth->user(), $report);
-                if (!empty($errors)) {
-                    $flashErrorMessage = implode(', ', $errors);
-                    $this->Flash->error($flashErrorMessage);
-                } else {
-                    $this->redirect(array('controller' => 'eventReports', 'action' => 'view', $report['EventReport']['id']));
-                }
+            if (!empty($errors)) {
+                $flashErrorMessage = implode(', ', $errors);
+                $this->Flash->error($flashErrorMessage);
+            } else {
+                $this->redirect(array('controller' => 'eventReports', 'action' => 'view', $id));
+            }
         } else {
-            $report_id = $this->Toolbox->findIdByUuid($this->EventReport, $id);
-            if (Validation::uuid($report_id)) {
-                $temp = $this->EventReport->find('first', array('recursive' => -1, 'fields' => array('EventReport.id'), 'conditions' => array('EventReport.uuid' => $report_id)));
-                if (empty($temp)) {
-                    throw new NotFoundException(__('Invalid Event Report'));
-                }
-                $report_id = $temp['Event']['id'];
-            } elseif (!is_numeric($id)) {
-                throw new NotFoundException(__('Invalid Event Report'));
-            }
-            $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $report_id)));
-            if (empty($report)) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            $report = $report[0];
+            $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
             $this->request->data = $report;
         }
 
@@ -142,20 +132,33 @@ class EventReportsController extends AppController
 
     public function delete($id)
     {
-        $this->delete($id);
+        $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+        if (empty($report)) {
+            throw new NotFoundException(__('Invalid Event Report'));
+        }
+        $this->EventReport->delete($id);
     }
 
 
     public function index()
     {
         $aclConditions = $this->EventReport->buildConditions($this->Auth->user());
-        $filters = $this->IndexFilter->harvestParameters(array('event_id', 'embedded_view', 'value'));
+        $filters = $this->IndexFilter->harvestParameters(array('event_id', 'embedded_view', 'value', 'context'));
         $eventConditions = array();
         if (!empty($filters['event_id'])) {
             $eventConditions = array(
                 'EventReport.event_id' => $filters['event_id']
             );
         }
+
+        $contextConditions = array();
+        if (empty($filters['context'])) {
+            $filters['context'] = 'all';
+        } elseif ($filters['context'] == 'deleted') {
+            $contextConditions['EventReport.deleted'] = true;
+        }
+        $this->set('context', $filters['context']);
+
         $searchConditions = array();
         if (empty($filters['value'])) {
             $filters['value'] = '';
@@ -175,7 +178,7 @@ class EventReportsController extends AppController
                 array(
                     'recursive' => -1,
                     'conditions' => array(
-                        'AND' => array($eventConditions, $searchConditions, $aclConditions)
+                        'AND' => array($eventConditions, $searchConditions, $aclConditions, $contextConditions)
                     )
                 )
             );
