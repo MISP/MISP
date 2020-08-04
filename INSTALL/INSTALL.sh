@@ -1272,8 +1272,8 @@ prepareDB () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     #Make sure initial tables are created in MySQL
     sudo mysql_install_db
+    sudo service mysql start
     sudo mysqladmin -u root password '${DBPASSWORD_ADMIN}'
-    #sudo service mysql start
     debug "Setting up database"
 
     # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
