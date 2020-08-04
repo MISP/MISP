@@ -39,23 +39,13 @@
 
 <?php
     echo $this->element('genericElements/assetLoader', array(
-        'js' => array('markdown-it', 'highlight.min'),
-        'css' => array('highlight.min')
+        'js' => array('markdown-it', 'highlight.min', 'codemirror/codemirror', 'codemirror/modes/markdown'),
+        'css' => array('highlight.min', 'codemirror')
     ));
 ?>
 <script>
     'use strict';
-    var md;
-    var mdOptions = {
-        highlight: function (str, lang) {
-            if (lang && hljs.getLanguage(lang)) {
-                try {
-                    return hljs.highlight(lang, str, true).value;
-                } catch (__) {}
-            }
-            return ''; // use external default escaping
-        }
-    }
+    var md, cm;
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
     var modelName = '<?= h($modelName) ?>';
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
@@ -76,13 +66,13 @@
         $linkSplitEdit = $('#linkSplitEdit')
         $linkMonoEdit = $('#linkMonoEdit')
 
-        $editorContainer.hide();
+        // $editorContainer.hide();
         $saveMarkdownButton.hide();
         $linkSplitEdit.hide();
         $linkMonoEdit.hide();
         $cancelEditButton.hide();
-        md = window.markdownit('default', mdOptions);
         setEditorData(originalRaw);
+        initMarkdownIt()
 
         $linkSplitEdit.add($linkMonoEdit).click(function() {
             toggleSplitEdit()
@@ -92,6 +82,33 @@
         })
         renderMarkdown()
     })
+
+    function initMarkdownIt() {
+        var mdOptions = {
+            highlight: function (str, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        return hljs.highlight(lang, str, true).value;
+                    } catch (__) {}
+                }
+                return ''; // use external default escaping
+            }
+        }
+        md = window.markdownit('default', mdOptions);
+        md.disable([ 'link', 'image' ])
+        md.renderer.rules.table_open = function () {
+            return '<table class="table table-striped">\n';
+        };
+
+        var cmOptions = {
+            mode: 'markdown',
+            theme: "default",
+            lineNumbers: true,
+            indentUnit: 4,
+            showCursorWhenSelecting: true,
+        }
+        cm = CodeMirror.fromTextArea($editor[0], cmOptions);
+    }
     
     function toggleEditor() {
         $editorContainer.toggle()
@@ -201,6 +218,10 @@
     width: 100%;
     border-radius: 0;
     resize: vertical;
+}
+
+.cm-s-default {
+    width: 100%;
 }
 
 #viewer-container {
