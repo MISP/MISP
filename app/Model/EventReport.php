@@ -115,7 +115,6 @@ class EventReport extends AppModel
         return $errors;
     }
 
-    
     private function captureSG($user, $report)
     {
         if (isset($report['EventReport']['distribution']) && $report['EventReport']['distribution'] == 4) {

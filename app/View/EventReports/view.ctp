@@ -28,13 +28,16 @@
             <h4>
                 <?= __('Event Report content') ?>
             </h4>
-            <?= $this->element('EventReports/markdownViewer', array(
-                'markdown' => $report['EventReport']['content'],
-                'modelName' => 'EventReport',
-                'mardownModelFieldName' => 'content',
-            )) ?>
+            <?php 
+                echo $this->element('EventReports/markdownViewer', array(
+                    'markdown' => $report['EventReport']['content'],
+                    'modelName' => 'EventReport',
+                    'mardownModelFieldName' => 'content',
+                ));
+            ?>
         </div>
     </div>
+    <div style="margin-bottom: 15px;"></div>
 </div>
 <script type="text/javascript">
 $(document).ready(function () {

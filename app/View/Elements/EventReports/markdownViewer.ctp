@@ -39,12 +39,23 @@
 
 <?php
     echo $this->element('genericElements/assetLoader', array(
-        'js' => array('markdown-it')
+        'js' => array('markdown-it', 'highlight.min'),
+        'css' => array('highlight.min')
     ));
 ?>
 <script>
     'use strict';
     var md;
+    var mdOptions = {
+        highlight: function (str, lang) {
+            if (lang && hljs.getLanguage(lang)) {
+                try {
+                    return hljs.highlight(lang, str, true).value;
+                } catch (__) {}
+            }
+            return ''; // use external default escaping
+        }
+    }
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
     var modelName = '<?= h($modelName) ?>';
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
@@ -70,7 +81,7 @@
         $linkSplitEdit.hide();
         $linkMonoEdit.hide();
         $cancelEditButton.hide();
-        md = window.markdownit();
+        md = window.markdownit('default', mdOptions);
         setEditorData(originalRaw);
 
         $linkSplitEdit.add($linkMonoEdit).click(function() {
@@ -90,6 +101,8 @@
         $cancelEditButton.toggle()
         $toggleEditButton.toggle()
         editTurnedOn = !editTurnedOn
+        setEditorData(originalRaw)
+        renderMarkdown()
     }
 
     function toggleSplitEdit() {
@@ -123,8 +136,9 @@
                 data: $tmpForm.serialize(),
                 beforeSend: function() {
                     $saveMarkdownButton
-                        .prop('disabled', 'disabled')
+                        .prop('disabled', true)
                         .append(loadingSpanAnimation);
+                    $editor.prop('disabled', true);
                 },
                 success:function(data, textStatus) {
                     showMessage('success', '<?= 'Markdown saved' ?>');
@@ -135,8 +149,9 @@
                 complete:function() {
                     $('#temp').remove();
                     $saveMarkdownButton
-                        .prop('disabled', '')
+                        .prop('disabled', false)
                         .find('#loadingSpan').remove();
+                    $editor.prop('disabled', false);
                 },
                 type:"post",
                 url: formUrl
@@ -153,7 +168,7 @@
     function doRender() {
         clearTimeout(renderTimer);
         renderTimer = setTimeout(function() {
-            $saveMarkdownButton.prop('disabled', '');
+            $saveMarkdownButton.prop('disabled', false);
             renderMarkdown();
         }, renderDelay);
     }
@@ -164,10 +179,16 @@
 <style> 
 .split-container {
     display: flex;
+    justify-content: center;
 }
 
 .split-container > div {
     flex-grow: 1;
+    margin-left: 10px;
+    min-width: 50%;
+}
+
+.editorMode-container {
     margin-left: 10px;
 }
 
@@ -176,8 +197,17 @@
 }
 
 #editor {
+    min-height: 500px;
     width: 100%;
     border-radius: 0;
+    resize: vertical;
+}
+
+#viewer-container {
+    max-width: 1200px;
+    padding: 7px;
+    box-shadow: 3px 3px 3px 0px rgba(0,0,0,0.75);
+    border: 1px solid;
 }
 
 .link-not-active {
