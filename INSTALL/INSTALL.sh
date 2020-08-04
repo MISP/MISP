@@ -1271,8 +1271,11 @@ installDepsPhp70 () {
 prepareDB () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     #Make sure initial tables are created in MySQL
+    debug "Install mysql tables"
     sudo mysql_install_db
+    debug "start mysql"
     sudo service mysql start
+    debug "run mysqladmin"
     sudo mysqladmin -u root password '${DBPASSWORD_ADMIN}'
     debug "Setting up database"
 
