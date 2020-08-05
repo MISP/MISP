@@ -1291,7 +1291,11 @@ class ExternalStixParser(StixParser):
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
                     if attribute_value:
-                        self.handle_object_case(attribute_type, attribute_value, compl_data, object_uuid=object_uuid)
+                        if all(isinstance(value, dict) for value in attribute_value):
+                            self.handle_object_case(attribute_type, attribute_value, compl_data, object_uuid=object_uuid)
+                        else:
+                            for value in attribute_value:
+                                self.misp_event.add_attribute(**{'type': attribute_type, 'value': value, 'to_ids': False})
                     if observable_object.related_objects:
                         for related_object in observable_object.related_objects:
                             relationship = related_object.relationship.value.lower().replace('_', '-')
