@@ -815,15 +815,6 @@ class SharingGroup extends AppModel
             } else {
                 $id = $id['SharingGroup']['id'];
             }
-        } else {
-            $temp = $this->find('first', array(
-                'conditions' => array('SharingGroup.id' => $id),
-                'recursive' => -1,
-                'fields' => array('SharingGroup.id')
-            ));
-            if (empty($temp)) {
-                return false;
-            }
         }
         if ($readOnly) {
             if (!$this->checkIfAuthorised($user, $id)) {

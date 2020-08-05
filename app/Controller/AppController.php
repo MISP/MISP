@@ -1281,4 +1281,54 @@ class AppController extends Controller
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
     }
+
+    /**
+     * Returns true if user can modify given event.
+     *
+     * @param array $event
+     * @return bool
+     */
+    protected function __canModifyEvent(array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contains Event.');
+        }
+
+        if ($this->userRole['perm_site_admin']) {
+            return true;
+        }
+        if ($this->userRole['perm_modify_org'] && $event['Event']['orgc_id'] == $this->Auth->user('org_id')) {
+            return true;
+        }
+        if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if user can add or remove tags for given event.
+     *
+     * @param array $event
+     * @param bool $isTagLocal
+     * @return bool
+     */
+    protected function __canModifyTag(array $event, $isTagLocal = false)
+    {
+        // Site admin can add any tag
+        if ($this->userRole['perm_site_admin']) {
+            return true;
+        }
+        // User must have tagger or sync permission
+        if (!$this->userRole['perm_tagger'] && !$this->userRole['perm_sync']) {
+            return false;
+        }
+        if ($this->__canModifyEvent($event)) {
+            return true; // full access
+        }
+        if ($isTagLocal && Configure::read('MISP.host_org_id') == $this->Auth->user('org_id')) {
+            return true;
+        }
+        return false;
+    }
 }
