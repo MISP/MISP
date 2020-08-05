@@ -416,10 +416,10 @@ class ObjectsController extends AppController
             }
             $savedObject = array();
             if (is_numeric($objectToSave)) {
-                $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
+                $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $object['Object']['id'])));
                 if (isset($this->request->data['deleted']) && $this->request->data['deleted']) {
                     $this->MispObject->deleteObject($savedObject[0], $hard=false, $unpublish=false);
-                    $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id))); // make sure the object is deleted
+                    $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $object['Object']['id']))); // make sure the object is deleted
                 }
             }
             // we pre-validate the attributes before we create an object at this point

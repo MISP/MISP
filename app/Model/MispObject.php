@@ -1056,7 +1056,7 @@ class MispObject extends AppModel
         return true;
     }
 
-    public function deleteObject($object, $hard=false, $unpublish=true)
+    public function deleteObject(array $object, $hard=false, $unpublish=true)
     {
         $id = $object['Object']['id'];
         if ($hard) {

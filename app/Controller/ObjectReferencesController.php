@@ -167,10 +167,10 @@ class ObjectReferencesController extends AppController
             'contain' => array('Object' => array('Event'))
         ));
         if (empty($objectReference)) {
-            throw new NotFoundException('Invalid object reference.');
+            throw new NotFoundException(__('Invalid object reference.'));
         }
-        if (!$this->__canModifyEvent($objectReference['Object']['Event'])) {
-            throw new ForbiddenException('Invalid object reference.');
+        if (!$this->__canModifyEvent($objectReference['Object'])) {
+            throw new ForbiddenException(__('Invalid object reference.'));
         }
         if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
             $result = $this->ObjectReference->smartDelete($objectReference['ObjectReference']['id'], $hard);
