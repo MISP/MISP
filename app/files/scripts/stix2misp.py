@@ -866,7 +866,7 @@ class StixFromMISPParser(StixParser):
             if package.ttps:
                 for ttp in package.ttps.ttp:
                     ttp_id = '-'.join((part for part in ttp.id_.split('-')[-5:]))
-                    ttp_type = 'galaxy' if ttp_id in self.object_references else 'object'
+                    ttp_type = 'object' if ttp_id in self.object_references else 'galaxy'
                     self.parse_ttp(ttp, ttp_type, ttp_id)
                     # if ttp.handling:
                     #     self.parse_tlp_marking(ttp.handling)
