@@ -733,41 +733,10 @@ class StixParser():
         for course_of_action in courses_of_action:
             self.parse_galaxy(course_of_action, 'title', 'mitre-course-of-action')
 
-    def _parse_ttp(self, ttp):
-        if ttp.behavior:
-            if ttp.behavior.attack_patterns:
-                for attack_pattern in ttp.behavior.attack_patterns:
-                    self.parse_galaxy(attack_pattern, 'title', 'misp-attack-pattern')
-            if ttp.behavior.malware_instances:
-                for malware_instance in ttp.behavior.malware_instances:
-                    if not malware_instance._XSI_TYPE or 'stix-maec' not in malware_instance._XSI_TYPE:
-                        self.parse_galaxy(malware_instance, 'title', 'ransomware')
-        elif ttp.exploit_targets:
-            if ttp.exploit_targets.exploit_target:
-                for exploit_target in ttp.exploit_targets.exploit_target:
-                    if exploit_target.item.vulnerabilities:
-                        for vulnerability in exploit_target.item.vulnerabilities:
-                            self.parse_galaxy(vulnerability, 'title', 'branded_vulnerability')
-        elif ttp.resources:
-            if ttp.resources.tools:
-                for tool in ttp.resources.tools:
-                    self.parse_galaxy(tool, 'name', 'tool')
-
-    def parse_galaxy(self, galaxy, feature, default_value):
-        names = self._get_galaxy_name(galaxy, feature)
-        if names:
-            if isinstance(names, list):
-                for name in names:
-                    self._resolve_galaxy(name, default_value)
-            else:
-                self._resolve_galaxy(names, default_value)
-
     def _resolve_galaxy(self, name, default_value):
         if name in self.synonyms_to_tag_names:
-            self.galaxies.update(self.synonyms_to_tag_names[name])
-        else:
-            self.galaxies.add('misp-galaxy:{}="{}"'.format(default_value, name))
-
+            return self.synonyms_to_tag_names[name]
+        return [f'misp-galaxy:{default_value}="{name}"']
 
     ################################################################################
     ##              UTILITY FUNCTIONS USED BY PARSING FUNCTION ABOVE              ##
@@ -872,6 +841,15 @@ class StixFromMISPParser(StixParser):
                     #     self.parse_tlp_marking(ttp.handling)
         self.set_event_fields()
 
+    def parse_galaxy(self, galaxy, feature, default_value):
+        names = self._get_galaxy_name(galaxy, feature)
+        if names:
+            if isinstance(names, list):
+                for name in names:
+                    self.galaxies.update(self._resolve_galaxy(name, default_value))
+            else:
+                self.galaxies.update(self._resolve_galaxy(names, default_value))
+
     def parse_ttp(self, ttp, ttp_type, ttp_id):
         if ttp_type == 'object':
             if ttp.behavior:
@@ -907,6 +885,26 @@ class StixFromMISPParser(StixParser):
     def _parse_threat_actors(self, threat_actors):
         for threat_actor in threat_actors:
             self.parse_galaxy(threat_actor, 'title', 'threat-actor')
+
+    def _parse_ttp(self, ttp):
+        if ttp.behavior:
+            if ttp.behavior.attack_patterns:
+                for attack_pattern in ttp.behavior.attack_patterns:
+                    self.parse_galaxy(attack_pattern, 'title', 'misp-attack-pattern')
+            if ttp.behavior.malware_instances:
+                for malware_instance in ttp.behavior.malware_instances:
+                    if not malware_instance._XSI_TYPE or 'stix-maec' not in malware_instance._XSI_TYPE:
+                        self.parse_galaxy(malware_instance, 'title', 'ransomware')
+        elif ttp.exploit_targets:
+            if ttp.exploit_targets.exploit_target:
+                for exploit_target in ttp.exploit_targets.exploit_target:
+                    if exploit_target.item.vulnerabilities:
+                        for vulnerability in exploit_target.item.vulnerabilities:
+                            self.parse_galaxy(vulnerability, 'title', 'branded-vulnerability')
+        elif ttp.resources:
+            if ttp.resources.tools:
+                for tool in ttp.resources.tools:
+                    self.parse_galaxy(tool, 'name', 'tool')
 
     def parse_vulnerability_object(self, vulnerability, uuid):
         attributes = []
@@ -1309,28 +1307,105 @@ class ExternalStixParser(StixParser):
                             self.references[object_uuid].append({"idref": self.fetch_uuid(related_object.idref),
                                                                  "relationship": relationship})
 
+    def parse_galaxy(self, galaxy, feature, default_value):
+        names = self._get_galaxy_name(galaxy, feature)
+        if names:
+            if isinstance(names, list):
+                galaxies = []
+                for name in names:
+                    galaxies.extend(self._resolve_galaxy(name, default_value))
+                return galaxies
+            return self._resolve_galaxy(names, default_value)
+
     def _parse_threat_actors(self, threat_actors):
         for threat_actor in threat_actors:
             if hasattr(threat_actor, 'title') and threat_actor.title:
-                self.parse_galaxy(threat_actor, 'title', 'threat-actor')
+                self.galaxies.update(self.parse_galaxy(threat_actor, 'title', 'threat-actor'))
             else:
                 if hasattr(threat_actor, 'identity') and threat_actor.identity:
                     identity = threat_actor.identity
                     if hasattr(identity, 'name') and identity.name:
-                        self._resolve_galaxy(identity.name, 'threat-actor')
+                        self.galaxies.update(self._resolve_galaxy(identity.name, 'threat-actor'))
                     elif hasattr(identity, 'specification') and hasattr(identity.specification, 'party_name') and identity.specification.party_name:
                         party_name = identity.specification.party_name
                         if hasattr(party_name, 'person_names') and party_name.person_names:
                             for person_name in party_name.person_names:
-                                self._resolve_galaxy(person_name.name_elements[0].value, 'threat-actor')
+                                self.galaxies.update(self._resolve_galaxy(person_name.name_elements[0].value, 'threat-actor'))
                         elif hasattr(party_name, 'organisation_names') and party_name.organisation_names:
                             for organisation_name in party_name.organisation_names:
-                                self._resolve_galaxy(organisation_name.name_elements[0].value, 'threat-actor')
+                                self.galaxies.update(self._resolve_galaxy(organisation_name.name_elements[0].value, 'threat-actor'))
 
     # Parse the ttps field of an external STIX document
     def parse_ttps(self, ttps):
         for ttp in ttps:
-            self._parse_ttp(ttp)
+            _has_infrastructure = ttp.resources is not None and ttp.resources.infrastructure is not None
+            _has_exploit_target = ttp.exploit_targets is not None and ttp.exploit_targets.exploit_target is not None
+            _has_vulnerability = self._has_vulnerability(ttp.exploit_targets.exploit_target) if _has_exploit_target else False
+            galaxies = self.parse_galaxies_from_ttp(ttp)
+            if _has_infrastructure or _has_vulnerability:
+                attributes = self.parse_attributes_from_ttp(ttp, galaxies)
+                if attributes:
+                    for attribute in attributes:
+                        misp_attribute = MISPAttribute()
+                        misp_attribute.from_dict(**attribute)
+                        for galaxy in galaxies:
+                            misp_attribute.add_tag(galaxy)
+                        self.misp_event.add_attribute(**misp_attribute)
+                    continue
+            self.galaxies.update(galaxies)
+
+    # Parse ttps that could give attributes
+    def parse_attributes_from_ttp(self, ttp, galaxies):
+        attributes = []
+        if ttp.resources and ttp.resources.infrastructure and ttp.resources.infrastructure.observable_characterization:
+            observables = ttp.resources.infrastructure.observable_characterization
+            if observables.observables:
+                for observable in observables.observables:
+                    properties = observable.object_.properties
+                    if properties:
+                        try:
+                            attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
+                        except Exception as e:
+                            print(f'Error with the following {properties._XSI_TYPE} object:\n{observable.to_json()}', file=sys.stderr)
+                            continue
+                        if isinstance(attribute_value, list):
+                            attributes.extend([{'type': attribute_type, 'value': value, 'to_ids': False} for value in attribute_value])
+                        else:
+                            attribute.append({'type': attribute_type, 'value': attribute_value, 'to_ids': False})
+        if ttp.exploit_targets and ttp.exploit_targets.exploit_target:
+            for exploit_target in ttp.exploit_targets.exploit_target:
+                if exploit_target.item.vulnerabilities:
+                    for vulnerability in exploit_target.item.vulnerabilities:
+                        if vulnerability.cve_id:
+                            attributes.append({'type': 'vulnerability', 'value': vulnerability.cve_id})
+                        elif vulnerability.title:
+                            title = vulnerability.title
+                            if title in self.synonyms_to_tag_names:
+                                galaxies.update(self.synonyms_to_tag_names[title])
+                            else:
+                                galaxies.add(f'misp-galaxy:branded-vulnerability="{title}"')
+        if len(attributes) == 1:
+            attributes[0]['uuid'] = '-'.join((part for part in ttp.id_.split('-')[-5:]))
+        return attributes
+
+    # Parse ttps that are always turned into galaxies and return the tag names
+    def parse_galaxies_from_ttp(self, ttp):
+        galaxies = set()
+        if ttp.behavior:
+            if ttp.behavior.attack_patterns:
+                for attack_pattern in ttp.behavior.attack_patterns:
+                    try:
+                        galaxies.update(self.parse_galaxy(attack_pattern, 'title', 'misp-attack-pattern'))
+                    except TypeError:
+                        print(f'No valuable data to parse in the following attack-pattern: {attack_pattern.to_json()}', file=sys.stderr)
+            if ttp.behavior.malware_instances:
+                for malware_instance in ttp.behavior.malware_instances:
+                    galaxies.update(self.parse_galaxy(malware_instance, 'title', 'ransomware'))
+        if ttp.resources:
+            if ttp.resources.tools:
+                for tool in ttp.resources.tools:
+                    galaxies.update(self.parse_galaxy(tool, 'name', 'tool'))
+        return galaxies
 
     # Parse a DNS object
     def resolve_dns_objects(self):
@@ -1369,6 +1444,10 @@ class ExternalStixParser(StixParser):
             attribute['value'] = attribute_value
             self.dns_objects['ip'][uuid] = attribute
             return 2
+
+    @staticmethod
+    def _has_vulnerability(exploit_targets):
+        return any(exploit_target.item.vulnerability is not None for exploit_target in exploit_targets)
 
 
 def _update_namespaces():
