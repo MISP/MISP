@@ -197,8 +197,8 @@ class ShadowAttributesController extends AppController
         if (empty($sa)) {
             return false;
         }
-        // Send those away that shouldn't be able to see this
-        if (!$this->__canModifyEvent($sa)) {
+        // Just auth of proposal or user that can edit event can discard proposal.
+        if (!$this->__canModifyEvent($sa) && $this->Auth->user('email') !== $sa['ShadowAttribute']['email']) {
             return false;
         }
         $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $sa, 'discard');
@@ -208,7 +208,7 @@ class ShadowAttributesController extends AppController
             }
             $logTitle = "Proposal ({$sa['ShadowAttribute']['id']}) of {$sa['ShadowAttribute']['org_id']} discarded - {$sa['ShadowAttribute']['category']}/{$sa['ShadowAttribute']['type']} {$sa['ShadowAttribute']['value']}";
             $this->Log = ClassRegistry::init('Log');
-            $this->Log->createLogEntry($this->Auth->user(), 'discard', 'ShadowAttribute', $id,  $logTitle);
+            $this->Log->createLogEntry($this->Auth->user(), 'discard', 'ShadowAttribute', $id, $logTitle);
             return true;
         }
         return false;
@@ -432,7 +432,7 @@ class ShadowAttributesController extends AppController
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
     }
 
-    public function download($id = null)
+    public function download($id)
     {
         $conditions = $this->ShadowAttribute->buildConditions($this->Auth->user());
         $conditions['ShadowAttribute.id'] = $id;
@@ -440,6 +440,7 @@ class ShadowAttributesController extends AppController
 
         $sa = $this->ShadowAttribute->find('first', array(
             'recursive' => -1,
+            'contain' => ['Event', 'Attribute'], // required because of conditions
             'conditions' => $conditions,
         ));
         if (!$sa) {
@@ -817,7 +818,7 @@ class ShadowAttributesController extends AppController
 
         $sa = $this->ShadowAttribute->find('first', array(
             'recursive' => -1,
-            'contain' => ['Event', 'Attribute'],
+            'contain' => ['Event', 'Attribute'], // required because of conditions
             'fields' => array(
                 'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen',
             ),
