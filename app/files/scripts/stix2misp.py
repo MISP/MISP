@@ -1250,8 +1250,14 @@ class ExternalStixParser(StixParser):
                                 return
                             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                         else:
-                            # otherwise, it is a dictionary of attributes, so we build an object
-                            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True, object_uuid=uuid)
+                            if attribute_value:
+                                if all(isinstance(value, dict) for value in attribute_value):
+                                    # it is a list of attributes, so we build an object
+                                    self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True, object_uuid=object_uuid)
+                                else:
+                                    # it is a list of attribute values, so we add single attributes
+                                    for value in attribute_value:
+                                        self.misp_event.add_attribute(**{'type': attribute_type, 'value': value, 'to_ids': True})
                 except AttributeError:
                     self.parse_description(indicator)
             elif hasattr(observable, 'observable_composition') and observable.observable_composition:
@@ -1289,11 +1295,12 @@ class ExternalStixParser(StixParser):
                         continue
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
-                    # otherwise, it is a dictionary of attributes, so we build an object
                     if attribute_value:
                         if all(isinstance(value, dict) for value in attribute_value):
+                            # it is a list of attributes, so we build an object
                             self.handle_object_case(attribute_type, attribute_value, compl_data, object_uuid=object_uuid)
                         else:
+                            # it is a list of attribute values, so we add single attributes
                             for value in attribute_value:
                                 self.misp_event.add_attribute(**{'type': attribute_type, 'value': value, 'to_ids': False})
                     if observable_object.related_objects:
