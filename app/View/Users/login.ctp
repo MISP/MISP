@@ -1,3 +1,7 @@
+<?php
+    App::uses('RandomTool', 'Tools');
+    $randomString = (new RandomTool())->random_str(false, 12);
+?>
 <div style="width:100%;">
     <?php
         echo $this->Session->flash('auth');
@@ -32,7 +36,7 @@
                 </div>
         <?php
             endif;
-            echo $this->Form->create('User');
+            echo $this->Form->create('User', ['id' => 'UserLoginForm_' . $randomString]);
         ?>
         <legend><?php echo __('Login');?></legend>
         <?php
@@ -73,7 +77,7 @@ $(document).ready(function() {
 })
 
 function submitLoginForm() {
-    var $form = $('#UserLoginForm')
+    var $form = $('#UserLoginForm_<?= $randomString ?>')
     var url = $form.attr('action')
     var email = $form.find('#UserEmail').val()
     var password = $form.find('#UserPassword').val()
