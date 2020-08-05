@@ -1,32 +1,35 @@
-<div style="margin-bottom: 10px;">
-    <button id="cancelEditButton" type="button" class="btn btn-inverse" onclick="toggleEditor()">
-        <i class="<?= $this->FontAwesome->getClass('times') ?> fa-times"></i>
-        <?= __('Cancel Edit') ?>
-    </button>
-    <button id="toggleEditButton" type="button" class="btn btn-inverse" onclick="toggleEditor()">
-        <i class="<?= $this->FontAwesome->getClass('edit') ?> fa-edit"></i>
-        <?= __('Edit') ?>
-    </button>
-    <button id="saveMarkdownButton" type="button" class="btn btn-primary" onclick="saveMarkdown()" disabled>
-        <i class="<?= $this->FontAwesome->getClass('edit') ?> fa-edit"></i>
-        <?= __('Save') ?>
-    </button>
+<div id="mardown-viewer-toolbar" class="btn-toolbar">
+    <div class="btn-group">
+        <button type="button" class="btn" data-togglemode="editor" onclick="setMode('editor')">
+            <i class="<?= $this->FontAwesome->getClass('edit') ?> fa-edit"></i>
+            <?= __('Edit') ?>
+        </button>
+        <button type="button" class="btn" data-togglemode="splitscreen" onclick="setMode('splitscreen')">
+            <i class="<?= $this->FontAwesome->getClass('columns') ?> fa-columns"></i>
+            <?= __('Split Screen') ?>
+        </button>
+        <button type="button" class="btn btn-inverse" data-togglemode="viewer" onclick="setMode('viewer')">
+            <i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i>
+            <?= __('Markdown') ?>
+        </button>
+        <button type="button" class="btn" data-togglemode="raw" onclick="setMode('raw')">
+            <i class="<?= $this->FontAwesome->getClass('code') ?> fa-code"></i>
+            <?= __('Raw') ?>
+        </button>
+    </div>
+    <div class="btn-group">
+        <button id="saveMarkdownButton" type="button" class="btn btn-success" onclick="saveMarkdown()">
+            <i class="<?= $this->FontAwesome->getClass('save') ?> fa-save"></i>
+            <?= __('Save') ?>
+        </button>
+    </div>
 </div>
-<!-- <div id="raw">
-    <pre><?php echo h($markdown) ?></pre>
-</div> -->
-<div class="editorMode-container">
-    <a id="linkSplitEdit" class="useCursorPointer bold link-not-active">
-        <i class="<?= $this->FontAwesome->getClass('columns') ?> fa-columns"></i>
-        <?= __('Toggle Split Edit') ?>
-    </a>
-    <a id="linkMonoEdit" class="useCursorPointer">
-        <i class="<?= $this->FontAwesome->getClass('window-maximize') ?> fa-window-maximize"></i>
-        <?= __('Toggle Split Edit') ?>
-    </a>
+
+<div class="raw-container">
+    <pre id="raw"><?php echo h($markdown) ?></pre>
 </div>
 <div class="split-container">
-    <div id="editor-container" style="display: flex;">
+    <div id="editor-container">
         <textarea id="editor"></textarea>
     </div>
     <div id="viewer-container">
@@ -39,47 +42,54 @@
 
 <?php
     echo $this->element('genericElements/assetLoader', array(
-        'js' => array('markdown-it', 'highlight.min', 'codemirror/codemirror', 'codemirror/modes/markdown'),
-        'css' => array('highlight.min', 'codemirror')
+        'js' => array(
+            'markdown-it',
+            'highlight.min',
+            'codemirror/codemirror',
+            'codemirror/modes/markdown',
+            'codemirror/addons/panel',
+            'codemirror/addons/simplescrollbars',
+        ),
+        'css' => array(
+            'highlight.min',
+            'codemirror',
+            'codemirror/simplescrollbars'
+        )
     ));
 ?>
 <script>
     'use strict';
     var md, cm;
+    var panels = [];
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
     var modelName = '<?= h($modelName) ?>';
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
-    var renderTimer;
     var renderDelay = 50;
+    var renderTimer;
+    var $editorContainer, $rawContainer, $viewerContainer
+    var $editor, $viewer, $raw
+    var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
-    var $editorContainer, $editor, $viewer, $viewerContainer, $saveMarkdownButton, $linkSplitEdit, $linkMonoEdit, $cancelEditButton, $toggleEditButton
-    var editTurnedOn = false
+
+    var contentChanged = false
+    var defaultMode = 'viewer'
+    var currentMode
     var splitEdit = true
     $(document).ready(function() {
         $editorContainer = $('#editor-container')
+        $viewerContainer = $('#viewer-container')
+        $rawContainer = $('div.raw-container')
         $editor = $('#editor')
         $viewer = $('#viewer')
-        $viewerContainer = $('#viewer-container')
+        $raw = $('#raw')
+        $mardownViewerToolbar = $('#mardown-viewer-toolbar')
         $saveMarkdownButton = $('#saveMarkdownButton')
-        $cancelEditButton = $('#cancelEditButton')
-        $toggleEditButton = $('#toggleEditButton')
-        $linkSplitEdit = $('#linkSplitEdit')
-        $linkMonoEdit = $('#linkMonoEdit')
 
-        // $editorContainer.hide();
-        $saveMarkdownButton.hide();
-        $linkSplitEdit.hide();
-        $linkMonoEdit.hide();
-        $cancelEditButton.hide();
-        setEditorData(originalRaw);
         initMarkdownIt()
+        initCodeMirror()
+        setMode(defaultMode)
+        setEditorData(originalRaw);
 
-        $linkSplitEdit.add($linkMonoEdit).click(function() {
-            toggleSplitEdit()
-        })
-        $editor.on('input', function() {
-            doRender();
-        })
         renderMarkdown()
     })
 
@@ -99,46 +109,86 @@
         md.renderer.rules.table_open = function () {
             return '<table class="table table-striped">\n';
         };
+    }
 
+    function initCodeMirror() {
         var cmOptions = {
             mode: 'markdown',
-            theme: "default",
+            theme:'default',
             lineNumbers: true,
             indentUnit: 4,
             showCursorWhenSelecting: true,
+            lineWrapping: true,
+            scrollbarStyle: 'overlay',
         }
         cm = CodeMirror.fromTextArea($editor[0], cmOptions);
-    }
-    
-    function toggleEditor() {
-        $editorContainer.toggle()
-        $saveMarkdownButton.toggle()
-        $linkSplitEdit.toggle()
-        $linkMonoEdit.toggle()
-        $cancelEditButton.toggle()
-        $toggleEditButton.toggle()
-        editTurnedOn = !editTurnedOn
-        setEditorData(originalRaw)
-        renderMarkdown()
+        cm.on('changes', function() {
+            doRender();
+        })
+
+        panels.push(cm.addPanel(makePanelTop(), {
+            position: 'top',
+            stable: true
+        }))
+        panels.push(cm.addPanel(makePanelBottom(), {
+            position: 'bottom',
+        }))
     }
 
-    function toggleSplitEdit() {
-        splitEdit = !splitEdit
-        $linkSplitEdit.toggleClass('link-not-active')
-        $linkMonoEdit.toggleClass('link-not-active')
-        if (splitEdit) {
+    function makePanelTop() {
+        var node = document.createElement("div");
+        var widget, label;
+        node.className = "panel " + "top";
+        label = node.appendChild(document.createElement("span"));
+        label.textContent = "I'm the top panel";
+        return node;
+    }
+
+    function makePanelBottom() {
+        var node = document.createElement("div");
+        var widget, label;
+        node.className = "panel " + "top";
+        label = node.appendChild(document.createElement("span"));
+        label.textContent = "I'm the bottom panel";
+        return node;
+    }
+
+    function hideAll() {
+        $rawContainer.hide()
+        $editorContainer.hide()
+        $viewerContainer.hide()
+    }
+
+    function setMode(mode) {
+        currentMode = mode
+        $mardownViewerToolbar.find('button').removeClass('btn-inverse')
+        $mardownViewerToolbar.find('button[data-togglemode="' + mode + '"]').addClass('btn-inverse')
+        hideAll()
+        if (mode == 'raw') {
+            $rawContainer.show()
+        }
+        if (mode == 'viewer' || mode == 'splitscreen') {
             $viewerContainer.show()
-        } else {
-            $viewerContainer.hide()
+        }
+        if (mode == 'editor' || mode == 'splitscreen') {
+            $editorContainer.show({
+                duration: 0,
+                complete: function() {
+                    cm.refresh()
+                    panels.forEach(function(panel) {
+                        panel.changed()
+                    })
+                }
+            })
         }
     }
 
     function getEditorData() {
-        return $editor.val()
+        return cm.getValue()
     }
 
     function setEditorData(data) {
-        $editor.val(data)
+        cm.setValue(data)
     }
 
     function saveMarkdown() {
@@ -185,7 +235,6 @@
     function doRender() {
         clearTimeout(renderTimer);
         renderTimer = setTimeout(function() {
-            $saveMarkdownButton.prop('disabled', false);
             renderMarkdown();
         }, renderDelay);
     }
@@ -202,15 +251,7 @@
 .split-container > div {
     flex-grow: 1;
     margin-left: 10px;
-    min-width: 50%;
-}
-
-.editorMode-container {
-    margin-left: 10px;
-}
-
-.editorMode-container > a {
-    margin: 2px 5px;
+    min-width: calc(50% - 10px);
 }
 
 #editor {
@@ -229,6 +270,14 @@
     padding: 7px;
     box-shadow: 3px 3px 3px 0px rgba(0,0,0,0.75);
     border: 1px solid;
+}
+
+#editor-container {
+    display: flex;
+}
+
+#editor-container > div {
+    width: 100%;
 }
 
 .link-not-active {
