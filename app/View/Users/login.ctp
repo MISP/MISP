@@ -1,7 +1,3 @@
-<?php
-    App::uses('RandomTool', 'Tools');
-    $randomString = (new RandomTool())->random_str(false, 12);
-?>
 <div style="width:100%;">
     <?php
         echo $this->Session->flash('auth');
@@ -36,7 +32,7 @@
                 </div>
         <?php
             endif;
-            echo $this->Form->create('User', ['id' => 'UserLoginForm_' . $randomString]);
+            echo $this->Form->create('User');
         ?>
         <legend><?php echo __('Login');?></legend>
         <?php
@@ -53,7 +49,7 @@
                 );
             ?>
             </div>
-            <button class="btn btn-primary" type="submit" onclick="submitLoginForm()"><?= __('Login') ?></button>
+            <?= $this->Form->button(__('Login'), array('class' => 'btn btn-primary')); ?>
         <?php
             echo $this->Form->end();
             if (Configure::read('ApacheShibbAuth') == true) {
@@ -77,15 +73,16 @@ $(document).ready(function() {
 })
 
 function submitLoginForm() {
-    var $form = $('#UserLoginForm_<?= $randomString ?>')
+    var $form = $('#UserLoginForm')
     var url = $form.attr('action')
     var email = $form.find('#UserEmail').val()
     var password = $form.find('#UserPassword').val()
     if (!$form[0].checkValidity()) {
         $form[0].reportValidity()
     } else {
-        fetchFormDataAjax(url, function(formHTML) {
-            $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
+        fetchFormDataAjax(url, function(html) {
+            var formHTML = $(html).find('form')
+            $('body').append($('<div id="temp" style="display: none"/>').append(formHTML))
             var $tmpForm = $('#temp form')
             $tmpForm.find('#UserEmail').val(email)
             $tmpForm.find('#UserPassword').val(password)
