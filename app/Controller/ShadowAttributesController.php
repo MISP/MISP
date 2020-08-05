@@ -432,7 +432,7 @@ class ShadowAttributesController extends AppController
         $this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
     }
 
-    public function download($id = null)
+    public function download($id)
     {
         $conditions = $this->ShadowAttribute->buildConditions($this->Auth->user());
         $conditions['ShadowAttribute.id'] = $id;
@@ -440,6 +440,7 @@ class ShadowAttributesController extends AppController
 
         $sa = $this->ShadowAttribute->find('first', array(
             'recursive' => -1,
+            'contain' => ['Event', 'Attribute'], // required because of conditions
             'conditions' => $conditions,
         ));
         if (!$sa) {
@@ -817,7 +818,7 @@ class ShadowAttributesController extends AppController
 
         $sa = $this->ShadowAttribute->find('first', array(
             'recursive' => -1,
-            'contain' => ['Event', 'Attribute'],
+            'contain' => ['Event', 'Attribute'], // required because of conditions
             'fields' => array(
                 'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen',
             ),
