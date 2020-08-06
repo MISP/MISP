@@ -4,6 +4,9 @@ App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
+/**
+ * @property Event $Event
+ */
 class ShadowAttribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
@@ -757,19 +760,20 @@ class ShadowAttribute extends AppModel
                 $objectDistribution['(SELECT sharing_group_id FROM objects WHERE objects.id = Attribute.object_id)'] = $sgids;
                 $attributeDistribution['Attribute.sharing_group_id'] = $sgids;
             }
+            $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions = array(
                 'AND' => array(
                     'OR' => array(
                         'Event.org_id' => $user['org_id'],
-                        'AND' => array(
-                            'OR' => array(
-                                'Event.distribution' => array(1,2,3,5),
-                                'AND '=> array(
-                                    'Event.distribution' => 4,
-                                    'Event.sharing_group_id' => $sgids,
-                                )
-                            )
-                        )
+                        ['AND' => [
+                            'Event.distribution' => array(1,2,3,5),
+                            $unpublishedPrivate ? ['Event.published' => 1] : [],
+                        ]],
+                        ['AND' => [
+                            'Event.distribution' => 4,
+                            'Event.sharing_group_id' => $sgids,
+                            $unpublishedPrivate ? ['Event.published' => 1] : [],
+                        ]],
                     ),
                     array(
                         'OR' => array(

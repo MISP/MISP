@@ -319,6 +319,7 @@ function submitGenericForm(url, form, target) {
         complete:function() {
             $(".loading").hide();
         },
+        error: xhrFailCallback,
         type:"post",
         cache: false,
         url:url,
