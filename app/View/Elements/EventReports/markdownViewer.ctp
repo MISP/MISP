@@ -30,13 +30,17 @@
 </div>
 <div class="split-container">
     <div id="editor-container">
-        <textarea id="editor"></textarea>
+        <div id="editor-subcontainer">
+            <textarea id="editor"></textarea>
+            <div id="bottom-bar">
+                <span id="lastModifiedField">
+                    <?= isset($lastModified) ? h($lastModified) : '' ?>
+                </span>
+            </div>
+        </div>
         <div id="resizable-handle" class="ui-resizable-handle ui-resizable-e"></div>
     </div>
     <div id="viewer-container">
-        <div id="lastModifiedField">
-            <?= isset($lastModified) ? h($lastModified) : '' ?>
-        </div>
         <div id="viewer"></div>
     </div>
 </div>
@@ -48,20 +52,18 @@
             'highlight.min',
             'codemirror/codemirror',
             'codemirror/modes/markdown',
-            'codemirror/addons/panel',
             'codemirror/addons/simplescrollbars',
         ),
         'css' => array(
             'highlight.min',
             'codemirror',
-            'codemirror/simplescrollbars'
+            'codemirror/simplescrollbars',
         )
     ));
 ?>
 <script>
     'use strict';
     var md, cm;
-    var panels = [];
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
     var modelName = '<?= h($modelName) ?>';
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
@@ -132,37 +134,16 @@
             showCursorWhenSelecting: true,
             lineWrapping: true,
             scrollbarStyle: 'overlay',
+            extraKeys: {
+                "Esc": function(cm) {
+                    console.log('<esc>')
+                }
+            }
         }
         cm = CodeMirror.fromTextArea($editor[0], cmOptions);
         cm.on('changes', function() {
             doRender();
         })
-
-        panels.push(cm.addPanel(makePanelTop(), {
-            position: 'top',
-            stable: true
-        }))
-        panels.push(cm.addPanel(makePanelBottom(), {
-            position: 'bottom',
-        }))
-    }
-
-    function makePanelTop() {
-        var node = document.createElement("div");
-        var widget, label;
-        node.className = "panel " + "top";
-        label = node.appendChild(document.createElement("span"));
-        label.textContent = "I'm the top panel";
-        return node;
-    }
-
-    function makePanelBottom() {
-        var node = document.createElement("div");
-        var widget, label;
-        node.className = "panel " + "top";
-        label = node.appendChild(document.createElement("span"));
-        label.textContent = "I'm the bottom panel";
-        return node;
     }
 
     function hideAll() {
@@ -188,9 +169,6 @@
                 duration: 0,
                 complete: function() {
                     cm.refresh()
-                    panels.forEach(function(panel) {
-                        panel.changed()
-                    })
                 }
             })
             if (mode != 'splitscreen') {
@@ -261,37 +239,49 @@
 <style> 
 .split-container {
     display: flex;
-    border: 1px solid #ccc;
     overflow: hidden;
-    max-height: 1000px;
     min-height: 700px;
+}
+
+.modal-body-xl .split-container {
+    max-height: calc(70vh - 50px)
 }
 
 .split-container > div {
 }
 
 .split-container > #editor-container, .split-container > #viewer-container {
-    margin-left: 10px;
+    max-height: 890px;
 }
 
 
 #viewer-container {
+    margin-left: 10px;
     display: flex;
     justify-content: center;
     min-width: 600px;
     padding: 7px;
     overflow-y: auto;
     flex-grow: 1;
+    border-left: 1px solid #00000010;
 }
 
 #editor-container {
+    border: 1px solid #ccc;
+    /* max-height: 890px; */
+    width: 50%;
     min-width: 300px;
     position: relative;
     display: flex;
 }
 
+
 #editor {
     flex-grow: 1;
+    min-height: 500px;
+    width: 100%;
+    border-radius: 0;
+    resize: vertical;
 }
 
 #viewer {
@@ -311,11 +301,19 @@
     right: -7px;
 }
 
-#editor {
-    min-height: 500px;
-    width: 100%;
-    border-radius: 0;
-    resize: vertical;
+#editor-subcontainer {
+    display: flex;
+    flex-direction: column;
+}
+
+#editor-subcontainer > div:not(#bottom-bar) {
+    flex-grow: 1;
+}
+
+#bottom-bar {
+    display: none;
+    height: 2em;
+    width: 100%
 }
 
 .cm-s-default {
