@@ -8,6 +8,9 @@ App::uses('RandomTool', 'Tools');
 App::uses('MalwareTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 
+/**
+ * @property Event $Event
+ */
 class Attribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
