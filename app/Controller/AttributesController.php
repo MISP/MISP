@@ -135,7 +135,7 @@ class AttributesController extends AppController
             if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
                 $sg = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1, $this->request->data['Attribute']['sharing_group_id']);
                 if (empty($sg)) {
-                    throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised.'));
+                    throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
             }
             //
@@ -726,7 +726,6 @@ class AttributesController extends AppController
         $this->set('published', $events['Event']['published']);
     }
 
-
     public function edit($id = null)
     {
         if ($this->request->is('get') && $this->_isRest()) {
@@ -768,7 +767,7 @@ class AttributesController extends AppController
             if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
                 $sg = $this->Attribute->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1, $this->request->data['Attribute']['sharing_group_id']);
                 if (empty($sg)) {
-                    throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised.'));
+                    throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
             }
             $existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
@@ -1270,18 +1269,21 @@ class AttributesController extends AppController
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
         }
-        if (!$this->_isSiteAdmin()) {
-            if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
-                throw new MethodNotAllowedException(__('You are not authorized to edit this event.'));
-            }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You are not authorized to edit this event.'));
         }
         $selectedAttributeIds = $this->Attribute->jsonDecode($this->request->data['selected_ids']);
         if (empty($selectedAttributeIds)) {
             throw new MethodNotAllowedException(__('No attributes selected'));
         }
 
+        $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), [
+            'conditions' => ['Attribute.id' => $selectedAttributeIds, 'Attribute.event_id' => $event['Event']['id']],
+            'flatten' => true,
+        ]);
+
         // tags to remove
-        $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $eventId, $selectedAttributeIds);
+        $tags = $this->Attribute->AttributeTag->getAttributesTags($attributes);
         $tagItemsRemove = array();
         foreach ($tags as $k => $tag) {
             $tagName = $tag['name'];
@@ -1301,12 +1303,12 @@ class AttributesController extends AppController
         unset($tags);
 
         // clusters to remove
-        $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $eventId, $selectedAttributeIds);
+        $clusters = $this->Attribute->AttributeTag->getAttributesClusters($attributes);
         $clusterItemsRemove = array();
         foreach ($clusters as $k => $cluster) {
             $name = $cluster['value'];
             $optionName = $cluster['value'];
-            $synom = $cluster['synonyms_string'] !== '' ? sprintf(' (%s)', $cluster['synonyms_string']) : '';
+            $synom = $cluster['synonyms_string'] !== '' ? " ({$cluster['synonyms_string']})" : '';
             $optionName .= $synom;
 
             $temp = array(
@@ -1341,7 +1343,7 @@ class AttributesController extends AppController
 
         $tags = $this->Attribute->AttributeTag->Tag->fetchUsableTags($this->Auth->user());
         $tagItemsAdd = array();
-        foreach ($tags as $k => $tag) {
+        foreach ($tags as $tag) {
             $tagName = $tag['Tag']['name'];
             if (isset($clusters[$tagName])) {
                 continue; // skip galaxy cluster tags
@@ -1387,123 +1389,132 @@ class AttributesController extends AppController
 
     public function editSelected($id)
     {
-        if ($this->request->is('post')) {
-            $event = $this->Attribute->Event->find('first', array(
-                'conditions' => array('id' => $id),
-                'recursive' => -1,
-                'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
-            ));
-            if (!$this->_isSiteAdmin()) {
-                if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
-                    throw new MethodNotAllowedException(__('You are not authorized to edit this event.'));
-                }
-            }
-            $attribute_ids = $this->Attribute->jsonDecode($this->request->data['Attribute']['attribute_ids']);
-            $attributes = $this->Attribute->find('all', array(
-                'conditions' => array(
-                    'id' => $attribute_ids,
-                    'event_id' => $id,
-                ),
-                'recursive' => -1,
-            ));
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This method can only be accessed via POST.'));
+        }
 
-            $tags_ids_remove = json_decode($this->request->data['Attribute']['tags_ids_remove']);
-            $tags_ids_add = json_decode($this->request->data['Attribute']['tags_ids_add']);
-            $clusters_ids_remove = json_decode($this->request->data['Attribute']['clusters_ids_remove']);
-            $clusters_ids_add = json_decode($this->request->data['Attribute']['clusters_ids_add']);
-            $changeInTagOrCluster = ($tags_ids_remove !== null && count($tags_ids_remove) > 0)
-                || ($tags_ids_add === null || count($tags_ids_add) > 0)
-                || ($clusters_ids_remove === null || count($clusters_ids_remove) > 0)
-                || ($clusters_ids_add === null || count($clusters_ids_add) > 0);
+        $event = $this->Attribute->Event->find('first', array(
+            'conditions' => array('id' => $id),
+            'recursive' => -1,
+            'fields' => array('id', 'orgc_id', 'org_id', 'user_id', 'published', 'timestamp', 'info', 'uuid')
+        ));
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You are not authorized to edit this event.'));
+        }
+        $attribute_ids = $this->Attribute->jsonDecode($this->request->data['Attribute']['attribute_ids']);
+        $attributes = $this->Attribute->find('all', array(
+            'conditions' => array(
+                'id' => $attribute_ids,
+                'event_id' => $id,
+            ),
+            'recursive' => -1,
+        ));
 
-            $changeInAttribute = ($this->request->data['Attribute']['to_ids'] != 2) || ($this->request->data['Attribute']['distribution'] != 6) || ($this->request->data['Attribute']['comment'] != null);
+        $tags_ids_remove = json_decode($this->request->data['Attribute']['tags_ids_remove']);
+        $tags_ids_add = json_decode($this->request->data['Attribute']['tags_ids_add']);
+        $clusters_ids_remove = json_decode($this->request->data['Attribute']['clusters_ids_remove']);
+        $clusters_ids_add = json_decode($this->request->data['Attribute']['clusters_ids_add']);
+        $changeInTagOrCluster = ($tags_ids_remove !== null && count($tags_ids_remove) > 0)
+            || ($tags_ids_add === null || count($tags_ids_add) > 0)
+            || ($clusters_ids_remove === null || count($clusters_ids_remove) > 0)
+            || ($clusters_ids_add === null || count($clusters_ids_add) > 0);
 
-            if (!$changeInAttribute && !$changeInTagOrCluster) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
-            }
+        $changeInAttribute = ($this->request->data['Attribute']['to_ids'] != 2) || ($this->request->data['Attribute']['distribution'] != 6) || ($this->request->data['Attribute']['comment'] != null);
 
-            if ($this->request->data['Attribute']['to_ids'] != 2) {
-                foreach ($attributes as $key => $attribute) {
-                    $attributes[$key]['Attribute']['to_ids'] = $this->request->data['Attribute']['to_ids'] == 0 ? false : true;
-                }
-            }
-
-            if ($this->request->data['Attribute']['distribution'] != 6) {
-                foreach ($attributes as $key => $attribute) {
-                    $attributes[$key]['Attribute']['distribution'] = $this->request->data['Attribute']['distribution'];
-                }
-                if ($this->request->data['Attribute']['distribution'] == 4) {
-                    foreach ($attributes as $key => $attribute) {
-                        $attributes[$key]['Attribute']['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
-                    }
-                } else {
-                    foreach ($attributes as $key => $attribute) {
-                        $attributes[$key]['Attribute']['sharing_group_id'] = 0;
-                    }
-                }
-            }
-
-            if ($this->request->data['Attribute']['comment'] != null) {
-                foreach ($attributes as $key => $attribute) {
-                    $attributes[$key]['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
-                }
-            }
-
-            $date = new DateTime();
-            $timestamp = $date->getTimestamp();
-            foreach ($attributes as $key => $attribute) {
-                $attributes[$key]['Attribute']['timestamp'] = $timestamp;
-            }
-
-            if ($changeInAttribute) {
-                if ($this->request->data['Attribute']['is_proposal']) { // create ShadowAttributes instead
-                    $shadowAttributes = array();
-                    foreach ($attributes as $attribute) {
-                        $shadowAttribute['ShadowAttribute'] = $attribute['Attribute'];
-                        unset($shadowAttribute['ShadowAttribute']['id']);
-                        $shadowAttribute['ShadowAttribute']['email'] = $this->Auth->user('email');
-                        $shadowAttribute['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
-                        $shadowAttribute['ShadowAttribute']['event_uuid'] = $event['Event']['uuid'];
-                        $shadowAttribute['ShadowAttribute']['event_org_id'] = $event['Event']['org_id'];
-                        $shadowAttribute['ShadowAttribute']['old_id'] = $attribute['Attribute']['id'];
-                        $shadowAttributes[] = $shadowAttribute;
-                    }
-                    $saveSuccess = $this->Attribute->ShadowAttribute->saveMany($shadowAttributes);
-                } else {
-                    $saveSuccess = $this->Attribute->saveMany($attributes);
-                }
-                if ($saveSuccess) {
-                    if (!$this->_isRest()) {
-                        $this->Attribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
-                    }
-                    $event['Event']['timestamp'] = $timestamp;
-                    $event['Event']['published'] = 0;
-                    $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'id')));
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
-                } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
-                }
-            }
-
-            // apply changes in tag/cluster
-            foreach ($attributes as $key => $attribute) {
-                foreach ($tags_ids_remove as $tag_id) {
-                    $this->removeTag($attributes[$key]['Attribute']['id'], $tag_id);
-                }
-                foreach ($tags_ids_add as $tag_id) {
-                    $this->addTag($attributes[$key]['Attribute']['id'], $tag_id);
-                }
-                $this->Galaxy = ClassRegistry::init('Galaxy');
-                foreach ($clusters_ids_remove as $cluster_id) {
-                    $this->Galaxy->detachCluster($this->Auth->user(), 'attribute', $attributes[$key]['Attribute']['id'], $cluster_id);
-                }
-                foreach ($clusters_ids_add as $cluster_id) {
-                    $this->Galaxy->attachCluster($this->Auth->user(), 'attribute', $attributes[$key]['Attribute']['id'], $cluster_id);
-                }
-            }
-
+        if (!$changeInAttribute && !$changeInTagOrCluster) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
         }
+
+        if ($this->request->data['Attribute']['to_ids'] != 2) {
+            foreach ($attributes as $key => $attribute) {
+                $attributes[$key]['Attribute']['to_ids'] = $this->request->data['Attribute']['to_ids'] == 0 ? false : true;
+            }
+        }
+
+        if ($this->request->data['Attribute']['distribution'] != 6) {
+            foreach ($attributes as $key => $attribute) {
+                $attributes[$key]['Attribute']['distribution'] = $this->request->data['Attribute']['distribution'];
+            }
+            if ($this->request->data['Attribute']['distribution'] == 4) {
+                $sharingGroupId = $this->request->data['Attribute']['sharing_group_id'];
+                $sg = $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true, $sharingGroupId);
+                if (empty($sg)) {
+                    throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
+                }
+
+                foreach ($attributes as $key => $attribute) {
+                    $attributes[$key]['Attribute']['sharing_group_id'] = $sharingGroupId;
+                }
+            } else {
+                foreach ($attributes as $key => $attribute) {
+                    $attributes[$key]['Attribute']['sharing_group_id'] = 0;
+                }
+            }
+        }
+
+        if ($this->request->data['Attribute']['comment'] != null) {
+            foreach ($attributes as $key => $attribute) {
+                $attributes[$key]['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
+            }
+        }
+
+        $date = new DateTime();
+        $timestamp = $date->getTimestamp();
+        foreach ($attributes as $key => $attribute) {
+            $attributes[$key]['Attribute']['timestamp'] = $timestamp;
+        }
+
+        if ($changeInAttribute) {
+            if ($this->request->data['Attribute']['is_proposal']) { // create ShadowAttributes instead
+                $shadowAttributes = array();
+                foreach ($attributes as $attribute) {
+                    $shadowAttribute['ShadowAttribute'] = $attribute['Attribute'];
+                    unset($shadowAttribute['ShadowAttribute']['id']);
+                    $shadowAttribute['ShadowAttribute']['email'] = $this->Auth->user('email');
+                    $shadowAttribute['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
+                    $shadowAttribute['ShadowAttribute']['event_uuid'] = $event['Event']['uuid'];
+                    $shadowAttribute['ShadowAttribute']['event_org_id'] = $event['Event']['org_id'];
+                    $shadowAttribute['ShadowAttribute']['old_id'] = $attribute['Attribute']['id'];
+                    $shadowAttributes[] = $shadowAttribute;
+                }
+                $saveSuccess = $this->Attribute->ShadowAttribute->saveMany($shadowAttributes);
+            } else {
+                $saveSuccess = $this->Attribute->saveMany($attributes);
+            }
+            if ($saveSuccess) {
+                if (!$this->_isRest()) {
+                    $this->Attribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+                }
+                $event['Event']['timestamp'] = $timestamp;
+                $event['Event']['published'] = 0;
+                $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'id')));
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+            } else {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
+            }
+        }
+
+        // apply changes in tag/cluster
+        foreach ($attributes as $key => $attribute) {
+            foreach ($tags_ids_remove as $tag_id) {
+                $this->removeTag($attributes[$key]['Attribute']['id'], $tag_id);
+            }
+            foreach ($tags_ids_add as $tag_id) {
+                $this->addTag($attributes[$key]['Attribute']['id'], $tag_id);
+            }
+            $this->Galaxy = ClassRegistry::init('Galaxy');
+            foreach ($clusters_ids_remove as $cluster_id) {
+                $this->Galaxy->detachCluster($this->Auth->user(), 'attribute', $attributes[$key]['Attribute']['id'], $cluster_id);
+            }
+            foreach ($clusters_ids_add as $cluster_id) {
+                $this->Galaxy->attachCluster($this->Auth->user(), 'attribute', $attributes[$key]['Attribute']['id'], $cluster_id);
+            }
+        }
+
+        return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
     }
 
     public function search($continue = false)

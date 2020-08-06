@@ -163,16 +163,15 @@ class Tag extends AppModel
         }
     }
 
-    public function fetchUsableTags($user)
+    public function fetchUsableTags(array $user)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $conditions['Tag.org_id'] = array(0, $this->Auth->user('org_id'));
-            $conditions['Tag.user_id'] = array(0, $this->Auth->user('id'));
+            $conditions['Tag.org_id'] = array(0, $user['User']['org_id']);
+            $conditions['Tag.user_id'] = array(0, $user['User']['id']);
             $conditions['Tag.hide_tag'] = 0;
         }
-        $tags = $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
-        return $tags;
+        return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
     }
 
     // find all of the tag ids that belong to the accepted tag names and the rejected tag names
