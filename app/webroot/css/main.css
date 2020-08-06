@@ -942,6 +942,10 @@ a.proposal_link_red:hover {
     max-height: 600px;
 }
 
+.modal-body-xl {
+    max-height: 70vh;
+}
+
 .ajax_popover_form {
     display:none;
     width: 700px;

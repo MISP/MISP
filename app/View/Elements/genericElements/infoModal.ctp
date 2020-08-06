@@ -32,7 +32,8 @@
                 h($data['title'])
         ),
         sprintf(
-            '<div class="modal-body modal-body-long">%s</div>',
+            '<div class="modal-body modal-body-%s">%s</div>',
+            isset($type) ? $type : 'long',
             $contents
         ),
         sprintf(
