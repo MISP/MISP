@@ -31,6 +31,7 @@
 <div class="split-container">
     <div id="editor-container">
         <textarea id="editor"></textarea>
+        <div id="resizable-handle" class="ui-resizable-handle ui-resizable-e"></div>
     </div>
     <div id="viewer-container">
         <div id="lastModifiedField">
@@ -66,7 +67,7 @@
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
     var renderDelay = 50;
     var renderTimer;
-    var $editorContainer, $rawContainer, $viewerContainer
+    var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle
     var $editor, $viewer, $raw
     var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
@@ -76,9 +77,11 @@
     var currentMode
     var splitEdit = true
     $(document).ready(function() {
+        $splitContainer = $('.split-container')
         $editorContainer = $('#editor-container')
         $viewerContainer = $('#viewer-container')
         $rawContainer = $('div.raw-container')
+        $resizableHandle = $('#resizable-handle')
         $editor = $('#editor')
         $viewer = $('#viewer')
         $raw = $('#raw')
@@ -90,6 +93,15 @@
         setMode(defaultMode)
         setEditorData(originalRaw);
 
+        $editorContainer.resizable({
+            handles: {
+                e: $resizableHandle
+            },
+            minWidth: 300,
+            stop: function() {
+                cm.refresh()
+            }
+        })
         renderMarkdown()
     })
 
@@ -164,6 +176,7 @@
         $mardownViewerToolbar.find('button').removeClass('btn-inverse')
         $mardownViewerToolbar.find('button[data-togglemode="' + mode + '"]').addClass('btn-inverse')
         hideAll()
+        $editorContainer.css('width', '');
         if (mode == 'raw') {
             $rawContainer.show()
         }
@@ -180,6 +193,9 @@
                     })
                 }
             })
+            if (mode != 'splitscreen') {
+                $editorContainer.css('width', '100%');
+            }
         }
     }
 
@@ -245,13 +261,54 @@
 <style> 
 .split-container {
     display: flex;
-    justify-content: center;
+    border: 1px solid #ccc;
+    overflow: hidden;
+    max-height: 1000px;
+    min-height: 700px;
 }
 
 .split-container > div {
-    flex-grow: 1;
+}
+
+.split-container > #editor-container, .split-container > #viewer-container {
     margin-left: 10px;
-    min-width: calc(50% - 10px);
+}
+
+
+#viewer-container {
+    display: flex;
+    justify-content: center;
+    min-width: 600px;
+    padding: 7px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+#editor-container {
+    min-width: 300px;
+    position: relative;
+    display: flex;
+}
+
+#editor {
+    flex-grow: 1;
+}
+
+#viewer {
+    width: 100%;
+    max-width: 1200px;
+}
+
+#editor-container > div:not(.ui-resizable-handle) {
+    width: 100%;
+}
+
+.split-container .ui-resizable-handle {
+    box-shadow: 4px 0 6px #eee;
+    width: 7px;
+    border-left: 1px solid #e0e0e0e0;
+    position: absolute;
+    right: -7px;
 }
 
 #editor {
@@ -264,22 +321,6 @@
 .cm-s-default {
     width: 100%;
 }
-
-#viewer-container {
-    max-width: 1200px;
-    padding: 7px;
-    box-shadow: 3px 3px 3px 0px rgba(0,0,0,0.75);
-    border: 1px solid;
-}
-
-#editor-container {
-    display: flex;
-}
-
-#editor-container > div {
-    width: 100%;
-}
-
 .link-not-active {
   pointer-events: none;
   cursor: default;
