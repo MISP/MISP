@@ -4377,30 +4377,45 @@ class Event extends AppModel
         $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
         $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaTopic);
         if ($pubToZmq || $pubToKafka) {
-            $hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
-            if (!empty($hostOrg)) {
-                $user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
-                if ($pubToZmq) {
-                    $params = array('eventid' => $id);
-                    if (Configure::read('Plugin.ZeroMQ_include_attachments')) {
-                        $params['includeAttachments'] = 1;
-                    }
-                    $fullEvent = $this->fetchEvent($user, $params);
-                    if (!empty($fullEvent)) {
-                        $pubSubTool = $this->getPubSubTool();
-                        $pubSubTool->publishEvent($fullEvent[0], 'publish');
-                    }
+            $hostOrgId = Configure::read('MISP.host_org_id');
+            if (!empty($hostOrgId)) {
+                $hostOrg = $this->Org->find('first', [
+                        'recursive' => -1,
+                        'conditions' => [
+                            'id' => $hostOrgId
+                        ]
+                    ]
+                );
+            }
+            if (empty($hostOrg)) {
+                $hostOrg = $this->Org->find('first', [
+                        'recursive' => -1,
+                        'order' => ['id ASC']
+                    ]
+                );
+                $hostOrgId = $hostOrg['Org']['id'];
+            }
+            $user = array('org_id' => $hostOrgId, 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
+            if ($pubToZmq) {
+                $params = array('eventid' => $id);
+                if (Configure::read('Plugin.ZeroMQ_include_attachments')) {
+                    $params['includeAttachments'] = 1;
                 }
-                if ($pubToKafka) {
-                    $params = array('eventid' => $id);
-                    if (Configure::read('Plugin.Kafka_include_attachments')) {
-                        $params['includeAttachments'] = 1;
-                    }
-                    $fullEvent = $this->fetchEvent($user, $params);
-                    if (!empty($fullEvent)) {
-                        $kafkaPubTool = $this->getKafkaPubTool();
-                        $kafkaPubTool->publishJson($kafkaTopic, $fullEvent[0], 'publish');
-                    }
+                $fullEvent = $this->fetchEvent($user, $params);
+                if (!empty($fullEvent)) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->publishEvent($fullEvent[0], 'publish');
+                }
+            }
+            if ($pubToKafka) {
+                $params = array('eventid' => $id);
+                if (Configure::read('Plugin.Kafka_include_attachments')) {
+                    $params['includeAttachments'] = 1;
+                }
+                $fullEvent = $this->fetchEvent($user, $params);
+                if (!empty($fullEvent)) {
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaTopic, $fullEvent[0], 'publish');
                 }
             }
         }
