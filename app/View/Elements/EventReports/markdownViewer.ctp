@@ -299,6 +299,9 @@ function buildScrollMap() {
     }).appendTo('body');
     
     offset = $viewerContainer.scrollTop() - $viewerContainer.offset().top;
+    if ($(cm.getWrapperElement()).closest('.modal').length > 0) { // inside a modal
+        offset -= 30
+    }
     _scrollMap = [];
     nonEmptyList = [];
     lineHeightMap = [];
@@ -333,8 +336,6 @@ function buildScrollMap() {
         _scrollMap[t] = Math.round($el.offset().top + offset);
     });
 
-    // SCROLL SYNC NOT WORKING IN MODAL
-    
     nonEmptyList.push(linesCount);
     _scrollMap[linesCount] = $viewerContainer[0].scrollHeight;
     
