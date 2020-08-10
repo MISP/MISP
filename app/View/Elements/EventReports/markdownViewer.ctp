@@ -67,8 +67,9 @@
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
     var modelName = '<?= h($modelName) ?>';
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
-    var renderDelay = 50;
-    var renderTimer;
+    var debounceDelay = 50;
+    var renderTimer, scrollTimer;
+    var scrollMap;
     var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle
     var $editor, $viewer, $raw
     var $saveMarkdownButton, $mardownViewerToolbar
@@ -78,6 +79,7 @@
     var defaultMode = 'viewer'
     var currentMode
     var splitEdit = true
+    var noEditorScroll = false // Necessary as onscroll cannot be unbound from CM
     $(document).ready(function() {
         $splitContainer = $('.split-container')
         $editorContainer = $('#editor-container')
@@ -99,12 +101,32 @@
             handles: {
                 e: $resizableHandle
             },
+            grid: 50,
             minWidth: 300,
+            maxWidth: window.innerWidth -220 - 300,
             stop: function() {
                 cm.refresh()
-            }
+            },
+            helper: 'ui-resizable-helper'
         })
         renderMarkdown()
+
+        $editorContainer.on('touchstart mouseover', function () {
+            noEditorScroll = false
+            $viewerContainer.off('scroll');
+            cm.on('scroll', function(event) {
+                if (!noEditorScroll) {
+                    doScroll(syncResultScroll)
+                }
+            });
+        });
+
+        $viewerContainer.on('touchstart mouseover', function () {
+            noEditorScroll = true
+            $viewerContainer.on('scroll', function() {
+                doScroll(syncSrcScroll)
+            });
+        });
     })
 
     function initMarkdownIt() {
@@ -123,6 +145,8 @@
         md.renderer.rules.table_open = function () {
             return '<table class="table table-striped">\n';
         };
+        md.renderer.rules.paragraph_open = injectLineNumbers;
+        md.renderer.rules.heading_open = injectLineNumbers;
     }
 
     function initCodeMirror() {
@@ -150,6 +174,7 @@
         $rawContainer.hide()
         $editorContainer.hide()
         $viewerContainer.hide()
+        $resizableHandle.hide()
     }
 
     function setMode(mode) {
@@ -161,6 +186,13 @@
         if (mode == 'raw') {
             $rawContainer.show()
         }
+        if (mode == 'splitscreen') {
+            $resizableHandle.show()
+            $splitContainer.addClass('split-actif')
+        } else {
+            $resizableHandle.hide()
+            $splitContainer.removeClass('split-actif')
+        }
         if (mode == 'viewer' || mode == 'splitscreen') {
             $viewerContainer.show()
         }
@@ -171,9 +203,6 @@
                     cm.refresh()
                 }
             })
-            if (mode != 'splitscreen') {
-                $editorContainer.css('width', '100%');
-            }
         }
     }
 
@@ -223,22 +252,154 @@
     function renderMarkdown() {
         var toRender = getEditorData();
         var result = md.render(toRender);
+        scrollMap = null;
         $viewer.html(result);
     }
 
     function doRender() {
         clearTimeout(renderTimer);
-        renderTimer = setTimeout(function() {
-            renderMarkdown();
-        }, renderDelay);
+        renderTimer = setTimeout(renderMarkdown, debounceDelay);
     }
+
+
+// Inject line numbers for sync scroll. Notes:
+//
+// - We track only headings and paragraphs on first level. That's enough.
+// - Footnotes content causes jumps. Level limit filter it automatically.
+function injectLineNumbers(tokens, idx, options, env, slf) {
+    var line;
+    if (tokens[idx].map && tokens[idx].level === 0) {
+        line = tokens[idx].map[0];
+        tokens[idx].attrJoin('class', 'line');
+        tokens[idx].attrSet('data-line', String(line));
+    }
+    return slf.renderToken(tokens, idx, options, env, slf);
+}
+
+
+// Build offsets for each line (lines can be wrapped)
+// That's a bit dirty to process each line everytime, but ok for demo.
+// Optimizations are required only for big texts.
+// Copyright: https://github.com/markdown-it/markdown-it/blob/master/support/demo_template/index.js
+function buildScrollMap() {
+    var i, offset, nonEmptyList, pos, a, b, lineHeightMap, linesCount,
+    acc, sourceLikeDiv, textarea = $(cm.getWrapperElement()),
+    _scrollMap;
+    
+    sourceLikeDiv = $('<div />').css({
+        position: 'absolute',
+        visibility: 'hidden',
+        height: 'auto',
+        width: textarea[0].clientWidth,
+        'font-size': textarea.css('font-size'),
+        'font-family': textarea.css('font-family'),
+        'line-height': textarea.css('line-height'),
+        'white-space': textarea.css('white-space')
+    }).appendTo('body');
+    
+    offset = $viewerContainer.scrollTop() - $viewerContainer.offset().top;
+    _scrollMap = [];
+    nonEmptyList = [];
+    lineHeightMap = [];
+    
+    acc = 0;
+    cm.eachLine(function(line) {
+        var h, lh;
+        lineHeightMap.push(acc)
+        if (line.text.length === 0) {
+            acc++
+            return
+        }
+        sourceLikeDiv.text(line.text);
+        h = parseFloat(sourceLikeDiv.css('height'));
+        lh = parseFloat(sourceLikeDiv.css('line-height'));
+        acc += Math.round(h / lh);
+    })
+    sourceLikeDiv.remove();
+    lineHeightMap.push(acc);
+    linesCount = acc;
+    
+    for (i = 0; i < linesCount; i++) { _scrollMap.push(-1); }
+    
+    nonEmptyList.push(0);
+    _scrollMap[0] = 0;
+    
+    $viewerContainer.find('.line').each(function (n, el) {
+        var $el = $(el), t = $el.data('line');
+        if (t === '') { return; }
+        t = lineHeightMap[t];
+        if (t !== 0) { nonEmptyList.push(t); }
+        _scrollMap[t] = Math.round($el.offset().top + offset);
+    });
+
+    // SCROLL SYNC NOT WORKING IN MODAL
+    
+    nonEmptyList.push(linesCount);
+    _scrollMap[linesCount] = $viewerContainer[0].scrollHeight;
+    
+    pos = 0;
+    for (i = 1; i < linesCount; i++) {
+        if (_scrollMap[i] !== -1) {
+            pos++;
+            continue;
+        }
+        
+        a = nonEmptyList[pos];
+        b = nonEmptyList[pos + 1];
+        _scrollMap[i] = Math.round((_scrollMap[b] * (i - a) + _scrollMap[a] * (b - i)) / (b - a));
+    }
+    
+    return _scrollMap;
+}
+
+function doScroll(fun) {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(fun, debounceDelay);
+}
+
+// Synchronize scroll position from source to result
+var syncResultScroll = function () {
+    var lineNo = Math.ceil(cm.getScrollInfo().top/cm.defaultTextHeight());
+    if (!scrollMap) { scrollMap = buildScrollMap(); }
+    var posTo = scrollMap[lineNo];
+    $viewerContainer.stop(true).animate({
+        scrollTop: posTo
+    }, 100, 'linear');
+}
+
+// Synchronize scroll position from result to source
+var syncSrcScroll = function () {
+    var resultHtml = $viewerContainer,
+    scrollTop  = resultHtml.scrollTop(),
+    lines,
+    i,
+    line;
+    
+    if (!scrollMap) { scrollMap = buildScrollMap(); }
+    
+    lines = Object.keys(scrollMap);
+    
+    if (lines.length < 1) {
+        return;
+    }
+    
+    line = lines[0];
+    
+    for (i = 1; i < lines.length; i++) {
+        if (scrollMap[lines[i]] < scrollTop) {
+            line = lines[i];
+            continue;
+        }
+        break;
+    }
+    cm.scrollTo(0, line*cm.defaultTextHeight())
+}
 
 
 </script>
 
 <style> 
 .split-container {
-    display: flex;
     overflow: hidden;
     min-height: 700px;
 }
@@ -250,34 +411,34 @@
 .split-container > div {
 }
 
-.split-container > #editor-container, .split-container > #viewer-container {
-    max-height: 890px;
+.split-container.split-actif > #editor-container, .split-container.split-actif > #viewer-container {
+    max-height: calc(100vh - 120px)
 }
 
 
 #viewer-container {
-    margin-left: 10px;
-    display: flex;
+    margin: 0 0;
     justify-content: center;
-    min-width: 600px;
     padding: 7px;
     overflow-y: auto;
-    flex-grow: 1;
-    border-left: 1px solid #00000010;
+    padding: 0 15px;
+    box-shadow: inset 0px 2px 6px #eee;
 }
 
 #editor-container {
     border: 1px solid #ccc;
-    /* max-height: 890px; */
     width: 50%;
     min-width: 300px;
     position: relative;
-    display: flex;
+    float: left;
 }
 
+.split-container:not(.split-actif) #editor-container {
+    float: unset;
+    width: unset;
+}
 
 #editor {
-    flex-grow: 1;
     min-height: 500px;
     width: 100%;
     border-radius: 0;
@@ -287,6 +448,7 @@
 #viewer {
     width: 100%;
     max-width: 1200px;
+    margin: auto;
 }
 
 #editor-container > div:not(.ui-resizable-handle) {
@@ -296,9 +458,14 @@
 .split-container .ui-resizable-handle {
     box-shadow: 4px 0 6px #eee;
     width: 7px;
-    border-left: 1px solid #e0e0e0e0;
     position: absolute;
     right: -7px;
+    z-index: 1;
+    cursor: col-resize;
+}
+
+.ui-resizable-helper {
+    border-right: 2px dotted #CCC;
 }
 
 #editor-subcontainer {
@@ -318,7 +485,16 @@
 
 .cm-s-default {
     width: 100%;
+    height: calc(100vh - 120px)
 }
+
+.cm-s-default .CodeMirror-gutter-wrapper {
+    z-index: 1;
+}
+.cm-s-default .CodeMirror-gutters {
+    z-index: 0;
+}
+
 .link-not-active {
   pointer-events: none;
   cursor: default;
