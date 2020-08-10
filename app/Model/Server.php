@@ -2391,40 +2391,46 @@ class Server extends AppModel
         return true;
     }
 
-    private function __getEventIdListBasedOnPullTechnique($technique, $server, $force = false)
+    /**
+     * @param int|string $technique 'full', 'update', remote event ID or remote event UUID
+     * @param array $server
+     * @param bool $force
+     * @return array
+     */
+    private function __getEventIdListBasedOnPullTechnique($technique, array $server, $force = false)
     {
-        if ("full" === $technique) {
-            // get a list of the event_ids on the server
-            $eventIds = $this->getEventIdsFromServer($server, false, null, false, false, 'events', $force);
-            if ($eventIds === 403) {
-                return array('error' => array(1, null));
-            } elseif (is_string($eventIds)) {
-                return array('error' => array(2, $eventIds));
-            }
-
-            // reverse array of events, to first get the old ones, and then the new ones
-            if (!empty($eventIds)) {
-                $eventIds = array_reverse($eventIds);
-            }
-        } elseif ("update" === $technique) {
-            $eventIds = $this->getEventIdsFromServer($server, false, null, true, true, 'events', $force);
-            if ($eventIds === 403) {
-                return array('error' => array(1, null));
-            } elseif (is_string($eventIds)) {
-                return array('error' => array(2, $eventIds));
-            }
-            $eventModel = ClassRegistry::init('Event');
-            $local_event_ids = $eventModel->find('list', array(
+        try {
+            if ("full" === $technique) {
+                // get a list of the event_ids on the server
+                $eventIds = $this->getEventIdsFromServer($server, false, null, false, 'events', $force);
+                // reverse array of events, to first get the old ones, and then the new ones
+                return array_reverse($eventIds);
+            } elseif ("update" === $technique) {
+                $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
+                $eventModel = ClassRegistry::init('Event');
+                $local_event_ids = $eventModel->find('list', array(
                     'fields' => array('uuid'),
                     'recursive' => -1,
-            ));
-            $eventIds = array_intersect($eventIds, $local_event_ids);
-        } elseif (is_numeric($technique)) {
-            $eventIds[] = intval($technique);
-        } else {
-            return array('error' => array(4, null));
+                ));
+                return array_intersect($eventIds, $local_event_ids);
+            } elseif (is_numeric($technique)) {
+                return array(intval($technique));
+            } elseif (Validation::uuid($technique)) {
+                return array($technique);
+            } else {
+                return array('error' => array(4, null));
+            }
+        } catch (HttpException $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            if ($e->getCode() === 403) {
+                return array('error' => array(1, null));
+            } else {
+                return array('error' => array(2, $e->getMessage()));
+            }
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            return array('error' => array(2, $e->getMessage()));
         }
-        return $eventIds;
     }
 
     private function __checkIfEventIsBlockedBeforePull($event)
@@ -2737,17 +2743,19 @@ class Server extends AppModel
         return $final;
     }
 
-    private function __orgRuleDowngrade($HttpSocket, $request, $server, $filter_rules)
+    /**
+     * @param HttpSocket $HttpSocket
+     * @param array $request
+     * @param array $server
+     * @param array $filter_rules
+     * @return array
+     * @throws JsonException
+     */
+    private function __orgRuleDowngrade(HttpSocket $HttpSocket, array $request, array $server, array $filter_rules)
     {
         $uri = $server['Server']['url'] . '/servers/getVersion';
-        try {
-            $version_response = $HttpSocket->get($uri, false, $request);
-            $body = $version_response->body;
-            $version_response = json_decode($body, true);
-            $version = $version_response['version'];
-        } catch (Exception $e) {
-            return $e->getMessage();
-        }
+        $version_response = $HttpSocket->get($uri, false, $request);
+        $version = $this->jsonDecode($version_response->body)['version'];
         $version = explode('.', $version);
         if ($version[0] <= 2 && $version[1] <= 4 && $version[0] <= 123) {
             $filter_rules['org'] = implode('|', $filter_rules['org']);
@@ -2755,115 +2763,112 @@ class Server extends AppModel
         return $filter_rules;
     }
 
-    // Get an array of event_ids that are present on the remote server
-    public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false, $scope = 'events', $force = false)
+    /**
+     * Get an array of event UUIDs that are present on the remote server.
+     *
+     * @param array $server
+     * @param bool $all
+     * @param HttpSocket|null $HttpSocket
+     * @param bool $ignoreFilterRules
+     * @param string $scope 'events' or 'sightings'
+     * @param bool $force
+     * @return array Array of event UUIDs.
+     * @throws JsonException
+     * @throws InvalidArgumentException
+     */
+    public function getEventIdsFromServer(array $server, $all = false, HttpSocket $HttpSocket = null, $ignoreFilterRules = false, $scope = 'events', $force = false)
     {
-        $url = $server['Server']['url'];
-        if ($ignoreFilterRules) {
-            $filter_rules = array();
-        } else {
-            $filter_rules = $this->filterRuleToParameter($server['Server']['pull_rules']);
-        }
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        if (!empty($filter_rules['org'])) {
-            $filter_rules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filter_rules);
-        }
-        $uri = $url . '/events/index';
-        $filter_rules['minimal'] = 1;
-        $filter_rules['published'] = 1;
-        try {
-            $response = $HttpSocket->post($uri, json_encode($filter_rules), $request);
-            if ($response->isOk()) {
-                $eventArray = json_decode($response->body, true);
-                // correct $eventArray if just one event
-                if (is_array($eventArray) && isset($eventArray['id'])) {
-                    $tmp = $eventArray;
-                    unset($eventArray);
-                    $eventArray[0] = $tmp;
-                    unset($tmp);
-                }
-                $eventIds = array();
-                if ($all) {
-                    if (!empty($eventArray)) {
-                        if ($scope === 'sightings') {
-                            foreach ($eventArray as $event) {
-                                $localEvent = $this->Event->find('first', array(
-                                        'recursive' => -1,
-                                        'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
-                                        'conditions' => array('Event.uuid' => $event['uuid'])
-                                    ));
-                                if (!empty($localEvent) && $localEvent['Event']['sighting_timestamp'] > $event['sighting_timestamp']) {
-                                    $eventIds[] = $event['uuid'];
-                                }
-                            }
-                        } else {
-                            foreach ($eventArray as $event) {
-                                $eventIds[] = $event['uuid'];
-                            }
-                        }
-                    }
-                } else {
-                    // multiple events, iterate over the array
-                    $this->Event = ClassRegistry::init('Event');
-                    $blacklisting = array();
-                    if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-                        $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-                        $blacklisting['EventBlacklist'] = array(
-                            'index_field' => 'uuid',
-                            'blacklist_field' => 'event_uuid'
-                        );
-                    }
-                    if (Configure::read('MISP.enableOrgBlacklisting') !== false) {
-                        $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
-                        $blacklisting['OrgBlacklist'] = array(
-                            'index_field' => 'orgc_uuid',
-                            'blacklist_field' => 'org_uuid'
-                        );
-                    }
-                    foreach ($eventArray as $k => $event) {
-                        if (1 != $event['published']) {
-                            unset($eventArray[$k]); // do not keep non-published events
-                            continue;
-                        }
-                        foreach ($blacklisting as $type => $blacklist) {
-                            if (!empty($eventArray[$k][$blacklist['index_field']])) {
-                                $blacklist_hit = $this->{$type}->find('first', array(
-                                    'conditions' => array($blacklist['blacklist_field'] => $eventArray[$k][$blacklist['index_field']]),
-                                    'recursive' => -1,
-                                    'fields' => array($type . '.id')
-                                ));
-                                if (!empty($blacklist_hit)) {
-                                    unset($eventArray[$k]);
-                                    continue 2;
-                                }
-                            }
-                        }
-                    }
-                    if (!$force) {
-                        $this->Event->removeOlder($eventArray, $scope);
-                    }
-                    if (!empty($eventArray)) {
-                        foreach ($eventArray as $event) {
-                            if ($force_uuid) {
-                                $eventIds[] = $event['uuid'];
-                            } else {
-                                $eventIds[] = $event['uuid'];
-                            }
-                        }
-                    }
-                }
-                return $eventIds;
-            }
-            if ($response->code == '403') {
-                return 403;
-            }
-        } catch (SocketException $e) {
-            return $e->getMessage();
+        if (!in_array($scope, array('events', 'sightings'))) {
+            throw new InvalidArgumentException("Scope mus be 'events' or 'sightings', '$scope' given.");
         }
 
-        // error, so return error message, since that is handled and everything is expecting an array
-        return "Error: got response code " . $response->code;
+        if ($ignoreFilterRules) {
+            $filterRules = array();
+        } else {
+            $filterRules = $this->filterRuleToParameter($server['Server']['pull_rules']);
+        }
+
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        if (!empty($filterRules['org'])) {
+            $filterRules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filterRules);
+        }
+        $filterRules['minimal'] = 1;
+        $filterRules['published'] = 1;
+
+        $uri = $server['Server']['url'] . '/events/index';
+        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
+        if ($response === false) {
+            throw new Exception("Could not reach '$uri'.");
+        }
+        if (!$response->isOk()) {
+            throw new HttpException("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}", intval($response->code));
+        }
+
+        $eventArray = $this->jsonDecode($response->body);
+        // correct $eventArray if just one event
+        if (isset($eventArray['id'])) {
+            $eventArray = array($eventArray);
+        }
+        if ($all) {
+            if ($scope === 'sightings') {
+                $this->Event = ClassRegistry::init('Event');
+                $localEvents = $this->Event->find('list', array(
+                    'recursive' => -1,
+                    'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
+                    'conditions' => array('Event.uuid' => array_column($eventArray, 'uuid'))
+                ));
+
+                $eventUuids = array();
+                foreach ($eventArray as $event) {
+                    if (!isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
+                        $eventUuids[] = $event['uuid'];
+                    }
+                }
+            } else {
+                $eventUuids = array_column($eventArray, 'uuid');
+            }
+        } else {
+            if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+                $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+                $blacklistHits = $this->EventBlacklist->find('list', array(
+                    'recursive' => -1,
+                    'conditions' => array('EventBlacklist.event_uuid' => array_column($eventArray, 'uuid')),
+                    'fields' => array('EventBlacklist.event_uuid', 'EventBlacklist.event_uuid'),
+                ));
+                foreach ($eventArray as $k => $event) {
+                    if (isset($blacklistHits[$event['uuid']])) {
+                        unset($eventArray[$k]);
+                    }
+                }
+            }
+
+            if (Configure::read('MISP.enableOrgBlacklisting') !== false) {
+                $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
+                $blacklistHits = $this->OrgBlacklist->find('list', array(
+                    'recursive' => -1,
+                    'conditions' => array('OrgBlacklist.org_uuid' => array_unique(array_column($eventArray, 'orgc_uuid'))),
+                    'fields' => array('OrgBlacklist.org_uuid', 'OrgBlacklist.org_uuid'),
+                ));
+                foreach ($eventArray as $k => $event) {
+                    if (isset($blacklistHits[$event['orgc_uuid']])) {
+                        unset($eventArray[$k]);
+                    }
+                }
+            }
+
+            foreach ($eventArray as $k => $event) {
+                if (1 != $event['published']) {
+                    unset($eventArray[$k]); // do not keep non-published events
+                }
+            }
+            if (!$force) {
+                $this->Event = ClassRegistry::init('Event');
+                $this->Event->removeOlder($eventArray, $scope);
+            }
+            $eventUuids = array_column($eventArray, 'uuid');
+        }
+        return $eventUuids;
     }
 
     public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $user)
@@ -3073,19 +3078,22 @@ class Server extends AppModel
         }
         $this->Sighting = ClassRegistry::init('Sighting');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $eventIds = $this->getEventIdsFromServer($server, true, $HttpSocket, false, true, 'sightings');
+        try {
+            $eventIds = $this->getEventIdsFromServer($server, true, $HttpSocket, true, 'sightings');
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            return $successes;
+        }
         // now process the $eventIds to push each of the events sequentially
-        if (!empty($eventIds)) {
-            // check each event and push sightings when needed
-            foreach ($eventIds as $k => $eventId) {
-                $event = $eventModel->fetchEvent($user, $options = array('event_uuid' => $eventId, 'metadata' => true));
-                if (!empty($event)) {
-                    $event = $event[0];
-                    $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
-                    $result = $eventModel->uploadEventToServer($event, $server, $HttpSocket, 'sightings');
-                    if ($result === 'Success') {
-                        $successes[] = 'Sightings for event ' .  $event['Event']['id'];
-                    }
+        // check each event and push sightings when needed
+        foreach ($eventIds as $k => $eventId) {
+            $event = $eventModel->fetchEvent($user, $options = array('event_uuid' => $eventId, 'metadata' => true));
+            if (!empty($event)) {
+                $event = $event[0];
+                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                $result = $eventModel->uploadEventToServer($event, $server, $HttpSocket, 'sightings');
+                if ($result === 'Success') {
+                    $successes[] = 'Sightings for event ' .  $event['Event']['id'];
                 }
             }
         }
@@ -3099,9 +3107,10 @@ class Server extends AppModel
         if ($sa_id == null) {
             if ($event_id == null) {
                 // event_id is null when we are doing a push
-                $ids = $this->getEventIdsFromServer($server, true, $HttpSocket, false, true);
-                // error return strings or ints or throw exceptions
-                if (!is_array($ids)) {
+                try {
+                    $ids = $this->getEventIdsFromServer($server, true, $HttpSocket, true);
+                } catch (Exception $e) {
+                    $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
                     return false;
                 }
                 $conditions = array('uuid' => $ids);
