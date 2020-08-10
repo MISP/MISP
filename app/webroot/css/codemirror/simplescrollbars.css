@@ -38,11 +38,16 @@
 
 .CodeMirror-overlayscroll-horizontal div, .CodeMirror-overlayscroll-vertical div {
   position: absolute;
-  background: #bcd;
+  background: #e6e6e6;
   border-radius: 3px;
 }
 
 .CodeMirror-overlayscroll-horizontal, .CodeMirror-overlayscroll-vertical {
+  position: absolute;
+  z-index: 2;
+}
+
+.modal-body-xl .CodeMirror-overlayscroll-horizontal, .modal-body-xl .CodeMirror-overlayscroll-vertical {
   position: absolute;
   z-index: 6;
 }

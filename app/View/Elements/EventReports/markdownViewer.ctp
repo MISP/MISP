@@ -106,6 +106,7 @@
             maxWidth: window.innerWidth -220 - 300,
             stop: function() {
                 cm.refresh()
+                scrollMap = null;
             },
             helper: 'ui-resizable-helper'
         })
@@ -271,7 +272,7 @@ function injectLineNumbers(tokens, idx, options, env, slf) {
     if (tokens[idx].map && tokens[idx].level === 0) {
         line = tokens[idx].map[0];
         tokens[idx].attrJoin('class', 'line');
-        tokens[idx].attrSet('data-line', String(line));
+        tokens[idx].attrSet('data-line', String(line+1));
     }
     return slf.renderToken(tokens, idx, options, env, slf);
 }
@@ -401,7 +402,7 @@ var syncSrcScroll = function () {
 <style> 
 .split-container {
     overflow: hidden;
-    min-height: 700px;
+    min-height: 500px;
 }
 
 .modal-body-xl .split-container {
@@ -413,6 +414,10 @@ var syncSrcScroll = function () {
 
 .split-container.split-actif > #editor-container, .split-container.split-actif > #viewer-container {
     max-height: calc(100vh - 120px)
+}
+
+.modal-body-xl .split-container.split-actif > #editor-container,
+.modal-body-xl .split-container.split-actif > #viewer-container {
 }
 
 
@@ -465,7 +470,9 @@ var syncSrcScroll = function () {
 }
 
 .ui-resizable-helper {
-    border-right: 2px dotted #CCC;
+    border-right: 2px dotted #ccc;
+    cursor: col-resize;
+    z-index: 1060 !important;
 }
 
 #editor-subcontainer {
@@ -486,6 +493,14 @@ var syncSrcScroll = function () {
 .cm-s-default {
     width: 100%;
     height: calc(100vh - 120px)
+}
+
+.modal-body-xl .split-container .cm-s-default{
+    max-height: calc(70vh - 55px)
+}
+
+.modal-body-xl #viewer {
+    max-height: calc(70vh - 75px)
 }
 
 .cm-s-default .CodeMirror-gutter-wrapper {
