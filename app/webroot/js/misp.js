@@ -23,6 +23,14 @@ function stringToRGB(str){
     return "#" + "00000".substring(0, 6 - c.length) + c;
 }
 
+function rgb2hex(rgb) {
+    rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+    function hex(x) {
+        return ("0" + parseInt(x).toString(16)).slice(-2);
+    }
+    return "#" + hex(rgb[1]) + hex(rgb[2]) + hex(rgb[3]);
+}
+
 function xhrFailCallback(xhr) {
     if (xhr.status === 403) {
         showMessage('fail', 'Not allowed.');
@@ -2764,7 +2772,10 @@ function moduleResultsSubmit(id) {
                     if ($(this).find('.objectAttributeTagContainer').length) {
                         var tags = [];
                         $(this).find('.objectAttributeTag').each(function() {
-                            tags.push({name: $(this).attr('title')});
+                            tags.push({
+                                name: $(this).attr('title'),
+                                colour: rgb2hex($(this).css('background-color'))
+                            });
                         });
                         attribute['Tag'] = tags;
                     }
@@ -2820,7 +2831,10 @@ function moduleResultsSubmit(id) {
             if ($(this).find('.attributeTagContainer').length) {
                 var tags = [];
                 $(this).find('.attributeTag').each(function() {
-                    tags.push({name: $(this).attr('title')});
+                    tags.push({
+                        name: $(this).attr('title'),
+                        colour: rgb2hex($(this).css('background-color'))
+                    });
                 });
                 temp['Tag'] = tags;
             }
