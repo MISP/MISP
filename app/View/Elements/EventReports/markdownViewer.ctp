@@ -60,6 +60,7 @@
             'highlight.min',
             'codemirror',
             'codemirror/simplescrollbars',
+            'codemirror/show-hint',
         )
     ));
 
@@ -75,6 +76,7 @@
     'use strict';
     var md, cm;
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
+    var proxyMISPElements = <?= json_encode(is_array($proxyMISPElements) ? $proxyMISPElements : array($proxyMISPElements), JSON_HEX_TAG); ?>;
     var modelName = '<?= h($modelName) ?>';
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
     var debounceDelay = 50;
@@ -84,9 +86,9 @@
     var $editor, $viewer, $raw
     var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
-    var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
-    var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
-    var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> {{=it.id}}</span></span></span>");
+    var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
+    var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
+    var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 
     var contentChanged = false
     var defaultMode = 'viewer'
@@ -177,13 +179,74 @@
             extraKeys: {
                 "Esc": function(cm) {
                     console.log('<esc>')
-                }
+                },
+                "Ctrl-Space": "autocomplete"
+            },
+            hintOptions: {
+                hint: hintMISPElements
             }
         }
         cm = CodeMirror.fromTextArea($editor[0], cmOptions);
         cm.on('changes', function() {
             doRender();
         })
+    }
+
+    function hintMISPElements(cm, options) {
+        var authorizedMISPElements = ['attribute', 'object']
+        var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>\\d+)\\)');
+        var reExtendedWord = /[a-zA-Z0-9_\[\]\(\)@]/
+        var scope, elementID, element
+        var cursor = cm.getCursor()
+        var line = cm.getLine(cursor.line)
+        var start = cursor.ch
+        var end = cursor.ch
+        while (start && reExtendedWord.test(line.charAt(start - 1))) --start
+        while (end < line.length && reExtendedWord.test(line.charAt(end))) ++end
+        var word = line.slice(start, end).toLowerCase()
+        
+        var res = reMISPElement.exec(word)
+        if (res !== null) {
+            scope = res.groups.scope
+            elementID = res.groups.elementid
+            element = proxyMISPElements[scope][elementID]
+            if (element !== undefined) {
+                var hintList = [
+                    {
+                        text: '@[' + scope + '](' + element.id + ')',
+                        render: function(elem, self, data) {
+                            var hintElement = renderHintElement(scope, element)
+                            $(elem).append(hintElement)
+                        },
+                        className: 'hint-container',
+                    }
+                ]
+                return {
+                    list: hintList,
+                    from: CodeMirror.Pos(cursor.line, start),
+                    to: CodeMirror.Pos(cursor.line, end)
+                }
+            }
+        }
+        return null
+    }
+
+    function renderHintElement(scope, element) {
+        var $node;
+        if (scope == 'attribute') {
+            $node = $('<span/>').addClass('hint-attribute')
+            $node.append($('<i/>').addClass('').text('[' + element.id + '] '))
+                .append($('<span/>').addClass('bold').text(element.type + ' '))
+                .append($('<span/>').addClass('bold blue').text(element.value + ' '))
+        } else if (scope == 'object') {
+            $node = $('<span/>').addClass('hint-object')
+            $node.append($('<i/>').addClass('').text('[' + element.id + '] '))
+                .append($('<span/>').addClass('bold').text(element.name + ' '))
+                .append($('<span/>').addClass('bold blue').text(element.Attribute.length))
+        } else {
+            $node = $('<span>No match</span>') // should not happen
+        }
+        return $node
     }
 
     function MISPElementRule(state, startLine, endLine, silent) {
@@ -249,25 +312,35 @@
     function renderMISPElement(scope, elementID) {
         var templateVariables
         if (scope == 'attribute') {
-            templateVariables = sanitizeObject({
-                type: 'ip-src',
-                value: '127.0.0.1'
-            })
-            return dotTemplateAttribute(templateVariables);
+            var attribute = proxyMISPElements[scope][elementID]
+            if (attribute !== undefined) {
+                templateVariables = sanitizeObject({
+                    scope: 'attribute',
+                    elementid: elementID,
+                    type: attribute.type,
+                    value: attribute.value
+                })
+                return dotTemplateAttribute(templateVariables);
+            }
         } else if (scope == 'object') {
-            templateVariables = sanitizeObject({
-                type: 'vehicle',
-                value: '4'
-            })
-            return dotTemplateObject(templateVariables);
+            var mispObject = proxyMISPElements[scope][elementID]
+            if (mispObject !== undefined) {
+                templateVariables = sanitizeObject({
+                    scope: 'object',
+                    elementid: elementID,
+                    type: mispObject.name,
+                    value: mispObject.Attribute.length
+                })
+                return dotTemplateObject(templateVariables);
+            }
         }
-        return 'invalid scope'
+        return renderInvalidMISPElement(scope, elementID)
     }
 
     function renderInvalidMISPElement(scope, elementID) {
         var templateVariables = sanitizeObject({
-            scope: '<?= __('invalid scope') ?>',
-            id: '123'
+            scope: '<?= __('invalid scope or id') ?>',
+            id: elementID
         })
         return dotTemplateInvalid(templateVariables);
     }
@@ -376,14 +449,47 @@
     function registerListener() {
         $('.misp-element-wrapper').filter('.attribute').popover({
             trigger: 'hover',
-            title: 'Title',
-            content: 'Content'
+            title: getTitleFromMISPElementDOM,
+            content: getContentFromMISPElementDOM
         })
         $('.misp-element-wrapper').filter('.object').popover({
             trigger: 'hover',
-            title: 'Title',
-            content: 'Content'
+            title: getTitleFromMISPElementDOM,
+            content: getContentFromMISPElementDOM
         })
+    }
+
+    function getElementFromDom(node) {
+        var scope = $(node).data('scope')
+        var elementID = $(node).data('elementid')
+        if (scope !== undefined && elementID !== undefined) {
+            return {
+                element: proxyMISPElements[scope][elementID],
+                scope: scope,
+                elementID: elementID
+            }
+        }
+        return false
+    }
+
+    function getTitleFromMISPElementDOM() {
+        var data = getElementFromDom(this)
+        if (data !== false) {
+            return data.scope.charAt(0).toUpperCase() + data.scope.slice(1) + ' ' + data.elementID
+        }
+        return '<?= __('invalid scope or id') ?>'
+    }
+
+    function getContentFromMISPElementDOM() {
+        var data = getElementFromDom(this)
+        if (data !== false) {
+            if (data.scope == 'attribute') {
+                return 'attribute'
+            } else if (data.scope == 'object') {
+                return 'object'
+            }
+        }
+        return '<?= __('invalid scope or id') ?>'
     }
 
 
@@ -655,5 +761,9 @@ var syncSrcScroll = function () {
     border: 0;
     background-color: #3465a4 !important;
     color: #ffffff;
+}
+
+.CodeMirror-hint-active .blue {
+    color: white !important;
 }
 </style>
