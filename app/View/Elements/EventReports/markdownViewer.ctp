@@ -48,6 +48,7 @@
 <?php
     echo $this->element('genericElements/assetLoader', array(
         'js' => array(
+            'doT',
             'markdown-it',
             'highlight.min',
             'codemirror/codemirror',
@@ -83,6 +84,9 @@
     var $editor, $viewer, $raw
     var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
+    var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
+    var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
+    var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> {{=it.id}}</span></span></span>");
 
     var contentChanged = false
     var defaultMode = 'viewer'
@@ -240,15 +244,41 @@
             return renderInvalidMISPElement(scope, elementID);
         }
         return renderMISPElement(scope, elementID)
-        // return '<span class="bold">' + scope + '<span class="blue"> ' + elementID + '</span>' + '</span>'
     };
 
     function renderMISPElement(scope, elementID) {
-        return '<span class="bold">' + scope + '<span class="blue"> ' + elementID + '</span>' + '</span>'
+        var templateVariables
+        if (scope == 'attribute') {
+            templateVariables = sanitizeObject({
+                type: 'ip-src',
+                value: '127.0.0.1'
+            })
+            return dotTemplateAttribute(templateVariables);
+        } else if (scope == 'object') {
+            templateVariables = sanitizeObject({
+                type: 'vehicle',
+                value: '4'
+            })
+            return dotTemplateObject(templateVariables);
+        }
+        return 'invalid scope'
     }
 
     function renderInvalidMISPElement(scope, elementID) {
-        return '<span class="bold red">' + '<?= __('Invalid scope') ?>' + '<span class="blue"> ' + elementID + '</span>' + '</span>'
+        var templateVariables = sanitizeObject({
+            scope: '<?= __('invalid scope') ?>',
+            id: '123'
+        })
+        return dotTemplateInvalid(templateVariables);
+    }
+
+    function sanitizeObject(obj) {
+        var newObj = {}
+        for (var key of Object.keys(obj)) {
+            var newVal = $('</p>').text(obj[key]).html()
+            newObj[key] = newVal
+        }
+        return newObj
     }
 
     function hideAll() {
@@ -335,11 +365,25 @@
         var result = md.render(toRender);
         scrollMap = null;
         $viewer.html(result);
+        registerListener()
     }
 
     function doRender() {
         clearTimeout(renderTimer);
         renderTimer = setTimeout(renderMarkdown, debounceDelay);
+    }
+
+    function registerListener() {
+        $('.misp-element-wrapper').filter('.attribute').popover({
+            trigger: 'hover',
+            title: 'Title',
+            content: 'Content'
+        })
+        $('.misp-element-wrapper').filter('.object').popover({
+            trigger: 'hover',
+            title: 'Title',
+            content: 'Content'
+        })
     }
 
 
@@ -596,5 +640,20 @@ var syncSrcScroll = function () {
   cursor: default;
   text-decoration: none;
   color: black;
+}
+
+.misp-element-wrapper {
+    padding: 2px 3px;
+    margin: 3px 3px;
+    border: 1px solid #ddd;
+    background-color: #f5f5f5;
+    border-radius: 3px;
+    line-height: 24px;
+}
+
+.misp-element-wrapper.object {
+    border: 0;
+    background-color: #3465a4 !important;
+    color: #ffffff;
 }
 </style>
