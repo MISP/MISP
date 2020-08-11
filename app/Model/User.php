@@ -752,7 +752,8 @@ class User extends AppModel
         }
 
         $logTitle = $encrypted ? 'Encrypted email' : 'Email';
-        $logTitle .= $replyToLog  . ' to ' . $user['User']['email'] . ' sent, titled "' . $subject . '".';
+        // Intentional two spaces to pass test :)
+        $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $subject . '".';
 
         $this->Log->create();
         $this->Log->save(array(
