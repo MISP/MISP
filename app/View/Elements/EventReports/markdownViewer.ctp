@@ -53,6 +53,7 @@
             'codemirror/codemirror',
             'codemirror/modes/markdown',
             'codemirror/addons/simplescrollbars',
+            'codemirror/addons/show-hint',
         ),
         'css' => array(
             'highlight.min',
@@ -60,6 +61,14 @@
             'codemirror/simplescrollbars',
         )
     ));
+
+    // - Add last modified timestamp & time since last edit
+    // - Add toggle spellcheck
+    // - Add Line # and col #
+    // - Add top bar common shortcut
+    // - Add help
+    // - Download button
+    // - Add Picker for elements [attributes/objects/correlation/eventGraph picture/tags/galaxyMatrix]
 ?>
 <script>
     'use strict';
@@ -148,6 +157,8 @@
         };
         md.renderer.rules.paragraph_open = injectLineNumbers;
         md.renderer.rules.heading_open = injectLineNumbers;
+        md.renderer.rules.MISPElement = MISPElementRenderer;
+        md.inline.ruler.push('MISP_element_rule', MISPElementRule);
     }
 
     function initCodeMirror() {
@@ -169,6 +180,75 @@
         cm.on('changes', function() {
             doRender();
         })
+    }
+
+    function MISPElementRule(state, startLine, endLine, silent) {
+        var pos, start, res, elementID, code, content, token, tokens, attrs, scope
+        var oldPos = state.pos,
+            max = state.posMax
+        if (state.src.charCodeAt(state.pos) !== 0x40/* @ */) { return false; }
+        if (state.src.charCodeAt(state.pos + 1) !== 0x5B/* [ */) { return false; }
+
+        var labelStart = state.pos + 2;
+        var labelEnd = state.md.helpers.parseLinkLabel(state, state.pos + 1, false);
+        // parser failed to find ']', so it's not a valid link
+        if (labelEnd < 0) { return false; }
+        scope = state.src.slice(labelStart, labelEnd)
+
+        pos = labelEnd + 1;
+        if (pos < max && state.src.charCodeAt(pos) === 0x28/* ( */) {
+            start = pos;
+            res = state.md.helpers.parseLinkDestination(state.src, pos, state.posMax);
+            if (res.ok) {
+                elementID = res.str.substring(1, res.str.length-1);
+                pos = res.pos-1;
+            }
+        }
+
+        if (pos >= max || state.src.charCodeAt(pos) !== 0x29/* ) */) {
+            state.pos = oldPos;
+            return false;
+        }
+        pos++;
+
+        if (!/^\d+$/.test(elementID)) {
+            return false;
+        }
+
+        // We found the end of the link, and know for a fact it's a valid link;
+        // so all that's left to do is to call tokenizer.
+        content = {
+            scope: scope,
+            elementID: elementID
+        }
+
+        token          = state.push('MISPElement', 'div', 0);
+        token.children = tokens;
+        token.content  = content;
+
+        state.pos = pos;
+        state.posMax = max;
+        return true;
+    }
+
+    function MISPElementRenderer(tokens, idx, options, env, slf) {
+        var allowedScope = ['attribute', 'object']
+        var token = tokens[idx];
+        var scope = token.content.scope
+        var elementID = token.content.elementID
+        if (allowedScope.indexOf(scope) == -1) {
+            return renderInvalidMISPElement(scope, elementID);
+        }
+        return renderMISPElement(scope, elementID)
+        // return '<span class="bold">' + scope + '<span class="blue"> ' + elementID + '</span>' + '</span>'
+    };
+
+    function renderMISPElement(scope, elementID) {
+        return '<span class="bold">' + scope + '<span class="blue"> ' + elementID + '</span>' + '</span>'
+    }
+
+    function renderInvalidMISPElement(scope, elementID) {
+        return '<span class="bold red">' + '<?= __('Invalid scope') ?>' + '<span class="blue"> ' + elementID + '</span>' + '</span>'
     }
 
     function hideAll() {
@@ -300,7 +380,7 @@ function buildScrollMap() {
     
     offset = $viewerContainer.scrollTop() - $viewerContainer.offset().top;
     if ($(cm.getWrapperElement()).closest('.modal').length > 0) { // inside a modal
-        offset -= 30
+        offset -= 20
     }
     _scrollMap = [];
     nonEmptyList = [];
