@@ -83,6 +83,7 @@ install:
     # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
     - sudo cp -a /dev/urandom /dev/random
     - sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
+    - sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
     # change perms
     - sudo chown -R $USER:www-data `pwd`
     - sudo chmod +x /home/travis/build
@@ -105,6 +106,7 @@ install:
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_database" 13'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_password" ""'
+    - sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.email" "info@admin.test"'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.homedir" "`pwd`/.gnupg"'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.password" "travistest"'
     - sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'

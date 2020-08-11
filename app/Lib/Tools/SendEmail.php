@@ -390,11 +390,16 @@ class SendEmail
             }
 
             try {
-                $this->gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+                $gnupgEmail = Configure::read('GnuPG.email');
+                if (empty($gnupgEmail)) {
+                    throw new Exception("Email signing is enabled but variable 'GnuPG.email' is not set.");
+                }
+
+                $this->gpg->addSignKey($gnupgEmail, Configure::read('GnuPG.password'));
                 $this->signByGpg($email, $replyToUser);
+                $email->addHeaders(array('Autocrypt' => $this->generateAutocrypt($gnupgEmail)));
                 $this->gpg->clearSignKeys();
 
-                $email->addHeaders(array('Autocrypt' => $this->generateAutocrypt(Configure::read('GnuPG.email'))));
                 $signed = true;
             } catch (Exception $e) {
                 throw new SendEmailException("The message could not be signed.", 0, $e);
