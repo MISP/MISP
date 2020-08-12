@@ -169,11 +169,8 @@ after_failure:
     - ls -Rl `pwd`/app
     - curl http://misp.local
     - cat /etc/apache2/sites-available/misp.local.conf
+    - sudo tail -n +1 `pwd`/app/tmp/logs/*
     - sudo ls -l /var/log/apache2
-    - sudo cat `pwd`/app/tmp/logs/error.log
-    - sudo cat `pwd`/app/tmp/logs/exec-errors.log
-    - sudo cat `pwd`/app/tmp/logs/debug.log
-    - sudo cat `pwd`/app/tmp/logs/resque-worker-error.log
     - sudo cat /var/log/apache2/error.log
     - sudo cat /var/log/apache2/misp.local_error.log
     - sudo cat /var/log/apache2/misp.local_access.log
@@ -188,9 +185,7 @@ notifications:
     on_start: never     # options: [always|never|change] default: always
 
 after_success:
-    - sudo cat `pwd`/app/tmp/logs/debug.log
-    - sudo cat `pwd`/app/tmp/logs/error.log
-    - sudo cat `pwd`/app/tmp/logs/resque-worker-error.log
+    - sudo tail -n +1 `pwd`/app/tmp/logs/*
     - coveralls
     - coverage report
     - coverage xml
