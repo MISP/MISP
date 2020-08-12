@@ -3183,6 +3183,9 @@ class Event extends AppModel
     {
         // fetch the event
         $event = $this->read(null, $id);
+        if (!$event) {
+            throw new NotFoundException('Invalid Event.');
+        }
         $this->User = ClassRegistry::init('User');
         if (!$creator_only) {
             // Insert extra field here: alertOrg or something, then foreach all the org members
