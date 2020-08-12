@@ -95,6 +95,7 @@
     var md, cm;
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
     var proxyMISPElements = <?= json_encode(is_array($proxyMISPElements) ? $proxyMISPElements : array($proxyMISPElements), JSON_HEX_TAG); ?>;
+    var MISPElementValues = [], MISPElementTypes = [], MISPElementIDs = []
     var modelName = '<?= h($modelName) ?>';
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
     var debounceDelay = 50;
@@ -161,6 +162,8 @@
                 doScroll(syncSrcScroll)
             });
         });
+
+        buildMISPElementHints()
     })
 
     function initMarkdownIt() {
@@ -212,8 +215,9 @@
 
     function hintMISPElements(cm, options) {
         var authorizedMISPElements = ['attribute', 'object']
-        var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>\\d+)\\)');
-        var reExtendedWord = /[a-zA-Z0-9_\[\]\(\)@]/
+        var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)\\)');
+        // var reExtendedWord = /[a-zA-Z0-9_\[\]\(\)@]/
+        var reExtendedWord = /\S/
         var scope, elementID, element
         var cursor = cm.getCursor()
         var line = cm.getLine(cursor.line)
@@ -228,8 +232,9 @@
             scope = res.groups.scope
             elementID = res.groups.elementid
             element = proxyMISPElements[scope][elementID]
+            var hintList = []
             if (element !== undefined) {
-                var hintList = [
+                hintList.push(
                     {
                         text: '@[' + scope + '](' + element.id + ')',
                         render: function(elem, self, data) {
@@ -238,12 +243,36 @@
                         },
                         className: 'hint-container',
                     }
-                ]
-                return {
-                    list: hintList,
-                    from: CodeMirror.Pos(cursor.line, start),
-                    to: CodeMirror.Pos(cursor.line, end)
-                }
+                )
+            } else { // search in hint arrays
+                var maxHints = 10
+                var MISPElementToCheck = [MISPElementValues, MISPElementTypes, MISPElementIDs]
+                MISPElementToCheck.forEach(function(MISPElement) {
+                    MISPElement.forEach(function(hint) {
+                        if (hintList.length >= maxHints) {
+                            return false
+                        }
+                        if (hint[0].startsWith(elementID)) {
+                            element = proxyMISPElements[scope][hint[1]]
+                            if (element !== undefined) { // Correct scope
+                                hintList.push({
+                                    text: '@[' + scope + '](' + element.id + ')',
+                                    element: element,
+                                    render: function(elem, self, data) {
+                                        var hintElement = renderHintElement(scope, data.element)
+                                        $(elem).append(hintElement)
+                                    },
+                                    className: 'hint-container',
+                                })
+                            }
+                        }
+                    })
+                })
+            }
+            return {
+                list: hintList,
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, end)
             }
         }
         return null
@@ -607,6 +636,22 @@
             cm.setCursor(setCursorTo.line, setCursorTo.ch)
         }
         cm.focus()
+    }
+
+    function buildMISPElementHints() {
+        Object.keys(proxyMISPElements['attribute']).forEach(function(k) {
+            var attribute = proxyMISPElements['attribute'][k]
+            MISPElementValues.push([attribute.value, k])
+            MISPElementTypes.push([attribute.type, k])
+            MISPElementIDs.push([attribute.id, k])
+            MISPElementIDs.push([attribute.uuid, k])
+        })
+        Object.keys(proxyMISPElements['object']).forEach(function(k) {
+            var object = proxyMISPElements['object'][k]
+            MISPElementTypes.push([object.name, k])
+            MISPElementIDs.push([object.id, k])
+            MISPElementIDs.push([object.uuid, k])
+        })
     }
 
 
