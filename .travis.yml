@@ -33,7 +33,7 @@ install:
     - phpenv rehash
     - sudo mkdir $HOME/.composer ; sudo chown $USER:www-data $HOME/.composer
     - pushd app
-    - sudo -H -u $USER php composer.phar install
+    - sudo -H -u $USER php composer.phar install --no-progress
     - sudo phpenmod redis
     - sudo phpenmod gnupg
     - popd
