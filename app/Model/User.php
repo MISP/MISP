@@ -683,7 +683,6 @@ class User extends AppModel
     // parameters are an array of org IDs that are owners (for an event this would be orgc and org)
     public function getUsersWithAccess($owners = array(), $distribution, $sharing_group_id = 0, $userConditions = array())
     {
-        $sgModel = ClassRegistry::init('SharingGroup');
         $conditions = array();
         $validOrgs = array();
         $all = true;
@@ -696,6 +695,7 @@ class User extends AppModel
 
         // add all orgs to the conditions that can see the SG
         if ($distribution == 4) {
+            $sgModel = ClassRegistry::init('SharingGroup');
             $sgOrgs = $sgModel->getOrgsWithAccess($sharing_group_id);
             if ($sgOrgs === true) {
                 $all = true;
@@ -723,8 +723,8 @@ class User extends AppModel
         $users = $this->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1,
-            'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id'),
-            'contain' => array('Role' => array('fields' => array('perm_site_admin'))),
+            'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id', 'disabled'),
+            'contain' => ['Role' => ['fields' => ['perm_site_admin']], 'Organisation' => ['fields' => ['id']]],
         ));
         foreach ($users as $k => $user) {
             $user = $user['User'];
