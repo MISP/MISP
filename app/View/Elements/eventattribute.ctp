@@ -43,6 +43,7 @@
         }
     }
 ?>
+    <br />
     <div class="pagination">
         <ul>
         <?php
@@ -71,7 +72,6 @@
         </li>
         </ul>
     </div>
-<br />
 <div id="edit_object_div">
     <?php
         $deleteSelectedUrl = '/attributes/deleteSelected/' . $event['Event']['id'];

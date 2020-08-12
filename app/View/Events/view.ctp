@@ -365,18 +365,6 @@
                     <?php echo '</ul>' ?>
                 </div>
             <?php endif; ?>
-
-            <?php if (!empty($event['EventReport'])): ?>
-                <h3><?php echo __('Event Reports');?></h3>
-                <div class="inline correlation-container">
-                    <?=
-                        $this->element('/EventReports/quickIndex', array(
-                            'reports' => $event['EventReport']
-                        ))
-                    ?>
-                </div>
-            <?php endif; ?>
-
             <?php
                 if (!empty($event['RelatedEvent'])):
             ?>
@@ -528,6 +516,9 @@
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attackmatrix_toggle" data-toggle-type="attackmatrix" onclick="enable_attack_matrix();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>" style="vertical-align:top;"></span><?php echo __('ATT&CK matrix');?>
         </button>
+        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventreport_toggle" data-toggle-type="eventreport">
+            <span class="icon-minus icon-white" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>" style="vertical-align:top;"></span><?php echo __('Event reports');?>
+        </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
             <span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
         </button>
@@ -554,7 +545,15 @@
     </div>
     <div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false" data-mitre-attack-galaxy-id="<?php echo h($mitreAttackGalaxyId)?>">
     </div>
-    <div id="eventreport_div" class="info_container_eventgraph_network" style="display: none; padding: 0 1em;" data-fullscreen="false">
+    <div id="eventreport_div">
+        <span class="report-title-section"><?php echo __('Event Reports');?></span>
+        <div>
+            <?=
+                $this->element('/EventReports/quickIndex', array(
+                    'reports' => $event['EventReport']
+                ))
+            ?>
+        </div>
     </div>
     <div id="attributes_div">
         <?php echo $this->element('eventattribute'); ?>
@@ -594,10 +593,5 @@ function enable_attack_matrix() {
     });
 }
 
-function enable_event_report() {
-    $.get("/eventReports/index/event_id:<?php echo h($event['Event']['id']); ?>/embedded_view:1", function(data) {
-        $("#eventreport_div").html(data);
-    });
-}
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />

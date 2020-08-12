@@ -938,6 +938,27 @@ a.proposal_link_red:hover {
     float: left;
 }
 
+#eventreport_div {
+    position: relative;
+    margin-top: 20px;
+    padding: 35px 15px 0px 15px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+#eventreport_div > .report-title-section {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    padding: 3px 7px;
+    font-weight: bold;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    color: #6b6b6b;
+    border-radius: 3px 0 3px 0;
+}
+
 .modal-body-long {
     max-height: 600px;
 }

@@ -97,6 +97,16 @@ class EventReportsController extends AppController
             throw new NotFoundException(__('Invalid Event Report'));
         }
         $report = $report[0];
+        $event = $this->EventReport->Event->fetchEvent($this->Auth->user(), ['eventid' => $report['EventReport']['event_id']]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid Event'));
+        }
+        $event = $event[0];
+        $proxyMISPElements = [
+            'attribute' => Hash::combine($event, 'Attribute.{n}.id', 'Attribute.{n}'),
+            'object' => Hash::combine($event, 'Object.{n}.id', 'Object.{n}'),
+        ];
+        $this->set('proxyMISPElements', $proxyMISPElements);
         $this->set('id', $report_id);
         $this->set('report', $report);
         $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
@@ -204,6 +214,8 @@ class EventReportsController extends AppController
                 $this->set('event_id', $filters['event_id']);
             }
             $this->set('searchall', $filters['value']);
+            $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
+            $this->set('distributionLevels', $distributionLevels);
         }
     }
 

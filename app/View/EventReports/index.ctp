@@ -58,6 +58,7 @@
                 ),
                 array(
                     'name' => __('Distribution'),
+                    'element' => 'distribution_levels',
                     'class' => 'short',
                     'data_path' => 'EventReport.distribution',
                 )

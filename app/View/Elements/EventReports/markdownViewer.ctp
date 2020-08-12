@@ -385,6 +385,10 @@
                 duration: 0,
                 complete: function() {
                     cm.refresh()
+                    // Make sure to build the scrollmap after the rendering
+                    setTimeout(function() {
+                        scrollMap = buildScrollMap() 
+                    }, 500);
                 }
             })
         }
