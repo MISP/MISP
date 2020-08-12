@@ -31,10 +31,29 @@
 <div class="split-container">
     <div id="editor-container">
         <div id="editor-subcontainer">
+            <div id="top-bar" class="editor-action-bar">
+                <span class="<?= $this->FontAwesome->getClass('bold') ?> useCursorPointer icon" onclick="replacementAction('bold')"></span>
+                <span class="<?= $this->FontAwesome->getClass('italic') ?> useCursorPointer icon" onclick="replacementAction('italic')"></span>
+                <span class="<?= $this->FontAwesome->getClass('heading') ?> useCursorPointer icon" onclick="replacementAction('heading')"></span>
+                <span class="<?= $this->FontAwesome->getClass('strikethrough') ?> useCursorPointer icon" onclick="replacementAction('strikethrough')"></span>
+                <i class="top-bar-separator"></i>
+                <span class="<?= $this->FontAwesome->getClass('list-ul') ?> useCursorPointer icon" onclick="replacementAction('list-ul')"></span>
+                <span class="<?= $this->FontAwesome->getClass('list-ol') ?> useCursorPointer icon" onclick="replacementAction('list-ol')"></span>
+                <i class="top-bar-separator"></i>
+                <span class="<?= $this->FontAwesome->getClass('quote-left') ?> useCursorPointer icon" onclick="replacementAction('quote')"></span>
+                <span class="<?= $this->FontAwesome->getClass('code') ?> useCursorPointer icon" onclick="replacementAction('code')"></span>
+                <span class="<?= $this->FontAwesome->getClass('table') ?> useCursorPointer icon" onclick="replacementAction('table')"></span>
+                <i class="top-bar-separator"></i>
+                <span class="<?= $this->FontAwesome->getClass('cube') ?> useCursorPointer icon" onclick="replacementAction('attribute')"></span>
+                <span class="<?= $this->FontAwesome->getClass('cubes') ?> useCursorPointer icon" onclick="replacementAction('object')"></span>
+            </div>
             <textarea id="editor"></textarea>
-            <div id="bottom-bar">
+            <div id="bottom-bar" class="editor-action-bar">
                 <span id="lastModifiedField">
                     <?= isset($lastModified) ? h($lastModified) : '' ?>
+                </span>
+                <span>
+                    <span class="<?= $this->FontAwesome->getClass('check-double') ?> useCursorPointer icon"></span>
                 </span>
             </div>
         </div>
@@ -64,11 +83,10 @@
         )
     ));
 
-    // - Add last modified timestamp & time since last edit
     // - Add toggle spellcheck
-    // - Add Line # and col #
     // - Add top bar common shortcut
     // - Add help
+    // - Add last modified timestamp & time since last edit
     // - Download button
     // - Add Picker for elements [attributes/objects/correlation/eventGraph picture/tags/galaxyMatrix]
 ?>
@@ -496,6 +514,101 @@
         return '<?= __('invalid scope or id') ?>'
     }
 
+    function replacementAction(action) {
+        var start = cm.getCursor('start')
+        var end = cm.getCursor('end')
+        var content = cm.getRange(start, end)
+        var replacement = content
+        var setCursorTo = false
+
+        switch (action) {
+            case 'bold':
+                replacement = '**' + content + '**'
+                break;
+            case 'italic':
+                replacement = '*' + content + '*'
+                break;
+            case 'heading':
+                start.ch = 0
+                replacement = cm.getRange({line: start.line, ch: 0}, {line: start.line, ch: 1}) == '#' ? '#' : '# '
+                end = null
+                break;
+            case 'strikethrough':
+                replacement = '~~' + content + '~~'
+                break;
+            case 'list-ul':
+                start.ch = 0
+                var currentFirstChar = cm.getRange({line: start.line, ch: 0}, {line: start.line, ch: 2})
+                if (currentFirstChar == '* ') {
+                    replacement = ''
+                    end.ch = 2
+                } else {
+                    replacement = '* '
+                    end = null
+                }
+                break;
+            case 'list-ol':
+                start.ch = 0
+                var currentFirstChar = cm.getRange({line: start.line, ch: 0}, {line: start.line, ch: 3})
+                if (currentFirstChar == '1. ') {
+                    replacement = ''
+                    end.ch = 3
+                } else {
+                    replacement = '1. '
+                    end = null
+                }
+                break;
+            case 'quote':
+                start.ch = 0
+                var currentFirstChar = cm.getRange({line: start.line, ch: 0}, {line: start.line, ch: 2})
+                if (currentFirstChar == '> ') {
+                    replacement = ''
+                    end.ch = 2
+                } else {
+                    replacement = '> '
+                    end = null
+                }
+                break;
+            case 'code':
+                cm.replaceRange('\n```', {line: start.line - 1})
+                cm.replaceRange('\n```', {line: end.line + 1})
+                cm.setCursor(start.line + 1)
+                cm.focus()
+                return;
+            case 'table':
+                var tableTemplate = '| Column 1 | Column 2 | Column 3 |\n| -------- | -------- | -------- |\n| Text     | Text     | Text     |\n'
+                var lineContent = cm.getLine(start.line)
+                if (lineContent != '') {
+                    tableTemplate = '\n' + tableTemplate
+                }
+                cm.replaceRange(tableTemplate, {line: start.line + 1})
+                var startSelection = start.line + 1
+                if (lineContent != '') {
+                    startSelection++
+                }
+                cm.setSelection({line: startSelection, ch: 2}, {line: startSelection, ch: 10})
+                cm.focus()
+                return;
+            case 'attribute':
+                replacement = '@[attribute]()'
+                end = null
+                setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
+                break;
+            case 'object':
+                replacement = '@[object]()'
+                end = null
+                setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
+                break;
+            default:
+                break;
+        }
+        cm.replaceRange(replacement, start, end)
+        if (setCursorTo !== false) {
+            cm.setCursor(setCursorTo.line, setCursorTo.ch)
+        }
+        cm.focus()
+    }
+
 
 // Inject line numbers for sync scroll. Notes:
 //
@@ -720,14 +833,40 @@ var syncSrcScroll = function () {
 }
 
 #bottom-bar {
-    display: none;
-    height: 2em;
-    width: 100%
+    height: 1.5em;
+}
+#top-bar {
+    height: 34px;
+}
+.editor-action-bar {
+    display: flex;
+    align-items: center;
+    background-color: #3c3c3c;
+    color: white;
+    padding: 0 20px;
+}
+#top-bar .icon {
+    padding: 2px 2px;
+    border-radius: 2px;
+    vertical-align: middle;
+    font-size: 16px;
+    margin: 0px 5px
+}
+#top-bar .icon:hover {
+    background-color: #f3f3f3;
+    color: black;
+}
+.top-bar-separator {
+    display: inline-block;
+    margin: auto 8px;
+    width: 1px;
+    height: 15px;
+    background-color: #d0d0d0;
 }
 
 .cm-s-default {
     width: 100%;
-    height: calc(100vh - 120px)
+    height: calc(100vh - 120px - 1.5em - 34px)
 }
 
 .modal-body-xl .split-container .cm-s-default{
