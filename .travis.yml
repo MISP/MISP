@@ -173,6 +173,7 @@ after_failure:
     - sudo cat `pwd`/app/tmp/logs/error.log
     - sudo cat `pwd`/app/tmp/logs/exec-errors.log
     - sudo cat `pwd`/app/tmp/logs/debug.log
+    - sudo cat `pwd`/app/tmp/logs/resque-worker-error.log
     - sudo cat /var/log/apache2/error.log
     - sudo cat /var/log/apache2/misp.local_error.log
     - sudo cat /var/log/apache2/misp.local_access.log
@@ -187,6 +188,9 @@ notifications:
     on_start: never     # options: [always|never|change] default: always
 
 after_success:
+    - sudo cat `pwd`/app/tmp/logs/debug.log
+    - sudo cat `pwd`/app/tmp/logs/error.log
+    - sudo cat `pwd`/app/tmp/logs/resque-worker-error.log
     - coveralls
     - coverage report
     - coverage xml
