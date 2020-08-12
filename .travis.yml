@@ -83,6 +83,7 @@ install:
     # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
     - sudo cp -a /dev/urandom /dev/random
     - sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
+    - sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
     - sudo chown $USER:www-data `pwd`/.gnupg
     - sudo chmod 700 `pwd`/.gnupg
     # change perms
