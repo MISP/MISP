@@ -120,7 +120,7 @@ install:
     - sudo chmod -R 777 ./tests
     # Start workers
     - sudo chmod +x app/Console/worker/start.sh
-    - app/Console/worker/start.sh &
+    - sudo -E su $USER -c 'app/Console/worker/start.sh &'
     - sleep 10
     # Dirty install python stuff
     - virtualenv -p python3.6 ./venv
