@@ -3,7 +3,14 @@
     $table_data[] = array('key' => __('ID'), 'value' => $report['EventReport']['id']);
     $table_data[] = array('key' => __('UUID'), 'value' => $report['EventReport']['uuid']);
     $table_data[] = array('key' => __('Name'), 'value' => $report['EventReport']['name']);
-
+    $table_data[] = array(
+        'key' => __('Event ID'),
+        'html' => sprintf('%s', sprintf(
+            '<a href="%s">%s</a>',
+            sprintf('%s%s%s', $baseurl, '/events/view/', h($report['EventReport']['event_id'])),
+            h($report['EventReport']['event_id'])
+        ))
+    );
     $table_data[] = array(
         'key' => __('Distribution'),
         'value_class' => ($report['EventReport']['distribution'] == 0) ? 'privateRedText' : '',
