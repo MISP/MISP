@@ -1,3 +1,5 @@
+<?php echo $this->element('EventReports/markdownViewerHelpModal') ?>
+
 <div id="mardown-viewer-toolbar" class="btn-toolbar">
     <div class="btn-group">
         <button type="button" class="btn" data-togglemode="editor" onclick="setMode('editor')">
@@ -40,14 +42,18 @@
                         <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i></span>
                         <?= __('Download Markdown') ?>
                     </a></li>
-                    <li><a tabindex="-1" href="#" title="<?= __('Replace custom syntax by a valid one') ?>" onclick="downloadMarkdown('text-commonmark')">
+                    <li><a tabindex="-1" href="#" title="<?= __('Replace custom syntax by a valid one') ?>" onclick="downloadMarkdown('text-gfm')">
                         <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i></span>
-                        <?= __('Download Commonmark format') ?>
+                        <?= __('Download GFM simplified format') ?>
                     </a></li>
                 </ul>
             </li>
         </ul>
     </div>
+    <button type="button" class="btn btn-primary" onclick="showHelp()">
+        <i class="<?= $this->FontAwesome->getClass('question-circle') ?> fa-question-circle"></i>
+        <?= __('Help') ?>
+    </button>
 </div>
 
 <div class="raw-container">
@@ -109,6 +115,7 @@
     ));
 
     // - Add help
+    // - Add toggle button for autocomplete
     // - Add last modified timestamp & time since last edit
     // - Add Picker for elements [correlation/eventGraph picture/tags/galaxyMatrix]
 ?>
@@ -536,7 +543,7 @@
             baseName = 'event-report-' + (new Date()).getTime()
             extension = 'md'
             fileType = 'text/markdown'
-        } else if (type == 'text-commonmark') {
+        } else if (type == 'text-gfm') {
             content = replaceMISPElementByTheirValue(getEditorData())
             baseName = 'event-report-' + (new Date()).getTime()
             extension = 'md'
@@ -547,6 +554,10 @@
             type: fileType
         })
         saveAs(blob, filename)
+    }
+
+    function showHelp() {
+        $('#genericModal').modal();
     }
 
     function replaceMISPElementByTheirValue(raw) {
