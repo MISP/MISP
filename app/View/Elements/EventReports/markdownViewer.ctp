@@ -110,7 +110,6 @@
 
     // - Add help
     // - Add last modified timestamp & time since last edit
-    // - Download button
     // - Add Picker for elements [correlation/eventGraph picture/tags/galaxyMatrix]
 ?>
 <script>
@@ -479,6 +478,9 @@
     }
 
     function saveMarkdown() {
+        if (!confirm('<?= __('You are about to save the document. Do you wish to proceed?') ?>')) {
+            return
+        }
         var url = "<?= $baseurl ?>/eventReports/edit/<?= h($id) ?>"
         fetchFormDataAjax(url, function(formHTML) {
             $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
