@@ -773,8 +773,7 @@ class Attribute extends AppModel
         // delete attachments from the disk
         $this->read(); // first read the attribute from the db
         if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
-            $attachmentTool = new AttachmentTool();
-            $attachmentTool->delete($this->data['Attribute']['event_id'], $this->data['Attribute']['id']);
+            $this->loadAttachmentTool()->delete($this->data['Attribute']['event_id'], $this->data['Attribute']['id']);
         }
         // update correlation..
         $this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
@@ -1744,14 +1743,23 @@ class Attribute extends AppModel
 
     public function getAttachment($attribute, $path_suffix='')
     {
-        $attachmentTool = new AttachmentTool();
-        return $attachmentTool->getContent($attribute['event_id'], $attribute['id'], $path_suffix);
+        return $this->loadAttachmentTool()->getContent($attribute['event_id'], $attribute['id'], $path_suffix);
+    }
+
+    /**
+     * @param array $attribute
+     * @param string $path_suffix
+     * @return File
+     * @throws Exception
+     */
+    public function getAttachmentFile(array $attribute, $path_suffix='')
+    {
+        return $this->loadAttachmentTool()->getFile($attribute['event_id'], $attribute['id'], $path_suffix);
     }
 
     public function saveAttachment($attribute, $path_suffix='')
     {
-        $attachmentTool = new AttachmentTool();
-        return $attachmentTool->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
+        return $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
     }
 
     /**
@@ -3567,7 +3575,7 @@ class Attribute extends AppModel
 
         $content = base64_decode($base64);
 
-        $attachmentTool = new AttachmentTool();
+        $attachmentTool = $this->loadAttachmentTool();
         $hashes = $attachmentTool->computeHashes($content, $hash_types);
         try {
             $encrypted = $attachmentTool->encrypt($original_filename, $content, $hashes['md5']);
@@ -3585,9 +3593,8 @@ class Attribute extends AppModel
      */
     public function isAdvancedExtractionAvailable()
     {
-        $malwareTool = new AttachmentTool();
         try {
-            $types = $malwareTool->checkAdvancedExtractionStatus($this->getPythonVersion());
+            $types = $this->loadAttachmentTool()->checkAdvancedExtractionStatus($this->getPythonVersion());
         } catch (Exception $e) {
             return false;
         }
@@ -3984,9 +3991,8 @@ class Attribute extends AppModel
 
     public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile)
     {
-        $malwareTool = new AttachmentTool();
         try {
-            $result = $malwareTool->advancedExtraction($this->getPythonVersion(), $tmpfile->path);
+            $result = $this->loadAttachmentTool()->advancedExtraction($this->getPythonVersion(), $tmpfile->path);
         } catch (Exception $e) {
             $this->logException("Could not finish advanced extraction", $e);
             return $this->simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile);

@@ -45,6 +45,9 @@ class AppModel extends Model
 
     public $elasticSearchClient = false;
 
+    /** @var AttachmentTool|null */
+    private $attachmentTool;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -2910,5 +2913,17 @@ class AppModel extends Model
             '?',
             $input
         );
+    }
+
+    /**
+     * @return AttachmentTool
+     */
+    protected function loadAttachmentTool()
+    {
+        if ($this->attachmentTool === null) {
+            $this->attachmentTool = new AttachmentTool();
+        }
+
+        return $this->attachmentTool;
     }
 }

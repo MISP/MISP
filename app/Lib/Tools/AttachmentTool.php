@@ -35,6 +35,7 @@ class AttachmentTool
 
 
     /**
+     * @param bool $shadow
      * @param int $eventId
      * @param int $attributeId
      * @param string $path_suffix

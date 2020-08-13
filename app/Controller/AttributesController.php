@@ -334,8 +334,7 @@ class AttributesController extends AppController
 
     private function __downloadAttachment($attribute)
     {
-        $attachmentTool = new AttachmentTool();
-        $file = $attachmentTool->getFile($attribute['event_id'], $attribute['id']);
+        $file = $this->Attribute->getAttachmentFile($attribute);
 
         if ('attachment' == $attribute['type']) {
             $filename = $attribute['value'];

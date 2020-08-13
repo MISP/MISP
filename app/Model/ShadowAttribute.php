@@ -270,8 +270,7 @@ class ShadowAttribute extends AppModel
         if (isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) {
             $sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $this->data['ShadowAttribute']['id']), 'recursive' => -1, 'fields' => array('ShadowAttribute.id', 'ShadowAttribute.event_id', 'ShadowAttribute.type')));
             if ($this->typeIsAttachment($sa['ShadowAttribute']['type'])) {
-                $attachmentTool = new AttachmentTool();
-                $attachmentTool->deleteShadow($sa['ShadowAttribute']['event_id'], $sa['ShadowAttribute']['id']);
+                $this->loadAttachmentTool()->deleteShadow($sa['ShadowAttribute']['event_id'], $sa['ShadowAttribute']['id']);
             }
         } else {
             if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
@@ -296,8 +295,7 @@ class ShadowAttribute extends AppModel
         // delete attachments from the disk
         $this->read(); // first read the attribute from the db
         if ($this->typeIsAttachment($this->data['ShadowAttribute']['type'])) {
-            $attachmentTool = new AttachmentTool();
-            $attachmentTool->deleteShadow($this->data['ShadowAttribute']['event_id'], $this->data['ShadowAttribute']['id']);
+            $this->loadAttachmentTool()->deleteShadow($this->data['ShadowAttribute']['event_id'], $this->data['ShadowAttribute']['id']);
         }
     }
 
@@ -398,16 +396,25 @@ class ShadowAttribute extends AppModel
 
     public function base64EncodeAttachment($attribute)
     {
-        $attachmentTool = new AttachmentTool();
-        $content = $attachmentTool->getShadowContent($attribute['event_id'], $attribute['id']);
+        $content = $this->loadAttachmentTool()->getShadowContent($attribute['event_id'], $attribute['id']);
         return base64_encode($content);
     }
 
     public function saveBase64EncodedAttachment($attribute)
     {
         $data = base64_decode($attribute['data']);
-        $attachmentTool = new AttachmentTool();
-        return $attachmentTool->saveShadow($attribute['event_id'], $attribute['id'], $data);
+        return $this->loadAttachmentTool()->saveShadow($attribute['event_id'], $attribute['id'], $data);
+    }
+
+    /**
+     * @param array $shadowAttribute
+     * @param string $path_suffix
+     * @return File
+     * @throws Exception
+     */
+    public function getAttachmentFile(array $shadowAttribute, $path_suffix='')
+    {
+        return $this->loadAttachmentTool()->getShadowFile($shadowAttribute['event_id'], $shadowAttribute['id'], $path_suffix);
     }
 
     public function checkComposites()

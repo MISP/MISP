@@ -450,16 +450,15 @@ class ShadowAttributesController extends AppController
         $this->__downloadAttachment($sa['ShadowAttribute']);
     }
 
-    private function __downloadAttachment($shadowAttribute)
+    private function __downloadAttachment(array $shadowAttribute)
     {
-        $attachmentTool = new AttachmentTool();
-        $file = $attachmentTool->getShadowFile($shadowAttribute['event_id'], $shadowAttribute['id']);
+        $file = $this->ShadowAttribute->getAttachmentFile($shadowAttribute);
 
-        if ('attachment' == $shadowAttribute['type']) {
+        if ('attachment' === $shadowAttribute['type']) {
             $filename = $shadowAttribute['value'];
             $fileExt = pathinfo($filename, PATHINFO_EXTENSION);
             $filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
-        } elseif ('malware-sample' == $shadowAttribute['type']) {
+        } elseif ('malware-sample' === $shadowAttribute['type']) {
             $filenameHash = explode('|', $shadowAttribute['value']);
             $filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
             $fileExt = "zip";

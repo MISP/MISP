@@ -533,9 +533,8 @@ class Event extends AppModel
         // delete all of the event->tag combinations that involve the deleted event
         $this->EventTag->deleteAll(array('event_id' => $this->id));
 
-        $attachmentTool = new AttachmentTool();
         try {
-            $attachmentTool->deleteAll($this->id);
+            $this->loadAttachmentTool()->deleteAll($this->id);
         } catch (Exception $e) {
             $this->logException('Delete of event file directory failed.', $e);
             throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
