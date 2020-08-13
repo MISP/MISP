@@ -18,10 +18,35 @@
         </button>
     </div>
     <div class="btn-group">
-        <button id="saveMarkdownButton" type="button" class="btn btn-success" onclick="saveMarkdown()">
+        <button id="saveMarkdownButton" type="button" class="btn btn-primary" onclick="saveMarkdown()">
             <i class="<?= $this->FontAwesome->getClass('save') ?> fa-save"></i>
             <?= __('Save') ?>
         </button>
+        <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+            <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+            <li class="dropdown-submenu">
+                <a tabindex="-1" href="#">
+                    <span class="icon"><i class="<?= $this->FontAwesome->getClass('download') ?> fa-download"></i></span>
+                    <?= __('Downloads') ?>
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a tabindex="-1" href="#" onclick="downloadMarkdown('pdf')">
+                        <span class="icon"><i class="<?= $this->FontAwesome->getClass('file-pdf') ?> fa-file-pdf"></i></span>
+                        <?= __('Download PDF (via print)') ?>
+                    </a></li>
+                    <li><a tabindex="-1" href="#" onclick="downloadMarkdown('text')">
+                        <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i></span>
+                        <?= __('Download Markdown') ?>
+                    </a></li>
+                    <li><a tabindex="-1" href="#" title="<?= __('Replace custom syntax by a valid one') ?>" onclick="downloadMarkdown('text-commonmark')">
+                        <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i></span>
+                        <?= __('Download Commonmark format') ?>
+                    </a></li>
+                </ul>
+            </li>
+        </ul>
     </div>
 </div>
 
@@ -69,6 +94,7 @@
             'doT',
             'markdown-it',
             'highlight.min',
+            'FileSaver',
             'codemirror/codemirror',
             'codemirror/modes/markdown',
             'codemirror/addons/simplescrollbars',
@@ -82,12 +108,10 @@
         )
     ));
 
-    // - Add toggle spellcheck
-    // - Add top bar common shortcut
     // - Add help
     // - Add last modified timestamp & time since last edit
     // - Download button
-    // - Add Picker for elements [attributes/objects/correlation/eventGraph picture/tags/galaxyMatrix]
+    // - Add Picker for elements [correlation/eventGraph picture/tags/galaxyMatrix]
 ?>
 <script>
     'use strict';
@@ -222,7 +246,6 @@
     function hintMISPElements(cm, options) {
         var authorizedMISPElements = ['attribute', 'object']
         var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)\\)');
-        // var reExtendedWord = /[a-zA-Z0-9_\[\]\(\)@]/
         var reExtendedWord = /\S/
         var scope, elementID, element
         var cursor = cm.getCursor()
@@ -488,6 +511,60 @@
                 url: formUrl
             })
         })
+    }
+
+    function downloadMarkdown(type) {
+        var content, fileType, baseName, extension
+        if (type == 'pdf') {
+            if (currentMode != 'viewer' && currentMode != 'splitscreen') {
+                setMode('viewer')
+                setTimeout(function (){ // let the parser render the document
+                    if (confirm('<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`.') ?>')) {
+                        window.print()
+                    }
+                }, 300);
+            } else {
+                if (confirm('<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`.') ?>')) {
+                    window.print()
+                }
+            }
+            return
+        } else if (type == 'text') {
+            content = getEditorData()
+            baseName = 'event-report-' + (new Date()).getTime()
+            extension = 'md'
+            fileType = 'text/markdown'
+        } else if (type == 'text-commonmark') {
+            content = replaceMISPElementByTheirValue(getEditorData())
+            baseName = 'event-report-' + (new Date()).getTime()
+            extension = 'md'
+            fileType = 'text/markdown'
+        }
+        var filename = baseName + '.' + extension
+        var blob = new Blob([content], {
+            type: fileType
+        })
+        saveAs(blob, filename)
+    }
+
+    function replaceMISPElementByTheirValue(raw) {
+        var match, replacement, element
+        var final = ''
+        var authorizedMISPElements = ['attribute', 'object']
+        var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[\\d]+)\\)', 'g');
+        var offset = 0
+        while ((match = reMISPElement.exec(raw)) !== null) {
+            element = proxyMISPElements[match.groups.scope][match.groups.elementid]
+            if (element !== undefined) {
+                replacement = match.groups.scope + '-' + element.uuid
+            } else {
+                replacement = match.groups.scope + '-' + match.groups.elementid
+            }
+            final += raw.substring(offset, match.index) + replacement
+            offset = reMISPElement.lastIndex
+        }
+        final += raw.substring(offset)
+        return final
     }
 
     function renderMarkdown() {
@@ -799,6 +876,20 @@ var syncSrcScroll = function () {
 </script>
 
 <style> 
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #viewer, #viewer * {
+        visibility: visible;
+    }
+    #viewer {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+}
+
 .split-container {
     overflow: hidden;
     min-height: 500px;
@@ -913,6 +1004,11 @@ var syncSrcScroll = function () {
     width: 1px;
     height: 15px;
     background-color: #d0d0d0;
+}
+
+.dropdown-menu li .icon {
+    width: 20px;
+    display: inline-block;
 }
 
 .cm-s-default {
