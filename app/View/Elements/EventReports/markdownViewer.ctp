@@ -84,6 +84,10 @@
                     <?= isset($lastModified) ? h($lastModified) : '' ?>
                 </span>
                 <span>
+                    <span title="<?= __('Toggle autocompletion while typing'); ?>">
+                        <input type="checkbox" id="autocompletionCB" style="margin: 0 2px 0 0" checked="checked"></input>
+                        <span class="<?= $this->FontAwesome->getClass('magic') ?> useCursorPointer icon" onclick="$autocompletionCB[0].checked = !$autocompletionCB[0].checked"></span>
+                    </span>
                 </span>
             </div>
         </div>
@@ -114,10 +118,10 @@
         )
     ));
 
-    // - Add help
-    // - Add toggle button for autocomplete
     // - Add last modified timestamp & time since last edit
     // - Add Picker for elements [correlation/eventGraph picture/tags/galaxyMatrix]
+    // - Add popover for MISP Element
+    // - Add support of picture (attachment) in the markdown
 ?>
 <script>
     'use strict';
@@ -130,7 +134,7 @@
     var debounceDelay = 50;
     var renderTimer, scrollTimer;
     var scrollMap;
-    var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle
+    var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB
     var $editor, $viewer, $raw
     var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
@@ -154,6 +158,7 @@
         $raw = $('#raw')
         $mardownViewerToolbar = $('#mardown-viewer-toolbar')
         $saveMarkdownButton = $('#saveMarkdownButton')
+        $autocompletionCB = $('#autocompletionCB')
 
         initMarkdownIt()
         initCodeMirror()
@@ -246,7 +251,8 @@
         })
         cm.on("keyup", function (cm, event) {
             if (!cm.state.completionActive && /*Enables keyboard navigation in autocomplete list*/
-                event.keyCode != 13) {        /*Enter - do not open autocomplete list just after item has been selected in it*/ 
+                event.keyCode != 13 &&        /*Enter - do not open autocomplete list just after item has been selected in it*/ 
+                $autocompletionCB.prop('checked')) {
                 cm.showHint()
             }
         });
