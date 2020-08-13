@@ -53,7 +53,6 @@
                     <?= isset($lastModified) ? h($lastModified) : '' ?>
                 </span>
                 <span>
-                    <span class="<?= $this->FontAwesome->getClass('check-double') ?> useCursorPointer icon"></span>
                 </span>
             </div>
         </div>
@@ -204,13 +203,20 @@
                 "Ctrl-Space": "autocomplete"
             },
             hintOptions: {
-                hint: hintMISPElements
-            }
+                hint: hintMISPElements,
+                completeSingle: false
+            },
         }
         cm = CodeMirror.fromTextArea($editor[0], cmOptions);
         cm.on('changes', function() {
             doRender();
         })
+        cm.on("keyup", function (cm, event) {
+            if (!cm.state.completionActive && /*Enables keyboard navigation in autocomplete list*/
+                event.keyCode != 13) {        /*Enter - do not open autocomplete list just after item has been selected in it*/ 
+                cm.showHint()
+            }
+        });
     }
 
     function hintMISPElements(cm, options) {
