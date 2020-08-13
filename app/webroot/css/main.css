@@ -967,6 +967,10 @@ a.proposal_link_red:hover {
     max-height: 70vh;
 }
 
+.modal-body-lg {
+    max-height: 60vh;
+}
+
 .ajax_popover_form {
     display:none;
     width: 700px;
@@ -977,6 +981,12 @@ a.proposal_link_red:hover {
     border-radius: 11px 11px 10px 10px;
     box-shadow: 4px 4px 4px #333;
     z-index:5;
+}
+
+.modal.modal-lg {
+    width: 60%;
+    left: 20%;
+    margin-left: 0px;
 }
 
 .modal.modal-xl {

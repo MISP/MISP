@@ -230,7 +230,10 @@
                 "Esc": function(cm) {
                     console.log('<esc>')
                 },
-                "Ctrl-Space": "autocomplete"
+                "Ctrl-Space": "autocomplete",
+                "Ctrl-B": function() { replacementAction('bold') },
+                "Ctrl-I": function() { replacementAction('italic') },
+                "Ctrl-M": function() { replacementAction('element') },
             },
             hintOptions: {
                 hint: hintMISPElements,
@@ -712,6 +715,13 @@
                     startSelection++
                 }
                 cm.setSelection({line: startSelection, ch: 2}, {line: startSelection, ch: 10})
+                cm.focus()
+                return;
+            case 'element':
+                replacement = '@[MISPElement]()'
+                end = null
+                cm.replaceRange(replacement, start)
+                cm.setSelection({line: start.line, ch: start.ch + 2}, {line: start.line, ch: start.ch + 2 + 11})
                 cm.focus()
                 return;
             case 'attribute':

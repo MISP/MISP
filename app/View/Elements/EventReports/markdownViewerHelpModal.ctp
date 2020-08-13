@@ -5,9 +5,10 @@
     ];
     $shortcutsTableHeader = [__('Command'), __('Action')];
     $shortcuts = [
-        ['<kbd>' . implode('</kbd><kbd>', ['&lt;ctrl&gt;', ' + ', '&lt;space&gt;']) . '</kbd>', __('Triggers autocomplete if applicable')],
-        ['<kbd>' . implode('</kbd><kbd>', ['&lt;ctrl&gt;', ' + ', '&lt;b&gt;']) . '</kbd>', __('Makes text bold')],
-        ['<kbd>' . implode('</kbd><kbd>', ['&lt;ctrl&gt;', ' + ', '&lt;i&gt;']) . '</kbd>', __('Makes text italic')],
+        ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'space']) . '</kbd>', __('Triggers autocomplete if applicable')],
+        ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'b']) . '</kbd>', __('Makes text bold')],
+        ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'i']) . '</kbd>', __('Makes text italic')],
+        ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'm']) . '</kbd>', __('Insert a MISP Element')],
     ];
     $syntaxHelp = [
         sprintf('<b>%s</b>: %s','scope', __('Is the scope you want to reference. Can be either %s or %s', sprintf('<code>%s</code>', 'attribute'), sprintf('<code>%s</code>', 'object'))),
