@@ -28,7 +28,7 @@
     $helpHTML .= sprintf('<h3>%s</h3>', __('Markdown extended format'));
     $helpHTML .= sprintf('<p>%s</p>', __('In order to have a visually pleasant document but more importantly avoid hard coding, MISP elements such as attributes and objects can be referenced with the following special syntax'));
     $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@[scope](id)</code>');
-    $helpHTML .= sprintf('<p>%s</p>', __('Where:'));
+    $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
     $helpHTML .= sprintf('<ul>%s</ul>',
         '<li>' . implode('</li><li>', $syntaxHelp) . '</li>'
     );
@@ -55,7 +55,7 @@
             ),
         )
     );
-    echo $this->element('genericElements/infoModal', array('data' => $data, 'type' => 'lg', 'body-long' => true));
+    echo $this->element('genericElements/infoModal', array('data' => $data, 'type' => 'lg', 'class' => 'markdown-modal-helper'));
 ?>
 
 <style>

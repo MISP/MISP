@@ -557,7 +557,7 @@
     }
 
     function showHelp() {
-        $('#genericModal').modal();
+        $('#genericModal.markdown-modal-helper').modal();
     }
 
     function replaceMISPElementByTheirValue(raw) {

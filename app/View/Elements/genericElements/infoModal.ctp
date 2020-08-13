@@ -9,6 +9,8 @@
      *   - paragraph: Text to be displayed (optional)
      *   - html: HTML to be displayed directly (optional)
      *   - code: Code snipet to be displayed - copy pastable (optional)
+     * - type: Controls the size of the modal (`xl` or `lg`)
+     * - class: A class to be applied on the modal (For reference or customization)
      */
     $contents = '';
     foreach ($data['content'] as $content) {
@@ -23,8 +25,9 @@
     $action = $this->request->params['action'];
     $controller = $this->request->params['controller'];
     echo sprintf(
-        '<div id="genericModal" class="modal %s hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true">%s%s%s</div>',
+        '<div id="genericModal" class="modal %s hide fade %s" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true">%s%s%s</div>',
         isset($type) ? sprintf('modal-%s', $type) : '',
+        isset($class) ? $class : '',
         sprintf(
             '<div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button><h3 id="genericModalLabel">%s</h3></div>',
             empty($data['title']) ?
