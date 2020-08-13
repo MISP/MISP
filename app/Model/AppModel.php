@@ -2853,6 +2853,8 @@ class AppModel extends Model
     }
 
     /**
+     * Log exception with backtrace and with nested exceptions.
+     *
      * @param string $message
      * @param Exception $exception
      * @param int $type

@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('GpgTool', 'Tools');
 
 class Server extends AppModel
 {
@@ -1142,6 +1143,14 @@ class Server extends AppModel
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
                                 'type' => 'string',
+                        ),
+                        'obscure_subject' => array(
+                                'level' => 2,
+                                'description' => __('When enabled, subject in signed and encrypted e-mails will not send in unencrypted form.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
                         )
                 ),
                 'SMIME' => array(
@@ -5051,18 +5060,9 @@ class Server extends AppModel
         $gpgStatus = 0;
         if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
             $continue = true;
+            $gpgTool = new GpgTool();
             try {
-                if (!class_exists('Crypt_GPG')) {
-                    if (!stream_resolve_include_path('Crypt/GPG.php')) {
-                        throw new Exception("Crypt_GPG is not installed");
-                    }
-                    require_once 'Crypt/GPG.php';
-                }
-                $gpg = new Crypt_GPG(array(
-                    'homedir' => Configure::read('GnuPG.homedir'),
-                    'gpgconf' => Configure::read('GnuPG.gpgconf'),
-                    'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg'
-                ));
+                $gpg = $gpgTool->initializeGpg();
             } catch (Exception $e) {
                 $this->logException("Error during initializing GPG.", $e, LOG_NOTICE);
                 $gpgStatus = 2;
