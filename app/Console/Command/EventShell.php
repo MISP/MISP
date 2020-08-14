@@ -136,6 +136,9 @@ class EventShell extends AppShell
         $eventId = $this->args[2];
         $oldpublish = $this->args[3];
         $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die("Invalid user ID '$userId' provided.");
+        }
         $result = $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $processId);
         $job['Job']['progress'] = 100;
         $job['Job']['message'] = 'Emails sent.';
@@ -154,6 +157,9 @@ class EventShell extends AppShell
         $processId = $this->args[5];
         $this->Job->id = $processId;
         $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die("Invalid user ID '$userId' provided.");
+        }
         $result = $this->Event->sendContactEmail($id, $message, $all, array('User' => $user), $isSiteAdmin);
         $this->Job->saveField('progress', '100');
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
@@ -238,6 +244,9 @@ class EventShell extends AppShell
         $jobId = $this->args[2];
         $userId = $this->args[3];
         $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die("Invalid user ID '$userId' provided.");
+        }
         $job = $this->Job->read(null, $jobId);
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
         $result = $this->Event->publish($id, $passAlong);
@@ -262,6 +271,9 @@ class EventShell extends AppShell
         $jobId = $this->args[2];
         $userId = $this->args[3];
         $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die("Invalid user ID '$userId' provided.");
+        }
         $job = $this->Job->read(null, $jobId);
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
         $result = $this->Event->publish_sightings($id, $passAlong);
@@ -345,7 +357,7 @@ class EventShell extends AppShell
             $inputData['attributes'],
             $inputData['id'],
             $inputData['default_comment'],
-            $inputData['force'],
+            $inputData['proposals'],
             $inputData['adhereToWarninglists'],
             $inputData['jobId']
         );

@@ -41,12 +41,12 @@ class ObjectReferencesController extends AppController
             'recursive' => -1,
             'contain' => array(
                 'Event' => array(
-                    'fields' => array('Event.id', 'Event.orgc_id')
+                    'fields' => array('Event.id', 'Event.orgc_id', 'Event.user_id')
                 )
             )
         ));
-        if (empty($object) || (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
-            throw new MethodNotAllowedException('Invalid object.');
+        if (empty($object) || !$this->__canModifyEvent($object)) {
+            throw new NotFoundException('Invalid object.');
         }
         $this->set('objectId', $objectId);
         if ($this->request->is('post')) {
@@ -60,7 +60,6 @@ class ObjectReferencesController extends AppController
                 $relationship_type = $this->request->data['ObjectReference']['relationship_type_select'];
             }
             $data = array(
-                'referenced_type' => $referenced_type,
                 'referenced_id' => $referenced_id,
                 'referenced_uuid' => $referenced_uuid,
                 'relationship_type' => $relationship_type,
@@ -168,10 +167,10 @@ class ObjectReferencesController extends AppController
             'contain' => array('Object' => array('Event'))
         ));
         if (empty($objectReference)) {
-            throw new MethodNotAllowedException('Invalid object reference.');
+            throw new NotFoundException(__('Invalid object reference.'));
         }
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $objectReference['Object']['Event']['orgc_id']) {
-            throw new MethodNotAllowedException('Invalid object reference.');
+        if (!$this->__canModifyEvent($objectReference['Object'])) {
+            throw new ForbiddenException(__('Invalid object reference.'));
         }
         if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
             $result = $this->ObjectReference->smartDelete($objectReference['ObjectReference']['id'], $hard);

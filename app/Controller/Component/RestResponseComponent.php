@@ -1751,6 +1751,10 @@ class RestResponseComponent extends Component
             unset($tags[$i]);
         }
         $field['values'] = $tags;
+
+        if ($action == 'attachTagToObject') {
+            $field['help'] = __('Also supports array of tags');
+        }
     }
     private function __overwriteNationality($scope, $action, &$field) {
         $field['values'] = ClassRegistry::init("Organisation")->countries;

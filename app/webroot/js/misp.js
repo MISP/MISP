@@ -23,6 +23,14 @@ function stringToRGB(str){
     return "#" + "00000".substring(0, 6 - c.length) + c;
 }
 
+function rgb2hex(rgb) {
+    rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+    function hex(x) {
+        return ("0" + parseInt(x).toString(16)).slice(-2);
+    }
+    return "#" + hex(rgb[1]) + hex(rgb[2]) + hex(rgb[3]);
+}
+
 function xhrFailCallback(xhr) {
     if (xhr.status === 403) {
         showMessage('fail', 'Not allowed.');
@@ -319,6 +327,7 @@ function submitGenericForm(url, form, target) {
         complete:function() {
             $(".loading").hide();
         },
+        error: xhrFailCallback,
         type:"post",
         cache: false,
         url:url,
@@ -326,18 +335,19 @@ function submitGenericForm(url, form, target) {
 }
 
 function acceptObject(type, id, event) {
-    name = '#ShadowAttribute_' + id + '_accept';
+    var name = '#ShadowAttribute_' + id + '_accept';
     var formData = $(name).serialize();
     $.ajax({
         data: formData,
-        success:function (data, textStatus) {
+        success: function (data, textStatus) {
             updateIndex(event, 'event');
             eventUnpublish();
             handleGenericAjaxResponse(data);
         },
-        type:"post",
+        error: xhrFailCallback,
+        type: "post",
         cache: false,
-        url:"/shadow_attributes/accept/" + id,
+        url: "/shadow_attributes/accept/" + id,
     });
 }
 
@@ -992,7 +1002,8 @@ function multiSelectAction(event, context) {
 
 function editSelectedAttributes(event) {
     var selectedAttributeIds = getSelected();
-    simplePopup("/attributes/editSelected/" + event + "/" + selectedAttributeIds);
+    var data = { selected_ids: selectedAttributeIds }
+    simplePopup("/attributes/getMassEditForm/" + event, 'POST', data);
 }
 
 function addSelectedTaxonomies(taxonomy) {
@@ -1880,7 +1891,9 @@ function submitPopover(clicked) {
     }
 }
 
-function simplePopup(url) {
+function simplePopup(url, requestType, data) {
+    requestType = requestType === undefined ? 'GET' : requestType
+    data = data === undefined ? [] : data
     $("#gray_out").fadeIn();
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
@@ -1900,6 +1913,8 @@ function simplePopup(url) {
             xhrFailCallback(xhr);
         },
         url: url,
+        type: requestType,
+        data: data
     });
 }
 
@@ -2758,7 +2773,10 @@ function moduleResultsSubmit(id) {
                     if ($(this).find('.objectAttributeTagContainer').length) {
                         var tags = [];
                         $(this).find('.objectAttributeTag').each(function() {
-                            tags.push({name: $(this).attr('title')});
+                            tags.push({
+                                name: $(this).attr('title'),
+                                colour: rgb2hex($(this).css('background-color'))
+                            });
                         });
                         attribute['Tag'] = tags;
                     }
@@ -2814,7 +2832,10 @@ function moduleResultsSubmit(id) {
             if ($(this).find('.attributeTagContainer').length) {
                 var tags = [];
                 $(this).find('.attributeTag').each(function() {
-                    tags.push({name: $(this).attr('title')});
+                    tags.push({
+                        name: $(this).attr('title'),
+                        colour: rgb2hex($(this).css('background-color'))
+                    });
                 });
                 temp['Tag'] = tags;
             }

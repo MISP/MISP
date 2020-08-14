@@ -27,21 +27,21 @@ class OrgBlacklistsController extends AppController
 
     public function index()
     {
-        $this->BlackList->index($this->_isRest());
+        return $this->BlackList->index($this->_isRest());
     }
 
     public function add()
     {
-        $this->BlackList->add($this->_isRest());
+        return $this->BlackList->add($this->_isRest());
     }
 
     public function edit($id)
     {
-        $this->BlackList->edit($this->_isRest(), $id);
+        return $this->BlackList->edit($this->_isRest(), $id);
     }
 
     public function delete($id)
     {
-        $this->BlackList->delete($this->_isRest(), $id);
+        return $this->BlackList->delete($this->_isRest(), $id);
     }
 }

@@ -42,15 +42,15 @@
             <div class="clear">
             <?php
                 echo empty(Configure::read('Security.allow_self_registration')) ? '' : sprintf(
-                    '<a href="%s/users/register" title="%s">%s</span>',
+                    '<a href="%s/users/register" title="%s">%s</a>',
                     $baseurl,
                     __('Registration will be sent to the administrators of the instance for consideration.'),
                     __('No account yet? Register now!')
                 );
             ?>
             </div>
+            <?= $this->Form->button(__('Login'), array('class' => 'btn btn-primary')); ?>
         <?php
-            echo $this->Form->button(__('Login'), array('class' => 'btn btn-primary'));
             echo $this->Form->end();
             if (Configure::read('ApacheShibbAuth') == true) {
                 echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
@@ -63,3 +63,31 @@
     </tr>
     </table>
 </div>
+
+<script>
+$(document).ready(function() {
+    $('#UserLoginForm').submit(function(event) {
+        event.preventDefault()
+        submitLoginForm()
+    });
+})
+
+function submitLoginForm() {
+    var $form = $('#UserLoginForm')
+    var url = $form.attr('action')
+    var email = $form.find('#UserEmail').val()
+    var password = $form.find('#UserPassword').val()
+    if (!$form[0].checkValidity()) {
+        $form[0].reportValidity()
+    } else {
+        fetchFormDataAjax(url, function(html) {
+            var formHTML = $(html).find('form')
+            $('body').append($('<div id="temp" style="display: none"/>').append(formHTML))
+            var $tmpForm = $('#temp form')
+            $tmpForm.find('#UserEmail').val(email)
+            $tmpForm.find('#UserPassword').val(password)
+            $tmpForm.submit()
+        })
+    }
+}
+</script>

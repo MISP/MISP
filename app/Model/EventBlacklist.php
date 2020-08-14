@@ -16,6 +16,8 @@ class EventBlacklist extends AppModel
 
     public $blacklistFields = array('event_uuid', 'comment', 'event_info', 'event_orgc');
 
+    public $blacklistTarget = 'event';
+
     public $validate = array(
             'event_uuid' => array(
                     'unique' => array(

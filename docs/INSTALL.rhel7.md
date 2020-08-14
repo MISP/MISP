@@ -169,6 +169,7 @@ yumInstallCoreDeps () {
                    rh-php72-php-xml \
                    rh-php72-php-bcmath \
                    rh-php72-php-opcache \
+                   rh-php72-php-zip \
                    rh-php72-php-gd -y
 
   # Python 3.6 is now available in RHEL 7.7 base
