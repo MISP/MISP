@@ -246,7 +246,7 @@ class AttachmentTool
      * @param int $eventId
      * @param int $attributeId
      * @param string $pathSuffix
-     * @return bool
+     * @return bool Return true if file was deleted, `false` if file doesn't exists.
      * @throws Exception
      */
     protected function _delete($shadow, $eventId, $attributeId, $pathSuffix = '')

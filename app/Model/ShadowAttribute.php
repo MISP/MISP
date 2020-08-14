@@ -520,7 +520,7 @@ class ShadowAttribute extends AppModel
                         'contactalert' => 1,
                         'disabled' => 0
                 ),
-                'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id')
+                'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id', 'disabled'),
         ));
 
         $body = "Hello, \n\n";

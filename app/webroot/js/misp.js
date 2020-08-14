@@ -335,18 +335,19 @@ function submitGenericForm(url, form, target) {
 }
 
 function acceptObject(type, id, event) {
-    name = '#ShadowAttribute_' + id + '_accept';
+    var name = '#ShadowAttribute_' + id + '_accept';
     var formData = $(name).serialize();
     $.ajax({
         data: formData,
-        success:function (data, textStatus) {
+        success: function (data, textStatus) {
             updateIndex(event, 'event');
             eventUnpublish();
             handleGenericAjaxResponse(data);
         },
-        type:"post",
+        error: xhrFailCallback,
+        type: "post",
         cache: false,
-        url:"/shadow_attributes/accept/" + id,
+        url: "/shadow_attributes/accept/" + id,
     });
 }
 

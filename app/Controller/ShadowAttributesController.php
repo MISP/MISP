@@ -58,7 +58,7 @@ class ShadowAttributesController extends AppController
         }
         $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $shadow, 'accept');
         $shadow = $shadow['ShadowAttribute'];
-        if ($this->ShadowAttribute->typeIsAttachment($shadow['type'])) {
+        if ($this->ShadowAttribute->typeIsAttachment($shadow['type']) && !$shadow['proposal_to_delete']) {
             $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($shadow);
             $shadow['data'] = $encodedFile;
         }
