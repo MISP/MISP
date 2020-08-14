@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('RandomTool', 'Tools');
+App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 
 class Event extends AppModel
@@ -532,46 +533,12 @@ class Event extends AppModel
         // delete all of the event->tag combinations that involve the deleted event
         $this->EventTag->deleteAll(array('event_id' => $this->id));
 
-        // only delete the file if it exists
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->getDefaultAttachments_dir();
+        try {
+            $this->loadAttachmentTool()->deleteAll($this->id);
+        } catch (Exception $e) {
+            $this->logException('Delete of event file directory failed.', $e);
+            throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
         }
-
-        // Things get a little funky here
-        if ($this->attachmentDirIsS3()) {
-            // S3 doesn't have folders
-            // So we have to basically `ls` them to look for a prefix
-            $s3 = $this->getS3Client();
-            $s3->deleteDirectory($this->id);
-        } else {
-            $filepath = $attachments_dir . DS . $this->id;
-            App::uses('Folder', 'Utility');
-            if (is_dir($filepath)) {
-                if (!$this->destroyDir($filepath)) {
-                    throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
-                }
-            }
-        }
-    }
-
-    public function destroyDir($dir)
-    {
-        if (!is_dir($dir) || is_link($dir)) {
-            return unlink($dir);
-        }
-        foreach (scandir($dir) as $file) {
-            if ($file == '.' || $file == '..') {
-                continue;
-            }
-            if (!$this->destroyDir($dir . DS . $file)) {
-                chmod($dir . DS . $file, 0777);
-                if (!$this->destroyDir($dir . DS . $file)) {
-                    return false;
-                }
-            }
-        }
-        return rmdir($dir);
     }
 
     public function beforeValidate($options = array())

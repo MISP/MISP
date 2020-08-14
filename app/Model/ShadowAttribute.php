@@ -3,6 +3,7 @@
 App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('AttachmentTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -269,24 +270,7 @@ class ShadowAttribute extends AppModel
         if (isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) {
             $sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $this->data['ShadowAttribute']['id']), 'recursive' => -1, 'fields' => array('ShadowAttribute.id', 'ShadowAttribute.event_id', 'ShadowAttribute.type')));
             if ($this->typeIsAttachment($sa['ShadowAttribute']['type'])) {
-                // only delete the file if it exists
-                if ($this->attachmentDirIsS3()) {
-                    $s3 = $this->getS3Client();
-                    $s3->delete('shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id']);
-                } else {
-                    $attachments_dir = Configure::read('MISP.attachments_dir');
-                    if (empty($attachments_dir)) {
-                        $my_server = ClassRegistry::init('Server');
-                        $attachments_dir = $my_server->getDefaultAttachments_dir();
-                    }
-                    $filepath = $attachments_dir . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
-                    $file = new File($filepath);
-                    if ($file->exists()) {
-                        if (!$file->delete()) {
-                            throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');
-                        }
-                    }
-                }
+                $this->loadAttachmentTool()->deleteShadow($sa['ShadowAttribute']['event_id'], $sa['ShadowAttribute']['id']);
             }
         } else {
             if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
@@ -311,24 +295,7 @@ class ShadowAttribute extends AppModel
         // delete attachments from the disk
         $this->read(); // first read the attribute from the db
         if ($this->typeIsAttachment($this->data['ShadowAttribute']['type'])) {
-            // only delete the file if it exists
-            if ($this->attachmentDirIsS3()) {
-                $s3 = $this->getS3Client();
-                $s3->delete('shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id']);
-            } else {
-                $attachments_dir = Configure::read('MISP.attachments_dir');
-                if (empty($attachments_dir)) {
-                    $my_server = ClassRegistry::init('Server');
-                    $attachments_dir = $my_server->getDefaultAttachments_dir();
-                }
-                $filepath = $attachments_dir . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
-                $file = new File($filepath);
-                if ($file->exists()) {
-                    if (!$file->delete()) {
-                        throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');
-                    }
-                }
-            }
+            $this->loadAttachmentTool()->deleteShadow($this->data['ShadowAttribute']['event_id'], $this->data['ShadowAttribute']['id']);
         }
     }
 
@@ -419,69 +386,35 @@ class ShadowAttribute extends AppModel
 
     public function typeIsMalware($type)
     {
-        if (in_array($type, $this->zippedDefinitions)) {
-            return true;
-        } else {
-            return false;
-        }
+        return in_array($type, $this->zippedDefinitions);
     }
 
     public function typeIsAttachment($type)
     {
-        if ((in_array($type, $this->zippedDefinitions)) || (in_array($type, $this->uploadDefinitions))) {
-            return true;
-        } else {
-            return false;
-        }
+        return in_array($type, $this->zippedDefinitions) || in_array($type, $this->uploadDefinitions);
     }
 
     public function base64EncodeAttachment($attribute)
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $my_server = ClassRegistry::init('Server');
-            $attachments_dir = $my_server->getDefaultAttachments_dir();
-        }
-
-        if ($this->attachmentDirIsS3()) {
-            $s3 = $this->getS3Client();
-            $content = $s3->download('shadow' . DS . $attribute['event_id'] . DS. $attribute['id']);
-        } else {
-            $filepath = $attachments_dir . DS . 'shadow' . DS . $attribute['event_id'] . DS. $attribute['id'];
-            $file = new File($filepath);
-            if (!$file->exists()) {
-                return '';
-            }
-            $content = $file->read();
-        }
+        $content = $this->loadAttachmentTool()->getShadowContent($attribute['event_id'], $attribute['id']);
         return base64_encode($content);
     }
 
     public function saveBase64EncodedAttachment($attribute)
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $my_server = ClassRegistry::init('Server');
-            $attachments_dir = $my_server->getDefaultAttachments_dir();
-        }
-        if ($this->attachmentDirIsS3()) {
-            $s3 = $this->getS3Client();
-            $decodedData = base64_decode($attribute['data']);
-            $s3->upload('shadow' . DS . $attribute['event_id'], $decodedData);
-            return true;
-        } else {
-            $rootDir = $attachments_dir . DS . 'shadow' . DS . $attribute['event_id'];
-            $dir = new Folder($rootDir, true);                      // create directory structure
-            $destpath = $rootDir . DS . $attribute['id'];
-            $file = new File($destpath, true);                      // create the file
-            $decodedData = base64_decode($attribute['data']);       // decode
-            if ($file->write($decodedData)) {                       // save the data
-                return true;
-            } else {
-                // error
-                return false;
-            }
-        }
+        $data = base64_decode($attribute['data']);
+        return $this->loadAttachmentTool()->saveShadow($attribute['event_id'], $attribute['id'], $data);
+    }
+
+    /**
+     * @param array $shadowAttribute
+     * @param string $path_suffix
+     * @return File
+     * @throws Exception
+     */
+    public function getAttachmentFile(array $shadowAttribute, $path_suffix='')
+    {
+        return $this->loadAttachmentTool()->getShadowFile($shadowAttribute['event_id'], $shadowAttribute['id'], $path_suffix);
     }
 
     public function checkComposites()
@@ -587,7 +520,7 @@ class ShadowAttribute extends AppModel
                         'contactalert' => 1,
                         'disabled' => 0
                 ),
-                'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id')
+                'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id', 'disabled'),
         ));
 
         $body = "Hello, \n\n";
