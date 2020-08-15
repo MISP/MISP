@@ -2563,7 +2563,6 @@ class AttributesController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
-        $this->Taxonomy = ClassRegistry::init('Taxonomy');
         $rearrangeRules = array(
             'request' => false,
             'Attribute' => false,
@@ -2652,6 +2651,7 @@ class AttributesController extends AppController
             }
             $success = 0;
             $fails = 0;
+            $this->Taxonomy = ClassRegistry::init('Taxonomy');
             foreach ($idList as $id) {
                 $attributes = $this->Attribute->fetchAttributes(
                     $this->Auth->user(),
@@ -2679,16 +2679,21 @@ class AttributesController extends AppController
                     $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
                 }
                 foreach ($tag_id_list as $tag_id) {
-                    $this->Attribute->AttributeTag->Tag->id = $tag_id;
-                    if (!$this->Attribute->AttributeTag->Tag->exists()) {
-                        $fails++;
-                        continue;
+                    $conditions = ['Tag.id' => $tag_id];
+                    if (!$this->_isSiteAdmin()) {
+                        $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                        $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
                     }
                     $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
-                        'conditions' => array('Tag.id' => $tag_id),
+                        'conditions' => $conditions,
                         'recursive' => -1,
                         'fields' => array('Tag.name')
                     ));
+                    if (!$tag) {
+                        // Tag not found or user don't have permission to add it.
+                        $fails++;
+                        continue;
+                    }
                     $found = $this->Attribute->AttributeTag->find('first', array(
                         'conditions' => array(
                             'attribute_id' => $id,
@@ -2698,6 +2703,7 @@ class AttributesController extends AppController
                     ));
                     $this->autoRender = false;
                     if (!empty($found)) {
+                        // Tag is already assigned to given attribute.
                         $fails++;
                         continue;
                     }
@@ -2755,18 +2761,10 @@ class AttributesController extends AppController
                 }
             }
             if ($fails == 0) {
-                if ($success == 1) {
-                    $message = 'Tag added.';
-                } else {
-                    $message = $success . ' tags added.';
-                }
+                $message = __n('Tag added.', '%s tags added', $success, $success);
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
             } else {
-                if ($fails == 1) {
-                    $message = 'Tag could not be added.';
-                } else {
-                    $message = $fails . ' tags could not be added.';
-                }
+                $message = __n('Tag could not be added.', '%s tags could not be added.', $fails, $fails);
                 if ($success > 0) {
                     $message .= __n(' However, %s tag was added.', ' However, %s tags were added.', $success, $success);
                 }
