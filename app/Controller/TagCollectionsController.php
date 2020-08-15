@@ -355,9 +355,32 @@ class TagCollectionsController extends AppController
     public function removeTag($id = false, $tag_id = false)
     {
         if (!$this->request->is('post')) {
+            $tagCollection = $this->TagCollection->find('first', array(
+                'recursive' => -1,
+                'conditions' => array(
+                    'TagCollection.id' => $id
+                ),
+            ));
+            if (!$tagCollection) {
+                throw new NotFoundException(__('Invalid tag collection.'));
+            }
+            $tagCollectionTag = $this->TagCollection->TagCollectionTag->find('first', [
+                'recursive' => -1,
+                'conditions' => [
+                    'tag_collection_id' => $id,
+                    'tag_id' => $tag_id,
+                ],
+                'contain' => ['Tag'],
+            ]);
+            if (!$tagCollectionTag) {
+                throw new NotFoundException(__('Invalid tag collection tag.'));
+            }
+
             $this->set('id', $id);
+            $this->set('tag', $tagCollectionTag);
             $this->set('tag_id', $tag_id);
             $this->set('model', 'tag_collection');
+            $this->set('model_name', $tagCollection['TagCollection']['name']);
             $this->layout = 'ajax';
             $this->render('/Attributes/ajax/tagRemoveConfirmation');
         } else {

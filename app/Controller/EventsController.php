@@ -3176,7 +3176,7 @@ class EventsController extends AppController
         }
     }
 
-    public function _addMISPExportFile($ext, $take_ownership = false, $publish = false)
+    private function _addMISPExportFile($ext, $take_ownership = false, $publish = false)
     {
         App::uses('FileAccessTool', 'Tools');
         $data = (new FileAccessTool())->readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
@@ -3539,9 +3539,28 @@ class EventsController extends AppController
     public function removeTag($id = false, $tag_id = false, $galaxy = false)
     {
         if (!$this->request->is('post')) {
-            $this->set('id', $id);
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+            if (!$event) {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $eventTag = $this->Event->EventTag->find('first', array(
+                'conditions' => array(
+                    'event_id' => $event['Event']['id'],
+                    'tag_id' => $tag_id,
+                ),
+                'contain' => ['Tag'],
+                'recursive' => -1,
+            ));
+            if (!$eventTag) {
+                throw new NotFoundException(__('Invalid tag.'));
+            }
+
+            $this->set('is_local', $eventTag['EventTag']['local']);
+            $this->set('tag', $eventTag);
+            $this->set('id', $event['Event']['id']);
             $this->set('tag_id', $tag_id);
             $this->set('model', 'Event');
+            $this->set('model_name', $event['Event']['info']);
             $this->render('/Attributes/ajax/tagRemoveConfirmation');
         } else {
             $rearrangeRules = array(

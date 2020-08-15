@@ -2768,7 +2768,7 @@ class AttributesController extends AppController
                     $message = $fails . ' tags could not be added.';
                 }
                 if ($success > 0) {
-                    $message .= ' However, ' . $success . ' tag(s) were added.';
+                    $message .= __n(' However, %s tag was added.', ' However, %s tags were added.', $success, $success);
                 }
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
             }
@@ -2778,9 +2778,28 @@ class AttributesController extends AppController
     public function removeTag($id = false, $tag_id = false)
     {
         if (!$this->request->is('post')) {
-            $this->set('id', $id);
+            $attribute = $this->__fetchAttribute($id);
+            if (!$attribute) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
+            $attributeTag = $this->Attribute->AttributeTag->find('first', array(
+                'conditions' => array(
+                    'attribute_id' => $attribute['Attribute']['id'],
+                    'tag_id' => $tag_id,
+                ),
+                'contain' => ['Tag'],
+                'recursive' => -1,
+            ));
+            if (!$attributeTag) {
+                throw new NotFoundException(__('Invalid tag.'));
+            }
+
+            $this->set('is_local', $attributeTag['AttributeTag']['local']);
+            $this->set('tag', $attributeTag);
+            $this->set('id', $attribute['Attribute']['id']);
             $this->set('tag_id', $tag_id);
             $this->set('model', 'Attribute');
+            $this->set('model_name', $attribute['Attribute']['id']);
             $this->render('ajax/tagRemoveConfirmation');
         } else {
             $rearrangeRules = array(
