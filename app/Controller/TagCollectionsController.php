@@ -2,6 +2,9 @@
 
 App::uses('AppController', 'Controller');
 
+/**
+ * @property TagCollection $TagCollection
+ */
 class TagCollectionsController extends AppController
 {
     public $components = array(
@@ -305,23 +308,26 @@ class TagCollectionsController extends AppController
                 }
             }
             $this->autoRender = false;
-            $error = false;
             $success = false;
             if (empty($tag_id_list)) {
                 $tag_id_list = array($tag_id);
             }
 
             foreach ($tag_id_list as $tag_id) {
-                $this->TagCollection->TagCollectionTag->Tag->id = $tag_id;
-                if (!$this->TagCollection->TagCollectionTag->Tag->exists()) {
-                    $error = __('Invalid Tag.');
-                    continue;
+                $conditions = ['Tag.id' => $tag_id];
+                if (!$this->_isSiteAdmin()) {
+                    $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                    $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
                 }
                 $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array(
-                    'conditions' => array('Tag.id' => $tag_id),
+                    'conditions' => $conditions,
                     'recursive' => -1,
                     'fields' => array('Tag.name')
                 ));
+                if (!$tag) {
+                    // Invalid Tag
+                    continue;
+                }
                 $found = $this->TagCollection->TagCollectionTag->find('first', array(
                     'conditions' => array(
                         'tag_collection_id' => $id,
@@ -330,7 +336,7 @@ class TagCollectionsController extends AppController
                     'recursive' => -1,
                 ));
                 if (!empty($found)) {
-                    $error = __('Tag is already attached to this event.');
+                    // Tag is already attached to this collection
                     continue;
                 }
                 $this->TagCollection->TagCollectionTag->create();
