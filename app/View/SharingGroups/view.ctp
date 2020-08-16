@@ -21,12 +21,12 @@
             endforeach;
         ?>
         <dt><?php echo __('Created by');?></dt>
-        <dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
+	<dd><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
         <?php
             if ($sg['SharingGroup']['sync_user_id']):
         ?>
             <dt><?php echo __('Synced by');?></dt>
-            <dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
+	    <dd><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
         <?php
             endif;
         ?>
@@ -47,7 +47,7 @@
                     foreach ($sg['SharingGroupOrg'] as $sgo):
                 ?>
                 <tr>
-                    <td><a href="/organisations/view/<?php echo h($sgo['Organisation']['id']); ?>"><?php echo h($sgo['Organisation']['name']); ?></a></td>
+		    <td><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo h($sgo['Organisation']['id']); ?>"><?php echo h($sgo['Organisation']['name']); ?></a></td>
                     <td><span class="<?php echo ($sgo['Organisation']['local'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
                     <td><span class="<?php echo ($sgo['extend'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
                 </tr>

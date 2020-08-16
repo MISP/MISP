@@ -74,7 +74,7 @@
 <br />
 <div id="edit_object_div">
     <?php
-        $deleteSelectedUrl = '/attributes/deleteSelected/' . $event['Event']['id'];
+        $deleteSelectedUrl = $baseurl . '/attributes/deleteSelected/' . $event['Event']['id'];
         if (empty($event['Event']['publish_timestamp'])) {
             $deleteSelectedUrl .= '/1';
         }
@@ -88,7 +88,7 @@
         echo $this->Form->end();
     ?>
         <?php
-        echo $this->Form->create('ShadowAttribute', array('id' => 'accept_selected', 'url' => '/shadow_attributes/acceptSelected/' . $event['Event']['id']));
+        echo $this->Form->create('ShadowAttribute', array('id' => 'accept_selected', 'url' => $baseurl . '/shadow_attributes/acceptSelected/' . $event['Event']['id']));
         echo $this->Form->input('ids_accept', array(
             'type' => 'text',
             'value' => '',
@@ -98,7 +98,7 @@
         echo $this->Form->end();
     ?>
         <?php
-        echo $this->Form->create('ShadowAttribute', array('id' => 'discard_selected', 'url' => '/shadow_attributes/discardSelected/' . $event['Event']['id']));
+        echo $this->Form->create('ShadowAttribute', array('id' => 'discard_selected', 'url' => $baseurl . '/shadow_attributes/discardSelected/' . $event['Event']['id']));
         echo $this->Form->input('ids_discard', array(
             'type' => 'text',
             'value' => '',
@@ -259,7 +259,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         </ul>
     </div>
 <script type="text/javascript">
-    var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
+    var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : $baseurl . '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
     var currentPopover = "";
     var ajaxResults = {"hover": [], "persistent": []};
     var timer;

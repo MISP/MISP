@@ -28,13 +28,12 @@
             <th><?php echo __('Actions');?></th>
     </tr>
     <?php
-    $url = Configure::read('MISP.baseurl');
 foreach ($threads as $thread):
     $lastPost = end($thread['Post']);
     ?>
 
         <tr>
-            <td class="short" style="text-align: left;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+            <td class="short" style="text-align: left;" ondblclick="document.location.href ='<?php echo $baseurl;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
                 <?php
                     $imgRelativePath = 'orgs' . DS . h($thread['Organisation']['name']) . '.png';
                     $imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -43,37 +42,37 @@ foreach ($threads as $thread):
                 ?>
                 &nbsp;
             </td>
-            <td ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+            <td ondblclick="document.location.href ='<?php echo $baseurl;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
                 <?php
                     echo h($thread['Thread']['title']);
                 ?>
             </td>
-            <td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+            <td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $baseurl;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
                 <?php
                     echo h($thread['Thread']['date_modified']);
                 ?>
                 &nbsp;
             </td>
-            <td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+            <td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $baseurl;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
                 <?php
                     echo isset($lastPost['User']['email']) ? h($lastPost['User']['email']) : '';
                 ?>
                 &nbsp;
             </td>
-            <td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+            <td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $baseurl;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
                 <?php
                     echo h($thread['Thread']['date_created']);
                 ?>
             </td>
-            <td class="short" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+            <td class="short" ondblclick="document.location.href ='<?php echo $baseurl;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
                 <?php
                     echo h($thread['Thread']['post_count']);
                 ?>
             </td>
-            <td class="short" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
+            <td class="short" ondblclick="document.location.href ='<?php echo $baseurl;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
                 <?php
                     if ($thread['Thread']['distribution'] < 4) echo $distributionLevels[$thread['Thread']['distribution']];
-                    else echo '<a href="/sharing_groups/view/' . h($thread['Thread']['sharing_group_id']) . '" title="' . h($thread['SharingGroup']['name']) . '">Sharing group</a>';
+                    else echo '<a href="' . $baseurl . '/sharing_groups/view/' . h($thread['Thread']['sharing_group_id']) . '" title="' . h($thread['SharingGroup']['name']) . '">Sharing group</a>';
                 ?>
             </td>
             <td class="short action-links">
