@@ -2021,9 +2021,9 @@ class Attribute extends AppModel
         return $extraConditions;
     }
 
-    public function __afterSaveCorrelation($a, $full = false, $event = false)
+    public function __afterSaveCorrelation(array $a, $full = false, $event = false)
     {
-        if (!empty($a['disable_correlation']) || Configure::read('MISP.completely_disable_correlation')) {
+        if ($a['disable_correlation'] || Configure::read('MISP.completely_disable_correlation')) {
             return true;
         }
 
@@ -2039,9 +2039,15 @@ class Attribute extends AppModel
                 'conditions' => array('id' => $a['event_id']),
                 'order' => array(),
             ));
+            if (!$event) {
+                // This should never happened :)
+                throw new Exception("Event with ID {$a['event_id']} not found.");
+            }
+        } else if (!isset($event['Event'])) {
+            throw new Exception("Invalid event model provided.");
         }
 
-        if (!empty($event['Event']['disable_correlation']) && $event['Event']['disable_correlation']) {
+        if ($event['Event']['disable_correlation']) {
             return true;
         }
 
