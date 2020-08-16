@@ -570,6 +570,7 @@ class Taxonomy extends AppModel
             $tagShortened = $this->stripLastTagComponent($tagName);
             if ($newTagShortened == $tagShortened) {
                 $prefixIsFree = false;
+                break;
             }
         }
         if (!$prefixIsFree) {
