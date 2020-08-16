@@ -4099,8 +4099,6 @@ class EventsController extends AppController
                     'OpenIOC' => array(
                             'url' => $baseurl . '/events/addIOC/' . $id,
                             'text' => __('OpenIOC Import'),
-                            'url' => $baseurl . '/events/addIOC/' . $id,
-                            'text' => 'OpenIOC Import',
                             'ajax' => false,
                     ),
                     'ThreatConnect' => array(

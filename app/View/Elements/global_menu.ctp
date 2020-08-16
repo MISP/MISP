@@ -43,7 +43,7 @@
                         'url' => $baseurl . '/events/proposalEventIndex'
                     ),
                     array(
-                        'url' => '/event_delegations/index/context:pending',
+                        'url' => $baseurl . '/event_delegations/index/context:pending',
                         'text' => __('View delegation requests')
                     ),
                     array(
