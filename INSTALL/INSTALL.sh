@@ -1271,10 +1271,10 @@ installDepsPhp70 () {
 prepareDB () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     #Make sure initial tables are created in MySQL
-    debug "Install mysql tables"
-    sudo mysql_install_db
-    debug "start mysql"
-    sudo service mysql start
+    #debug "Install mysql tables"
+    #sudo mysql_install_db
+    #debug "start mysql"
+    #sudo service mysql start
     debug "Setting up database"
 
     # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
@@ -1296,8 +1296,8 @@ prepareDB () {
     sudo mysql -e "FLUSH PRIVILEGES"
     sudo apt-get purge -y expect ; sudo apt autoremove -qy
     
-    debug "run mysqladmin"
-    sudo mysqladmin password ${DBPASSWORD_ADMIN}
+    #debug "run mysqladmin"
+    #sudo mysqladmin password ${DBPASSWORD_ADMIN}
     
   fi 
 
