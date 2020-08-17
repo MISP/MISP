@@ -225,25 +225,25 @@ function toggleSetting(e, setting, id) {
     case 'warninglist_enable':
         formID = '#WarninglistIndexForm';
         dataDiv = '#WarninglistData';
-        replacementForm = '/warninglists/getToggleField/';
+        replacementForm = baseurl + '/warninglists/getToggleField/';
         searchString = 'enabled';
         break;
     case 'favourite_tag':
         formID = '#FavouriteTagIndexForm';
         dataDiv = '#FavouriteTagData';
-        replacementForm = '/favourite_tags/getToggleField/';
+        replacementForm = baseurl + '/favourite_tags/getToggleField/';
         searchString = 'Adding';
         break;
     case 'activate_object_template':
         formID = '#ObjectTemplateIndexForm';
         dataDiv = '#ObjectTemplateData';
-        replacementForm = '/ObjectTemplates/getToggleField/';
+        replacementForm = baseurl + '/ObjectTemplates/getToggleField/';
         searchString = 'activated';
         break;
     case 'noticelist_enable':
         formID = '#NoticelistIndexForm';
         dataDiv = '#NoticelistData';
-        replacementForm = '/noticelists/getToggleField/';
+        replacementForm = baseurl + '/noticelists/getToggleField/';
         searchString = 'enabled';
         break;
     }
@@ -1223,6 +1223,18 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
     var contextNamingConvention = 'Attribute';
     var closePopover = true;
     switch (referer) {
+        case 'add':
+            url = baseurl + "/attributes/add/" + context_id;
+            break;
+        case 'edit':
+            url = baseurl + "/attributes/edit/" + context_id;
+            break;
+        case 'propose':
+            url = baseurl + "/shadow_attributes/add/" + context_id;
+            break;
+        case 'massEdit':
+            url = baseurl + "/attributes/editSelected/" + context_id;
+            break;
         case 'addTextElement':
             context = 'template';
             contextNamingConvention = 'TemplateElementText';
@@ -4072,6 +4084,29 @@ function loadTagTreemap() {
         type:"get",
         cache: false,
         url: baseurl + "/users/tagStatisticsGraph",
+    });
+}
+
+function loadSightingsData(timestamp) {
+    url = baseurl + "/sightings/toplist";
+    if (timestamp != undefined) {
+        url += '/' + timestamp;
+    }
+    $.ajax({
+        async:true,
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        success:function (data, textStatus) {
+            $(".sightingsdiv").html(data);
+        },
+        complete:function() {
+            $(".loading").hide();
+        },
+        type:"get",
+        cache: false,
+        url: url,
+>>>>>>> 67fd203dbedfcde42fbc43a483f65368e82d2bdd... rebase
     });
 }
 

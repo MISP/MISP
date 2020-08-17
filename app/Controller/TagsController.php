@@ -364,7 +364,7 @@ class TagsController extends AppController
             if ($this->_isRest()) {
                 $this->set('name', 'Tag deleted.');
                 $this->set('message', 'Tag deleted.');
-                $this->set('url', $this->baseurl . '/tags/delete/' . $id);
+                $this->set('url', $baseurl . '/tags/delete/' . $id);
                 $this->set('_serialize', array('name', 'message', 'url'));
             }
             $this->Flash->success(__('Tag deleted'));
@@ -589,7 +589,7 @@ class TagsController extends AppController
         );
         $items[] = array(
             'name' => __('All Tags'),
-            'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/all/" . h($scope) . $localFlag
+            'value' => $baseurl . "/tags/selectTag/" . h($id) . "/all/" . h($scope) . $localFlag
         );
 
         $this->loadModel('Taxonomy');

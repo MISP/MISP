@@ -467,7 +467,7 @@
     </ul>
   </div>
 </div>
-<input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />
+<input type="hidden" class="keyboardShortcutsConfig" value="<?php echo $baseurl; ?>/shortcuts/global_menu.json" />
 <script type="text/javascript">
     $(document).ready(function() {
         $('#setHomePage').click(function(event) {

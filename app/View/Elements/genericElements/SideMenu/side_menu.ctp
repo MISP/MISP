@@ -496,7 +496,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     } else if((Configure::read('Plugin.CustomAuth_custom_password_reset'))) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'custom_pw_reset',
-                            'url' => Configure::read('Plugin.CustomAuth_custom_password_reset'),
+                            'url' => $baseurl . Configure::read('Plugin.CustomAuth_custom_password_reset'),
                             'text' => __('Reset Password')
                         ));
                     }

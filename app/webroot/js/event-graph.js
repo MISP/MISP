@@ -1582,7 +1582,7 @@ class MispInteraction {
             return;
         }
         var edgeFromId = edgeData.from.startsWith('o-') ? edgeData.from.substr(2) : edgeData.from;
-        genericPopup(baseurl + '/objectReferences/add/'+edgeFromId, '#popover_form', function() {
+        genericPopup(baseurl+'/objectReferences/add/'+edgeFromId, '#popover_form', function() {
             $('#ObjectReferenceReferencedUuid').val(uuid);
             objectReferenceInput();
         });

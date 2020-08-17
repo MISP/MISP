@@ -4086,6 +4086,7 @@ class EventsController extends AppController
             $imports = array(
                     'freetext' => array(
                             'url' => $this->baseurl . '/events/freeTextImport/' . $id,
+                            'text' => __('Freetext Import'),
                             'ajax' => true,
                             'target' => 'popover_form'
                     ),
@@ -4109,7 +4110,7 @@ class EventsController extends AppController
                             'url' => $this->baseurl . '/events/upload_analysis_file/'.$id,
                             'text' => __('(Experimental) Forensic analysis - Mactime'),
                             'ajax' => false,
-                )
+                    )
             );
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
