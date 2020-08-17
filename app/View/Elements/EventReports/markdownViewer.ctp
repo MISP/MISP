@@ -138,9 +138,9 @@
     var $editor, $viewer, $raw
     var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
-    var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
-    var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
-    var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
+    var dotTemplateHintAttribute = doT.template("<span class=\"misp-element-wrapper attribute\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
+    var dotTemplateHintObject = doT.template("<span class=\"misp-element-wrapper object\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
+    var dotTemplateHintInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 
     var contentChanged = false
     var defaultMode = 'viewer'
@@ -411,7 +411,7 @@
                     type: attribute.type,
                     value: attribute.value
                 })
-                return dotTemplateAttribute(templateVariables);
+                return dotTemplateHintAttribute(templateVariables);
             }
         } else if (scope == 'object') {
             var mispObject = proxyMISPElements[scope][elementID]
@@ -422,7 +422,7 @@
                     type: mispObject.name,
                     value: mispObject.Attribute.length
                 })
-                return dotTemplateObject(templateVariables);
+                return dotTemplateHintObject(templateVariables);
             }
         }
         return renderInvalidMISPElement(scope, elementID)
@@ -433,7 +433,7 @@
             scope: '<?= __('invalid scope or id') ?>',
             id: elementID
         })
-        return dotTemplateInvalid(templateVariables);
+        return dotTemplateHintInvalid(templateVariables);
     }
 
     function sanitizeObject(obj) {
@@ -606,11 +606,13 @@
         $('.misp-element-wrapper').filter('.attribute').popover({
             trigger: 'hover',
             title: getTitleFromMISPElementDOM,
+            html: true,
             content: getContentFromMISPElementDOM
         })
         $('.misp-element-wrapper').filter('.object').popover({
             trigger: 'hover',
             title: getTitleFromMISPElementDOM,
+            html: true,
             content: getContentFromMISPElementDOM
         })
     }
@@ -636,13 +638,102 @@
         return '<?= __('invalid scope or id') ?>'
     }
 
+    function constructAttributeRow(attribute)
+    {
+        var attributeFieldsToRender = ['id', 'category', 'type', 'value', 'comment']
+        var $tr = $('<tr/>')
+        attributeFieldsToRender.forEach(function(field) {
+            $tr.append($('<td/>').text(attribute[field]))
+        })
+        var $tags = $('<div/>')
+        if (attribute.AttributeTag !== undefined) {
+            attribute.AttributeTag.forEach(function(attributeTag) {
+                var tag = attributeTag.Tag
+                var $tag = $('<div/>').append(
+                    $('<span/>')
+                        .addClass('tagComplete nowrap')
+                        .css({'background-color': tag.colour, 'color': getTextColour(tag.colour), 'box-shadow': '1px 1px 3px #888888c4'})
+                        .text(tag.name)
+                )
+                $tags.append($tag)
+            })
+        }
+        $tr.append($('<td/>').append($tags))
+        var $galaxies = $('<div/>')
+        if (attribute.Galaxy !== undefined) {
+            attribute.Galaxy.forEach(function(galaxy) {
+                var $galaxy = $('<div/>').append(
+                    $('<span/>')
+                        .addClass('tagComplete nowrap')
+                        .css({'background-color': '#0088cc', 'color': getTextColour('#0088cc'), 'box-shadow': '1px 1px 3px #888888c4'})
+                        .text(galaxy.name + ' :: ' + galaxy.GalaxyCluster[0].value)
+                )
+                $galaxies.append($galaxy)
+            })
+        }
+        $tr.append($('<td/>').append($galaxies))
+        return $tr
+    }
+
+    function constructAttributeHeader(attribute, showAll) {
+        showAll = showAll !== undefined ? showAll : false
+        var attributeFieldsToRender = ['id', 'category', 'type', 'value', 'comment']
+        var $tr = $('<tr/>')
+        attributeFieldsToRender.forEach(function(field) {
+            $tr.append($('<th/>').text(field))
+        })
+        if (showAll || (attribute.AttributeTag !== undefined && attribute.AttributeTag.length > 0)) {
+            $tr.append($('<th/>').text('tags'))
+        }
+        if (showAll || (attribute.Galaxy !== undefined && attribute.Galaxy.length > 0)) {
+            $tr.append($('<th/>').text('galaxies'))
+        }
+        var $thead = $('<thead/>').append($tr)
+        return $thead
+    }
+
+    function constructObject(object) {
+        var objectFieldsToRender = ['id', 'name', 'description', 'distribution']
+        var $object = $('<div/>').addClass('similarObjectPanel')
+                        .css({border: '1px solid #3465a4', 'border-radius': '5px'})
+        var $top = $('<div/>').addClass('blueElement')
+            .css({padding: '4px 5px'})
+        objectFieldsToRender.forEach(function(field) {
+            $top.append($('<div/>').append(
+                $('<span/>').addClass('bold').text(field + ': '),
+                $('<span/>').text(object[field])
+            ))
+        })
+        
+        var $attributeTable = $('<table/>').addClass('table table-striped table-condensed')
+            .css({'margin-bottom': '3px'})
+        var $thead = constructAttributeHeader({}, true)
+        var $tbody = $('<tbody/>')
+        object.Attribute.forEach(function(attribute) {
+            $tbody.append(constructAttributeRow(attribute))
+        })
+        $attributeTable.append($thead, $tbody)
+        $object.append($top, $attributeTable)
+        return $('<div/>').append($object)
+    }
+
     function getContentFromMISPElementDOM() {
         var data = getElementFromDom(this)
+        
         if (data !== false) {
             if (data.scope == 'attribute') {
-                return 'attribute'
+                var $thead = constructAttributeHeader(data.element)
+                var $row = constructAttributeRow(data.element)
+                var $attribute = $('<div/>').append(
+                    $('<table/>')
+                        .addClass('table table-condensed')
+                        .append($thead)
+                        .append($('<tbody/>').append($row))
+                )
+                return $attribute.html()
             } else if (data.scope == 'object') {
-                return 'object'
+                var $object = constructObject(data.element)
+                return $object.html()
             }
         }
         return '<?= __('invalid scope or id') ?>'
@@ -1051,6 +1142,10 @@ var syncSrcScroll = function () {
 
 .modal-body-xl #viewer {
     max-height: calc(70vh - 75px)
+}
+
+.popover {
+    max-width: 66%;
 }
 
 .cm-s-default .CodeMirror-gutter-wrapper {
