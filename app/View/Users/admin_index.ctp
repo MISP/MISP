@@ -183,12 +183,6 @@
                                 $options['isSiteAdmin']
                             );
                         }
-                        array(
-                            'requirement' => count($passedArgsArray) > 0,
-                            'url' => $baseurl . '/admin/users/index',
-                            'title' => __('Remove filters'),
-                            'fa-icon' => 'times'
-                        )
                     )
                 ),
                 array(

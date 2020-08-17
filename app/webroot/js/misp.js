@@ -2558,7 +2558,7 @@ function updateOrgCreateImageField(string) {
             },
         success:
             function(){
-                $('#logoDiv').html('<img src="' + baseurl + "/img/orgs/' + string + '.png" + '" style="width:24px;height:24px;"></img>');
+                $('#logoDiv').html('<img src="' + baseurl + '/img/orgs/' + string + '.png" style="width:24px;height:24px;"></img>');
             }
     });
 }
