@@ -3936,10 +3936,14 @@ function getFormInfoContent(property, field) {
 function formCategoryChanged(id) {
     // fill in the types
     var $type = $('#' + id + 'Type');
+    var alreadySelected = $type.val();
     var options = $type.prop('options');
     $('option', $type).remove();
     $.each(category_type_mapping[$('#' + id + 'Category').val()], function(val, text) {
         options[options.length] = new Option(text, val);
+        if (val === alreadySelected) {
+            options[options.length-1].selected = true;
+        }
     });
     // enable the form element
     $type.prop('disabled', false);
