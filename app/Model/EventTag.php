@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property Event $Event
+ */
 class EventTag extends AppModel
 {
     public $actsAs = array('Containable');
@@ -157,11 +160,21 @@ class EventTag extends AppModel
         return $tags;
     }
 
-    public function countForTag($tag_id, $user)
+    /**
+     * Count number of event that contains given tag for given user.
+     *
+     * @param array $tag
+     * @param array $user
+     * @return int
+     */
+    public function countForTag(array $tag, array $user)
     {
+        $conditions = $this->Event->createEventConditions($user);
+        $conditions['EventTag.tag_id'] = $tag['Tag']['id'];
         return $this->find('count', array(
             'recursive' => -1,
-            'conditions' => array('EventTag.tag_id' => $tag_id)
+            'conditions' => $conditions,
+            'contain' => ['Event'],
         ));
     }
 
