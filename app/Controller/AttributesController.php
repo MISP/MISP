@@ -277,7 +277,6 @@ class AttributesController extends AppController
         }
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
-        $this->set('compositeTypes', $this->Attribute->getCompositeTypes());
         // combobox for categories
         $categories = array_keys($this->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
@@ -896,7 +895,6 @@ class AttributesController extends AppController
         }
         $this->set('categories', $categories);
         $this->set('categoryDefinitions', $categoryDefinitions);
-        $this->set('compositeTypes', $this->Attribute->getCompositeTypes());
         $this->set('action', $this->action);
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();

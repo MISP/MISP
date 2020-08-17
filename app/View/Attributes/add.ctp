@@ -96,7 +96,6 @@
 
 <script type="text/javascript">
     var notice_list_triggers = <?php echo $notice_list_triggers; ?>;
-    var composite_types = <?php echo json_encode($compositeTypes); ?>;
     var category_type_mapping = <?php echo json_encode(array_map(function($value) {
         return array_combine($value['types'], $value['types']);
     }, $categoryDefinitions)); ?>;
