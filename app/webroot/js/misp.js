@@ -2546,8 +2546,9 @@ function serverSettingSubmitForm(name, setting, id) {
 
 function updateOrgCreateImageField(string) {
     string = encodeURIComponent(string);
+    imgsrc = baseurl + '/img/orgs/' + string + '.png';
     $.ajax({
-        url: baseurl_+ '/img/orgs/' + string + '.png';
+        url: imgsrc,
         type:'HEAD',
         error:
             function(){
@@ -2910,9 +2911,7 @@ function organisationViewContent(context, id) {
             $('#ajaxContent').html('An error has occured, please reload the page.');
         },
         success: function(response){
-	console.log("Success!!!");
             $('#ajaxContent').html(response);
-	console.log("Completed!!!");
         },
         complete: function() {
             $(".loading").hide();
