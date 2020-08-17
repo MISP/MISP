@@ -168,7 +168,7 @@ $(document).ready(function () {
             });
             object_id = selected.join('|');
         }
-        url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
+        url = "/sightings/advanced/" + object_id + "/" + object_context;
         genericPopup(url, '#popover_box');
     });
     $('.correlation-toggle').click(function() {

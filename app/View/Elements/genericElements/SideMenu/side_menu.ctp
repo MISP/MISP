@@ -215,7 +215,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                     'onClick' => array(
                                         'function' => 'genericPopup',
-                                        'params' => array($baseurl . '/event_delegations/acceptDelegation/' . $delegationRequest['EventDelegation']['id'], '#confirmation_box')
+                                        'params' => array('/event_delegations/acceptDelegation/' . $delegationRequest['EventDelegation']['id'], '#confirmation_box')
                                     ),
                                     'text' => __('Accept Delegation Request')
                                 ));
@@ -223,7 +223,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'onClick' => array(
                                     'function' => 'genericPopup',
-                                    'params' => array($baseurl . '/event_delegations/deleteDelegation/' . $delegationRequest['EventDelegation']['id'], '#confirmation_box')
+                                    'params' => array('/event_delegations/deleteDelegation/' . $delegationRequest['EventDelegation']['id'], '#confirmation_box')
                                 ),
                                 'text' => __('Discard Delegation Request')
                             ));
