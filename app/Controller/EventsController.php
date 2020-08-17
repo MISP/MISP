@@ -3176,7 +3176,7 @@ class EventsController extends AppController
         }
     }
 
-    public function _addMISPExportFile($ext, $take_ownership = false, $publish = false)
+    private function _addMISPExportFile($ext, $take_ownership = false, $publish = false)
     {
         App::uses('FileAccessTool', 'Tools');
         $data = (new FileAccessTool())->readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
@@ -3360,7 +3360,6 @@ class EventsController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
-        $this->loadModel('Taxonomy');
         $rearrangeRules = array(
                 'request' => false,
                 'Event' => false,
@@ -3392,11 +3391,6 @@ class EventsController extends AppController
             }
             if (!$this->__canModifyTag($event, $local)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
-            }
-            $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
-            if (!$this->_isSiteAdmin()) {
-                $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-                $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
             }
             if (!is_numeric($tag_id)) {
                 if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
@@ -3430,6 +3424,11 @@ class EventsController extends AppController
                             }
                         }
                     } else {
+                        $conditions = array('LOWER(Tag.name)' => strtolower(trim($tag_id)));
+                        if (!$this->_isSiteAdmin()) {
+                            $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                            $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
+                        }
                         $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
                         if (empty($tag)) {
                             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
@@ -3439,22 +3438,32 @@ class EventsController extends AppController
                 }
             }
             $this->autoRender = false;
-            $error = false;
-            $success = false;
+            $success = 0;
+            $fails = [];
             if (empty($tag_id_list)) {
                 $tag_id_list = array($tag_id);
             }
+
+            if (empty($tag_id_list)) {
+                return new CakeResponse(array('body' => json_encode(['saved' => false, 'errors' => __('Nothing to add.')]), 'status' => 200, 'type' => 'json'));
+            }
+
+            $this->loadModel('Taxonomy');
             foreach ($tag_id_list as $tag_id) {
-                $this->Event->EventTag->Tag->id = $tag_id;
-                if (!$this->Event->EventTag->Tag->exists()) {
-                    $error = __('Invalid Tag.');
-                    continue;
+                $conditions = ['Tag.id' => $tag_id];
+                if (!$this->_isSiteAdmin()) {
+                    $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                    $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
                 }
                 $tag = $this->Event->EventTag->Tag->find('first', array(
-                    'conditions' => array('Tag.id' => $tag_id),
+                    'conditions' => $conditions,
                     'recursive' => -1,
                     'fields' => array('Tag.name')
                 ));
+                if (!$tag) {
+                    $fails[$tag_id] = __('Tag not found.');
+                    continue;
+                }
                 $found = $this->Event->EventTag->find('first', array(
                     'conditions' => array(
                         'event_id' => $id,
@@ -3463,7 +3472,7 @@ class EventsController extends AppController
                     'recursive' => -1,
                 ));
                 if (!empty($found)) {
-                    $error = __('Tag is already attached to this event.');
+                    $fails[$tag_id] = __('Tag is already attached to this event.');
                     continue;
                 }
                 $tagsOnEvent = $this->Event->EventTag->find('all', array(
@@ -3477,7 +3486,7 @@ class EventsController extends AppController
                 ));
                 $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnEvent, '{n}.Tag.name'));
                 if (!$exclusiveTestPassed) {
-                    $fail = __('Tag is not allowed due to taxonomy exclusivity settings');
+                    $fails[$tag_id] = __('Tag is not allowed due to taxonomy exclusivity settings');
                     continue;
                 }
                 $this->Event->EventTag->create();
@@ -3508,27 +3517,50 @@ class EventsController extends AppController
                             $local ? ' locally' : ''
                         )
                     );
-                    $success = __('Tag(s) added.');
+                    ++$success;
                 } else {
-                    $fail = __('Tag could not be added.');
+                    $fails[$tag_id] = __('Tag could not be added.');
                 }
             }
-            if ($success) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Tag(s) added.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
-            } elseif (empty($fail)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+
+            if ($success && empty($fails)) {
+                $body = ['saved' => true, 'success' => __n('Tag added.', 'Tags added.', $success), 'check_publish' => true];
+            } else if ($success && !empty($fails)) {
+                $message = __n('Tag added', '%s tags added', $success, $success);
+                $message .= __(', but %s could not be added: %s', count($fails), implode(', ', $fails));
+                $body = ['saved' => true, 'success' => $message, 'check_publish' => true];
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $fail)), 'status'=>200, 'type' => 'json'));
+                $body = array('saved' => false, 'errors' => implode(', ', $fails));
             }
+            return new CakeResponse(array('body' => json_encode($body), 'status' => 200, 'type' => 'json'));
         }
     }
 
     public function removeTag($id = false, $tag_id = false, $galaxy = false)
     {
         if (!$this->request->is('post')) {
-            $this->set('id', $id);
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+            if (!$event) {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $eventTag = $this->Event->EventTag->find('first', array(
+                'conditions' => array(
+                    'event_id' => $event['Event']['id'],
+                    'tag_id' => $tag_id,
+                ),
+                'contain' => ['Tag'],
+                'recursive' => -1,
+            ));
+            if (!$eventTag) {
+                throw new NotFoundException(__('Invalid tag.'));
+            }
+
+            $this->set('is_local', $eventTag['EventTag']['local']);
+            $this->set('tag', $eventTag);
+            $this->set('id', $event['Event']['id']);
             $this->set('tag_id', $tag_id);
             $this->set('model', 'Event');
+            $this->set('model_name', $event['Event']['info']);
             $this->render('/Attributes/ajax/tagRemoveConfirmation');
         } else {
             $rearrangeRules = array(
