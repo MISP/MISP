@@ -175,7 +175,7 @@
 <script type="text/javascript">
     function generate(i, type, id, progress, modified) {
         $.ajax({
-                url: "<?php echo $baseurl; ?>/jobs/cache/" + type,
+            url: "<?php echo $baseurl; ?>/jobs/cache/" + type,
             })
             .done(function(data) {
                 jobsArray[i] = data;

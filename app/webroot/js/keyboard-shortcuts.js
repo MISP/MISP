@@ -116,3 +116,4 @@ $(document).ready(() => keyboardShortcutsManager.init());
 
 // Inits the click event on the keyboard shortcut triangle at the bottom of the screen.
 $('#triangle').click(keyboardShortcutsManager.onTriangleClick);
+

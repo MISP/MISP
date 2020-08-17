@@ -105,11 +105,13 @@
 foreach ($orgs as $org): ?>
     <tr>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['id']); ?></td>
+        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'">
             <?php
                 echo $this->OrgImg->getOrgImg(array('name' => $org['Organisation']['name'], 'id' => $org['Organisation']['id'], 'size' => 24));
             ?>
         </td>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['name']); ?></td>
+        <?php if ($isSiteAdmin): ?>
             <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['uuid']); ?></td>
         <?php endif; ?>
         <td ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['description']); ?></td>

@@ -171,7 +171,7 @@ class ShadowAttributesController extends AppController
                 $response['check_publish'] = true;
                 $this->set('name', $response['success']);
                 $this->set('message', $response['success']);
-                $this->set('url', $this->baseurl . '/shadow_attributes/accept/' . $id);
+                $this->set('url', $baseurl . '/shadow_attributes/accept/' . $id);
                 $this->set('_serialize', array('name', 'message', 'url'));
             } else {
                 throw new MethodNotAllowedException($response['errors']);
@@ -223,7 +223,7 @@ class ShadowAttributesController extends AppController
                 if ($this->_isRest()) {
                     $this->set('name', 'Proposal discarded.');
                     $this->set('message', 'Proposal discarded.');
-                    $this->set('url', $this->baseurl . '/shadow_attributes/discard/' . $id);
+                    $this->set('url', $baseurl . '/shadow_attributes/discard/' . $id);
                     $this->set('_serialize', array('name', 'message', 'url'));
                 } else {
                     $this->autoRender = false;

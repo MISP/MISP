@@ -294,7 +294,7 @@ class RestResponseComponent extends Component
                         $action = substr($action, 6);
                         $admin_routing = 'admin/';
                     }
-                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
+                    $url = $baseurl . '/' . $admin_routing . $controller . '/' . $action;
                     $result[$url] = $data;
                 }
             }

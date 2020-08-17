@@ -54,7 +54,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
         <td class="short"><?php echo h($sharingGroup['SharingGroup']['id']); ?></td>
         <td class="short"><?php echo h($sharingGroup['SharingGroup']['uuid']); ?></td>
         <td class="short"><?php echo h($sharingGroup['SharingGroup']['name']); ?></td>
-	<td class="short"><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo h($sharingGroup['Organisation']['id']);?>"><?php echo h($sharingGroup['Organisation']['name']); ?></a></td>
+        <td class="short"><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo h($sharingGroup['Organisation']['id']);?>"><?php echo h($sharingGroup['Organisation']['name']); ?></a></td>
         <td><?php echo h($sharingGroup['SharingGroup']['description']); ?></td>
         <?php
             $combined = "";
@@ -88,7 +88,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
             <?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit'))); ?>
             <?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
         <?php endif; ?>
-	    <a href="<?php echo $baseurl; ?>/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="black fa fa-eye" title="<?php echo __('View');?>" aria-label="<?php echo __('View');?>"></a>
+            <a href="<?php echo $baseurl; ?>/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="black fa fa-eye" title="<?php echo __('View');?>" aria-label="<?php echo __('View');?>"></a>
         </td>
     </tr>
     <?php

@@ -50,7 +50,7 @@ $('.sightingsToggle').click(function() {
     if (type == 'graph') {
         loadSightingGraph(id, object_context);
     } else if (type == 'add') {
-	    $.get("<?php echo $baseurl; ?>/sightings/add/" + id, function(data) {
+        $.get("<?php echo $baseurl; ?>/sightings/add/" + id, function(data) {
             $("#sightingsData").html(data);
         });
     } else {

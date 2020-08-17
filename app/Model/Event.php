@@ -5878,7 +5878,7 @@ class Event extends AppModel
         $option_fields = array('user', 'event_id', 'modules');
         foreach ($option_fields as $option_field) {
             if (empty($params[$option_field])) {
-                throw new MethodNotAllowedException(__('%s not set', $option_field));
+                throw new MethodNotAllowedException(__('%s not set', $params[$option_field]));
             }
         }
         $event = $this->fetchEvent($params['user'], array('eventid' => $params['event_id'], 'includeAttachments' => 1, 'flatten' => 1));

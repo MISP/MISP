@@ -1223,18 +1223,6 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
     var contextNamingConvention = 'Attribute';
     var closePopover = true;
     switch (referer) {
-        case 'add':
-            url = baseurl + "/attributes/add/" + context_id;
-            break;
-        case 'edit':
-            url = baseurl + "/attributes/edit/" + context_id;
-            break;
-        case 'propose':
-            url = baseurl + "/shadow_attributes/add/" + context_id;
-            break;
-        case 'massEdit':
-            url = baseurl + "/attributes/editSelected/" + context_id;
-            break;
         case 'addTextElement':
             context = 'template';
             contextNamingConvention = 'TemplateElementText';
@@ -2561,9 +2549,8 @@ function serverSettingSubmitForm(name, setting, id) {
 
 function updateOrgCreateImageField(string) {
     string = encodeURIComponent(string);
-    var imgsrc = baseurl + '/img/orgs/' + string + '.png';
     $.ajax({
-        url: imgsrc,
+        url: baseurl + '/img/orgs/' + string + '.png',
         type:'HEAD',
         error:
             function(){
@@ -2571,7 +2558,7 @@ function updateOrgCreateImageField(string) {
             },
         success:
             function(){
-                $('#logoDiv').html('<img src="' + imgsrc + '" style="width:24px;height:24px;"></img>');
+                $('#logoDiv').html('<img src="' + baseurl + "/img/orgs/' + string + '.png" + '" style="width:24px;height:24px;"></img>');
             }
     });
 }
@@ -4084,29 +4071,6 @@ function loadTagTreemap() {
         type:"get",
         cache: false,
         url: baseurl + "/users/tagStatisticsGraph",
-    });
-}
-
-function loadSightingsData(timestamp) {
-    url = baseurl + "/sightings/toplist";
-    if (timestamp != undefined) {
-        url += '/' + timestamp;
-    }
-    $.ajax({
-        async:true,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            $(".sightingsdiv").html(data);
-        },
-        complete:function() {
-            $(".loading").hide();
-        },
-        type:"get",
-        cache: false,
-        url: url,
->>>>>>> 67fd203dbedfcde42fbc43a483f65368e82d2bdd... rebase
     });
 }
 

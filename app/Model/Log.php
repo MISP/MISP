@@ -35,7 +35,6 @@ class Log extends AppModel
                     'edit',
                     'email',
                     'enable',
-                    'enrichment',
                     'error',
                     'export',
                     'fetchEvent',

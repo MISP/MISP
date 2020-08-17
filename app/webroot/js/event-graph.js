@@ -2507,3 +2507,4 @@ function isPicture(filename) {
     var validExtensions = ['jpg', 'jpeg', 'png', 'gif']
     return validExtensions.includes(extension)
 }
+
