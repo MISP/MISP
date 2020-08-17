@@ -423,6 +423,7 @@ $(document).ready(function() {
     var rightBtns = '<div style="float:right;">';
     rightBtns += '<span type="button" id="reloadDistributionGraph" title="Reload Distribution Graph" class="fas fa-sync useCursorPointer" aria-hidden="true" style="margin-left: 5px;" onclick="fetchDistributionData(function(data) { construct_piechart(data); });"></span>';
     rightBtns += '<button type="button" class="close" style="margin-left: 5px;" onclick="$(\'.distribution_graph\').popover(\'hide\');">×</button>';
+    rightBtns += '</div>';
     var pop = $('.distribution_graph').popover({
         title: "<b>Distribution graph</b> [atomic event]" + rightBtns,
         html: true,
