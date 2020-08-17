@@ -4143,9 +4143,6 @@ class EventsController extends AppController
                             'text' => __('(Experimental) Forensic analysis - Mactime'),
                             'ajax' => false,
                     )
-                        'text' => __('(Experimental) Forensic analysis - Mactime'),
-                        'ajax' => false,
-                )
             );
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
