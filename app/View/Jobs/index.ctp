@@ -40,7 +40,7 @@
         function queueInterval(k, id) {
             intervalArray[k] = setInterval(function() {
                 if (tabIsActive) {
-			$.getJSON('<?php echo $baseurl; ?>/jobs/getGenerateCorrelationProgress/' + id, function(data) {
+                    $.getJSON('<?php echo $baseurl; ?>/jobs/getGenerateCorrelationProgress/' + id, function(data) {
                         var x = document.getElementById("bar" + id);
                         x.style.width = data+"%";
                         if (data > 0 && data < 100) {
@@ -147,7 +147,7 @@
                 echo h($item['Job']['job_status']);
                 if ($item['Job']['failed']):
             ?>
-		<div class="fa fa-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="<?php echo $basurl; ?>/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
+                <div class="fa fa-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="<?php echo $basurl; ?>/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
             <?php
                 endif;
             ?>

@@ -294,7 +294,7 @@
                         '<a href="#" style="color:white;" onClick="genericPopup(%s);">%s</a>',
                         sprintf(
                             "'%s/eventDelegations/view/%s', '#confirmation_box'",
-			    $baseurl,
+                            $baseurl,
                             h($delegationRequest['EventDelegation']['id'])
                         ),
                         __('View request details')

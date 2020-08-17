@@ -595,9 +595,9 @@ function edit_item(id, callback) {
     var item = items_timeline.get(id);
     var group = item.group;
     if (group == 'attribute') {
-        simplePopup('/attributes/edit/'+item.orig_id);
+        simplePopup(baseurl+'/attributes/edit/'+item.orig_id);
     } else if (group == 'object') {
-        window.location = '/objects/edit/'+item.orig_id;
+        window.location = baseurl+'/objects/edit/'+item.orig_id;
     }
 }
 
