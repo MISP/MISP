@@ -248,6 +248,7 @@ class TagCollectionsController extends AppController
         if (!$this->request->is('post')) {
             $this->set('object_id', $id);
             $this->set('scope', 'TagCollection');
+            $this->set('local', false);
             $this->layout = false;
             $this->autoRender = false;
             $this->render('/Events/add_tag');
