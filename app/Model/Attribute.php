@@ -2049,7 +2049,7 @@ class Attribute extends AppModel
             $extraConditions = $this->__cidrCorrelation($a);
         } else if ($a['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-            $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value'], $a['id']);
+            $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value1'], $a['id']);
             if (!empty($fuzzyIds)) {
                 $ssdeepIds = $this->find('list', array(
                     'recursive' => -1,
@@ -2062,7 +2062,7 @@ class Attribute extends AppModel
                 $threshold = Configure::read('MISP.ssdeep_correlation_threshold') ?: 40;
                 $attributeIds = array();
                 foreach ($ssdeepIds as $attributeId => $v) {
-                    $ssdeep_value = ssdeep_fuzzy_compare($a['value'], $v);
+                    $ssdeep_value = ssdeep_fuzzy_compare($a['value1'], $v);
                     if ($ssdeep_value >= $threshold) {
                         $attributeIds[] = $attributeId;
                     }
@@ -2779,7 +2779,11 @@ class Attribute extends AppModel
 
         // get all attributes..
         if (!$eventId) {
-            $eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
+            $eventIds = $this->Event->find('list', [
+                'recursive' => -1,
+                'fields' => ['Event.id'],
+                'conditions' => ['Event.disable_correlation' => 0],
+            ]);
             $full = true;
         } else {
             $eventIds = array($eventId);
@@ -2788,17 +2792,18 @@ class Attribute extends AppModel
         $attributeCount = 0;
         if (Configure::read('MISP.background_jobs') && $jobId) {
             $this->Job = ClassRegistry::init('Job');
-            $this->Job->id = $jobId;
             $eventCount = count($eventIds);
+        } else {
+            $jobId = false;
         }
         foreach (array_values($eventIds) as $j => $id) {
-            if ($jobId && Configure::read('MISP.background_jobs')) {
+            if ($jobId) {
                 if ($attributeId) {
-                    $this->Job->saveField('message', 'Correlating Attribute ' . $attributeId);
+                    $message = 'Correlating Attribute ' . $attributeId;
                 } else {
-                    $this->Job->saveField('message', 'Correlating Event ' . $id);
+                    $message = 'Correlating Event ' . $id;
                 }
-                $this->Job->saveField('progress', ($startPercentage + ($j / $eventCount * (100 - $startPercentage))));
+                $this->Job->saveProgress($jobId, $message, $startPercentage + ($j / $eventCount * (100 - $startPercentage)));
             }
             $event = $this->Event->find('first', array(
                     'recursive' => -1,
@@ -2817,14 +2822,29 @@ class Attribute extends AppModel
             if ($attributeId) {
                 $attributeConditions['Attribute.id'] = $attributeId;
             }
-            $attributes = $this->find('all', array('recursive' => -1, 'conditions' => $attributeConditions, 'order' => array()));
-            foreach ($attributes as $k => $attribute) {
+            $attributes = $this->find('all', [
+                'recursive' => -1,
+                'conditions' => $attributeConditions,
+                // fetch just necessary fields to save memory
+                'fields' => [
+                    'Attribute.id',
+                    'Attribute.event_id',
+                    'Attribute.type',
+                    'Attribute.value1',
+                    'Attribute.value2',
+                    'Attribute.distribution',
+                    'Attribute.sharing_group_id',
+                    'Attribute.disable_correlation',
+                ],
+                'order' => [],
+            ]);
+            foreach ($attributes as $attribute) {
                 $this->__afterSaveCorrelation($attribute['Attribute'], $full, $event);
                 $attributeCount++;
             }
         }
-        if ($jobId && Configure::read('MISP.background_jobs')) {
-            $this->Job->saveField('message', 'Job done.');
+        if ($jobId) {
+            $this->Job->saveStatus($jobId, true);
         }
         return $attributeCount;
     }
