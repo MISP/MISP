@@ -3,7 +3,7 @@
         $menu = array(
             array(
                 'type' => 'root',
-                'url' =>empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
+                'url' =>empty($homepage['path']) ? $baseurl .'/' : $baseurl . h($homepage['path']),
                 'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : __('Home'))
             ),
             array(
@@ -467,7 +467,7 @@
     </ul>
   </div>
 </div>
-<input type="hidden" class="keyboardShortcutsConfig" value="<?php echo $baseurl; ?>/shortcuts/global_menu.json" />
+<input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />
 <script type="text/javascript">
     $(document).ready(function() {
         $('#setHomePage').click(function(event) {
