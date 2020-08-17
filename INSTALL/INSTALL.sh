@@ -1275,8 +1275,6 @@ prepareDB () {
     sudo mysql_install_db
     debug "start mysql"
     sudo service mysql start
-    debug "run mysqladmin"
-    sudo mysqladmin -u root password '${DBPASSWORD_ADMIN}'
     debug "Setting up database"
 
     # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
@@ -1297,6 +1295,10 @@ prepareDB () {
     # Make our changes take effect
     sudo mysql -e "FLUSH PRIVILEGES"
     sudo apt-get purge -y expect ; sudo apt autoremove -qy
+    
+    debug "run mysqladmin"
+    sudo mysqladmin password ${DBPASSWORD_ADMIN}
+    
   fi 
 
   sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE DATABASE ${DBNAME};"
