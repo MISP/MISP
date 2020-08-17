@@ -248,7 +248,7 @@ function reflect_change(onIndex, itemType, itemId, item) {
 }
 
 function quick_fetch_seens(itemType, itemId, callback) {
-    var url = "/" + itemType + "/" + "fetchViewValue" + "/" + itemId + "/";
+    var url = baseurl + "/" + itemType + "/" + "fetchViewValue" + "/" + itemId + "/";
     var dfs = $.ajax({
         dataType: "html",
         cache: false,
@@ -282,7 +282,7 @@ function update_seen(item, seenType, value, reflect, callback) {
 }
 
 function fetch_form_and_submit(itemType, item, seenType, value, reflect, callback) {
-    var url = "/" + itemType + "/fetchEditForm/" + item.orig_id + "/" + seenType+"_seen";
+    var url = baseurl + "/" + itemType + "/fetchEditForm/" + item.orig_id + "/" + seenType+"_seen";
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
             $(".loadingTimeline").show();
@@ -418,7 +418,7 @@ function reload_timeline() {
     var selectedScope = map_scope($('#select_timeline_scope').val());
     var payload = {scope: selectedScope};
     $.ajax({
-        url: "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
+        url: baseurl + "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
         dataType: 'json',
         type: 'post',
         contentType: 'application/json',
@@ -500,7 +500,7 @@ function enable_timeline() {
     };
     var payload = {scope: map_scope($('#select_timeline_scope').val())};
     $.ajax({
-        url: "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
+        url: baseurl + "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
         dataType: 'json',
         type: 'post',
         contentType: 'application/json',

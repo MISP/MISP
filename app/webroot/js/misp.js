@@ -3249,7 +3249,7 @@ function runOnDemandAction(element, url, target, postFormField) {
 function getRemoteSyncUser(id) {
     var resultContainer = $("#sync_user_test_" + id);
     $.ajax({
-        url: '/servers/getRemoteUser/' + id,
+        url: baseurl + '/servers/getRemoteUser/' + id,
         type:'GET',
         beforeSend: function (XMLHttpRequest) {
             resultContainer.html('Running test...');
@@ -3401,7 +3401,7 @@ function gpgSelect(fingerprint) {
     $("#gray_out").fadeOut();
     $.ajax({
         type: "get",
-        url: "/users/fetchGpgKey/" + fingerprint,
+        url: baseurl + "/users/fetchGpgKey/" + fingerprint,
         beforeSend: function () {
             $(".loading").show();
         },
