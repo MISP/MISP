@@ -282,10 +282,6 @@ class AttributesController extends AppController
         $categories = array_keys($this->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
-        $this->set('event_id', $event['Event']['id']);
-        // combobox for distribution
-        $this->set('currentDist', $event['Event']['distribution']);
-        // tooltip for distribution
 
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
@@ -313,11 +309,11 @@ class AttributesController extends AppController
         }
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
-        $this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
+        $this->set('notice_list_triggers', json_encode($notice_list_triggers));
         $this->set('fieldDesc', $fieldDesc);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        $this->set('published', $event['Event']['published']);
+        $this->set('event', $event);
         $this->set('action', $this->action);
     }
 
@@ -849,8 +845,7 @@ class AttributesController extends AppController
             $this->set('objectAttribute', false);
         }
         // enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
-        $this->set('event_id', $attribute['Event']['id']);
-        $this->set('published', $attribute['Event']['published']);
+        $this->set('event', $attribute); // Attribute contains 'Event' field
         // needed for RBAC
         // combobox for types
         $types = array_keys($this->Attribute->typeDefinitions);
@@ -862,8 +857,6 @@ class AttributesController extends AppController
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
-        $this->set('currentDist', $attribute['Event']['distribution']);
-
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
