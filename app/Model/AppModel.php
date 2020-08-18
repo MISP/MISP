@@ -37,6 +37,8 @@ class AppModel extends Model
 
     public $start = 0;
 
+    public $simpleCache = [];
+
     public $inserted_ids = array();
 
     private $__redisConnection = null;

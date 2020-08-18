@@ -2192,6 +2192,7 @@ class Event extends AppModel
                 continue;
             }
             $this->__attachReferences($user, $event, $sgids, $fields);
+            $this->__attachTags($user, $event, $tagConditions);
             $event = $this->Orgc->attachOrgsToEvent($event, $fieldsOrg);
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
                 $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
@@ -6638,6 +6639,11 @@ class Event extends AppModel
         $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0755);
         $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
         return array($job, $randomFileName, $tempFile);
+    }
+
+    private function __attachTags($user, &$event, $tagConditions)
+    {
+        return true;
     }
 
     private function __attachReferences($user, &$event, $sgids, $fields)
