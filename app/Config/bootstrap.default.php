@@ -119,7 +119,7 @@ if (Configure::read('MISP.baseurl')) {
 		}
 	}
 }
-
+/*
  * Plugins need to be loaded manually, you can either load them one by one or all of them in a single call
  * Uncomment one of the lines below, as you need. make sure you read the documentation on CakePlugin to use more
  * advanced ways of loading plugins
