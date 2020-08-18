@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('AttachmentTool', 'Tools');
 
 /**
  * @property ShadowAttribute $ShadowAttribute
@@ -57,7 +58,7 @@ class ShadowAttributesController extends AppController
         }
         $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $shadow, 'accept');
         $shadow = $shadow['ShadowAttribute'];
-        if ($this->ShadowAttribute->typeIsAttachment($shadow['type'])) {
+        if ($this->ShadowAttribute->typeIsAttachment($shadow['type']) && !$shadow['proposal_to_delete']) {
             $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($shadow);
             $shadow['data'] = $encodedFile;
         }
@@ -449,19 +450,15 @@ class ShadowAttributesController extends AppController
         $this->__downloadAttachment($sa['ShadowAttribute']);
     }
 
-    private function __downloadAttachment($shadowAttribute)
+    private function __downloadAttachment(array $shadowAttribute)
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->ShadowAttribute->getDefaultAttachments_dir();
-        }
-        $path = $attachments_dir . DS . 'shadow' . DS . $shadowAttribute['event_id'] . DS;
-        $file = $shadowAttribute['id'];
-        if ('attachment' == $shadowAttribute['type']) {
+        $file = $this->ShadowAttribute->getAttachmentFile($shadowAttribute);
+
+        if ('attachment' === $shadowAttribute['type']) {
             $filename = $shadowAttribute['value'];
             $fileExt = pathinfo($filename, PATHINFO_EXTENSION);
             $filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
-        } elseif ('malware-sample' == $shadowAttribute['type']) {
+        } elseif ('malware-sample' === $shadowAttribute['type']) {
             $filenameHash = explode('|', $shadowAttribute['value']);
             $filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
             $fileExt = "zip";
@@ -470,7 +467,7 @@ class ShadowAttributesController extends AppController
         }
         $this->autoRender = false;
         $this->response->type($fileExt);
-        $this->response->file($path . $file, array('download' => true, 'name' => $filename . '.' . $fileExt));
+        $this->response->file($file->path, array('download' => true, 'name' => $filename . '.' . $fileExt));
     }
 
     public function add_attachment($eventId = null)

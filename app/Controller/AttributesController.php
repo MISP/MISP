@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('AttachmentTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
@@ -108,8 +109,7 @@ class AttributesController extends AppController
         if (!$this->userRole['perm_add']) {
             throw new MethodNotAllowedException(__('You do not have permissions to create attributes'));
         }
-        $this->loadModel('Event');
-        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        $event = $this->Attribute->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
         if (!$event) {
             throw new NotFoundException(__('Invalid event'));
         }
@@ -117,7 +117,7 @@ class AttributesController extends AppController
             throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         if (!$this->_isRest()) {
-            $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+            $this->Attribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
         }
         if ($this->request->is('ajax')) {
             $this->set('ajax', true);
@@ -133,15 +133,13 @@ class AttributesController extends AppController
                 $this->request->data = array('Attribute' => $this->request->data);
             }
             if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
-                $sg = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1, $this->request->data['Attribute']['sharing_group_id']);
-                if (empty($sg)) {
+                if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
             }
             //
             // multiple attributes in batch import
             //
-            $attributes = array();
             if (!empty($this->request->data['Attribute']['batch_import']) || (!empty($this->request->data['Attribute']['value']) && is_array($this->request->data['Attribute']['value']))) {
                 $attributes = array();
                 if (is_array($this->request->data['Attribute']['value'])) {
@@ -176,7 +174,7 @@ class AttributesController extends AppController
                 }
             }
             if (!empty($successes)) {
-                $this->Event->unpublishEvent($event['Event']['id']);
+                $this->Attribute->Event->unpublishEvent($event['Event']['id']);
             }
             if ($this->_isRest()) {
                 if (!empty($successes)) {
@@ -284,10 +282,6 @@ class AttributesController extends AppController
         $categories = array_keys($this->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
-        $this->set('event_id', $event['Event']['id']);
-        // combobox for distribution
-        $this->set('currentDist', $event['Event']['distribution']);
-        // tooltip for distribution
 
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
@@ -315,11 +309,11 @@ class AttributesController extends AppController
         }
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
-        $this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
+        $this->set('notice_list_triggers', json_encode($notice_list_triggers));
         $this->set('fieldDesc', $fieldDesc);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        $this->set('published', $event['Event']['published']);
+        $this->set('event', $event);
         $this->set('action', $this->action);
     }
 
@@ -336,36 +330,7 @@ class AttributesController extends AppController
 
     private function __downloadAttachment($attribute)
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->Attribute->getDefaultAttachments_dir();
-        }
-
-        $is_s3 = substr($attachments_dir, 0, 2) === "s3";
-
-        if ($is_s3) {
-            // We have to download it!
-            App::uses('AWSS3Client', 'Tools');
-            $client = new AWSS3Client();
-            $client->initTool();
-            // Use tmpdir as opposed to attachments dir since we can't write to s3://
-            $attachments_dir = Configure::read('MISP.tmpdir');
-            if (empty($attachments_dir)) {
-                $this->loadModel('Server');
-                $attachments_dir = $this->Server->getDefaultTmp_dir();
-            }
-            // Now download the file
-            $resp = $client->download($attribute['event_id'] . DS . $attribute['id']);
-            // Save to a tmpfile
-            $tmpFile = new File($attachments_dir . DS . $attribute['uuid'], true, 0600);
-            $tmpFile->write($resp);
-            $tmpFile->close();
-            $path = $attachments_dir . DS;
-            $file = $attribute['uuid'];
-        } else {
-            $path = $attachments_dir . DS . $attribute['event_id'] . DS;
-            $file = $attribute['id'];
-        }
+        $file = $this->Attribute->getAttachmentFile($attribute);
 
         if ('attachment' == $attribute['type']) {
             $filename = $attribute['value'];
@@ -381,7 +346,7 @@ class AttributesController extends AppController
         $this->autoRender = false;
         $this->response->type($fileExt);
         $download_attachments_on_load = Configure::check('MISP.download_attachments_on_load') ? Configure::read('MISP.download_attachments_on_load') : true;
-        $this->response->file($path . $file, array('download' => $download_attachments_on_load, 'name' => $filename . '.' . $fileExt));
+        $this->response->file($file->path, array('download' => $download_attachments_on_load, 'name' => $filename . '.' . $fileExt));
     }
 
     public function add_attachment($eventId = null)
@@ -395,6 +360,12 @@ class AttributesController extends AppController
         }
 
         if ($this->request->is('post')) {
+            if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
+                if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
+                    throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
+                }
+            }
+
             $fails = array();
             $success = 0;
 
@@ -456,17 +427,17 @@ class AttributesController extends AppController
                     }
                 } else {
                     $attribute = array(
-                            'Attribute' => array(
-                                'value' => $filename,
-                                'category' => $this->request->data['Attribute']['category'],
-                                'type' => 'attachment',
-                                'event_id' => $event['Event']['id'],
-                                'data' => base64_encode($tmpfile->read()),
-                                'comment' => $this->request->data['Attribute']['comment'],
-                                'to_ids' => 0,
-                                'distribution' => $this->request->data['Attribute']['distribution'],
-                                'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
-                            )
+                        'Attribute' => array(
+                            'value' => $filename,
+                            'category' => $this->request->data['Attribute']['category'],
+                            'type' => 'attachment',
+                            'event_id' => $event['Event']['id'],
+                            'data' => base64_encode($tmpfile->read()),
+                            'comment' => $this->request->data['Attribute']['comment'],
+                            'to_ids' => 0,
+                            'distribution' => $this->request->data['Attribute']['distribution'],
+                            'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
+                        )
                     );
                     $this->Attribute->create();
                     $r = $this->Attribute->save($attribute);
@@ -477,7 +448,7 @@ class AttributesController extends AppController
                     }
                 }
             }
-            $message = __('The attachment(s) have been uploaded.');
+            $message = __n('The attachment have been uploaded.', 'The attachments have been uploaded.', $success);
             if (!empty($fails)) {
                 $message = __('Some of the attachments failed to upload. The failed files were: %s - This can be caused by the attachments already existing in the event.', implode(', ', $fails));
             }
@@ -765,8 +736,7 @@ class AttributesController extends AppController
                 $this->request->data = array('Attribute' => $this->request->data);
             }
             if (isset($this->request->data['Attribute']['distribution']) && $this->request->data['Attribute']['distribution'] == 4) {
-                $sg = $this->Attribute->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1, $this->request->data['Attribute']['sharing_group_id']);
-                if (empty($sg)) {
+                if (!$this->__canUseSharingGroup($this->request->data['Attribute']['sharing_group_id'])) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
             }
@@ -875,8 +845,7 @@ class AttributesController extends AppController
             $this->set('objectAttribute', false);
         }
         // enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
-        $this->set('event_id', $attribute['Event']['id']);
-        $this->set('published', $attribute['Event']['published']);
+        $this->set('event', $attribute); // Attribute contains 'Event' field
         // needed for RBAC
         // combobox for types
         $types = array_keys($this->Attribute->typeDefinitions);
@@ -888,8 +857,6 @@ class AttributesController extends AppController
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
-        $this->set('currentDist', $attribute['Event']['distribution']);
-
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
@@ -1049,24 +1016,14 @@ class AttributesController extends AppController
 
     public function delete($id, $hard = false)
     {
-        if (Validation::uuid($id)) {
-            $this->Attribute->recursive = -1;
-            $temp = $this->Attribute->findByUuid($id);
-            if ($temp == null) {
-                throw new NotFoundException('Invalid attribute');
-            }
-            $id = $temp['Attribute']['id'];
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException('Invalid attribute');
-        }
         if (isset($this->params['named']['hard'])) {
             $hard = $this->params['named']['hard'];
         }
         if (isset($this->request->data['hard'])) {
             $hard = $this->request->data['hard'];
         }
-        $this->set('id', $id);
-        $conditions = array('id' => $id);
+
+        $conditions = $this->__idToConditions($id);
         if (!$hard) {
             $conditions['deleted'] = 0;
         }
@@ -1078,9 +1035,10 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             throw new NotFoundException('Invalid attribute');
         }
+        $this->set('id', $attribute['Attribute']['id']);
         if ($this->request->is('ajax')) {
             if ($this->request->is('post')) {
-                if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
+                if ($this->Attribute->deleteAttribute($attribute['Attribute']['id'], $this->Auth->user(), $hard)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')), 'status'=>200, 'type' => 'json'));
                 } else {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')), 'status'=>200, 'type' => 'json'));
@@ -1094,7 +1052,7 @@ class AttributesController extends AppController
             if (!$this->request->is('post') && !$this->request->is('delete')) {
                 throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
             }
-            if ($this->Attribute->deleteAttribute($id, $this->Auth->user(), $hard)) {
+            if ($this->Attribute->deleteAttribute($attribute['Attribute']['id'], $this->Auth->user(), $hard)) {
                 if ($this->_isRest() || $this->response->type() === 'application/json') {
                     $this->set('message', 'Attribute deleted.');
                     $this->set('_serialize', array('message'));
@@ -1113,7 +1071,6 @@ class AttributesController extends AppController
             }
         }
     }
-
 
     public function restore($id = null)
     {
@@ -1197,6 +1154,9 @@ class AttributesController extends AppController
                     'recursive' => -1,
                     'fields' => array('id', 'orgc_id', 'user_id')
             ));
+            if (!$event) {
+                throw new NotFoundException(__('Invalid event'));
+            }
             if (!$this->__canModifyEvent($event)) {
                 throw new ForbiddenException(__('You do not have permission to do that.'));
             }
@@ -1440,8 +1400,7 @@ class AttributesController extends AppController
             }
             if ($this->request->data['Attribute']['distribution'] == 4) {
                 $sharingGroupId = $this->request->data['Attribute']['sharing_group_id'];
-                $sg = $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true, $sharingGroupId);
-                if (empty($sg)) {
+                if (!$this->__canUseSharingGroup($sharingGroupId)) {
                     throw new ForbiddenException(__('Invalid Sharing Group or not authorised.'));
                 }
 
@@ -2597,7 +2556,6 @@ class AttributesController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
-        $this->Taxonomy = ClassRegistry::init('Taxonomy');
         $rearrangeRules = array(
             'request' => false,
             'Attribute' => false,
@@ -2686,6 +2644,7 @@ class AttributesController extends AppController
             }
             $success = 0;
             $fails = 0;
+            $this->Taxonomy = ClassRegistry::init('Taxonomy');
             foreach ($idList as $id) {
                 $attributes = $this->Attribute->fetchAttributes(
                     $this->Auth->user(),
@@ -2713,16 +2672,21 @@ class AttributesController extends AppController
                     $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
                 }
                 foreach ($tag_id_list as $tag_id) {
-                    $this->Attribute->AttributeTag->Tag->id = $tag_id;
-                    if (!$this->Attribute->AttributeTag->Tag->exists()) {
-                        $fails++;
-                        continue;
+                    $conditions = ['Tag.id' => $tag_id];
+                    if (!$this->_isSiteAdmin()) {
+                        $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                        $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
                     }
                     $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
-                        'conditions' => array('Tag.id' => $tag_id),
+                        'conditions' => $conditions,
                         'recursive' => -1,
                         'fields' => array('Tag.name')
                     ));
+                    if (!$tag) {
+                        // Tag not found or user don't have permission to add it.
+                        $fails++;
+                        continue;
+                    }
                     $found = $this->Attribute->AttributeTag->find('first', array(
                         'conditions' => array(
                             'attribute_id' => $id,
@@ -2732,6 +2696,7 @@ class AttributesController extends AppController
                     ));
                     $this->autoRender = false;
                     if (!empty($found)) {
+                        // Tag is already assigned to given attribute.
                         $fails++;
                         continue;
                     }
@@ -2789,20 +2754,12 @@ class AttributesController extends AppController
                 }
             }
             if ($fails == 0) {
-                if ($success == 1) {
-                    $message = 'Tag added.';
-                } else {
-                    $message = $success . ' tags added.';
-                }
+                $message = __n('Tag added.', '%s tags added', $success, $success);
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
             } else {
-                if ($fails == 1) {
-                    $message = 'Tag could not be added.';
-                } else {
-                    $message = $fails . ' tags could not be added.';
-                }
+                $message = __n('Tag could not be added.', '%s tags could not be added.', $fails, $fails);
                 if ($success > 0) {
-                    $message .= ' However, ' . $success . ' tag(s) were added.';
+                    $message .= __n(' However, %s tag was added.', ' However, %s tags were added.', $success, $success);
                 }
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
             }
@@ -2812,9 +2769,28 @@ class AttributesController extends AppController
     public function removeTag($id = false, $tag_id = false)
     {
         if (!$this->request->is('post')) {
-            $this->set('id', $id);
+            $attribute = $this->__fetchAttribute($id);
+            if (!$attribute) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
+            $attributeTag = $this->Attribute->AttributeTag->find('first', array(
+                'conditions' => array(
+                    'attribute_id' => $attribute['Attribute']['id'],
+                    'tag_id' => $tag_id,
+                ),
+                'contain' => ['Tag'],
+                'recursive' => -1,
+            ));
+            if (!$attributeTag) {
+                throw new NotFoundException(__('Invalid tag.'));
+            }
+
+            $this->set('is_local', $attributeTag['AttributeTag']['local']);
+            $this->set('tag', $attributeTag);
+            $this->set('id', $attribute['Attribute']['id']);
             $this->set('tag_id', $tag_id);
             $this->set('model', 'Attribute');
+            $this->set('model_name', $attribute['Attribute']['id']);
             $this->render('ajax/tagRemoveConfirmation');
         } else {
             $rearrangeRules = array(
@@ -2964,19 +2940,15 @@ class AttributesController extends AppController
                     'recursive' => -1)
             );
         $counter = 0;
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $this->loadModel('Server');
-            $attachments_dir = $this->Server->getDefaultAttachments_dir();
-        }
+        $attachmentTool = new AttachmentTool();
         foreach ($attributes as $attribute) {
-            $path = $attachments_dir . DS . $attribute['Attribute']['event_id'] . DS;
-            $file = $attribute['Attribute']['id'];
-            if (!file_exists($path . $file)) {
+            $exists = $attachmentTool->exists($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
+            if (!$exists) {
                 $counter++;
             }
         }
-        return new CakeResponse(array('body'=>$counter, 'status'=>200));
+
+        return new CakeResponse(array('body' => $counter, 'status' => 200));
     }
 
     public function exportSearch($type = false)
@@ -3018,6 +2990,10 @@ class AttributesController extends AppController
         return $info;
     }
 
+    /**
+     * @param int|string $id Attribute ID or UUID
+     * @return array
+     */
     private function __fetchAttribute($id)
     {
         $options = array(
@@ -3039,6 +3015,10 @@ class AttributesController extends AppController
         }
     }
 
+    /**
+     * @param int|string $id Attribute ID or UUID
+     * @return array
+     */
     private function __idToConditions($id)
     {
         if (is_numeric($id)) {
@@ -3049,5 +3029,15 @@ class AttributesController extends AppController
             throw new NotFoundException(__('Invalid attribute ID.'));
         }
         return $conditions;
+    }
+
+    /**
+     * @param int $sharingGroupId
+     * @return bool
+     */
+    private function __canUseSharingGroup($sharingGroupId)
+    {
+        $sg = $this->Attribute->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true, $sharingGroupId);
+        return !empty($sg);
     }
 }

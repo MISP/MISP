@@ -46,7 +46,9 @@ class AppModel extends Model
     private $__profiler = array();
 
     public $elasticSearchClient = false;
-    public $s3Client = false;
+
+    /** @var AttachmentTool|null */
+    private $attachmentTool;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -2404,29 +2406,6 @@ class AppModel extends Model
         $this->elasticSearchClient = $client;
     }
 
-    public function getS3Client()
-    {
-        if (!$this->s3Client) {
-            $this->s3Client = $this->loadS3Client();
-        }
-
-        return $this->s3Client;
-    }
-
-    public function loadS3Client()
-    {
-        App::uses('AWSS3Client', 'Tools');
-        $client = new AWSS3Client();
-        $client->initTool();
-        return $client;
-    }
-
-    public function attachmentDirIsS3()
-    {
-        // Naive way to detect if we're working in S3
-        return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
-    }
-
     public function checkVersionRequirements($versionString, $minVersion)
     {
         $version = explode('.', $versionString);
@@ -2855,6 +2834,8 @@ class AppModel extends Model
     }
 
     /**
+     * Log exception with backtrace and with nested exceptions.
+     *
      * @param string $message
      * @param Exception $exception
      * @param int $type
@@ -2934,5 +2915,17 @@ class AppModel extends Model
             '?',
             $input
         );
+    }
+
+    /**
+     * @return AttachmentTool
+     */
+    protected function loadAttachmentTool()
+    {
+        if ($this->attachmentTool === null) {
+            $this->attachmentTool = new AttachmentTool();
+        }
+
+        return $this->attachmentTool;
     }
 }

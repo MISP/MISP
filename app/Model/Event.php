@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('RandomTool', 'Tools');
+App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 
 class Event extends AppModel
@@ -532,46 +533,12 @@ class Event extends AppModel
         // delete all of the event->tag combinations that involve the deleted event
         $this->EventTag->deleteAll(array('event_id' => $this->id));
 
-        // only delete the file if it exists
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->getDefaultAttachments_dir();
+        try {
+            $this->loadAttachmentTool()->deleteAll($this->id);
+        } catch (Exception $e) {
+            $this->logException('Delete of event file directory failed.', $e);
+            throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
         }
-
-        // Things get a little funky here
-        if ($this->attachmentDirIsS3()) {
-            // S3 doesn't have folders
-            // So we have to basically `ls` them to look for a prefix
-            $s3 = $this->getS3Client();
-            $s3->deleteDirectory($this->id);
-        } else {
-            $filepath = $attachments_dir . DS . $this->id;
-            App::uses('Folder', 'Utility');
-            if (is_dir($filepath)) {
-                if (!$this->destroyDir($filepath)) {
-                    throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
-                }
-            }
-        }
-    }
-
-    public function destroyDir($dir)
-    {
-        if (!is_dir($dir) || is_link($dir)) {
-            return unlink($dir);
-        }
-        foreach (scandir($dir) as $file) {
-            if ($file == '.' || $file == '..') {
-                continue;
-            }
-            if (!$this->destroyDir($dir . DS . $file)) {
-                chmod($dir . DS . $file, 0777);
-                if (!$this->destroyDir($dir . DS . $file)) {
-                    return false;
-                }
-            }
-        }
-        return rmdir($dir);
     }
 
     public function beforeValidate($options = array())
@@ -635,19 +602,24 @@ class Event extends AppModel
     public function afterSave($created, $options = array())
     {
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
-            $this->Correlation = ClassRegistry::init('Correlation');
             $db = $this->getDataSource();
+
+            $updateCorrelation = array();
             if (isset($this->data['Event']['date'])) {
-                $this->Correlation->updateAll(array('Correlation.date' => $db->value($this->data['Event']['date'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
+                $updateCorrelation['Correlation.date'] = $db->value($this->data['Event']['date']);
             }
             if (isset($this->data['Event']['info'])) {
-                $this->Correlation->updateAll(array('Correlation.info' => $db->value($this->data['Event']['info'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
+                $updateCorrelation['Correlation.info'] = $db->value($this->data['Event']['info']);
             }
             if (isset($this->data['Event']['distribution'])) {
-                $this->Correlation->updateAll(array('Correlation.distribution' => $db->value($this->data['Event']['distribution'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
+                $updateCorrelation['Correlation.distribution'] = $db->value($this->data['Event']['distribution']);
             }
             if (isset($this->data['Event']['sharing_group_id'])) {
-                $this->Correlation->updateAll(array('Correlation.sharing_group_id' => $db->value($this->data['Event']['sharing_group_id'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
+                $updateCorrelation['Correlation.sharing_group_id'] = $db->value($this->data['Event']['sharing_group_id']);
+            }
+            if (!empty($updateCorrelation)) {
+                $this->Correlation = ClassRegistry::init('Correlation');
+                $this->Correlation->updateAll($updateCorrelation, array('Correlation.event_id' => intval($this->data['Event']['id'])));
             }
         }
         if (empty($this->data['Event']['unpublishAction']) && empty($this->data['Event']['skip_zmq']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
@@ -3179,6 +3151,9 @@ class Event extends AppModel
     {
         // fetch the event
         $event = $this->read(null, $id);
+        if (!$event) {
+            throw new NotFoundException('Invalid Event.');
+        }
         $this->User = ClassRegistry::init('User');
         if (!$creator_only) {
             // Insert extra field here: alertOrg or something, then foreach all the org members
@@ -3186,7 +3161,7 @@ class Event extends AppModel
             $orgMembers = array();
             $this->User->recursive = 0;
             $temp = $this->User->find('all', array(
-                    'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id', 'org_id'),
+                    'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id', 'org_id', 'disabled'),
                     'conditions' => array('disabled' => 0, 'User.org_id' => $event['Event']['orgc_id']),
                     'recursive' => -1
             ));

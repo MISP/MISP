@@ -48,6 +48,7 @@ $config = array(
 			'password'          => '',
             'bodyonlyencrypted' => false,
             'sign'              => true,
+            'obscure_subject'   => false,
 		),
 	'SMIME'            =>
 		array(
