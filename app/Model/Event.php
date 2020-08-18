@@ -2987,13 +2987,13 @@ class Event extends AppModel
             $job->saveField('process_id', $process_id);
             return true;
         } else {
-            return ($this->sendAlertEmail($id, $user, $oldpublish));
+            return $this->sendAlertEmail($id, $user, $oldpublish);
         }
     }
 
     public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null)
     {
-        $event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
+        $event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true, 'includeEventCorrelations' => true));
         if (empty($event)) {
             throw new NotFoundException('Invalid Event.');
         }
@@ -3027,20 +3027,7 @@ class Event extends AppModel
         } else {
             $subject = '';
         }
-        $subjMarkingString = Configure::read('MISP.email_subject_TLP_string') ?: "tlp:amber";
-        $subjTag = Configure::read('MISP.email_subject_tag') ?: "tlp";
-        $tagLen = strlen($subjTag);
-        foreach ($event[0]['EventTag'] as $k => $tag) {
-            $tagName = $tag['Tag']['name'];
-            if (strncasecmp($subjTag, $tagName, $tagLen) == 0 && strlen($tagName) > $tagLen && ($tagName[$tagLen] == ':' || $tagName[$tagLen] == '=')) {
-                if (Configure::read('MISP.email_subject_include_tag_name') === false) {
-                    $subjMarkingString = trim(substr($tagName, $tagLen+1), '"');
-                } else {
-                    $subjMarkingString = $tagName;
-                }
-                break;
-            }
-        }
+        $subjMarkingString = $this->getEmailSubjectMarkForEvent($event[0]);
         $threatLevel = $event[0]['ThreatLevel']['name'] . " - ";
         if (Configure::read('MISP.threatlevel_in_email_subject') === false) {
             $threatLevel = '';
@@ -3052,13 +3039,12 @@ class Event extends AppModel
         if ($processId) {
             $this->Job = ClassRegistry::init('Job');
         }
-        $sgModel = ClassRegistry::init('SharingGroup');
 
         $userCount = count($users);
         $this->UserSetting = ClassRegistry::init('UserSetting');
         foreach ($users as $k => $user) {
             if ($this->UserSetting->checkPublishFilter($user, $event[0])) {
-                $body = $this->__buildAlertEmailBody($event[0], $user, $oldpublish, $sgModel);
+                $body = $this->__buildAlertEmailBody($event[0], $user, $oldpublish);
                 $bodyNoEnc = "A new or modified event was just published on " . $this->__getAnnounceBaseurl() . "/events/view/" . $event[0]['Event']['id'];
                 $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
             }
@@ -3143,7 +3129,7 @@ class Event extends AppModel
         }
     }
 
-    private function __buildAlertEmailBody($event, $user, $oldpublish, $sgModel)
+    private function __buildAlertEmailBody($event, $user, $oldpublish)
     {
         $owner = false;
         if ($user['org_id'] == $event['Event']['orgc_id'] || $user['org_id'] == $event['Event']['org_id'] || $user['Role']['perm_site_admin']) {
@@ -3175,11 +3161,10 @@ class Event extends AppModel
         $body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
         $body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
         $body .= 'Description : ' . $event['Event']['info'] . "\n";
-        $relatedEvents = $this->getRelatedEvents($user, $event['Event']['id'], array());
-        if (!empty($relatedEvents)) {
+        if (!empty($event['RelatedEvent'])) {
             $body .= '==============================================' . "\n";
             $body .= 'Related to: '. "\n";
-            foreach ($relatedEvents as &$relatedEvent) {
+            foreach ($event['RelatedEvent'] as $relatedEvent) {
                 $body .= $this->__getAnnounceBaseurl() . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
             }
             $body .= '==============================================' . "\n";
@@ -3213,10 +3198,16 @@ class Event extends AppModel
     public function sendContactEmail($id, $message, $creator_only, $user, $isSiteAdmin)
     {
         // fetch the event
-        $event = $this->read(null, $id);
-        if (!$event) {
+        $event = $this->fetchEvent($user, [
+            'eventid' => $id,
+            'includeAllTags' => true,
+            'includeEventCorrelations' => true,
+        ]);
+        if (empty($event)) {
             throw new NotFoundException('Invalid Event.');
         }
+        $event = $event[0];
+
         $this->User = ClassRegistry::init('User');
         if (!$creator_only) {
             // Insert extra field here: alertOrg or something, then foreach all the org members
@@ -3250,19 +3241,17 @@ class Event extends AppModel
         if (empty($orgMembers)) {
             return false;
         }
-        $tplColorString = Configure::read('MISP.email_subject_TLP_string') ?: "tlp:amber";
+        $tplColorString = $this->getEmailSubjectMarkForEvent($event);
         $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - " . strtoupper($tplColorString);
         $result = true;
         foreach ($orgMembers as $reporter) {
-            $temp = $this->__buildContactEventEmailBody($user, $message, $event, $reporter, $id);
-            $bodyevent = $temp[0];
-            $body = $temp[1];
+            list($bodyevent, $body) = $this->__buildContactEventEmailBody($user, $message, $event, $reporter, $id);
             $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
         }
         return $result;
     }
 
-    private function __buildContactEventEmailBody($user, $message, $event, $targetUser, $id)
+    private function __buildContactEventEmailBody(array $user, $message, array $event, array $targetUser, $id)
     {
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
@@ -3297,30 +3286,21 @@ class Event extends AppModel
         $bodyevent .= 'Risk        : ' . $event['ThreatLevel']['name'] . "\n";
         $bodyevent .= 'Analysis    : ' . $event['Event']['analysis'] . "\n";
 
-        $userModel = ClassRegistry::init('User');
-        $targetUser = $userModel->getAuthUser($targetUser['User']['id']);
-        $sgModel = ClassRegistry::init('SharingGroup');
-        $sgs = $sgModel->fetchAllAuthorised($targetUser, false);
-
-        $relatedEvents = $this->getRelatedEvents($targetUser, $id, $sgs);
-        if (!empty($relatedEvents)) {
-            foreach ($relatedEvents as &$relatedEvent) {
-                $bodyevent .= 'Related to  : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
-            }
+        foreach ($event['RelatedEvent'] as $relatedEvent) {
+            $bodyevent .= 'Related to  : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
         }
+
         $bodyevent .= 'Info  : ' . "\n";
         $bodyevent .= $event['Event']['info'] . "\n";
         $bodyevent .= "\n";
         $bodyevent .= 'Attributes  :' . "\n";
         $bodyTempOther = "";
-        if (!empty($event['Attribute'])) {
-            foreach ($event['Attribute'] as &$attribute) {
-                $line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
-                if ('other' == $attribute['type']) { // append the 'other' attribute types to the bottom.
-                    $bodyTempOther .= $line;
-                } else {
-                    $bodyevent .= $line;
-                }
+        foreach ($event['Attribute'] as $attribute) {
+            $line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
+            if ('other' == $attribute['type']) { // append the 'other' attribute types to the bottom.
+                $bodyTempOther .= $line;
+            } else {
+                $bodyevent .= $line;
             }
         }
         $bodyevent .= "\n";
@@ -4489,8 +4469,7 @@ class Event extends AppModel
             $job->saveField('process_id', $process_id);
             return true;
         } else {
-            $result = $this->sendContactEmail($id, $message, $creator_only, array('User' => $user), $isSiteAdmin);
-            return $result;
+            return $this->sendContactEmail($id, $message, $creator_only, array('User' => $user), $isSiteAdmin);
         }
     }
 
@@ -7118,5 +7097,28 @@ class Event extends AppModel
         $this->Log = ClassRegistry::init('Log');
         $result = $this->Log->recoverDeletedEvent($id);
         return $result;
+    }
+
+    /**
+     * @param array $event
+     * @return string
+     */
+    private function getEmailSubjectMarkForEvent(array $event)
+    {
+        $subjTag = Configure::read('MISP.email_subject_tag') ?: "tlp";
+        $tagLen = strlen($subjTag);
+        foreach ($event['EventTag'] as $tag) {
+            $tagName = $tag['Tag']['name'];
+            if (strncasecmp($subjTag, $tagName, $tagLen) === 0 && strlen($tagName) > $tagLen && ($tagName[$tagLen] === ':' || $tagName[$tagLen] === '=')) {
+                if (Configure::read('MISP.email_subject_include_tag_name') === false) {
+                    return trim(substr($tagName, $tagLen + 1), '"');
+                } else {
+                    return $tagName;
+                }
+            }
+        }
+
+        // default value if no match found
+        return Configure::read('MISP.email_subject_TLP_string') ?: "tlp:amber";
     }
 }
