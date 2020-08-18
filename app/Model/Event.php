@@ -2991,16 +2991,27 @@ class Event extends AppModel
         }
     }
 
-    public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null)
+    /**
+     * @param int $id
+     * @param array $senderUser Not used anymore.
+     * @param int|null $oldpublish Timestamp of old publishing.
+     * @param int|null $jobId
+     * @return bool
+     * @throws Exception
+     */
+    public function sendAlertEmail($id, array $senderUser, $oldpublish = null, $jobId = null)
     {
-        $event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true, 'includeEventCorrelations' => true));
+        $event = $this->find('first', [
+           'conditions' => ['Event.id' => $id],
+           'contain' => ['EventTag' => ['Tag'], 'ThreatLevel'],
+        ]);
         if (empty($event)) {
             throw new NotFoundException('Invalid Event.');
         }
         $this->NotificationLog = ClassRegistry::init('NotificationLog');
-        if (!$this->NotificationLog->check($event[0]['Event']['orgc_id'], 'publish')) {
-            if ($processId) {
-                $this->Job->id = $processId;
+        if (!$this->NotificationLog->check($event['Event']['orgc_id'], 'publish')) {
+            if ($jobId) {
+                $this->Job->id = $jobId;
                 $this->Job->saveField('progress', 100);
                 $this->Job->saveField('message', 'Mails blocked by org alert threshold.');
             }
@@ -3008,17 +3019,17 @@ class Event extends AppModel
         }
         $userConditions = array('autoalert' => 1);
         $this->User = ClassRegistry::init('User');
-        $users = $this->User->getUsersWithAccess(
+        $usersWithAccess = $this->User->getUsersWithAccess(
             $owners = array(
-                $event[0]['Event']['orgc_id'],
-                $event[0]['Event']['org_id']
+                $event['Event']['orgc_id'],
+                $event['Event']['org_id']
             ),
-            $event[0]['Event']['distribution'],
-            $event[0]['Event']['sharing_group_id'],
+            $event['Event']['distribution'],
+            $event['Event']['sharing_group_id'],
             $userConditions
         );
         if (Configure::read('MISP.extended_alert_subject')) {
-            $subject = preg_replace("/\r|\n/", "", $event[0]['Event']['info']);
+            $subject = preg_replace("/\r|\n/", "", $event['Event']['info']);
             if (strlen($subject) > 58) {
                 $subject = substr($subject, 0, 55) . '... - ';
             } else {
@@ -3027,8 +3038,8 @@ class Event extends AppModel
         } else {
             $subject = '';
         }
-        $subjMarkingString = $this->getEmailSubjectMarkForEvent($event[0]);
-        $threatLevel = $event[0]['ThreatLevel']['name'] . " - ";
+        $subjMarkingString = $this->getEmailSubjectMarkForEvent($event);
+        $threatLevel = $event['ThreatLevel']['name'] . " - ";
         if (Configure::read('MISP.threatlevel_in_email_subject') === false) {
             $threatLevel = '';
         }
@@ -3036,26 +3047,27 @@ class Event extends AppModel
 
         // Initialise the Job class if we have a background process ID
         // This will keep updating the process's progress bar
-        if ($processId) {
+        if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
         }
 
-        $userCount = count($users);
+        $userCount = count($usersWithAccess);
         $this->UserSetting = ClassRegistry::init('UserSetting');
-        foreach ($users as $k => $user) {
-            if ($this->UserSetting->checkPublishFilter($user, $event[0])) {
-                $body = $this->__buildAlertEmailBody($event[0], $user, $oldpublish);
-                $bodyNoEnc = "A new or modified event was just published on " . $this->__getAnnounceBaseurl() . "/events/view/" . $event[0]['Event']['id'];
+        foreach ($usersWithAccess as $k => $user) {
+            if ($this->UserSetting->checkPublishFilter($user, $event)) {
+                // Fetch event for exact user to respect ACLs
+                $eventForUser = $this->fetchEvent($user, ['eventid' => $id, 'includeAllTags' => true, 'includeEventCorrelations' => true])[0];
+                $body = $this->__buildAlertEmailBody($eventForUser, $user, $oldpublish);
+                $bodyNoEnc = "A new or modified event was just published on " . $this->__getAnnounceBaseurl() . "/events/view/" . $eventForUser['Event']['id'];
                 $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
             }
-            if ($processId) {
-                $this->Job->id = $processId;
-                $this->Job->saveField('progress', $k / $userCount * 100);
+            if ($jobId) {
+                $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
             }
         }
 
-        if ($processId) {
-            $this->Job->saveField('message', 'Mails sent.');
+        if ($jobId) {
+            $this->Job->saveStatus($jobId, true, __('Mails sent.'));
         }
         return true;
     }
@@ -3129,7 +3141,7 @@ class Event extends AppModel
         }
     }
 
-    private function __buildAlertEmailBody($event, $user, $oldpublish)
+    private function __buildAlertEmailBody(array $event, array $user, $oldpublish)
     {
         $owner = false;
         if ($user['org_id'] == $event['Event']['orgc_id'] || $user['org_id'] == $event['Event']['org_id'] || $user['Role']['perm_site_admin']) {
@@ -3195,10 +3207,11 @@ class Event extends AppModel
         return $body;
     }
 
-    public function sendContactEmail($id, $message, $creator_only, $user, $isSiteAdmin)
+    public function sendContactEmail($id, $message, $creator_only, array $user, $isSiteAdmin)
     {
-        // fetch the event
-        $event = $this->fetchEvent($user, [
+        // fetch the event as user that requested more information. So if creators will reply to that email, no data
+        // that requestor could not access would be leaked.
+        $event = $this->fetchEvent($this->User->rearrangeToAuthForm($user), [
             'eventid' => $id,
             'includeAllTags' => true,
             'includeEventCorrelations' => true,
@@ -3235,23 +3248,23 @@ class Event extends AppModel
                     'recursive' => -1
             ));
             if (!empty($temp)) {
-                $orgMembers = array(0 => $temp);
+                $orgMembers = array($temp);
             }
         }
         if (empty($orgMembers)) {
             return false;
         }
         $tplColorString = $this->getEmailSubjectMarkForEvent($event);
-        $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - " . strtoupper($tplColorString);
+        $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event $id - " . strtoupper($tplColorString);
         $result = true;
         foreach ($orgMembers as $reporter) {
-            list($bodyevent, $body) = $this->__buildContactEventEmailBody($user, $message, $event, $reporter, $id);
+            list($bodyevent, $body) = $this->__buildContactEventEmailBody($user, $message, $event);
             $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
         }
         return $result;
     }
 
-    private function __buildContactEventEmailBody(array $user, $message, array $event, array $targetUser, $id)
+    private function __buildContactEventEmailBody(array $user, $message, array $event)
     {
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";

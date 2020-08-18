@@ -717,7 +717,7 @@ class User extends AppModel
             'conditions' => $conditions,
             'recursive' => -1,
             'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id', 'disabled'),
-            'contain' => ['Role' => ['fields' => ['perm_site_admin']], 'Organisation' => ['fields' => ['id']]],
+            'contain' => ['Role' => ['fields' => ['perm_site_admin', 'perm_audit']], 'Organisation' => ['fields' => ['id']]],
         ));
         foreach ($users as $k => $user) {
             $user = $user['User'];

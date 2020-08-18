@@ -2,6 +2,11 @@
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 require_once 'AppShell.php';
+
+/**
+ * @property User $User
+ * @property Event $Event
+ */
 class EventShell extends AppShell
 {
     public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation');
@@ -135,7 +140,7 @@ class EventShell extends AppShell
         $job = $this->Job->read(null, $processId);
         $eventId = $this->args[2];
         $oldpublish = $this->args[3];
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->User->getUserById($userId);
         if (empty($user)) {
             die("Invalid user ID '$userId' provided.");
         }
@@ -156,11 +161,11 @@ class EventShell extends AppShell
         $isSiteAdmin = $this->args[4];
         $processId = $this->args[5];
         $this->Job->id = $processId;
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->User->getUserById($userId);
         if (empty($user)) {
             die("Invalid user ID '$userId' provided.");
         }
-        $result = $this->Event->sendContactEmail($id, $message, $all, array('User' => $user), $isSiteAdmin);
+        $result = $this->Event->sendContactEmail($id, $message, $all, $user, $isSiteAdmin);
         $this->Job->saveField('progress', '100');
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
         if ($result != true) $this->Job->saveField('message', 'Job done.');
