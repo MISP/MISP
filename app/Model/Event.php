@@ -6,6 +6,7 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 
 /**
+ * @property User $User
  * @property Attribute $Attribute
  * @property EventTag $EventTag
  */
@@ -3018,7 +3019,6 @@ class Event extends AppModel
             return true;
         }
         $userConditions = array('autoalert' => 1);
-        $this->User = ClassRegistry::init('User');
         $usersWithAccess = $this->User->getUsersWithAccess(
             $owners = array(
                 $event['Event']['orgc_id'],
@@ -3072,15 +3072,9 @@ class Event extends AppModel
         return true;
     }
 
-    private function __buildAlertEmailObject($user, &$body, &$bodyTempOther, $objects, $owner, $oldpublish)
+    private function __buildAlertEmailObject(&$body, &$bodyTempOther, array $objects, $oldpublish)
     {
         foreach ($objects as $object) {
-            if (!$owner && $object['distribution'] == 0) {
-                continue;
-            }
-            if ($object['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $object['sharing_group_id'])) {
-                continue;
-            }
             if (isset($oldpublish) && isset($object['timestamp']) && $object['timestamp'] > $oldpublish) {
                 $body .= '* ';
             } else {
@@ -3088,21 +3082,15 @@ class Event extends AppModel
             }
             $body .= $object['name'] . '/' . $object['meta-category'] . "\n";
             if (!empty($object['Attribute'])) {
-                $body .= $this->__buildAlertEmailAttribute($user, $body, $bodyTempOther, $object['Attribute'], $owner, $oldpublish, '    ');
+                $body .= $this->__buildAlertEmailAttribute($body, $bodyTempOther, $object['Attribute'], $oldpublish, '    ');
             }
         }
     }
 
-    private function __buildAlertEmailAttribute($user, &$body, &$bodyTempOther, $attributes, $owner, $oldpublish, $indent = '  ')
+    private function __buildAlertEmailAttribute(&$body, &$bodyTempOther, array $attributes, $oldpublish, $indent = '  ')
     {
         $appendlen = 20;
         foreach ($attributes as $attribute) {
-            if (!$owner && $attribute['distribution'] == 0) {
-                continue;
-            }
-            if ($attribute['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) {
-                continue;
-            }
             $ids = '';
             if ($attribute['to_ids']) {
                 $ids = ' (IDS)';
@@ -3143,10 +3131,6 @@ class Event extends AppModel
 
     private function __buildAlertEmailBody(array $event, array $user, $oldpublish)
     {
-        $owner = false;
-        if ($user['org_id'] == $event['Event']['orgc_id'] || $user['org_id'] == $event['Event']['org_id'] || $user['Role']['perm_site_admin']) {
-            $owner = true;
-        }
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
         $body .= '==============================================' . "\n";
@@ -3184,11 +3168,11 @@ class Event extends AppModel
         $bodyTempOther = "";
         if (!empty($event['Attribute'])) {
             $body .= 'Attributes (* indicates a new or modified attribute):' . "\n";
-            $this->__buildAlertEmailAttribute($user, $body, $bodyTempOther, $event['Attribute'], $owner, $oldpublish);
+            $this->__buildAlertEmailAttribute($body, $bodyTempOther, $event['Attribute'], $oldpublish);
         }
         if (!empty($event['Object'])) {
             $body .= 'Objects (* indicates a new or modified object):' . "\n";
-            $this->__buildAlertEmailObject($user, $body, $bodyTempOther, $event['Object'], $owner, $oldpublish);
+            $this->__buildAlertEmailObject($body, $bodyTempOther, $event['Object'], $oldpublish);
         }
         if (!empty($bodyTempOther)) {
             $body .= "\n";
@@ -3207,7 +3191,15 @@ class Event extends AppModel
         return $body;
     }
 
-    public function sendContactEmail($id, $message, $creator_only, array $user, $isSiteAdmin)
+    /**
+     * @param int $id Event ID
+     * @param string $message Message that user want to send to event creator
+     * @param bool $creator_only Should be contacted just event creator or all user from org owning given event?
+     * @param array $user User that wanna know more
+     * @return bool True if all e-mails was send correctly.
+     * @throws Exception
+     */
+    public function sendContactEmail($id, $message, $creator_only, array $user)
     {
         // fetch the event as user that requested more information. So if creators will reply to that email, no data
         // that requestor could not access would be leaked.
@@ -3221,7 +3213,6 @@ class Event extends AppModel
         }
         $event = $event[0];
 
-        $this->User = ClassRegistry::init('User');
         if (!$creator_only) {
             // Insert extra field here: alertOrg or something, then foreach all the org members
             // limit this array to users with contactalerts turned on!
@@ -4457,7 +4448,7 @@ class Event extends AppModel
 
 
     // Sends out an email to all people within the same org with the request to be contacted about a specific event.
-    public function sendContactEmailRouter($id, $message, $creator_only, $user, $isSiteAdmin, $JobId = false)
+    public function sendContactEmailRouter($id, $message, $creator_only, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
@@ -4476,13 +4467,13 @@ class Event extends AppModel
             $process_id = CakeResque::enqueue(
                     'email',
                     'EventShell',
-                    array('contactemail', $id, $message, $creator_only, $user['id'], $isSiteAdmin, $jobId),
+                    array('contactemail', $id, $message, $creator_only, $user['id'], $jobId),
                     true
             );
             $job->saveField('process_id', $process_id);
             return true;
         } else {
-            return $this->sendContactEmail($id, $message, $creator_only, array('User' => $user), $isSiteAdmin);
+            return $this->sendContactEmail($id, $message, $creator_only, array('User' => $user));
         }
     }
 
