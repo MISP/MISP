@@ -37,7 +37,7 @@ class AppModel extends Model
 
     public $start = 0;
 
-    public $simpleCache = [];
+    public $assetCache = [];
 
     public $inserted_ids = array();
 

@@ -57,8 +57,6 @@ class Event extends AppModel
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 
-    private $__assetCache = array();
-
     public $export_types = array(
             'json' => array(
                     'extension' => '.json',
@@ -2090,7 +2088,6 @@ class Event extends AppModel
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
                     'AttributeTag' => array(
-                        'Tag' => array('conditions' => $tagConditions, 'order' => false),
                         'order' => false
                     ),
                     'order' => false
@@ -2111,7 +2108,6 @@ class Event extends AppModel
                     'order' => false
                 ),
                 'EventTag' => array(
-                    'Tag' => array('conditions' => $tagConditions, 'order' => false),
                     'order' => false
                  )
             )
@@ -5618,15 +5614,15 @@ class Event extends AppModel
 
     public function cacheSgids($user, $useCache = false)
     {
-        if ($useCache && isset($this->__assetCache['sgids'])) {
-            return $this->__assetCache['sgids'];
+        if ($useCache && isset($this->assetCache['sgids'])) {
+            return $this->assetCache['sgids'];
         } else {
             $sgids = $this->SharingGroup->fetchAllAuthorised($user);
             if (empty($sgids)) {
                 $sgids = array(-1);
             }
             if ($useCache) {
-                $this->__assetCache['sgids'] = $sgids;
+                $this->assetCache['sgids'] = $sgids;
             }
             return $sgids;
         }
@@ -5634,8 +5630,8 @@ class Event extends AppModel
 
     private function __cacheSharingGroupData($user, $useCache = false)
     {
-        if ($useCache && isset($this->__assetCache['sharingGroupData'])) {
-            return $this->__assetCache['sharingGroupData'];
+        if ($useCache && isset($this->assetCache['sharingGroupData'])) {
+            return $this->assetCache['sharingGroupData'];
         } else {
             $sharingGroupDataTemp = $this->SharingGroup->fetchAllAuthorised($user, 'simplified');
             $sharingGroupData = array();
@@ -5661,7 +5657,7 @@ class Event extends AppModel
                 $sharingGroupData[$v['SharingGroup']['id']] = array('SharingGroup' => $v['SharingGroup']);
             }
             if ($useCache) {
-                $this->__assetCache['sharingGroupData'] = $sharingGroupData;
+                $this->assetCache['sharingGroupData'] = $sharingGroupData;
             }
             return $sharingGroupData;
         }
@@ -5669,8 +5665,8 @@ class Event extends AppModel
 
     private function __cachedelegatedEventIDs($user, $useCache = false)
     {
-        if ($useCache && isset($this->__assetCache['delegatedEventIDs'])) {
-            return $this->__assetCache['delegatedEventIDs'];
+        if ($useCache && isset($this->assetCache['delegatedEventIDs'])) {
+            return $this->assetCache['delegatedEventIDs'];
         } else {
             $this->EventDelegation = ClassRegistry::init('EventDelegation');
             $delegatedEventIDs = $this->EventDelegation->find('list', array(
@@ -5678,7 +5674,7 @@ class Event extends AppModel
                 'fields' => array('event_id')
             ));
             if ($useCache) {
-                $this->__assetCache['delegationEventIDs'] = $delegatedEventIDs;
+                $this->assetCache['delegationEventIDs'] = $delegatedEventIDs;
             }
             return $delegatedEventIDs;
         }
@@ -5686,8 +5682,8 @@ class Event extends AppModel
 
     private function __generateCachedTagFilters($tagRules, $useCache = false)
     {
-        if ($useCache && isset($this->__assetCache['tagFilters'])) {
-            return $this->__assetCache['tagFilters'];
+        if ($useCache && isset($this->assetCache['tagFilters'])) {
+            return $this->assetCache['tagFilters'];
         } else {
             $filters = array();
             $tag = ClassRegistry::init('Tag');
@@ -5704,15 +5700,10 @@ class Event extends AppModel
             }
             $filters[] = $temp;
             if ($useCache) {
-                $this->__assetCache['tagFilters'] = $filters;
+                $this->assetCache['tagFilters'] = $filters;
             }
             return $filters;
         }
-    }
-
-    private function __destroyCaches()
-    {
-        $this->__assetCache = array();
     }
 
     public function unpublishEvent($id, $proposalLock = false)
@@ -6616,8 +6607,39 @@ class Event extends AppModel
         return array($job, $randomFileName, $tempFile);
     }
 
+    private function __cacheTag($tag_id, $tagConditions)
+    {
+        if (empty($this->assetCache['tags'][$tag_id])) {
+            $this->assetCache['tags'][$tag_id] = $this->EventTag->Tag->find('first', [
+                'recursive' => -1,
+                'conditions' => array_merge($tagConditions, ['id' => $tag_id])
+            ]);
+        }
+        return $this->assetCache['tags'][$tag_id];
+    }
+
     private function __attachTags($user, &$event, $tagConditions)
     {
+        if (!empty($event['EventTag'])) {
+            foreach ($event['EventTag'] as $etk => $eventTag) {
+                $tag = $this->__cacheTag($eventTag['tag_id'], $tagConditions);
+                if (!empty($tag)) {
+                    $event['EventTag'][$etk]['Tag'] = $tag['Tag'];
+                }
+            }
+        }
+        if (!empty($event['Attribute'])) {
+            foreach ($event['Attribute'] as $ak => $attribute) {
+                if (!empty($attribute['AttributeTag'])) {
+                    foreach ($attribute['AttributeTag'] as $atk => $attributeTag) {
+                        $tag = $this->__cacheTag($attributeTag['tag_id'], $tagConditions);
+                        if (!empty($tag)) {
+                            $event['Attribute'][$ak]['AttributeTag'][$atk]['Tag'] = $tag['Tag'];
+                        }
+                    }
+                }
+            }
+        }
         return true;
     }
 
