@@ -32,7 +32,7 @@
 <script type="text/javascript">
 $(document).ready(function () {
     <?php
-        $uri = "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
+        $uri = $baseurl . "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
         if (isset($passedArgsArray)) {
             $uri .= '/searchall:' . $passedArgsArray['all'];
         }

@@ -139,7 +139,7 @@
                 array(
                     'name' => __('Monitored'),
                     'element' => 'toggle',
-                    'url' => '/admin/users/monitor',
+                    'url' => $baseurl . '/admin/users/monitor',
                     'url_params_data_paths' => array(
                         'User.id'
                     ),
@@ -186,14 +186,14 @@
                     )
                 ),
                 array(
-                    'url' => '/admin/users/edit',
+                    'url' => $baseurl . '/admin/users/edit',
                     'url_params_data_paths' => array(
                         'User.id'
                     ),
                     'icon' => 'edit'
                 ),
                 array(
-                    'url' => '/admin/users/delete',
+                    'url' => $baseurl . '/admin/users/delete',
                     'url_params_data_paths' => array(
                         'User.id'
                     ),
@@ -202,7 +202,7 @@
                     'icon' => 'trash'
                 ),
                 array(
-                    'url' => '/admin/users/view',
+                    'url' => $baseurl . '/admin/users/view',
                     'url_params_data_paths' => array(
                         'User.id'
                     ),

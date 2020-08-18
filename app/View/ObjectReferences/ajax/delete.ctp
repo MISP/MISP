@@ -1,6 +1,6 @@
 <div class="confirmation">
 <?php
-  $url = '/object_references/delete/' . $id;
+  $url = $baseurl . '/object_references/delete/' . $id;
   if ($hard) {
     $url .= '/true';
   }
