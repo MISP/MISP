@@ -250,7 +250,7 @@
         }
         $table_data[] = array(
             'key' => __('Sightings'),
-            'element' => $baseurl . '/Events/View/eventSightingValue',
+            'element' => '/Events/View/eventSightingValue',
             'element_params' => array(
                 'sightingPopover' => $sightingPopover,
                 'event' => $event,
@@ -342,7 +342,7 @@
                             echo '<ul>';
                             if ($taxonomy['Taxonomy']['exclusive']) {
                                 echo sprintf(
-                                    '<li>%s</li>', 
+                                    '<li>%s</li>',
                                     sprintf(
                                         ('%s is an exclusive taxonomy. Only one Tag of this taxonomy is allowed on an element.'),
                                         sprintf('<strong>%s</strong>', h($taxonomy['Taxonomy']['namespace']))
@@ -351,7 +351,7 @@
                             } else {
                                 foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
                                     echo sprintf(
-                                        '<li>%s</li>', 
+                                        '<li>%s</li>',
                                         sprintf(
                                             ('%s is an exclusive taxonomy predicate. Only one Tag of this predicate is allowed on an element'),
                                             sprintf('<strong>%s</strong>', h($predicate['value']))
