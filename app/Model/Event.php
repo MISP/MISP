@@ -3291,7 +3291,7 @@ class Event extends AppModel
             $body .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
         }
         $bodyevent .= 'Risk        : ' . $event['ThreatLevel']['name'] . "\n";
-        $bodyevent .= 'Analysis    : ' . $event['Event']['analysis'] . "\n";
+        $bodyevent .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
 
         foreach ($event['RelatedEvent'] as $relatedEvent) {
             $bodyevent .= 'Related to  : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
@@ -3299,19 +3299,21 @@ class Event extends AppModel
 
         $bodyevent .= 'Info  : ' . "\n";
         $bodyevent .= $event['Event']['info'] . "\n";
-        $bodyevent .= "\n";
-        $bodyevent .= 'Attributes  :' . "\n";
+
         $bodyTempOther = "";
-        foreach ($event['Attribute'] as $attribute) {
-            $line = '- ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . "\n";
-            if ('other' == $attribute['type']) { // append the 'other' attribute types to the bottom.
-                $bodyTempOther .= $line;
-            } else {
-                $bodyevent .= $line;
-            }
+        if (!empty($event['Attribute'])) {
+            $bodyevent .= 'Attributes:' . "\n";
+            $this->__buildAlertEmailAttribute($bodyevent, $bodyTempOther, $event['Attribute'], null);
         }
-        $bodyevent .= "\n";
-        $bodyevent .= $bodyTempOther;   // append the 'other' attribute types to the bottom.
+        if (!empty($event['Object'])) {
+            $bodyevent .= 'Objects:' . "\n";
+            $this->__buildAlertEmailObject($bodyevent, $bodyTempOther, $event['Object'], null);
+        }
+        if (!empty($bodyTempOther)) {
+            $bodyevent .= "\n";
+        }
+        $bodyevent .= $bodyTempOther;    // append the 'other' attribute types to the bottom.
+
         return array($bodyevent, $body);
     }
 
