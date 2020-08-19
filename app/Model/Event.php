@@ -3058,7 +3058,10 @@ class Event extends AppModel
                 // Fetch event for exact user to respect ACLs
                 $eventForUser = $this->fetchEvent($user, ['eventid' => $id, 'includeAllTags' => true, 'includeEventCorrelations' => true])[0];
                 $body = $this->__buildAlertEmailBody($eventForUser, $user, $oldpublish);
-                $bodyNoEnc = "A new or modified event was just published on " . $this->__getAnnounceBaseurl() . "/events/view/" . $eventForUser['Event']['id'];
+
+                $eventUrl = $this->__getAnnounceBaseurl() . "/events/view/" . $eventForUser['Event']['id'];
+                $bodyNoEnc = __("A new or modified event was just published on %s", $eventUrl) . "\n\n";
+                $bodyNoEnc .= "If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via " . $this->__getAnnounceBaseurl() . '/users/edit';
                 $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
             }
             if ($jobId) {
