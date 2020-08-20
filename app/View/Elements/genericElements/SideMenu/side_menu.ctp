@@ -679,6 +679,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             ));
                         }
                     }
+                    if ($menuItem === 'id_translator') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'text' => __('Event ID translator'),
+                            'url' => '/servers/id_translator',
+                            'element_id' => 'id_translator'
+                        ));
+                    }
                     break;
 
                 case 'admin':

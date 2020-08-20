@@ -397,6 +397,7 @@ class ACLComponent extends Component
                     'getSubmoduleQuickUpdateForm' => array(),
                     'getWorkers' => array(),
                     'getVersion' => array('*'),
+                    'idTranslator' => array('*'),
                     'import' => array(),
                     'index' => array(),
                     'ondemandAction' => array(),

@@ -275,6 +275,11 @@
                         'text' => __('List Communities'),
                         'url' => '/communities/index',
                         'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('Event ID translator'),
+                        'url' => '/servers/idTranslator',
+                        'requirement' => ($isSiteAdmin || $hostOrgUser)
                     )
                 )
             ),
