@@ -120,7 +120,6 @@
 
     // - Add last modified timestamp & time since last edit
     // - Add Picker for elements [correlation/eventGraph picture/tags/galaxyMatrix]
-    // - Add popover for MISP Element
     // - Add support of picture (attachment) in the markdown
 ?>
 <script>
@@ -138,9 +137,10 @@
     var $editor, $viewer, $raw
     var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
-    var dotTemplateHintAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
-    var dotTemplateHintObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
-    var dotTemplateHintInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
+    var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
+    var dotTemplateAttributePicture = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer green\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
+    var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
+    var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 
     var contentChanged = false
     var defaultMode = 'viewer'
@@ -219,6 +219,7 @@
         md.renderer.rules.paragraph_open = injectLineNumbers;
         md.renderer.rules.heading_open = injectLineNumbers;
         md.renderer.rules.MISPElement = MISPElementRenderer;
+        md.renderer.rules.MISPPictureElement = MISPPictureElementRenderer;
         md.inline.ruler.push('MISP_element_rule', MISPElementRule);
     }
 
@@ -238,6 +239,7 @@
                 "Ctrl-Space": "autocomplete",
                 "Ctrl-B": function() { replacementAction('bold') },
                 "Ctrl-I": function() { replacementAction('italic') },
+                "Ctrl-H": function() { replacementAction('heading') },
                 "Ctrl-M": function() { replacementAction('element') },
             },
             hintOptions: {
@@ -341,14 +343,27 @@
     }
 
     function MISPElementRule(state, startLine, endLine, silent) {
-        var pos, start, res, elementID, code, content, token, tokens, attrs, scope
+        var pos, start, labelStart, labelEnd, res, elementID, code, content, token, tokens, attrs, scope
         var oldPos = state.pos,
             max = state.posMax
+        
         if (state.src.charCodeAt(state.pos) !== 0x40/* @ */) { return false; }
-        if (state.src.charCodeAt(state.pos + 1) !== 0x5B/* [ */) { return false; }
+        if (state.src.charCodeAt(state.pos + 1) === 0x21/* ! */) {
+            if (state.src.charCodeAt(state.pos + 2) !== 0x5B/* [ */) { return false;}
+        } else {
+            if (state.src.charCodeAt(state.pos + 1) !== 0x5B/* [ */) { return false; }
+        }
 
-        var labelStart = state.pos + 2;
-        var labelEnd = state.md.helpers.parseLinkLabel(state, state.pos + 1, false);
+        var isPicture = state.src.charCodeAt(state.pos + 1) === 0x21/* ! */
+
+        if (isPicture) {
+            labelStart = state.pos + 3;
+            labelEnd = state.md.helpers.parseLinkLabel(state, state.pos + 2, false);
+        } else {
+            labelStart = state.pos + 2;
+            labelEnd = state.md.helpers.parseLinkLabel(state, state.pos + 1, false);
+        }
+
         // parser failed to find ']', so it's not a valid link
         if (labelEnd < 0) { return false; }
         scope = state.src.slice(labelStart, labelEnd)
@@ -377,10 +392,14 @@
         // so all that's left to do is to call tokenizer.
         content = {
             scope: scope,
-            elementID: elementID
+            elementID: elementID,
         }
 
-        token          = state.push('MISPElement', 'div', 0);
+        if (isPicture) {
+            token      = state.push('MISPPictureElement', 'div', 0);
+        } else {
+            token      = state.push('MISPElement', 'div', 0);
+        }
         token.children = tokens;
         token.content  = content;
 
@@ -398,7 +417,18 @@
             return renderInvalidMISPElement(scope, elementID);
         }
         return renderMISPElement(scope, elementID)
-    };
+    }
+
+    function MISPPictureElementRenderer(tokens, idx, options, env, slf) {
+        var allowedScope = ['attribute']
+        var token = tokens[idx];
+        var scope = token.content.scope
+        var elementID = token.content.elementID
+        if (allowedScope.indexOf(scope) == -1) {
+            return renderInvalidMISPElement(scope, elementID);
+        }
+        return renderMISPPictureElement(scope, elementID)
+    }
 
     function renderMISPElement(scope, elementID) {
         var templateVariables
@@ -411,7 +441,7 @@
                     type: attribute.type,
                     value: attribute.value
                 })
-                return dotTemplateHintAttribute(templateVariables);
+                return dotTemplateAttribute(templateVariables);
             }
         } else if (scope == 'object') {
             var mispObject = proxyMISPElements[scope][elementID]
@@ -422,8 +452,22 @@
                     type: mispObject.name,
                     value: mispObject.Attribute.length
                 })
-                return dotTemplateHintObject(templateVariables);
+                return dotTemplateObject(templateVariables);
             }
+        }
+        return renderInvalidMISPElement(scope, elementID)
+    }
+
+    function renderMISPPictureElement(scope, elementID) {
+        var attribute = proxyMISPElements[scope][elementID]
+        if (attribute !== undefined) {
+            var templateVariables = sanitizeObject({
+                scope: 'attribute',
+                elementid: elementID,
+                type: attribute.type,
+                value: attribute.value
+            })
+            return dotTemplateAttributePicture(templateVariables);
         }
         return renderInvalidMISPElement(scope, elementID)
     }
@@ -433,7 +477,7 @@
             scope: '<?= __('invalid scope or id') ?>',
             id: elementID
         })
-        return dotTemplateHintInvalid(templateVariables);
+        return dotTemplateInvalid(templateVariables);
     }
 
     function sanitizeObject(obj) {
