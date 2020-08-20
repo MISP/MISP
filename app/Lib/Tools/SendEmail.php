@@ -366,6 +366,10 @@ class SendEmail
             throw new SendEmailException('Emailing is currently disabled on this instance.');
         }
 
+        if (!isset($user['User'])) {
+            throw new InvalidArgumentException("Invalid user model provided.");
+        }
+
         // Check if the e-mail can be encrypted
         $canEncryptGpg = isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']);
         $canEncryptSmime = isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
