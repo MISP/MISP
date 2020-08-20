@@ -138,8 +138,8 @@
     var $editor, $viewer, $raw
     var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
-    var dotTemplateHintAttribute = doT.template("<span class=\"misp-element-wrapper attribute\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
-    var dotTemplateHintObject = doT.template("<span class=\"misp-element-wrapper object\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
+    var dotTemplateHintAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
+    var dotTemplateHintObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
     var dotTemplateHintInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 
     var contentChanged = false
@@ -604,13 +604,13 @@
 
     function registerListener() {
         $('.misp-element-wrapper').filter('.attribute').popover({
-            trigger: 'hover',
+            trigger: 'click',
             title: getTitleFromMISPElementDOM,
             html: true,
             content: getContentFromMISPElementDOM
         })
         $('.misp-element-wrapper').filter('.object').popover({
-            trigger: 'hover',
+            trigger: 'click',
             title: getTitleFromMISPElementDOM,
             html: true,
             content: getContentFromMISPElementDOM
@@ -632,10 +632,20 @@
 
     function getTitleFromMISPElementDOM() {
         var data = getElementFromDom(this)
+        var title = '<?= __('invalid scope or id') ?>'
+        var dismissButton = ''
         if (data !== false) {
-            return data.scope.charAt(0).toUpperCase() + data.scope.slice(1) + ' ' + data.elementID
+            dismissButton = '<button type="button" class="close" style="margin-left: 5px;" data-scope="' + data.scope + '" data-elementid="' + data.elementID + '" onclick="closeThePopover(this)">×</button>';
+            title = data.scope.charAt(0).toUpperCase() + data.scope.slice(1) + ' ' + data.elementID
         }
-        return '<?= __('invalid scope or id') ?>'
+        return title + dismissButton
+    }
+
+    function closeThePopover(closeButton) {
+        var scope = $(closeButton).data('scope')
+        var elementID = $(closeButton).data('elementid')
+        var $MISPElement = $('[data-scope="' + scope + '"][data-elementid="' + elementID + '"]')
+        $MISPElement.popover('hide');
     }
 
     function constructAttributeRow(attribute)
