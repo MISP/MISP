@@ -1,6 +1,6 @@
 <div class="attribute_replace">
 <?php
-echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attributeReplace/' . $event_id));
+echo $this->Form->create('Attribute', array('id', 'url' => $baseurl . '/attributes/attributeReplace/' . $event_id));
 ?>
     <fieldset>
         <legend><?php echo __('Attribute Replace Tool'); ?></legend>

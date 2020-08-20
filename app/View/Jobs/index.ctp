@@ -40,7 +40,7 @@
         function queueInterval(k, id) {
             intervalArray[k] = setInterval(function() {
                 if (tabIsActive) {
-                    $.getJSON('/jobs/getGenerateCorrelationProgress/' + id, function(data) {
+                    $.getJSON('<?php echo $baseurl; ?>/jobs/getGenerateCorrelationProgress/' + id, function(data) {
                         var x = document.getElementById("bar" + id);
                         x.style.width = data+"%";
                         if (data > 0 && data < 100) {
@@ -61,25 +61,25 @@
                 array(
                     'children' => array(
                         array(
-                            'url' => '/jobs/index',
+                            'url' => $baseurl . '/jobs/index',
                             'text' => __('All'),
                             'title' => __('Show all queues'),
                             'active' => !$queue
                         ),
                         array(
-                            'url' => '/jobs/index/default',
+                            'url' => $baseurl . '/jobs/index/default',
                             'text' => __('Default'),
                             'title' => __('Show default queue'),
                             'active' => $queue === 'default'
                         ),
                         array(
-                            'url' => '/jobs/index/email',
+                            'url' => $baseurl . '/jobs/index/email',
                             'text' => __('Email'),
                             'titles' => __('Show email queue'),
                             'active' => $queue === 'email'
                         ),
                         array(
-                            'url' => '/jobs/index/cache',
+                            'url' => $baseurl . '/jobs/index/cache',
                             'text' => __('Cache'),
                             'title' => __('Show cache queue'),
                             'active' => $queue === 'cache'
@@ -147,7 +147,7 @@
                 echo h($item['Job']['job_status']);
                 if ($item['Job']['failed']):
             ?>
-                <div class="fa fa-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
+                <div class="fa fa-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="<?php echo $basurl; ?>/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
             <?php
                 endif;
             ?>

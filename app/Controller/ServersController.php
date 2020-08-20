@@ -1,6 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
+App::uses('AttachmentTool', 'Tools');
 
 class ServersController extends AppController
 {
@@ -1022,9 +1023,9 @@ class ServersController extends AppController
                 $php_ini = php_ini_loaded_file();
                 $this->set('php_ini', $php_ini);
 
-                $malwareTool = new MalwareTool();
+                $attachmentTool = new AttachmentTool();
                 try {
-                    $advanced_attachments = $malwareTool->checkAdvancedExtractionStatus($this->Server->getPythonVersion());
+                    $advanced_attachments = $attachmentTool->checkAdvancedExtractionStatus($this->Server->getPythonVersion());
                 } catch (Exception $e) {
                     $this->log($e->getMessage(), LOG_NOTICE);
                     $advanced_attachments = false;
@@ -1826,7 +1827,7 @@ class ServersController extends AppController
             'recommendBackup' => false,
             'exitOnError' => false,
             'requirements' => '',
-            'url' => '/'
+            'url' => $this->baseurl . '/'
         );
         foreach($actions as $id => $action) {
             foreach($default_fields as $field => $value) {

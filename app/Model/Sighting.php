@@ -825,32 +825,34 @@ class Sighting extends AppModel
     {
         $HttpSocket = $this->setupHttpSocket($server);
         $this->Server = ClassRegistry::init('Server');
-        $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, false, 'sightings');
+        try {
+            $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, 'sightings');
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            return 0;
+        }
         $saved = 0;
         // now process the $eventIds to pull each of the events sequentially
-        if (!empty($eventIds)) {
-            // download each event and save sightings
-            foreach ($eventIds as $k => $eventId) {
-                try {
-                    $event = $this->Event->downloadEventFromServer($eventId, $server);
-                } catch (Exception $e) {
-                    $this->logException('Failed downloading the event ' . $eventId, $e);
-                    continue;
-                }
-
-                $sightings = array();
-                if(!empty($event) && !empty($event['Event']['Attribute'])) {
-                    foreach($event['Event']['Attribute'] as $attribute) {
-                        if(!empty($attribute['Sighting'])) {
-                            $sightings = array_merge($sightings, $attribute['Sighting']);
-                        }
+        // download each event and save sightings
+        foreach ($eventIds as $k => $eventId) {
+            try {
+                $event = $this->Event->downloadEventFromServer($eventId, $server);
+            } catch (Exception $e) {
+                $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
+                continue;
+            }
+            $sightings = array();
+            if (!empty($event) && !empty($event['Event']['Attribute'])) {
+                foreach ($event['Event']['Attribute'] as $attribute) {
+                    if (!empty($attribute['Sighting'])) {
+                        $sightings = array_merge($sightings, $attribute['Sighting']);
                     }
                 }
-                if(!empty($event) && !empty($sightings)) {
-                    $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
-                    if (is_numeric($result)) {
-                        $saved += $result;
-                    }
+            }
+            if (!empty($event) && !empty($sightings)) {
+                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+                if (is_numeric($result)) {
+                    $saved += $result;
                 }
             }
         }

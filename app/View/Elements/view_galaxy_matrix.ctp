@@ -95,7 +95,8 @@ foreach($tabs as $tabName => $column):
 <div class="hidden">
     <?php
         $url = sprintf(
-            '/galaxies/attachMultipleClusters/%s/%s/local:%s',
+            '%s/galaxies/attachMultipleClusters/%s/%s/local:%s',
+            $baseurl,
             empty($target_id) ? $eventId : $target_id,
             empty($target_type) ? 'event' : $target_type,
             empty($local) ? '0' : '1'

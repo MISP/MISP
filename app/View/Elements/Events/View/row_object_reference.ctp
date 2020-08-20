@@ -25,7 +25,7 @@
 <?php
   if ($mayModify):
 ?>
-    <span class="fa fa-plus-square useCursorPointer" title="<?php echo __('Add reference');?>" role="button" tabindex="0" aria-label="<?php echo __('Add reference');?>" onClick="genericPopup('<?php echo '/objectReferences/add/' . h($object['id']);?>', '#popover_form');"></span>
+    <span class="fa fa-plus-square useCursorPointer" title="<?php echo __('Add reference');?>" role="button" tabindex="0" aria-label="<?php echo __('Add reference');?>" onClick="genericPopup('<?php echo $baseurl . '/objectReferences/add/' . h($object['id']);?>', '#popover_form');"></span>
 <?php
   endif;
 ?>

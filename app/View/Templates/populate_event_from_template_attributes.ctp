@@ -22,7 +22,7 @@ foreach ($attributes as $item):?>
 endforeach;?>
     </table>
     <div style="float:left;">
-        <?php echo $this->Form->create('Template', array('url' => '/templates/submitEventPopulation/' . $template_id . '/' . $event_id));?>
+        <?php echo $this->Form->create('Template', array('url' => $baseurl . '/templates/submitEventPopulation/' . $template_id . '/' . $event_id));?>
             <fieldset>
                 <?php
                     echo $this->Form->input('attributes', array(

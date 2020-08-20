@@ -648,7 +648,7 @@ installDepsPhp70 () {
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring php-zip \
   php-redis php-gnupg \
   php-gd
 

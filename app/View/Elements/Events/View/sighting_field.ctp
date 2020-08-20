@@ -1,7 +1,7 @@
 <td class="shortish">
   <span id="sightingForm_<?php echo h($object['id']);?>">
   <?php
-      echo $this->Form->create('Sighting', array('id' => 'Sighting_' . $object['id'], 'url' => '/sightings/add/' . $object['id'], 'style' => 'display:none;'));
+      echo $this->Form->create('Sighting', array('id' => 'Sighting_' . $object['id'], 'url' => $baseurl . '/sightings/add/' . $object['id'], 'style' => 'display:none;'));
       echo $this->Form->input('type', array('label' => false, 'id' => 'Sighting_' . $object['id'] . '_type'));
       echo $this->Form->end();
   ?>

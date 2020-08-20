@@ -1,6 +1,6 @@
 <?php
     $url_params = $action == 'add' ? 'add/' . $event_id : 'edit/' . $eventGraph['id'];
-    echo $this->Form->create('EventGraph', array('url' => '/EventGraph/' . $url_params));
+    echo $this->Form->create('EventGraph', array('url' => $baseurl . '/EventGraph/' . $url_params));
 ?>
     <fieldset>
         <legend><?php echo $action == 'add' ? __('Add EventGraph') : __('Edit EventGraph'); ?></legend>

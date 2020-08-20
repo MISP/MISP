@@ -3,12 +3,13 @@
 		{
 			"key": "l",
 			"description": "Go to event list",
-			"action": "document.location.href = '/events/index'"
+			"action": "document.location.href = baseurl + '/events/index'"
 		},
 		{
 			"key": "e",
 			"description": "Go to add event page",
-			"action": "document.location.href = '/events/add'"
+			"action": "document.location.href = baseurl + '/events/add'"
 		}
 	]
 }
+
