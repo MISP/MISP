@@ -277,7 +277,6 @@ class AttributesController extends AppController
         }
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
-        $this->set('compositeTypes', $this->Attribute->getCompositeTypes());
         // combobox for categories
         $categories = array_keys($this->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
@@ -896,7 +895,6 @@ class AttributesController extends AppController
         }
         $this->set('categories', $categories);
         $this->set('categoryDefinitions', $categoryDefinitions);
-        $this->set('compositeTypes', $this->Attribute->getCompositeTypes());
         $this->set('action', $this->action);
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
@@ -1478,10 +1476,6 @@ class AttributesController extends AppController
 
     public function search($continue = false)
     {
-        $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-        $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-        $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        $this->set('shortDist', $this->Attribute->shortDist);
         if ($this->request->is('post') || !empty($this->request->params['named']['tags'])) {
             if (isset($this->request->data['Attribute'])) {
                 $this->request->data = $this->request->data['Attribute'];
@@ -1544,13 +1538,22 @@ class AttributesController extends AppController
                 $filters = json_decode($filters, true);
             }
         } else {
-            $types = array('' => array('ALL' => 'ALL'), 'types' => array());
-            $types['types'] = array_merge($types['types'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions)));
-            ksort($types['types']);
-            $this->set('types', $types);
+            $types = $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions));
+            ksort($types);
+            $this->set('types', array_merge(['ALL' => 'ALL'], $types));
             // combobox for categories
-            $categories['categories'] = array_merge(array('ALL' => 'ALL'), $this->_arrayToValuesIndexArray(array_keys($this->Attribute->categoryDefinitions)));
+            $categories = array_merge(['ALL' => 'ALL'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->categoryDefinitions)));
             $this->set('categories', $categories);
+
+            $categoryDefinition = $this->Attribute->categoryDefinitions;
+            $categoryDefinition['ALL'] = ['types' => array_keys($this->Attribute->typeDefinitions), 'formdesc' => ''];
+            foreach ($categoryDefinition as &$def) {
+                $def['types'] = array_merge(['ALL'], $def['types']);
+            }
+            $this->set('categoryDefinitions', $categoryDefinition);
+
+            $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+
             $this->Session->write('search_attributes_filters', null);
         }
         if (isset($filters)) {
@@ -1580,11 +1583,7 @@ class AttributesController extends AppController
             );
             $attributes = $this->paginate();
             if (!$this->_isRest()) {
-                $temp = $this->__searchUI($attributes);
-                $this->loadModel('Galaxy');
-                $this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
-                $attributes = $temp[0];
-                $sightingsData = $temp[1];
+                list($attributes, $sightingsData) = $this->__searchUI($attributes);
                 $this->set('sightingsData', $sightingsData);
             } else {
                 return $this->RestResponse->viewData($attributes, $this->response->type());
@@ -1611,6 +1610,8 @@ class AttributesController extends AppController
             $this->set('filters', $filters);
             $this->set('attributes', $attributes);
             $this->set('isSearch', 1);
+            $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+            $this->set('shortDist', $this->Attribute->shortDist);
             $this->render('index');
         }
         if (isset($attributeTags)) {
