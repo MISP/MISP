@@ -1398,7 +1398,7 @@ class Event extends AppModel
         $request = $this->setupSyncRequest($server);
         if ($metadataOnly) {
             $uri = $url . '/events/index';
-            $data['eventid'] = $eventId;
+            $data = ['eventid' => $eventId];
             $data = json_encode($data);
             $response = $HttpSocket->post($uri, $data, $request);
         } else {

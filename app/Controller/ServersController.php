@@ -1298,8 +1298,9 @@ class ServersController extends AppController
                     try {
                         $remote_event = $this->Event->downloadEventFromServer($this->request->data['Event']['uuid'], $remote_server, null, true);
                     } catch (Exception $e) {
-                        $this->Flash->error(__("Issue while contacting the remote server to retrieve event information"));
-                        $this->log($e->getMessage(), LOG_NOTICE);
+                        $error_msg = __("Issue while contacting the remote server to retrieve event information");
+                        $this->logException($error_msg, $e);
+                        $this->Flash->error($error_msg);
                         return;
                     }
 
@@ -1333,7 +1334,8 @@ class ServersController extends AppController
                     $remote_event = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $s, null, true);
                     $remote_event_id = $remote_event[0]['id'];
                 } catch (Exception $e) {
-                    $this->log($e->getMessage(), LOG_NOTICE);
+                    $this->logException("Couldn't download event from server", $e);
+                    $remote_event_id = null;
                 }
                 $remote_events[] = array(
                     "server_id" => $s['Server']['id'],
