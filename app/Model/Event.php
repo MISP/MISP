@@ -872,11 +872,12 @@ class Event extends AppModel
 
     public function getRelatedAttributes($user, $id = null, $sgids, $shadowAttribute = false, $scope = 'event')
     {
-        $context = $shadowAttribute ? 'ShadowAttribute' : 'Attribute';
-        $settings = array(
-            'Attribute' => array('model' => 'Attribute', 'correlationModel' => 'Correlation', 'parentIdField' => '1_attribute_id'),
-            'ShadowAttribute' => array('model' => 'ShadowAttribute', 'correlationModel' => 'ShadowAttributeCorrelation', 'parentIdField' => '1_shadow_attribute_id')
-        );
+        if ($shadowAttribute) {
+            $settings = array('model' => 'ShadowAttribute', 'correlationModel' => 'ShadowAttributeCorrelation', 'parentIdField' => '1_shadow_attribute_id');
+        } else {
+            $settings = array('model' => 'Attribute', 'correlationModel' => 'Correlation', 'parentIdField' => '1_attribute_id');
+        }
+
         if ($scope === 'event' && $id == null) {
             $id = $this->data['Event']['id'];
         } elseif ($scope === 'attribute' && $id == null) {
@@ -885,44 +886,44 @@ class Event extends AppModel
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
-        $this->{$settings[$context]['correlationModel']} = ClassRegistry::init($settings[$context]['correlationModel']);
+        $this->{$settings['correlationModel']} = ClassRegistry::init($settings['correlationModel']);
         if (!$user['Role']['perm_site_admin']) {
             $conditionsCorrelation = array(
                     'AND' => array(
-                            $settings[$context]['correlationModel'] . '.1_' . $scope . '_id' => $id,
+                            $settings['correlationModel'] . '.1_' . $scope . '_id' => $id,
                             array(
                                     'OR' => array(
-                                            $settings[$context]['correlationModel'] . '.org_id' => $user['org_id'],
+                                            $settings['correlationModel'] . '.org_id' => $user['org_id'],
                                             'AND' => array(
                                                     array(
                                                             'OR' => array(
                                                                     array(
                                                                             'AND' => array(
-                                                                                    $settings[$context]['correlationModel'] . '.distribution >' => 0,
-                                                                                    $settings[$context]['correlationModel'] . '.distribution <' => 4,
+                                                                                    $settings['correlationModel'] . '.distribution >' => 0,
+                                                                                    $settings['correlationModel'] . '.distribution <' => 4,
                                                                             ),
                                                                     ),
                                                                     array(
                                                                             'AND' => array(
-                                                                                    $settings[$context]['correlationModel'] . '.distribution' => 4,
-                                                                                    $settings[$context]['correlationModel'] . '.sharing_group_id' => $sgids
+                                                                                    $settings['correlationModel'] . '.distribution' => 4,
+                                                                                    $settings['correlationModel'] . '.sharing_group_id' => $sgids
                                                                             ),
                                                                     ),
                                                             ),
                                                     ),
                                                     array(
                                                             'OR' => array(
-                                                                    $settings[$context]['correlationModel'] . '.a_distribution' => 5,
+                                                                    $settings['correlationModel'] . '.a_distribution' => 5,
                                                                     array(
                                                                             'AND' => array(
-                                                                                    $settings[$context]['correlationModel'] . '.a_distribution >' => 0,
-                                                                                    $settings[$context]['correlationModel'] . '.a_distribution <' => 4,
+                                                                                    $settings['correlationModel'] . '.a_distribution >' => 0,
+                                                                                    $settings['correlationModel'] . '.a_distribution <' => 4,
                                                                             ),
                                                                     ),
                                                                     array(
                                                                             'AND' => array(
-                                                                                    $settings[$context]['correlationModel'] . '.a_distribution' => 4,
-                                                                                    $settings[$context]['correlationModel'] . '.a_sharing_group_id' => $sgids
+                                                                                    $settings['correlationModel'] . '.a_distribution' => 4,
+                                                                                    $settings['correlationModel'] . '.a_sharing_group_id' => $sgids
                                                                             ),
                                                                     ),
                                                             ),
@@ -934,18 +935,18 @@ class Event extends AppModel
                     )
             );
         } else {
-            $conditionsCorrelation = array($settings[$context]['correlationModel'] . '.1_' . $scope . '_id' => $id);
+            $conditionsCorrelation = array($settings['correlationModel'] . '.1_' . $scope . '_id' => $id);
         }
         $max_correlations = Configure::read('MISP.max_correlations_per_event');
         if (empty($max_correlations)) {
             $max_correlations = 5000;
         }
-        $correlations = $this->{$settings[$context]['correlationModel']}->find('all', array(
-                'fields' => $settings[$context]['correlationModel'] . '.*',
-                'conditions' => $conditionsCorrelation,
-                'recursive' => -1,
-                'order' => false,
-                'limit' => $max_correlations
+        $correlations = $this->{$settings['correlationModel']}->find('all', array(
+            'fields' => ['event_id', 'attribute_id', 'value', $settings['parentIdField']],
+            'conditions' => $conditionsCorrelation,
+            'recursive' => -1,
+            'order' => false,
+            'limit' => $max_correlations
         ));
         if (empty($correlations)) {
             return array();
@@ -953,7 +954,7 @@ class Event extends AppModel
 
         $eventIds = [];
         foreach ($correlations as $correlation) {
-            $eventIds[] = $correlation[$settings[$context]['correlationModel']]['event_id'];
+            $eventIds[] = $correlation[$settings['correlationModel']]['event_id'];
         }
 
         $conditions = $this->createEventConditions($user);
@@ -971,7 +972,7 @@ class Event extends AppModel
 
         $relatedAttributes = array();
         foreach ($correlations as $correlation) {
-            $correlation = $correlation[$settings[$context]['correlationModel']];
+            $correlation = $correlation[$settings['correlationModel']];
             // User don't have access to correlated attribute event, skip.
             if (!isset($eventInfos[$correlation['event_id']])) {
                 continue;
@@ -986,7 +987,7 @@ class Event extends AppModel
                 'info' => $eventInfo['info'],
                 'date' => $eventInfo['date'],
             );
-            $parentId = $correlation[$settings[$context]['parentIdField']];
+            $parentId = $correlation[$settings['parentIdField']];
             $relatedAttributes[$parentId][] = $current;
         }
         return $relatedAttributes;
