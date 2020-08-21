@@ -35,9 +35,10 @@ class Log extends AppModel
                     'edit',
                     'email',
                     'enable',
-                    'enrichment',
+		    'enrichment',
                     'error',
                     'export',
+                    'fetchEvent',
                     'file_upload',
                     'galaxy',
                     'include_formula',
@@ -185,6 +186,7 @@ class Log extends AppModel
      * @param string|array $change
      * @return array
      * @throws Exception
+     * @throws InvalidArgumentException
      */
     public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
     {

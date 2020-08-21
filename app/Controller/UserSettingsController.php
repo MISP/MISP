@@ -28,7 +28,6 @@ class UserSettingsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions = array_merge($this->Security->unlockedActions, array('setHomePage'));
     }
 
     public function index()
@@ -325,23 +324,27 @@ class UserSettingsController extends AppController
 
     public function setHomePage()
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('This endpoint only aaccepts POST requests.'));
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['UserSetting'])) {
+                $this->request->data = $this->request->data['UserSetting'];
+            }
+            if (!isset($this->request->data['path'])) {
+                $this->request->data = array('path' => $this->request->data);
+            }
+            if (empty($this->request->data['path'])) {
+                throw new InvalidArgumentException(__('No path POSTed.'));
+            }
+            $setting = array(
+                'UserSetting' => array(
+                    'user_id' => $this->Auth->user('id'),
+                    'setting' => 'homepage',
+                    'value' => json_encode(array('path' => $this->request->data['path']))
+                )
+            );
+            $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
+            return $this->RestResponse->saveSuccessResponse('UserSettings', 'setHomePage', false, 'json', 'Homepage set to ' . $this->request->data['path']);
+        } else {
+            $this->layout = false;
         }
-        if (empty($this->request->data['path'])) {
-            $this->request->data = array('path' => $this->request->data);
-        }
-        if (empty($this->request->data['path'])) {
-            throw new InvalidArgumentException(__('No path POSTed.'));
-        }
-        $setting = array(
-            'UserSetting' => array(
-                'user_id' => $this->Auth->user('id'),
-                'setting' => 'homepage',
-                'value' => json_encode(array('path' => $this->request->data['path']))
-            )
-        );
-        $result = $this->UserSetting->setSetting($this->Auth->user(), $setting);
-        return $this->RestResponse->saveSuccessResponse('UserSettings', 'setHomePage', false, $this->response->type(), 'Homepage set to ' . $this->request->data['path']);
     }
 }

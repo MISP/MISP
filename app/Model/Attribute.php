@@ -5,8 +5,12 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FinancialTool', 'Tools');
 App::uses('RandomTool', 'Tools');
-App::uses('MalwareTool', 'Tools');
+App::uses('AttachmentTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
+/**
+ * @property Event $Event
+ */
 class Attribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
@@ -32,12 +36,14 @@ class Attribute extends AppModel
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
             'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-            'distribution' => array('desc' => 'Describes who will have access to the event.')
+            'distribution' => array('desc' => 'Describes who will have access to the attribute.')
     );
 
     public $defaultFields = array(
         'id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'to_ids', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'comment', 'deleted', 'disable_correlation', 'first_seen', 'last_seen'
     );
+
+    public $editableFields = array('timestamp', 'category', 'value', 'value1', 'value2', 'to_ids', 'comment', 'distribution', 'sharing_group_id', 'deleted', 'disable_correlation', 'first_seen', 'last_seen');
 
     public $distributionDescriptions = array(
         0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
@@ -90,16 +96,16 @@ class Attribute extends AppModel
             'Payload delivery' => array(
                     'desc' => __('Information about how the malware is delivered'),
                     'formdesc' => __('Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
                     ),
             'Artifacts dropped' => array(
                     'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised')
                     ),
             'Payload installation' => array(
                     'desc' => __('Info on where the malware gets installed in the system'),
                     'formdesc' => __('Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
                     ),
             'Persistence mechanism' => array(
                     'desc' => __('Mechanisms used by the malware to start at boot'),
@@ -231,6 +237,7 @@ class Attribute extends AppModel
             'malware-type' => array('desc' => '', 'default_category' => 'Payload delivery', 'to_ids' => 0),
             'uri' => array('desc' => __('Uniform Resource Identifier'), 'default_category' => 'Network activity', 'to_ids' => 1),
             'authentihash' => array('desc' => __('Authenticode executable signature hash'), 'formdesc' => __("You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'vhash' => array('desc' => __('A VirusTotal checksum'), 'formdesc' => __("You are encouraged to use filename|vhash instead. A checksum from VirusTotal, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'ssdeep' => array('desc' => __('A checksum in ssdeep format'), 'formdesc' => __("You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'imphash' => array('desc' => __('Import hash - a hash created based on the imports in the sample.'), 'formdesc' => __("You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'pehash' => array('desc' => __('PEhash - a hash calculated based of certain pieces of a PE executable file'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -243,6 +250,7 @@ class Attribute extends AppModel
             'tlsh' => array('desc' => __('A checksum in the Trend Micro Locality Sensitive Hash format'), 'formdesc' => __("You are encouraged to use filename|tlsh instead. A checksum in the Trend Micro Locality Sensitive Hash format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cdhash' => array('desc' => __('An Apple Code Directory Hash, identifying a code-signed Mach-O executable file'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'filename|authentihash' => array('desc' => __('A checksum in md5 format'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'filename|vhash' => array('desc' => __('A filename and a VirusTotal hash separated by a |'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'filename|ssdeep' => array('desc' => __('A checksum in ssdeep format'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'filename|imphash' => array('desc' => __('Import hash - a hash created based on the imports in the sample.'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'filename|impfuzzy' => array('desc' => __('Import fuzzy hash - a fuzzy hash created based on the imports in the sample.'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -430,6 +438,7 @@ class Attribute extends AppModel
             'sha512/224' => 'Payload delivery',
             'sha512/256' => 'Payload delivery',
             'authentihash' => 'Payload delivery',
+            'vhash' => 'Payload delivery',
             'imphash' => 'Payload delivery',
             'impfuzzy'=> 'Payload delivery',
             'pehash' => 'Payload delivery',
@@ -469,7 +478,7 @@ class Attribute extends AppModel
     // whilst filenames and hashes are file related attribute types
     // This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
     public $typeGroupings = array(
-        'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'),
+        'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'),
         'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'bro', 'zeek',  'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256','ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'community-id'),
         'financial' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
     );
@@ -728,7 +737,7 @@ class Attribute extends AppModel
                         'perm_site_admin' => 1
                     )
                 );
-                $attribute['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attribute, $user, $this->id);
+                $attribute['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attribute, $user, $attribute);
                 if (empty($attribute['Object']['id'])) {
                     unset($attribute['Object']);
                 }
@@ -767,27 +776,7 @@ class Attribute extends AppModel
         // delete attachments from the disk
         $this->read(); // first read the attribute from the db
         if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
-            // only delete the file if it exists
-            $attachments_dir = Configure::read('MISP.attachments_dir');
-            if (empty($attachments_dir)) {
-                $attachments_dir = $this->getDefaultAttachments_dir();
-            }
-
-            // Special case - If using S3, we have to delete from there
-            if ($this->attachmentDirIsS3()) {
-                // We're working in S3
-                $s3 = $this->getS3Client();
-                $s3->delete($this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id']);
-            } else {
-                // Standard delete
-                $filepath = $attachments_dir . DS . $this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id'];
-                $file = new File($filepath);
-                if ($file->exists()) {
-                    if (!$file->delete()) {
-                        throw new InternalErrorException(__('Delete of file attachment failed. Please report to administrator.'));
-                    }
-                }
-            }
+            $this->loadAttachmentTool()->delete($this->data['Attribute']['event_id'], $this->data['Attribute']['id']);
         }
         // update correlation..
         $this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
@@ -822,6 +811,10 @@ class Attribute extends AppModel
                 ),
                 false
             );
+            if ($this->data['Attribute']['type'] === 'ssdeep') {
+                $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
+                $this->FuzzyCorrelateSsdeep->purge(null, $this->data['Attribute']['id']);
+            }
         }
     }
 
@@ -935,13 +928,15 @@ class Attribute extends AppModel
 
     public function validCategory($fields)
     {
-        $validCategories = array_keys($this->categoryDefinitions);
-        if (in_array($fields['category'], $validCategories)) {
-            return true;
-        }
-        return false;
+        return isset($this->categoryDefinitions[$fields['category']]);
     }
 
+    /**
+     * Check if the attribute already exists in the same event.
+     *
+     * @param array $fields
+     * @return bool
+     */
     public function valueIsUnique($fields)
     {
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
@@ -951,31 +946,28 @@ class Attribute extends AppModel
         if (!empty($this->data['Attribute']['object_relation'])) {
             return true;
         }
-        $value = $fields['value'];
-        if (strpos($value, '|')) {
-            $value = explode('|', $value);
-            $value = array(
-                'Attribute.value1' => $value[0],
-                'Attribute.value2' => $value[1]
-            );
-        } else {
-            $value = array(
-                'Attribute.value1' => $value,
-            );
-        }
-        $eventId = $this->data['Attribute']['event_id'];
-        $type = $this->data['Attribute']['type'];
-        $category = $this->data['Attribute']['category'];
 
-        // check if the attribute already exists in the same event
+        $eventId = $this->data['Attribute']['event_id'];
+        $category = $this->data['Attribute']['category'];
+        $type = $this->data['Attribute']['type'];
+
         $conditions = array(
             'Attribute.event_id' => $eventId,
             'Attribute.type' => $type,
             'Attribute.category' => $category,
             'Attribute.deleted' => 0,
-            'Attribute.object_id' => 0
+            'Attribute.object_id' => 0,
         );
-        $conditions = array_merge($conditions, $value);
+
+        $value = $fields['value'];
+        if (in_array($type, $this->getCompositeTypes())) {
+            $value = explode('|', $value);
+            $conditions['Attribute.value1'] = $value[0];
+            $conditions['Attribute.value2'] = $value[1];
+        } else {
+            $conditions['Attribute.value1'] = $value;
+        }
+
         if (isset($this->data['Attribute']['id'])) {
             $conditions['Attribute.id !='] = $this->data['Attribute']['id'];
         }
@@ -1172,6 +1164,13 @@ class Attribute extends AppModel
                     $returnValue = __('Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type "other".');
                 }
                 break;
+            case 'filename|vhash':
+                if (preg_match("#^.+\|[a-zA-Z0-9]+$#", $value)) {
+                    $returnValue = true;
+                } else {
+                    $returnValue = __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
+                }
+                break;
             case 'ip-src':
             case 'ip-dst':
                 if (strpos($value, '/') !== false) {
@@ -1197,7 +1196,7 @@ class Attribute extends AppModel
                 return true;
 
             case 'port':
-                if (!is_numeric($value) || $value < 1 || $value > 65535) {
+                if (!$this->isPortValid($value)) {
                     $returnValue = __('Port numbers have to be positive integers between 1 and 65535.');
                 } else {
                     $returnValue = true;
@@ -1206,10 +1205,8 @@ class Attribute extends AppModel
             case 'ip-dst|port':
             case 'ip-src|port':
                 $parts = explode('|', $value);
-                if (filter_var($parts[0], FILTER_VALIDATE_IP)) {
-                    if (!is_numeric($parts[1]) || $parts[1] > 1 || $parts[1] < 65536) {
-                        $returnValue = true;
-                    }
+                if (filter_var($parts[0], FILTER_VALIDATE_IP) && $this->isPortValid($parts[1])) {
+                    $returnValue = true;
                 }
                 break;
             case 'mac-address':
@@ -1224,7 +1221,7 @@ class Attribute extends AppModel
                 break;
             case 'hostname':
             case 'domain':
-                if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}[\.]?$#i", $value)) {
+                if ($this->isDomainValid($value)) {
                     $returnValue = true;
                 } else {
                     $returnValue = ucfirst($type) . __(' name has an invalid format. Please double check the value or select type "other".');
@@ -1232,10 +1229,8 @@ class Attribute extends AppModel
                 break;
             case 'hostname|port':
                 $parts = explode('|', $value);
-                if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $parts[0])) {
-                    if (!is_numeric($parts[1]) || $parts[1] > 1 || $parts[1] < 65536) {
-                        $returnValue = true;
-                    }
+                if ($this->isDomainValid($parts[0]) && $this->isPortValid($parts[1])) {
+                    $returnValue = true;
                 }
                 break;
             case 'domain|ip':
@@ -1429,6 +1424,7 @@ class Attribute extends AppModel
             case 'btc':
             case 'dash':
             case 'xmr':
+            case 'vhash':
                 if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
                     $returnValue = true;
                 }
@@ -1465,6 +1461,7 @@ class Attribute extends AppModel
     // do some last second modifications before the validation
     public function modifyBeforeValidation($type, $value)
     {
+        $value = $this->handle4ByteUnicode($value);
         switch ($type) {
             case 'md5':
             case 'sha1':
@@ -1480,6 +1477,7 @@ class Attribute extends AppModel
             case 'hostname':
             case 'pehash':
             case 'authentihash':
+            case 'vhash':
             case 'imphash':
             case 'tlsh':
             case 'anonymised':
@@ -1493,11 +1491,25 @@ class Attribute extends AppModel
             case 'domain':
                 $value = strtolower($value);
                 $value = trim($value, '.');
+                // Domain is not valid, try to convert to punycode
+                if (!$this->isDomainValid($value) && function_exists('idn_to_ascii')) {
+                    $punyCode = idn_to_ascii($value);
+                    if ($punyCode !== false) {
+                        $value = $punyCode;
+                    }
+                }
                 break;
             case 'domain|ip':
                 $value = strtolower($value);
                 $parts = explode('|', $value);
                 $parts[0] = trim($parts[0], '.');
+                // Domain is not valid, try to convert to punycode
+                if (!$this->isDomainValid($parts[0]) && function_exists('idn_to_ascii')) {
+                    $punyCode = idn_to_ascii($parts[0]);
+                    if ($punyCode !== false) {
+                        $parts[0] = $punyCode;
+                    }
+                }
                 if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                     // convert IPv6 address to compressed format
                     $parts[1] = inet_ntop(inet_pton($value));
@@ -1514,6 +1526,7 @@ class Attribute extends AppModel
             case 'filename|sha512/224':
             case 'filename|sha512/256':
             case 'filename|authentihash':
+            case 'filename|vhash':
             case 'filename|pehash':
             case 'filename|tlsh':
                 $pieces = explode('|', $value);
@@ -1625,14 +1638,17 @@ class Attribute extends AppModel
 
     public function getCompositeTypes()
     {
-        // build the list of composite Attribute.type dynamically by checking if type contains a |
-        // default composite types
-        $compositeTypes = array('malware-sample');  // TODO hardcoded composite
-        // dynamically generated list
-        foreach (array_keys($this->typeDefinitions) as $type) {
-            $pieces = explode('|', $type);
-            if (2 == count($pieces)) {
-                $compositeTypes[] = $type;
+        static $compositeTypes;
+
+        if ($compositeTypes === null) {
+            // build the list of composite Attribute.type dynamically by checking if type contains a |
+            // default composite types
+            $compositeTypes = array('malware-sample');  // TODO hardcoded composite
+            // dynamically generated list
+            foreach ($this->typeDefinitions as $type => $foo) {
+                if (strpos($type, '|') !== false) {
+                    $compositeTypes[] = $type;
+                }
             }
         }
         return $compositeTypes;
@@ -1645,7 +1661,7 @@ class Attribute extends AppModel
         return $this->data['Event']['org_id'] === $org;
     }
 
-    public function getRelatedAttributes($attribute, $fields=array(), $includeEventData = false)
+    public function getRelatedAttributes($user, $attribute, $fields=array(), $includeEventData = false)
     {
         // LATER getRelatedAttributes($attribute) this might become a performance bottleneck
 
@@ -1684,16 +1700,17 @@ class Attribute extends AppModel
                     'Attribute.value2' => array($attribute['value1'],$attribute['value2']),
             );
         }
-
+        $baseConditions = $this->buildConditions($user);
+        $baseConditions['AND'][] = $conditions;
         // do the search
         if (empty($fields)) {
             $fields = array('Attribute.*');
         }
         $params = array(
-            'conditions' => $conditions,
+            'conditions' => $baseConditions,
             'fields' => $fields,
             'recursive' => 0,
-            'group' => array('Attribute.event_id'),
+            'group' => array('Attribute.id', 'Attribute.event_id', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.uuid', 'Attribute.timestamp', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.to_ids', 'Attribute.comment', 'Event.id', 'Event.uuid', 'Event.threat_level_id', 'Event.analysis', 'Event.info', 'Event.extends_uuid', 'Event.distribution', 'Event.sharing_group_id', 'Event.published', 'Event.date', 'Event.orgc_id', 'Event.org_id', 'Object.id', 'Object.uuid', 'Object.distribution', 'Object.name', 'Object.template_uuid', 'Object.distribution', 'Object.sharing_group_id'),
             'order' => 'Attribute.event_id DESC'
         );
         if (!empty($includeEventData)) {
@@ -1701,6 +1718,11 @@ class Attribute extends AppModel
                 'Event' => array(
                     'fields' => array(
                         'Event.id', 'Event.uuid', 'Event.threat_level_id', 'Event.analysis', 'Event.info', 'Event.extends_uuid', 'Event.distribution', 'Event.sharing_group_id', 'Event.published', 'Event.date', 'Event.orgc_id', 'Event.org_id'
+                    )
+                ),
+                'Object' => array(
+                    'fields' => array(
+                        'Object.id', 'Object.uuid', 'Object.distribution', 'Object.name', 'Object.template_uuid', 'Object.distribution', 'Object.sharing_group_id'
                     )
                 )
             );
@@ -1724,81 +1746,49 @@ class Attribute extends AppModel
 
     public function typeIsMalware($type)
     {
-        if (in_array($type, $this->zippedDefinitions)) {
-            return true;
-        } else {
-            return false;
-        }
+        return in_array($type, $this->zippedDefinitions);
     }
 
     public function typeIsAttachment($type)
     {
-        if ((in_array($type, $this->zippedDefinitions)) || (in_array($type, $this->uploadDefinitions))) {
-            return true;
-        } else {
-            return false;
-        }
+        return in_array($type, $this->zippedDefinitions) || in_array($type, $this->uploadDefinitions);
     }
 
     public function getAttachment($attribute, $path_suffix='')
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->getDefaultAttachments_dir();
-        }
+        return $this->loadAttachmentTool()->getContent($attribute['event_id'], $attribute['id'], $path_suffix);
+    }
 
-        if ($this->attachmentDirIsS3()) {
-            // S3 - we have to first get the object then we can encode it
-            $s3 = $this->getS3Client();
-            // This will return the content of the object
-            $content = $s3->download($attribute['event_id'] . DS . $attribute['id'] . $path_suffix);
-        } else {
-            // Standard filesystem
-            $filepath = $attachments_dir . DS . $attribute['event_id'] . DS . $attribute['id'] . $path_suffix;
-            $file = new File($filepath);
-            if (!$file->readable()) {
-                return '';
-            }
-            $content = $file->read();
-        }
-        return $content;
+    /**
+     * @param array $attribute
+     * @param string $path_suffix
+     * @return File
+     * @throws Exception
+     */
+    public function getAttachmentFile(array $attribute, $path_suffix='')
+    {
+        return $this->loadAttachmentTool()->getFile($attribute['event_id'], $attribute['id'], $path_suffix);
     }
 
     public function saveAttachment($attribute, $path_suffix='')
     {
-        $attachments_dir = Configure::read('MISP.attachments_dir');
-        if (empty($attachments_dir)) {
-            $attachments_dir = $this->getDefaultAttachments_dir();
-        }
-
-        if ($this->attachmentDirIsS3()) {
-            // This is the cloud!
-            // We don't need your fancy directory structures and
-            // PEE AICH PEE meddling
-            $s3 = $this->getS3Client();
-            $data = $attribute['data'];
-            $key = $attribute['event_id'] . DS . $attribute['id'] . $path_suffix;
-            $s3->upload($key, $data);
-            return true;
-        } else {
-            // Plebian filesystem operations
-            $rootDir = $attachments_dir . DS . $attribute['event_id'];
-            $dir = new Folder($rootDir, true);                      // create directory structure
-            $destpath = $rootDir . DS . $attribute['id'] . $path_suffix;
-            $file = new File($destpath, true);                      // create the file
-            $decodedData = $attribute['data'];       // decode
-            if ($file->write($decodedData)) {                       // save the data
-                return true;
-            } else {
-                // error
-                return false;
-            }
-        }
+        return $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
     }
 
-    public function base64EncodeAttachment($attribute)
+    /**
+     * Returns attribute attachment content as base64 encoded string. If file doesn't exists, empty string is returned.
+     *
+     * @param array $attribute
+     * @return string
+     */
+    public function base64EncodeAttachment(array $attribute)
     {
-        return base64_encode($this->getAttachment($attribute));
+        try {
+            return base64_encode($this->getAttachment($attribute));
+        } catch (NotFoundException $e) {
+            $this->log($e->getMessage(), LOG_NOTICE);
+            return '';
+        }
     }
 
     public function saveBase64EncodedAttachment($attribute)
@@ -1831,9 +1821,10 @@ class Attribute extends AppModel
         if ($thumbnail && extension_loaded('gd')) {
             if ($maxWidth == 200 && $maxHeight == 200) {
                 // Return thumbnail directly if already exists
-                $imageData = $this->getAttachment($attribute['Attribute'], $path_suffix='_thumbnail');
-                if ($imageData !== '') {
-                    return $imageData;
+                try {
+                    return $this->getAttachment($attribute['Attribute'], $path_suffix = '_thumbnail');
+                } catch (NotFoundException $e) {
+                    // pass
                 }
             }
 
@@ -1917,11 +1908,9 @@ class Attribute extends AppModel
                     'Correlation.attribute_id' => $a['id']))
             );
         }
-        if ($a['type'] == 'ssdeep') {
+        if ($a['type'] === 'ssdeep') {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-            $this->FuzzyCorrelateSsdeep->deleteAll(
-                array('FuzzyCorrelateSsdeep.attribute_id' => $a['id'])
-            );
+            $this->FuzzyCorrelateSsdeep->purge(null, $a['id']);
         }
     }
 
@@ -1961,13 +1950,47 @@ class Attribute extends AppModel
         $ipValues = array();
         $ip = $a['value1'];
         if (strpos($ip, '/') !== false) { // IP is CIDR
-            $ip_array = explode('/', $ip);
-            $ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+            list($networkIp, $mask) = explode('/', $ip);
+            $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+
+            $conditions = array(
+                'type' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'),
+                'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
+                'disable_correlation' => 0,
+                'deleted' => 0,
+            );
+
+            if (in_array($this->getDataSource()->config['datasource'], array('Database/Mysql', 'Database/MysqlObserver'))) {
+                // Massive speed up for CIDR correlation. Instead of testing all in PHP, database can do that work much
+                // faster. But these methods are just supported by MySQL.
+                if ($ip_version === 4) {
+                    $startIp = ip2long($networkIp) & ((-1 << (32 - $mask)));
+                    $endIp = $startIp + pow(2, (32 - $mask)) - 1;
+                    // Just fetch IP address that fit in CIDR range.
+                    $conditions['INET_ATON(value1) BETWEEN ? AND ?'] = array($startIp, $endIp);
+
+                    // Just fetch IPv4 address that starts with given prefix. This is fast, because value1 is indexed.
+                    // This optimisation is possible just to mask bigger than 8 bites.
+                    if ($mask >= 8) {
+                        $ipv4Parts = explode('.', $networkIp);
+                        $ipv4Parts = array_slice($ipv4Parts, 0, intval($mask / 8));
+                        $prefix = implode('.', $ipv4Parts);
+                        $conditions['value1 LIKE'] = $prefix . '%';
+                    }
+                } else {
+                    $conditions[] = 'IS_IPV6(value1)';
+                    // Just fetch IPv6 address that starts with given prefix. This is fast, because value1 is indexed.
+                    if ($mask >= 16) {
+                        $ipv6Parts = explode(':', rtrim($networkIp, ':'));
+                        $ipv6Parts = array_slice($ipv6Parts, 0, intval($mask / 16));
+                        $prefix = implode(':', $ipv6Parts);
+                        $conditions['value1 LIKE'] = $prefix . '%';
+                    }
+                }
+            }
+
             $ipList = $this->find('list', array(
-                'conditions' => array(
-                    'type' => array('ip-src', 'ip-dst'),
-                    'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
-                ),
+                'conditions' => $conditions,
                 'group' => 'value1', // return just unique values
                 'fields' => array('value1'),
                 'order' => false
@@ -1990,18 +2013,13 @@ class Attribute extends AppModel
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $cidrList = $this->getSetCIDRList();
             foreach ($cidrList as $cidr) {
-                $cidr_ip = explode('/', $cidr)[0];
-                if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    if ($ip_version === 4) {
-                        if ($this->__ipv4InCidr($ip, $cidr)) {
-                            $ipValues[] = $cidr;
-                        }
+                if (strpos($cidr, '.') !== false) {
+                    if ($ip_version === 4 && $this->__ipv4InCidr($ip, $cidr)) {
+                        $ipValues[] = $cidr;
                     }
                 } else {
-                    if ($ip_version === 6) {
-                        if ($this->__ipv6InCidr($ip, $cidr)) {
-                            $ipValues[] = $cidr;
-                        }
+                    if ($ip_version === 6 && $this->__ipv6InCidr($ip, $cidr)) {
+                        $ipValues[] = $cidr;
                     }
                 }
             }
@@ -2040,11 +2058,11 @@ class Attribute extends AppModel
             return true;
         }
 
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst'))) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'))) {
             $extraConditions = $this->__cidrCorrelation($a);
         } else if ($a['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
             $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
-            $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value'], $a['id']);
+            $fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value1'], $a['id']);
             if (!empty($fuzzyIds)) {
                 $ssdeepIds = $this->find('list', array(
                     'recursive' => -1,
@@ -2057,7 +2075,7 @@ class Attribute extends AppModel
                 $threshold = Configure::read('MISP.ssdeep_correlation_threshold') ?: 40;
                 $attributeIds = array();
                 foreach ($ssdeepIds as $attributeId => $v) {
-                    $ssdeep_value = ssdeep_fuzzy_compare($a['value'], $v);
+                    $ssdeep_value = ssdeep_fuzzy_compare($a['value1'], $v);
                     if ($ssdeep_value >= $threshold) {
                         $attributeIds[] = $attributeId;
                     }
@@ -2768,26 +2786,37 @@ class Attribute extends AppModel
     {
         $this->Correlation = ClassRegistry::init('Correlation');
         $this->purgeCorrelations($eventId);
+
+        $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
+        $this->FuzzyCorrelateSsdeep->purge($eventId, $attributeId);
+
         // get all attributes..
         if (!$eventId) {
-            $eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
+            $eventIds = $this->Event->find('list', [
+                'recursive' => -1,
+                'fields' => ['Event.id'],
+                'conditions' => ['Event.disable_correlation' => 0],
+            ]);
+            $full = true;
         } else {
             $eventIds = array($eventId);
+            $full = false;
         }
         $attributeCount = 0;
         if (Configure::read('MISP.background_jobs') && $jobId) {
             $this->Job = ClassRegistry::init('Job');
-            $this->Job->id = $jobId;
             $eventCount = count($eventIds);
+        } else {
+            $jobId = false;
         }
         foreach (array_values($eventIds) as $j => $id) {
-            if ($jobId && Configure::read('MISP.background_jobs')) {
+            if ($jobId) {
                 if ($attributeId) {
-                    $this->Job->saveField('message', 'Correlating Attribute ' . $attributeId);
+                    $message = 'Correlating Attribute ' . $attributeId;
                 } else {
-                    $this->Job->saveField('message', 'Correlating Event ' . $id);
+                    $message = 'Correlating Event ' . $id;
                 }
-                $this->Job->saveField('progress', ($startPercentage + ($j / $eventCount * (100 - $startPercentage))));
+                $this->Job->saveProgress($jobId, $message, $startPercentage + ($j / $eventCount * (100 - $startPercentage)));
             }
             $event = $this->Event->find('first', array(
                     'recursive' => -1,
@@ -2806,14 +2835,29 @@ class Attribute extends AppModel
             if ($attributeId) {
                 $attributeConditions['Attribute.id'] = $attributeId;
             }
-            $attributes = $this->find('all', array('recursive' => -1, 'conditions' => $attributeConditions, 'order' => array()));
-            foreach ($attributes as $k => $attribute) {
-                $this->__afterSaveCorrelation($attribute['Attribute'], true, $event);
+            $attributes = $this->find('all', [
+                'recursive' => -1,
+                'conditions' => $attributeConditions,
+                // fetch just necessary fields to save memory
+                'fields' => [
+                    'Attribute.id',
+                    'Attribute.event_id',
+                    'Attribute.type',
+                    'Attribute.value1',
+                    'Attribute.value2',
+                    'Attribute.distribution',
+                    'Attribute.sharing_group_id',
+                    'Attribute.disable_correlation',
+                ],
+                'order' => [],
+            ]);
+            foreach ($attributes as $attribute) {
+                $this->__afterSaveCorrelation($attribute['Attribute'], $full, $event);
                 $attributeCount++;
             }
         }
-        if ($jobId && Configure::read('MISP.background_jobs')) {
-            $this->Job->saveField('message', 'Job done.');
+        if ($jobId) {
+            $this->Job->saveStatus($jobId, true);
         }
         return $attributeCount;
     }
@@ -3282,9 +3326,6 @@ class Attribute extends AppModel
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
         }
-        if (!empty($options['includeGalaxy'])) {
-            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        }
         if (
             Configure::read('MISP.proposals_block_attributes') &&
             !empty($options['allow_proposal_blocking'])
@@ -3358,7 +3399,8 @@ class Attribute extends AppModel
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
         }
-        if (Configure::read('MISP.unpublishedprivate')) {
+        // Site admin can access even unpublished event attributes if `unpublishedprivate` option is enabled
+        if (!$user['Role']['perm_site_admin'] && Configure::read('MISP.unpublishedprivate')) {
             $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id'], 'Event.org_id' => $user['org_id']));
         }
         if (!empty($options['list'])) {
@@ -3436,7 +3478,7 @@ class Attribute extends AppModel
                 }
                 if (!empty($options['includeCorrelations'])) {
                     $attributeFields = array('id', 'event_id', 'object_id', 'object_relation', 'category', 'type', 'value', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'to_ids', 'comment');
-                    $results[$k]['Attribute']['RelatedAttribute'] = ($this->getRelatedAttributes($results[$k]['Attribute'], $attributeFields, true));
+                    $results[$k]['Attribute']['RelatedAttribute'] = ($this->getRelatedAttributes($user, $results[$k]['Attribute'], $attributeFields, true));
                 }
             }
             if (!$loop) {
@@ -3477,8 +3519,8 @@ class Attribute extends AppModel
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
                     $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
                     if (empty($results[$key]['Attribute']['AttributeTag'])) {
-                        $results[$key]['Attribute']['AttributeTag'] = $results[$key]['AttributeTag'];
-                        $results[$key]['Attribute']['EventTag'] = $results[$key]['EventTag'];
+                        $results[$key]['Attribute']['AttributeTag'] = isset($results[$key]['AttributeTag']) ? $results[$key]['AttributeTag'] : array();
+                        $results[$key]['Attribute']['EventTag'] = isset($results[$key]['EventTag']) ? $results[$key]['EventTag'] : array();
                     }
                     $results[$key]['Attribute'] = $this->DecayingModel->attachScoresToAttribute($user, $results[$key]['Attribute'], $options['decayingModel'], $options['modelOverrides'], $include_full_model);
                     unset($results[$key]['Attribute']['AttributeTag']);
@@ -3566,10 +3608,10 @@ class Attribute extends AppModel
 
         $content = base64_decode($base64);
 
-        $malwareTool = new MalwareTool();
-        $hashes = $malwareTool->computeHashes($content, $hash_types);
+        $attachmentTool = $this->loadAttachmentTool();
+        $hashes = $attachmentTool->computeHashes($content, $hash_types);
         try {
-            $encrypted = $malwareTool->encrypt($original_filename, $content, $hashes['md5']);
+            $encrypted = $attachmentTool->encrypt($original_filename, $content, $hashes['md5']);
         } catch (Exception $e) {
             $this->logException("Could not create encrypted malware sample.", $e);
             return array('success' => false);
@@ -3584,9 +3626,8 @@ class Attribute extends AppModel
      */
     public function isAdvancedExtractionAvailable()
     {
-        $malwareTool = new MalwareTool();
         try {
-            $types = $malwareTool->checkAdvancedExtractionStatus($this->getPythonVersion());
+            $types = $this->loadAttachmentTool()->checkAdvancedExtractionStatus($this->getPythonVersion());
         } catch (Exception $e) {
             return false;
         }
@@ -3654,7 +3695,7 @@ class Attribute extends AppModel
         }
     }
 
-    public function saveAttributes($attributes)
+    public function saveAttributes($attributes, $user)
     {
         $defaultDistribution = 5;
         if (Configure::read('MISP.default_attribute_distribution') != null) {
@@ -3674,7 +3715,12 @@ class Attribute extends AppModel
             }
             unset($attribute['Attachment']);
             $this->create();
-            $saveResult = $saveResult && $this->save($attribute);
+            $currentSave = $this->save($attribute);
+            $saveResult = $saveResult && $currentSave;
+            if ($currentSave) {
+                $attribute['id'] = $this->id;
+                $this->AttributeTag->handleAttributeTags($user, $attribute, $attribute['event_id'], $capture=true);
+            }
         }
         return $saveResult;
     }
@@ -3867,7 +3913,7 @@ class Attribute extends AppModel
     {
         $redis = $this->setupRedis();
         if ($redis) {
-            if ($redis->sCard('misp:cidr_cache_list') === 0) {
+            if (!$redis->exists('misp:cidr_cache_list')) {
                 $cidrList = $this->setCIDRList();
             } else {
                 $cidrList = $redis->smembers('misp:cidr_cache_list');
@@ -3978,9 +4024,8 @@ class Attribute extends AppModel
 
     public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile)
     {
-        $malwareTool = new MalwareTool();
         try {
-            $result = $malwareTool->advancedExtraction($this->getPythonVersion(), $tmpfile->path);
+            $result = $this->loadAttachmentTool()->advancedExtraction($this->getPythonVersion(), $tmpfile->path);
         } catch (Exception $e) {
             $this->logException("Could not finish advanced extraction", $e);
             return $this->simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile);
@@ -4120,7 +4165,7 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false, $force = false)
+    public function editAttribute($attribute, $eventId, $user, $objectId, $log = false, $force = false, &$nothingToChange = false)
     {
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId;
@@ -4165,6 +4210,7 @@ class Attribute extends AppModel
                 // Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
                 if (isset($attribute['timestamp'])) {
                     if (!$force && $attribute['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
+                        $nothingToChange = true;
                         return true;
                     }
                 } else {
@@ -4208,25 +4254,11 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
-        $fieldList = array(
-            'event_id',
-            'category',
-            'type',
-            'value',
-            'value1',
-            'value2',
-            'to_ids',
-            'uuid',
-            'revision',
-            'distribution',
-            'timestamp',
-            'comment',
-            'sharing_group_id',
-            'deleted',
-            'disable_correlation',
-            'first_seen',
-            'last_seen'
-        );
+        $fieldList = $this->editableFields;
+        if (empty($existingAttribute)) {
+            $addableFieldList = array('event_id', 'type', 'uuid');
+            $fieldList = array_merge($fieldList, $addableFieldList);
+        }
         if ($objectId) {
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
@@ -4258,8 +4290,9 @@ class Attribute extends AppModel
                     foreach ($attribute['Tag'] as $tag) {
                         $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
                         if ($tag_id) {
+                            $tag['id'] = $tag_id;
                             // fix the IDs here
-                            $this->AttributeTag->attachTagToAttribute($this->id, $attribute['event_id'], $tag_id);
+                            $this->AttributeTag->handleAttributeTag($this->id, $attribute['event_id'], $tag);
                         } else {
                             // If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
                             // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
@@ -4477,6 +4510,7 @@ class Attribute extends AppModel
 
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
+        $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,
@@ -4547,8 +4581,9 @@ class Attribute extends AppModel
                 $exportTool->additional_params
             );
         }
-        $tmpfile = tmpfile();
-        fwrite($tmpfile, $exportTool->header($exportToolParams));
+
+        $tmpfile = new TmpFileTool();
+        $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
         if (empty($params['limit'])) {
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
@@ -4561,22 +4596,15 @@ class Attribute extends AppModel
         if (empty($exportTool->mock_query_only)) {
             $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
         }
-        fwrite($tmpfile, $exportTool->footer($exportToolParams));
-        fseek($tmpfile, 0);
-        if (fstat($tmpfile)['size']) {
-            $final = fread($tmpfile, fstat($tmpfile)['size']);
-        } else {
-            $final = '';
-        }
-        fclose($tmpfile);
-        return $final;
+        $tmpfile->write($exportTool->footer($exportToolParams));
+        return $tmpfile->finish();
     }
 
-    private function __iteratedFetch($user, &$params, &$loop, &$tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
+    private function __iteratedFetch($user, &$params, &$loop, TmpFileTool $tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
     {
+        $this->Whitelist = ClassRegistry::init('Whitelist');
         $continue = true;
         while ($continue) {
-            $this->Whitelist = ClassRegistry::init('Whitelist');
             $results = $this->fetchAttributes($user, $params, $continue);
             if ($params['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
@@ -4584,7 +4612,6 @@ class Attribute extends AppModel
             }
             $params['page'] += 1;
             $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
-            $results = array_values($results);
             $i = 0;
             $temp = '';
             foreach ($results as $attribute) {
@@ -4604,7 +4631,7 @@ class Attribute extends AppModel
             if ($continue) {
                 $temp .= $exportTool->separator($exportToolParams);
             }
-            fwrite($tmpfile, $temp);
+            $tmpfile->write($temp);
         }
         return true;
     }
@@ -4655,5 +4682,23 @@ class Attribute extends AppModel
                 unset($attribute['AttributeTag'][$k]);
             }
         }
+    }
+
+    /**
+     * @param string $value
+     * @return bool
+     */
+    private function isDomainValid($value)
+    {
+        return preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $value) === 1;
+    }
+
+    /**
+     * @param string $value
+     * @return bool
+     */
+    private function isPortValid($value)
+    {
+        return is_numeric($value) && $value >= 1 && $value <= 65535;
     }
 }

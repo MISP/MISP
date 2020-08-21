@@ -74,6 +74,7 @@ setOpt () {
       ("-U") echo "upgrade"; UPGRADE=1 ;;
       ("-N") echo "nuke"; NUKE=1 ;;
       ("-u") echo "unattended"; UNATTENDED=1 ;;
+      ("-ni") echo "noninteractive"; NONINTERACTIVE=1 ;;
       ("-f") echo "force"; FORCE=1 ;;
       (*) echo "$o is not a valid argument"; exit 1 ;;
     esac
@@ -647,7 +648,7 @@ installDepsPhp70 () {
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring php-zip \
   php-redis php-gnupg \
   php-gd
 

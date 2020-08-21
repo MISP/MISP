@@ -53,6 +53,7 @@ class ACLComponent extends Component
                     'fetchEditForm' => array('perm_add'),
                     'fetchViewValue' => array('*'),
                     'generateCorrelation' => array(),
+                    'getMassEditForm' => array('perm_add'),
                     'hoverEnrichment' => array('perm_add'),
                     'index' => array('*'),
                     'pruneOrphanedAttributes' => array(),
@@ -111,11 +112,36 @@ class ACLComponent extends Component
                     'view' => array()
             ),
             'eventBlacklists' => array(
-                    'add' => array(),
-                    'delete' => array(),
-                    'edit' => array(),
-                    'index' => array(),
-                    'massDelete' => array()
+                    'add' => [
+                        'AND' => [
+                            'host_org_user',
+                            'perm_add'
+                        ]
+                    ],
+                    'delete' => [
+                        'AND' => [
+                            'host_org_user',
+                            'perm_add'
+                        ]
+                    ],
+                    'edit' => [
+                        'AND' => [
+                            'host_org_user',
+                            'perm_add'
+                        ]
+                    ],
+                    'index' => [
+                        'AND' => [
+                            'host_org_user',
+                            'perm_add'
+                        ]
+                    ],
+                    'massDelete' => [
+                        'AND' => [
+                            'host_org_user',
+                            'perm_add'
+                        ]
+                    ]
             ),
             'eventDelegations' => array(
                     'acceptDelegation' => array('perm_add'),
@@ -335,7 +361,7 @@ class ACLComponent extends Component
                     'admin_edit' => array(),
                     'admin_generateuuid' => array(),
                     'admin_merge' => array(),
-                    'fetchOrgsForSG' => array('*'),
+                    'fetchOrgsForSG' => array('perm_sharing_group'),
                     'fetchSGOrgRow' => array('*'),
                     'getUUIDs' => array('perm_sync'),
                     'index' => array('*'),
@@ -384,7 +410,8 @@ class ACLComponent extends Component
                     'delete' => array(),
                     'deleteFile' => array(),
                     'edit' => array(),
-                    'fetchServersForSG' => array('*'),
+                    'eventBlockRule' => array(),
+                    'fetchServersForSG' => array('perm_sharing_group'),
                     'filterEventIndex' => array(),
                     'getApiInfo' => array('*'),
                     'getGit' => array(),
@@ -436,11 +463,7 @@ class ACLComponent extends Component
                     'discardSelected' => array('perm_add'),
                     'download' => array('*'),
                     'edit' => array('perm_add'),
-                    'editField' => array('perm_add'),
-                    'fetchEditForm' => array('perm_add'),
                     'generateCorrelation' => array(),
-                    'getProposalsByUuid' => array('perm_sync'),
-                    'getProposalsByUuidList' => array('perm_sync'),
                     'index' => array('*'),
                     'view' => array('*'),
             ),
@@ -716,6 +739,7 @@ class ACLComponent extends Component
     {
         $controller = lcfirst(Inflector::camelize($controller));
         $action = strtolower($action);
+        $host_org_id = Configure::read('MISP.host_org_id');
         $aclList = $this->__aclList;
         foreach ($aclList as $k => $v) {
             $aclList[$k] = array_change_key_case($v);
@@ -733,21 +757,35 @@ class ACLComponent extends Component
             }
             if (isset($aclList[$controller][$action]['OR'])) {
                 foreach ($aclList[$controller][$action]['OR'] as $permission) {
-                    if ($user['Role'][$permission]) {
-                        return true;
+                    if ($permission === 'host_org_user') {
+                        if ((int)$user['org_id'] === (int)$host_org_id) {
+                            return true;
+                        }
+                    } else {
+                        if ($user['Role'][$permission]) {
+                            return true;
+                        }
                     }
                 }
             } elseif (isset($aclList[$controller][$action]['AND'])) {
                 $allConditionsMet = true;
                 foreach ($aclList[$controller][$action]['AND'] as $permission) {
-                    if (!$user['Role'][$permission]) {
-                        $allConditionsMet = false;
+                    if ($permission === 'host_org_user') {
+                        if ((int)$user['org_id'] !== (int)$host_org_id) {
+                            $allConditionsMet = false;
+                        }
+                    } else {
+                        if (!$user['Role'][$permission]) {
+                            $allConditionsMet = false;
+                        }
                     }
                 }
                 if ($allConditionsMet) {
                     return true;
                 }
-            } elseif ($user['Role'][$aclList[$controller][$action][0]]) {
+            } elseif ($aclList[$controller][$action][0] !== 'host_org_user' && $user['Role'][$aclList[$controller][$action][0]]) {
+                return true;
+            } elseif ($aclList[$controller][$action][0] === 'host_org_user' && (int)$user['org_id'] === (int)$host_org_id) {
                 return true;
             }
         }

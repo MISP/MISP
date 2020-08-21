@@ -11,6 +11,9 @@
         "pear/crypt_gpg": "1.6.3",
         "monolog/monolog": "1.24.0"
     },
+    "require-dev": {
+        "phpunit/phpunit": "^8"
+    },
     "suggest": {
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3"

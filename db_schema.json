@@ -6806,14 +6806,10 @@
         ],
         "correlations": [
             "id",
-            "value",
             "event_id",
             "1_event_id",
             "attribute_id",
-            "1_attribute_id",
-            "org_id",
-            "sharing_group_id",
-            "a_sharing_group_id"
+            "1_attribute_id"
         ],
         "dashboards": [
             "id",
@@ -6880,7 +6876,8 @@
         ],
         "feeds": [
             "id",
-            "input_source"
+            "input_source",
+            "orgc_id"
         ],
         "fuzzy_correlate_ssdeep": [
             "id",
@@ -7170,5 +7167,5 @@
             "id"
         ]
     },
-    "db_version": "54"
+    "db_version": "55"
 }

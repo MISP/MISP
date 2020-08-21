@@ -1,141 +1,128 @@
-<div class="shadow_attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
-<?php echo $this->Form->create('ShadowAttribute', array('url' => '/shadow_attributes/add/' . $event_id));?>
-    <fieldset>
-    <legend><?php echo __('Add Proposal'); ?></legend>
-    <div id="formWarning" class="message ajaxMessage"></div>
-    <div class="add_attribute_fields">
-        <?php
-            echo $this->Form->hidden('event_id');
-            echo $this->Form->input('category', array(
+<?php
+echo $this->element('genericElements/Form/genericForm', array(
+    'form' => $this->Form,
+    'data' => array(
+        'title' => __('Add Proposal'),
+        'model' => 'ShadowAttribute',
+        'fields' => array(
+            array(
+                'field' => 'event_id',
+                'class' => 'org-id-picker-hidden-field',
+                'type' => 'text',
+                'hidden' => true
+            ),
+            array(
+                'field' => 'category',
+                'class' => 'input',
                 'empty' => __('(choose one)'),
-                'div' => 'input',
-                'label' => __('Category ') . $this->element('formInfo', array('type' => 'category')),
-            ));
-            echo $this->Form->input('type', array(
-                'empty' => __('(first choose category)'),
-                'label' => __('Type ') . $this->element('formInfo', array('type' => 'type')),
-            ));
-        ?>
-        <div class="input clear"></div>
-        <?php
-            echo $this->Form->input('value', array(
-                    'type' => 'textarea',
-                    'error' => array('escape' => false),
-                    'class' => 'input-xxlarge clear'
-            ));
-            echo $this->Form->input('comment', array(
-                    'type' => 'text',
-                    'label' => __('Contextual Comment'),
-                    'error' => array('escape' => false),
-                    'div' => 'input clear',
-                    'class' => 'input-xxlarge'
-            ));
-        ?>
-        <div class="input clear"></div>
-        <?php
-            echo $this->Form->input('to_ids', array(
-                    'checked' => true,
-                    'label' => __('for Intrusion Detection System'),
-            ));
-            echo $this->Form->input('batch_import', array(
-                    'type' => 'checkbox',
-            ));
-            echo $this->Form->input('first_seen', array(
+                'options' => $categories,
+                'stayInLine' => 1
+            ),
+            array(
+                'field' => 'type',
+                'class' => 'input',
+                'empty' => __('(choose category first)'),
+                'options' => $types
+            ),
+            array(
+                'field'=> 'value',
+                'type' => 'textarea',
+                'class' => 'input span6',
+                'div' => 'input clear'
+            ),
+            array(
+                'field' => 'comment',
                 'type' => 'text',
-                'div' => 'input hidden',
-                'required' => false,
-            ));
-            echo $this->Form->input('last_seen', array(
+                'class' => 'input span6',
+                'div' => 'input clear',
+                'label' => __("Contextual Comment")
+            ),
+            array(
+                'field' => 'to_ids',
+                'type' => 'checkbox',
+                'label' => __("For Intrusion Detection System"),
+                //'stayInLine' => 1
+            ),
+            array(
+                'field' => 'batch_import',
+                'type' => 'checkbox'
+            ),
+            array(
+                'field' => 'first_seen',
                 'type' => 'text',
-                'div' => 'input hidden',
-                'required' => false,
-            ));
-        ?>
-        <div id="bothSeenSliderContainer"></div>
-    </div>
-    </fieldset>
-    <p style="color:red;font-weight:bold;display:none;<?php if ($ajax) echo 'text-align:center;'; ?>" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.');?></p>
-    <?php if (isset($ajax) && $ajax): ?>
-        <div class="overlay_spacing">
-            <table>
-                <tr>
-                <td style="vertical-align:top">
-                    <span tite="<?php echo __('Propose');?>" role="button" tabindex="0" aria-label="<?php echo __('Propose');?>" id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'propose')"><?php echo __('Propose');?></span>
-                </td>
-                <td style="width:540px;">
-                    <p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message"><?php echo __('Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.');?></p>
-                </td>
-                <td style="vertical-align:top;">
-                    <span class="btn btn-inverse" id="cancel_attribute_add"><?php echo __('Cancel');?></span>
-                </td>
-                </tr>
-            </table>
-        </div>
-    <?php
-        else:
-            echo $this->Form->button(__('Propose'), array('class' => 'btn btn-primary'));
-        endif;
-        echo $this->Form->end();
-    ?>
-</div>
-<?php
-    $event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];
-    if (!$ajax) {
-        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute', 'event' => $event));
-    }
-
-    echo $this->element('form_seen_input');
+                'hidden' => true
+            ),
+            array(
+                'field' => 'last_seen',
+                'type' => 'text',
+                'hidden' => true
+            ),
+        ),
+        'submit' => array(
+            'action' => 'add',
+            'text' => __('Propose'),
+            'ajaxSubmit' => sprintf(
+                'submitPopoverForm(%s, %s, 0, 1)',
+                "'" . h($event_id) . "'",
+                "'add'"
+            )
+        ),
+        'metaFields' => array(
+            '<div id="bothSeenSliderContainer" style="height: 170px;"></div>'
+        )
+    )
+));
+if (!$ajax) {
+    $event = ['Event' => ['id' => $event_id ]];
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute', 'event' => $event));
+}
 ?>
-<script type="text/javascript">
-<?php
-    $formInfoTypes = array('category' => 'Category', 'type' => 'Type');
-    echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
-    foreach ($formInfoTypes as $formInfoType => $humanisedName) {
-        echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
-        foreach ($info[$formInfoType] as $key => $formInfoData) {
-            echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
-        }
-        echo '}' . PHP_EOL;
-    }
-?>
-//
-//Generate Category / Type filtering array
-//
-var category_type_mapping = new Array();
-<?php
-    foreach ($categoryDefinitions as $category => $def) {
-        echo "category_type_mapping['" . addslashes($category) . "'] = {";
-        $first = true;
-        foreach ($def['types'] as $type) {
-            if ($first) $first = false;
-            else echo ', ';
-            echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-        }
-        echo "}; \n";
-    }
-?>
+    <script type="text/javascript">
+        var category_type_mapping = <?= json_encode(array_map(function($value) {
+            return array_combine($value['types'], $value['types']);
+        }, $categoryDefinitions)); ?>;
 
-$(document).ready(function() {
-    initPopoverContent('ShadowAttribute');
-    $("#ShadowAttributeCategory").on('change', function(e) {
-        formCategoryChanged('ShadowAttribute');
-        if ($(this).val() === 'Attribution' || $(this).val() === 'Targeting data') {
-            $("#warning-message").show();
-        } else {
-            $("#warning-message").hide();
-        }
-    });
-
-    $("#ShadowAttributeCategory, #ShadowAttributeType").change(function() {
-        initPopoverContent('ShadowAttribute');
-    });
-
-    <?php if ($ajax): ?>
-        $('#cancel_attribute_add').click(function() {
-            cancelPopoverForm();
+        $('#ShadowAttributeCategory').change(function() {
+            formCategoryChanged('ShadowAttribute');
+            $('#ShadowAttributeType').chosen('destroy').chosen();
         });
 
-    <?php endif; ?>
-});
-</script>
+        $(function() {
+            $('#ShadowAttributeType').closest('form').submit(function( event ) {
+                if ($('#ShadowAttributeType').val() === 'datetime') {
+                    // add timezone of the browser if not set
+                    var allowLocalTZ = true;
+                    var $valueInput = $('#ShadowAttributeValue')
+                    var dateValue = moment($valueInput.val())
+                    if (dateValue.isValid()) {
+                        if (dateValue.creationData().format !== "YYYY-MM-DDTHH:mm:ssZ" && dateValue.creationData().format !== "YYYY-MM-DDTHH:mm:ss.SSSSZ") {
+                            // Missing timezone data
+                            var confirm_message = '<?php echo __('Timezone missing, auto-detected as: ') ?>' + dateValue.format('Z')
+                            confirm_message += '<?php echo '\r\n' . __('The following value will be submitted instead: '); ?>' + dateValue.toISOString(allowLocalTZ)
+                            if (confirm(confirm_message)) {
+                                $valueInput.val(dateValue.toISOString(allowLocalTZ));
+                            } else {
+                                return false;
+                            }
+                        }
+                    } else {
+                        var textStatus = '<?php echo __('Value is not a valid datetime. Expected format YYYY-MM-DDTHH:mm:ssZ') ?>'
+                        showMessage('fail', textStatus);
+                        return false;
+                    }
+                }
+            });
+
+            <?php if (!$ajax): ?>
+            $('#ShadowAttributeType').chosen();
+            $('#ShadowAttributeCategory').chosen();
+            <?php else: ?>
+            $('#genericModal').on('shown', function() {
+                $('#ShadowAttributeType').chosen();
+                $('#ShadowAttributeCategory').chosen();
+            })
+            <?php endif; ?>
+        });
+    </script>
+<?php echo $this->element('form_seen_input'); ?>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

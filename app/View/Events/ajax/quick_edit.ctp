@@ -1,5 +1,5 @@
 <?php
-    echo $this->Form->create('Event', array('class' => 'inline-form inline-field-form', 'url' => '/events/quickEdit/' . $event['Event']['id'] . '/' . $field));
+    echo $this->Form->create('Event', array('class' => 'inline-form inline-field-form', 'url' => $baseurl . '/events/quickEdit/' . $event['Event']['id'] . '/' . $field));
 ?>
 <div class='inline-input inline-input-container'>
 <div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok" title="<?php echo __('Accept');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept');?>"></span></div>

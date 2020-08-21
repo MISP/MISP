@@ -37,6 +37,8 @@ class AppModel extends Model
 
     public $start = 0;
 
+    public $assetCache = [];
+
     public $inserted_ids = array();
 
     private $__redisConnection = null;
@@ -44,7 +46,9 @@ class AppModel extends Model
     private $__profiler = array();
 
     public $elasticSearchClient = false;
-    public $s3Client = false;
+
+    /** @var AttachmentTool|null */
+    private $attachmentTool;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -81,7 +85,7 @@ class AppModel extends Model
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
-        51 => false, 52 => false, 53 => false, 54 => false
+        51 => false, 52 => false, 53 => false, 54 => false, 55 => false,
     );
 
     public $advanced_updates_description = array(
@@ -1395,6 +1399,14 @@ class AppModel extends Model
             case 54:
                 $sqlArray[] = "ALTER TABLE `sightingdbs` MODIFY `timestamp` int(11) NOT NULL DEFAULT 0;";
                 break;
+            case 55:
+                // index is not used in any SQL query
+                $this->__dropIndex('correlations', 'value');
+                // these index can be theoretically used, but probably just in very rare occasion
+                $this->__dropIndex('correlations', 'org_id');
+                $this->__dropIndex('correlations', 'sharing_group_id');
+                $this->__dropIndex('correlations', 'a_sharing_group_id');
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2394,29 +2406,6 @@ class AppModel extends Model
         $this->elasticSearchClient = $client;
     }
 
-    public function getS3Client()
-    {
-        if (!$this->s3Client) {
-            $this->s3Client = $this->loadS3Client();
-        }
-
-        return $this->s3Client;
-    }
-
-    public function loadS3Client()
-    {
-        App::uses('AWSS3Client', 'Tools');
-        $client = new AWSS3Client();
-        $client->initTool();
-        return $client;
-    }
-
-    public function attachmentDirIsS3()
-    {
-        // Naive way to detect if we're working in S3
-        return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
-    }
-
     public function checkVersionRequirements($versionString, $minVersion)
     {
         $version = explode('.', $versionString);
@@ -2442,7 +2431,8 @@ class AppModel extends Model
             'offset' => null,
             'joins' => array(),
             'conditions' => array(),
-            'group' => false
+            'group' => false,
+            'recursive' => -1
         );
         $params = array();
         foreach (array_keys($defaults) as $key) {
@@ -2844,6 +2834,8 @@ class AppModel extends Model
     }
 
     /**
+     * Log exception with backtrace and with nested exceptions.
+     *
      * @param string $message
      * @param Exception $exception
      * @param int $type
@@ -2880,5 +2872,60 @@ class AppModel extends Model
     protected function tempDir()
     {
         return Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
+    }
+
+    /**
+     * Decodes JSON string and throws exception if string is not valid JSON or if is not array.
+     *
+     * @param string $json
+     * @return array
+     * @throws JsonException
+     * @throws UnexpectedValueException
+     */
+    public function jsonDecode($json)
+    {
+        if (defined('JSON_THROW_ON_ERROR')) {
+            // JSON_THROW_ON_ERROR is supported since PHP 7.3
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } else {
+            $decoded = json_decode($json, true);
+            if ($decoded === null) {
+                throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+            }
+        }
+
+        if (!is_array($decoded)) {
+            throw new UnexpectedValueException('JSON must be array type, get ' . gettype($decoded));
+        }
+        return $decoded;
+    }
+
+    /*
+     *  Temporary solution for utf8 columns until we migrate to utf8mb4
+     *  via https://stackoverflow.com/questions/16496554/can-php-detect-4-byte-encoded-utf8-chars
+     */
+    public function handle4ByteUnicode($input)
+    {
+        return preg_replace(
+            '%(?:
+            \xF0[\x90-\xBF][\x80-\xBF]{2}
+            | [\xF1-\xF3][\x80-\xBF]{3}
+            | \xF4[\x80-\x8F][\x80-\xBF]{2}
+            )%xs',
+            '?',
+            $input
+        );
+    }
+
+    /**
+     * @return AttachmentTool
+     */
+    protected function loadAttachmentTool()
+    {
+        if ($this->attachmentTool === null) {
+            $this->attachmentTool = new AttachmentTool();
+        }
+
+        return $this->attachmentTool;
     }
 }

@@ -359,7 +359,7 @@
                 this.refreshInfoCells();
                 this.redrawGraph();
                 // highlight attribute types
-                $.getJSON('/decayingModelMapping/viewAssociatedTypes/' + model.id, function(j) {
+                $.getJSON(baseurl + '/decayingModelMapping/viewAssociatedTypes/' + model.id, function(j) {
                     that.highlightAttributeType(j);
                 });
             },
@@ -616,7 +616,7 @@
             },
             refreshTypeMappingTable: function(model_id) {
                 var that = this;
-                $.getJSON('/decayingModelMapping/viewAssociatedTypes/' + model_id, function(j) {
+                $.getJSON(baseurl + '/decayingModelMapping/viewAssociatedTypes/' + model_id, function(j) {
                     // ensure that the row contains the model ID
                     var $tr = that.findMatchingAttributeType(j);
                     that.highlightAttributeType($tr);
@@ -914,7 +914,7 @@ ModelTable.prototype = {
         if ($filter_radio) {
             filters[$filter_radio.val()] = 1;
         }
-        $.getJSON('/decayingModel/getAllDecayingModels/', filters, function(json) {
+        $.getJSON(baseurl + '/decayingModel/getAllDecayingModels/', filters, function(json) {
             that.update(json);
         });
     },

@@ -108,6 +108,18 @@ if (!$relativePaths) {
 }
 
 /**
+ * Configure base URL for CakePHP
+ */
+if (Configure::read('MISP.baseurl')) {
+	$regex = "%^(?<fullBaseUrl>(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,5})(?::(?<port>[0-9]+))?)(?<base>/[a-z0-9_\-\.]+)?$%i";
+	if (preg_match($regex, Configure::read('MISP.baseurl'), $matches)) {
+		if (isset($matches['base'])) {
+			Configure::write('App.base', $matches['base']);
+			Configure::write('App.fullBaseUrl', $matches['fullBaseUrl']);
+		}
+	}
+}
+/*
  * Plugins need to be loaded manually, you can either load them one by one or all of them in a single call
  * Uncomment one of the lines below, as you need. make sure you read the documentation on CakePlugin to use more
  * advanced ways of loading plugins

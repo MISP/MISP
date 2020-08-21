@@ -3,7 +3,7 @@
         $menu = array(
             array(
                 'type' => 'root',
-                'url' =>empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
+                'url' =>empty($homepage['path']) ? $baseurl .'/' : $baseurl . h($homepage['path']),
                 'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : __('Home'))
             ),
             array(
@@ -12,38 +12,38 @@
                 'children' => array(
                     array(
                         'text' => __('List Events'),
-                        'url' => '/events/index'
+                        'url' => $baseurl . '/events/index'
                     ),
                     array(
                         'text' => __('Add Event'),
-                        'url' => '/events/add',
+                        'url' => $baseurl . '/events/add',
                         'requirement' => $isAclAdd
                     ),
                     array(
                         'text' => __('List Attributes'),
-                        'url' => '/attributes/index'
+                        'url' => $baseurl . '/attributes/index'
                     ),
                     array(
                         'text' => __('Search Attributes'),
-                        'url' => '/attributes/search'
+                        'url' => $baseurl . '/attributes/search'
                     ),
                     array(
                         'text' => __('REST client'),
-                        'url' => '/servers/rest'
+                        'url' => $baseurl . '/servers/rest'
                     ),
                     array(
                         'type' => 'separator'
                     ),
                     array(
                         'text' => __('View Proposals'),
-                        'url' => '/shadow_attributes/index/all:0'
+                        'url' => $baseurl . '/shadow_attributes/index/all:0'
                     ),
                     array(
                         'text' => __('Events with proposals'),
-                        'url' => '/events/proposalEventIndex'
+                        'url' => $baseurl . '/events/proposalEventIndex'
                     ),
                     array(
-                        'url' => '/event_delegations/index/context:pending',
+                        'url' => $baseurl . '/event_delegations/index/context:pending',
                         'text' => __('View delegation requests')
                     ),
                     array(
@@ -51,28 +51,28 @@
                     ),
                     array(
                         'text' => __('List Tags'),
-                        'url' => '/tags/index'
+                        'url' => $baseurl . '/tags/index'
                     ),
                     array(
                         'text' => __('List Tag Collections'),
-                        'url' => '/tag_collections/index'
+                        'url' => $baseurl . '/tag_collections/index'
                     ),
                     array(
                         'text' => __('Add Tag'),
-                        'url' => '/tags/add',
+                        'url' => $baseurl . '/tags/add',
                         'requirement' => $isAclTagEditor
                     ),
                     array(
                         'text' => __('List Taxonomies'),
-                        'url' => '/taxonomies/index'
+                        'url' => $baseurl . '/taxonomies/index'
                     ),
                     array(
                         'text' => __('List Templates'),
-                        'url' => '/templates/index'
+                        'url' => $baseurl . '/templates/index'
                     ),
                     array(
                         'text' => __('Add Template'),
-                        'url' => '/templates/add',
+                        'url' => $baseurl . '/templates/add',
                         'requirement' => $isAclTemplate
                     ),
                     array(
@@ -80,23 +80,46 @@
                     ),
                     array(
                         'text' => __('Export'),
-                        'url' => '/events/export'
+                        'url' => $baseurl . '/events/export'
                     ),
                     array(
                         'text' => __('Automation'),
-                        'url' => '/events/automation',
+                        'url' => $baseurl . '/events/automation',
                         'requirement' => $isAclAuth
-                    )
+                    ),
+                    array(
+                        'type' => 'separator',
+                        'requirement' =>
+                            Configure::read('MISP.enableEventBlacklisting') !== false &&
+                            !$isSiteAdmin &&
+                            (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
+                    ),
+                    array(
+                        'text' => __('Blacklist Event'),
+                        'url' => $baseurl . '/eventBlacklists/add',
+                        'requirement' =>
+                            Configure::read('MISP.enableEventBlacklisting') !== false &&
+                            !$isSiteAdmin &&
+                            (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
+                    ),
+                    array(
+                        'text' => __('Manage Event Blacklists'),
+                        'url' => $baseurl . '/eventBlacklists',
+                        'requirement' =>
+                            Configure::read('MISP.enableEventBlacklisting') !== false &&
+                            !$isSiteAdmin &&
+                            (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
+                    ),
                 )
             ),
             array(
                 'type' => 'root',
                 'text' => __('Galaxies'),
-                'url' => '/galaxies/index',
+                'url' => $baseurl . '/galaxies/index',
                 'children' => array(
                     array(
                         'text' => __('List Galaxies'),
-                        'url' => '/galaxies/index'
+                        'url' => $baseurl . '/galaxies/index'
                     )
                 )
             ),
@@ -106,85 +129,85 @@
                 'children' => array(
                     array(
                         'text' => __('Import Regexp'),
-                        'url' => '/admin/regexp/index',
+                        'url' => $baseurl . '/admin/regexp/index',
                         'requirement' => $isAclRegexp
                     ),
                     array(
                         'text' => __('Import Regexp'),
-                        'url' => '/regexp/index',
+                        'url' => $baseurl . '/regexp/index',
                         'requirement' => !$isAclRegexp
                     ),
                     array(
                         'text' => __('Signature Whitelist'),
-                        'url' => '/admin/whitelists/index',
+                        'url' => $baseurl . '/admin/whitelists/index',
                         'requirement' => $isAclRegexp
                     ),
                     array(
                         'text' => __('Signature Whitelist'),
-                        'url' => '/whitelists/index',
+                        'url' => $baseurl . '/whitelists/index',
                         'requirement' => !$isAclRegexp
                     ),
                     array(
                         'text' => __('List Warninglists'),
-                        'url' => '/warninglists/index'
+                        'url' => $baseurl . '/warninglists/index'
                     ),
                     array(
                         'text' => __('List Noticelists'),
-                        'url' => '/noticelists/index'
+                        'url' => $baseurl . '/noticelists/index'
                     )
                 )
             ),
             array(
                 'type' => 'root',
                 'text' => __('Global Actions'),
-                'url' => '/dashboards',
+                'url' => $baseurl . '/dashboards',
                 'children' => array(
                     array(
                         'text' => __('News'),
-                        'url' => '/news'
+                        'url' => $baseurl . '/news'
                     ),
                     array(
                         'text' => __('My Profile'),
-                        'url' => '/users/view/me'
+                        'url' => $baseurl . '/users/view/me'
                     ),
                     array(
                         'text' => __('My Settings'),
-                        'url' => '/user_settings/index/user_id:me'
+                        'url' => $baseurl . '/user_settings/index/user_id:me'
                     ),
                     array(
                         'text' => __('Set Setting'),
-                        'url' => '/user_settings/setSetting'
+                        'url' => $baseurl . '/user_settings/setSetting'
                     ),
                     array(
                         'text' => __('Dashboard'),
-                        'url' => '/dashboards'
+                        'url' => $baseurl . '/dashboards'
                     ),
                     array(
                         'text' => __('Organisations'),
-                        'url' => '/organisations/index',
+                        'url' => $baseurl . '/organisations/index',
                         'requirement' => $isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))
                     ),
                     array(
                         'text' => __('Role Permissions'),
-                        'url' => '/roles/index'
+                        'url' => $baseurl . '/roles/index'
                     ),
                     array(
                         'type' => 'separator'
                     ),
                     array(
                         'text' => __('List Object Templates'),
-                        'url' => '/objectTemplates/index'
+                        'url' => $baseurl . '/objectTemplates/index'
                     ),
                     array(
                         'type' => 'separator'
                     ),
                     array(
                         'text' => __('List Sharing Groups'),
-                        'url' => '/sharing_groups/index'
+                        'url' => $baseurl . '/sharing_groups/index'
                     ),
                     array(
                         'text' => __('Add Sharing Group'),
-                        'url' => '/sharing_groups/add',
+                        'url' => $baseurl . '/sharing_groups/add',
                         'requirement' => $isAclSharingGroup
                     ),
                     array(
@@ -192,42 +215,42 @@
                     ),
                     array(
                         'text' => __('Decaying Models Tool'),
-                        'url' => '/decayingModel/decayingTool',
+                        'url' => $baseurl . '/decayingModel/decayingTool',
                         'requirement' => $isAdmin
                     ),
                     array(
                         'text' => __('List Decaying Models'),
-                        'url' => '/decayingModel/index',
+                        'url' => $baseurl . '/decayingModel/index',
                     ),
                     array(
                         'type' => 'separator'
                     ),
                     array(
                         'text' => __('User Guide'),
-                        'url' => 'https://www.circl.lu/doc/misp/'
+                        'url' => $baseurl . 'https://www.circl.lu/doc/misp/'
                     ),
                     array(
                         'text' => __('Categories & Types'),
-                        'url' => '/pages/display/doc/categories_and_types'
+                        'url' => $baseurl . '/pages/display/doc/categories_and_types'
                     ),
                     array(
                         'text' => __('Terms & Conditions'),
-                        'url' => '/users/terms'
+                        'url' => $baseurl . '/users/terms'
                     ),
                     array(
                         'text' => __('Statistics'),
-                        'url' => '/users/statistics'
+                        'url' => $baseurl . '/users/statistics'
                     ),
                     array(
                         'type' => 'separator'
                     ),
                     array(
                         'text' => __('List Discussions'),
-                        'url' => '/threads/index'
+                        'url' => $baseurl . '/threads/index'
                     ),
                     array(
                         'text' => __('Start Discussion'),
-                        'url' => '/posts/add'
+                        'url' => $baseurl . '/posts/add'
                     )
                 )
             ),
@@ -238,42 +261,42 @@
                 'children' => array(
                     array(
                         'text' => __('Create Sync Config'),
-                        'url' => '/servers/createSync',
+                        'url' => $baseurl . '/servers/createSync',
                         'requirement' => ($isAclSync && !$isSiteAdmin)
                     ),
                     array(
                         'text' => __('Import Server Settings'),
-                        'url' => '/servers/import',
+                        'url' => $baseurl . '/servers/import',
                         'requirement' => ($isSiteAdmin)
                     ),
                     array(
                         'text' => __('List Servers'),
-                        'url' => '/servers/index',
+                        'url' => $baseurl . '/servers/index',
                         'requirement' => ($isAclSync || $isAdmin)
                     ),
                     array(
                         'text' => __('List Feeds'),
-                        'url' => '/feeds/index',
+                        'url' => $baseurl . '/feeds/index',
                         'requirement' => ($isSiteAdmin || $hostOrgUser)
                     ),
                     array(
                         'text' => __('Search Feed Caches'),
-                        'url' => '/feeds/searchCaches',
+                        'url' => $baseurl . '/feeds/searchCaches',
                         'requirement' => ($isSiteAdmin || $hostOrgUser)
                     ),
                     array(
                         'text' => __('List SightingDB Connections'),
-                        'url' => '/sightingdb/index',
+                        'url' => $baseurl . '/sightingdb/index',
                         'requirement' => ($isSiteAdmin)
                     ),
                     array(
                         'text' => __('Add SightingDB Connection'),
-                        'url' => '/sightingdb/add',
+                        'url' => $baseurl . '/sightingdb/add',
                         'requirement' => ($isSiteAdmin)
                     ),
                     array(
                         'text' => __('List Communities'),
-                        'url' => '/communities/index',
+                        'url' => $baseurl . '/communities/index',
                         'requirement' => ($isSiteAdmin)
                     )
                 )
@@ -281,54 +304,54 @@
             array(
                 'type' => 'root',
                 'text' => __('Administration'),
-                'url' => '/servers/serverSettings',
+                'url' => $baseurl . '/servers/serverSettings',
                 'requirement' =>  ($isAdmin),
                 'children' => array(
                     array(
                         'text' => __('List Users'),
-                        'url' => '/admin/users/index'
+                        'url' => $baseurl . '/admin/users/index'
                     ),
                     array(
                         'text' => __('List User Settings'),
-                        'url' => '/user_settings/index/user_id:all'
+                        'url' => $baseurl . '/user_settings/index/user_id:all'
                     ),
                     array(
                         'text' => __('Set User Setting'),
-                        'url' => '/user_settings/setSetting'
+                        'url' => $baseurl . '/user_settings/setSetting'
                     ),
                     array(
                         'text' => __('Add User'),
-                        'url' => '/admin/users/add'
+                        'url' => $baseurl . '/admin/users/add'
                     ),
                     array(
                         'text' => __('Contact Users'),
-                        'url' => '/admin/users/email'
+                        'url' => $baseurl . '/admin/users/email'
                     ),
                     array(
                         'text' => __('User Registrations'),
-                        'url' => '/users/registrations'
+                        'url' => $baseurl . '/users/registrations'
                     ),
                     array(
                         'type' => 'separator'
                     ),
                     array(
                         'text' => __('List Organisations'),
-                        'url' => '/organisations/index'
+                        'url' => $baseurl . '/organisations/index'
                     ),
                     array(
                         'text' => __('Add Organisations'),
-                        'url' => '/admin/organisations/add'
+                        'url' => $baseurl . '/admin/organisations/add'
                     ),
                     array(
                         'type' => 'separator'
                     ),
                     array(
                         'text' => __('List Roles'),
-                        'url' => '/admin/roles/index'
+                        'url' => $baseurl . '/admin/roles/index'
                     ),
                     array(
                         'text' => __('Add Roles'),
-                        'url' => '/admin/roles/add',
+                        'url' => $baseurl . '/admin/roles/add',
                         'requirement' => $isSiteAdmin
                     ),
                     array(
@@ -336,7 +359,7 @@
                     ),
                     array(
                         'text' => __('Server Settings & Maintenance'),
-                        'url' => '/servers/serverSettings',
+                        'url' => $baseurl . '/servers/serverSettings',
                         'requirement' => $isSiteAdmin
                     ),
                     array(
@@ -345,7 +368,7 @@
                     ),
                     array(
                         'text' => __('Jobs'),
-                        'url' => '/jobs/index',
+                        'url' => $baseurl . '/jobs/index',
                         'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
                     ),
                     array(
@@ -354,8 +377,13 @@
                     ),
                     array(
                         'text' => __('Scheduled Tasks'),
-                        'url' => '/tasks',
+                        'url' => $baseurl . '/tasks',
                         'requirement' => Configure::read('MISP.background_jobs') && $isSiteAdmin
+                    ),
+                    array(
+                        'text' => __('Event Block Rules'),
+                        'url' => $baseurl . '/servers/eventBlockRule',
+                        'requirement' => $isSiteAdmin
                     ),
                     array(
                         'type' => 'separator',
@@ -363,12 +391,12 @@
                     ),
                     array(
                         'text' => __('Blacklist Event'),
-                        'url' => '/eventBlacklists/add',
+                        'url' => $baseurl . '/eventBlacklists/add',
                         'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
                     ),
                     array(
                         'text' => __('Manage Event Blacklists'),
-                        'url' => '/eventBlacklists',
+                        'url' => $baseurl . '/eventBlacklists',
                         'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
                     ),
                     array(
@@ -377,12 +405,12 @@
                     ),
                     array(
                         'text' => __('Blacklist Organisation'),
-                        'url' => '/orgBlacklists/add',
+                        'url' => $baseurl . '/orgBlacklists/add',
                         'requirement' => Configure::read('MISP.enableOrgBlacklisting') !== false && $isSiteAdmin
                     ),
                     array(
                         'text' => __('Manage Org Blacklists'),
-                        'url' => '/orgBlacklists',
+                        'url' => $baseurl . '/orgBlacklists',
                         'requirement' => Configure::read('MISP.enableOrgBlacklisting') !== false && $isSiteAdmin
                     ),
                 )
@@ -394,11 +422,11 @@
                 'children' => array(
                     array(
                         'text' => __('List Logs'),
-                        'url' => '/admin/logs/index'
+                        'url' => $baseurl . '/admin/logs/index'
                     ),
                     array(
                         'text' => __('Search Logs'),
-                        'url' => '/admin/logs/search'
+                        'url' => $baseurl . '/admin/logs/search'
                     )
                 )
             )
@@ -408,8 +436,11 @@
                 'type' => 'root',
                 'url' => '#',
                 'html' => sprintf(
-                    '<span class="fas fa-star %s" id="setHomePage" title="Set the current page as your home page in MISP"></span>',
-                    (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : ''
+                    '<span class="fas fa-star %s" id="setHomePage" title="%s" role="img" aria-label="%s" data-current-page="%s"></span>',
+                    (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : '',
+		    __('Set the current page as your home page in MISP'),
+		    __('Set the current page as your home page in MISP'),		    
+                    $this->here
                 )
             ),
             array(
@@ -419,20 +450,21 @@
             ),
             array(
                 'type' => 'root',
-                'url' => '/dashboards',
+                'url' => $baseurl . '/dashboards',
                 'html' => sprintf(
                     '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                     h($me['email']),
                     $this->UserName->prepend($me['email']),
                     h($loggedInUserName),
                     sprintf(
-                        '<i class="fa fa-envelope %s"></i>',
-                        (($notifications['total'] == 0) ? 'white' : 'red')
+                        '<i class="fa fa-envelope %s" role="img" aria-label="%s"></i>',
+                        (($notifications['total'] == 0) ? 'white' : 'red'),
+                        __('Notifications') . ': ' . $notifications['total']
                     )
                 )
             ),
             array(
-                'url' => '/users/logout',
+                'url' => $baseurl . '/users/logout',
                 'text' => __('Log out'),
                 'requirement' => empty(Configure::read('Plugin.CustomAuth_disable_logout'))
             )

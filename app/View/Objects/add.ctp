@@ -1,7 +1,7 @@
 <?php $update_template_available = isset($update_template_available) ? $update_template_available : false; ?>
 <div class="<?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
-    $url = ($action == 'add') ? '/objects/revise_object/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/revise_object/edit/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] . '/' . h($object['Object']['id']);
+    $url = $baseurl . ($action == 'add') ? '/objects/revise_object/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/revise_object/edit/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] . '/' . h($object['Object']['id']);
     echo $this->Form->create('Object', array('id', 'url' => $url, 'enctype' => 'multipart/form-data'));
 ?>
 <h3><?php echo ucfirst($action) . ' ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . __(' Object'); ?></h3>
@@ -14,7 +14,7 @@
         if ($action == 'edit' && !$update_template_available && $newer_template_version !== false): ?>
             <a class="btn btn-mini btn-primary useCursorPointer" title="<?php echo __('Update the template of this object to the newer version: ') . h($newer_template_version) ?>" href="<?php echo $baseurl . '/objects/edit/' . h($object['Object']['id']) . '/1'; ?>">
                 <span class="fa fa-arrow-circle-up"></span>
-                <?php echo __('Update template') ?>
+                <?php echo __('Update template to v%s', h($newer_template_version)) ?>
             </a>
         <?php endif; ?>
       &nbsp;
@@ -88,6 +88,14 @@
                 'div' => 'input hidden',
                 'required' => false,
                 ));
+        if ($update_template_available && $newer_template_version !== false) {
+            echo $this->Form->input('template_version', array(
+                'type' => 'text',
+                'div' => 'input hidden',
+                'required' => false,
+                'value' => $newer_template_version
+            ));
+        }
     ?>
     <div id="bothSeenSliderContainer"></div>
   </dl>
@@ -193,7 +201,7 @@
             <?php if ($update_template_available): ?>
                 <div class="fixedRightPanelHeader useCursorPointer" style="box-shadow: 0px 0px 6px #B2B2B2;margin-bottom: 2px;width: 100%;overflow: hidden; padding: 5px;">
                     <i class="fas fa-chevron-circle-down"></i>
-                    <span style="margin-left: 5px; display: inline-block; font-size: large;"><?php echo __('Pre-update object\'s template'); ?></span>
+                    <span style="margin-left: 5px; display: inline-block; font-size: large;"><?php echo __('Current Object state on older template version'); ?></span>
                 </div>
                 <div class="row" style="max-height: 800px; max-width: 800px; overflow: auto; padding: 15px;">
                     <div style="border: 1px solid #3465a4 ; border-radius: 5px; overflow: hidden;" class="span5">

@@ -110,5 +110,9 @@ endforeach; ?>
     });
 </script>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlacklists'));
+    if ($isSiteAdmin) {
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlacklists'));
+    } else {
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'eventBlacklists'));
+    }
 ?>

@@ -11,6 +11,24 @@ class JSONConverterTool
         return ']}' . PHP_EOL;
     }
 
+    public function convertAttribute($attribute, $raw = false)
+    {
+        $toRearrange = array('AttributeTag');
+        foreach ($toRearrange as $object) {
+          if (isset($attribute[$object])) {
+            $attribute['Attribute'][$object] = $attribute[$object];
+            unset($attribute[$object]);
+          }
+        }
+
+        // Submit as list to the attribute cleaner but obtain the only attribute
+        $attribute['Attribute'] = $this->__cleanAttributes(array($attribute['Attribute']))[0];
+        if ($raw) {
+            return $attribute;
+        }
+        return json_encode($attribute, JSON_PRETTY_PRINT);
+    }
+
     public function convertObject($object, $isSiteAdmin = false, $raw = false)
     {
         $toRearrange = array('SharingGroup', 'Attribute', 'ShadowAttribute', 'Event');

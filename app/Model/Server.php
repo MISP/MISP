@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('GpgTool', 'Tools');
 
 class Server extends AppModel
 {
@@ -180,7 +181,7 @@ class Server extends AppModel
                         'branch' => 1,
                         'baseurl' => array(
                                 'level' => 0,
-                                'description' => __('The base url of the application (in the format https://www.mymispinstance.com). Several features depend on this setting being correctly set to function.'),
+                                'description' => __('The base url of the application (in the format https://www.mymispinstance.com or https://myserver.com/misp). Several features depend on this setting being correctly set to function.'),
                                 'value' => '',
                                 'errorMessage' => __('The currenty set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address).'),
                                 'test' => 'testBaseURL',
@@ -1142,6 +1143,14 @@ class Server extends AppModel
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
                                 'type' => 'string',
+                        ),
+                        'obscure_subject' => array(
+                                'level' => 2,
+                                'description' => __('When enabled, subject in signed and encrypted e-mails will not send in unencrypted form.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
                         )
                 ),
                 'SMIME' => array(
@@ -2094,7 +2103,7 @@ class Server extends AppModel
                         ),
                         'CustomAuth_required' => array(
                                 'level' => 2,
-                                'description' => __('If this setting is enabled then the only way to authenticate will be using the custom header. Altnertatively you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.'),
+                                'description' => __('If this setting is enabled then the only way to authenticate will be using the custom header. Alternatively, you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',
@@ -2391,40 +2400,46 @@ class Server extends AppModel
         return true;
     }
 
-    private function __getEventIdListBasedOnPullTechnique($technique, $server, $force = false)
+    /**
+     * @param int|string $technique 'full', 'update', remote event ID or remote event UUID
+     * @param array $server
+     * @param bool $force
+     * @return array
+     */
+    private function __getEventIdListBasedOnPullTechnique($technique, array $server, $force = false)
     {
-        if ("full" === $technique) {
-            // get a list of the event_ids on the server
-            $eventIds = $this->getEventIdsFromServer($server, false, null, false, false, 'events', $force);
-            if ($eventIds === 403) {
-                return array('error' => array(1, null));
-            } elseif (is_string($eventIds)) {
-                return array('error' => array(2, $eventIds));
-            }
-
-            // reverse array of events, to first get the old ones, and then the new ones
-            if (!empty($eventIds)) {
-                $eventIds = array_reverse($eventIds);
-            }
-        } elseif ("update" === $technique) {
-            $eventIds = $this->getEventIdsFromServer($server, false, null, true, true, 'events', $force);
-            if ($eventIds === 403) {
-                return array('error' => array(1, null));
-            } elseif (is_string($eventIds)) {
-                return array('error' => array(2, $eventIds));
-            }
-            $eventModel = ClassRegistry::init('Event');
-            $local_event_ids = $eventModel->find('list', array(
+        try {
+            if ("full" === $technique) {
+                // get a list of the event_ids on the server
+                $eventIds = $this->getEventIdsFromServer($server, false, null, false, 'events', $force);
+                // reverse array of events, to first get the old ones, and then the new ones
+                return array_reverse($eventIds);
+            } elseif ("update" === $technique) {
+                $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
+                $eventModel = ClassRegistry::init('Event');
+                $local_event_ids = $eventModel->find('list', array(
                     'fields' => array('uuid'),
                     'recursive' => -1,
-            ));
-            $eventIds = array_intersect($eventIds, $local_event_ids);
-        } elseif (is_numeric($technique)) {
-            $eventIds[] = intval($technique);
-        } else {
-            return array('error' => array(4, null));
+                ));
+                return array_intersect($eventIds, $local_event_ids);
+            } elseif (is_numeric($technique)) {
+                return array(intval($technique));
+            } elseif (Validation::uuid($technique)) {
+                return array($technique);
+            } else {
+                return array('error' => array(4, null));
+            }
+        } catch (HttpException $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            if ($e->getCode() === 403) {
+                return array('error' => array(1, null));
+            } else {
+                return array('error' => array(2, $e->getMessage()));
+            }
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            return array('error' => array(2, $e->getMessage()));
         }
-        return $eventIds;
     }
 
     private function __checkIfEventIsBlockedBeforePull($event)
@@ -2533,11 +2548,14 @@ class Server extends AppModel
 
     private function __pullEvent($eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
     {
-        $event = $eventModel->downloadEventFromServer(
-                $eventId,
-                $server
-        );
-        ;
+        try {
+            $event = $eventModel->downloadEventFromServer($eventId, $server);
+        } catch (Exception $e) {
+            $this->logException('Failed downloading the event ' . $eventId, $e);
+            $fails[$eventId] = __('failed downloading the event');
+            return false;
+        }
+
         if (!empty($event)) {
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
@@ -2613,18 +2631,13 @@ class Server extends AppModel
 
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
     {
+        $this->Job = ClassRegistry::init('Job');
         if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->read(null, $jobId);
             $email = "Scheduled job";
         } else {
-            $job = false;
             $email = $user['email'];
         }
         $eventModel = ClassRegistry::init('Event');
-        $eventIds = array();
-        // if we are downloading a single event, don't fetch all proposals
-        $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
         $server['Server']['version'] = $this->getRemoteVersion($id);
         if (!empty($eventIds['error'])) {
@@ -2653,12 +2666,11 @@ class Server extends AppModel
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
+            $this->Job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
             foreach ($eventIds as $k => $eventId) {
                 $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
-                if ($jobId) {
-                    if ($k % 10 == 0) {
-                        $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
-                    }
+                if ($k % 10 == 0) {
+                    $this->Job->saveProgress($jobId, null, 50 * (($k + 1) / count($eventIds)));
                 }
             }
         }
@@ -2674,25 +2686,17 @@ class Server extends AppModel
                     'action' => 'pull',
                     'user_id' => $user['id'],
                     'title' => 'Failed to pull event #' . $eventid . '.',
-                    'change' => 'Reason:' . $message
+                    'change' => 'Reason: ' . $message
                 ));
             }
         }
-        if ($jobId) {
-            $job->saveField('progress', 50);
-            $job->saveField('message', 'Pulling proposals.');
-        }
+        $this->Job->saveProgress($jobId, 'Pulling proposals.', 50);
         $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
-        if ($jobId) {
-            $job->saveField('progress', 75);
-            $job->saveField('message', 'Pulling sightings.');
-        }
+
+        $this->Job->saveProgress($jobId, 'Pulling sightings.', 75);
         $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
-        if ($jobId) {
-            $job->saveField('progress', 100);
-            $job->saveField('message', 'Pull completed.');
-            $job->saveField('status', 4);
-        }
+
+        $this->Job->saveProgress($jobId, 'Pull completed.', 100);
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
@@ -2720,12 +2724,12 @@ class Server extends AppModel
         if (empty($filter_rules)) {
             return $final;
         }
-        $filter_rules = json_decode($filter_rules, true);
+        $filter_rules = $this->jsonDecode($filter_rules);
         $url_params = array();
         foreach ($filter_rules as $field => $rules) {
             $temp = array();
             if ($field === 'url_params') {
-                $url_params = json_decode($rules, true);
+                $url_params = empty($rules) ? [] : $this->jsonDecode($rules);
             } else {
                 foreach ($rules as $operator => $elements) {
                     foreach ($elements as $k => $element) {
@@ -2748,17 +2752,19 @@ class Server extends AppModel
         return $final;
     }
 
-    private function __orgRuleDowngrade($HttpSocket, $request, $server, $filter_rules)
+    /**
+     * @param HttpSocket $HttpSocket
+     * @param array $request
+     * @param array $server
+     * @param array $filter_rules
+     * @return array
+     * @throws JsonException
+     */
+    private function __orgRuleDowngrade(HttpSocket $HttpSocket, array $request, array $server, array $filter_rules)
     {
         $uri = $server['Server']['url'] . '/servers/getVersion';
-        try {
-            $version_response = $HttpSocket->get($uri, false, $request);
-            $body = $version_response->body;
-            $version_response = json_decode($body, true);
-            $version = $version_response['version'];
-        } catch (Exception $e) {
-            return $e->getMessage();
-        }
+        $version_response = $HttpSocket->get($uri, false, $request);
+        $version = $this->jsonDecode($version_response->body)['version'];
         $version = explode('.', $version);
         if ($version[0] <= 2 && $version[1] <= 4 && $version[0] <= 123) {
             $filter_rules['org'] = implode('|', $filter_rules['org']);
@@ -2766,115 +2772,112 @@ class Server extends AppModel
         return $filter_rules;
     }
 
-    // Get an array of event_ids that are present on the remote server
-    public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false, $scope = 'events', $force = false)
+    /**
+     * Get an array of event UUIDs that are present on the remote server.
+     *
+     * @param array $server
+     * @param bool $all
+     * @param HttpSocket|null $HttpSocket
+     * @param bool $ignoreFilterRules
+     * @param string $scope 'events' or 'sightings'
+     * @param bool $force
+     * @return array Array of event UUIDs.
+     * @throws JsonException
+     * @throws InvalidArgumentException
+     */
+    public function getEventIdsFromServer(array $server, $all = false, HttpSocket $HttpSocket = null, $ignoreFilterRules = false, $scope = 'events', $force = false)
     {
-        $url = $server['Server']['url'];
-        if ($ignoreFilterRules) {
-            $filter_rules = array();
-        } else {
-            $filter_rules = $this->filterRuleToParameter($server['Server']['pull_rules']);
-        }
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        if (!empty($filter_rules['org'])) {
-            $filter_rules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filter_rules);
-        }
-        $uri = $url . '/events/index';
-        $filter_rules['minimal'] = 1;
-        $filter_rules['published'] = 1;
-        try {
-            $response = $HttpSocket->post($uri, json_encode($filter_rules), $request);
-            if ($response->isOk()) {
-                $eventArray = json_decode($response->body, true);
-                // correct $eventArray if just one event
-                if (is_array($eventArray) && isset($eventArray['id'])) {
-                    $tmp = $eventArray;
-                    unset($eventArray);
-                    $eventArray[0] = $tmp;
-                    unset($tmp);
-                }
-                $eventIds = array();
-                if ($all) {
-                    if (!empty($eventArray)) {
-                        if ($scope === 'sightings') {
-                            foreach ($eventArray as $event) {
-                                $localEvent = $this->Event->find('first', array(
-                                        'recursive' => -1,
-                                        'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
-                                        'conditions' => array('Event.uuid' => $event['uuid'])
-                                    ));
-                                if (!empty($localEvent) && $localEvent['Event']['sighting_timestamp'] > $event['sighting_timestamp']) {
-                                    $eventIds[] = $event['uuid'];
-                                }
-                            }
-                        } else {
-                            foreach ($eventArray as $event) {
-                                $eventIds[] = $event['uuid'];
-                            }
-                        }
-                    }
-                } else {
-                    // multiple events, iterate over the array
-                    $this->Event = ClassRegistry::init('Event');
-                    $blacklisting = array();
-                    if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-                        $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-                        $blacklisting['EventBlacklist'] = array(
-                            'index_field' => 'uuid',
-                            'blacklist_field' => 'event_uuid'
-                        );
-                    }
-                    if (Configure::read('MISP.enableOrgBlacklisting') !== false) {
-                        $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
-                        $blacklisting['OrgBlacklist'] = array(
-                            'index_field' => 'orgc_uuid',
-                            'blacklist_field' => 'org_uuid'
-                        );
-                    }
-                    foreach ($eventArray as $k => $event) {
-                        if (1 != $event['published']) {
-                            unset($eventArray[$k]); // do not keep non-published events
-                            continue;
-                        }
-                        foreach ($blacklisting as $type => $blacklist) {
-                            if (!empty($eventArray[$k][$blacklist['index_field']])) {
-                                $blacklist_hit = $this->{$type}->find('first', array(
-                                    'conditions' => array($blacklist['blacklist_field'] => $eventArray[$k][$blacklist['index_field']]),
-                                    'recursive' => -1,
-                                    'fields' => array($type . '.id')
-                                ));
-                                if (!empty($blacklist_hit)) {
-                                    unset($eventArray[$k]);
-                                    continue 2;
-                                }
-                            }
-                        }
-                    }
-                    if (!$force) {
-                        $this->Event->removeOlder($eventArray, $scope);
-                    }
-                    if (!empty($eventArray)) {
-                        foreach ($eventArray as $event) {
-                            if ($force_uuid) {
-                                $eventIds[] = $event['uuid'];
-                            } else {
-                                $eventIds[] = $event['uuid'];
-                            }
-                        }
-                    }
-                }
-                return $eventIds;
-            }
-            if ($response->code == '403') {
-                return 403;
-            }
-        } catch (SocketException $e) {
-            return $e->getMessage();
+        if (!in_array($scope, array('events', 'sightings'))) {
+            throw new InvalidArgumentException("Scope mus be 'events' or 'sightings', '$scope' given.");
         }
 
-        // error, so return error message, since that is handled and everything is expecting an array
-        return "Error: got response code " . $response->code;
+        if ($ignoreFilterRules) {
+            $filterRules = array();
+        } else {
+            $filterRules = $this->filterRuleToParameter($server['Server']['pull_rules']);
+        }
+
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        if (!empty($filterRules['org'])) {
+            $filterRules = $this->__orgRuleDowngrade($HttpSocket, $request, $server, $filterRules);
+        }
+        $filterRules['minimal'] = 1;
+        $filterRules['published'] = 1;
+
+        $uri = $server['Server']['url'] . '/events/index';
+        $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
+        if ($response === false) {
+            throw new Exception("Could not reach '$uri'.");
+        }
+        if (!$response->isOk()) {
+            throw new HttpException("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}", intval($response->code));
+        }
+
+        $eventArray = $this->jsonDecode($response->body);
+        // correct $eventArray if just one event
+        if (isset($eventArray['id'])) {
+            $eventArray = array($eventArray);
+        }
+        if ($all) {
+            if ($scope === 'sightings') {
+                $this->Event = ClassRegistry::init('Event');
+                $localEvents = $this->Event->find('list', array(
+                    'recursive' => -1,
+                    'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
+                    'conditions' => array('Event.uuid' => array_column($eventArray, 'uuid'))
+                ));
+
+                $eventUuids = array();
+                foreach ($eventArray as $event) {
+                    if (!isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
+                        $eventUuids[] = $event['uuid'];
+                    }
+                }
+            } else {
+                $eventUuids = array_column($eventArray, 'uuid');
+            }
+        } else {
+            if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+                $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+                $blacklistHits = $this->EventBlacklist->find('list', array(
+                    'recursive' => -1,
+                    'conditions' => array('EventBlacklist.event_uuid' => array_column($eventArray, 'uuid')),
+                    'fields' => array('EventBlacklist.event_uuid', 'EventBlacklist.event_uuid'),
+                ));
+                foreach ($eventArray as $k => $event) {
+                    if (isset($blacklistHits[$event['uuid']])) {
+                        unset($eventArray[$k]);
+                    }
+                }
+            }
+
+            if (Configure::read('MISP.enableOrgBlacklisting') !== false) {
+                $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
+                $blacklistHits = $this->OrgBlacklist->find('list', array(
+                    'recursive' => -1,
+                    'conditions' => array('OrgBlacklist.org_uuid' => array_unique(array_column($eventArray, 'orgc_uuid'))),
+                    'fields' => array('OrgBlacklist.org_uuid', 'OrgBlacklist.org_uuid'),
+                ));
+                foreach ($eventArray as $k => $event) {
+                    if (isset($blacklistHits[$event['orgc_uuid']])) {
+                        unset($eventArray[$k]);
+                    }
+                }
+            }
+
+            foreach ($eventArray as $k => $event) {
+                if (1 != $event['published']) {
+                    unset($eventArray[$k]); // do not keep non-published events
+                }
+            }
+            if (!$force) {
+                $this->Event = ClassRegistry::init('Event');
+                $this->Event->removeOlder($eventArray, $scope);
+            }
+            $eventUuids = array_column($eventArray, 'uuid');
+        }
+        return $eventUuids;
     }
 
     public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $user)
@@ -2905,10 +2908,7 @@ class Server extends AppModel
                     'change' => $message
             ));
             if ($jobId) {
-                $job->id = $jobId;
-                $job->saveField('progress', 100);
-                $job->saveField('message', $message);
-                $job->saveField('status', 4);
+                $job->saveStatus($jobId, false, $message);
             }
             return $push;
         }
@@ -3047,10 +3047,7 @@ class Server extends AppModel
                 'change' => count($successes) . ' events pushed or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
         ));
         if ($jobId) {
-            $job->id = $jobId;
-            $job->saveField('progress', 100);
-            $job->saveField('message', 'Push to server ' . $id . ' complete.');
-            $job->saveField('status', 4);
+            $job->saveStatus($jobId, true, __('Push to server %s complete.', $id));
         } else {
             return array($successes, $fails);
         }
@@ -3090,19 +3087,22 @@ class Server extends AppModel
         }
         $this->Sighting = ClassRegistry::init('Sighting');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $eventIds = $this->getEventIdsFromServer($server, true, $HttpSocket, false, true, 'sightings');
+        try {
+            $eventIds = $this->getEventIdsFromServer($server, true, $HttpSocket, true, 'sightings');
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            return $successes;
+        }
         // now process the $eventIds to push each of the events sequentially
-        if (!empty($eventIds)) {
-            // check each event and push sightings when needed
-            foreach ($eventIds as $k => $eventId) {
-                $event = $eventModel->fetchEvent($user, $options = array('event_uuid' => $eventId, 'metadata' => true));
-                if (!empty($event)) {
-                    $event = $event[0];
-                    $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
-                    $result = $eventModel->uploadEventToServer($event, $server, $HttpSocket, 'sightings');
-                    if ($result === 'Success') {
-                        $successes[] = 'Sightings for event ' .  $event['Event']['id'];
-                    }
+        // check each event and push sightings when needed
+        foreach ($eventIds as $k => $eventId) {
+            $event = $eventModel->fetchEvent($user, $options = array('event_uuid' => $eventId, 'metadata' => true));
+            if (!empty($event)) {
+                $event = $event[0];
+                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                $result = $eventModel->uploadEventToServer($event, $server, $HttpSocket, 'sightings');
+                if ($result === 'Success') {
+                    $successes[] = 'Sightings for event ' .  $event['Event']['id'];
                 }
             }
         }
@@ -3116,9 +3116,10 @@ class Server extends AppModel
         if ($sa_id == null) {
             if ($event_id == null) {
                 // event_id is null when we are doing a push
-                $ids = $this->getEventIdsFromServer($server, true, $HttpSocket, false, true);
-                // error return strings or ints or throw exceptions
-                if (!is_array($ids)) {
+                try {
+                    $ids = $this->getEventIdsFromServer($server, true, $HttpSocket, true);
+                } catch (Exception $e) {
+                    $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
                     return false;
                 }
                 $conditions = array('uuid' => $ids);
@@ -3567,7 +3568,10 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) {
+        $regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,5})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
+	if ( !preg_match($regex, $value, $matches)
+                || strtolower($matches['proto']) != strtolower($this->getProto())
+                || strtolower($matches['host']) != strtolower($this->getHost()) ) {
             return 'Invalid baseurl, it has to be in the "https://FQDN" format.';
         }
         return true;
@@ -4266,7 +4270,7 @@ class Server extends AppModel
             }
             if ($response->code == '405') {
                 try {
-                    $responseText = json_decode($response->body, true)['message'];
+                    $responseText = $this->jsonDecode($response->body)['message'];
                 } catch (Exception $e) {
                     return array('status' => 3);
                 }
@@ -4469,7 +4473,12 @@ class Server extends AppModel
 
     public function isJson($string)
     {
-        return (json_last_error() == JSON_ERROR_NONE);
+        try {
+            $this->jsonDecode($string);
+            return true;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     public function captureServer($server, $user)
@@ -5009,12 +5018,22 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '>1.2.0.9', 'cybox' => '>2.1.0.21', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>1.2.0', 'pymisp' => '>2.4.120');
+        $expected = array('stix' => '>1.2.0.9', 'cybox' => '>2.1.0.21', 'mixbox' => '1.0.3', 'maec' => '>4.1.0.14', 'stix2' => '>2.0', 'pymisp' => '>2.4.120');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
-        $scriptResult = json_decode($scriptResult, true);
-        if ($scriptResult == null) {
-            return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'stix2' => array('expected' => $expected['stix2']), 'pymisp' => array('expected' => $expected['pymisp']));
+        try {
+            $scriptResult = $this->jsonDecode($scriptResult);
+        } catch (Exception $e) {
+            $this->logException('Invalid JSON returned from stixtest', $e);
+            return array(
+                'operational' => 0,
+                'stix' => array('expected' => $expected['stix']),
+                'cybox' => array('expected' => $expected['cybox']),
+                'mixbox' => array('expected' => $expected['mixbox']),
+                'maec' => array('expected' => $expected['maec']),
+                'stix2' => array('expected' => $expected['stix2']),
+                'pymisp' => array('expected' => $expected['pymisp'])
+            );
         }
         $scriptResult['operational'] = $scriptResult['success'];
         if ($scriptResult['operational'] == 0) {
@@ -5044,18 +5063,9 @@ class Server extends AppModel
         $gpgStatus = 0;
         if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
             $continue = true;
+            $gpgTool = new GpgTool();
             try {
-                if (!class_exists('Crypt_GPG')) {
-                    if (!stream_resolve_include_path('Crypt/GPG.php')) {
-                        throw new Exception("Crypt_GPG is not installed");
-                    }
-                    require_once 'Crypt/GPG.php';
-                }
-                $gpg = new Crypt_GPG(array(
-                    'homedir' => Configure::read('GnuPG.homedir'),
-                    'gpgconf' => Configure::read('GnuPG.gpgconf'),
-                    'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg'
-                ));
+                $gpg = $gpgTool->initializeGpg();
             } catch (Exception $e) {
                 $this->logException("Error during initializing GPG.", $e, LOG_NOTICE);
                 $gpgStatus = 2;
@@ -5493,7 +5503,7 @@ class Server extends AppModel
     public function extensionDiagnostics()
     {
         $results = array();
-        $extensions = array('redis', 'gd', 'ssdeep');
+        $extensions = array('redis', 'gd', 'ssdeep', 'zip', 'intl');
         foreach ($extensions as $extension) {
             $results['web']['extensions'][$extension] = extension_loaded($extension);
         }
@@ -5961,11 +5971,14 @@ class Server extends AppModel
         }
         if ($response->isOk()) {
             try {
-                $response = json_decode($response->body, true);
+                $response = $this->jsonDecode($response->body);
             } catch (Exception $e) {
+                $message = 'Invalid response received from the remote instance.';
+
+                $this->logException($message, $e);
+
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
-                $message = 'Invalid response received from the remote instance.';
                 $this->Log->save(array(
                         'org' => 'SYSTEM',
                         'model' => 'Server',

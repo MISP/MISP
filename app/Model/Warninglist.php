@@ -364,7 +364,7 @@ class Warninglist extends AppModel
                         } else {
                             $object['warnings'][$result][] = $list['Warninglist']['name'];
                         }
-                        if (empty($eventWarnings) || !in_array($list['Warninglist']['name'], $eventWarnings)) {
+                        if (!isset($eventWarnings[$list['Warninglist']['id']])) {
                             $eventWarnings[$list['Warninglist']['id']] = $list['Warninglist']['name'];
                         }
                     }

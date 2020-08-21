@@ -16,7 +16,7 @@
         </div><br />
         <div class="input file" id="file_container_<?php echo $element_id;?>">
         </div>
-        <iframe id="iframe_<?php echo $element_id; ?>" src="/templates/uploadFile/<?php echo $element_id; ?>/<?php echo ($element['batch'] ? 'yes' : 'no'); ?>" style="border:0px;height:30px;width:100%;overflow:hidden;" scrolling="no"></iframe>
+        <iframe id="iframe_<?php echo $element_id; ?>" src="<?php echo $baseurl; ?>/templates/uploadFile/<?php echo $element_id; ?>/<?php echo ($element['batch'] ? 'yes' : 'no'); ?>" style="border:0px;height:30px;width:100%;overflow:hidden;" scrolling="no"></iframe>
         <div class="error-message populateTemplateErrorField" <?php if (!isset($errors[$element_id])) echo 'style="display:none;"';?>>
             <?php echo __('Error') . ': ' . $errors[$element_id]; ?>
         </div>

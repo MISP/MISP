@@ -1,10 +1,12 @@
 <?php
 App::uses('AppController', 'Controller');
-App::uses('Xml', 'Utility');
 
+/**
+ * @property Feed $Feed
+ */
 class FeedsController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');   // XXX ACL component
+    public $components = array('Security', 'RequestHandler');   // XXX ACL component
 
     public $paginate = array(
             'limit' => 60,
@@ -56,9 +58,6 @@ class FeedsController extends AppController
 
     public function index()
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
         $scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'all';
         if ($scope !== 'all') {
             if ($scope == 'enabled') {
@@ -126,9 +125,6 @@ class FeedsController extends AppController
 
     public function view($feedId)
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
         $feed = $this->Feed->find('first', array(
             'conditions' => array('Feed.id' => $feedId),
             'recursive' => -1,
@@ -149,9 +145,6 @@ class FeedsController extends AppController
 
     public function feedCoverage($feedId)
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
         $feed = $this->Feed->find('first', array(
             'conditions' => array('Feed.id' => $feedId),
             'recursive' => -1,
@@ -159,7 +152,6 @@ class FeedsController extends AppController
         ));
         $result = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', $this->request->data);
         return $this->RestResponse->viewData($result, $this->response->type());
-
     }
 
     public function importFeeds()
@@ -456,7 +448,7 @@ class FeedsController extends AppController
             $this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
         }
         if (!$this->Feed->data['Feed']['enabled']) {
-            $this->Flash->info(__('Feed is currently not enabled. Make sure you enable it.'));
+            $this->Flash->error(__('Feed is currently not enabled. Make sure you enable it.'));
             $this->redirect(array('action' => 'index'));
         }
         if (Configure::read('MISP.background_jobs')) {
@@ -582,7 +574,7 @@ class FeedsController extends AppController
         }
         $this->Feed->read();
         if (!$this->Feed->data['Feed']['enabled']) {
-            $this->Flash->info(__('Feed is currently not enabled. Make sure you enable it.'));
+            $this->Flash->error(__('Feed is currently not enabled. Make sure you enable it.'));
             $this->redirect(array('action' => 'previewIndex', $feedId));
         }
         try {
@@ -614,9 +606,6 @@ class FeedsController extends AppController
 
     public function previewIndex($feedId)
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));
@@ -638,11 +627,6 @@ class FeedsController extends AppController
 
     private function __previewIndex($feed, $filterParams = array())
     {
-        if (isset($this->passedArgs['pages'])) {
-            $currentPage = $this->passedArgs['pages'];
-        } else {
-            $currentPage = 1;
-        }
         $urlparams = '';
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
@@ -658,17 +642,21 @@ class FeedsController extends AppController
         }
 
         if (!empty($this->params['named']['searchall'])) {
+            $searchAll = trim(strtolower($this->params['named']['searchall']));
             foreach ($events as $uuid => $event) {
                 $found = false;
-                if (strpos(strtolower($event['info']), strtolower($this->params['named']['searchall'])) !== false) {
+                if ($uuid === $searchAll) {
                     $found = true;
                 }
-                if (strpos(strtolower($event['Orgc']['name']), strtolower($this->params['named']['searchall'])) !== false) {
+                if (!$found && strpos(strtolower($event['info']), $searchAll) !== false) {
                     $found = true;
                 }
-                if (!empty($event['Tag'])) {
+                if (!$found && strpos(strtolower($event['Orgc']['name']), $searchAll) !== false) {
+                    $found = true;
+                }
+                if (!$found && !empty($event['Tag'])) {
                     foreach ($event['Tag'] as $tag) {
-                        if (strpos(strtolower($tag['name']), strtolower($this->params['named']['searchall'])) !== false) {
+                        if (strpos(strtolower($tag['name']), $searchAll) !== false) {
                             $found = true;
                         }
                     }
@@ -699,17 +687,6 @@ class FeedsController extends AppController
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($events, $this->response->type());
-        }
-        if (isset($events['code'])) {
-            throw new NotFoundException(__('Feed could not be fetched. The HTTP error code returned was: ', $events['code']));
-        }
-        $pageCount = count($events);
-        App::uses('CustomPaginationTool', 'Tools');
-        $customPagination = new CustomPaginationTool();
-        if ($this->_isRest()) {
-            if (!isset($this->passedArgs['page'])) {
-                $this->passedArgs['page'] = 0;
-            }
         }
         $this->set('events', $events);
         $this->loadModel('Event');
@@ -755,7 +732,6 @@ class FeedsController extends AppController
         $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
         // remove all duplicates
         $correlatingEvents = array();
-        //debug($resultArray);
         foreach ($resultArray as $k => $v) {
             if (!empty($resultArray[$k]['correlations'])) {
                 foreach ($resultArray[$k]['correlations'] as $correlatingEvent) {
@@ -781,60 +757,15 @@ class FeedsController extends AppController
         $this->render('freetext_index');
     }
 
-    private function __previewCSV($feed)
-    {
-        if (isset($this->passedArgs['pages'])) {
-            $currentPage = $this->passedArgs['pages'];
-        } else {
-            $currentPage = 1;
-        }
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        if ($feed['Feed']['source_format'] != 'csv') {
-            throw new MethodNotAllowedException(__('Invalid feed type.'));
-        }
-        $HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-        try {
-            $resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage);
-        } catch (Exception $e) {
-            $this->Flash->error("Could not fetch feed: {$e->getMessage()}");
-            $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
-        }
-        // we want false as a valid option for the split fetch, but we don't want it for the preview
-        if ($resultArray == false) {
-            $resultArray = array();
-        }
-        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
-        $resultArray = $this->Feed->getFreetextFeed2FeedCorrelations($resultArray);
-        // remove all duplicates
-        foreach ($resultArray as $k => $v) {
-            for ($i = 0; $i < $k; $i++) {
-                if (isset($resultArray[$i]) && $v == $resultArray[$i]) {
-                    unset($resultArray[$k]);
-                }
-            }
-        }
-        $resultArray = array_values($resultArray);
-        $this->loadModel('Attribute');
-        $this->set('distributionLevels', $this->Attribute->distributionLevels);
-        $this->set('feed', $feed);
-        $this->set('attributes', $resultArray);
-        $this->render('freetext_index');
-    }
-
-
     public function previewEvent($feedId, $eventUuid, $all = false)
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));
         }
         $this->Feed->read();
         try {
-            $event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+            $event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid);
         } catch (Exception $e) {
             throw new Exception(__('Could not download the selected Event'), 0, $e);
         }
@@ -991,9 +922,6 @@ class FeedsController extends AppController
 
     public function compareFeeds($id = false)
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
         $feeds = $this->Feed->compareFeeds($id);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($feeds, $this->response->type());
@@ -1045,9 +973,6 @@ class FeedsController extends AppController
 
     public function searchCaches()
     {
-        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
-            throw NotAllowedException('You don\'t have access to this feature.');
-        }
         if (isset($this->passedArgs['pages'])) {
             $currentPage = $this->passedArgs['pages'];
         } else {

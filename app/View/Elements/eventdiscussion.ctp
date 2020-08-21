@@ -1,5 +1,5 @@
-<h3><?= __('Discussion') ?></h3>
 <div id="top">
+    <h3><?= __('Discussion') ?></h3>
     <div class="pagination">
         <?php
         if (!empty($posts)):
@@ -132,9 +132,8 @@
     <?php endif; ?>
     <div class="comment">
     <?php
-        if (isset($currentEvent)) $url = '/posts/add/event/' . $currentEvent;
-        else $url = '/posts/add/thread/' . $thread['Thread']['id'];
-        $url = h($url);
+        if (isset($currentEvent)) $url = $baseurl . '/posts/add/event/' . $currentEvent;
+        else $url = $baseurl . '/posts/add/thread/' . $thread['Thread']['id'];
         echo $this->Form->create('Post', array('url' => $url));
     ?>
         <fieldset>

@@ -19,7 +19,7 @@
             else:
                 if (Configure::read('MISP.showorg') || $isAdmin):
         ?>
-                    <th class="filter"><?php echo $this->Paginator->sort('Org'); ?></th>
+                    <th class="filter"><?php echo $this->Paginator->sort('Org', __('Creator org')); ?></th>
         <?php
                 endif;
                 if ($isSiteAdmin):

@@ -38,5 +38,9 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlacklistsAdd'));
+    if ($isSiteAdmin) {
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlacklistsAdd'));
+    } else {
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'eventBlacklistsAdd'));
+    }
 ?>
