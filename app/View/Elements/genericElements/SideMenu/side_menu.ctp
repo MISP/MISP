@@ -378,6 +378,21 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Automation')
                         ));
                     }
+                    if (!$isSiteAdmin && (int)$me['org_id'] === Configure::read('MISP.host_org_id')) {
+                        echo $divider;
+                        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'eventBlacklistsAdd',
+                                'url' => $baseurl . '/eventBlacklists/add',
+                                'text' => __('Blacklists Event')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'eventBlacklists',
+                                'url' => $baseurl . '/eventBlacklists',
+                                'text' => __('Manage Event Blacklists')
+                            ));
+                        }
+                    }
                 break;
 
                 case 'regexp':

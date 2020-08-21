@@ -8,7 +8,7 @@ class EventBlacklistsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        if (!$this->_isSiteAdmin()) {
+        if (!$this->_isSiteAdmin() && !((int)$this->Auth->user('org_id') === (int)Configure::read('MISP.host_org_id'))) {
             $this->redirect('/');
         }
         if (false === Configure::read('MISP.enableEventBlacklisting')) {

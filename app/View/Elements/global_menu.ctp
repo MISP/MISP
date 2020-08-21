@@ -86,7 +86,30 @@
                         'text' => __('Automation'),
                         'url' => $baseurl . '/events/automation',
                         'requirement' => $isAclAuth
-                    )
+                    ),
+                    array(
+                        'type' => 'separator',
+                        'requirement' =>
+                            Configure::read('MISP.enableEventBlacklisting') !== false &&
+                            !$isSiteAdmin &&
+                            (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
+                    ),
+                    array(
+                        'text' => __('Blacklist Event'),
+                        'url' => $baseurl . '/eventBlacklists/add',
+                        'requirement' =>
+                            Configure::read('MISP.enableEventBlacklisting') !== false &&
+                            !$isSiteAdmin &&
+                            (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
+                    ),
+                    array(
+                        'text' => __('Manage Event Blacklists'),
+                        'url' => $baseurl . '/eventBlacklists',
+                        'requirement' =>
+                            Configure::read('MISP.enableEventBlacklisting') !== false &&
+                            !$isSiteAdmin &&
+                            (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
+                    ),
                 )
             ),
             array(
