@@ -803,7 +803,7 @@ class EventsController extends AppController
                         $elements = ($total_events % 1000);
                     }
                     for ($j = 0; $j < $elements; $j++) {
-                        $event_tag_ids[$events[($i*1000) + $j]['Event']['id']] = array();
+                        $event_tag_ids[$events[($i*1000) + $j]['Event']['id']] = true;
                     }
                     $eventTags = $this->Event->EventTag->find('all', array(
                         'recursive' => -1,
@@ -830,7 +830,6 @@ class EventsController extends AppController
                             }
                         }
                     }
-                    $eventTags = array_values($eventTags);
                     for ($j = 0; $j < $elements; $j++) {
                         if (!empty($event_tag_objects[$events[($i*1000) + $j]['Event']['id']])) {
                             $events[($i*1000) + $j]['EventTag'] = $event_tag_objects[$events[($i*1000) + $j]['Event']['id']];
