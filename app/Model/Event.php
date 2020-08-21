@@ -632,11 +632,6 @@ class Event extends AppModel
         }
     }
 
-    public function isOwnedByOrg($eventid, $org)
-    {
-        return $this->field('id', array('id' => $eventid, 'org_id' => $org)) === $eventid;
-    }
-
     public function attachtagsToEvents($events)
     {
         $tagsToFetch = array();
