@@ -558,24 +558,30 @@ class User extends AppModel
         return $results;
     }
 
-    public function getPGP($id)
+    /**
+     * If you want to check if user has GPG or X.509 or send encrypted emails to that user, you need user keys. But by
+     * default, keys are part of default user model. This method add that keys to user model.
+     *
+     * @param array $user
+     * @return array
+     * @throws Exception
+     */
+    public function fillKeysToUser(array $user)
     {
+        if (empty($user['id'])) {
+            throw new InvalidArgumentException("Invalid user model provided, not ID found.");
+        }
         $result = $this->find('first', array(
             'recursive' => -1,
-            'fields' => array('id', 'gpgkey'),
-            'conditions' => array('id' => $id),
+            'fields' => array('certif_public', 'gpgkey'),
+            'conditions' => array('id' => $user['id']),
         ));
-        return $result['User']['gpgkey'];
-    }
-
-    public function getCertificate($id)
-    {
-        $result = $this->find('first', array(
-            'recursive' => -1,
-            'fields' => array('id', 'certif_public'),
-            'conditions' => array('id' => $id),
-        ));
-        return $result['User']['certif_public'];
+        if (!$result) {
+            throw new Exception("User with ID {$user['id']} not found.");
+        }
+        $user['gpgkey'] = $result['User']['gpgkey'];
+        $user['certif_public'] = $result['User']['certif_public'];
+        return $user;
     }
 
     // get the current user and rearrange it to be in the same format as in the auth component
