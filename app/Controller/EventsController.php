@@ -95,32 +95,7 @@ class EventsController extends AppController
 
         // if not admin or own org, check private as well..
         if (!$this->_isSiteAdmin() && in_array($this->action, $this->paginationFunctions)) {
-            $sgids = $this->Event->cacheSgids($this->Auth->user(), true);
-            $conditions = array(
-                'AND' => array(
-                    array(
-                        "OR" => array(
-                            array(
-                                'Event.org_id' => $this->Auth->user('org_id')
-                            ),
-                            array(
-                                'AND' => array(
-                                        'Event.distribution >' => 0,
-                                        'Event.distribution <' => 4,
-                                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                                ),
-                            ),
-                            array(
-                                'AND' => array(
-                                        'Event.distribution' => 4,
-                                        'Event.sharing_group_id' => $sgids,
-                                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                                ),
-                            )
-                        )
-                    )
-                )
-            );
+            $conditions = $this->Event->createEventConditions($this->Auth->user());
             if ($this->userRole['perm_sync'] && $this->Auth->user('Server')['push_rules']) {
                 $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
             }
