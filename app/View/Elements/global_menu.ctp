@@ -436,8 +436,10 @@
                 'type' => 'root',
                 'url' => '#',
                 'html' => sprintf(
-                    '<span class="fas fa-star %s" id="setHomePage" title="Set the current page as your home page in MISP" data-current-page="%s"></span>',
+                    '<span class="fas fa-star %s" id="setHomePage" title="%s" role="img" aria-label="%s" data-current-page="%s"></span>',
                     (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : '',
+		    __('Set the current page as your home page in MISP'),
+		    __('Set the current page as your home page in MISP'),		    
                     $this->here
                 )
             ),
@@ -455,8 +457,9 @@
                     $this->UserName->prepend($me['email']),
                     h($loggedInUserName),
                     sprintf(
-                        '<i class="fa fa-envelope %s"></i>',
-                        (($notifications['total'] == 0) ? 'white' : 'red')
+                        '<i class="fa fa-envelope %s" role="img" aria-label="%s"></i>',
+                        (($notifications['total'] == 0) ? 'white' : 'red'),
+                        __('Notifications') . ': ' . $notifications['total']
                     )
                 )
             ),

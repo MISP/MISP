@@ -190,7 +190,8 @@
                     'url_params_data_paths' => array(
                         'User.id'
                     ),
-                    'icon' => 'edit'
+                    'icon' => 'edit',
+                    'title' => __('Edit')
                 ),
                 array(
                     'url' => $baseurl . '/admin/users/delete',
@@ -199,14 +200,16 @@
                     ),
                     'postLink' => 1,
                     'postLinkConfirm' => __('Are you sure you want to delete the user? It is highly recommended to never delete users but to disable them instead.'),
-                    'icon' => 'trash'
+                    'icon' => 'trash',
+                    'title' => __('Delete')
                 ),
                 array(
                     'url' => $baseurl . '/admin/users/view',
                     'url_params_data_paths' => array(
                         'User.id'
                     ),
-                    'icon' => 'eye'
+                    'icon' => 'eye',
+                    'title' => __('View')
                 )
             )
         )
