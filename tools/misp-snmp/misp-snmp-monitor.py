@@ -10,6 +10,12 @@ misp_cachefile = "/home/misp/misp-snmp/misp-snmp.cache"	# Cache file to store st
 # Add a crontab to update the cache with
 #	*/30 * * * * 	misp	/home/misp/misp-snmp/misp-monitor.py update
 
+# Add to SNMP configuration
+#	extend  misp-workers    /home/misp/misp-snmp/misp-snmp-monitor.py workers
+#	extend  misp-jobs       /home/misp/misp-snmp/misp-snmp-monitor.py jobs
+#	extend  misp-stats      /home/misp/misp-snmp/misp-snmp-monitor.py stats
+#	extend  misp-users      /home/misp/misp-snmp/misp-snmp-monitor.py users
+
 misp_fail_data = -1
 misp_verifycert = False
 misp_useragent = "MISP SNMP"
