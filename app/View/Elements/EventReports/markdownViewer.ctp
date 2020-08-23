@@ -138,7 +138,7 @@
     var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
     var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
-    var dotTemplateAttributePicture = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer green\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
+    var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrapper attributePicture useCursorPointer\"><img data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" href=\"#\" src=\"{{=it.src}}\" alt=\"{{=it.alt}}\" title=\"\"/></div>");
     var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
     var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 
@@ -465,7 +465,10 @@
                 scope: 'attribute',
                 elementid: elementID,
                 type: attribute.type,
-                value: attribute.value
+                value: attribute.value,
+                alt: scope + ' ' + elementID,
+                src: '<?= $baseurl ?>/attributes/viewPicture/1235',
+                title: attribute.type + ' ' + attribute.value,
             })
             return dotTemplateAttributePicture(templateVariables);
         }
@@ -652,6 +655,13 @@
             title: getTitleFromMISPElementDOM,
             html: true,
             content: getContentFromMISPElementDOM
+        })
+        $('.misp-picture-wrapper > img').popover({
+            trigger: 'click',
+            title: getTitleFromMISPElementDOM,
+            html: true,
+            content: getContentFromMISPElementDOM,
+            placement: 'top'
         })
         $('.misp-element-wrapper').filter('.object').popover({
             trigger: 'click',
@@ -1229,6 +1239,11 @@ var syncSrcScroll = function () {
     border: 0;
     background-color: #3465a4 !important;
     color: #ffffff;
+}
+
+.attributePicture > img {
+    display: block;
+    margin: 0 auto;
 }
 
 .CodeMirror-hint-active .blue {
