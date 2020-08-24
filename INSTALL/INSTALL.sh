@@ -1273,8 +1273,8 @@ prepareDB () {
     #Make sure initial tables are created in MySQL
     #debug "Install mysql tables"
     #sudo mysql_install_db
-    #debug "start mysql"
-    #sudo service mysql start
+    debug "start mysql"
+    sudo service mysql start
     debug "Setting up database"
 
     # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
