@@ -357,7 +357,8 @@ class Warninglist extends AppModel
                     if (!empty($result)) {
                         if ($returnVerboseValue) {
                             $object['warnings'][] = array(
-                                'value' => $result,
+                                'value' => $result[0], // value matched
+                                'match' => $result[1],
                                 'warninglist_name' => $list['Warninglist']['name'],
                                 'warninglist_id' => $list['Warninglist']['id']
                             );
@@ -399,6 +400,14 @@ class Warninglist extends AppModel
         return $event;
     }
 
+    /**
+     * @param array $listValues
+     * @param string $value
+     * @param string $type Value type
+     * @param string $listType
+     * @param false $returnVerboseValue
+     * @return array|false|int
+     */
     private function __checkValue($listValues, $value, $type, $listType, $returnVerboseValue = false)
     {
         if ($type === 'malware-sample' || strpos($type, '|') !== false) {
@@ -421,12 +430,12 @@ class Warninglist extends AppModel
                 $result = $this->__evalHostname($listValues, $value[$component]);
             } elseif ($listType === 'regex') {
                 $result = $this->__evalRegex($listValues, $value[$component]);
+            } else {
+                // invalid list type
+                $result = false;
             }
-            if (!empty($result)) {
-                if ($returnVerboseValue) {
-                    return $value[$component];
-                }
-                return ($component + 1);
+            if ($result !== false) {
+                return $returnVerboseValue ? [$value[$component], $result] : ($component + 1);
             }
         }
         return false;
@@ -445,8 +454,14 @@ class Warninglist extends AppModel
         return (!empty($result) ? 1 : false);
     }
 
-    // This requires an IP type attribute in a non CIDR notation format
-    // For the future we can expand this to look for CIDR overlaps?
+    /**
+     * This requires an IP type attribute in a non CIDR notation format.
+     * For the future we can expand this to look for CIDR overlaps?
+     *
+     * @param array $listValues
+     * @param string $value
+     * @return false|string
+     */
     private function __evalCIDRList($listValues, $value)
     {
         if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
@@ -457,7 +472,7 @@ class Warninglist extends AppModel
                 $mask = -1 << (32 - $bits);
                 $needle = long2ip($ip & $mask) . "/$bits";
                 if (isset($listValues[$needle])) {
-                    return true;
+                    return $listValues[$needle];
                 }
             }
 
@@ -465,7 +480,7 @@ class Warninglist extends AppModel
             foreach ($listValues as $lv) {
                 if (strpos($lv, ':') !== false) { // IPv6 CIDR must contain dot
                     if ($this->__ipv6InCidr($value, $lv)) {
-                        return true;
+                        return $lv;
                     }
                 }
             }
@@ -474,7 +489,13 @@ class Warninglist extends AppModel
         return false;
     }
 
-    // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
+    /**
+     * Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
+     *
+     * @param string $ip
+     * @param string $cidr
+     * @return bool
+     */
     private function __ipv6InCidr($ip, $cidr)
     {
         list($address, $netmask) = explode('/', $cidr);
@@ -494,24 +515,39 @@ class Warninglist extends AppModel
         return true;
     }
 
+    /**
+     * @param array $listValues
+     * @param string $value
+     * @return false|string
+     */
     private function __evalString($listValues, $value)
     {
         if (isset($listValues[$value])) {
-            return true;
+            return $listValues[$value];
         }
         return false;
     }
 
+    /**
+     * @param array $listValues
+     * @param string $value
+     * @return bool|string
+     */
     private function __evalSubString($listValues, $value)
     {
         foreach ($listValues as $listValue) {
             if (strpos($value, $listValue) !== false) {
-                return true;
+                return $listValue;
             }
         }
         return false;
     }
 
+    /**
+     * @param array $listValues
+     * @param string $value
+     * @return bool|string
+     */
     private function __evalHostname($listValues, $value)
     {
         // php's parse_url is dumb, so let's use some hacky workarounds
@@ -536,17 +572,22 @@ class Warninglist extends AppModel
                 $rebuilt = $piece . '.' . $rebuilt;
             }
             if (isset($listValues[$rebuilt])) {
-                return true;
+                return $listValues[$rebuilt];
             }
         }
         return false;
     }
 
+    /**
+     * @param array $listValues
+     * @param string $value
+     * @return bool|string
+     */
     private function __evalRegex($listValues, $value)
     {
         foreach ($listValues as $listValue) {
             if (preg_match($listValue, $value)) {
-                return true;
+                return $listValue;
             }
         }
         return false;
