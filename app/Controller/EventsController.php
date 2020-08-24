@@ -731,7 +731,6 @@ class EventsController extends AppController
             ),
         ));
         $this->loadModel('GalaxyCluster');
-        $sgids = $this->Event->cacheSgids($this->Auth->user(), true);
 
         // for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
         if ($this->_isRest()) {
@@ -803,7 +802,7 @@ class EventsController extends AppController
                         $elements = ($total_events % 1000);
                     }
                     for ($j = 0; $j < $elements; $j++) {
-                        $event_tag_ids[$events[($i*1000) + $j]['Event']['id']] = array();
+                        $event_tag_ids[$events[($i*1000) + $j]['Event']['id']] = true;
                     }
                     $eventTags = $this->Event->EventTag->find('all', array(
                         'recursive' => -1,
@@ -830,7 +829,6 @@ class EventsController extends AppController
                             }
                         }
                     }
-                    $eventTags = array_values($eventTags);
                     for ($j = 0; $j < $elements; $j++) {
                         if (!empty($event_tag_objects[$events[($i*1000) + $j]['Event']['id']])) {
                             $events[($i*1000) + $j]['EventTag'] = $event_tag_objects[$events[($i*1000) + $j]['Event']['id']];
@@ -841,10 +839,6 @@ class EventsController extends AppController
                 }
                 $events = $this->GalaxyCluster->attachClustersToEventIndex($events);
                 foreach ($events as $key => $event) {
-                    if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
-                        unset($events[$key]);
-                        continue;
-                    }
                     $temp = $events[$key]['Event'];
                     $temp['Org'] = $event['Org'];
                     $temp['Orgc'] = $event['Orgc'];
@@ -871,10 +865,6 @@ class EventsController extends AppController
         } else {
             $events = $this->paginate();
             foreach ($events as $k => $event) {
-                if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
-                    unset($events[$k]);
-                    continue;
-                }
                 if (empty($event['SharingGroup']['name'])) {
                     unset($events[$k]['SharingGroup']);
                 }
@@ -899,19 +889,22 @@ class EventsController extends AppController
             $this->set('events', $events);
         }
 
-        if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
+        $user = $this->Auth->user();
+        $user = $this->Event->User->fillKeysToUser($user);
+
+        if (empty($user['gpgkey']) && Configure::read('GnuPG.onlyencrypted')) {
             // No GnuPG
-            if (Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
+            if (Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
                 // No GnuPG and No SMIME
-                $this->Flash->info(__('No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile.'));
+                $this->Flash->info(__('No X.509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile.'));
             } elseif (!Configure::read('SMIME.enabled')) {
                 $this->Flash->info(__('No GnuPG key set in your profile. To receive emails, submit your public key in your profile.'));
             }
-        } elseif ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
+        } elseif ($this->Auth->user('autoalert') && empty($user['gpgkey']) && Configure::read('GnuPG.bodyonlyencrypted')) {
             // No GnuPG & autoalert
-            if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
+            if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
                 // No GnuPG and No SMIME & autoalert
-                $this->Flash->info(__('No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile.'));
+                $this->Flash->info(__('No X.509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile.'));
             } elseif (!Configure::read('SMIME.enabled')) {
                 $this->Flash->info(__('No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
             }
@@ -2805,8 +2798,7 @@ class EventsController extends AppController
                 $creator_only = $this->request->data['Event']['person'];
             }
             $user = $this->Auth->user();
-            $user['gpgkey'] = $this->Event->User->getPGP($user['id']);
-            $user['certif_public'] = $this->Event->User->getCertificate($user['id']);
+            $user = $this->Event->User->fillKeysToUser($user);
 
             $success = $this->Event->sendContactEmailRouter($id, $message, $creator_only, $user, $this->_isSiteAdmin());
             if ($success) {
