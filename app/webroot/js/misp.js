@@ -1254,21 +1254,22 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             closePopover = false;
             break;
         case 'addObjectReference':
-            url = baseurl + "/objectReferences/add/" + context_id;
-            break;
         case 'quickAddAttributeForm':
-            url = baseurl + "/objects/quickAddAttributeForm/" + context_id;
-            break;
         case 'acceptUserRegistrations':
-            url = baseurl + "/users/acceptRegistrations/" + context_id
+            // nothing to change
             break;
     }
-    if ($("#submitButton").parent().hasClass('modal-footer')) {
-        var $form = $("#submitButton").parent().parent().find('.modal-body form');
-        url = baseurl + $form.attr('action');
+    var $submitButton = $("#submitButton");
+    if ($submitButton.parent().hasClass('modal-footer')) {
+        var $form = $submitButton.parent().parent().find('.modal-body form');
+        url = $form.attr('action');
     } else {
-        var $form = $("#submitButton").closest("form");
-        url = baseurl + $form.attr('action');
+        var $form = $submitButton.closest("form");
+        url = $form.attr('action');
+    }
+    // Prepend URL with baseurl if URL is relative
+    if (!url.startsWith('http')) {
+        url = baseurl + url;
     }
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
@@ -1288,7 +1289,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             }
         },
         data: $form.serialize(),
-        success:function (data, textStatus) {
+        success: function (data, textStatus) {
             var result;
             if (closePopover) {
                 if (modal) {
@@ -1326,7 +1327,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
         url: url,
     });
     return false;
-};
+}
 
 function handleAjaxModalResponse(response, context_id, url, referer, context, contextNamingConvention) {
     responseArray = response;
