@@ -1254,12 +1254,17 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             closePopover = false;
             break;
     }
-    if ($("#submitButton").parent().hasClass('modal-footer')) {
-        var $form = $("#submitButton").parent().parent().find('.modal-body form');
+    var $submitButton = $("#submitButton");
+    if ($submitButton.parent().hasClass('modal-footer')) {
+        var $form = $submitButton.parent().parent().find('.modal-body form');
         url = $form.attr('action');
     } else {
-        var $form = $("#submitButton").closest("form");
+        var $form = $submitButton.closest("form");
         url = $form.attr('action');
+    }
+    // Prepend URL with baseurl if URL is relative
+    if (!url.startsWith('http')) {
+        url = baseurl + url;
     }
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
@@ -1279,7 +1284,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
             }
         },
         data: $form.serialize(),
-        success:function (data, textStatus) {
+        success: function (data, textStatus) {
             var result;
             if (closePopover) {
                 if (modal) {
@@ -1317,7 +1322,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
         url: url,
     });
     return false;
-};
+}
 
 function handleAjaxModalResponse(response, context_id, url, referer, context, contextNamingConvention) {
     responseArray = response;
