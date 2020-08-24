@@ -1253,22 +1253,13 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
         case 'addSighting':
             closePopover = false;
             break;
-        case 'addObjectReference':
-            url = baseurl + "/objectReferences/add/" + context_id;
-            break;
-        case 'quickAddAttributeForm':
-            url = baseurl + "/objects/quickAddAttributeForm/" + context_id;
-            break;
-        case 'acceptUserRegistrations':
-            url = baseurl + "/users/acceptRegistrations/" + context_id
-            break;
     }
     if ($("#submitButton").parent().hasClass('modal-footer')) {
         var $form = $("#submitButton").parent().parent().find('.modal-body form');
-        url = baseurl + $form.attr('action');
+        url = $form.attr('action');
     } else {
         var $form = $("#submitButton").closest("form");
-        url = baseurl + $form.attr('action');
+        url = $form.attr('action');
     }
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
