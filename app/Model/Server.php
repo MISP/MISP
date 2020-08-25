@@ -2784,6 +2784,8 @@ class Server extends AppModel
      * @return array Array of event UUIDs.
      * @throws JsonException
      * @throws InvalidArgumentException
+     * @throws HttpException
+     * @throws Exception
      */
     public function getEventIdsFromServer(array $server, $all = false, HttpSocket $HttpSocket = null, $ignoreFilterRules = false, $scope = 'events', $force = false)
     {
@@ -5462,9 +5464,16 @@ class Server extends AppModel
         return $event;
     }
 
-    // Loops through all servers and checks which servers' push rules don't conflict with the given event.
-    // returns the server objects that would allow the event to be pushed
-    public function eventFilterPushableServers($event, $servers)
+    /**
+     * Loops through all servers and checks which servers' push rules don't conflict with the given events
+     * returns the server objects that would allow the event to be pushed.
+     *
+     * @param array $event
+     * @param array $servers
+     * @return array Valid servers
+     * @throws JsonException
+     */
+    public function eventFilterPushableServers(array $event, array $servers)
     {
         $eventTags = array();
         $validServers = array();
@@ -5472,7 +5481,7 @@ class Server extends AppModel
             $eventTags[] = $tag['tag_id'];
         }
         foreach ($servers as $server) {
-            $push_rules = json_decode($server['Server']['push_rules'], true);
+            $push_rules = $this->jsonDecode($server['Server']['push_rules']);
             if (!empty($push_rules['tags']['OR'])) {
                 $intersection = array_intersect($push_rules['tags']['OR'], $eventTags);
                 if (empty($intersection)) {

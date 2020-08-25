@@ -1112,6 +1112,7 @@ class Event extends AppModel
                 foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
                     if ($sgs['server_id'] == $server['Server']['id']) {
                         $found = true;
+                        break;
                     }
                 }
                 if (!$found) {
@@ -1122,12 +1123,12 @@ class Event extends AppModel
             }
         }
         $serverModel = ClassRegistry::init('Server');
-        $server = $serverModel->eventFilterPushableServers($event, array($server));
-        if (empty($server)) {
+        if (count($serverModel->eventFilterPushableServers($event, array($server))) === 0) {
+            $this->log("Uploading event {$event['Event']['id']} to remote servers: event denied by server {$server['Server']['id']} filters", LOG_NOTICE);
             return 403;
         }
-        $server = $server[0];
         if ($this->checkDistributionForPush($event, $server, 'Event')) {
+            $this->log("Uploading event {$event['Event']['id']} to remote servers: event denied by server {$server['Server']['id']} distribution", LOG_NOTICE);
             $event = $this->__updateEventForSync($event, $server);
         } else {
             return 403;
@@ -4118,29 +4119,43 @@ class Event extends AppModel
         return true;
     }
 
-    // Uploads this specific event or sightings to all remote servers
+    /**
+     * Uploads this specific event or sightings to all remote servers.
+     *
+     * @param int $id Event ID
+     * @param int|null $passAlong
+     * @param string $scope Can be 'events' or 'sightings'
+     * @return array|bool
+     * @throws Exception
+     */
     public function uploadEventToServersRouter($id, $passAlong = null, $scope = 'events')
     {
+        if (!in_array($scope, ['events', 'sightings'])) {
+            throw new InvalidArgumentException("Invalid 'scope' argument provided" );
+        }
         $eventOrgcId = $this->find('first', array(
             'conditions' => array('Event.id' => $id),
             'recursive' => -1,
             'fields' => array('Event.orgc_id')
         ));
+        if (!$eventOrgcId) {
+            $this->log("Uploading event $id to remote servers: event not found");
+            return true;
+        }
         // we create a fake site admin user object to fetch the event with everything included
         // This replaces the old method of manually just fetching everything, staying consistent
         // with the fetchEvent() output
         $elevatedUser = array(
             'Role' => array(
                 'perm_site_admin' => 1,
-                'perm_sync' => 1
+                'perm_sync' => 1,
+                'perm_audit' => 0,
             ),
             'org_id' => $eventOrgcId['Event']['orgc_id']
         );
-        $elevatedUser['Role']['perm_site_admin'] = 1;
-        $elevatedUser['Role']['perm_sync'] = 1;
-        $elevatedUser['Role']['perm_audit'] = 0;
         $event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'metadata' => 1));
         if (empty($event)) {
+            $this->log("Uploading event $id to remote servers: event not found");
             return true;
         }
         $event = $event[0];
@@ -4161,27 +4176,31 @@ class Event extends AppModel
         ));
         // iterate over the servers and upload the event
         if (empty($servers)) {
+            $this->log("Uploading event $id to remote servers: no server found", LOG_NOTICE);
             return true;
         }
+        $this->log("Uploading event $id to remote servers: " . count($servers) . " servers found", LOG_INFO);
+
         $uploaded = true;
         $failedServers = array();
         App::uses('SyncTool', 'Tools');
-        foreach ($servers as &$server) {
+        $syncTool = new SyncTool();
+        foreach ($servers as $server) {
             if (
                 ($scope === 'events' &&
                     (!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2) ||
                 ($scope === 'sightings' &&
                     (!isset($server['Server']['push_sightings']) || !$server['Server']['push_sightings']))
             ) {
+                $this->log("Uploading event $id to remote servers: skipping server {$server['Server']['name']}", LOG_INFO);
                 continue;
             }
-            $syncTool = new SyncTool();
             $HttpSocket = $syncTool->setupHttpSocket($server);
             // Skip servers where the event has come from.
             if (($passAlong != $server['Server']['id'])) {
                 $params = array();
                 if (!empty($server['Server']['push_rules'])) {
-                    $push_rules = json_decode($server['Server']['push_rules'], true);
+                    $push_rules = $this->jsonDecode($server['Server']['push_rules']);
                     if (!empty($push_rules['tags']['NOT'])) {
                         $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
                     }
@@ -4190,8 +4209,8 @@ class Event extends AppModel
                     'eventid' => $id,
                     'includeAttachments' => true,
                     'includeAllTags' => true,
-                    'deleted' => array(0,1),
-                    'excludeGalaxy' => 1
+                    'deleted' => array(0, 1),
+                    'excludeGalaxy' => 1,
                 ));
                 if (!empty($server['Server']['internal'])) {
                     $params['excludeLocalTags'] = 0;
@@ -4220,7 +4239,10 @@ class Event extends AppModel
                         $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
                     }
                 }
-                if (!$thisUploaded) {
+                if ($thisUploaded === true || $thisUploaded === 'Success') { // ugly, I know...
+                    $this->log("Uploading event $id to remote servers: successfully uploaded to server {$server['Server']['name']}", LOG_INFO);
+                } else {
+                    $this->log("Uploading event $id to remote servers: error when uploading to {$server['Server']['name']} - $thisUploaded", LOG_WARNING);
                     $uploaded = !$uploaded ? $uploaded : $thisUploaded;
                     $failedServers[] = $server['Server']['url'];
                 }
