@@ -790,6 +790,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'beforeHook' => 'ipLogBeforeHook'
                         ),
+                        'log_client_ip_header' => array(
+                            'level' => 1,
+                            'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy infront of your MISP instance.'),
+                            'value' => 'REMOTE_ADDR',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
+                            'null' => true,
+                        ),
                         'log_auth' => array(
                                 'level' => 1,
                                 'description' => __('If enabled, MISP will log all successful authentications using API keys. The requested URLs are also logged.'),
