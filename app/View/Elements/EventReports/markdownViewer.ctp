@@ -120,7 +120,6 @@
 
     // - Add last modified timestamp & time since last edit
     // - Add Picker for elements [correlation/eventGraph picture/tags/galaxyMatrix]
-    // - Add support of picture (attachment) in the markdown
 ?>
 <script>
     'use strict';
@@ -139,6 +138,7 @@
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
     var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
     var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrapper attributePicture useCursorPointer\"><img data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" href=\"#\" src=\"{{=it.src}}\" alt=\"{{=it.alt}}\" title=\"\"/></div>");
+    var dotTemplateEventgraph = doT.template("<div class=\"misp-picture-wrapper eventgraphPicture\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
     var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
     var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 
@@ -409,7 +409,7 @@
     }
 
     function MISPElementRenderer(tokens, idx, options, env, slf) {
-        var allowedScope = ['attribute', 'object']
+        var allowedScope = ['attribute', 'object', 'eventgraph']
         var token = tokens[idx];
         var scope = token.content.scope
         var elementID = token.content.elementID
@@ -454,6 +454,19 @@
                 })
                 return dotTemplateObject(templateVariables);
             }
+        } else if (scope == 'eventgraph') {
+            // var eventgraph = proxyMISPElements[scope][elementID]
+            // if (eventgraph !== undefined) {
+            //     templateVariables = sanitizeObject({
+            //         scope: 'object',
+            //         elementid: elementID,
+            //         type: eventgraph.name,
+            //         value: eventgraph.Attribute.length
+            //     })
+            //     return dotTemplateObject(templateVariables);
+            // }
+            setTimeout(function() { attachEventgraphPicture('.eventgraphPicture[data-scope="eventgraph"][data-eventid="' + 188 + '"][data-elementid="' + 1 + '"]', 188, 1) }, 200)
+            return dotTemplateEventgraph({scope: 'eventgraph', elementid: 1, eventid: 188});
         }
         return renderInvalidMISPElement(scope, elementID)
     }
@@ -614,6 +627,18 @@
 
     function showHelp() {
         $('#genericModal.markdown-modal-helper').modal();
+    }
+
+    function attachEventgraphPicture(selecteur, eventID, graphID) {
+        $.getJSON('/eventGraph/view/' + eventID + '/' + graphID, function (data) {
+            if (data) {
+                var dataPicture = data[0]['EventGraph']['preview_img']
+                if (dataPicture !== undefined) {
+                    $(selecteur).empty().append($('<img />').attr('src', dataPicture))
+                }
+            }
+            return false
+        })
     }
 
     function replaceMISPElementByTheirValue(raw) {
