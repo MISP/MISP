@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Warninglist $Warninglist
+ */
 class WarninglistsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -186,7 +189,6 @@ class WarninglistsController extends AppController
             $this->Warninglist->regenerateWarninglistCaches($warningList['Warninglist']['id']);
         }
         if ($success) {
-            $this->Warninglist->regenerateWarninglistCaches($id);
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success . __(' warninglist(s) ') . $message)), 'status' => 200, 'type' => 'json')); // TODO: non-SVO lang considerations
         } else {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Warninglist(s) could not be toggled.'))), 'status' => 200, 'type' => 'json'));
@@ -267,7 +269,6 @@ class WarninglistsController extends AppController
     public function checkValue()
     {
         if ($this->request->is('post')) {
-            $warninglists = $this->Warninglist->getWarninglists(array());
             if (empty($this->request->data)) {
                 throw new NotFoundException(__('No valid data received.'));
             }
@@ -279,13 +280,18 @@ class WarninglistsController extends AppController
                 $data = $data['[]'];
             }
             $hits = array();
-            foreach ($data as $dataPoint) {
-                foreach ($warninglists as $warninglist) {
-                    $listValues = $this->Warninglist->getWarninglistEntries($warninglist['Warninglist']['id']);
-                    $listValues = array_combine($listValues, $listValues);
+            $warninglists = $this->Warninglist->getEnabledWarninglists();
+            foreach ($warninglists as $warninglist) {
+                $listValues = $this->Warninglist->getWarninglistEntries($warninglist['Warninglist']['id']);
+                $listValues = array_combine($listValues, $listValues);
+
+                foreach ($data as $dataPoint) {
                     $result = $this->Warninglist->quickCheckValue($listValues, $dataPoint, $warninglist['Warninglist']['type']);
                     if ($result) {
-                        $hits[$dataPoint][] = array('id' => $warninglist['Warninglist']['id'], 'name' => $warninglist['Warninglist']['name']);
+                        $hits[$dataPoint][] = array(
+                            'id' => $warninglist['Warninglist']['id'],
+                            'name' => $warninglist['Warninglist']['name']
+                        );
                     }
                 }
             }
