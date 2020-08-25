@@ -1,5 +1,5 @@
 <?php
-    $urlHere = Router::url(null, true);
+    $urlHere = Router::url(null);
     $urlHere = explode('/', $urlHere);
     foreach ($urlHere as $k => $v) {
         $urlHere[$k] = urlencode($v);

@@ -3616,7 +3616,7 @@ function syncUserSelected() {
 }
 
 function filterAttributes(filter, id) {
-    url = baseurl + "/events/viewEventAttributes/" + id;
+    var url = baseurl + "/events/viewEventAttributes/" + id;
     if(filter === 'value'){
         filter = encodeURIComponent($('#quickFilterField').val().trim());
         url += filter.length > 0 ? "/searchFor:" + filter : "";
@@ -3627,8 +3627,8 @@ function filterAttributes(filter, id) {
     }
     if (deleted) url += '/deleted:true';
     $.ajax({
-        type:"get",
-        url:url,
+        type: "get",
+        url: url,
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -3650,12 +3650,14 @@ function pivotObjectReferences(url, uuid) {
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
-        success:function (data) {
+        success: function (data) {
             $("#attributes_div").html(data);
-            $(".loading").hide();
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
+        },
+        complete: function() {
+            $(".loading").hide();
         }
     });
 }
@@ -3690,15 +3692,18 @@ function toggleBoolFilter(url, param) {
     url += buildFilterURL(res);
     url = url.replace(/view\//i, 'viewEventAttributes/');
     $.ajax({
-        type:"get",
-        url:url,
-        beforeSend: function (XMLHttpRequest) {
+        type: "get",
+        url: url,
+        beforeSend: function () {
             $(".loading").show();
+        },
+        complete: function () {
+            $(".loading").hide();
         },
         success:function (data) {
             $("#attributes_div").html(data);
             querybuilderTool = undefined;
-            $(".loading").hide();
+
         },
         error:function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
