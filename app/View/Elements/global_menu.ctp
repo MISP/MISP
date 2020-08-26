@@ -298,6 +298,11 @@
                         'text' => __('List Communities'),
                         'url' => $baseurl . '/communities/index',
                         'requirement' => ($isSiteAdmin)
+                    ),
+                    array(
+                        'text' => __('Event ID translator'),
+                        'url' => '/servers/idTranslator',
+                        'requirement' => ($isSiteAdmin || $hostOrgUser)
                     )
                 )
             ),
