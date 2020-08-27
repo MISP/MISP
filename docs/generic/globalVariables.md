@@ -7,11 +7,8 @@
 MISPvars () {
   debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours" 2> /dev/null
   # Local non-root MISP user
-  MISP_USER='misp'
+  MISP_USER="${MISP_USER:-misp}"
   MISP_PASSWORD="$(openssl rand -hex 32)"
-
-  # MISP configuration variables
-  PATH_TO_MISP='/var/www/MISP'
 
   # The web server user
   # RHEL/CentOS
@@ -25,13 +22,13 @@ MISPvars () {
   # OpenBSD
   elif [[ "$(uname -s)" == "OpenBSD" ]]; then
     WWW_USER="www"
-    PATH_TO_MISP="/var/www/htdocs/MISP"
+    PATH_TO_MISP="${PATH_TO_MISP:-/var/www/htdocs/MISP}"
     SUDO_WWW="doas -u www "
     SUDO_CMD="doas "
   # NetBSD
   elif [[ "$(uname -s)" == "NetBSD" ]]; then
     WWW_USER="www"
-    PATH_TO_MISP="/usr/pkg/share/httpd/htdocs/MISP"
+    PATH_TO_MISP="$PATH_TO_MISP:-/usr/pkg/share/httpd/htdocs/MISP}"
     SUDO_WWW="sudo -H -u ${WWW_USER} "
   else
     # I am feeling lucky
@@ -39,13 +36,12 @@ MISPvars () {
     SUDO_WWW="sudo -H -u ${WWW_USER} "
   fi
 
-  if [ -z "${FQDN}" ]; then
-    FQDN="misp.local"
-  fi
+  # MISP configuration variables
+  PATH_TO_MISP="${PATH_TO_MISP:-/var/www/MISP}"
 
-  if [ -z "${MISP_BASEURL}" ]; then
-    MISP_BASEURL='""'
-  fi
+  FQDN="${FQDN:-misp.local}"
+
+  MISP_BASEURL="${MISP_BASEURL:-""}"
 
   MISP_LIVE='1'
 
