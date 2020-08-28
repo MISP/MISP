@@ -394,10 +394,19 @@ class ShadowAttribute extends AppModel
         return in_array($type, $this->zippedDefinitions) || in_array($type, $this->uploadDefinitions);
     }
 
-    public function base64EncodeAttachment($attribute)
+    public function base64EncodeAttachment(array $attribute)
     {
-        $content = $this->loadAttachmentTool()->getShadowContent($attribute['event_id'], $attribute['id']);
-        return base64_encode($content);
+        try {
+            return base64_encode($this->getAttachment($attribute));
+        } catch (NotFoundException $e) {
+            $this->log($e->getMessage(), LOG_NOTICE);
+            return '';
+        }
+    }
+
+    public function getAttachment($attribute, $path_suffix='')
+    {
+        return $this->loadAttachmentTool()->getShadowContent($attribute['event_id'], $attribute['id'], $path_suffix);
     }
 
     public function saveBase64EncodedAttachment($attribute)
