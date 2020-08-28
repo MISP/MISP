@@ -5381,7 +5381,7 @@ class Event extends AppModel
                                 foreach ($ft['types'] as $type) {
                                     $temp[$type] = $type;
                                 }
-                                $ft['event_id'] = $eventid;
+                                $ft['event_id'] = $event_id;
                                 $ft['types'] = $temp;
                                 $ft['comment'] = isset($r['comment']) ? $r['comment'] : false;
                             }
