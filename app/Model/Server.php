@@ -4752,9 +4752,9 @@ class Server extends AppModel
         $dbActualIndexes = array();
         $dataSource = $this->getDataSource()->config['datasource'];
         if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
-            $sqlGetTable = sprintf('SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = %s;', "'" . $this->getDataSource()->config['database'] . "'");
+            $sqlGetTable = sprintf('SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = %s ORDER BY TABLE_NAME;', "'" . $this->getDataSource()->config['database'] . "'");
             $sqlResult = $this->query($sqlGetTable);
-            $tables = HASH::extract($sqlResult, '{n}.tables.TABLE_NAME');
+            $tables = Hash::extract($sqlResult, '{n}.tables.TABLE_NAME');
             foreach ($tables as $table) {
                 $sqlSchema = sprintf(
                     "SELECT %s
@@ -4878,53 +4878,120 @@ class Server extends AppModel
         return $dbDiff;
     }
 
-    public function compareDBIndexes($actualIndex, $expectedIndex, $dbExpectedSchema)
+    /**
+     * Returns `true` if given column for given table contains just unique values.
+     *
+     * @param string $tableName
+     * @param string $columnName
+     * @return bool
+     */
+    private function checkIfColumnContainsJustUniqueValues($tableName, $columnName)
     {
-        $defaultIndexKeylength = 255;
+        $db = $this->getDataSource();
+        $duplicates = $this->query(
+            sprintf('SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING c > 1;',
+                $db->name($columnName), $db->name($tableName), $db->name($columnName))
+        );
+        return empty($duplicates);
+    }
+
+    private function generateSqlDropIndexQuery($tableName, $columnName)
+    {
+        return sprintf('DROP INDEX `%s` ON %s;',
+            $columnName,
+            $tableName
+        );
+    }
+
+    private function generateSqlIndexQuery(array $dbExpectedSchema, $tableName, $columnName, $shouldBeUnique = false, $defaultIndexKeylength = 255)
+    {
+        $columnData = Hash::extract($dbExpectedSchema['schema'][$tableName], "{n}[column_name=$columnName]");
+        if (empty($columnData)) {
+            throw new Exception("Index in db_schema.json is defined for `$tableName.$columnName`, but this column is not defined.");
+        }
+
+        $columnData = $columnData[0];
+        if ($columnData['data_type'] === 'varchar') {
+            $keyLength = sprintf('(%s)', $columnData['character_maximum_length'] < $defaultIndexKeylength ? $columnData['character_maximum_length'] : $defaultIndexKeylength);
+        } elseif ($columnData['data_type'] === 'text') {
+            $keyLength = sprintf('(%s)', $defaultIndexKeylength);
+        } else {
+            $keyLength = '';
+        }
+        return sprintf('CREATE%s INDEX `%s` ON `%s` (`%s`%s);',
+            $shouldBeUnique ? ' UNIQUE' : '',
+            $columnName,
+            $tableName,
+            $columnName,
+            $keyLength
+        );
+    }
+
+    public function compareDBIndexes(array $actualIndex, array $expectedIndex, array $dbExpectedSchema)
+    {
         $allowedlistTables = array();
         $indexDiff = array();
-        foreach($expectedIndex as $tableName => $indexes) {
+        foreach ($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
                 continue; // If table does not exists, it is covered by the schema diagnostic
             } elseif(in_array($tableName, $allowedlistTables)) {
                 continue; // Ignore allowedlisted tables
             } else {
-                $tableIndexDiff = array_diff($indexes, $actualIndex[$tableName]); // check for missing indexes
-                if (count($tableIndexDiff) > 0) {
-                    foreach($tableIndexDiff as $columnDiff) {
-                        $columnData  = Hash::extract($dbExpectedSchema['schema'][$tableName], sprintf('{n}[column_name=%s]', $columnDiff))[0];
-                        $message = sprintf(__('Column `%s` should be indexed'), $columnDiff);
-                        if ($columnData['data_type'] == 'varchar') {
-                            $keyLength = sprintf('(%s)', $columnData['character_maximum_length'] < $defaultIndexKeylength ? $columnData['character_maximum_length'] : $defaultIndexKeylength);
-                        } elseif ($columnData['data_type'] == 'text') {
-                            $keyLength = sprintf('(%s)', $defaultIndexKeylength);
-                        } else {
-                            $keyLength = '';
-                        }
-                        $sql = sprintf('CREATE INDEX `%s` ON `%s` (`%s`%s);',
-                            $columnDiff,
-                            $tableName,
-                            $columnDiff,
-                            $keyLength
-                        );
+                $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
+                foreach ($tableIndexDiff as $columnDiff) {
+                    $shouldBeUnique = $indexes[$columnDiff];
+                    if ($shouldBeUnique && !$this->checkIfColumnContainsJustUniqueValues($tableName, $columnDiff)) {
                         $indexDiff[$tableName][$columnDiff] = array(
-                            'message' => $message,
-                            'sql' => $sql
+                            'message' => __('Column `%s` should be unique indexed, but contains duplicate values', $columnDiff),
+                            'sql' => '',
                         );
+                        continue;
                     }
+
+                    $message = __('Column `%s` should be indexed', $columnDiff);
+                    $indexDiff[$tableName][$columnDiff] = array(
+                        'message' => $message,
+                        'sql' => $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $columnDiff, $shouldBeUnique),
+                    );
                 }
-                $tableIndexDiff = array_diff($actualIndex[$tableName], $indexes); // check for additional indexes
-                if (count($tableIndexDiff) > 0) {
-                    foreach($tableIndexDiff as $columnDiff) {
-                        $message = sprintf(__('Column `%s` is indexed but should not'), $columnDiff);
-                        $sql = sprintf('DROP INDEX `%s` ON %s;',
-                            $columnDiff,
-                            $tableName
-                        );
-                        $indexDiff[$tableName][$columnDiff] = array(
-                            'message' => $message,
-                            'sql' => $sql
-                        );
+                $tableIndexDiff = array_diff(array_keys($actualIndex[$tableName]), array_keys($indexes)); // check for additional indexes
+                foreach ($tableIndexDiff as $columnDiff) {
+                    $message = __('Column `%s` is indexed but should not', $columnDiff);
+                    $indexDiff[$tableName][$columnDiff] = array(
+                        'message' => $message,
+                        'sql' => $this->generateSqlDropIndexQuery($tableName, $columnDiff),
+                    );
+                }
+                foreach ($indexes as $column => $unique) {
+                    if (isset($actualIndex[$tableName][$column]) && $actualIndex[$tableName][$column] != $unique) {
+                        if ($actualIndex[$tableName][$column]) {
+                            $sql = $this->generateSqlDropIndexQuery($tableName, $column);
+                            $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, false);
+
+                            $message = __('Column `%s` has unique index, but should be non unique', $column);
+                            $indexDiff[$tableName][$column] = array(
+                                'message' => $message,
+                                'sql' => $sql,
+                            );
+                        } else {
+                            if (!$this->checkIfColumnContainsJustUniqueValues($tableName, $column)) {
+                                $message = __('Column `%s` should be unique index, but contains duplicate values', $column);
+                                $indexDiff[$tableName][$column] = array(
+                                    'message' => $message,
+                                    'sql' => '',
+                                );
+                                continue;
+                            }
+
+                            $sql = $this->generateSqlDropIndexQuery($tableName, $column);
+                            $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, true);
+
+                            $message = __('Column `%s` should be unique index', $column);
+                            $indexDiff[$tableName][$column] = array(
+                                'message' => $message,
+                                'sql' => $sql,
+                            );
+                        }
                     }
                 }
             }
@@ -4932,16 +4999,27 @@ class Server extends AppModel
         return $indexDiff;
     }
 
+    /**
+     * Returns indexes for given schema and table in array, where key is column name and value is `true` if
+     * index is index is unique, `false` otherwise.
+     *
+     * @param string $database
+     * @param string $table
+     * @return array
+     */
     public function getDatabaseIndexes($database, $table)
     {
         $sqlTableIndex = sprintf(
-            "SELECT DISTINCT TABLE_NAME, COLUMN_NAME FROM information_schema.statistics WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s';",
+            "SELECT DISTINCT TABLE_NAME, COLUMN_NAME, NON_UNIQUE FROM information_schema.statistics WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s';",
             $database,
             $table
         );
         $sqlTableIndexResult = $this->query($sqlTableIndex);
-        $tableIndex = Hash::extract($sqlTableIndexResult, '{n}.statistics.COLUMN_NAME');
-        return $tableIndex;
+        $output = [];
+        foreach ($sqlTableIndexResult as $index) {
+            $output[$index['statistics']['COLUMN_NAME']] = $index['statistics']['NON_UNIQUE'] == 0;
+        }
+        return $output;
     }
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)

@@ -6775,397 +6775,415 @@
         ]
     },
     "indexes": {
-        "admin_settings": [
-            "id"
-        ],
-        "attribute_tags": [
-            "id",
-            "attribute_id",
-            "event_id",
-            "tag_id"
-        ],
-        "attributes": [
-            "id",
-            "uuid",
-            "event_id",
-            "sharing_group_id",
-            "type",
-            "category",
-            "value1",
-            "value2",
-            "object_id",
-            "object_relation",
-            "deleted",
-            "first_seen",
-            "last_seen"
-        ],
+        "admin_settings": {
+            "id": true
+        },
+        "attributes": {
+            "id": true,
+            "uuid": true,
+            "event_id": false,
+            "sharing_group_id": false,
+            "type": false,
+            "category": false,
+            "value1": false,
+            "value2": false,
+            "object_id": false,
+            "object_relation": false,
+            "deleted": false,
+            "first_seen": false,
+            "last_seen": false
+        },
+        "attribute_tags": {
+            "id": true,
+            "attribute_id": false,
+            "event_id": false,
+            "tag_id": false
+        },
         "bruteforces": [],
-        "cake_sessions": [
-            "id",
-            "expires"
-        ],
-        "correlations": [
-            "id",
-            "event_id",
-            "1_event_id",
-            "attribute_id",
-            "1_attribute_id"
-        ],
-        "dashboards": [
-            "id",
-            "name",
-            "uuid",
-            "user_id",
-            "restrict_to_org_id",
-            "restrict_to_permission_flag"
-        ],
-        "decaying_model_mappings": [
-            "id",
-            "model_id"
-        ],
-        "decaying_models": [
-            "id",
-            "uuid",
-            "name",
-            "org_id",
-            "enabled",
-            "all_orgs",
-            "version"
-        ],
-        "event_blacklists": [
-            "id",
-            "event_uuid",
-            "event_orgc"
-        ],
-        "event_delegations": [
-            "id",
-            "org_id",
-            "event_id"
-        ],
-        "event_graph": [
-            "id",
-            "event_id",
-            "user_id",
-            "org_id",
-            "timestamp"
-        ],
-        "event_locks": [
-            "id",
-            "event_id",
-            "user_id",
-            "timestamp"
-        ],
-        "event_tags": [
-            "id",
-            "event_id",
-            "tag_id"
-        ],
-        "events": [
-            "id",
-            "uuid",
-            "info",
-            "sharing_group_id",
-            "org_id",
-            "orgc_id",
-            "extends_uuid"
-        ],
-        "favourite_tags": [
-            "id",
-            "user_id",
-            "tag_id"
-        ],
-        "feeds": [
-            "id",
-            "input_source",
-            "orgc_id"
-        ],
-        "fuzzy_correlate_ssdeep": [
-            "id",
-            "chunk",
-            "attribute_id"
-        ],
-        "galaxies": [
-            "id",
-            "name",
-            "uuid",
-            "type",
-            "namespace"
-        ],
-        "galaxy_clusters": [
-            "id",
-            "value",
-            "uuid",
-            "collection_uuid",
-            "galaxy_id",
-            "version",
-            "tag_name",
-            "type"
-        ],
-        "galaxy_elements": [
-            "id",
-            "key",
-            "value",
-            "galaxy_cluster_id"
-        ],
-        "galaxy_reference": [
-            "id",
-            "galaxy_cluster_id",
-            "referenced_galaxy_cluster_id",
-            "referenced_galaxy_cluster_value",
-            "referenced_galaxy_cluster_type"
-        ],
-        "inbox": [
-            "id",
-            "title",
-            "type",
-            "uuid",
-            "user_agent_sha256",
-            "ip",
-            "timestamp"
-        ],
-        "jobs": [
-            "id"
-        ],
-        "logs": [
-            "id"
-        ],
-        "news": [
-            "id"
-        ],
-        "noticelist_entries": [
-            "id",
-            "noticelist_id"
-        ],
-        "noticelists": [
-            "id",
-            "name",
-            "geographical_area"
-        ],
-        "notification_logs": [
-            "id",
-            "org_id",
-            "type"
-        ],
-        "object_references": [
-            "id",
-            "source_uuid",
-            "referenced_uuid",
-            "timestamp",
-            "object_id",
-            "referenced_id",
-            "relationship_type"
-        ],
-        "object_relationships": [
-            "id",
-            "name"
-        ],
-        "object_template_elements": [
-            "id",
-            "object_relation",
-            "type"
-        ],
-        "object_templates": [
-            "id",
-            "user_id",
-            "org_id",
-            "uuid",
-            "name",
-            "meta-category"
-        ],
-        "objects": [
-            "id",
-            "name",
-            "template_uuid",
-            "template_version",
-            "meta-category",
-            "event_id",
-            "uuid",
-            "timestamp",
-            "distribution",
-            "sharing_group_id",
-            "first_seen",
-            "last_seen"
-        ],
-        "org_blacklists": [
-            "id"
-        ],
-        "organisations": [
-            "id",
-            "uuid",
-            "name"
-        ],
-        "posts": [
-            "id",
-            "post_id",
-            "thread_id"
-        ],
-        "regexp": [
-            "id"
-        ],
-        "rest_client_histories": [
-            "id",
-            "org_id",
-            "user_id",
-            "timestamp"
-        ],
-        "roles": [
-            "id"
-        ],
-        "servers": [
-            "id",
-            "org_id",
-            "priority",
-            "remote_org_id"
-        ],
-        "shadow_attribute_correlations": [
-            "id",
-            "org_id",
-            "attribute_id",
-            "a_sharing_group_id",
-            "event_id",
-            "1_event_id",
-            "sharing_group_id",
-            "1_shadow_attribute_id"
-        ],
-        "shadow_attributes": [
-            "id",
-            "event_id",
-            "event_uuid",
-            "event_org_id",
-            "uuid",
-            "old_id",
-            "value1",
-            "value2",
-            "type",
-            "category",
-            "first_seen",
-            "last_seen"
-        ],
-        "sharing_group_orgs": [
-            "id",
-            "org_id",
-            "sharing_group_id"
-        ],
-        "sharing_group_servers": [
-            "id",
-            "server_id",
-            "sharing_group_id"
-        ],
-        "sharing_groups": [
-            "id",
-            "uuid",
-            "org_id",
-            "sync_user_id",
-            "organisation_uuid"
-        ],
-        "sightingdb_orgs": [
-            "id",
-            "sightingdb_id",
-            "org_id"
-        ],
-        "sightingdbs": [
-            "id",
-            "name",
-            "owner",
-            "host",
-            "port"
-        ],
-        "sightings": [
-            "id",
-            "attribute_id",
-            "event_id",
-            "org_id",
-            "uuid",
-            "source",
-            "type"
-        ],
-        "tag_collection_tags": [
-            "id",
-            "tag_collection_id",
-            "tag_id"
-        ],
-        "tag_collections": [
-            "id",
-            "uuid",
-            "user_id",
-            "org_id"
-        ],
-        "tags": [
-            "id",
-            "name",
-            "org_id",
-            "user_id",
-            "numerical_value"
-        ],
-        "tasks": [
-            "id"
-        ],
-        "taxonomies": [
-            "id"
-        ],
-        "taxonomy_entries": [
-            "id",
-            "taxonomy_predicate_id",
-            "numerical_value"
-        ],
-        "taxonomy_predicates": [
-            "id",
-            "taxonomy_id",
-            "numerical_value"
-        ],
-        "template_element_attributes": [
-            "id"
-        ],
-        "template_element_files": [
-            "id"
-        ],
-        "template_element_texts": [
-            "id"
-        ],
-        "template_elements": [
-            "id"
-        ],
-        "template_tags": [
-            "id"
-        ],
-        "templates": [
-            "id"
-        ],
-        "threads": [
-            "id",
-            "user_id",
-            "event_id",
-            "org_id",
-            "sharing_group_id"
-        ],
-        "threat_levels": [
-            "id"
-        ],
-        "user_settings": [
-            "id",
-            "setting",
-            "user_id",
-            "timestamp"
-        ],
-        "users": [
-            "id",
-            "email",
-            "org_id",
-            "server_id"
-        ],
-        "warninglist_entries": [
-            "id",
-            "warninglist_id"
-        ],
-        "warninglist_types": [
-            "id"
-        ],
-        "warninglists": [
-            "id"
-        ],
-        "whitelist": [
-            "id"
-        ]
+        "cake_sessions": {
+            "id": true,
+            "expires": false
+        },
+        "correlations": {
+            "id": true,
+            "event_id": false,
+            "1_event_id": false,
+            "attribute_id": false,
+            "1_attribute_id": false
+        },
+        "dashboards": {
+            "id": true,
+            "name": false,
+            "uuid": false,
+            "user_id": false,
+            "restrict_to_org_id": false,
+            "restrict_to_permission_flag": false
+        },
+        "decaying_models": {
+            "id": true,
+            "uuid": false,
+            "name": false,
+            "org_id": false,
+            "enabled": false,
+            "all_orgs": false,
+            "version": false
+        },
+        "decaying_model_mappings": {
+            "id": true,
+            "model_id": false
+        },
+        "events": {
+            "id": true,
+            "uuid": true,
+            "info": false,
+            "sharing_group_id": false,
+            "org_id": false,
+            "orgc_id": false,
+            "extends_uuid": false
+        },
+        "event_blacklists": {
+            "id": true,
+            "event_uuid": false,
+            "event_orgc": false
+        },
+        "event_delegations": {
+            "id": true,
+            "org_id": false,
+            "event_id": false
+        },
+        "event_graph": {
+            "id": true,
+            "event_id": false,
+            "user_id": false,
+            "org_id": false,
+            "timestamp": false
+        },
+        "event_locks": {
+            "id": true,
+            "event_id": false,
+            "user_id": false,
+            "timestamp": false
+        },
+        "event_tags": {
+            "id": true,
+            "event_id": false,
+            "tag_id": false
+        },
+        "favourite_tags": {
+            "id": true,
+            "user_id": false,
+            "tag_id": false
+        },
+        "feeds": {
+            "id": true,
+            "input_source": false
+        },
+        "fuzzy_correlate_ssdeep": {
+            "id": true,
+            "chunk": false,
+            "attribute_id": false
+        },
+        "galaxies": {
+            "id": true,
+            "name": false,
+            "uuid": false,
+            "type": false,
+            "namespace": false
+        },
+        "galaxy_clusters": {
+            "id": true,
+            "value": false,
+            "uuid": false,
+            "collection_uuid": false,
+            "galaxy_id": false,
+            "version": false,
+            "tag_name": false,
+            "type": false
+        },
+        "galaxy_cluster_blocklists": {
+            "id": true,
+            "cluster_uuid": false,
+            "cluster_orgc": false
+        },
+        "galaxy_cluster_relations": {
+            "id": true,
+            "galaxy_cluster_id": false,
+            "referenced_galaxy_cluster_id": false,
+            "referenced_galaxy_cluster_type": false,
+            "galaxy_cluster_uuid": false,
+            "sharing_group_id": false,
+            "default": false
+        },
+        "galaxy_cluster_relation_tags": {
+            "id": true,
+            "galaxy_cluster_relation_id": false,
+            "tag_id": false
+        },
+        "galaxy_elements": {
+            "id": true,
+            "key": false,
+            "value": false,
+            "galaxy_cluster_id": false
+        },
+        "galaxy_reference": {
+            "id": true,
+            "referenced_galaxy_cluster_id": false,
+            "referenced_galaxy_cluster_value": false,
+            "referenced_galaxy_cluster_type": false
+        },
+        "inbox": {
+            "id": true,
+            "title": false,
+            "type": false,
+            "uuid": false,
+            "user_agent_sha256": false,
+            "ip": false,
+            "timestamp": false
+        },
+        "jobs": {
+            "id": true
+        },
+        "logs": {
+            "id": true
+        },
+        "news": {
+            "id": true
+        },
+        "noticelists": {
+            "id": true,
+            "name": false,
+            "geographical_area": false
+        },
+        "noticelist_entries": {
+            "id": true,
+            "noticelist_id": false
+        },
+        "notification_logs": {
+            "id": true,
+            "org_id": false,
+            "type": false
+        },
+        "objects": {
+            "id": true,
+            "name": false,
+            "template_uuid": false,
+            "template_version": false,
+            "meta-category": false,
+            "event_id": false,
+            "uuid": false,
+            "timestamp": false,
+            "distribution": false,
+            "sharing_group_id": false,
+            "first_seen": false,
+            "last_seen": false
+        },
+        "object_references": {
+            "id": true,
+            "source_uuid": false,
+            "referenced_uuid": false,
+            "timestamp": false,
+            "object_id": false,
+            "referenced_id": false,
+            "relationship_type": false
+        },
+        "object_relationships": {
+            "id": true,
+            "name": false
+        },
+        "object_templates": {
+            "id": true,
+            "user_id": false,
+            "org_id": false,
+            "uuid": false,
+            "name": false,
+            "meta-category": false
+        },
+        "object_template_elements": {
+            "id": true,
+            "object_relation": false,
+            "type": false
+        },
+        "organisations": {
+            "id": true,
+            "uuid": false,
+            "name": false
+        },
+        "org_blacklists": {
+            "id": true
+        },
+        "posts": {
+            "id": true,
+            "post_id": false,
+            "thread_id": false
+        },
+        "regexp": {
+            "id": true
+        },
+        "rest_client_histories": {
+            "id": true,
+            "org_id": false,
+            "user_id": false,
+            "timestamp": false
+        },
+        "roles": {
+            "id": true
+        },
+        "servers": {
+            "id": true,
+            "org_id": false,
+            "priority": false,
+            "remote_org_id": false
+        },
+        "shadow_attributes": {
+            "id": true,
+            "event_id": false,
+            "event_uuid": false,
+            "event_org_id": false,
+            "uuid": false,
+            "old_id": false,
+            "value1": false,
+            "value2": false,
+            "type": false,
+            "category": false,
+            "first_seen": false,
+            "last_seen": false
+        },
+        "shadow_attribute_correlations": {
+            "id": true,
+            "org_id": false,
+            "attribute_id": false,
+            "a_sharing_group_id": false,
+            "event_id": false,
+            "1_event_id": false,
+            "sharing_group_id": false,
+            "1_shadow_attribute_id": false
+        },
+        "sharing_groups": {
+            "id": true,
+            "uuid": true,
+            "org_id": false,
+            "sync_user_id": false,
+            "organisation_uuid": false
+        },
+        "sharing_group_orgs": {
+            "id": true,
+            "org_id": false,
+            "sharing_group_id": false
+        },
+        "sharing_group_servers": {
+            "id": true,
+            "server_id": false,
+            "sharing_group_id": false
+        },
+        "sightingdbs": {
+            "id": true,
+            "name": false,
+            "owner": false,
+            "host": false,
+            "port": false
+        },
+        "sightingdb_orgs": {
+            "id": true,
+            "sightingdb_id": false,
+            "org_id": false
+        },
+        "sightings": {
+            "id": true,
+            "attribute_id": false,
+            "event_id": false,
+            "org_id": false,
+            "uuid": false,
+            "source": false,
+            "type": false
+        },
+        "tags": {
+            "id": true,
+            "name": false,
+            "org_id": false,
+            "user_id": false,
+            "numerical_value": false
+        },
+        "tag_collections": {
+            "id": true,
+            "uuid": false,
+            "user_id": false,
+            "org_id": false
+        },
+        "tag_collection_tags": {
+            "id": true,
+            "tag_collection_id": false,
+            "tag_id": false
+        },
+        "tasks": {
+            "id": true
+        },
+        "taxonomies": {
+            "id": true,
+            "enabled": false
+        },
+        "taxonomy_entries": {
+            "id": true,
+            "taxonomy_predicate_id": false,
+            "numerical_value": false
+        },
+        "taxonomy_predicates": {
+            "id": true,
+            "taxonomy_id": false,
+            "numerical_value": false
+        },
+        "templates": {
+            "id": true
+        },
+        "template_elements": {
+            "id": true
+        },
+        "template_element_attributes": {
+            "id": true
+        },
+        "template_element_files": {
+            "id": true
+        },
+        "template_element_texts": {
+            "id": true
+        },
+        "template_tags": {
+            "id": true
+        },
+        "threads": {
+            "id": true,
+            "user_id": false,
+            "event_id": false,
+            "org_id": false,
+            "sharing_group_id": false
+        },
+        "threat_levels": {
+            "id": true
+        },
+        "users": {
+            "id": true,
+            "email": false,
+            "org_id": false,
+            "server_id": false
+        },
+        "user_settings": {
+            "id": true,
+            "setting": false,
+            "user_id": false,
+            "timestamp": false
+        },
+        "warninglists": {
+            "id": true
+        },
+        "warninglist_entries": {
+            "id": true,
+            "warninglist_id": false
+        },
+        "warninglist_types": {
+            "id": true
+        },
+        "whitelist": {
+            "id": true
+        }
     },
     "db_version": "55"
 }
