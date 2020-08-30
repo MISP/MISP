@@ -3009,12 +3009,17 @@ class Event extends AppModel
         if (empty($event)) {
             throw new NotFoundException('Invalid Event.');
         }
+
+        // Initialise the Job class if we have a background process ID
+        // This will keep updating the process's progress bar
+        if ($jobId) {
+            $this->Job = ClassRegistry::init('Job');
+        }
+
         $this->NotificationLog = ClassRegistry::init('NotificationLog');
         if (!$this->NotificationLog->check($event['Event']['orgc_id'], 'publish')) {
             if ($jobId) {
-                $this->Job->id = $jobId;
-                $this->Job->saveField('progress', 100);
-                $this->Job->saveField('message', 'Mails blocked by org alert threshold.');
+                $this->Job->saveStatus($jobId, true, __('Mails blocked by org alert threshold.'));
             }
             return true;
         }
@@ -3039,29 +3044,29 @@ class Event extends AppModel
             $subject = '';
         }
         $subjMarkingString = $this->getEmailSubjectMarkForEvent($event);
-        $threatLevel = $event['ThreatLevel']['name'] . " - ";
         if (Configure::read('MISP.threatlevel_in_email_subject') === false) {
             $threatLevel = '';
+        } else {
+            $threatLevel = $event['ThreatLevel']['name'] . " - ";
         }
-        $subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $threatLevel . strtoupper($subjMarkingString);
+        $subject = "[" . Configure::read('MISP.org') . " MISP] Event $id - $subject $threatLevel " . strtoupper($subjMarkingString);
 
-        // Initialise the Job class if we have a background process ID
-        // This will keep updating the process's progress bar
-        if ($jobId) {
-            $this->Job = ClassRegistry::init('Job');
-        }
+        $eventUrl = $this->__getAnnounceBaseurl() . "/events/view/" . $id;
+        $bodyNoEnc = __("A new or modified event was just published on %s", $eventUrl) . "\n\n";
+        $bodyNoEnc .= __("If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via %s",  $this->__getAnnounceBaseurl() . '/users/edit');
 
         $userCount = count($usersWithAccess);
         $this->UserSetting = ClassRegistry::init('UserSetting');
         foreach ($usersWithAccess as $k => $user) {
             if ($this->UserSetting->checkPublishFilter($user, $event)) {
-                // Fetch event for exact user to respect ACLs
-                $eventForUser = $this->fetchEvent($user, ['eventid' => $id, 'includeAllTags' => true, 'includeEventCorrelations' => true])[0];
-                $body = $this->__buildAlertEmailBody($eventForUser, $user, $oldpublish);
+                // Fetch event for user that will receive alert e-mail to respect all ACLs
+                $eventForUser = $this->fetchEvent($user, [
+                    'eventid' => $id,
+                    'includeAllTags' => true,
+                    'includeEventCorrelations' => true,
+                ])[0];
 
-                $eventUrl = $this->__getAnnounceBaseurl() . "/events/view/" . $eventForUser['Event']['id'];
-                $bodyNoEnc = __("A new or modified event was just published on %s", $eventUrl) . "\n\n";
-                $bodyNoEnc .= "If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via " . $this->__getAnnounceBaseurl() . '/users/edit';
+                $body = $this->__buildAlertEmailBody($eventForUser, $user, $oldpublish);
                 $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
             }
             if ($jobId) {
@@ -3075,6 +3080,12 @@ class Event extends AppModel
         return true;
     }
 
+    /**
+     * @param string $body
+     * @param string $bodyTempOther
+     * @param array $objects
+     * @param int|null $oldpublish Timestamp of latest publish
+     */
     private function __buildAlertEmailObject(&$body, &$bodyTempOther, array $objects, $oldpublish)
     {
         foreach ($objects as $object) {
@@ -3090,39 +3101,44 @@ class Event extends AppModel
         }
     }
 
+    /**
+     * @param string $body
+     * @param string $bodyTempOther
+     * @param array $attributes
+     * @param int|null $oldpublish Timestamp of latest publish
+     * @param string $indent
+     */
     private function __buildAlertEmailAttribute(&$body, &$bodyTempOther, array $attributes, $oldpublish, $indent = '  ')
     {
         $appendlen = 20;
         foreach ($attributes as $attribute) {
-            $ids = '';
-            if ($attribute['to_ids']) {
-                $ids = ' (IDS)';
+            $ids = $attribute['to_ids'] ?  ' (IDS)' : '';
+
+            // Defanging URLs (Not "links") emails domains/ips in notification emails
+            $value = $attribute['value'];
+            if ('url' == $attribute['type'] || 'uri' == $attribute['type']) {
+                $value = str_ireplace("http", "hxxp", $value);
+                $value = str_ireplace(".", "[.]", $value);
+            } elseif (in_array($attribute['type'], array('email-src', 'email-dst', 'whois-registrant-email', 'dns-soa-email', 'email-reply-to'))) {
+                $value = str_replace("@", "[at]", $value);
+            } elseif (in_array($attribute['type'], array('hostname', 'domain', 'ip-src', 'ip-dst', 'domain|ip'))) {
+                $value = str_replace(".", "[.]", $value);
             }
+
             $strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
             $strRepeat = ($strRepeatCount > 0) ? str_repeat(' ', $strRepeatCount) : '';
             if (isset($oldpublish) && isset($attribute['timestamp']) && $attribute['timestamp'] > $oldpublish) {
-                $line = '* ' . $indent . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids . " *\n";
+                $line = '* ' . $indent . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $value . $ids . " *\n";
             } else {
-                $line = $indent . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids .  "\n";
+                $line = $indent . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $value . $ids .  "\n";
             }
-            // Defanging URLs (Not "links") emails domains/ips in notification emails
-            if ('url' == $attribute['type'] || 'uri' == $attribute['type']) {
-                $line = str_ireplace("http", "hxxp", $line);
-                $line = str_ireplace(".", "[.]", $line);
-            } elseif (in_array($attribute['type'], array('email-src', 'email-dst', 'whois-registrant-email', 'dns-soa-email', 'email-reply-to'))) {
-                $line = str_replace("@", "[at]", $line);
-            } elseif (in_array($attribute['type'], array('hostname', 'domain', 'ip-src', 'ip-dst', 'domain|ip'))) {
-                $line = str_replace(".", "[.]", $line);
-            }
+
             if (!empty($attribute['AttributeTag'])) {
-                $line .= '  - Tags: ';
-                foreach ($attribute['AttributeTag'] as $k => $aT) {
-                    if ($k > 0) {
-                        $line .= ', ';
-                    }
-                    $line .= $aT['Tag']['name'];
+                $tags = [];
+                foreach ($attribute['AttributeTag'] as $aT) {
+                    $tags[] = $aT['Tag']['name'];
                 }
-                $line .= "\n";
+                $line .= '  - Tags: ' . implode(', ', $tags) . "\n";
             }
             if ('other' == $attribute['type']) { // append the 'other' attribute types to the bottom.
                 $bodyTempOther .= $line;
@@ -3132,12 +3148,17 @@ class Event extends AppModel
         }
     }
 
+    /**
+     * @param array $event
+     * @param array $user
+     * @param int|null $oldpublish Timestamp of latest publish
+     * @return string
+     */
     private function __buildAlertEmailBody(array $event, array $user, $oldpublish)
     {
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
         $body .= '==============================================' . "\n";
-        $appendlen = 20;
         $body .= 'URL         : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $event['Event']['id'] . "\n";
         $body .= 'Event ID    : ' . $event['Event']['id'] . "\n";
         $body .= 'Date        : ' . $event['Event']['date'] . "\n";
@@ -3147,16 +3168,13 @@ class Event extends AppModel
         }
         $body .= 'Distribution: ' . $this->distributionLevels[$event['Event']['distribution']] . "\n";
         if ($event['Event']['distribution'] == 4) {
-            $body .= 'Sharing Group:' . $event['SharingGroup']['name'] . "\n";
+            $body .= 'Sharing Group: ' . $event['SharingGroup']['name'] . "\n";
         }
-        $tags = "";
-        foreach ($event['EventTag'] as $k => $tag) {
-            $tags .= $tag['Tag']['name'];
-            if (($k+1) != count($event['EventTag'])) {
-                $tags .= ", ";
-            }
+        $tags = [];
+        foreach ($event['EventTag'] as $tag) {
+            $tags[] = $tag['Tag']['name'];
         }
-        $body .= 'Tags: ' . $tags . "\n";
+        $body .= 'Tags: ' . implode(', ', $tags) . "\n";
         $body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
         $body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
         $body .= 'Description : ' . $event['Event']['info'] . "\n";
@@ -3185,7 +3203,7 @@ class Event extends AppModel
         $body .= sprintf(
             "You receive this e-mail because the e-mail address %s is set to receive publish alerts on the MISP instance at %s.%s%s",
             $user['email'],
-            (empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl')),
+            $this->__getAnnounceBaseurl(),
             PHP_EOL,
             PHP_EOL
         );
@@ -3282,13 +3300,12 @@ class Event extends AppModel
 
         // print the event in mail-format
         // LATER place event-to-email-layout in a function
-        $appendlen = 20;
         $body .= 'URL         : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $event['Event']['id'] . "\n";
         $bodyevent = $body;
         $bodyevent .= 'Event ID    : ' . $event['Event']['id'] . "\n";
         $bodyevent .= 'Date        : ' . $event['Event']['date'] . "\n";
         if (Configure::read('MISP.showorg')) {
-            $body .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
+            $bodyevent .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
         }
         $bodyevent .= 'Risk        : ' . $event['ThreatLevel']['name'] . "\n";
         $bodyevent .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
@@ -7109,7 +7126,7 @@ class Event extends AppModel
     }
 
     /**
-     * @param array $event
+     * @param array $event Event with assigned `EventTag`
      * @return string
      */
     private function getEmailSubjectMarkForEvent(array $event)
