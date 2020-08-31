@@ -2447,7 +2447,7 @@ class Event extends AppModel
                 ),
             );
             $event['Event']['extensionEvents'][$eventMeta['id']] = $eventMeta;
-            $thingsToMerge = array('Attribute', 'Object', 'ShadowAttribute', 'Galaxy', 'RelatedEvent');
+            $thingsToMerge = array('Attribute', 'Object', 'ShadowAttribute', 'Galaxy');
             foreach ($thingsToMerge as $thingToMerge) {
                 $event[$thingToMerge] = array_merge($event[$thingToMerge], $extensionEvent[$thingToMerge]);
             }
@@ -2459,6 +2459,15 @@ class Event extends AppModel
                     }
                 }
                 $event['EventTag'][] = $eventTag;
+            }
+            // Merge just related events that are not already in main event
+            foreach ($extensionEvent['RelatedEvent'] as $relatedEvent) {
+                foreach ($event['RelatedEvent'] as $rE) {
+                    if ($rE['Event']['id'] == $relatedEvent['Event']['id']) {
+                        continue 2; // event already exists, skip
+                    }
+                }
+                $event['RelatedEvent'][] = $relatedEvent;
             }
         }
         return $event;
