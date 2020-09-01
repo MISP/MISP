@@ -2229,7 +2229,7 @@ class Event extends AppModel
                 $tempObjectAttributeContainer = array();
                 foreach ($event['Attribute'] as $key => $attribute) {
                     if ($options['enforceWarninglist']) {
-                        if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
+                        if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute)) {
                             unset($event['Attribute'][$key]);
                             continue;
                         }
