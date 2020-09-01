@@ -699,7 +699,7 @@ class StixParser():
 
     # The value returned by the indicators or observables parser is a list of dictionaries
     # These dictionaries are the attributes we add in an object, itself added in the MISP event
-    def handle_object_case(self, name, attribute_value, compl_data, to_ids=False, object_uuid=None):
+    def handle_object_case(self, name, attribute_value, compl_data, to_ids=False, object_uuid=None, test_mechanisms=[]):
         misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
         if object_uuid:
             misp_object.uuid = object_uuid
@@ -714,6 +714,9 @@ class StixParser():
             if "process_uuid" in compl_data:
                 for uuid in compl_data["process_uuid"]:
                     misp_object.add_reference(uuid, 'connected-to')
+        if test_mechanisms:
+            for test_mechanism in test_mechanisms:
+                misp_object.add_reference(test_mechanism, 'detected-with')
         self.misp_event.add_object(misp_object)
 
     ################################################################################
@@ -1223,9 +1226,23 @@ class ExternalStixParser(StixParser):
     # Parse indicators of an external STIX document
     def parse_external_indicators(self, indicators):
         for indicator in indicators:
-            self.parse_external_single_indicator(indicator)
+            if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
+                for related_indicator in indicator.related_indicators:
+                    self.parse_external_single_indicator(related_indicator)
+            else:
+                self.parse_external_single_indicator(indicator)
 
     def parse_external_single_indicator(self, indicator):
+        test_mechanisms = []
+        if hasattr(indicator, 'test_mechanisms') and indicator.test_mechanisms:
+            for test_mechanism in indicator.test_mechanisms:
+                attribute = MISPAttribute()
+                attribute.from_dict(**{
+                    'type': stix2misp_mapping.test_mechanisms_mapping[test_mechanism._XSI_TYPE],
+                    'value': test_mechanism.rule.value
+                })
+                self.misp_event.add_attribute(**attribute)
+                test_mechanisms.append(attribute.uuid)
         if hasattr(indicator, 'observable') and indicator.observable:
             observable = indicator.observable
             if self._has_properties(observable):
@@ -1249,7 +1266,14 @@ class ExternalStixParser(StixParser):
                     if attribute_value:
                         if all(isinstance(value, dict) for value in attribute_value):
                             # it is a list of attributes, so we build an object
-                            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True, object_uuid=uuid)
+                            self.handle_object_case(
+                                attribute_type,
+                                attribute_value,
+                                compl_data,
+                                to_ids=True,
+                                object_uuid=uuid,
+                                test_mechanisms=test_mechanisms
+                            )
                         else:
                             # it is a list of attribute values, so we add single attributes
                             for value in attribute_value:
@@ -1258,9 +1282,6 @@ class ExternalStixParser(StixParser):
                 self.parse_external_observable(observable.observable_composition.observables, to_ids=True)
             else:
                 self.parse_description(indicator)
-        if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
-            for related_indicator in indicator.related_indicators:
-                self.parse_external_single_indicator(related_indicator.item)
 
     # Parse observables of an external STIX document
     def parse_external_observable(self, observables, to_ids=False):
