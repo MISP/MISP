@@ -2517,12 +2517,6 @@ class Event extends AppModel
         return $container;
     }
 
-    private function __escapeCSVField(&$field)
-    {
-        $field = str_replace(array('"'), '""', $field);
-        $field = '"' . $field . '"';
-    }
-
     public function set_filter_org(&$params, $conditions, $options)
     {
         if (!empty($params['org'])) {
