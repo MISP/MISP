@@ -242,7 +242,6 @@ class Event extends AppModel
             'message' => 'Options : 1, 2, 3, 4 (for High, Medium, Low, Undefined)',
             'required' => true
         ),
-
         'distribution' => array(
             'not_empty_if_sg' => array(
                 'rule' => array('inList', array('0', '1', '2', '3', '4')),
@@ -253,7 +252,6 @@ class Event extends AppModel
                 //'on' => 'create', // Limit validation to 'create' or 'update' operations
                 )
         ),
-
         'sharing_group_id' => array(
             'rule' => array('sharingGroupRequired'),
                 'message' => 'If the distribution is set to "Sharing Group", a sharing group has to be selected.',
@@ -292,13 +290,13 @@ class Event extends AppModel
         ),
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'rule' => 'uuid',
                 'message' => 'Please provide a valid UUID'
             ),
         ),
         'extends_uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'rule' => 'uuid',
                 'message' => 'Please provide a valid UUID',
                 'allowEmpty' => true
             )
@@ -577,6 +575,8 @@ class Event extends AppModel
         // generate UUID if it doesn't exist
         if (empty($this->data['Event']['uuid'])) {
             $this->data['Event']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['Event']['uuid'] = strtolower($this->data['Event']['uuid'] );
         }
 
         // Convert event ID to uuid if needed
@@ -591,6 +591,8 @@ class Event extends AppModel
             } else {
                 $this->data['Event']['extends_uuid'] = $extended_event['Event']['uuid'];
             }
+        } else if (!empty($this->data['Event']['extends_uuid'])) {
+            $this->data['Event']['extends_uuid'] = strtolower($this->data['Event']['extends_uuid']);
         }
 
         // generate timestamp if it doesn't exist

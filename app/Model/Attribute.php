@@ -547,7 +547,7 @@ class Attribute extends AppModel
         ),
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'rule' => 'uuid',
                 'message' => 'Please provide a valid UUID'
             ),
             'unique' => array(
@@ -870,6 +870,8 @@ class Attribute extends AppModel
         // generate UUID if it doesn't exist
         if (empty($this->data['Attribute']['uuid'])) {
             $this->data['Attribute']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['Attribute']['uuid'] = strtolower($this->data['Attribute']['uuid']);
         }
         // generate timestamp if it doesn't exist
         if (empty($this->data['Attribute']['timestamp'])) {
