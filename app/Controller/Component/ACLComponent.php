@@ -111,7 +111,7 @@ class ACLComponent extends Component
                     'requestAccess' => array(),
                     'view' => array()
             ),
-            'eventBlacklists' => array(
+            'eventBlocklists' => array(
                     'add' => [
                         'AND' => [
                             'host_org_user',
@@ -349,7 +349,7 @@ class ACLComponent extends Component
             'objectTemplateElements' => array(
                 'viewElements' => array('*')
             ),
-            'orgBlacklists' => array(
+            'orgBlocklists' => array(
                     'add' => array(),
                     'delete' => array(),
                     'edit' => array(),
@@ -633,7 +633,7 @@ class ACLComponent extends Component
                     'update' => array(),
                     'view' => array('*')
             ),
-            'whitelists' => array(
+            'allowedlists' => array(
                     'admin_add' => array('perm_regexp_access'),
                     'admin_delete' => array('perm_regexp_access'),
                     'admin_edit' => array('perm_regexp_access'),

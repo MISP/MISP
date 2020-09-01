@@ -1,7 +1,7 @@
-<div class="orgBlacklist form">
-<?php echo $this->Form->create('OrgBlacklist');?>
+<div class="orgBlocklist form">
+<?php echo $this->Form->create('OrgBlocklist');?>
     <fieldset>
-        <legend><?php echo __('Edit Event Blacklist Entries');?></legend>
+        <legend><?php echo __('Edit Event Blocklist Entries');?></legend>
         <p><?php echo __('List of all the event UUIDs that you wish to block from being entered.');?></p>
     <?php
         echo $this->Form->input('uuids', array(
@@ -10,19 +10,19 @@
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
                 'disabled' => 'disabled',
-                'default' => $blockEntry['OrgBlacklist']['org_uuid']
+                'default' => $blockEntry['OrgBlocklist']['org_uuid']
         ));
         echo $this->Form->input('org_name', array(
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
                 'label' => __('Creating organisation'),
-                'default' => $blockEntry['OrgBlacklist']['org_name'],
+                'default' => $blockEntry['OrgBlocklist']['org_name'],
         ));
         echo $this->Form->input('comment', array(
                 'type' => 'textarea',
                 'div' => 'input clear',
                 'class' => 'input-xxlarge',
-                'default' => $blockEntry['OrgBlacklist']['comment'],
+                'default' => $blockEntry['OrgBlocklist']['comment'],
         ));
     ?>
     </fieldset>
@@ -32,5 +32,5 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'orgBlacklistsAdd'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'orgBlocklistsAdd'));
 ?>

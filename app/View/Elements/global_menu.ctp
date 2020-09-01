@@ -90,23 +90,23 @@
                     array(
                         'type' => 'separator',
                         'requirement' =>
-                            Configure::read('MISP.enableEventBlacklisting') !== false &&
+                            Configure::read('MISP.enableEventBlocklisting') !== false &&
                             !$isSiteAdmin &&
                             (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
                     ),
                     array(
-                        'text' => __('Blacklist Event'),
-                        'url' => $baseurl . '/eventBlacklists/add',
+                        'text' => __('Blocklist Event'),
+                        'url' => $baseurl . '/eventBlocklists/add',
                         'requirement' =>
-                            Configure::read('MISP.enableEventBlacklisting') !== false &&
+                            Configure::read('MISP.enableEventBlocklisting') !== false &&
                             !$isSiteAdmin &&
                             (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
                     ),
                     array(
-                        'text' => __('Manage Event Blacklists'),
-                        'url' => $baseurl . '/eventBlacklists',
+                        'text' => __('Manage Event Blocklists'),
+                        'url' => $baseurl . '/eventBlocklists',
                         'requirement' =>
-                            Configure::read('MISP.enableEventBlacklisting') !== false &&
+                            Configure::read('MISP.enableEventBlocklisting') !== false &&
                             !$isSiteAdmin &&
                             (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
                     ),
@@ -138,13 +138,13 @@
                         'requirement' => !$isAclRegexp
                     ),
                     array(
-                        'text' => __('Signature Whitelist'),
-                        'url' => $baseurl . '/admin/whitelists/index',
+                        'text' => __('Signature Allowedlist'),
+                        'url' => $baseurl . '/admin/allowedlists/index',
                         'requirement' => $isAclRegexp
                     ),
                     array(
-                        'text' => __('Signature Whitelist'),
-                        'url' => $baseurl . '/whitelists/index',
+                        'text' => __('Signature Allowedlist'),
+                        'url' => $baseurl . '/allowedlists/index',
                         'requirement' => !$isAclRegexp
                     ),
                     array(
@@ -392,31 +392,31 @@
                     ),
                     array(
                         'type' => 'separator',
-                        'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
+                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
-                        'text' => __('Blacklist Event'),
-                        'url' => $baseurl . '/eventBlacklists/add',
-                        'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
+                        'text' => __('Blocklist Event'),
+                        'url' => $baseurl . '/eventBlocklists/add',
+                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
-                        'text' => __('Manage Event Blacklists'),
-                        'url' => $baseurl . '/eventBlacklists',
-                        'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
+                        'text' => __('Manage Event Blocklists'),
+                        'url' => $baseurl . '/eventBlocklists',
+                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
                         'type' => 'separator',
-                        'requirement' => Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin
+                        'requirement' => Configure::read('MISP.enableEventBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
-                        'text' => __('Blacklist Organisation'),
-                        'url' => $baseurl . '/orgBlacklists/add',
-                        'requirement' => Configure::read('MISP.enableOrgBlacklisting') !== false && $isSiteAdmin
+                        'text' => __('Blocklist Organisation'),
+                        'url' => $baseurl . '/orgBlocklists/add',
+                        'requirement' => Configure::read('MISP.enableOrgBlocklisting') !== false && $isSiteAdmin
                     ),
                     array(
-                        'text' => __('Manage Org Blacklists'),
-                        'url' => $baseurl . '/orgBlacklists',
-                        'requirement' => Configure::read('MISP.enableOrgBlacklisting') !== false && $isSiteAdmin
+                        'text' => __('Manage Org Blocklists'),
+                        'url' => $baseurl . '/orgBlocklists',
+                        'requirement' => Configure::read('MISP.enableOrgBlocklisting') !== false && $isSiteAdmin
                     ),
                 )
             ),

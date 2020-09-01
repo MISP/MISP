@@ -1963,7 +1963,7 @@ class EventsController extends AppController
                 if ($add === true && !is_numeric($add)) {
                     if ($this->_isRest()) {
                         if ($add === 'blocked') {
-                            throw new ForbiddenException(__('Event blocked by local blacklist.'));
+                            throw new ForbiddenException(__('Event blocked by local blocklist.'));
                         }
                         // REST users want to see the newly created event
                         $results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $created_id));
@@ -1990,7 +1990,7 @@ class EventsController extends AppController
                         return $this->RestResponse->saveFailResponse('Events', 'add', false, $validationErrors, $this->response->type());
                     } else {
                         if ($add === 'blocked') {
-                            $this->Flash->error(__('A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance') . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
+                            $this->Flash->error(__('A blocklist entry is blocking you from creating any events. Please contact the administration team of this instance') . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
                         } else {
                             $this->Flash->error(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
                         }
@@ -3258,8 +3258,8 @@ class EventsController extends AppController
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event or not authorised.'));
         }
-        $this->loadModel('Whitelist');
-        $temp = $this->Whitelist->removeWhitelistedFromArray(array($event[0]), false);
+        $this->loadModel('Allowedlist');
+        $temp = $this->Allowedlist->removeAllowedlistedFromArray(array($event[0]), false);
         $event = $temp[0];
 
         // send the event and the vars needed to check authorisation to the Component
@@ -5626,7 +5626,7 @@ class EventsController extends AppController
             'recursive' => -1
         ));
         $count = 0;
-        $this->Event->skipBlacklist = true;
+        $this->Event->skipBlocklist = true;
         foreach ($eventIds as $eventId => $eventUuid) {
             $result = $this->Event->Attribute->find('first', array(
                 'conditions' => array('Attribute.event_id' => $eventId),
@@ -5638,7 +5638,7 @@ class EventsController extends AppController
                 $count++;
             }
         }
-        $this->Event->skipBlacklist = null;
+        $this->Event->skipBlocklist = null;
         $message = __('%s event(s) deleted.', $count);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($message, $this->response->type());

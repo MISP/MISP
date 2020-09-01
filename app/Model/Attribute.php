@@ -2771,8 +2771,8 @@ class Attribute extends AppModel
                 }
                 $conditions['AND'][] = $temp;
             }
-            $this->Whitelist = ClassRegistry::init('Whitelist');
-            $this->whitelist = $this->Whitelist->getBlockedValues();
+            $this->Allowedlist = ClassRegistry::init('Allowedlist');
+            $this->allowedlist = $this->Allowedlist->getBlockedValues();
             $instanceString = 'MISP';
             if (Configure::read('MISP.host_org_id') && Configure::read('MISP.host_org_id') > 0) {
                 $this->Event->Orgc->id = Configure::read('MISP.host_org_id');
@@ -2783,7 +2783,7 @@ class Attribute extends AppModel
             $mispTypes = $export->getMispTypes($type);
             foreach ($mispTypes as $mispType) {
                 $conditions['AND']['Attribute.type'] = $mispType[0];
-                $intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString, $enforceWarninglist));
+                $intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->allowedlist, $instanceString, $enforceWarninglist));
             }
         }
         natsort($intel);
@@ -2794,7 +2794,7 @@ class Attribute extends AppModel
         return $intel;
     }
 
-    private function __bro($user, $conditions, $valueField, $export, $whitelist, $instanceString, $enforceWarninglist)
+    private function __bro($user, $conditions, $valueField, $export, $allowedlist, $instanceString, $enforceWarninglist)
     {
         $attributes = $this->fetchAttributes(
             $user,
@@ -2812,7 +2812,7 @@ class Attribute extends AppModel
         $orgs = $this->Event->Orgc->find('list', array(
                 'fields' => array('Orgc.id', 'Orgc.name')
         ));
-        return $export->export($attributes, $orgs, $valueField, $whitelist, $instanceString);
+        return $export->export($attributes, $orgs, $valueField, $allowedlist, $instanceString);
     }
 
     public function generateCorrelation($jobId = false, $startPercentage = 0, $eventId = false, $attributeId = false)
@@ -4635,7 +4635,7 @@ class Attribute extends AppModel
 
     private function __iteratedFetch($user, &$params, &$loop, TmpFileTool $tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
     {
-        $this->Whitelist = ClassRegistry::init('Whitelist');
+        $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $continue = true;
         while ($continue) {
             $results = $this->fetchAttributes($user, $params, $continue);
@@ -4644,7 +4644,7 @@ class Attribute extends AppModel
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
             $params['page'] += 1;
-            $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+            $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
             $i = 0;
             $temp = '';
             foreach ($results as $attribute) {
