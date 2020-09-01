@@ -1973,6 +1973,7 @@ class ExternalStixParser(StixParser):
 
     @staticmethod
     def get_type_and_value_from_pattern(pattern):
+        pattern = pattern.strip('[]')
         try:
             pattern_type, pattern_value = pattern.split(' = \'')
         except ValueError:
