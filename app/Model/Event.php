@@ -5135,14 +5135,6 @@ class Event extends AppModel
         if (isset($object['distribution']) && $object['distribution'] != 4) {
             unset($object['SharingGroup']);
         }
-        if ($object['objectType'] !== 'object' && $object['category'] === 'Financial fraud') {
-            if (!$this->__fTool) {
-                $this->__fTool = new FinancialTool();
-            }
-            if (!$this->__fTool->validateRouter($object['type'], $object['value'])) {
-                $object['validationIssue'] = true;
-            }
-        }
         $object = $this->Warninglist->checkForWarning($object, $eventWarnings, $warningLists);
         return $object;
     }
