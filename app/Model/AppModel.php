@@ -1382,18 +1382,18 @@ class AppModel extends Model
                 break;
             case 51:
                 $sqlArray[] = "ALTER TABLE `feeds` ADD `orgc_id` int(11) NOT NULL DEFAULT 0";
-                $this->__addIndex('feeds', 'orgc_id');
+                $indexArray[] = array('feeds', 'orgc_id');
                 break;
             case 52:
                 if (!empty($this->query("SHOW COLUMNS FROM `admin_settings` LIKE 'key';"))) {
                     $sqlArray[] = "ALTER TABLE admin_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
-                    $this->__addIndex('admin_settings', 'setting');
+                    $indexArray[] = array('admin_settings', 'setting');
                 }
                 break;
             case 53:
                 if (!empty($this->query("SHOW COLUMNS FROM `user_settings` LIKE 'key';"))) {
                     $sqlArray[] = "ALTER TABLE user_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
-                    $this->__addIndex('user_settings', 'setting');
+                    $indexArray[] = array('user_settings', 'setting');
                 }
                 break;
             case 54:
