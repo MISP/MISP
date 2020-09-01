@@ -1509,6 +1509,7 @@ class Event extends AppModel
         if (!$user['Role']['perm_site_admin']) {
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $sgids = $this->cacheSgids($user, true);
+            $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions['AND']['OR'] = array(
                 'Event.org_id' => $user['org_id'],
                 array(
