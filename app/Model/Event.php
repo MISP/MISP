@@ -4632,35 +4632,6 @@ class Event extends AppModel
         }
     }
 
-    public function getAccessibleEventIds($include, $exclude, $includedTags, $excludedTags)
-    {
-        $conditions = array();
-
-        // get all of the event IDs based on include / exclude
-        if (!empty($include)) {
-            $conditions['OR'] = array('id' => $include);
-        }
-        if (!empty($exclude)) {
-            $conditions['NOT'] = array('id' => $exclude);
-        }
-        $events = $this->find('all', array(
-            'recursive' => -1,
-            'fields' => array('id', 'org_id', 'orgc_id', 'distribution'),
-            'conditions' => $conditions
-        ));
-        $ids = array();
-        foreach ($events as $event) {
-            $ids[] = $event['Event']['id'];
-        }
-        // get all of the event IDs based on includedTags / excludedTags
-        if (!empty($includedTags) || !empty($excludedTags)) {
-            $eventIDsFromTags = $this->EventTag->getEventIDsFromTags($includedTags, $excludedTags);
-            // get the intersect of the two
-            $ids = array_intersect($ids, $eventIDsFromTags);
-        }
-        return $ids;
-    }
-
     public function sharingGroupRequired($field)
     {
         if ($this->data[$this->alias]['distribution'] == 4) {
