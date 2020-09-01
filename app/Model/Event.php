@@ -804,11 +804,8 @@ class Event extends AppModel
         return $conditionsCorrelation;
     }
 
-    public function getRelatedEvents($user, $eventId = null, $sgids)
+    private function getRelatedEvents($user, $eventId, $sgids)
     {
-        if ($eventId == null) {
-            $eventId = $this->data['Event']['id'];
-        }
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
@@ -1510,6 +1507,7 @@ class Event extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
+            $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $sgids = $this->cacheSgids($user, true);
             $conditions['AND']['OR'] = array(
                 'Event.org_id' => $user['org_id'],
@@ -1517,14 +1515,14 @@ class Event extends AppModel
                     'AND' => array(
                         'Event.distribution >' => 0,
                         'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+                        $unpublishedPrivate ? array('Event.published' => 1) : array(),
                     ),
                 ),
                 array(
                     'AND' => array(
                         'Event.sharing_group_id' => $sgids,
                         'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+                        $unpublishedPrivate ? array('Event.published' => 1) : array(),
                     )
                 )
             );
@@ -5081,9 +5079,6 @@ class Event extends AppModel
                     }
                 }
             }
-        }
-        if (isset($object['distribution']) && $object['distribution'] != 4) {
-            unset($object['SharingGroup']);
         }
         $object = $this->Warninglist->checkForWarning($object, $eventWarnings, $warningLists);
         return $object;
