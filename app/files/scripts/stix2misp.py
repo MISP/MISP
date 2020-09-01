@@ -1236,9 +1236,14 @@ class ExternalStixParser(StixParser):
         test_mechanisms = []
         if hasattr(indicator, 'test_mechanisms') and indicator.test_mechanisms:
             for test_mechanism in indicator.test_mechanisms:
+                try:
+                    attribute_type = stix2misp_mapping.test_mechanisms_mapping[test_mechanism._XSI_TYPE]
+                except KeyError:
+                    print(f'Unknown Test Mechanism type: {test_mechanism._XSI_TYPE}', file=sys.stderr)
+                    continue
                 attribute = MISPAttribute()
                 attribute.from_dict(**{
-                    'type': stix2misp_mapping.test_mechanisms_mapping[test_mechanism._XSI_TYPE],
+                    'type': attribute_type,
                     'value': test_mechanism.rule.value
                 })
                 self.misp_event.add_attribute(**attribute)
