@@ -191,6 +191,10 @@ class EventsController extends AppController
         return array($includeIDs, $excludeIDs);
     }
 
+    /**
+     * @param string|array $value
+     * @return array Event ID that match filter
+     */
     private function __quickFilter($value)
     {
         if (!is_array($value)) {
@@ -201,7 +205,6 @@ class EventsController extends AppController
             $values[] = '%' . strtolower($v) . '%';
         }
 
-        $result = array();
         // get all of the attributes that have a hit on the search term, in either the value or the comment field
         // This is not perfect, the search will be case insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
         $subconditions = array();
@@ -211,32 +214,16 @@ class EventsController extends AppController
             $subconditions[] = array('lower(Attribute.comment) LIKE' => $v);
         }
         $conditions = array(
-            'AND' => array(
-                'OR' => $subconditions,
-                'Attribute.deleted' => 0
-            )
+            'OR' => $subconditions,
         );
         $attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-                'conditions' => $conditions,
-                'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2'),
-                'flatten' => 1
-        ));
-        // rearrange the data into an array where the keys are the event IDs
-        $eventsWithAttributeHits = array();
-        foreach ($attributeHits as $aH) {
-            $eventsWithAttributeHits[$aH['Attribute']['event_id']][] = $aH['Attribute'];
-        }
-
-        // Using the keys from the previously obtained ordered array, let's fetch all of the events involved
-        $events = $this->Event->find('all', array(
-                'recursive' => -1,
-                'fields' => array('id', 'distribution', 'org_id'),
-                'conditions' => array('id' => array_keys($eventsWithAttributeHits)),
+            'conditions' => $conditions,
+            'flatten' => 1,
+            'event_ids' => true,
+            'list' => true,
         ));
 
-        foreach ($events as $event) {
-            $result[] = $event['Event']['id'];
-        }
+        $result = array_values($attributeHits);
 
         // we now have a list of event IDs that match on an attribute level, and the user can see it. Let's also find all of the events that match on other criteria!
         // What is interesting here is that we no longer have to worry about the event's releasability. With attributes this was a different case,
@@ -250,9 +237,9 @@ class EventsController extends AppController
             $subconditions[] = array('lower(name) LIKE' => $v);
         }
         $tags = $this->Event->EventTag->Tag->find('all', array(
-                'conditions' => $subconditions,
-                'fields' => array('name', 'id'),
-                'contain' => array('EventTag', 'AttributeTag'),
+            'conditions' => $subconditions,
+            'fields' => array('id'),
+            'contain' => array('EventTag' => ['fields' => 'event_id'], 'AttributeTag' => ['fields' => 'event_id']),
         ));
         foreach ($tags as $tag) {
             foreach ($tag['EventTag'] as $eventTag) {
@@ -272,12 +259,13 @@ class EventsController extends AppController
         foreach ($values as $v) {
             $subconditions[] = array('lower(name) LIKE' => $v);
         }
-        $conditions = array();
         $orgs = $this->Event->Org->find('list', array(
-                'conditions' => $subconditions,
-                'recursive' => -1,
-                'fields' => array('id')
+            'conditions' => $subconditions,
+            'recursive' => -1,
+            'fields' => array('id')
         ));
+
+        $conditions = empty($result) ? [] : ['NOT' => ['id' => $result]]; // Do not include events that we already found
         foreach ($values as $v) {
             $conditions['OR'][] = array('lower(info) LIKE' => $v);
             $conditions['OR'][] = array('lower(uuid) LIKE' => $v);
@@ -285,15 +273,13 @@ class EventsController extends AppController
         if (!empty($orgs)) {
             $conditions['OR']['orgc_id'] = array_values($orgs);
         }
-        $otherEvents = $this->Event->find('all', array(
-                'recursive' => -1,
-                'fields' => array('id', 'orgc_id', 'info', 'uuid'),
-                'conditions' => $conditions,
+        $otherEvents = $this->Event->find('list', array(
+            'recursive' => -1,
+            'fields' => array('id'),
+            'conditions' => $conditions,
         ));
-        foreach ($otherEvents as $oE) {
-            if (!in_array($oE['Event']['id'], $result)) {
-                $result[] = $oE['Event']['id'];
-            }
+        foreach ($otherEvents as $eventId) {
+            $result[] = $eventId;
         }
         return $result;
     }
