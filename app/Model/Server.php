@@ -4777,7 +4777,7 @@ class Server extends AppModel
     public function compareDBSchema($dbActualSchema, $dbExpectedSchema)
     {
         // Column that should be ignored while performing the comparison
-        $whiteListFields = array(
+        $allowedlistFields = array(
             'users' => array('external_auth_required', 'external_auth_key'),
         );
         $nonCriticalColumnElements = array('is_nullable', 'collation_name');
@@ -4809,8 +4809,8 @@ class Server extends AppModel
 
                 $additionalKeysInActualSchema = array_diff($existingColumnKeys, $expectedColumnKeys);
                 foreach($additionalKeysInActualSchema as $additionalKeys) {
-                    if (isset($whiteListFields[$tableName]) && in_array($additionalKeys, $whiteListFields[$tableName])) {
-                        continue; // column is whitelisted
+                    if (isset($allowedlistFields[$tableName]) && in_array($additionalKeys, $allowedlistFields[$tableName])) {
+                        continue; // column is allowedlisted
                     }
                     $dbDiff[$tableName][] = array(
                         'description' => sprintf(__('Column `%s` exists but should not'), $additionalKeys),
@@ -4820,8 +4820,8 @@ class Server extends AppModel
                     );
                 }
                 foreach ($keyedExpectedColumn as $columnName => $column) {
-                    if (isset($whiteListFields[$tableName]) && in_array($columnName, $whiteListFields[$tableName])) {
-                        continue; // column is whitelisted
+                    if (isset($allowedlistFields[$tableName]) && in_array($columnName, $allowedlistFields[$tableName])) {
+                        continue; // column is allowedlisted
                     }
                     if (isset($keyedActualColumn[$columnName])) {
                         $colDiff = array_diff_assoc($column, $keyedActualColumn[$columnName]);
@@ -4881,13 +4881,13 @@ class Server extends AppModel
     public function compareDBIndexes($actualIndex, $expectedIndex, $dbExpectedSchema)
     {
         $defaultIndexKeylength = 255;
-        $whitelistTables = array();
+        $allowedlistTables = array();
         $indexDiff = array();
         foreach($expectedIndex as $tableName => $indexes) {
             if (!array_key_exists($tableName, $actualIndex)) {
                 continue; // If table does not exists, it is covered by the schema diagnostic
-            } elseif(in_array($tableName, $whitelistTables)) {
-                continue; // Ignore whitelisted tables
+            } elseif(in_array($tableName, $allowedlistTables)) {
+                continue; // Ignore allowedlisted tables
             } else {
                 $tableIndexDiff = array_diff($indexes, $actualIndex[$tableName]); // check for missing indexes
                 if (count($tableIndexDiff) > 0) {

@@ -1,7 +1,7 @@
-<div class="whitelist form">
-<?php echo $this->Form->create('Whitelist');?>
+<div class="allowedlist form">
+<?php echo $this->Form->create('Allowedlist');?>
     <fieldset>
-        <legend><?php echo __('Edit Signature Whitelist');?></legend>
+        <legend><?php echo __('Edit Signature Allowedlist');?></legend>
     <?php
         echo $this->Form->input('id');
         echo $this->Form->input('name', array(
@@ -15,5 +15,5 @@
 ?>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'whitelist', 'menuItem' => 'edit', 'id' => $this->Form->value('Whitelist.id')));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'allowedlist', 'menuItem' => 'edit', 'id' => $this->Form->value('Allowedlist.id')));
 ?>

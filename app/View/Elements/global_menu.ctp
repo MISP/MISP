@@ -138,13 +138,13 @@
                         'requirement' => !$isAclRegexp
                     ),
                     array(
-                        'text' => __('Signature Whitelist'),
-                        'url' => $baseurl . '/admin/whitelists/index',
+                        'text' => __('Signature Allowedlist'),
+                        'url' => $baseurl . '/admin/allowedlists/index',
                         'requirement' => $isAclRegexp
                     ),
                     array(
-                        'text' => __('Signature Whitelist'),
-                        'url' => $baseurl . '/whitelists/index',
+                        'text' => __('Signature Allowedlist'),
+                        'url' => $baseurl . '/allowedlists/index',
                         'requirement' => !$isAclRegexp
                     ),
                     array(

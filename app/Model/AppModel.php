@@ -1411,6 +1411,7 @@ class AppModel extends Model
                 //rename tables
                 $sqlArray[] = "RENAME TABLE `org_blacklists` TO `org_blocklists`;";
                 $sqlArray[] = "RENAME TABLE `event_blacklists` TO `event_blocklists`;";
+                $sqlArray[] = "RENAME TABLE `whitelist` TO `allowedlist`;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1560,7 +1561,7 @@ class AppModel extends Model
                             break;
                         }
                     } else {
-                        $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is whitelisted, the update went through.');
+                        $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is allowed, the update went through.');
                     }
                     $this->Log->save($logMessage);
                 }

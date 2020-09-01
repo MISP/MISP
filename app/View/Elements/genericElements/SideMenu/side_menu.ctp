@@ -468,30 +468,30 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     ));
                     break;
 
-                case 'whitelist':
+                case 'allowedlist':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => sprintf(
-                            '%s%s/whitelists/index',
+                            '%s%s/allowedlists/index',
                             $baseurl,
                             $isSiteAdmin ? '/admin' : ''
                         ),
-                        'text' => __('List Whitelist')
+                        'text' => __('List Allowedlist')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/admin/whitelists/add',
-                            'text' => __('New Whitelist')
+                            'url' => $baseurl . '/admin/allowedlists/add',
+                            'text' => __('New Allowedlist')
                         ));
                     }
                     if ($menuItem == 'edit') {
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/admin/whitelists/edit' . h($id),
-                            'text' => __('Edit Whitelist')
+                            'url' => $baseurl . '/admin/allowedlists/edit' . h($id),
+                            'text' => __('Edit Allowedlist')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => $baseurl . '/admin/whitelists/delete/' . h($id),
-                            'text' => __('Delete Whitelist'),
+                            'url' => $baseurl . '/admin/allowedlists/delete/' . h($id),
+                            'text' => __('Delete Allowedlist'),
                             'message' => __('Are you sure you want to delete # %s?', h($id))
                         ));
                     }
