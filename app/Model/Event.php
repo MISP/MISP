@@ -804,11 +804,8 @@ class Event extends AppModel
         return $conditionsCorrelation;
     }
 
-    public function getRelatedEvents($user, $eventId = null, $sgids)
+    private function getRelatedEvents($user, $eventId, $sgids)
     {
-        if ($eventId == null) {
-            $eventId = $this->data['Event']['id'];
-        }
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
@@ -1510,6 +1507,7 @@ class Event extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
+            $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $sgids = $this->cacheSgids($user, true);
             $conditions['AND']['OR'] = array(
                 'Event.org_id' => $user['org_id'],
@@ -1517,14 +1515,14 @@ class Event extends AppModel
                     'AND' => array(
                         'Event.distribution >' => 0,
                         'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+                        $unpublishedPrivate ? array('Event.published' => 1) : array(),
                     ),
                 ),
                 array(
                     'AND' => array(
                         'Event.sharing_group_id' => $sgids,
                         'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+                        $unpublishedPrivate ? array('Event.published' => 1) : array(),
                     )
                 )
             );
@@ -1868,7 +1866,9 @@ class Event extends AppModel
             'includeRelatedTags',
             'excludeLocalTags',
             'includeDecayScore',
-            'includeSightingdb'
+            'includeSightingdb',
+            'includeFeedCorrelations',
+            'includeServerCorrelations',
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -2146,6 +2146,10 @@ class Event extends AppModel
         if (empty($results)) {
             return array();
         }
+
+        if ($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) {
+            $this->Feed = ClassRegistry::init('Feed');
+        }
         // Do some refactoring with the event
         $userEmails = array();
         $fields = array(
@@ -2209,8 +2213,7 @@ class Event extends AppModel
                     $this->Warninglist = ClassRegistry::init('Warninglist');
                     $warninglists = $this->Warninglist->fetchForEventView();
                 }
-                if (isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
-                    $this->Feed = ClassRegistry::init('Feed');
+                if ($options['includeFeedCorrelations']) {
                     if (!empty($options['overrideLimit'])) {
                         $overrideLimit = true;
                     } else {
@@ -2219,7 +2222,6 @@ class Event extends AppModel
                     $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
                 }
                 if (!empty($options['includeServerCorrelations']) && ($user['Role']['perm_site_admin'] || $user['org_id'] == Configure::read('MISP.host_org_id'))) {
-                    $this->Feed = ClassRegistry::init('Feed');
                     if (!empty($options['overrideLimit'])) {
                         $overrideLimit = true;
                     } else {
@@ -2244,14 +2246,12 @@ class Event extends AppModel
                         //$event['Attribute'][$key] = $this->Warninglist->simpleCheckForWarning($event['Attribute'][$key], $warninglists);
                     }
                     $event['Attribute'][$key] = $this->massageTags($event['Attribute'][$key], 'Attribute', $options['excludeGalaxy']);
-                    if ($event['Attribute'][$key]['category'] === 'Financial fraud') {
+                    if ($attribute['category'] === 'Financial fraud') {
                         $event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
                     }
-                    if (isset($options['includeAttachments']) && $options['includeAttachments']) {
-                        if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-                            $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-                            $event['Attribute'][$key]['data'] = $encodedFile;
-                        }
+                    if ($options['includeAttachments'] && $this->Attribute->typeIsAttachment($attribute['type'])) {
+                        $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+                        $event['Attribute'][$key]['data'] = $encodedFile;
                     }
                     if (!empty($options['includeDecayScore'])) {
                         if (isset($event['EventTag'])) { // include EventTags for score computation
@@ -2293,8 +2293,8 @@ class Event extends AppModel
                             }
                         }
                     }
-                    if (!$flatten && $event['Attribute'][$key]['object_id'] != 0) {
-                        $tempObjectAttributeContainer[$event['Attribute'][$key]['object_id']][] = $event['Attribute'][$key];
+                    if (!$flatten && $attribute['object_id'] != 0) {
+                        $tempObjectAttributeContainer[$attribute['object_id']][] = $event['Attribute'][$key];
                         unset($event['Attribute'][$key]);
                     }
                 }
@@ -2303,15 +2303,14 @@ class Event extends AppModel
             if (!empty($event['Object'])) {
                 $event['Object'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'], $sharingGroupData);
                 foreach ($event['Object'] as $objectKey => $objectValue) {
-                    if (!empty($tempObjectAttributeContainer[$objectValue['id']])) {
+                    if (isset($tempObjectAttributeContainer[$objectValue['id']])) {
                         $event['Object'][$objectKey]['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
-                        unset($tempObjectAttributeContainer[$objectValue['id']]);
                     }
                 }
+                unset($tempObjectAttributeContainer);
             }
             if (!empty($event['ShadowAttribute'])) {
-                if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
-                    $this->Feed = ClassRegistry::init('Feed');
+                if ($isSiteAdmin && $options['includeFeedCorrelations']) {
                     if (!empty($options['overrideLimit'])) {
                         $overrideLimit = true;
                     } else {
@@ -2320,7 +2319,6 @@ class Event extends AppModel
                     $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
                 }
                 if (!empty($options['includeServerCorrelations']) && $user['org_id'] == Configure::read('MISP.host_org_id')) {
-                    $this->Feed = ClassRegistry::init('Feed');
                     if (!empty($options['overrideLimit'])) {
                         $overrideLimit = true;
                     } else {
@@ -2346,10 +2344,6 @@ class Event extends AppModel
                     }
                 }
                 $event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
-            }
-            if ($event['Event']['orgc_id'] === $user['org_id'] && $user['Role']['perm_audit']) {
-                $UserEmail = $this->User->getAuthUser($event['Event']['user_id'])['email'];
-                $event['Event']['event_creator_email'] = $UserEmail;
             }
         }
         if ($options['extended']) {
@@ -4641,35 +4635,6 @@ class Event extends AppModel
         }
     }
 
-    public function getAccessibleEventIds($include, $exclude, $includedTags, $excludedTags)
-    {
-        $conditions = array();
-
-        // get all of the event IDs based on include / exclude
-        if (!empty($include)) {
-            $conditions['OR'] = array('id' => $include);
-        }
-        if (!empty($exclude)) {
-            $conditions['NOT'] = array('id' => $exclude);
-        }
-        $events = $this->find('all', array(
-            'recursive' => -1,
-            'fields' => array('id', 'org_id', 'orgc_id', 'distribution'),
-            'conditions' => $conditions
-        ));
-        $ids = array();
-        foreach ($events as $event) {
-            $ids[] = $event['Event']['id'];
-        }
-        // get all of the event IDs based on includedTags / excludedTags
-        if (!empty($includedTags) || !empty($excludedTags)) {
-            $eventIDsFromTags = $this->EventTag->getEventIDsFromTags($includedTags, $excludedTags);
-            // get the intersect of the two
-            $ids = array_intersect($ids, $eventIDsFromTags);
-        }
-        return $ids;
-    }
-
     public function sharingGroupRequired($field)
     {
         if ($this->data[$this->alias]['distribution'] == 4) {
@@ -5121,9 +5086,6 @@ class Event extends AppModel
                     }
                 }
             }
-        }
-        if (isset($object['distribution']) && $object['distribution'] != 4) {
-            unset($object['SharingGroup']);
         }
         $object = $this->Warninglist->checkForWarning($object, $eventWarnings, $warningLists);
         return $object;
