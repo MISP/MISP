@@ -1861,7 +1861,9 @@ class Event extends AppModel
             'includeRelatedTags',
             'excludeLocalTags',
             'includeDecayScore',
-            'includeSightingdb'
+            'includeSightingdb',
+            'includeFeedCorrelations',
+            'includeServerCorrelations',
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -2139,6 +2141,10 @@ class Event extends AppModel
         if (empty($results)) {
             return array();
         }
+
+        if ($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) {
+            $this->Feed = ClassRegistry::init('Feed');
+        }
         // Do some refactoring with the event
         $userEmails = array();
         $fields = array(
@@ -2202,8 +2208,7 @@ class Event extends AppModel
                     $this->Warninglist = ClassRegistry::init('Warninglist');
                     $warninglists = $this->Warninglist->fetchForEventView();
                 }
-                if (isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
-                    $this->Feed = ClassRegistry::init('Feed');
+                if ($options['includeFeedCorrelations']) {
                     if (!empty($options['overrideLimit'])) {
                         $overrideLimit = true;
                     } else {
@@ -2212,7 +2217,6 @@ class Event extends AppModel
                     $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
                 }
                 if (!empty($options['includeServerCorrelations']) && ($user['Role']['perm_site_admin'] || $user['org_id'] == Configure::read('MISP.host_org_id'))) {
-                    $this->Feed = ClassRegistry::init('Feed');
                     if (!empty($options['overrideLimit'])) {
                         $overrideLimit = true;
                     } else {
@@ -2301,8 +2305,7 @@ class Event extends AppModel
                 unset($tempObjectAttributeContainer);
             }
             if (!empty($event['ShadowAttribute'])) {
-                if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
-                    $this->Feed = ClassRegistry::init('Feed');
+                if ($isSiteAdmin && $options['includeFeedCorrelations']) {
                     if (!empty($options['overrideLimit'])) {
                         $overrideLimit = true;
                     } else {
@@ -2311,7 +2314,6 @@ class Event extends AppModel
                     $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
                 }
                 if (!empty($options['includeServerCorrelations']) && $user['org_id'] == Configure::read('MISP.host_org_id')) {
-                    $this->Feed = ClassRegistry::init('Feed');
                     if (!empty($options['overrideLimit'])) {
                         $overrideLimit = true;
                     } else {
