@@ -767,16 +767,16 @@ class Server extends AppModel
                                 'test' => 'testPasswordResetText',
                                 'type' => 'string'
                         ),
-                        'enableEventBlacklisting' => array(
+                        'enableEventBlocklisting' => array(
                                 'level' => 1,
-                                'description' => __('Since version 2.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.'),
+                                'description' => __('Since version 2.3.107 you can start blocklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.'),
                                 'value' => true,
                                 'type' => 'boolean',
                                 'test' => 'testBool'
                         ),
-                        'enableOrgBlacklisting' => array(
+                        'enableOrgBlocklisting' => array(
                                 'level' => 1,
-                                'description' => __('Blacklisting organisation UUIDs to prevent the creation of any event created by the blacklisted organisation.'),
+                                'description' => __('Blocklisting organisation UUIDs to prevent the creation of any event created by the blocklisted organisation.'),
                                 'value' => true,
                                 'type' => 'boolean',
                                 'test' => 'testBool'
@@ -2453,9 +2453,9 @@ class Server extends AppModel
 
     private function __checkIfEventIsBlockedBeforePull($event)
     {
-        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-            $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-            $r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
+        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+            $r = $this->EventBlocklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
             if (!empty($r)) {
                 return true;
             }
@@ -2847,29 +2847,29 @@ class Server extends AppModel
                 $eventUuids = array_column($eventArray, 'uuid');
             }
         } else {
-            if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-                $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-                $blacklistHits = $this->EventBlacklist->find('list', array(
+            if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+                $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+                $blocklistHits = $this->EventBlocklist->find('list', array(
                     'recursive' => -1,
-                    'conditions' => array('EventBlacklist.event_uuid' => array_column($eventArray, 'uuid')),
-                    'fields' => array('EventBlacklist.event_uuid', 'EventBlacklist.event_uuid'),
+                    'conditions' => array('EventBlocklist.event_uuid' => array_column($eventArray, 'uuid')),
+                    'fields' => array('EventBlocklist.event_uuid', 'EventBlocklist.event_uuid'),
                 ));
                 foreach ($eventArray as $k => $event) {
-                    if (isset($blacklistHits[$event['uuid']])) {
+                    if (isset($blocklistHits[$event['uuid']])) {
                         unset($eventArray[$k]);
                     }
                 }
             }
 
-            if (Configure::read('MISP.enableOrgBlacklisting') !== false) {
-                $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
-                $blacklistHits = $this->OrgBlacklist->find('list', array(
+            if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
+                $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
+                $blocklistHits = $this->OrgBlocklist->find('list', array(
                     'recursive' => -1,
-                    'conditions' => array('OrgBlacklist.org_uuid' => array_unique(array_column($eventArray, 'orgc_uuid'))),
-                    'fields' => array('OrgBlacklist.org_uuid', 'OrgBlacklist.org_uuid'),
+                    'conditions' => array('OrgBlocklist.org_uuid' => array_unique(array_column($eventArray, 'orgc_uuid'))),
+                    'fields' => array('OrgBlocklist.org_uuid', 'OrgBlocklist.org_uuid'),
                 ));
                 foreach ($eventArray as $k => $event) {
-                    if (isset($blacklistHits[$event['orgc_uuid']])) {
+                    if (isset($blocklistHits[$event['orgc_uuid']])) {
                         unset($eventArray[$k]);
                     }
                 }

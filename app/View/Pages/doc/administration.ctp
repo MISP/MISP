@@ -8,7 +8,7 @@
             <li class="active"><?php echo $this->Html->link(__('Administration'), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration')); ?>
             <ul class="nav nav-list">
                 <li><a href="#diagnostics"><?php echo __('Settings and Diagnostics');?></a></li>
-                <li><a href="#blacklist"><?php echo __('Blacklist');?></a></li>
+                <li><a href="#blocklist"><?php echo __('Blocklist');?></a></li>
                 <li><a href="#regexp"><?php echo __('Import Regexp');?></a></li>
                 <li><a href="#whitelist"><?php echo __('Signature Whitelist');?></a></li>
                 <li><a href="#user"><?php echo __('User Management');?></a></li>
@@ -56,10 +56,10 @@
         <li><b><?php echo __('Status');?></b>: <?php echo __('Displays OK if the worker is running. If the _schdlr_ worker is the only one not running make sure that you copy the config file into the cakeresque directory as described in the INSTALL.txt documentation.');?></li>
     </ul>
     <hr />
-    <h2><a id="blacklist"></a><?php echo __('Import Blacklist');?></h2>
-    <?php echo __('It is possible to ban certain values from ever being entered into the system via an event info field or an attribute value. This is done by blacklisting the value in this section.');?><br />
+    <h2><a id="blocklist"></a><?php echo __('Import Blocklist');?></h2>
+    <?php echo __('It is possible to ban certain values from ever being entered into the system via an event info field or an attribute value. This is done by blocklisting the value in this section.');?><br />
     <h3><?php echo __('Adding and modifying entries');?></h3>
-    <?php echo __('Administrators can add, edit or delete blacklisted items by using the appropriate functions in the list\'s action menu and the menu on the left.');?><br />
+    <?php echo __('Administrators can add, edit or delete blocklisted items by using the appropriate functions in the list\'s action menu and the menu on the left.');?><br />
     <hr />
     <h2><a id="regexp"></a><?php echo __('Import Regexp');?></h2>
     <?php echo __('The system allows administrators to set up rules for regular expressions that will automatically alter newly entered or imported events.');?><br />
@@ -168,7 +168,7 @@
         <li><b><?php echo __('Attribute');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
         <li><b><?php echo __('ShadowAttribute');?>:</b> <?php echo __('Creation, deletion, Accept, Discard');?><br /></li>
         <li><b><?php echo __('Roles');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
-        <li><b><?php echo __('Blacklist');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
+        <li><b><?php echo __('Blocklist');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
         <li><b><?php echo __('Whitelist');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
         <li><b><?php echo __('Regexp');?>:</b> <?php echo __('Creation, deletion, modification');?></li>
     </ul>

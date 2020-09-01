@@ -26,7 +26,7 @@ class Log extends AppModel
                     'admin_email',
                     'auth',
                     'auth_fail',
-                    'blacklisted',
+                    'blocklisted',
                     'change_pw',
                     'delete',
                     'disable',

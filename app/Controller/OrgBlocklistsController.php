@@ -1,9 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
-class OrgBlacklistsController extends AppController
+class OrgBlocklistsController extends AppController
 {
-    public $components = array('Session', 'RequestHandler', 'BlackList');
+    public $components = array('Session', 'RequestHandler', 'BlockList');
 
     public function beforeFilter()
     {
@@ -11,8 +11,8 @@ class OrgBlacklistsController extends AppController
         if (!$this->_isSiteAdmin()) {
             $this->redirect('/');
         }
-        if (Configure::check('MISP.enableOrgBlacklisting') && !Configure::read('MISP.enableOrgBlacklisting') !== false) {
-            $this->Flash->info(__('Organisation Blacklisting is not currently enabled on this instance.'));
+        if (Configure::check('MISP.enableOrgBlocklisting') && !Configure::read('MISP.enableOrgBlocklisting') !== false) {
+            $this->Flash->info(__('Organisation BlockListing is not currently enabled on this instance.'));
             $this->redirect('/');
         }
     }
@@ -21,27 +21,27 @@ class OrgBlacklistsController extends AppController
             'limit' => 60,
             'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'order' => array(
-                    'OrgBlacklist.created' => 'DESC'
+                    'OrgBlocklist.created' => 'DESC'
             ),
     );
 
     public function index()
     {
-        return $this->BlackList->index($this->_isRest());
+        return $this->BlockList->index($this->_isRest());
     }
 
     public function add()
     {
-        return $this->BlackList->add($this->_isRest());
+        return $this->BlockList->add($this->_isRest());
     }
 
     public function edit($id)
     {
-        return $this->BlackList->edit($this->_isRest(), $id);
+        return $this->BlockList->edit($this->_isRest(), $id);
     }
 
     public function delete($id)
     {
-        return $this->BlackList->delete($this->_isRest(), $id);
+        return $this->BlockList->delete($this->_isRest(), $id);
     }
 }

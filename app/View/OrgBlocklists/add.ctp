@@ -1,7 +1,7 @@
-<div class="orgBlacklist form">
-<?php echo $this->Form->create('OrgBlacklist');?>
+<div class="orgBlocklist form">
+<?php echo $this->Form->create('OrgBlocklist');?>
     <fieldset>
-        <legend><?php echo __('Add Organisation Blacklist Entries');?></legend>
+        <legend><?php echo __('Add Organisation Blocklist Entries');?></legend>
         <p><?php echo __('Simply paste a list of all the organisation UUIDs that you wish to block from being entered.');?></p>
     <?php
         echo $this->Form->input('uuids', array(
@@ -31,5 +31,5 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'orgBlacklistsAdd'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'orgBlocklistsAdd'));
 ?>

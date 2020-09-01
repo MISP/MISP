@@ -1,5 +1,5 @@
-<div class="eventBlacklists index">
-    <h2><?php echo __('Event Blacklists');?></h2>
+<div class="eventBlocklists index">
+    <h2><?php echo __('Event Blocklists');?></h2>
     <div class="pagination">
         <ul>
         <?php
@@ -25,7 +25,7 @@
                         array(
                             'class' => 'hidden mass-select',
                             'fa-icon' => 'trash',
-                            'onClick' => "multiSelectDeleteEventBlacklist",
+                            'onClick' => "multiSelectDeleteEventBlocklist",
                             'onClickParams' => array('1', '0')
                         )
                     )
@@ -57,17 +57,17 @@
 foreach ($response as $item): ?>
     <tr>
         <td style="width:10px;">
-            <input class="select" type="checkbox" data-id="<?php echo h($item['EventBlacklist']['id']); ?>" aria-label="select <?php echo h($item['EventBlacklist']['id'])?>" />
+            <input class="select" type="checkbox" data-id="<?php echo h($item['EventBlocklist']['id']); ?>" aria-label="select <?php echo h($item['EventBlocklist']['id'])?>" />
         </td>
-        <td class="short"><?php echo h($item['EventBlacklist']['id']); ?>&nbsp;</td>
-        <td class="short"><?php echo (isset($item['EventBlacklist']['event_orgc']) ? h($item['EventBlacklist']['event_orgc']) : '&nbsp;'); ?></td>
-        <td class="short"><?php echo h($item['EventBlacklist']['event_uuid']); ?>&nbsp;</td>
-        <td><?php echo h($item['EventBlacklist']['created']); ?>&nbsp;</td>
-        <td class="short"><?php echo (isset($item['EventBlacklist']['event_info']) ? h($item['EventBlacklist']['event_info']) : '&nbsp;'); ?></td>
-        <td class="short"><?php echo (isset($item['EventBlacklist']['comment']) ? h($item['EventBlacklist']['comment']) : '&nbsp;'); ?></td>
+        <td class="short"><?php echo h($item['EventBlocklist']['id']); ?>&nbsp;</td>
+        <td class="short"><?php echo (isset($item['EventBlocklist']['event_orgc']) ? h($item['EventBlocklist']['event_orgc']) : '&nbsp;'); ?></td>
+        <td class="short"><?php echo h($item['EventBlocklist']['event_uuid']); ?>&nbsp;</td>
+        <td><?php echo h($item['EventBlocklist']['created']); ?>&nbsp;</td>
+        <td class="short"><?php echo (isset($item['EventBlocklist']['event_info']) ? h($item['EventBlocklist']['event_info']) : '&nbsp;'); ?></td>
+        <td class="short"><?php echo (isset($item['EventBlocklist']['comment']) ? h($item['EventBlocklist']['comment']) : '&nbsp;'); ?></td>
         <td class="short action-links">
-            <a href="<?php echo $baseurl;?>/eventBlacklists/edit/<?php echo h($item['EventBlacklist']['id']); ?>"><span class="fa fa-edit black" title=<?php echo __('Edit')?> role="button" tabindex="0" aria-label="Edit blacklist entry">&nbsp;</span></a>
-            <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['EventBlacklist']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete the blacklist entry for the event UUID %s?', h($item['EventBlacklist']['event_uuid']))); ?>
+            <a href="<?php echo $baseurl;?>/eventBlocklists/edit/<?php echo h($item['EventBlocklist']['id']); ?>"><span class="fa fa-edit block" title=<?php echo __('Edit')?> role="button" tabindex="0" aria-label="Edit blocklist entry">&nbsp;</span></a>
+            <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['EventBlocklist']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete the blocklist entry for the event UUID %s?', h($item['EventBlocklist']['event_uuid']))); ?>
         </td>
     </tr><?php
 endforeach; ?>
@@ -111,8 +111,8 @@ endforeach; ?>
 </script>
 <?php
     if ($isSiteAdmin) {
-        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlacklists'));
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlocklists'));
     } else {
-        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'eventBlacklists'));
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'eventBlocklists'));
     }
 ?>
