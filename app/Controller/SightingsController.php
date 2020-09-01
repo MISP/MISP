@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 
 /**
  * @property Sighting $Sighting
+ * @property Event $Event
  */
 class SightingsController extends AppController
 {
@@ -326,28 +327,28 @@ class SightingsController extends AppController
                 throw new MethodNotAllowedException('Invalid object.');
             }
             $eventIds = array();
-            foreach ($object as $k => $v) {
+            foreach ($object as $v) {
                 $eventIds[] = $v['Attribute']['event_id'];
             }
-            $events = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventIds, 'metadata' => true));
+            $events = $this->Event->fetchSimpleEvents($this->Auth->user(), ['conditions' => ['id' => $eventIds]]);
         } else {
             $attribute_id = false;
             // let's set the context to event here, since we reuse the variable later on for some additional lookups.
             // Passing $context = 'org' could have interesting results otherwise...
-            $context = 'event';
-            $events = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id, 'metadata' => true));
+            $events = $this->Event->fetchSimpleEvents($this->Auth->user(), ['conditions' => ['id' => $id]]);
         }
         if (empty($events)) {
             throw new MethodNotAllowedException('Invalid object.');
         }
-        $results = array();
         $raw = array();
         foreach ($events as $event) {
             $raw = array_merge($raw, $this->Sighting->attachToEvent($event, $this->Auth->user(), $attribute_id));
         }
+        $results = array();
         foreach ($raw as $sighting) {
             $results[$sighting['type']][date('Ymd', $sighting['date_sighting'])][] = $sighting;
         }
+        unset($raw);
         $dataPoints = array();
         $startDate = date('Ymd');
         $range = date('Ymd', $this->Sighting->getMaximumRange());
