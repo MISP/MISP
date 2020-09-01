@@ -207,7 +207,7 @@ class Sighting extends AppModel
     /**
      * @param array $event
      * @param array $user
-     * @param array|int|null $attribute Attribute array or attribute ID
+     * @param array|int|null $attribute Attribute model or attribute ID
      * @param bool $extraConditions
      * @return array|int
      */
@@ -220,7 +220,7 @@ class Sighting extends AppModel
 
         $contain = [];
         $conditions = array('Sighting.event_id' => $event['Event']['id']);
-        if (is_array($attribute)) {
+        if (isset($attribute['Attribute']['id'])) {
             $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
         } elseif (is_numeric($attribute)) {
             $conditions['Sighting.attribute_id'] = $attribute;

@@ -1,5 +1,5 @@
-<div class="whitelist index">
-    <h2><?php echo __('Signature Whitelist');?></h2>
+<div class="allowedlist index">
+    <h2><?php echo __('Signature Allowedlist');?></h2>
     <p><?php echo __('Regex entries (in the standard php regex /{regex}/{modifier} format) entered below will restrict matching attributes from being included in the IDS flag sensitive exports (such as NIDS exports).');?></p>
     <div class="pagination">
         <ul>
@@ -25,11 +25,11 @@
     </tr><?php
 foreach ($list as $item):?>
     <tr>
-        <td class="short"><?php echo h($item['Whitelist']['id']);?>&nbsp;</td>
-        <td><?php echo h($item['Whitelist']['name']);?>&nbsp;</td>
+        <td class="short"><?php echo h($item['Allowedlist']['id']);?>&nbsp;</td>
+        <td><?php echo h($item['Allowedlist']['name']);?>&nbsp;</td>
         <td class="short action-links">
-            <?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Whitelist']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit')));?>
-            <?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Whitelist']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Whitelist']['name']));?>
+            <?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Allowedlist']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit')));?>
+            <?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Allowedlist']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Allowedlist']['name']));?>
         </td>
     </tr><?php
 endforeach;?>
@@ -52,4 +52,4 @@ endforeach;?>
     </div>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'whitelist', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'allowedlist', 'menuItem' => 'index'));

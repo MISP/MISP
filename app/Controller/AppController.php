@@ -966,9 +966,9 @@ class AppController extends Controller
         ));
         $counter = 0;
 
-        // load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
-        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-            $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+        // load this so we can remove the blocklist item that will be created, this is the one case when we do not want it.
+        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
         }
 
         foreach ($duplicates as $duplicate) {
@@ -981,10 +981,10 @@ class AppController extends Controller
                     $uuid = $event['Event']['uuid'];
                     $this->Event->delete($event['Event']['id']);
                     $counter++;
-                    // remove the blacklist entry that we just created with the event deletion, if the feature is enabled
+                    // remove the blocklist entry that we just created with the event deletion, if the feature is enabled
                     // We do not want to block the UUID, since we just deleted a copy
-                    if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-                        $this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
+                    if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+                        $this->EventBlocklist->deleteAll(array('EventBlocklist.event_uuid' => $uuid));
                     }
                 }
             }

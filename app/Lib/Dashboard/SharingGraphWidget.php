@@ -15,13 +15,13 @@ class SharingGraphWidget
     public $cacheLifetime = 10;
     public $autoRefreshDelay = false;
     public $params = array (
-        'blacklist_orgs' => 'A list of organisation names to filter out',
+        'blocklist_orgs' => 'A list of organisation names to filter out',
         'months' => 'Number of past months to consider for the graph'
     );
 
     public $placeholder =
 '{
-    "blacklist_orgs": ["Orgs to filter"],
+    "blocklist_orgs": ["Orgs to filter"],
     "months": "6"
 }';
 
@@ -117,8 +117,8 @@ class SharingGraphWidget
         $ghost_orgs = array(); // track orgs without any contribution
         // We start by putting all orgs_id in there:
         foreach($orgs as $org) {
-            // We check for blacklisted orgs
-            if(!empty($options['blacklist_orgs']) && in_array($org['Organisation']['name'], $options['blacklist_orgs'])) {
+            // We check for blocklisted orgs
+            if(!empty($options['blocklist_orgs']) && in_array($org['Organisation']['name'], $options['blocklist_orgs'])) {
                 unset($orgs[$offset]);
             } else {
                 $ghost_orgs[$org['Organisation']['name']] = true;
