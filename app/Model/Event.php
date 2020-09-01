@@ -2288,8 +2288,8 @@ class Event extends AppModel
                             }
                         }
                     }
-                    if (!$flatten && $event['Attribute'][$key]['object_id'] != 0) {
-                        $tempObjectAttributeContainer[$event['Attribute'][$key]['object_id']][] = $event['Attribute'][$key];
+                    if (!$flatten && $attribute['object_id'] != 0) {
+                        $tempObjectAttributeContainer[$attribute['object_id']][] = $attribute;
                         unset($event['Attribute'][$key]);
                     }
                 }
@@ -2298,11 +2298,11 @@ class Event extends AppModel
             if (!empty($event['Object'])) {
                 $event['Object'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'], $sharingGroupData);
                 foreach ($event['Object'] as $objectKey => $objectValue) {
-                    if (!empty($tempObjectAttributeContainer[$objectValue['id']])) {
+                    if (isset($tempObjectAttributeContainer[$objectValue['id']])) {
                         $event['Object'][$objectKey]['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
-                        unset($tempObjectAttributeContainer[$objectValue['id']]);
                     }
                 }
+                unset($tempObjectAttributeContainer);
             }
             if (!empty($event['ShadowAttribute'])) {
                 if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
