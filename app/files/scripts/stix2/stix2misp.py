@@ -2012,7 +2012,7 @@ class ExternalStixParser(StixParser):
 
     @staticmethod
     def _parse_pattern_types(pattern):
-        types = {part.split('=')[0].split(':')[0] for part in pattern}
+        types = {part.split('=')[0].split(':')[0].strip('[') for part in pattern}
         return tuple(sorted(types))
 
     @staticmethod
