@@ -3,35 +3,35 @@ App::uses('AppHelper', 'View/Helper');
 
 // Helper to retrieve org images with the given parameters
     class OrgImgHelper extends AppHelper {
+        const IMG_PATH = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS;
+
         public function getOrgImg($options, $returnData = false, $raw = false) {
-            $imgPath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS;
             $imgOptions = array();
             $possibleFields = array('id', 'name');
             $size = !empty($options['size']) ? $options['size'] : 48;
             foreach ($possibleFields as $field) {
-                if (isset($options[$field]) && file_exists($imgPath . $options[$field] . '.png')) {
+                if (isset($options[$field]) && file_exists(self::IMG_PATH . $options[$field] . '.png')) {
                     $imgOptions[$field] = $options[$field] . '.png';
                     break;
                 }
             }
             if (!empty($imgOptions)) {
                 foreach ($imgOptions as $field => $imgOption) {
-                    if ($raw) {
+                    $result = sprintf(
+                        '<img src="%s/img/orgs/%s" title="%s" width="%s" height="%s">',
+                        $this->baseurl,
+                        $imgOption,
+                        isset($options['name']) ? h($options['name']) : h($options['id']),
+                        (int)$size,
+                        (int)$size
+                    );
+
+                    if (!$raw) {
                         $result = sprintf(
-                            '<img src="/img/orgs/%s" title = "%s" style = "width: %spx; height: %spx;"/>',
-                            $imgOption,
-                            isset($options['name']) ? h($options['name']) : h($options['id']),
-                            h($size),
-                            h($size)
-                        );
-                    } else {
-                        $result = sprintf(
-                            '<a href="/organisations/view/%s"><img src="/img/orgs/%s" title = "%s" style = "width: %spx; height: %spx;"/></a>',
+                            '<a href="%s/organisations/view/%s">%s</a>',
+                            $this->baseurl,
                             (empty($options['id']) ? h($options['name']) : h($options['id'])),
-                            $imgOption,
-                            isset($options['name']) ? h($options['name']) : h($options['id']),
-                            h($size),
-                            h($size)
+                            $result
                         );
                     }
                     break;
@@ -44,7 +44,8 @@ App::uses('AppHelper', 'View/Helper');
                     );
                 } else {
                     $result = sprintf(
-                        '<a href="/organisations/view/%s"><span class="welcome">%s</span></a>',
+                        '<a href="%s/organisations/view/%s"><span class="welcome">%s</span></a>',
+                        $this->baseurl,
                         (empty($options['id']) ? h($options['name']) : h($options['id'])),
                         h($options['name'])
                     );

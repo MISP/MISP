@@ -60,7 +60,7 @@
 		});
 		$('.statistics_attack_matrix .matrix-interaction').off('click.interaction').on('click.interaction', function(event) {
 			var clusterId = $(this).attr('data-cluster-id');
-			window.location = '/galaxy_clusters/view/' + clusterId;
+			window.location = baseurl + '/galaxy_clusters/view/' + clusterId;
 		});
 		scoredCells.hover(function() { enteringScoredCell($(this), '.statistics_attack_matrix'); }, function() { leavingScoredCell('.statistics_attack_matrix'); });
 		$('.statistics_attack_matrix #checkbox_attackMatrix_showAll').off('click.showAll').on('click.showAll', function() { toggleAttackMatrixCells('.statistics_attack_matrix'); });

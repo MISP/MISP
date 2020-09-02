@@ -72,7 +72,7 @@ class RestResponseComponent extends Component
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags'),
+                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags', 'threat_level_id'),
                 'params' => array()
             )
         ),
@@ -294,7 +294,7 @@ class RestResponseComponent extends Component
                         $action = substr($action, 6);
                         $admin_routing = 'admin/';
                     }
-                    $url = '/' . $admin_routing . $controller . '/' . $action;
+                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
                     $result[$url] = $data;
                 }
             }
@@ -337,7 +337,7 @@ class RestResponseComponent extends Component
                         }
                     }
                     $data['body'] = json_encode($data['body'], JSON_PRETTY_PRINT);
-                    $url = '/' . $admin_routing . $controller . '/' . $action;
+                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
                     $data['url'] = $url;
                     if (!empty($data['params'])) {
                         foreach ($data['params'] as $param) {
@@ -449,7 +449,7 @@ class RestResponseComponent extends Component
                 }
                 if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
                     $this->Log = ClassRegistry::init('Log');
-                    if ($this->Content->sql_dump === 2) {
+                    if ($this->Controller->sql_dump === 2) {
                         $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
                     } else {
                         $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);
@@ -1080,7 +1080,7 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Will not return Attributes, shadow attribute and objects')
+                'help' => __('Will only return the metadata of the given query scope, contained data is omitted.')
             ),
             'minimal' => array(
                 'input' => 'radio',
@@ -1099,7 +1099,7 @@ class RestResponseComponent extends Component
                 'input' => 'select',
                 'type' => 'string',
                 'operators' => array('equal'),
-                'values' => array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist'),
+                'values' => array('Attribute', 'Event', 'EventBlocklist', 'EventTag', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist'),
             ),
             'model_id' => array(
                 'input' => 'number',
@@ -1456,13 +1456,13 @@ class RestResponseComponent extends Component
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
-                'values' => array( 1 => 'Hight', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
+                'values' => array( 1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
             ),
             'threatlevel' => array(
                 'input' => 'select',
                 'type' => 'integer',
                 'operators' => ['equal', 'not_equal'],
-                'values' => array( 1 => 'Hight', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
+                'values' => array( 1 => 'High', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
             ),
             'time' => array(
                 'input' => 'text',
@@ -1751,6 +1751,10 @@ class RestResponseComponent extends Component
             unset($tags[$i]);
         }
         $field['values'] = $tags;
+
+        if ($action == 'attachTagToObject') {
+            $field['help'] = __('Also supports array of tags');
+        }
     }
     private function __overwriteNationality($scope, $action, &$field) {
         $field['values'] = ClassRegistry::init("Organisation")->countries;

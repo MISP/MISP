@@ -5,15 +5,12 @@
 [submodule "PyMISP"]
 	path = PyMISP
 	url = https://github.com/MISP/PyMISP.git
-	branch = master
 [submodule "app/files/taxonomies"]
 	path = app/files/taxonomies
 	url = https://github.com/MISP/misp-taxonomies.git
-	branch = master
 [submodule "app/files/warninglists"]
 	path = app/files/warninglists
 	url = https://github.com/MISP/misp-warninglists.git
-	branch = master
 [submodule "app/Lib/random_compat"]
 	path = app/Lib/random_compat
 	url = https://github.com/paragonie/random_compat
@@ -37,12 +34,9 @@
 	path = Plugin/DebugKit
 	url = https://github.com/cakephp/debug_kit.git
 	branch = 2.2
-[submodule "INSTALL/Crypt_GPG"]
-	path = INSTALL/dependencies/Crypt_GPG
-	url = https://github.com/pear/Crypt_GPG
-[submodule "INSTALL/Console_CommandLine"]
-	path = INSTALL/dependencies/Console_CommandLine
-	url = https://github.com/pear/Console_CommandLine
 [submodule "app/files/misp-decaying-models"]
 	path = app/files/misp-decaying-models
 	url = https://github.com/MISP/misp-decaying-models.git
+[submodule "app/files/scripts/misp-opendata"]
+	path = app/files/scripts/misp-opendata
+	url = https://github.com/MISP/misp-opendata

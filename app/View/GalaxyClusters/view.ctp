@@ -1,53 +1,33 @@
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view_cluster'));
+
+    $table_data = array();
+    $table_data[] = array('key' => __('Cluster ID'), 'value' => $cluster['GalaxyCluster']['id']);
+    $table_data[] = array('key' => __('Name'), 'value' => $cluster['GalaxyCluster']['value']);
+    $table_data[] = array('key' => __('Parent Galaxy'), 'value' => $cluster['Galaxy']['name'] ? $cluster['Galaxy']['name'] : $cluster['Galaxy']['type']);
+    $table_data[] = array('key' => __('Description'), 'value' => $cluster['GalaxyCluster']['description']);
+    $table_data[] = array('key' => __('UUID'), 'value' => $cluster['GalaxyCluster']['uuid']);
+    $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid']);
+    $table_data[] = array('key' => __('Source'), 'value' => $cluster['GalaxyCluster']['source']);
+    $table_data[] = array('key' => __('Authors'), 'value' => !empty($cluster['GalaxyCluster']['authors']) ? implode(', ', $cluster['GalaxyCluster']['authors']) : __('N/A'));
+    $table_data[] = array('key' => __('Connector tag'), 'value' => $cluster['GalaxyCluster']['tag_name']);
+    $table_data[] = array('key' => __('Events'), 'html' => isset($cluster['GalaxyCluster']['tag_count']) ? 
+                        sprintf('<a href="%s">%s %s</a>', 
+                            sprintf('%s/events/index/searchtag:%s', $baseurl, h($cluster['GalaxyCluster']['tag_id'])),
+                            h($cluster['GalaxyCluster']['tag_count']),
+                            __('event(s)')
+                        ):
+                        '<span>0</span>'
+                    );
 ?>
-<div class="galaxy view">
+
+<div class='view'>
     <div class="row-fluid">
         <div class="span8">
             <h2>
-                <?php echo isset($cluster['Galax']['name']) ? h($cluster['Galaxy']['name']) : h($cluster['GalaxyCluster']['type']) . ': ' . $cluster['GalaxyCluster']['value']; ?>
+                <?php echo isset($cluster['Galaxy']['name']) ? h($cluster['Galaxy']['name']) : h($cluster['GalaxyCluster']['type']) . ': ' . $cluster['GalaxyCluster']['value']; ?>
             </h2>
-            <dl>
-                <dt><?php echo __('Cluster ID');?></dt>
-                <dd><?php echo h($cluster['GalaxyCluster']['id']); ?></dd>
-                <dt><?php echo __('Name');?></dt>
-                <dd><?php echo h($cluster['GalaxyCluster']['value']); ?></dd>
-                <dt><?php echo __('Parent Galaxy');?></dt>
-                <dd><?php echo $cluster['Galaxy']['name'] ? h($cluster['Galaxy']['name']) : h($cluster['Galaxy']['type']); ?></dd>
-                <dt><?php echo __('Description');?></dt>
-                <dd><?php echo h($cluster['GalaxyCluster']['description']); ?>&nbsp;</dd>
-                <dt><?php echo __('UUID');?></dt>
-                <dd><?php echo h($cluster['GalaxyCluster']['uuid']); ?>&nbsp;</dd>
-                <dt><?php echo __('Collection UUID');?></dt>
-                <dd><?php echo h($cluster['GalaxyCluster']['collection_uuid']); ?>&nbsp;</dd>
-                <dt><?php echo __('Source');?></dt>
-                <dd><?php echo h($cluster['GalaxyCluster']['source']); ?>&nbsp;</dd>
-                <dt><?php echo __('Authors');?></dt>
-                <dd>
-                    <?php
-                        $authors = $cluster['GalaxyCluster']['authors'];
-                        if (!empty($authors)) {
-                            echo implode(', ', $authors);
-                        } else {
-                            echo __('N/A');
-                        }
-                    ?>
-                </dd>
-                <dt><?php echo __('Connector tag');?></dt>
-                <dd><?php echo h($cluster['GalaxyCluster']['tag_name']); ?></dd>
-                <dt><?php echo __('Events');?></dt>
-                <dd>
-                    <?php
-                        if (isset($cluster['GalaxyCluster']['tag_count'])):
-                    ?>
-                        <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['GalaxyCluster']['tag_id']); ?>"><?php echo h($cluster['GalaxyCluster']['tag_count']); ?> event(s)</a>
-                    <?php
-                        else:
-                            echo '0';
-                        endif;
-                    ?>
-                </dd>
-            </dl>
+            <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
     </div>
     <div class="row-fuild">
@@ -59,10 +39,10 @@
 </div>
 <script type="text/javascript">
 $(document).ready(function () {
-    $.get("/galaxy_elements/index/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
+    $.get("<?php echo $baseurl; ?>/galaxy_elements/index/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#elements_div").html(data);
     });
-    $.get("/galaxy_clusters/viewGalaxyMatrix/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
+    $.get("<?php echo $baseurl; ?>/galaxy_clusters/viewGalaxyMatrix/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#matrix_container").html(data);
     });
 });

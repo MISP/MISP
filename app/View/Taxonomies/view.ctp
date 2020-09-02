@@ -97,7 +97,16 @@
             <?php endif; ?>
                 <td id="tag_<?php echo h($k); ?>" class="short"><?php echo h($item['tag']); ?></td>
                 <td><?php echo h($item['expanded']); ?>&nbsp;</td>
-                <td class="short"><?php echo isset($item['numerical_value']) ? h($item['numerical_value']) : ''; ?>&nbsp;</td>
+                <td class="short">
+                    <?php echo isset($item['numerical_value']) ? h($item['numerical_value']) : ''; ?>&nbsp;
+                    <?php if(isset($item['original_numerical_value'])): ?>
+                        <i
+                            class="<?= $this->FontAwesome->getClass('exclamation-triangle') ?> fa-exclamation-triangle"
+                            title="<?= __('Numerical value overriden by userSetting.&#10;Original numerical_value = %s', h($item['original_numerical_value'])) ?>"
+                            data-value-overriden="1"
+                        ></i>
+                    <?php endif; ?>
+                </td>
                 <td class="short">
                 <?php
                     if ($item['existing_tag']) {
@@ -141,12 +150,12 @@
                 <td class="action">
                     <?php
                         if ($isAclTagger && $taxonomy['enabled']) {
-                            echo $this->Form->create('Tag', array('id' => 'quick_' . h($k), 'url' => '/taxonomies/addTag/', 'style' => 'margin:0px;'));
+                            echo $this->Form->create('Tag', array('id' => 'quick_' . h($k), 'url' => $baseurl . '/taxonomies/addTag/', 'style' => 'margin:0px;'));
                             echo $this->Form->input('name', array('type' => 'hidden', 'value' => $item['tag']));
                             echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $taxonomy['id']));
                             echo $this->Form->end();
                             if ($item['existing_tag'] && !$item['existing_tag']['Tag']['hide_tag']):
-                                echo $this->Form->create('Tag', array('id' => 'quick_disable_' . h($k), 'url' => '/taxonomies/disableTag/', 'style' => 'margin:0px;'));
+                                echo $this->Form->create('Tag', array('id' => 'quick_disable_' . h($k), 'url' => $baseurl . '/taxonomies/disableTag/', 'style' => 'margin:0px;'));
                                 echo $this->Form->input('name', array('type' => 'hidden', 'value' => $item['tag']));
                                 echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $taxonomy['id']));
                                 echo $this->Form->end();
@@ -193,6 +202,7 @@
         $('.select_taxonomy, .select_all').click(function(){
             taxonomyListAnyCheckBoxesChecked();
         });
+        $('[data-value-overriden="1"]').tooltip();
     });
 </script>
 <?php

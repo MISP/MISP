@@ -1,3 +1,4 @@
+<div>
 <?php
     foreach ($data as $element) {
         if (!empty($element['type']) && $element['type'] === 'gap') {
@@ -26,3 +27,5 @@
             );
         }
     }
+?>
+</div>

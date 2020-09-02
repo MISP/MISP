@@ -2,7 +2,7 @@
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
 
     public $tasks = array('ConfigLoad');
 
@@ -291,7 +291,7 @@ class AdminShell extends AppShell
         $param = empty($this->args[0]) ? 'all' : $this->args[0];
         $settings = $this->Server->serverSettingsRead();
         $result = $settings;
-        if (!empty($param)) {
+        if ($param != 'all') {
             $result = 'No valid setting found for ' . $param;
             foreach ($settings as $setting) {
                 if ($setting['setting'] == $param) {
@@ -351,7 +351,7 @@ class AdminShell extends AppShell
     {
         $this->ConfigLoad->execute();
         $whoami = exec('whoami');
-        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis') {
+        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis' || $whoami === 'www') {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
             $processId = empty($this->args[0]) ? false : $this->args[0];
             $this->Server->runUpdates(true, false, $processId);

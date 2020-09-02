@@ -134,7 +134,9 @@ yumInstallCoreDeps () {
                    mariadb-server \
                    python3-devel python3-pip python3-virtualenv \
                    python3-policycoreutils \
-                   libxslt-devel zlib-devel ssdeep-devel -y
+                   policycoreutils-python-utils \
+                   libxslt-devel zlib-devel -y
+  # ssdeep-devel available: dnf install https://extras.getpagespeed.com/release-el8-latest.rpm
   sudo alternatives --set python /usr/bin/python3
 
   # Enable and start redis
@@ -148,6 +150,7 @@ yumInstallCoreDeps () {
        php-bcmath \
        php-opcache \
        php-json \
+       php-zip \
        php-gd -y
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
@@ -165,14 +168,7 @@ yumInstallCoreDeps () {
 sudo systemctl enable --now php-fpm.service
 ```
 
-```bash
-# <snippet-begin 0_yumInstallHaveged.sh>
-# GPG needs lots of entropy, haveged provides entropy
-# /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
-sudo yum install haveged -y
-sudo systemctl enable --now haveged.service
-# <snippet-end 0_yumInstallHaveged.sh>
-```
+TODO: Add a CentOS/RHEL rng thing, à la haveged (not in base anymore) or similar.
 
 ### 3/ MISP code
 ## 3.01/ Download MISP code using git in /var/www/ directory
@@ -222,9 +218,6 @@ installCoreRHEL () {
   cd $PATH_TO_MISP/app/files/scripts/mixbox
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
-  # FIXME: Remove once stix-fixed
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
-
   # install STIX2.0 library to support STIX 2.0 export:
   cd $PATH_TO_MISP/cti-python-stix2
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
@@ -271,11 +264,31 @@ installCoreRHEL () {
   echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
 
   # install magic, pydeep
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
+##$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic plyara
 
   # install PyMISP
   cd $PATH_TO_MISP/PyMISP
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
+
+  # FIXME: Remove libfaup etc once the egg has the library baked-in
+  # BROKEN: This needs to be tested on RHEL/CentOS
+  ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+  cd /tmp
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+  cd gtcaca
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  cd ../../faup
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  sudo ldconfig
 
   # Enable python3 for php-fpm
   sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/php-fpm.d/www.conf
@@ -306,10 +319,10 @@ installCake_RHEL ()
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
   # Update composer.phar (optional)
-  $SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  $SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-  $SUDO_WWW php composer-setup.php
-  $SUDO_WWW php -r "unlink('composer-setup.php');"
+  #$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  #$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  #$SUDO_WWW php composer-setup.php
+  #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
   ## sudo yum install php-redis -y
@@ -483,6 +496,7 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmq.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmqtest.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
   sudo chcon -t httpd_sys_rw_content_t /tmp
   sudo chcon -R -t usr_t $PATH_TO_MISP/venv
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
@@ -671,7 +685,7 @@ Make the workers' script executable and reload the systemd units :
 ```bash
 sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
 sudo systemctl daemon-reload
-sudo checkmodule -M -m -o /tmp/workerstartsh.mod $PATH_TO_MISP/INSTALL/worker/startsh.te
+sudo checkmodule -M -m -o /tmp/workerstartsh.mod $PATH_TO_MISP/INSTALL/workerstartsh.te
 sudo semodule_package -o /tmp/workerstartsh.pp -m /tmp/workerstartsh.mod
 sudo semodule -i /tmp/workerstartsh.pp
 ```

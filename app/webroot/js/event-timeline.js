@@ -29,10 +29,16 @@ var options = {
                 return build_object_template(item);
 
             case "object_attribute":
-                console.log('Error');
+                console.log('Error: Group not valid');
                 break;
 
             default:
+                if (item.className == "sighting_positive" || item.className == "sighting_negative") {
+                    return build_sighting_template(item);
+                } else {
+                    console.log(item)
+                    console.log('Error: Unkown group');
+                }
                 break;
         }
     },
@@ -199,6 +205,13 @@ function build_object_template(obj) {
     return html;
 }
 
+function build_sighting_template(attr){
+    var span = $('<span data-itemID="'+attr.id+'">');
+    span.text(attr.content);
+    var html = span[0].outerHTML;
+    return html;
+}
+
 function contain_seen_attribute(obj) {
     if (obj['Attribute'] === undefined) {
         return false;
@@ -235,7 +248,7 @@ function reflect_change(onIndex, itemType, itemId, item) {
 }
 
 function quick_fetch_seens(itemType, itemId, callback) {
-    var url = "/" + itemType + "/" + "fetchViewValue" + "/" + itemId + "/";
+    var url = baseurl + "/" + itemType + "/" + "fetchViewValue" + "/" + itemId + "/";
     var dfs = $.ajax({
         dataType: "html",
         cache: false,
@@ -269,7 +282,7 @@ function update_seen(item, seenType, value, reflect, callback) {
 }
 
 function fetch_form_and_submit(itemType, item, seenType, value, reflect, callback) {
-    var url = "/" + itemType + "/fetchEditForm/" + item.orig_id + "/" + seenType+"_seen";
+    var url = baseurl + "/" + itemType + "/fetchEditForm/" + item.orig_id + "/" + seenType+"_seen";
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
             $(".loadingTimeline").show();
@@ -372,6 +385,8 @@ function map_scope(val) {
             return 'seen';
         case 'Object relationship':
             return 'relationship';
+        case 'Sightings':
+            return 'sightings';
         default:
             return 'seen';
     }
@@ -400,9 +415,10 @@ function update_badge() {
 
 function reload_timeline() {
     update_badge();
-    var payload = {scope: map_scope($('#select_timeline_scope').val())};
+    var selectedScope = map_scope($('#select_timeline_scope').val());
+    var payload = {scope: selectedScope};
     $.ajax({
-        url: "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
+        url: baseurl + "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
         dataType: 'json',
         type: 'post',
         contentType: 'application/json',
@@ -413,6 +429,8 @@ function reload_timeline() {
         },
         success: function( data, textStatus, jQxhr ){
             items_timeline.clear();
+            mapping_text_to_id = new Map();
+            var itemIds = {};
             for (var item of data.items) {
                 item.className = item.group;
                 item.orig_id = item.id;
@@ -420,16 +438,45 @@ function reload_timeline() {
                 set_spanned_time(item);
                 if (item.group == 'object') {
                     for (var attr of item.Attribute) {
-                        mapping_text_to_id.set(attr.contentType+': '+attr.content+' ('+item.orig_id+')', item.id);
+                        if (selectedScope == 'sightings') {
+                            var k = attr.contentType+': '+attr.content+' ('+item.orig_id.split('-')[0]+')'
+                            if (!mapping_text_to_id.get(k)) {
+                                mapping_text_to_id.set(k, item.id);
+                            }
+                        } else {
+                            mapping_text_to_id.set(attr.contentType+': '+attr.content+' ('+item.orig_id+')', item.id);
+                        }
                         adjust_text_length(attr);
                     }
                 } else {
-                    mapping_text_to_id.set(item.content+' ('+item.orig_id+')', item.id);
+                    if (selectedScope == 'sightings') {
+                        var k = item.content+' ('+item.orig_id.split('-')[0]+')'
+                        if (!mapping_text_to_id.get(k)) {
+                            mapping_text_to_id.set(k, item.id);
+                        }
+                    } else {
+                        mapping_text_to_id.set(item.content+' ('+item.orig_id+')', item.id);
+                    }
                     adjust_text_length(item);
+                }
+                itemIds[item.attribute_id] = item.content;
+                if (selectedScope == 'sightings') {
+                    item.group = item.attribute_id;
+                    item.content = '';
                 }
             }
             items_timeline.add(data.items);
             handle_not_seen_enabled($('#checkbox_timeline_display_hide_not_seen_enabled').prop('checked'), false)
+            if (selectedScope == 'sightings') {
+                var groups = Object.keys(itemIds).map(function(id) {
+                    return {id: id, content: itemIds[id]}
+                })
+                eventTimeline.setGroups(groups);
+                eventTimeline.setOptions({selectable: false});
+            } else {
+                eventTimeline.setOptions({selectable: true});
+                eventTimeline.setGroups([]);
+            }
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
@@ -453,7 +500,7 @@ function enable_timeline() {
     };
     var payload = {scope: map_scope($('#select_timeline_scope').val())};
     $.ajax({
-        url: "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
+        url: baseurl + "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
         dataType: 'json',
         type: 'post',
         contentType: 'application/json',
@@ -548,9 +595,9 @@ function edit_item(id, callback) {
     var item = items_timeline.get(id);
     var group = item.group;
     if (group == 'attribute') {
-        simplePopup('/attributes/edit/'+item.orig_id);
+        simplePopup(baseurl+'/attributes/edit/'+item.orig_id);
     } else if (group == 'object') {
-        window.location = '/objects/edit/'+item.orig_id;
+        window.location = baseurl+'/objects/edit/'+item.orig_id;
     }
 }
 
@@ -610,11 +657,11 @@ function init_popover() {
         label: "Scope",
         tooltip: "The time scope represented by the timeline",
         event: function(value) {
-            if (value == "First seen/Last seen") {
+            if (value == "First seen/Last seen" || value == "Sightings") {
                 reload_timeline();
             }
         },
-        options: ["First seen/Last seen"],
+        options: ["First seen/Last seen", "Sightings"],
         default: "First seen/Last seen"
     });
 

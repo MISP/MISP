@@ -44,10 +44,10 @@ class AppController extends Controller
 
     public $debugMode = false;
 
-    public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName');
+    public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '101';
-    public $pyMispVersion = '2.4.123';
+    private $__queryVersion = '109';
+    public $pyMispVersion = '2.4.130';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $pythonmin = '3.6';
@@ -56,6 +56,8 @@ class AppController extends Controller
 
     public $baseurl = '';
     public $sql_dump = false;
+
+    private $isRest = null;
 
     // Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
     // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -120,7 +122,6 @@ class AppController extends Controller
         } else {
             $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
         }
-
         $this->__sessionMassage();
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers
@@ -183,6 +184,8 @@ class AppController extends Controller
         if (!empty($this->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
         }
+        Configure::write('CurrentController', $this->params['controller']);
+        Configure::write('CurrentAction', $this->params['action']);
         $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
@@ -203,7 +206,14 @@ class AppController extends Controller
             $this->Security->unlockedActions = array($this->action);
         }
 
-        if (!$userLoggedIn) {
+        if (
+            !$userLoggedIn &&
+            (
+                $this->params['controller'] !== 'users' ||
+                $this->params['action'] !== 'register' ||
+                empty(Configure::read('Security.allow_self_registration'))
+            )
+        ) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access
@@ -299,6 +309,8 @@ class AppController extends Controller
         }
 
         if ($this->Auth->user()) {
+            Configure::write('CurrentUserId', $this->Auth->user('id'));
+            $this->User->setMonitoring($this->Auth->user());
             if (Configure::read('MISP.log_user_ips')) {
                 $redis = $this->{$this->modelClass}->setupRedis();
                 if ($redis) {
@@ -351,7 +363,11 @@ class AppController extends Controller
                 }
             }
         } else {
-            if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
+            $pre_auth_actions = array('login', 'register');
+            if (!empty(Configure::read('Security.email_otp_enabled'))) {
+                $pre_auth_actions[] = 'email_otp';
+            }
+            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], $pre_auth_actions)) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
@@ -446,11 +462,32 @@ class AppController extends Controller
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
             $this->userRole = $role;
-            if (Configure::read('MISP.log_paranoid')) {
+
+            $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
+            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+            } else {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+            }
+            $this->set('notifications', $notifications);
+
+            if (
+                Configure::read('MISP.log_paranoid') ||
+                !empty(Configure::read('Security.monitored'))
+            ) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
                 $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
-                if (($this->request->is('post') || $this->request->is('put')) && !empty(Configure::read('MISP.log_paranoid_include_post_body'))) {
+                if (
+                    (
+                        $this->request->is('post') ||
+                        $this->request->is('put')
+                    ) &&
+                    (
+                        !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
+                        !empty(Configure::read('Security.monitored'))
+                    )
+                ) {
                     $payload = $this->request->input();
                     if (!empty($payload['_Token'])) {
                         unset($payload['_Token']);
@@ -471,9 +508,8 @@ class AppController extends Controller
         } else {
             $this->set('me', false);
         }
-        $this->set('br', '<br />');
-        $this->set('bold', array('<span class="bold">', '</span>'));
-        if ($this->_isSiteAdmin()) {
+
+        if ($this->Auth->user() && $this->_isSiteAdmin()) {
             if (Configure::read('Session.defaults') == 'database') {
                 $db = ConnectionManager::getDataSource('default');
                 $sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
@@ -487,13 +523,6 @@ class AppController extends Controller
             }
         }
 
-        $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-        if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
-        } else {
-            $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
-        }
-        $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
         if ($this->_isRest()) {
             $this->__rateLimitCheck();
@@ -594,7 +623,7 @@ class AppController extends Controller
             ConnectionManager::create('default', $db->config);
         }
         $dataSource = $dataSourceConfig['datasource'];
-        if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
+        if (!in_array($dataSource, array('Database/Mysql', 'Database/Postgres', 'Database/MysqlObserver'))) {
             throw new Exception('datasource not supported: ' . $dataSource);
         }
     }
@@ -658,6 +687,11 @@ class AppController extends Controller
 
     protected function _isRest()
     {
+        // This method is surprisingly slow and called many times for one request, so it make sense to cache the result.
+        if ($this->isRest !== null) {
+            return $this->isRest;
+        }
+
         $api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
         if (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson() || $this->_isCsv())) {
             if ($this->_isJson()) {
@@ -665,8 +699,10 @@ class AppController extends Controller
                     throw new MethodNotAllowedException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.');
                 }
             }
+            $this->isRest = true;
             return true;
         } else {
+            $this->isRest = false;
             return false;
         }
     }
@@ -930,9 +966,9 @@ class AppController extends Controller
         ));
         $counter = 0;
 
-        // load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
-        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-            $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+        // load this so we can remove the blocklist item that will be created, this is the one case when we do not want it.
+        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
         }
 
         foreach ($duplicates as $duplicate) {
@@ -945,10 +981,10 @@ class AppController extends Controller
                     $uuid = $event['Event']['uuid'];
                     $this->Event->delete($event['Event']['id']);
                     $counter++;
-                    // remove the blacklist entry that we just created with the event deletion, if the feature is enabled
+                    // remove the blocklist entry that we just created with the event deletion, if the feature is enabled
                     // We do not want to block the UUID, since we just deleted a copy
-                    if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-                        $this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
+                    if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+                        $this->EventBlocklist->deleteAll(array('EventBlocklist.event_uuid' => $uuid));
                     }
                 }
             }
@@ -1206,6 +1242,9 @@ class AppController extends Controller
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
+        if (empty($filters) && $this->request->is('get')) {
+            throw new InvalidArgumentException(__('Restsearch queries using GET and no parameters are not allowed. If you have passed parameters via a JSON body, make sure you use POST requests.'));
+        }
         if (empty($filters['returnFormat'])) {
             $filters['returnFormat'] = 'json';
         }
@@ -1244,5 +1283,55 @@ class AppController extends Controller
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
+    }
+
+    /**
+     * Returns true if user can modify given event.
+     *
+     * @param array $event
+     * @return bool
+     */
+    protected function __canModifyEvent(array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contains Event.');
+        }
+
+        if ($this->userRole['perm_site_admin']) {
+            return true;
+        }
+        if ($this->userRole['perm_modify_org'] && $event['Event']['orgc_id'] == $this->Auth->user('org_id')) {
+            return true;
+        }
+        if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if user can add or remove tags for given event.
+     *
+     * @param array $event
+     * @param bool $isTagLocal
+     * @return bool
+     */
+    protected function __canModifyTag(array $event, $isTagLocal = false)
+    {
+        // Site admin can add any tag
+        if ($this->userRole['perm_site_admin']) {
+            return true;
+        }
+        // User must have tagger or sync permission
+        if (!$this->userRole['perm_tagger'] && !$this->userRole['perm_sync']) {
+            return false;
+        }
+        if ($this->__canModifyEvent($event)) {
+            return true; // full access
+        }
+        if ($isTagLocal && Configure::read('MISP.host_org_id') == $this->Auth->user('org_id')) {
+            return true;
+        }
+        return false;
     }
 }

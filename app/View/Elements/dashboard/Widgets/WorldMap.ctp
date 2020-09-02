@@ -63,6 +63,9 @@
                 }
                 resize_timeout = setTimeout(function() { resizeDashboardWorldMap() }, 500); // redraw after 500ms
             });
+            $worldmap.closest('.widgetContentInner').on('widget-resized', function() {
+                resizeDashboardWorldMap();
+            })
         });
     }());
 </script>

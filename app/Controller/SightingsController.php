@@ -1,6 +1,10 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Sighting $Sighting
+ * @property Event $Event
+ */
 class SightingsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -323,34 +327,31 @@ class SightingsController extends AppController
                 throw new MethodNotAllowedException('Invalid object.');
             }
             $eventIds = array();
-            foreach ($object as $k => $v) {
+            foreach ($object as $v) {
                 $eventIds[] = $v['Attribute']['event_id'];
             }
-            $events = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventIds));
+            $events = $this->Event->fetchSimpleEvents($this->Auth->user(), ['conditions' => ['id' => $eventIds]]);
         } else {
             $attribute_id = false;
             // let's set the context to event here, since we reuse the variable later on for some additional lookups.
             // Passing $context = 'org' could have interesting results otherwise...
-            $context = 'event';
-            $events = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+            $events = $this->Event->fetchSimpleEvents($this->Auth->user(), ['conditions' => ['id' => $id]]);
         }
         if (empty($events)) {
             throw new MethodNotAllowedException('Invalid object.');
         }
-        $results = array();
         $raw = array();
         foreach ($events as $event) {
             $raw = array_merge($raw, $this->Sighting->attachToEvent($event, $this->Auth->user(), $attribute_id));
         }
+        $results = array();
         foreach ($raw as $sighting) {
             $results[$sighting['type']][date('Ymd', $sighting['date_sighting'])][] = $sighting;
         }
-        $tsv = 'date\tSighting\tFalse-positive\n';
+        unset($raw);
         $dataPoints = array();
-        $startDate = (date('Ymd'));
-        $details = array();
-        $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
-        $range = date('Ymd', strtotime("-" . $range . " days", time()));
+        $startDate = date('Ymd');
+        $range = date('Ymd', $this->Sighting->getMaximumRange());
         foreach ($results as $type => $data) {
             foreach ($data as $date => $sighting) {
                 if ($date < $startDate) {
@@ -371,11 +372,10 @@ class SightingsController extends AppController
             }
         }
         $startDate = date('Ymd', strtotime("-3 days", strtotime($startDate)));
+        $tsv = 'date\tSighting\tFalse-positive\n';
         for ($i = $startDate; $i < date('Ymd') + 1; $i++) {
             if (checkdate(substr($i, 4, 2), substr($i, 6, 2), substr($i, 0, 4))) {
                 $tsv .= $i . '\t' . (isset($dataPoints[$i][0]['count']) ? $dataPoints[$i][0]['count'] : 0) . '\t' . (isset($dataPoints[$i][1]['count']) ? $dataPoints[$i][1]['count'] : 0) . '\n';
-                $details[$i][0] = isset($dataPoints[$i][0]['details']) ? $dataPoints[$i][0]['details'] : array();
-                $details[$i][1] = isset($dataPoints[$i][1]['details']) ? $dataPoints[$i][1]['details'] : array();
             }
         }
         $this->set('tsv', $tsv);

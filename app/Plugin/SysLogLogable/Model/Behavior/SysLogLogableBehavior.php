@@ -66,14 +66,18 @@ class SysLogLogableBehavior extends LogableBehavior {
 				if (isset($Model->data[$Model->alias][$Model->primaryKey]) && !empty($this->old) && isset($this->old[$Model->alias][$key])) {
 					$old = $this->old[$Model->alias][$key];
 					if (is_array($old)) {
-						$old = json_encode($old, true);
+						$old = json_encode($old);
 					}
 				} else {
 					$old = '';
 				}
 				// TODO Audit, removed 'revision' as well
 				if ($key != 'lastpushedid' && $key!= 'timestamp' && $key != 'revision' && $key != 'modified' && !in_array($key, $this->settings[$Model->alias]['ignore']) && $value != $old && in_array($key, $db_fields)) {
-					if ($this->settings[$Model->alias]['change'] == 'full') {
+                    if ($key === 'authkey' && Configure::read('Security.do_not_log_authkeys')) {
+                        $old = $value = '*****';
+                    }
+
+				    if ($this->settings[$Model->alias]['change'] == 'full') {
 						if (($key != 'published') || (($key == 'published') && ($value == '1'))) { // remove (un-)published from edit
 							$changed_fields[] = $key . ' (' . $old . ') => (' . $value . ')';
 						}

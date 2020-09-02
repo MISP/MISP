@@ -2,13 +2,23 @@
     <h2><?php echo __('Automation');?></h2>
     <p><?php echo __('Automation functionality is designed to automatically feed other tools and systems with the data in your MISP repository.
     To to make this functionality available for automated tools an authentication key is used.');?>
-    <br /><?php echo __('You can use the <a href="/servers/rest">REST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.');?>
+    <br /><?php echo __('You can use the <a href="' . $baseurl . '/servers/rest">REST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.');?>
     <strong><?php echo __('Make sure you keep your API key secret as it gives access to the all of the data that you normally have access to in MISP.');?></strong>
-    <?php echo __('To view the old MISP automation page, click <a href="automation/1">here</a>.');?>
+    <?php echo __('To view the old MISP automation page, click <a href="' . $baseurl . '/automation/1">here</a>.');?>
     </p>
-    <p><?php echo __('Your current key is: <code>%s</code>.
-    You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', 'me')));?>
-    </p>
+    <span>
+        <?php
+            echo __(
+                'Your current key is: <code>%s</code>. You can %s this key.',
+                $me['authkey'],
+                $this->Form->postLink(
+                    __('reset'),
+                    array('controller' => 'users', 'action' => 'resetauthkey', 'me'),
+                    array('div' => false)
+                )
+            );
+        ?>
+    </span>
     <?php
         $data = array(
             'title' => __('Search'),
@@ -124,7 +134,7 @@
         echo 'Accept: application/json' . PHP_EOL;
         echo 'Content-type: application/json';
     ?></pre>
-    <code>{"request": {"type":"ip", "eventid":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
+    <code>{"request": {"type": "ip", "eventid": ["!51","!62"],"withAttachment": false,"tags": ["APT1","!OSINT"],"from": false,"to": "2015-02-15"}}</code><br /><br />
     <p>XML:</p>
     <pre><?php
         echo 'Headers' . PHP_EOL;

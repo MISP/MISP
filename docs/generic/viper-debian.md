@@ -18,8 +18,8 @@ viper () {
     fi
   fi
   echo "Cloning Viper"
-  $SUDO_CMD git clone https://github.com/viper-framework/viper.git
-  $SUDO_CMD git clone https://github.com/viper-framework/viper-web.git
+  false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/viper-framework/viper.git; done
+  false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/viper-framework/viper-web.git; done
   sudo chown -R $MISP_USER:$MISP_USER viper
   sudo chown -R $MISP_USER:$MISP_USER viper-web
   cd viper
@@ -29,7 +29,7 @@ viper () {
   # TODO: Check for current user install permissions
   $SUDO_CMD git submodule update --init --recursive
   echo "pip install deps"
-  $SUDO_CMD ./venv/bin/pip install pefile olefile jbxapi Crypto pypdns pypssl r2pipe pdftools virustotal-api SQLAlchemy PrettyTable python-magic scrapy https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_CMD ./venv/bin/pip install pefile olefile jbxapi Crypto pypdns pypssl r2pipe pdftools virustotal-api SQLAlchemy PrettyTable python-magic scrapy lief
   $SUDO_CMD ./venv/bin/pip install .
   echo 'update-modules' |/usr/local/src/viper/venv/bin/viper
   cd /usr/local/src/viper-web

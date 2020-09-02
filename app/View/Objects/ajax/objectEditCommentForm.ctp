@@ -1,5 +1,5 @@
 <?php
-    echo $this->Form->create('Object', array('class' => 'inline-form inline-field-form', 'id' => 'Object_' . $object['id'] . '_comment_form', 'url' => '/objects/editField/' . $object['id']));
+    echo $this->Form->create('Object', array('class' => 'inline-form inline-field-form', 'id' => 'Object_' . $object['id'] . '_comment_form', 'url' => $baseurl . '/objects/editField/' . $object['id']));
 ?>
     <div class='inline-input inline-input-container'>
     <div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok" role="button" tabindex="0" aria-label="<?php echo __('Accept change'); ?>"></span></div>

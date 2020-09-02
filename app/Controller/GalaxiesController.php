@@ -18,12 +18,45 @@ class GalaxiesController extends AppController
 
     public function index()
     {
+        $aclConditions = array();
+        $filters = $this->IndexFilter->harvestParameters(array('context', 'value'));
+        $contextConditions = array();
+        if (empty($filters['context'])) {
+            $filters['context'] = 'all';
+        }
+        $searchConditions = array();
+        if (empty($filters['value'])) {
+            $filters['value'] = '';
+        } else {
+            $searchall = '%' . strtolower($filters['value']) . '%';
+            $searchConditions = array(
+                'OR' => array(
+                    'LOWER(Galaxy.name) LIKE' => $searchall,
+                    'LOWER(Galaxy.namespace) LIKE' => $searchall,
+                    'LOWER(Galaxy.description) LIKE' => $searchall,
+                    'LOWER(Galaxy.kill_chain_order) LIKE' => $searchall,
+                    'Galaxy.uuid LIKE' => $searchall
+                )
+            );
+        }
         if ($this->_isRest()) {
-            $galaxies = $this->Galaxy->find('all', array('recursive' => -1));
+            $galaxies = $this->Galaxy->find('all',
+                array(
+                    'recursive' => -1,
+                    'conditions' => array(
+                        'AND' => array($contextConditions, $searchConditions, $aclConditions)
+                    )
+                )
+            );
             return $this->RestResponse->viewData($galaxies, $this->response->type());
         } else {
+            $this->paginate['conditions']['AND'][] = $contextConditions;
+            $this->paginate['conditions']['AND'][] = $searchConditions;
+            $this->paginate['conditions']['AND'][] = $aclConditions;
             $galaxies = $this->paginate();
-            $this->set('list', $galaxies);
+            $this->set('galaxyList', $galaxies);
+            $this->set('context', $filters['context']);
+            $this->set('searchall', $filters['value']);
         }
     }
 
@@ -122,14 +155,14 @@ class GalaxiesController extends AppController
         $items = array(
             array(
                 'name' => __('All clusters'),
-                'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local
+                'value' => $this->baseurl . "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local
             )
         );
         foreach ($galaxies as $galaxy) {
             if (!isset($galaxy['Galaxy']['kill_chain_order'])) {
                 $items[] = array(
                     'name' => h($galaxy['Galaxy']['name']),
-                    'value' => "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local,
+                    'value' => $this->baseurl . "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local,
                     'template' => array(
                         'preIcon' => 'fa-' . $galaxy['Galaxy']['icon'],
                         'name' => $galaxy['Galaxy']['name'],
@@ -150,7 +183,7 @@ class GalaxiesController extends AppController
                     'isMatrix' => true
                 );
                 if ($galaxy['Galaxy']['id'] == $mitreAttackGalaxyId) {
-                    $param['img'] = "/img/mitre-attack-icon.ico";
+                    $param['img'] = $this->baseurl . "/img/mitre-attack-icon.ico";
                 }
                 $items[] = $param;
             }
@@ -172,12 +205,12 @@ class GalaxiesController extends AppController
         $items = array();
         $items[] = array(
             'name' => __('All namespaces'),
-            'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/local:' . $local
+            'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/local:' . $local
         );
         foreach ($namespaces as $namespace) {
             $items[] = array(
                 'name' => $namespace,
-                'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/local:' . $local
+                'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/local:' . $local
             );
         }
 

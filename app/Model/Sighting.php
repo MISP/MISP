@@ -1,7 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
 
+/**
+ * @property Attribute $Attribute
+ */
 class Sighting extends AppModel
 {
     public $useTable = 'sightings';
@@ -200,31 +204,41 @@ class Sighting extends AppModel
         return $result;
     }
 
-    public function attachToEvent($event, $user = array(), $attribute_id = false, $extraConditions = false)
+    /**
+     * @param array $event
+     * @param array $user
+     * @param array|int|null $attribute Attribute model or attribute ID
+     * @param bool $extraConditions
+     * @return array|int
+     */
+    public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false)
     {
-        if (empty($user)) {
-            $user = array(
-                'org_id' => -1,
-                'Role' => array(
-                    'perm_site_admin' => 0
-                )
-            );
-        }
         $ownEvent = false;
         if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) {
             $ownEvent = true;
         }
+
+        $contain = [];
         $conditions = array('Sighting.event_id' => $event['Event']['id']);
-        if ($attribute_id) {
-            $conditions[] = array('Sighting.attribute_id' => $attribute_id);
+        if (isset($attribute['Attribute']['id'])) {
+            $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
+        } elseif (is_numeric($attribute)) {
+            $conditions['Sighting.attribute_id'] = $attribute;
+            $attribute = $this->Attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $attribute],
+                'fields' => ['Attribute.uuid']
+            ]);
+        } else {
+            $contain['Attribute'] = ['fields' => 'Attribute.uuid'];
         }
+
         if (!$ownEvent && (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0)) {
             $conditions['Sighting.org_id'] = $user['org_id'];
         }
         if ($extraConditions !== false) {
             $conditions['AND'] = $extraConditions;
         }
-        $contain = array();
         if (Configure::read('MISP.showorg')) {
             $contain['Organisation'] = array('fields' => array('Organisation.id', 'Organisation.uuid', 'Organisation.name'));
         }
@@ -263,8 +277,11 @@ class Sighting extends AppModel
                 $sightings[$k]['Sighting']['Organisation'] = $sightings[$k]['Organisation'];
             }
             // zeroq: add attribute UUID to sighting to make synchronization easier
-            $attribute = $this->Attribute->fetchAttribute($sighting['Sighting']['attribute_id']);
-            $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
+            if (isset($sighting['Attribute']['uuid'])) {
+                $sightings[$k]['Sighting']['attribute_uuid'] = $sighting['Attribute']['uuid'];
+            } else {
+                $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
+            }
 
             $sightings[$k] = $sightings[$k]['Sighting'] ;
         }
@@ -338,6 +355,22 @@ class Sighting extends AppModel
 
     public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false)
     {
+        if (!in_array($type, array(0, 1, 2))) {
+            return 'Invalid type, please change it before you POST 1000000 sightings.';
+        }
+
+        if ($sighting_uuid) {
+            // Since sightings are immutable (it is not possible to change it from web interface), we can check
+            // if sighting with given uuid already exists and quit early
+            $existing_sighting = $this->find('count', array(
+                'recursive' => -1,
+                'conditions' => array('uuid' => $sighting_uuid)
+            ));
+            if ($existing_sighting) {
+                return 0;
+            }
+        }
+
         $conditions = array();
         if ($id && $id !== 'stix') {
             $id = $this->explodeIdList($id);
@@ -361,9 +394,6 @@ class Sighting extends AppModel
                 }
             }
         }
-        if (!in_array($type, array(0, 1, 2))) {
-            return 'Invalid type, please change it before you POST 1000000 sightings.';
-        }
         $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions, 'flatten' => 1));
         if (empty($attributes)) {
             return 'No valid attributes found that match the criteria.';
@@ -386,27 +416,15 @@ class Sighting extends AppModel
             // zeroq: allow setting a specific uuid
             if ($sighting_uuid) {
                 $sighting['uuid'] = $sighting_uuid;
-                // check if sighting with given uuid already exists
-                $existing_sighting = $this->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('uuid' => $sighting_uuid)
-                ));
-                // do not add sighting if already exists
-                if (!empty($existing_sighting)) {
-                    return 0;
-                }
             }
             $result = $this->save($sighting);
             if ($result === false) {
                 return json_encode($this->validationErrors);
             }
-            $sightingsAdded += $result ? 1 : 0;
+            ++$sightingsAdded;
             if ($publish) {
                 $this->Event->publishRouter($sighting['event_id'], null, $user, 'sightings');
             }
-        }
-        if ($sightingsAdded == 0) {
-            return 'There was nothing to add.';
         }
         return $sightingsAdded;
     }
@@ -469,9 +487,8 @@ class Sighting extends AppModel
 
     public function getSightingsForTag($user, $tag_id, $sgids = array(), $type = false)
     {
-        $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
         $conditions = array(
-            'Sighting.date_sighting >' => strtotime("-" . $range . " days"),
+            'Sighting.date_sighting >' => $this->getMaximumRange(),
             'EventTag.tag_id' => $tag_id
         );
         if ($type !== false) {
@@ -508,18 +525,9 @@ class Sighting extends AppModel
 
     public function getSightingsForObjectIds($user, $tagList, $context = 'event', $type = '0')
     {
-        $range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
         $conditions = array(
-            'Sighting.date_sighting >' => strtotime("-" . $range . " days"),
+            'Sighting.date_sighting >' => $this->getMaximumRange(),
             ucfirst($context) . 'Tag.tag_id' => $tagList
-
-        );
-        $contain = array(
-            ucfirst($context) => array(
-                ucfirst($context) . 'Tag' => array(
-                    'Tag'
-                )
-            )
         );
         if ($type !== false) {
             $conditions['Sighting.type'] = $type;
@@ -529,15 +537,16 @@ class Sighting extends AppModel
             'recursive' => -1,
             'contain' => array(ucfirst($context) . 'Tag'),
             'conditions' => $conditions,
-            'fields' => array('Sighting.id', 'Sighting.' . $context . '_id', 'Sighting.date_sighting', ucfirst($context) . 'Tag.tag_id')
+            'fields' => array('Sighting.' . $context . '_id', 'Sighting.date_sighting')
         ));
         $sightingsRearranged = array();
         foreach ($sightings as $sighting) {
             $date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
-            if (isset($sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date])) {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date]++;
+            $contextId = $sighting['Sighting'][$context . '_id'];
+            if (isset($sightingsRearranged[$contextId][$date])) {
+                $sightingsRearranged[$contextId][$date]++;
             } else {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date] = 1;
+                $sightingsRearranged[$contextId][$date] = 1;
             }
         }
         return $sightingsRearranged;
@@ -632,11 +641,11 @@ class Sighting extends AppModel
         $allowedContext = array('event', 'attribute');
         // validate context
         if (isset($filters['context']) && !in_array($filters['context'], $allowedContext, true)) {
-            throw new MethodNotAllowedException(_('Invalid context.'));
+            throw new MethodNotAllowedException(__('Invalid context.'));
         }
         // ensure that an id is provided if context is set
         if (!empty($filters['context']) && !isset($filters['id'])) {
-            throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
+            throw new MethodNotAllowedException(__('An id must be provided if the context is set.'));
         }
 
         if (!isset($this->validFormats[$returnFormat][1])) {
@@ -747,8 +756,8 @@ class Sighting extends AppModel
             'filters' => $filters
         );
 
-        $tmpfile = tmpfile();
-        fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $tmpfile = new TmpFileTool();
+        $tmpfile->write($exportTool->header($exportToolParams));
 
         $temp = '';
         $i = 0;
@@ -761,28 +770,26 @@ class Sighting extends AppModel
             }
             $i++;
         }
-        fwrite($tmpfile, $temp);
-
-        fwrite($tmpfile, $exportTool->footer($exportToolParams));
-        fseek($tmpfile, 0);
-        $final = fread($tmpfile, fstat($tmpfile)['size']);
-        fclose($tmpfile);
-        return $final;
+        $tmpfile->write($temp);
+        $tmpfile->write($exportTool->footer($exportToolParams));
+        return $tmpfile->finish();
     }
 
-    // Bulk save sightings
+    /**
+     * @param int|string $eventId Event ID or UUID
+     * @param array $sightings
+     * @param array $user
+     * @param null $passAlong
+     * @return int|string Number of saved sightings or error message as string
+     */
     public function bulkSaveSightings($eventId, $sightings, $user, $passAlong = null)
     {
-        if (!is_numeric($eventId)) {
-             $eventId = $this->Event->field('id', array('uuid' => $eventId));
-        }
-        $event = $this->Event->fetchEvent($user, array(
-             'eventid' => $eventId,
+        $event = $this->Event->fetchEvent($user, array_merge(array(
              'metadata' => 1,
-             'flatten' => true
-        ));
+             'flatten' => true,
+        ), is_string($eventId) ? array('event_uuid' => $eventId) : array('eventid' => $eventId)));
         if (empty($event)) {
-            return 'Event not found or not accesible by this user.';
+            return 'Event not found or not accessible by this user.';
         }
         $saved = 0;
         foreach ($sightings as $s) {
@@ -811,29 +818,47 @@ class Sighting extends AppModel
     {
         $HttpSocket = $this->setupHttpSocket($server);
         $this->Server = ClassRegistry::init('Server');
-        $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, false, 'sightings');
+        try {
+            $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, 'sightings');
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            return 0;
+        }
         $saved = 0;
         // now process the $eventIds to pull each of the events sequentially
-        if (!empty($eventIds)) {
-            // download each event and save sightings
-            foreach ($eventIds as $k => $eventId) {
+        // download each event and save sightings
+        foreach ($eventIds as $k => $eventId) {
+            try {
                 $event = $this->Event->downloadEventFromServer($eventId, $server);
-                $sightings = array();
-                if(!empty($event) && !empty($event['Event']['Attribute'])) {
-                    foreach($event['Event']['Attribute'] as $attribute) {
-                        if(!empty($attribute['Sighting'])) {
-                            $sightings = array_merge($sightings, $attribute['Sighting']);
-                        }
+            } catch (Exception $e) {
+                $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
+                continue;
+            }
+            $sightings = array();
+            if (!empty($event) && !empty($event['Event']['Attribute'])) {
+                foreach ($event['Event']['Attribute'] as $attribute) {
+                    if (!empty($attribute['Sighting'])) {
+                        $sightings = array_merge($sightings, $attribute['Sighting']);
                     }
                 }
-                if(!empty($event) && !empty($sightings)) {
-                    $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
-                    if (is_numeric($result)) {
-                        $saved += $result;
-                    }
+            }
+            if (!empty($event) && !empty($sightings)) {
+                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+                if (is_numeric($result)) {
+                    $saved += $result;
                 }
             }
         }
         return $saved;
+    }
+
+    /**
+     * @return int Timestamp
+     */
+    public function getMaximumRange()
+    {
+        $rangeInDays = Configure::read('MISP.Sightings_range');
+        $rangeInDays = (!empty($rangeInDays) && is_numeric($rangeInDays)) ? $rangeInDays : 365;
+        return strtotime("-$rangeInDays days");
     }
 }

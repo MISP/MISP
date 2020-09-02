@@ -17,12 +17,12 @@
         }
     }
     echo sprintf(
-        '<span id = "%sInfoPopover" class="icon-info-sign" data-toggle="popover" data-trigger="hover" style="margin-left:2px;"></span>',
+        ' <span id="%sInfoPopover" class="fas fa-info-circle" data-toggle="popover" data-trigger="hover"></span>',
         h($field['field'])
     );
 ?>
 <script type="text/javascript">
-    $(document).ready(function() {
+    $(function() {
         $('#<?php echo h($field['field']); ?>InfoPopover').popover({
             html: true,
             content: function() {

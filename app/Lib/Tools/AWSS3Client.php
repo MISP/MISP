@@ -49,6 +49,14 @@ class AWSS3Client
         return $s3;
     }
 
+    public function exist($key)
+    {
+        return $this->__client->doesObjectExist([
+            'Bucket' => $this->__settings['bucket_name'],
+            'Key' => $key,
+        ]);
+    }
+
     public function upload($key, $data)
     {
         $this->__client->putObject([

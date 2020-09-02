@@ -84,7 +84,8 @@ class Role extends AppModel
             'id' => 'RolePermAuth',
             'text' => 'Auth key access',
             'readonlyenabled' => true,
-            'title' => 'Users with this permission have access to authenticating via their Auth keys, granting them access to the API.'
+            'title' => 'Users with this permission have access to authenticating via their Auth keys, granting them access to the API.',
+            'site_admin_optional' => true
         ),
         'perm_regexp_access' => array(
             'id' => 'RolePermRegexpAccess',
@@ -253,5 +254,35 @@ class Role extends AppModel
             $this->save($role);
         }
         return true;
+    }
+
+    /*
+     *  Helper function to find out if a list of registrations has the same role requirements
+     *  If no role requirements have been passed yet, null is assumed for $suggestedRole
+     *  Returns an array with the permission flags required
+     */
+    public function checkDesiredRole($suggestedRole, $registration)
+    {
+        if ($suggestedRole !== false) {
+            $currentRole = array();
+            $roleFlags = array('perm_publish', 'perm_admin', 'perm_sync');
+            foreach ($roleFlags as $roleFlag) {
+                if (isset($registration['Inbox']['data'][$roleFlag])) {
+                    $currentRole[$roleFlag] = $registration['Inbox']['data'][$roleFlag];
+                }
+            }
+            if ($suggestedRole !== null) {
+                if (count($suggestedRole) != count($currentRole) || !empty(array_diff_key($suggestedRole, $currentRole))) {
+                    return false;
+                }
+                foreach (array_keys($currentRole) as $perm) {
+                    if ($currentRole[$perm] !== $suggestedRole[$perm]) {
+                        return false;
+                    }
+                }
+            }
+            return $currentRole;
+        }
+        return $suggestedRole;
     }
 }

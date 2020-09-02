@@ -58,20 +58,28 @@
                 array(
                     'name' => __('Description'),
                     'data_path' => 'description',
+                ),
+                array(
+                    'name' => __('Self-reg'),
+                    'element' => 'self_registration',
+                    'class' => 'short',
+                    'title' => __('This community allows for self-registration'),
+                    'data_path' => 'url',
+                    'data_path_requirement' => 'self_registration'
                 )
             ),
             'title' => __('Communities index'),
             'description' => __('You can find a list of communities below that chose to advertise their existence to the general MISP user-base. Requesting access to any of those communities is of course no guarantee of being permitted access, it is only meant to simplify the means of finding the various communities that one may be eligible for. Get in touch with the MISP project maintainers if you would like your community to be included in the list.'),
             'actions' => array(
                 array(
-                    'url' => '/communities/view',
+                    'url' => $baseurl . '/communities/view',
                     'url_params_data_paths' => array(
                         'uuid'
                     ),
                     'icon' => 'eye'
                 ),
                 array(
-                    'url' => '/communities/requestAccess',
+                    'url' => $baseurl . '/communities/requestAccess',
                     'url_params_data_paths' => array(
                         'uuid'
                     ),

@@ -49,7 +49,7 @@ class Warninglist extends AppModel
     public function update()
     {
         $directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
-        $updated = array();
+        $updated = array('success' => [], 'fails' => []);
         foreach ($directories as $dir) {
             $file = new File($dir . DS . 'list.json');
             $list = json_decode($file->read(), true);
@@ -364,7 +364,7 @@ class Warninglist extends AppModel
                         } else {
                             $object['warnings'][$result][] = $list['Warninglist']['name'];
                         }
-                        if (empty($eventWarnings) || !in_array($list['Warninglist']['name'], $eventWarnings)) {
+                        if (!isset($eventWarnings[$list['Warninglist']['id']])) {
                             $eventWarnings[$list['Warninglist']['id']] = $list['Warninglist']['name'];
                         }
                     }

@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for NetBSD 8.1-amd64
+## for NetBSD 9.0-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
@@ -33,7 +33,9 @@ export AUTOCONF_VERSION=2.69
 
 #### sudo & pkgin (as root)
 ```bash
-su root -c "pkgin install sudo gsed"
+su root -c "cd /usr/pkgsrc/pkg tools/pkgin/; make install clean"
+su root -c "pkgin update"
+su root -c "pkgin -y install sudo gsed"
 su root -c 'gsed -i -e "s/# %wheel ALL=(ALL) NOPASSWD: ALL/%wheel ALL=(ALL) NOPASSWD: ALL/" /usr/pkg/etc/sudoers'
 ```
 
@@ -41,10 +43,11 @@ su root -c 'gsed -i -e "s/# %wheel ALL=(ALL) NOPASSWD: ALL/%wheel ALL=(ALL) NOPA
 
 ```bash
 cd /usr
-env CVS_RSH=ssh sudo cvs -d anoncvs@anoncvs.NetBSD.org:/cvsroot checkout -P pkgsrc
+env CVS_RSH=ssh cvs -d anoncvs@anoncvs.NetBSD.org:/cvsroot checkout -P pkgsrc
 cd pkgsrc/bootstrap
-sudo ./bootstrap
-sudo /usr/pkg/sbin/pkg_admin -K /var/db/pkg fetch-pkg-vulnerabilities
+./bootstrap
+cd /usr/pkgsrc/pkg tools/pkgin/; make install clean
+/usr/pkg/sbin/pkg_admin fetch-pkg-vulnerabilities
 ```
 
 ```
@@ -61,56 +64,56 @@ users crontab(5) entry. For example the entry
 
 #### Install bash
 ```bash
-sudo pkgin install bash
+sudo pkgin -y install bash
 ```
 
 #### mariadb server
 ```bash
-sudo pkgin install mariadb-server 
+sudo pkgin -y install mysql-server 
 ```
 
 #### Install misc dependencies
 
 ```bash
-sudo pkgin install curl git python36 py36-pip redis autoconf automake libtool magic
+sudo pkgin -y install curl git python37 py37-pip redis autoconf automake libtool magic
 ```
 
 ```bash
-sudo pkgin install gnupg2
+sudo pkgin -y install gnupg2
 ```
 
 #### Install postfix (optional)
 
 ```bash
-sudo pkgin install postfix
+sudo pkgin -y install postfix
 ```
 
 #### vim (optional)
 ```bash
-sudo pkgin install vim
+sudo pkgin -y install vim
 sudo mv /usr/bin/vi /usr/bin/vi-`date +%d%m%y`
 sudo ln -s /usr/pkg/bin/vim /usr/bin/vi
-```
-
-#### misp user #REMOVE
-```bash
-sudo useradd -m -s /usr/local/bin/bash -G wheel,www misp
 ```
 
 #### apache + php + moz-rootcerts
 
 ```bash
-sudo pkgin install php ap24-php73 php73-fpm php73-redis3 php73-mysqli php73-pdo_mysql php73-pcntl php73-json php73-iconv php73-gd php73-mbstring php73-pear-Crypt_GPG
+sudo pkgin -y install php ap24-php74 php74-fpm php74-redis3 php74-mysqli php74-pdo_mysql php74-pcntl php74-json php74-iconv php74-gd php74-mbstring php74-pear-Crypt_GPG
 sudo cp /usr/share/examples/openssl/openssl.cnf /etc/openssl/
 sudo mozilla-rootcerts install
 sudo cp /usr/pkg/share/examples/rc.d/apache /etc/rc.d/
 echo apache=yes |sudo tee /etc/rc.conf.d/apache
 ```
 
+#### misp user
+```bash
+sudo useradd -m -s /usr/pkg/bin/bash -G wheel,www misp
+```
+
 #### Install X11R7 post-install
 ```bash
 cd /tmp
-wget https://ftp.netbsd.org/pub/NetBSD/NetBSD-8.1/amd64/binary/sets/xbase.tgz
+wget https://ftp.netbsd.org/pub/NetBSD/NetBSD-9.0/amd64/binary/sets/xbase.tgz
 sudo tar -C / -xzphf xbase.tgz
 rm xbase.tgz
 ```
@@ -129,16 +132,16 @@ OPENSSL_EMAILADDRESS='info@localhost'
 ```
 
 ```bash
-sudo openssl req -newkey rsa:4096 -days 3650 -nodes -x509 -subj "/C=$OPENSSL_C/ST=$OPENSSL_ST/L=$OPENSSL_L/O=<$OPENSSL_O/OU=$OPENSSL_OU/CN=$OPENSSL_CN/emailAddress=$OPENSSL_EMAILADDRESS" -keyout /etc/openssl/private/server.key -out /usr/pkg/etc/httpd/server.crt
+sudo openssl req -sha256 -newkey rsa:4096 -days 3650 -nodes -x509 -subj "/C=$OPENSSL_C/ST=$OPENSSL_ST/L=$OPENSSL_L/O=<$OPENSSL_O/OU=$OPENSSL_OU/CN=$OPENSSL_CN/emailAddress=$OPENSSL_EMAILADDRESS" -keyout /etc/openssl/private/server.key -out /usr/pkg/etc/httpd/server.crt
 ```
 
 #### Install Python virtualenv
 ```bash
-sudo ln -sf /usr/pkg/bin/pip3.6 /usr/pkg/bin/pip
-sudo ln -s /usr/pkg/bin/python3.6 /usr/pkg/bin/python
-sudo ln -s /usr/pkg/bin/python3.6 /usr/pkg/bin/python3
-sudo pkgin install py36-virtualenv
-sudo ln -s /usr/pkg/bin/virtualenv-3.6 /usr/pkg/bin/virtualenv
+sudo ln -sf /usr/pkg/bin/pip3.7 /usr/pkg/bin/pip
+sudo ln -s /usr/pkg/bin/python3.7 /usr/pkg/bin/python
+sudo ln -s /usr/pkg/bin/python3.7 /usr/pkg/bin/python3
+sudo pkgin -y install py37-virtualenv
+sudo ln -s /usr/pkg/bin/virtualenv-3.7 /usr/pkg/bin/virtualenv
 ```
 
 #### Install ssdeep
@@ -146,11 +149,11 @@ sudo ln -s /usr/pkg/bin/virtualenv-3.6 /usr/pkg/bin/virtualenv
 sudo mkdir -p /usr/local/src
 sudo chown misp:users /usr/local/src
 cd /usr/local/src
-git clone https://github.com/ssdeep-project/ssdeep.git
+sudo -u misp git clone https://github.com/ssdeep-project/ssdeep.git
 cd ssdeep
-./bootstrap
-./configure --prefix=/usr
-make
+sudo -u misp ./bootstrap
+sudo -u misp ./configure --prefix=/usr
+sudo -u misp make
 sudo make install
 ```
 
@@ -167,10 +170,8 @@ sudo /etc/rc.d/redis start
 
 #### Enable mysqld
 ```bash
-sudo /usr/pkg/bin/mysql_install_db
 sudo cp /usr/pkg/share/examples/rc.d/mysqld /etc/rc.d/
 echo mysqld=yes |sudo tee /etc/rc.conf.d/mysqld
-sudo chown -R mariadb:mariadb /var/mariadb
 sudo /etc/rc.d/mysqld start
 sudo /usr/pkg/bin/mysql_secure_installation
 # TODO: Figure out how to properly bind to localhost
@@ -186,15 +187,15 @@ sudo mkdir $PATH_TO_MISP
 sudo chown www:www $PATH_TO_MISP
 cd $PATH_TO_MISP
 sudo -u www git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
-sudo -u www git submodule update --init --recursive
+sudo -u www git submodule update --progress --init --recursive
 # Make git ignore filesystem permission differences for submodules
 sudo -u www git submodule foreach --recursive git config core.filemode false
 
 # Make git ignore filesystem permission differences
 sudo -u www git config core.filemode false
 
-#sudo pkgin install py-pip py3-pip libxslt py3-jsonschema
-sudo pkgin install libxslt
+#sudo pkgin -y install py-pip py3-pip libxslt py3-jsonschema
+sudo pkgin -y install libxslt
 #sudo virtualenv -ppython3 /usr/local/virtualenvs/MISP
 sudo -u www virtualenv -ppython3 $PATH_TO_MISP/venv
 sudo -u www HOME=/tmp $PATH_TO_MISP/venv/bin/pip install -U pip
@@ -233,11 +234,11 @@ sudo -u www HOME=/tmp $PATH_TO_MISP/venv/bin/pip install plyara
 # CakePHP is included as a submodule of MISP and has been fetched earlier.
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd $PATH_TO_MISP/app
-sudo -u www php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-sudo -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink
-('composer-setup.php'); } echo PHP_EOL;"
-sudo -u www env HOME=/tmp php composer-setup.php
-sudo -u www php -r "unlink('composer-setup.php');"
+#sudo -u www php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+#sudo -u www php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink
+#('composer-setup.php'); } echo PHP_EOL;"
+#sudo -u www env HOME=/tmp php composer-setup.php
+#sudo -u www php -r "unlink('composer-setup.php');"
 sudo -u www HOME=/tmp php composer.phar install
 
 # To use the scheduler worker for scheduled tasks, do the following:
@@ -462,7 +463,7 @@ sudo -u www bash $PATH_TO_MISP/app/Console/worker/start.sh
 #### MISP Modules
 ```
 #/usr/pkgsrc/graphics/opencv2/ (needs X11)
-sudo pkgin install jpeg yara
+sudo pkgin -y install jpeg yara
 cd /usr/local/src/
 git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
@@ -645,7 +646,7 @@ sudo -u www $CAKE Admin setSetting "Session.cookie_timeout" 3600
 
 #### ZeroMQ depends on the Python client for Redis
 ```bash
-sudo pkgin install zeromq
+sudo pkgin -y install zeromq
 sudo -u www HOME=/tmp $PATH_TO_MISP/venv/bin/pip install pyzmq
 ```
 

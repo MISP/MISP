@@ -42,9 +42,10 @@
                                 sprintf('<td>%s</td>', $warningArray ? h($diagnostic[$tableName][$columnName]['message']) : ''),
                                 sprintf('<td>%s</td>', $warningArray ?
                                     sprintf(
-                                        '<i class="fa fa-wrench useCursorPointer" onclick="quickFixIndexSchema(this, \'%s\')" title="%s" data-query="%s"></i>',
+                                        '<i class="fa fa-wrench useCursorPointer" onclick="quickFixIndexSchema(this, \'%s\')" title="%s" aria-label="%s" tabindex="0" role="link" data-query="%s"></i>',
                                         h($diagnostic[$tableName][$columnName]['sql']),
                                         __('Fix Database Index Schema'),
+                                        __('Fix Database Index Schema'),					
                                         h($diagnostic[$tableName][$columnName]['sql'])
                                     ) : ''
                                 ),

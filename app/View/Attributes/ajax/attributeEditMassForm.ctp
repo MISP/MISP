@@ -1,6 +1,6 @@
 <div class="attributes">
 <?php
-    echo $this->Form->create('Attribute', array('url' => '/attributes/editSelected/' . $id));
+    echo $this->Form->create('Attribute', array('url' => $baseurl . '/attributes/editSelected/' . $id));
 ?>
     <fieldset>
         <legend><?php echo __('Mass Edit Attributes'); ?></legend>
@@ -8,7 +8,7 @@
         <div class="add_attribute_fields">
             <?php
             echo $this->Form->hidden('event_id', array('value' => $id));
-            echo $this->Form->input('attribute_ids', array('style' => 'display:none;', 'label' => false));
+            echo $this->Form->hidden('attribute_ids', array('value' => json_encode($selectedAttributeIds)));
             $distributionLevels[] = __('Do not alter current settings');
             echo $this->Form->input('distribution', array(
                 'options' => array($distributionLevels),
@@ -32,6 +32,11 @@
                     'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
                     'label' => __('For Intrusion Detection System'),
                     'selected' => 2,
+            ));
+            echo $this->Form->input('is_proposal', array(
+                'type' => 'checkbox',
+                'label' => __('Create proposals'),
+                'checked' => false
             ));
             ?>
                 <div class="input clear"></div>

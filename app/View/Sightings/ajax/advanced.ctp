@@ -50,13 +50,13 @@ $('.sightingsToggle').click(function() {
     if (type == 'graph') {
         loadSightingGraph(id, object_context);
     } else if (type == 'add') {
-        $.get( "/sightings/add/" + id, function(data) {
+        $.get("<?php echo $baseurl; ?>/sightings/add/" + id, function(data) {
             $("#sightingsData").html(data);
         });
     } else {
         var org = "";
         if (type == 'org') org = "/<?php echo h($me['org_id']);?>"
-        $.get( "/sightings/listSightings/" + id + "/" + object_context + org, function(data) {
+        $.get("<?php echo $baseurl; ?>/sightings/listSightings/" + id + "/" + object_context + org, function(data) {
             $("#sightingsData").html(data);
         });
     }

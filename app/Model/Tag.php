@@ -1,6 +1,10 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property EventTag $EventTag
+ * @property AttributeTag $AttributeTag
+ */
 class Tag extends AppModel
 {
     public $useTable = 'tags';
@@ -69,6 +73,8 @@ class Tag extends AppModel
         )
     );
 
+    private $tagOverrides = false;
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -133,6 +139,12 @@ class Tag extends AppModel
         }
     }
 
+    public function afterFind($results, $primary = false)
+    {
+        $results = $this->checkForOverride($results);
+        return $results;
+    }
+
     public function validateColour($fields)
     {
         if (!preg_match('/^#[0-9a-f]{6}$/i', $fields['colour'])) {
@@ -153,6 +165,17 @@ class Tag extends AppModel
         } else {
             return $tagId['Tag']['id'];
         }
+    }
+
+    public function fetchUsableTags(array $user)
+    {
+        $conditions = array();
+        if (!$user['Role']['perm_site_admin']) {
+            $conditions['Tag.org_id'] = array(0, $user['User']['org_id']);
+            $conditions['Tag.user_id'] = array(0, $user['User']['id']);
+            $conditions['Tag.hide_tag'] = 0;
+        }
+        return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
     }
 
     // find all of the tag ids that belong to the accepted tag names and the rejected tag names
@@ -411,6 +434,28 @@ class Tag extends AppModel
             $tags[$k]['Tag']['hide_tag'] = 1;
         }
         return ($this->saveAll($tags));
+    }
+
+    /**
+    * Recover user_id from the session and override numerical_values from userSetting
+    */
+    public function checkForOverride($tags)
+    {
+        $userId = Configure::read('CurrentUserId');
+        if ($this->tagOverrides === false && $userId > 0) {
+            $this->UserSetting = ClassRegistry::init('UserSetting');
+            $this->tagOverrides = $this->UserSetting->getTagNumericalValueOverride($userId);
+        }
+        foreach ($tags as $k => $tag) {
+            if (isset($tag['Tag']['name'])) {
+                $tagName = $tag['Tag']['name'];
+                if (isset($this->tagOverrides[$tagName]) && is_numeric($this->tagOverrides[$tagName])) {
+                    $tags[$k]['Tag']['original_numerical_value'] = isset($tags[$k]['Tag']['numerical_value']) ? $tags[$k]['Tag']['numerical_value'] : '';
+                    $tags[$k]['Tag']['numerical_value'] = $this->tagOverrides[$tagName];
+                }
+            }
+        }
+        return $tags;
     }
 
     public function getTagsByName($tag_names, $containTagConnectors = true)

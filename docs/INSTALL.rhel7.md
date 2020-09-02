@@ -169,6 +169,7 @@ yumInstallCoreDeps () {
                    rh-php72-php-xml \
                    rh-php72-php-bcmath \
                    rh-php72-php-opcache \
+                   rh-php72-php-zip \
                    rh-php72-php-gd -y
 
   # Python 3.6 is now available in RHEL 7.7 base
@@ -218,7 +219,7 @@ installCoreRHEL () {
 
   # Create a python3 virtualenv
   sudo pip3 install virtualenv
-  $SUDO_WWW python3 -- virtualenv -p python3 $PATH_TO_MISP/venv
+  $SUDO_WWW python3 -m venv $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
@@ -229,19 +230,19 @@ installCoreRHEL () {
   $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
+  
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+  
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
   # install mixbox to accommodate the new STIX dependencies:
   cd $PATH_TO_MISP/app/files/scripts/mixbox
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # FIXME: Remove once stix-fixed
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I antlr4-python3-runtime==4.7.2
 
   # install STIX2.0 library to support STIX 2.0 export:
   cd $PATH_TO_MISP/cti-python-stix2
@@ -257,7 +258,7 @@ installCoreRHEL () {
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
   # lief needs manual compilation
-  sudo yum install devtoolset-7 cmake3 cppcheck -y
+  sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
 
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW mkdir build
@@ -293,6 +294,25 @@ installCoreRHEL () {
   # install PyMISP
   cd $PATH_TO_MISP/PyMISP
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
+
+  # FIXME: Remove libfaup etc once the egg has the library baked-in
+  # BROKEN: This needs to be tested on RHEL/CentOS
+  ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+  cd /tmp
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+  cd gtcaca
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  cd ../../faup
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  sudo ldconfig
 
   # Enable dependencies detection in the diagnostics page
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
@@ -332,6 +352,10 @@ installCake_RHEL ()
   sudo scl enable rh-php72 'yes no|pecl install redis'
   echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-redis.ini
 
+  sudo ln -s /usr/lib64/libfuzzy.so /usr/lib/libfuzzy.so
+  sudo scl enable rh-php72 'pecl install ssdeep'
+  echo "extension=ssdeep.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-ssdeep.ini
+
   # Install gnupg extension
   sudo yum install gpgme-devel -y
   sudo scl enable rh-php72 'pecl install gnupg'
@@ -355,7 +379,7 @@ installCake_RHEL ()
   # To use the scheduler worker for scheduled tasks, do the following:
   sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 }
-# <snippet-begin 1_installCake_RHEL.sh>
+# <snippet-end 1_installCake_RHEL.sh>
 ```
 
 ### 5/ Set file permissions
@@ -404,17 +428,25 @@ prepareDB_RHEL () {
   ## The following needs some thoughts about scl enable foo
   #if [[ ! -e /var/opt/rh/rh-mariadb102/lib/mysql/misp/users.ibd ]]; then
 
-  # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-  pw="Password1234"
+  # We ask interactively your password if not run as root
+  pw=""
+  if [[ "$EUID" -ne 0 ]]; then
+    read -s -p "Enter sudo password: " pw
+  fi
 
   expect -f - <<-EOF
     set timeout 10
 
     spawn sudo scl enable rh-mariadb102 mysql_secure_installation
-    expect "*?assword*"
-    send -- "$pw\r"
-    expect "Enter current password for root (enter for none):"
-    send -- "\r"
+    expect {
+      "*sudo*" {
+        send "$pw\r"
+        exp_continue
+      }
+      "Enter current password for root (enter for none):" {
+        send -- "\r"
+      }
+    }
     expect "Set root password?"
     send -- "y\r"
     expect "New password:"
@@ -480,7 +512,7 @@ apacheConfig_RHEL () {
   sudo openssl req -new -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" -key /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.csr
   sudo openssl x509 -req -days 365 -in /etc/pki/tls/certs/misp.local.csr -signkey /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
   sudo ln -s /etc/pki/tls/certs/misp.local.csr /etc/pki/tls/certs/misp-chain.crt
-  cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt 
+  cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt
 
   sudo systemctl restart httpd.service
 
@@ -494,6 +526,7 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
   sudo chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*
   find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
   # Only run these if you want to be able to update MISP from the web interface
@@ -709,7 +742,7 @@ Possible also due to package being installed via SCL, attempting to start worker
 systemctl restart misp-workers.service
 ```
 
-!!! note 
+!!! note
     No other functions were tested after the conclusion of this install. There may be issue that aren't addressed<br />
     via this guide and will need additional investigation.
 

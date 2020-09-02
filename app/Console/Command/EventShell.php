@@ -4,7 +4,8 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation');
+    public $tasks = array('ConfigLoad');
 
     public function doPublish()
     {
@@ -135,6 +136,9 @@ class EventShell extends AppShell
         $eventId = $this->args[2];
         $oldpublish = $this->args[3];
         $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die("Invalid user ID '$userId' provided.");
+        }
         $result = $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $processId);
         $job['Job']['progress'] = 100;
         $job['Job']['message'] = 'Emails sent.';
@@ -153,6 +157,9 @@ class EventShell extends AppShell
         $processId = $this->args[5];
         $this->Job->id = $processId;
         $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die("Invalid user ID '$userId' provided.");
+        }
         $result = $this->Event->sendContactEmail($id, $message, $all, array('User' => $user), $isSiteAdmin);
         $this->Job->saveField('progress', '100');
         $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
@@ -237,6 +244,9 @@ class EventShell extends AppShell
         $jobId = $this->args[2];
         $userId = $this->args[3];
         $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die("Invalid user ID '$userId' provided.");
+        }
         $job = $this->Job->read(null, $jobId);
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
         $result = $this->Event->publish($id, $passAlong);
@@ -261,6 +271,9 @@ class EventShell extends AppShell
         $jobId = $this->args[2];
         $userId = $this->args[3];
         $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            die("Invalid user ID '$userId' provided.");
+        }
         $job = $this->Job->read(null, $jobId);
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
         $result = $this->Event->publish_sightings($id, $passAlong);
@@ -287,9 +300,9 @@ class EventShell extends AppShell
         $user = $this->User->getAuthUser($userId);
         if (empty($user)) die('Invalid user.');
         $eventId = $this->args[1];
-        $modules = $this->args[2];
+        $modulesRaw = $this->args[2];
         try {
-            $modules = json_decode($modules);
+            $modules = json_decode($modulesRaw, true);
         } catch (Exception $e) {
             die('Invalid module JSON');
         }
@@ -300,7 +313,7 @@ class EventShell extends AppShell
             $data = array(
                     'worker' => 'default',
                     'job_type' => 'enrichment',
-                    'job_input' => 'Event: ' . $eventId . ' modules: ' . $modules,
+                    'job_input' => 'Event: ' . $eventId . ' modules: ' . $modulesRaw,
                     'status' => 0,
                     'retries' => 0,
                     'org' => $user['Organisation']['name'],
@@ -323,6 +336,7 @@ class EventShell extends AppShell
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
         }
+	echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
         $log->create();
@@ -343,7 +357,7 @@ class EventShell extends AppShell
             $inputData['attributes'],
             $inputData['id'],
             $inputData['default_comment'],
-            $inputData['force'],
+            $inputData['proposals'],
             $inputData['adhereToWarninglists'],
             $inputData['jobId']
         );

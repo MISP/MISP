@@ -309,8 +309,9 @@ class DecayingModel extends AppModel
                                 unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]);
                             } else {
                                 $tag_name = sprintf('%s:%s="%s"', $taxonomy['namespace'], $predicate['value'], $entry['value']);
-                                if (isset($tags[strtoupper($tag_name)])) {
-                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
+                                $upperTagName = strtoupper($tag_name);
+                                if (isset($tags[$upperTagName])) {
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = $tags[$upperTagName]['Tag'];
                                 } else { // tag is not created yet. Create a false one.
                                     $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = array(
                                         'id' => 0,
@@ -318,8 +319,15 @@ class DecayingModel extends AppModel
                                         'colour' => 'grey',
                                     );
                                 }
-                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
-                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag']['numerical_value'] = $entry['numerical_value'];
+                                // Take care of numerical_value override
+                                if (isset($tags[$upperTagName]['Tag']['original_numerical_value']) && is_numeric($tags[$upperTagName]['Tag']['original_numerical_value'])) {
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['original_numerical_value'] = $tags[$upperTagName]['Tag']['original_numerical_value'];
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['numerical_value'] = $tags[$upperTagName]['Tag']['numerical_value'];
+                                }
+                                // In some cases, tags may not have a numerical_value. Make sure it has one.
+                                if (empty($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag']['numerical_value']) && !empty($entry['numerical_value'])) {
+                                    $taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'][$e]['Tag']['numerical_value'] = $entry['numerical_value'];
+                                }
                             }
                         }
                         if (empty($taxonomies[$namespace]['TaxonomyPredicate'][$p]['TaxonomyEntry'])) {
@@ -332,8 +340,8 @@ class DecayingModel extends AppModel
                             unset($taxonomies[$namespace]['TaxonomyPredicate'][$p]);
                         } else {
                             $tag_name = sprintf('%s:%s', $taxonomy['namespace'], $predicate['value']);
-                            if (isset($tags[strtoupper($tag_name)])) {
-                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag'] = $tags[strtoupper($tag_name)]['Tag'];
+                            if (isset($tags[$upperTagName])) {
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag'] = $tags[$upperTagName]['Tag'];
                             } else { // tag is not created yet. Create a false one.
                                 $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag'] = array(
                                     'id' => 0,
@@ -341,8 +349,17 @@ class DecayingModel extends AppModel
                                     'colour' => 'grey',
                                 );
                             }
-                            $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag']['numerical_value'] = $predicate['numerical_value'];
                             $taxonomies[$namespace]['TaxonomyPredicate'][$p]['numerical_predicate'] = true;
+                            $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag']['numerical_value'] = $predicate['numerical_value'];
+                            // Take care of numerical_value override
+                            if (isset($tags[$upperTagName]['Tag']['original_numerical_value']) && is_numeric($tags[$upperTagName]['Tag']['original_numerical_value'])) {
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['original_numerical_value'] = $tags[$upperTagName]['Tag']['original_numerical_value'];
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['numerical_value'] = $tags[$upperTagName]['Tag']['numerical_value'];
+                            }
+                            // In some cases, tags may not have a numerical_value. Make sure it has one.
+                            if (empty($taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag']['numerical_value']) && !empty($predicate['numerical_value'])) {
+                                $taxonomies[$namespace]['TaxonomyPredicate'][$p]['Tag']['numerical_value'] = $predicate['numerical_value'];
+                            }
                         }
                     }
                     
@@ -358,7 +375,6 @@ class DecayingModel extends AppModel
                 $excluded_taxonomies[$namespace] = array('taxonomy' => $taxonomies[$namespace], 'reason' => __('No predicate'));
             }
         }
-
         return array(
             'taxonomies' => $taxonomies,
             'excluded_taxonomies' => $excluded_taxonomies,
@@ -489,27 +505,44 @@ class DecayingModel extends AppModel
         $this->Sighting = ClassRegistry::init('Sighting');
         $sightings = $this->Sighting->listSightings($user, $attribute_id, 'attribute', false, 0, false);
         if (empty($sightings)) {
-            $sightings = array(array('Sighting' => array('date_sighting' => $attribute['Attribute']['timestamp']))); // simulate a Sighting nonetheless
+            if (!is_null($attribute['Attribute']['last_seen'])) {
+                $falseSighting = (new DateTime($attribute['Attribute']['last_seen']))->format('U');
+            } else {
+                $falseSighting = $attribute['Attribute']['timestamp'];
+            }
+            $sightings = array(array('Sighting' => array('date_sighting' => $falseSighting))); // simulate a Sighting nonetheless
         }
         foreach ($sightings as $i => $sighting) {
             $sightings[$i]['Sighting']['rounded_timestamp'] = $this->round_timestamp_to_hour($sighting['Sighting']['date_sighting']);
         }
         // get start time
         $start_time = $attribute['Attribute']['timestamp'];
+        if (!is_null($attribute['Attribute']['last_seen'])) {
+            $start_time = (new DateTime($attribute['Attribute']['last_seen']))->format('U');
+        }
         $start_time = $sightings[0]['Sighting']['date_sighting'] < $start_time ? $sightings[0]['Sighting']['date_sighting'] : $start_time;
         $start_time = intval($start_time);
         $start_time = $this->round_timestamp_to_hour($start_time);
         // get end time
         $last_sighting_timestamp = $sightings[count($sightings)-1]['Sighting']['date_sighting'];
         if ($attribute['Attribute']['timestamp'] > $last_sighting_timestamp) { // The attribute was modified after the last sighting, simulate a Sighting
+            if (!is_null($attribute['Attribute']['timestamp'])) {
+                $falseSighting = (new DateTime($attribute['Attribute']['last_seen']))->format('U');
+            } else {
+                $falseSighting = $attribute['timestamp'];
+            }
             $sightings[count($sightings)] = array(
                 'Sighting' => array(
-                    'date_sighting' => $attribute['Attribute']['timestamp'],
+                    'date_sighting' => $falseSighting,
                     'type' => 0, 
-                    'rounded_timestamp' => $this->round_timestamp_to_hour($attribute['Attribute']['timestamp'])
+                    'rounded_timestamp' => $this->round_timestamp_to_hour($falseSighting)
                 )
             );
-            $last_sighting_timestamp = $attribute['Attribute']['timestamp'];
+            if (!is_null($attribute['Attribute']['timestamp'])) {
+                $last_sighting_timestamp = (new DateTime($attribute['Attribute']['last_seen']))->format('U');
+            } else {
+                $last_sighting_timestamp = $attribute['Attribute']['timestamp'];
+            }
         }
         $end_time = $last_sighting_timestamp + $model['DecayingModel']['parameters']['lifetime']*24*60*60;
         $end_time = $this->round_timestamp_to_hour($end_time);
@@ -536,7 +569,7 @@ class DecayingModel extends AppModel
             'sightings' => $sightings,
             'base_score_config' => $base_score_config,
             'last_sighting' => $sightings[count($sightings)-1],
-            'current_score' => $this->Computation->computeCurrentScore($user, $model, $attribute['Attribute'], $base_score, $last_sighting_timestamp),
+            'current_score' => $this->Computation->computeCurrentScore($user, $model, $attribute['Attribute'], $base_score, $last_sighting_timestamp)['score'],
             'Model' => $model['DecayingModel']
         );
     }
@@ -587,9 +620,10 @@ class DecayingModel extends AppModel
                 $model = $this->overrideModelParameters($model, $model_overrides);
             }
             $score = $this->getScore($attribute, $model, $user);
-            $decayed = $this->isDecayed($attribute, $model, $score);
+            $decayed = $this->isDecayed($attribute, $model, $score['score']);
             $to_attach = array(
-                'score' => $score,
+                'score' => $score['score'],
+                'base_score' => $score['base_score'],
                 'decayed' => $decayed,
                 'DecayingModel' => array(
                     'id' => $model['DecayingModel']['id'],
@@ -626,7 +660,7 @@ class DecayingModel extends AppModel
     public function isDecayed($attribute, $model, $score=false, $user=false)
     {
         if ($score === false) {
-            $score = $this->getScore($attribute, $model, $user);
+            $score = $this->getScore($attribute, $model, $user)['score'];
         }
         $this->Computation = $this->getModelClass($model);
         return $this->Computation->isDecayed($model, $attribute, $score);

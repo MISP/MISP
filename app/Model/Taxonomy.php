@@ -197,8 +197,8 @@ class Taxonomy extends AppModel
         $conditions = array();
         if ($user) {
             if (!$user['Role']['perm_site_admin']) {
-                $conditions = array('Tag.org_id' => array(0, $user['org_id']));
-                $conditions = array('Tag.user_id' => array(0, $user['id']));
+                $conditions[] = array('Tag.org_id' => array(0, $user['org_id']));
+                $conditions[] = array('Tag.user_id' => array(0, $user['id']));
             }
         }
         if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
@@ -287,7 +287,17 @@ class Taxonomy extends AppModel
             $tags = $this->Tag->getTagsByName($tag_names, false);
             if (isset($taxonomy['entries'])) {
                 foreach ($taxonomy['entries'] as $key => $temp) {
-                    $taxonomy['entries'][$key]['existing_tag'] = isset($tags[strtoupper($temp['tag'])]) ? $tags[strtoupper($temp['tag'])] : false;
+                    if (isset($tags[strtoupper($temp['tag'])])) {
+                        $existingTag = $tags[strtoupper($temp['tag'])];
+                        $taxonomy['entries'][$key]['existing_tag'] = $existingTag;
+                        // numerical_value is overridden at tag level. Propagate the override further up
+                        if (isset($existingTag['Tag']['original_numerical_value'])) {
+                            $taxonomy['entries'][$key]['original_numerical_value'] = $existingTag['Tag']['original_numerical_value'];
+                            $taxonomy['entries'][$key]['numerical_value'] = $existingTag['Tag']['numerical_value'];
+                        }
+                    } else {
+                        $taxonomy['entries'][$key]['existing_tag'] = false;
+                    }
                 }
             }
         }
@@ -560,6 +570,7 @@ class Taxonomy extends AppModel
             $tagShortened = $this->stripLastTagComponent($tagName);
             if ($newTagShortened == $tagShortened) {
                 $prefixIsFree = false;
+                break;
             }
         }
         if (!$prefixIsFree) {

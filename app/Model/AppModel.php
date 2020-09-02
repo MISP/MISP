@@ -28,11 +28,16 @@ class AppModel extends Model
 {
     public $name;
 
-    public $loadedPubSubTool = false;
+    /**
+     * @var PubSubTool
+     */
+    private $loadedPubSubTool;
 
     public $loadedKafkaPubTool = false;
 
     public $start = 0;
+
+    public $assetCache = [];
 
     public $inserted_ids = array();
 
@@ -41,7 +46,9 @@ class AppModel extends Model
     private $__profiler = array();
 
     public $elasticSearchClient = false;
-    public $s3Client = false;
+
+    /** @var AttachmentTool|null */
+    private $attachmentTool;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -77,7 +84,8 @@ class AppModel extends Model
         27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
-        45 => false, 46 => false, 47 => false, 48 => false, 49 => false
+        45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
+        51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
     );
 
     public $advanced_updates_description = array(
@@ -123,7 +131,7 @@ class AppModel extends Model
     public function isAcceptedDatabaseError($errorMessage, $dataSource)
     {
         $isAccepted = false;
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $errorDuplicateColumn = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';
             $errorDuplicateIndex = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
             $errorDropIndex = "/SQLSTATE\[42000\]: Syntax error or access violation: 1091 Can't DROP '[\w]+'; check that column\/key exists/";
@@ -188,16 +196,16 @@ class AppModel extends Model
                 $this->Sighting->deleteAll(array('NOT' => array('Sighting.type' => array(0, 1, 2))));
                 break;
             case '2.4.71':
-                $this->OrgBlacklist = Classregistry::init('OrgBlacklist');
+                $this->OrgBlocklist = Classregistry::init('OrgBlocklist');
                 $values = array(
                     array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astrononomy', 'comment' => 'default example'),
                     array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
                 );
                 foreach ($values as $value) {
-                    $found = $this->OrgBlacklist->find('first', array('conditions' => array('org_uuid' => $value['org_uuid']), 'recursive' => -1));
+                    $found = $this->OrgBlocklist->find('first', array('conditions' => array('org_uuid' => $value['org_uuid']), 'recursive' => -1));
                     if (empty($found)) {
-                        $this->OrgBlacklist->create();
-                        $this->OrgBlacklist->save($value);
+                        $this->OrgBlocklist->create();
+                        $this->OrgBlocklist->save($value);
                     }
                 }
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -722,7 +730,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE taxonomy_predicates ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
                 break;
             case '2.4.60':
-                if ($dataSource == 'Database/Mysql') {
+                if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
                     $sqlArray[] = 'CREATE TABLE IF NOT EXISTS `attribute_tags` (
                                 `id` int(11) NOT NULL AUTO_INCREMENT,
                                 `attribute_id` int(11) NOT NULL,
@@ -1267,7 +1275,7 @@ class AppModel extends Model
             case 39:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS user_settings (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `setting` varchar(255) COLLATE utf8_bin NOT NULL,
                     `value` text,
                     `user_id` int(11) NOT NULL,
                     `timestamp` int(11) NOT NULL,
@@ -1348,6 +1356,62 @@ class AppModel extends Model
                     INDEX `restrict_to_org_id` (`restrict_to_org_id`),
                     INDEX `restrict_to_permission_flag` (`restrict_to_permission_flag`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                break;
+            case 50:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS inbox (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                    `title` varchar(191) NOT NULL,
+                    `type` varchar(191) NOT NULL,
+                    `ip` varchar(191) NOT NULL,
+                    `user_agent` text,
+                    `user_agent_sha256` varchar(64) NOT NULL,
+                    `comment` text,
+                    `deleted` tinyint(1) NOT NULL DEFAULT 0,
+                    `timestamp` int(11) NOT NULL,
+                    `store_as_file` tinyint(1) NOT NULL DEFAULT 0,
+                    `data` longtext,
+                    PRIMARY KEY (id),
+                    INDEX `title` (`title`),
+                    INDEX `type` (`type`),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `user_agent_sha256` (`user_agent_sha256`),
+                    INDEX `ip` (`ip`),
+                    INDEX `timestamp` (`timestamp`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                break;
+            case 51:
+                $sqlArray[] = "ALTER TABLE `feeds` ADD `orgc_id` int(11) NOT NULL DEFAULT 0";
+                $indexArray[] = array('feeds', 'orgc_id');
+                break;
+            case 52:
+                if (!empty($this->query("SHOW COLUMNS FROM `admin_settings` LIKE 'key';"))) {
+                    $sqlArray[] = "ALTER TABLE admin_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
+                    $indexArray[] = array('admin_settings', 'setting');
+                }
+                break;
+            case 53:
+                if (!empty($this->query("SHOW COLUMNS FROM `user_settings` LIKE 'key';"))) {
+                    $sqlArray[] = "ALTER TABLE user_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
+                    $indexArray[] = array('user_settings', 'setting');
+                }
+                break;
+            case 54:
+                $sqlArray[] = "ALTER TABLE `sightingdbs` MODIFY `timestamp` int(11) NOT NULL DEFAULT 0;";
+                break;
+            case 55:
+                // index is not used in any SQL query
+                $this->__dropIndex('correlations', 'value');
+                // these index can be theoretically used, but probably just in very rare occasion
+                $this->__dropIndex('correlations', 'org_id');
+                $this->__dropIndex('correlations', 'sharing_group_id');
+                $this->__dropIndex('correlations', 'a_sharing_group_id');
+                break;
+            case 56:
+                //rename tables
+                $sqlArray[] = "RENAME TABLE `org_blacklists` TO `org_blocklists`;";
+                $sqlArray[] = "RENAME TABLE `event_blacklists` TO `event_blocklists`;";
+                $sqlArray[] = "RENAME TABLE `whitelist` TO `allowedlist`;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1497,7 +1561,7 @@ class AppModel extends Model
                             break;
                         }
                     } else {
-                        $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is whitelisted, the update went through.');
+                        $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is allowed, the update went through.');
                     }
                     $this->Log->save($logMessage);
                 }
@@ -1572,7 +1636,7 @@ class AppModel extends Model
         $dataSource = $dataSourceConfig['datasource'];
         $this->Log = ClassRegistry::init('Log');
         $indexCheckResult = array();
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%';";
             $indexCheckResult = $this->query($indexCheck);
         } elseif ($dataSource == 'Database/Postgres') {
@@ -1580,7 +1644,7 @@ class AppModel extends Model
             $indexCheckResult[] = array('STATISTICS' => array('INDEX_NAME' => $pgIndexName));
         }
         foreach ($indexCheckResult as $icr) {
-            if ($dataSource == 'Database/Mysql') {
+            if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
                 $dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
             } elseif ($dataSource == 'Database/Postgres') {
                 $dropIndex = 'DROP INDEX IF EXISTS ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
@@ -2324,18 +2388,12 @@ class AppModel extends Model
     public function getPubSubTool()
     {
         if (!$this->loadedPubSubTool) {
-            $this->loadPubSubTool();
+            App::uses('PubSubTool', 'Tools');
+            $pubSubTool = new PubSubTool();
+            $pubSubTool->initTool();
+            $this->loadedPubSubTool = $pubSubTool;
         }
         return $this->loadedPubSubTool;
-    }
-
-    public function loadPubSubTool()
-    {
-        App::uses('PubSubTool', 'Tools');
-        $pubSubTool = new PubSubTool();
-        $pubSubTool->initTool();
-        $this->loadedPubSubTool = $pubSubTool;
-        return true;
     }
 
     public function getElasticSearchTool()
@@ -2352,29 +2410,6 @@ class AppModel extends Model
         $client = new ElasticSearchClient();
         $client->initTool();
         $this->elasticSearchClient = $client;
-    }
-
-    public function getS3Client()
-    {
-        if (!$this->s3Client) {
-            $this->s3Client = $this->loadS3Client();
-        }
-
-        return $this->s3Client;
-    }
-
-    public function loadS3Client()
-    {
-        App::uses('AWSS3Client', 'Tools');
-        $client = new AWSS3Client();
-        $client->initTool();
-        return $client;
-    }
-
-    public function attachmentDirIsS3()
-    {
-        // Naive way to detect if we're working in S3
-        return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
     }
 
     public function checkVersionRequirements($versionString, $minVersion)
@@ -2402,7 +2437,8 @@ class AppModel extends Model
             'offset' => null,
             'joins' => array(),
             'conditions' => array(),
-            'group' => false
+            'group' => false,
+            'recursive' => -1
         );
         $params = array();
         foreach (array_keys($defaults) as $key) {
@@ -2804,6 +2840,8 @@ class AppModel extends Model
     }
 
     /**
+     * Log exception with backtrace and with nested exceptions.
+     *
      * @param string $message
      * @param Exception $exception
      * @param int $type
@@ -2811,12 +2849,89 @@ class AppModel extends Model
      */
     protected function logException($message, Exception $exception, $type = LOG_ERR)
     {
-        $message = sprintf("%s\n[%s] %s",
-            $message,
-            get_class($exception),
-            $exception->getMessage()
-        );
-        $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+        $message .= "\n";
+
+        do {
+            $message .= sprintf("[%s] %s",
+                get_class($exception),
+                $exception->getMessage()
+            );
+            $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
+            $exception = $exception->getPrevious();
+        } while ($exception !== null);
+
         return $this->log($message, $type);
+    }
+
+    /**
+     * Generates random file name in tmp dir.
+     * @return string
+     */
+    protected function tempFileName()
+    {
+        return $this->tempDir() . DS . $this->generateRandomFileName();
+    }
+
+    /**
+     * @return string
+     */
+    protected function tempDir()
+    {
+        return Configure::read('MISP.tmpdir') ?: sys_get_temp_dir();
+    }
+
+    /**
+     * Decodes JSON string and throws exception if string is not valid JSON or if is not array.
+     *
+     * @param string $json
+     * @return array
+     * @throws JsonException
+     * @throws UnexpectedValueException
+     */
+    public function jsonDecode($json)
+    {
+        if (defined('JSON_THROW_ON_ERROR')) {
+            // JSON_THROW_ON_ERROR is supported since PHP 7.3
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } else {
+            $decoded = json_decode($json, true);
+            if ($decoded === null) {
+                throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+            }
+        }
+
+        if (!is_array($decoded)) {
+            throw new UnexpectedValueException('JSON must be array type, get ' . gettype($decoded));
+        }
+        return $decoded;
+    }
+
+    /*
+     *  Temporary solution for utf8 columns until we migrate to utf8mb4
+     *  via https://stackoverflow.com/questions/16496554/can-php-detect-4-byte-encoded-utf8-chars
+     */
+    public function handle4ByteUnicode($input)
+    {
+        return preg_replace(
+            '%(?:
+            \xF0[\x90-\xBF][\x80-\xBF]{2}
+            | [\xF1-\xF3][\x80-\xBF]{3}
+            | \xF4[\x80-\x8F][\x80-\xBF]{2}
+            )%xs',
+            '?',
+            $input
+        );
+    }
+
+    /**
+     * @return AttachmentTool
+     */
+    protected function loadAttachmentTool()
+    {
+        if ($this->attachmentTool === null) {
+            $this->attachmentTool = new AttachmentTool();
+        }
+
+        return $this->attachmentTool;
     }
 }

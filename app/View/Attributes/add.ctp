@@ -54,7 +54,7 @@
                 array(
                     'field' => 'to_ids',
                     'type' => 'checkbox',
-                    'label' => __("for Intrusion Detection System"),
+                    'label' => __("For Intrusion Detection System"),
                     //'stayInLine' => 1
                 ),
                 array(
@@ -75,13 +75,12 @@
                     'type' => 'text',
                     'hidden' => true
                 ),
-                '<div id="extended_event_preview" style="width:446px;"></div>'
             ),
             'submit' => array(
                 'action' => $action,
                 'ajaxSubmit' => sprintf(
                     'submitPopoverForm(%s, %s, 0, 1)',
-                    "'" . ($action == 'add' ? h($event_id) : h($attribute['Attribute']['id'])) . "'",
+                    "'" . ($action === 'add' ? h($event['Event']['id']) : h($attribute['Attribute']['id'])) . "'",
                     "'" . h($action) . "'"
                 )
             ),
@@ -91,30 +90,15 @@
         )
     ));
     if (!$ajax) {
-        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $this->action === 'add' ? 'add' : 'editEvent'));
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
     }
 ?>
 
 <script type="text/javascript">
     var notice_list_triggers = <?php echo $notice_list_triggers; ?>;
-    var composite_types = <?php echo json_encode($compositeTypes); ?>;
-    var category_type_mapping = new Array();
-
-    <?php
-    foreach ($categoryDefinitions as $category => $def) {
-        echo "category_type_mapping['" . addslashes($category) . "'] = {";
-        $first = true;
-        foreach ($def['types'] as $type) {
-            if ($first) {
-                $first = false;
-            } else {
-                echo ', ';
-            }
-            echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-        }
-        echo "}; \n";
-    }
-    ?>
+    var category_type_mapping = <?php echo json_encode(array_map(function($value) {
+        return array_combine($value['types'], $value['types']);
+    }, $categoryDefinitions)); ?>;
 
     $('#AttributeDistribution').change(function() {
         checkSharingGroup('Attribute');
@@ -122,6 +106,7 @@
 
     $('#AttributeCategory').change(function() {
         formCategoryChanged('Attribute');
+        $('#AttributeType').chosen('destroy').chosen();
         if ($(this).val() === 'Internal reference') {
             $("#AttributeDistribution").val('0');
             checkSharingGroup('Attribute');
@@ -132,7 +117,7 @@
         checkNoticeList('attribute');
     });
 
-    $(document).ready(function() {
+    $(function() {
         <?php
             if ($action == 'edit'):
         ?>
@@ -142,7 +127,7 @@
         ?>
         checkSharingGroup('Attribute');
 
-        var $form = $('#AttributeType').closest('form').submit(function( event ) {
+        $('#AttributeType').closest('form').submit(function( event ) {
             if ($('#AttributeType').val() === 'datetime') {
                 // add timezone of the browser if not set
                 var allowLocalTZ = true;
@@ -152,7 +137,7 @@
                     if (dateValue.creationData().format !== "YYYY-MM-DDTHH:mm:ssZ" && dateValue.creationData().format !== "YYYY-MM-DDTHH:mm:ss.SSSSZ") {
                         // Missing timezone data
                         var confirm_message = '<?php echo __('Timezone missing, auto-detected as: ') ?>' + dateValue.format('Z')
-                        confirm_message += '<?php echo '\r\n' . __('The following value will be submited instead: '); ?>' + dateValue.toISOString(allowLocalTZ)
+                        confirm_message += '<?php echo '\r\n' . __('The following value will be submitted instead: '); ?>' + dateValue.toISOString(allowLocalTZ)
                         if (confirm(confirm_message)) {
                             $valueInput.val(dateValue.toISOString(allowLocalTZ));
                         } else {
@@ -160,12 +145,22 @@
                         }
                     }
                 } else {
-                    textStatus = '<?php echo __('Value is not a valid datetime. Excpected format YYYY-MM-DDTHH:mm:ssZ') ?>'
+                    textStatus = '<?php echo __('Value is not a valid datetime. Expected format YYYY-MM-DDTHH:mm:ssZ') ?>'
                     showMessage('fail', textStatus);
                     return false;
                 }
             }
         });
+        
+        <?php if (!$ajax): ?>
+            $('#AttributeType').chosen();
+            $('#AttributeCategory').chosen();
+        <?php else: ?>
+            $('#genericModal').on('shown', function() {
+                $('#AttributeType').chosen();
+                $('#AttributeCategory').chosen();
+            })
+        <?php endif; ?>
     });
 </script>
 <?php echo $this->element('form_seen_input'); ?>

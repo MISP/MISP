@@ -2,6 +2,36 @@
 class GpgTool
 {
     /**
+     * @return CryptGpgExtended
+     * @throws Exception
+     */
+    public function initializeGpg()
+    {
+        if (!class_exists('Crypt_GPG')) {
+            // 'Crypt_GPG' class cannot be autoloaded, try to require from include_path.
+            if (!stream_resolve_include_path('Crypt/GPG.php')) {
+                throw new Exception("Crypt_GPG is not installed.");
+            }
+            require_once 'Crypt/GPG.php';
+        }
+
+        require_once __DIR__ . '/CryptGpgExtended.php';
+
+        $homedir = Configure::read('GnuPG.homedir');
+        if ($homedir === null) {
+            throw new Exception("Configuration option 'GnuPG.homedir' is not set, Crypt_GPG cannot be initialized.");
+        }
+
+        $options = array(
+            'homedir' => $homedir,
+            'gpgconf' => Configure::read('GnuPG.gpgconf'),
+            'binary' => Configure::read('GnuPG.binary') ?: '/usr/bin/gpg',
+        );
+
+        return new CryptGpgExtended($options);
+    }
+
+    /**
      * @param string $search
      * @return array
      * @throws Exception

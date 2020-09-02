@@ -20,8 +20,8 @@ class Bruteforce extends AppModel
         );
         $this->save($bruteforceEntry);
         $title = 'Failed login attempt using username ' . $username . ' from IP: ' . $_SERVER['REMOTE_ADDR'] . '.';
-        if ($this->isBlacklisted($ip, $username)) {
-            $title .= 'This has tripped the bruteforce protection after  ' . $amount . ' failed attempts. The user is now blacklisted for ' . $expire . ' seconds.';
+        if ($this->isBlocklisted($ip, $username)) {
+            $title .= 'This has tripped the bruteforce protection after  ' . $amount . ' failed attempts. The user is now blocklisted for ' . $expire . ' seconds.';
         }
         $log = array(
                 'org' => 'SYSTEM',
@@ -39,15 +39,15 @@ class Bruteforce extends AppModel
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
         $expire = date('Y-m-d H:i:s', time());
-        if ($dataSource == 'Database/Mysql') {
+        if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {
             $sql = 'DELETE FROM bruteforces WHERE `expire` <= "' . $expire . '";';
         } elseif ($dataSource == 'Database/Postgres') {
-            $sql = 'DELETE FROM bruteforces WHERE expire <= "' . $expire . '";';
+            $sql = 'DELETE FROM bruteforces WHERE expire <= \'' . $expire . '\';';
         }
         $this->query($sql);
     }
 
-    public function isBlacklisted($ip, $username)
+    public function isBlocklisted($ip, $username)
     {
         // first remove old expired rows
         $this->clean();

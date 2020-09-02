@@ -69,6 +69,13 @@ switch ($object['type']) {
         echo '<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="icon-repeat hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
         break;
 
+    /** @noinspection PhpMissingBreakStatementInspection */
+    case 'domain':
+        if (strpos($sigDisplay, 'xn--') !== false && function_exists('idn_to_utf8')) {
+            echo '<span title="' . h(idn_to_utf8($sigDisplay)) . '">' . h($sigDisplay) . '</span>';
+            break;
+        }
+
     default:
         if (strpos($object['type'], '|') !== false) {
             if (in_array($object['type'], array('ip-dst|port', 'ip-src|port'))) {

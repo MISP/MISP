@@ -5,15 +5,32 @@
 # Main MISP Modules install function
 mispmodules () {
   cd /usr/local/src/
+  sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   ## TODO: checkUsrLocalSrc in main doc
   debug "Cloning misp-modules"
-  $SUDO_CMD git clone https://github.com/MISP/misp-modules.git
-  cd misp-modules
+  false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/MISP/misp-modules.git; done
+  [[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/faup.git faup; done
+  [[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca; done
+  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+  # Install gtcaca
+  cd gtcaca
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  cd ../../faup
+  # Install faup
+  $SUDO_CMD mkdir -p build
+  cd build
+  $SUDO_CMD cmake .. && $SUDO_CMD make
+  sudo make install
+  sudo ldconfig
+  cd ../../misp-modules
   # some misp-modules dependencies
   sudo apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
   # If you build an egg, the user you build it as need write permissions in the CWD
   sudo chgrp $WWW_USER .
-  sudo chmod g+w .
+  sudo chmod og+w .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .

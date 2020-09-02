@@ -1,6 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
+App::uses('AttachmentTool', 'Tools');
 
 class ServersController extends AppController
 {
@@ -391,14 +392,7 @@ class ServersController extends AppController
             $this->set('externalOrganisations', $externalOrganisations);
             $this->set('allOrganisations', $allOrgs);
 
-            // list all tags for the rule picker
-            $this->loadModel('Tag');
-            $temp = $this->Tag->find('all', array('recursive' => -1));
-            $allTags = array();
-            foreach ($temp as $t) {
-                $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
-            }
-            $this->set('allTags', $allTags);
+            $this->set('allTags', $this->__getTags());
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
             $this->render('edit');
         }
@@ -584,14 +578,7 @@ class ServersController extends AppController
             $this->set('externalOrganisations', $externalOrganisations);
             $this->set('allOrganisations', $allOrgs);
 
-            // list all tags for the rule picker
-            $this->loadModel('Tag');
-            $temp = $this->Tag->find('all', array('recursive' => -1));
-            $allTags = array();
-            foreach ($temp as $t) {
-                $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
-            }
-            $this->set('allTags', $allTags);
+            $this->set('allTags', $this->__getTags());
             $this->set('server', $s);
             $this->set('id', $id);
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
@@ -634,6 +621,49 @@ class ServersController extends AppController
             $this->Flash->error($message);
             $this->redirect(array('action' => 'index'));
         }
+    }
+
+    public function eventBlockRule()
+    {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $setting = $this->AdminSetting->find('first', [
+            'conditions' => ['setting' => 'eventBlockRule'],
+            'recursive' => -1
+        ]);
+        if (empty($setting)) {
+            $setting = ['setting' => 'eventBlockRule'];
+            if ($this->request->is('post')) {
+                $this->AdminSetting->create();
+            }
+        }
+        if ($this->request->is('post')) {
+            if (!empty($this->request->data['Server'])) {
+                $this->request->data = $this->request->data['Server'];
+            }
+            $setting['AdminSetting']['setting'] = 'eventBlockRule';
+            $setting['AdminSetting']['value'] = $this->request->data['value'];
+            $result = $this->AdminSetting->save($setting);
+            if ($result) {
+                $message = __('Settings saved');
+            } else {
+                $message = __('Could not save the settings. Invalid input.');
+            }
+            if ($this->_isRest()) {
+                if ($result) {
+                    return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
+                } else {
+                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', $message, $this->response->type());
+                }
+            } else {
+                if ($result) {
+                    $this->Flash->success($message);
+                    $this->redirect('/');
+                } else {
+                    $this->Flash->error($message);
+                }
+            }
+        }
+        $this->set('setting', $setting);
     }
 
     /**
@@ -992,13 +1022,15 @@ class ServersController extends AppController
             if ($tab == 'diagnostics' || $tab == 'download' || $this->_isRest()) {
                 $php_ini = php_ini_loaded_file();
                 $this->set('php_ini', $php_ini);
-                $advanced_attachments = shell_exec($this->Server->getPythonVersion() . ' ' . APP . 'files/scripts/generate_file_objects.py -c');
 
+                $attachmentTool = new AttachmentTool();
                 try {
-                    $advanced_attachments = json_decode($advanced_attachments, true);
+                    $advanced_attachments = $attachmentTool->checkAdvancedExtractionStatus($this->Server->getPythonVersion());
                 } catch (Exception $e) {
+                    $this->log($e->getMessage(), LOG_NOTICE);
                     $advanced_attachments = false;
                 }
+
                 $this->set('advanced_attachments', $advanced_attachments);
                 // check if the current version of MISP is outdated or not
                 $version = $this->__checkVersion();
@@ -1231,6 +1263,90 @@ class ServersController extends AppController
             return $this->Server->checkVersion($json_decoded_tags[$i]->name);
         } else {
             return false;
+        }
+    }
+
+    public function idTranslator() {
+
+        // The id translation feature is limited to people from the host org
+        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
+            throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
+        }
+
+        //We retrieve the list of remote servers that we can query
+        $options = array();
+        $options['conditions'] = array("pull" => true);
+        $servers = $this->Server->find('all', $options);
+
+        // We generate the list of servers for the dropdown
+        $displayServers = array();
+        foreach($servers as $s) {
+            $displayServers[] = array('name' => $s['Server']['name'],
+                                      'value' => $s['Server']['id']);
+        }
+        $this->set('servers', $displayServers);
+
+        if ($this->request->is('post')) {
+            $remote_events = array();
+            if(!empty($this->request->data['Event']['uuid']) &&  $this->request->data['Event']['local'] == "local") {
+                $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $this->request->data['Event']['uuid']);
+            } else if (!empty($this->request->data['Event']['uuid']) && $this->request->data['Event']['local'] == "remote" && !empty($this->request->data['Server']['id'])) {
+                //We check on the remote server for any event with this id and try to find a match locally
+                $conditions = array('AND' => array('Server.id' => $this->request->data['Server']['id'], 'Server.pull' => true));
+                $remote_server = $this->Server->find('first', array('conditions' => $conditions));
+                if(!empty($remote_server)) {
+                    try {
+                        $remote_event = $this->Event->downloadEventFromServer($this->request->data['Event']['uuid'], $remote_server, null, true);
+                    } catch (Exception $e) {
+                        $error_msg = __("Issue while contacting the remote server to retrieve event information");
+                        $this->logException($error_msg, $e);
+                        $this->Flash->error($error_msg);
+                        return;
+                    }
+
+                    $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event[0]['uuid']);
+                    //we record it to avoid re-querying the same server in the 2nd phase
+                    if(!empty($local_event)) {
+                        $remote_events[] = array(
+                            "server_id" => $remote_server['Server']['id'],
+                            "server_name" => $remote_server['Server']['name'],
+                            "url" => $remote_server['Server']['url']."/events/view/".$remote_event[0]['id'],
+                            "remote_id" => $remote_event[0]['id']
+                        );
+                    }
+                }
+            }
+            if(empty($local_event)) {
+                $this->Flash->error( __("This event could not be found or you don't have permissions to see it."));
+                return;
+            } else {
+                $this->Flash->success(__('The event has been found.'));
+            }
+
+            // In the second phase, we query all configured sync servers to get their info on the event
+            foreach($servers as $s) {
+                // We check if the server was not already contacted in phase 1
+                if(count($remote_events) > 0 && $remote_events[0]['server_id'] == $s['Server']['id']) {
+                    continue;
+                }
+
+                try {
+                    $remote_event = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $s, null, true);
+                    $remote_event_id = $remote_event[0]['id'];
+                } catch (Exception $e) {
+                    $this->logException("Couldn't download event from server", $e);
+                    $remote_event_id = null;
+                }
+                $remote_events[] = array(
+                    "server_id" => $s['Server']['id'],
+                    "server_name" => $s['Server']['name'],
+                    "url" => isset($remote_event_id) ? $s['Server']['url']."/events/view/".$remote_event_id : $s['Server']['url'],
+                    "remote_id" => isset($remote_event_id) ? $remote_event_id : false
+                );
+            }
+
+            $this->set('local_event', $local_event);
+            $this->set('remote_events', $remote_events);
         }
     }
 
@@ -1622,6 +1738,7 @@ class ServersController extends AppController
         $result = $pubSubTool->statusCheck();
         if (!empty($result)) {
             $this->set('events', $result['publishCount']);
+            $this->set('messages', $result['messageCount']);
             $this->set('time', date('Y/m/d H:i:s', $result['timestamp']));
             $this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
         }
@@ -1712,7 +1829,7 @@ class ServersController extends AppController
             'recommendBackup' => false,
             'exitOnError' => false,
             'requirements' => '',
-            'url' => '/'
+            'url' => $this->baseurl . '/'
         );
         foreach($actions as $id => $action) {
             foreach($default_fields as $field => $value) {
@@ -2266,5 +2383,25 @@ misp.direct_call(relative_path, body)
             $this->layout = false;
             $this->set('data', $data);
         }
+    }
+
+    /**
+     * List all tags for the rule picker.
+     *
+     * @return array
+     */
+    private function __getTags()
+    {
+        $this->loadModel('Tag');
+        $list = $this->Tag->find('list', array(
+            'recursive' => -1,
+            'order' => array('LOWER(TRIM(Tag.name))' => 'ASC'),
+            'fields' => array('name'),
+        ));
+        $allTags = array();
+        foreach ($list as $id => $name) {
+            $allTags[] = array('id' => $id, 'name' => trim($name));
+        }
+        return $allTags;
     }
 }
