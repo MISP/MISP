@@ -1669,6 +1669,8 @@ class ExternalStixParser(StixParser):
                     ref, feature = ref.split('.')
                     ref = f"{feature_type}_{'0' if ref == 'ref' else ref.strip('ref[]')}"
                     references[ref].update(self._parse_network_connection_reference(feature_type, feature, pattern_value))
+                else:
+                    print(f'Pattern type not currently mapped: {pattern_type}', file=sys.stderr)
                 continue
             attribute = deepcopy(stix2misp_mapping.domain_ip_mapping[pattern_type])
             attribute['value'] = pattern_value
@@ -1990,7 +1992,7 @@ class ExternalStixParser(StixParser):
                 attribute = {field: attributes[0][field] for field in stix2misp_mapping.single_attribute_fields if attributes[0].get(field)}
                 attribute['uuid'] = stix_object.id.split('--')[1]
                 attribute.update(self.parse_timeline(stix_object))
-                if isinstance(stix_object, stix2.Indicator):
+                if isinstance(stix_object, stix2.v20.Indicator):
                     attribute['to_ids'] = True
                 if hasattr(stix_object, 'object_marking_refs'):
                     self.update_marking_refs(attribute['uuid'], stix_object.object_marking_refs)
