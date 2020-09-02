@@ -3360,8 +3360,8 @@ class Attribute extends AppModel
             $params['limit'] = $options['limit'];
         }
         if (
-            Configure::read('MISP.proposals_block_attributes') &&
-            !empty($options['allow_proposal_blocking'])
+            !empty($options['allow_proposal_blocking']) &&
+            Configure::read('MISP.proposals_block_attributes')
         ) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(

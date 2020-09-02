@@ -128,62 +128,56 @@ class EventsController extends AppController
         }
     }
 
+    /**
+     * @param string $value
+     * @return array[]
+     */
     private function __filterOnAttributeValue($value)
     {
         // dissect the value
-        $pieces = explode('|', $value);
+        $pieces = explode('|', strtolower($value));
         $include = array();
         $exclude = array();
-        $includeIDs = array();
-        $excludeIDs = array();
+
         foreach ($pieces as $piece) {
-            if ($piece[0] == '!') {
-                $exclude[] =  '%' . strtolower(substr($piece, 1)) . '%';
+            if ($piece[0] === '!') {
+                $exclude[] =  '%' . substr($piece, 1) . '%';
             } else {
-                $include[] = '%' . strtolower($piece) . '%';
+                $include[] = "%$piece%";
             }
         }
+
+        $includeIDs = array();
         if (!empty($include)) {
-            // get all of the attributes that should be included
-            $includeQuery = array(
-                    'recursive' => -1,
-                    'fields' => array('id', 'event_id', 'distribution', 'value1', 'value2'),
-                    'conditions' => array(),
-            );
+            $includeConditions = [];
             foreach ($include as $i) {
-                $includeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
-                $includeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
+                $includeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
+                $includeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
             }
-            $includeQuery['conditions']['AND'][] = array('Attribute.deleted' => 0);
-            $includeHits = $this->Event->Attribute->find('all', $includeQuery);
 
-            // convert it into an array that uses the event ID as a key
-            foreach ($includeHits as $iH) {
-                $includeIDs[$iH['Attribute']['event_id']][] = array('attribute_id' => $iH['Attribute']['id'], 'distribution' => $iH['Attribute']['distribution']);
-            }
+            $includeIDs = array_values($this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                'conditions' => $includeConditions,
+                'flatten' => true,
+                'event_ids' => true,
+                'list' => true,
+            )));
         }
 
+        $excludeIDs = array();
         if (!empty($exclude)) {
-            // get all of the attributes that should be excluded
-            $excludeQuery = array(
-                'recursive' => -1,
-                'fields' => array('id', 'event_id', 'distribution', 'value1', 'value2'),
-                'conditions' => array(),
-            );
+            $excludeConditions = [];
             foreach ($exclude as $e) {
-                $excludeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
-                $excludeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
+                $excludeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
+                $excludeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
             }
-            $excludeQuery['conditions']['AND'][] = array('Attribute.deleted' => 0);
-            $excludeHits = $this->Event->Attribute->find('all', $excludeQuery);
 
-            // convert it into an array that uses the event ID as a key
-            foreach ($excludeHits as $eH) {
-                $excludeIDs[$eH['Attribute']['event_id']][] = array('attribute_id' => $eH['Attribute']['id'], 'distribution' => $eH['Attribute']['distribution']);
-            }
+            $excludeIDs = array_values($this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                'conditions' => $excludeConditions,
+                'flatten' => true,
+                'event_ids' => true,
+                'list' => true,
+            )));
         }
-        $includeIDs = array_keys($includeIDs);
-        $excludeIDs = array_keys($excludeIDs);
         // return -1 as the only value in includedIDs if both arrays are empty. This will mean that no events will be shown if there was no hit
         if (empty($includeIDs) && empty($excludeIDs)) {
             $includeIDs[] = -1;
