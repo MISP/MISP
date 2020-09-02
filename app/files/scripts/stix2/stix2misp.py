@@ -225,8 +225,6 @@ class StixParser():
         attribute_uuids = tuple(attribute.uuid for attribute in self.misp_event.attributes)
         object_uuids = tuple(object.uuid for object in self.misp_event.objects)
         for source, references in self.relationship.items():
-            if source in self.galaxy:
-                continue
             if source in object_uuids:
                 source_object = self.misp_event.get_object_by_uuid(source)
                 for reference in references:
