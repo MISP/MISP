@@ -75,7 +75,7 @@ class StixParser():
         except IndexError:
             attribute_distribution = 5
         self._synonyms_to_tag_names = args[2] if len(args) > 2 else '/var/www/MISP/app/files/scripts/synonymsToTagNames.json'
-        self.parse_event(event.objects)
+        self.parse_event(event)
 
     def _load_galaxy(self, galaxy):
         self.galaxy[galaxy['id'].split('--')[1]] = {'tag_names': self.parse_galaxy(galaxy), 'used': False}
@@ -242,10 +242,9 @@ class StixParser():
                                 self.galaxy[target]['used'] = True
                         break
 
-    def parse_report(self):
+    def parse_report(self, event_uuid=None):
         event_infos = set()
-        if len(self.report) == 1:
-            self.misp_event.uuid = tuple(self.report.keys())[0]
+        self.misp_event.uuid = event_uuid if event_uuid and len(self.report) > 1 else tuple(self.report.keys())[0]
         for report in self.report.values():
             if hasattr(report, 'name') and report.name:
                 event_infos.add(report.name)
@@ -356,8 +355,8 @@ class StixFromMISPParser(StixParser):
         self._stix2misp_mapping.update({special_type: '_parse_undefined' for special_type in ('attack-pattern', 'course-of-action', 'vulnerability')})
         self._custom_objects = tuple(filename.name.replace('_', '-') for filename  in _misp_objects_path.glob('*') if '_' in filename.name)
 
-    def parse_event(self, stix_objects):
-        for stix_object in stix_objects:
+    def parse_event(self, stix_event):
+        for stix_object in stix_event.objects:
             object_type = stix_object['type']
             if object_type.startswith('x-misp-object'):
                 object_type = 'custom_object'
@@ -1184,8 +1183,8 @@ class ExternalStixParser(StixParser):
     ##                             PARSING FUNCTIONS.                             ##
     ################################################################################
 
-    def parse_event(self, stix_objects):
-        for stix_object in stix_objects:
+    def parse_event(self, stix_event):
+        for stix_object in stix_event.objects:
             object_type = stix_object['type']
             if object_type in self._stix2misp_mapping:
                 getattr(self, self._stix2misp_mapping[object_type])(stix_object)
@@ -1195,9 +1194,11 @@ class ExternalStixParser(StixParser):
             self.parse_relationships()
         if self.galaxy:
             self.parse_galaxies()
+        event_uuid = stix_event.id.split('--')[1]
         if hasattr(self, 'report'):
-            self.parse_report()
+            self.parse_report(event_uuid=event_uuid)
         else:
+            self.misp_event.uuid = event_uuid
             self.misp_event.info = 'Imported with the STIX to MISP import script.'
         self.handle_markings()
 
