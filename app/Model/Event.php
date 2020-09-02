@@ -5,6 +5,9 @@ App::uses('RandomTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 
+/**
+ * @property Attribute $Attribute
+ */
 class Event extends AppModel
 {
     public $actsAs = array(
