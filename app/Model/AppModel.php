@@ -2267,9 +2267,10 @@ class AppModel extends Model
             'Event' => $this->removeDuplicateEventUUIDs(),
             'Attribute' => $this->removeDuplicateAttributeUUIDs(),
             'Object' => $this->removeDuplicateObjectUUIDs(),
+            'Sighting' => $this->removeDuplicateSightingUUIDs(),
             // 'GalaxyCluster' => $this->removeDuplicateClusterUUIDs(),
         );
-        $this->Log->createLogEntry('SYSTEM', 'update_database', 'Server', 0, __('Removed duplicated UUIDs'), __('Event: %s, Attribute: %s, Object: %s', h($removedResults['Event']), h($removedResults['Attribute']), h($removedResults['Object'])));
+        $this->Log->createLogEntry('SYSTEM', 'update_database', 'Server', 0, __('Removed duplicated UUIDs'), __('Event: %s, Attribute: %s, Object: %s, Sighting: %s', h($removedResults['Event']), h($removedResults['Attribute']), h($removedResults['Object']), h($removedResults['Sighting'])));
         return $this->updateDatabase('createUUIDsConstraints');
     }
 
@@ -2278,7 +2279,7 @@ class AppModel extends Model
         $this->Attribute = ClassRegistry::init('Attribute');
         $this->Log = ClassRegistry::init('Log');
         $duplicates = $this->Attribute->find('all', array(
-            'fields' => array('Attribute.uuid', 'count(Attribute.uuid) as occurence'),
+            'fields' => array('Attribute.uuid', 'count(Attribute.uuid) as occurrence'),
             'recursive' => -1,
             'group' => array('Attribute.uuid HAVING COUNT(Attribute.uuid) > 1'),
         ));
@@ -2311,7 +2312,7 @@ class AppModel extends Model
         $this->Event = ClassRegistry::init('Event');
         $this->Log = ClassRegistry::init('Log');
         $duplicates = $this->Event->find('all', array(
-                'fields' => array('Event.uuid', 'count(Event.uuid) as occurence'),
+                'fields' => array('Event.uuid', 'count(Event.uuid) as occurrence'),
                 'recursive' => -1,
                 'group' => array('Event.uuid HAVING COUNT(Event.uuid) > 1'),
         ));
@@ -2350,7 +2351,7 @@ class AppModel extends Model
         $this->MispObject = ClassRegistry::init('MispObject');
         $this->Log = ClassRegistry::init('Log');
         $duplicates = $this->MispObject->find('all', array(
-            'fields' => array('Object.uuid', 'count(Object.uuid) as occurence'),
+            'fields' => array('Object.uuid', 'count(Object.uuid) as occurrence'),
             'recursive' => -1,
             'group' => array('Object.uuid HAVING COUNT(Object.uuid) > 1'),
         ));
@@ -2379,7 +2380,7 @@ class AppModel extends Model
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Log = ClassRegistry::init('Log');
         $duplicates = $this->GalaxyCluster->find('all', array(
-            'fields' => array('GalaxyCluster.uuid', 'count(GalaxyCluster.uuid) as occurence'),
+            'fields' => array('GalaxyCluster.uuid', 'count(GalaxyCluster.uuid) as occurrence'),
             'recursive' => -1,
             'group' => array('GalaxyCluster.uuid HAVING COUNT(GalaxyCluster.uuid) > 1'),
         ));
@@ -2398,6 +2399,33 @@ class AppModel extends Model
             }
         }
         $this->updateDatabase('makeClusterUUIDsUnique');
+        return $counter;
+    }
+
+    public function removeDuplicateSightingUUIDs()
+    {
+        $this->Sighting = ClassRegistry::init('Sighting');
+        $this->Log = ClassRegistry::init('Log');
+        $duplicates = $this->Sighting->find('all', array(
+            'fields' => array('Sighting.uuid', 'count(Sighting.uuid) as occurrence'),
+            'recursive' => -1,
+            'group' => array('Sighting.uuid HAVING COUNT(Sighting.uuid) > 1'),
+        ));
+        $counter = 0;
+        foreach ($duplicates as $duplicate) {
+            $attributes = $this->Sighting->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('uuid' => $duplicate['Sighting']['uuid']),
+            ));
+            foreach ($sightings as $k => $sighting) {
+                if ($k > 0) {
+                    $this->Sighting->delete($sighting['Sighting']['id']);
+                    $this->Log->createLogEntry('SYSTEM', 'delete', 'Sighting', $sighting['Sighting']['id'], __('Removed sighting (%s)', $sighting['Sighting']['id']), __('Sighting\'s UUID duplicated (%s)', $sighting['Sighting']['uuid']));
+                    $counter++;
+                }
+            }
+        }
+        $this->updateDatabase('makeSightingUUIDsUnique');
         return $counter;
     }
 
