@@ -77,6 +77,8 @@
                 <i class="top-bar-separator"></i>
                 <span class="<?= $this->FontAwesome->getClass('cube') ?> useCursorPointer icon" onclick="replacementAction('attribute')"></span>
                 <span class="<?= $this->FontAwesome->getClass('cubes') ?> useCursorPointer icon" onclick="replacementAction('object')"></span>
+                <span class="<?= $this->FontAwesome->getClass('image') ?> useCursorPointer icon" onclick="replacementAction('attribute-attachment')"></span>
+                <span class="<?= $this->FontAwesome->getClass('project-diagram') ?> useCursorPointer icon" onclick="replacementAction('eventgraph')"></span>
             </div>
             <textarea id="editor"></textarea>
             <div id="bottom-bar" class="editor-action-bar">
@@ -120,12 +122,15 @@
 
     // - Add last modified timestamp & time since last edit
     // - Add Picker for elements [correlation/eventGraph picture/tags/galaxyMatrix]
+    // - Add toggle auto-scroll
+    // - Add toggle auto-render
 ?>
 <script>
     'use strict';
     var md, cm;
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
     var proxyMISPElements = <?= json_encode(is_array($proxyMISPElements) ? $proxyMISPElements : array($proxyMISPElements), JSON_HEX_TAG); ?>;
+    var eventid = '<?= h($eventid) ?>'
     var MISPElementValues = [], MISPElementTypes = [], MISPElementIDs = []
     var modelName = '<?= h($modelName) ?>';
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
@@ -455,7 +460,7 @@
                 return dotTemplateObject(templateVariables);
             }
         } else if (scope == 'eventgraph') {
-            return dotTemplateEventgraph({scope: 'eventgraph', elementid: 1, eventid: 188});
+            return dotTemplateEventgraph({scope: 'eventgraph', elementid: elementID, eventid: eventid});
         }
         return renderInvalidMISPElement(scope, elementID)
     }
@@ -620,13 +625,21 @@
 
     function attachEventgraphPicture($elem, eventID, graphID) {
         $.getJSON('/eventGraph/view/' + eventID + '/' + graphID, function (data) {
-            if (data) {
+            if (data && data.length > 0) {
                 var dataPicture = data[0]['EventGraph']['preview_img']
                 if (dataPicture !== undefined) {
                     $elem.empty().append($('<img />').attr('src', dataPicture))
+                    return
                 }
             }
-            return false
+            var templateVariables = sanitizeObject({
+                scope: '<?= __('Error while fetching saved Event Graph picture') ?>',
+                id: graphID
+            })
+            var placeholder = dotTemplateInvalid(templateVariables)
+            $elem.empty()
+                .css({'text-align': 'center'})
+                .append($(placeholder))
         })
     }
 
@@ -688,7 +701,8 @@
 
     function postRenderingAction() {
         $('.eventgraphPicture[data-scope="eventgraph"]').each(function() {
-            attachEventgraphPicture($(this), 188, 1)
+            var $img = $(this)
+            attachEventgraphPicture($img, $img.data('eventid'), $img.data('elementid'))
         })
     }
 
@@ -911,8 +925,18 @@
                 end = null
                 setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
                 break;
+            case 'attribute-attachment':
+                replacement = '@![attribute]()'
+                end = null
+                setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
+                break;
             case 'object':
                 replacement = '@[object]()'
+                end = null
+                setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
+                break;
+            case 'eventgraph':
+                replacement = '@[eventgraph]()'
                 end = null
                 setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
                 break;

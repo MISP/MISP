@@ -40,6 +40,7 @@
                     'markdown' => $report['EventReport']['content'],
                     'modelName' => 'EventReport',
                     'mardownModelFieldName' => 'content',
+                    'eventid' => $report['EventReport']['event_id']
                 ));
             ?>
         </div>
