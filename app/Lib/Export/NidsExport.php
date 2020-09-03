@@ -158,6 +158,10 @@ class NidsExport
                 case 'ip-src|port':
                     $this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
                     break;
+                case 'email':
+                    $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
+                    $this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
+                    break;
                 case 'email-src':
                     $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
                     break;
