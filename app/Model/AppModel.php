@@ -1494,9 +1494,22 @@ class AppModel extends Model
                 $indexArray[] = array('shadow_attributes', 'last_seen');
                 break;
             case 'createUUIDsConstraints':
+                $this->__dropIndex('events', 'uuid');
                 $sqlArray[] = "ALTER TABLE events ADD CONSTRAINT `uuid` UNIQUE (uuid);";
+                $this->__dropIndex('attributes', 'uuid');
                 $sqlArray[] = "ALTER TABLE attributes ADD CONSTRAINT `uuid` UNIQUE (uuid);";
+                $this->__dropIndex('objects', 'uuid');
                 $sqlArray[] = "ALTER TABLE objects ADD CONSTRAINT `uuid` UNIQUE (uuid);";
+                $this->__dropIndex('sightings', 'uuid');
+                $sqlArray[] = "ALTER TABLE sightings ADD CONSTRAINT `uuid` UNIQUE (uuid);";
+                $this->__dropIndex('dashboards', 'uuid');
+                $sqlArray[] = "ALTER TABLE dashboards ADD CONSTRAINT `uuid` UNIQUE (uuid);";
+                $this->__dropIndex('inbox', 'uuid');
+                $sqlArray[] = "ALTER TABLE inbox ADD CONSTRAINT `uuid` UNIQUE (uuid);";
+                $this->__dropIndex('organisations', 'uuid');
+                $sqlArray[] = "ALTER TABLE organisations ADD CONSTRAINT `uuid` UNIQUE (uuid);";
+                $this->__dropIndex('tag_collections', 'uuid');
+                $sqlArray[] = "ALTER TABLE tag_collections ADD CONSTRAINT `uuid` UNIQUE (uuid);";
                 break;
             default:
                 return false;
@@ -2303,7 +2316,6 @@ class AppModel extends Model
                 }
             }
         }
-        $this->updateDatabase('makeAttributeUUIDsUnique');
         return $counter;
     }
 
@@ -2342,7 +2354,6 @@ class AppModel extends Model
                 }
             }
         }
-        $this->updateDatabase('makeEventUUIDsUnique');
         return $counter;
     }
 
@@ -2369,7 +2380,6 @@ class AppModel extends Model
                 }
             }
         }
-        $this->updateDatabase('makeObjectUUIDsUnique');
         return $counter;
     }
 
@@ -2398,7 +2408,6 @@ class AppModel extends Model
                 }
             }
         }
-        $this->updateDatabase('makeClusterUUIDsUnique');
         return $counter;
     }
 
@@ -2413,19 +2422,18 @@ class AppModel extends Model
         ));
         $counter = 0;
         foreach ($duplicates as $duplicate) {
-            $attributes = $this->Sighting->find('all', array(
+            $sightings = $this->Sighting->find('all', array(
                 'recursive' => -1,
                 'conditions' => array('uuid' => $duplicate['Sighting']['uuid']),
             ));
             foreach ($sightings as $k => $sighting) {
                 if ($k > 0) {
                     $this->Sighting->delete($sighting['Sighting']['id']);
-                    $this->Log->createLogEntry('SYSTEM', 'delete', 'Sighting', $sighting['Sighting']['id'], __('Removed sighting (%s)', $sighting['Sighting']['id']), __('Sighting\'s UUID duplicated (%s)', $sighting['Sighting']['uuid']));
+                    // $this->Log->createLogEntry('SYSTEM', 'delete', 'Sighting', $sighting['Sighting']['id'], __('Removed sighting (%s)', $sighting['Sighting']['id']), __('Sighting\'s UUID duplicated (%s)', $sighting['Sighting']['uuid']));
                     $counter++;
                 }
             }
         }
-        $this->updateDatabase('makeSightingUUIDsUnique');
         return $counter;
     }
 

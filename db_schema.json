@@ -6817,7 +6817,7 @@
         "dashboards": {
             "id": true,
             "name": false,
-            "uuid": false,
+            "uuid": true,
             "user_id": false,
             "restrict_to_org_id": false,
             "restrict_to_permission_flag": false
@@ -6920,7 +6920,7 @@
             "id": true,
             "title": false,
             "type": false,
-            "uuid": false,
+            "uuid": true,
             "user_agent_sha256": false,
             "ip": false,
             "timestamp": false
@@ -6990,7 +6990,7 @@
         },
         "organisations": {
             "id": true,
-            "uuid": false,
+            "uuid": true,
             "name": false
         },
         "org_blocklists": {
@@ -7077,7 +7077,7 @@
             "attribute_id": false,
             "event_id": false,
             "org_id": false,
-            "uuid": false,
+            "uuid": true,
             "source": false,
             "type": false
         },
@@ -7090,7 +7090,7 @@
         },
         "tag_collections": {
             "id": true,
-            "uuid": false,
+            "uuid": true,
             "user_id": false,
             "org_id": false
         },
