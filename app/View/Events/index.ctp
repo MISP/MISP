@@ -61,7 +61,7 @@
                         ),
                         array(
                             'requirement' => count($passedArgsArray) > 0,
-                            'url' => '/events/index',
+                            'url' => $baseurl . '/events/index',
                             'title' => __('Remove filters'),
                             'fa-icon' => 'times'
                         )
@@ -121,17 +121,12 @@
 </div>
 <script type="text/javascript">
     var passedArgsArray = <?php echo $passedArgs; ?>;
-    $(document).ready(function() {
+    $(function() {
         $('.searchFilterButton').click(function() {
             runIndexFilter(this);
         });
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
-        });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter();
-            }
         });
     });
 

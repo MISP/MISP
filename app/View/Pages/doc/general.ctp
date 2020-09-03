@@ -48,7 +48,7 @@
     <h5><?php echo __('Input filters');?></h5>
     <ul>
         <li><b><?php echo __('Import Regexp');?>:</b> <?php echo __('You can view the Regular Expression rules, which modify the data that can be entered into the system. This can and should be used to help filter out personal information from automatic imports (such as removing the username from windows file paths), having unified representation for certain common values for easier correlation or simply standardising certain input. It is also possible to block certain values from being inserted. As a site administrator or a user with regex permission, you can also edit these rules.');?></li>
-        <li><b><?php echo __('Signature Whitelist');?>:</b> <?php echo __('You can view the whitelist rules, which contain the values that are blocked from being used for exports and automation on this instance. Site administrators have access to editing this list.');?></li>
+        <li><b><?php echo __('Signature Allowedlist');?>:</b> <?php echo __('You can view the allowedlist rules, which contain the values that are blocked from being used for exports and automation on this instance. Site administrators have access to editing this list.');?></li>
     </ul>
 
     <h5><?php echo __('Global Actions');?></h5>

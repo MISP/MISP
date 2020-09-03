@@ -4,7 +4,7 @@
  * create, read, update and delete (CRUD)
  */
 
-class BlackListComponent extends Component
+class BlocklistComponent extends Component
 {
     public $settings = array();
     public $defaultModel = '';
@@ -16,14 +16,16 @@ class BlackListComponent extends Component
         if (!empty($filters)) {
             $this->controller->paginate['conditions'] = $filters;
         }
-        if ($this->controller->response->type() === 'application/json' || $this->controller->response->type() == 'application/xml' || $rest) {
-            $blackList = $this->controller->paginate();
-            $blacklist= array();
-            foreach ($blackList as $item) {
-                $blacklist[] = $item[$this->controller->defaultModel];
+        if ($rest) {
+            $data = $this->controller->{$this->controller->defaultModel}->find('all', array(
+                'recursive' => -1,
+                'conditions' => isset($this->controller->paginate['conditions']) ? $this->controller->paginate['conditions'] : []
+            ));
+            $blocklist = [];
+            foreach ($data as $item) {
+                $blocklist[] = $item[$this->controller->defaultModel];
             }
-            $this->controller->set($this->controller->defaultModel, $blacklist);
-            $this->controller->set('_serialize', $this->controller->defaultModel);
+            return $this->RestResponse->viewData($blocklist);
         } else {
             $this->controller->set('response', $this->controller->paginate());
         }
@@ -54,7 +56,7 @@ class BlackListComponent extends Component
             if (is_array($data[$this->controller->defaultModel]['uuids'])) {
                 $uuids = $data[$this->controller->defaultModel]['uuids'];
             } else {
-                $uuids = explode(PHP_EOL, $data[$this->controller->defaultModel]['uuids']);
+                $uuids = explode(PHP_EOL, trim($data[$this->controller->defaultModel]['uuids']));
             }
             $successes = array();
             $fails = array();
@@ -63,8 +65,8 @@ class BlackListComponent extends Component
                 if (strlen($uuid) == 36) {
                     $this->controller->{$this->controller->defaultModel}->create();
                     $object = array();
-                    foreach ($this->controller->{$this->controller->defaultModel}->blacklistFields as $f) {
-                        if (strpos($f, '_uuid')) {
+                    foreach ($this->controller->{$this->controller->defaultModel}->blocklistFields as $f) {
+                        if ($f === $this->controller->{$this->controller->defaultModel}->blocklistTarget . '_uuid') {
                             $object[$f] = $uuid;
                         } else {
                             $object[$f] = !empty($data[$this->controller->defaultModel][$f]) ? $data[$this->controller->defaultModel][$f] : '';
@@ -79,7 +81,7 @@ class BlackListComponent extends Component
                     $fails[] = $uuid;
                 }
             }
-            $message = sprintf(__('Done. Added %d new entries to the blacklist. %d entries could not be saved.'), count($successes), count($fails));
+            $message = sprintf(__('Done. Added %d new entries to the blocklist. %d entries could not be saved.'), count($successes), count($fails));
             if ($rest) {
                 $result = [
                     'result' => [
@@ -98,18 +100,22 @@ class BlackListComponent extends Component
 
     public function edit($rest = false, $id)
     {
-        if (strlen($id) == 36) {
-            $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', array('conditions' => array('uuid' => $id)));
+        if (Validation::uuid($id)) {
+            $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', [
+                'conditions' => array(
+                    $this->controller->{$this->controller->defaultModel}->blocklistTarget . '_uuid' => $id
+                )
+            ]);
         } else {
             $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', array('conditions' => array('id' => $id)));
         }
         if (empty($blockEntry)) {
-            throw new NotFoundException('Blacklist item not found.');
+            throw new NotFoundException('Blocklist item not found.');
         }
         $this->controller->set('blockEntry', $blockEntry);
         if ($this->controller->request->is('post')) {
             if ($rest) {
-                if ($this->response->type() === 'application/json') {
+                if ($this->controller->response->type() === 'application/json') {
                     $isJson = true;
                     $data = $this->controller->request->input('json_decode', true);
                 } else {
@@ -118,10 +124,13 @@ class BlackListComponent extends Component
                 if (isset($data['request'])) {
                     $data = $data['request'];
                 }
+                if (!isset($data[$this->controller->defaultModel])) {
+                    $data = [$this->controller->defaultModel => $data];
+                }
             } else {
                 $data = $this->controller->request->data;
             }
-            $fields = $this->controller->{$this->controller->defaultModel}->blacklistFields;
+            $fields = $this->controller->{$this->controller->defaultModel}->blocklistFields;
             foreach ($fields as $f) {
                 if ($f == 'uuid') {
                     continue;
@@ -132,17 +141,23 @@ class BlackListComponent extends Component
             }
             if ($this->controller->{$this->controller->defaultModel}->save($blockEntry)) {
                 if ($rest) {
-                    $this->controller->set('message', array('Blacklist item added.'));
-                    $this->controller->set('_serialize', array('message'));
+                    return $this->RestResponse->viewData(
+                        $this->controller->{$this->controller->defaultModel}->find('first', [
+                            'recursive' => -1,
+                            'conditions' => [
+                                'id' => $this->controller->{$this->controller->defaultModel}->id
+                            ]
+                        ])
+                    );
                 } else {
-                    $this->controller->Session->setFlash(__('Blacklist item added.'));
+                    $this->controller->Session->setFlash(__('Blocklist item added.'));
                     $this->controller->redirect(array('action' => 'index'));
                 }
             } else {
                 if ($rest) {
-                    throw new MethodNotAllowedException('Could not save the blacklist item.');
+                    throw new MethodNotAllowedException('Could not save the blocklist item.');
                 } else {
-                    $this->controller->Session->setFlash(__('Could not save the blacklist item'));
+                    $this->controller->Session->setFlash(__('Could not save the blocklist item'));
                     $this->controller->redirect(array('action' => 'index'));
                 }
             }
@@ -151,26 +166,31 @@ class BlackListComponent extends Component
 
     public function delete($rest = false, $id)
     {
-        if (strlen($id) == 36) {
-            $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', array(
-                'fields' => array('id'),
-                'conditions' => array('event_uuid' => $id),
-            ));
-            $id = $blockEntry[$this->controller->defaultModel]['id'];
-        }
-        if (!$this->controller->request->is('post') && !$rest) {
-            throw new MethodNotAllowedException();
-        }
-
-        $this->controller->{$this->controller->defaultModel}->id = $id;
-        if (!$this->controller->{$this->controller->defaultModel}->exists()) {
-            throw new NotFoundException(__('Invalid blacklist entry'));
-        }
-
-        if ($this->controller->{$this->controller->defaultModel}->delete()) {
-            $this->controller->Session->setFlash(__('Blacklist entry removed'));
+        if (Validation::uuid($id)) {
+            $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', [
+                'conditions' => array(
+                    $this->controller->{$this->controller->defaultModel}->blocklistTarget . '_uuid' => $id
+                )
+            ]);
         } else {
-            $this->controller->Session->setFlash(__('Could not remove the blacklist entry'));
+            $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', array('conditions' => array('id' => $id)));
+        }
+        if (empty($blockEntry)) {
+            throw new NotFoundException(__('Invalid blocklist entry'));
+        }
+
+        if ($this->controller->{$this->controller->defaultModel}->delete($blockEntry[$this->controller->defaultModel]['id'])) {
+            $message = __('Blocklist entry removed');
+            if ($rest) {
+                return $this->RestResponse->saveSuccessResponse($this->controller->defaultModel, 'delete', $id, false, $message);
+            }
+            $this->controller->Flash->success($message);
+        } else {
+            $message = __('Could not remove the blocklist entry');
+            if ($rest) {
+                return $this->RestResponse->saveFailResponse($this->controller->defaultModel, 'delete', $id, $message);
+            }
+            $this->controller->error($message);
         }
         $this->controller->redirect(array('action' => 'index'));
     }

@@ -12,7 +12,7 @@
   height: 11px;
   line-height: 11px;
   /* vertical-align: text-top; */
-  background-image: url("/img/famfamfam-flags/famfamfam-flags.png");
+  background-image: url("../img/famfamfam-flags/famfamfam-flags.png");
   background-position: 0 0;
   background-repeat: no-repeat;
 }

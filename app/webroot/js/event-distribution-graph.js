@@ -386,7 +386,7 @@ function construct_piechart(data) {
 
 function fetchDistributionData(callback) {
     $.ajax({
-        url: "/events/"+"getDistributionGraph"+"/"+scope_id+"/event.json",
+        url: baseurl + "/events/"+"getDistributionGraph"+"/"+scope_id+"/event.json",
         dataType: 'json',
         type: 'post',
         contentType: 'application/json',
@@ -420,7 +420,7 @@ function drawBarChart(data) {
 }
 
 $(document).ready(function() {
-    var rightBtns = '<div style="float:right;">'
+    var rightBtns = '<div style="float:right;">';
     rightBtns += '<span type="button" id="reloadDistributionGraph" title="Reload Distribution Graph" class="fas fa-sync useCursorPointer" aria-hidden="true" style="margin-left: 5px;" onclick="fetchDistributionData(function(data) { construct_piechart(data); });"></span>';
     rightBtns += '<button type="button" class="close" style="margin-left: 5px;" onclick="$(\'.distribution_graph\').popover(\'hide\');">×</button>';
     rightBtns += '</div>';

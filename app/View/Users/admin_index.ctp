@@ -139,7 +139,7 @@
                 array(
                     'name' => __('Monitored'),
                     'element' => 'toggle',
-                    'url' => '/admin/users/monitor',
+                    'url' => $baseurl . '/admin/users/monitor',
                     'url_params_data_paths' => array(
                         'User.id'
                     ),
@@ -186,27 +186,30 @@
                     )
                 ),
                 array(
-                    'url' => '/admin/users/edit',
+                    'url' => $baseurl . '/admin/users/edit',
                     'url_params_data_paths' => array(
                         'User.id'
                     ),
-                    'icon' => 'edit'
+                    'icon' => 'edit',
+                    'title' => __('Edit')
                 ),
                 array(
-                    'url' => '/admin/users/delete',
+                    'url' => $baseurl . '/admin/users/delete',
                     'url_params_data_paths' => array(
                         'User.id'
                     ),
                     'postLink' => 1,
                     'postLinkConfirm' => __('Are you sure you want to delete the user? It is highly recommended to never delete users but to disable them instead.'),
-                    'icon' => 'trash'
+                    'icon' => 'trash',
+                    'title' => __('Delete')
                 ),
                 array(
-                    'url' => '/admin/users/view',
+                    'url' => $baseurl . '/admin/users/view',
                     'url_params_data_paths' => array(
                         'User.id'
                     ),
-                    'icon' => 'eye'
+                    'icon' => 'eye',
+                    'title' => __('View')
                 )
             )
         )

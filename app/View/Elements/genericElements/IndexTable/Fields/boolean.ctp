@@ -44,8 +44,9 @@
         $rules_raw = implode('<br />', $rules_raw);
     }
     echo sprintf(
-        '<i class="black fa fa-%s"></i>%s',
+        '<i class="black fa fa-%s" role="img" aria-label="%s"></i>%s',
         (!empty(Hash::extract($row, $field['data_path'])[0])) ? 'check' : 'times',
+        (!empty(Hash::extract($row, $field['data_path'])[0])) ? __('Yes') : __('No'),	
         empty($rules_raw) ? '' :
         sprintf(
             ' <span data-toggle="popover" title="%s" data-content="%s">(%s)</span>',

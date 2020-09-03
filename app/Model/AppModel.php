@@ -37,6 +37,8 @@ class AppModel extends Model
 
     public $start = 0;
 
+    public $assetCache = [];
+
     public $inserted_ids = array();
 
     private $__redisConnection = null;
@@ -44,7 +46,9 @@ class AppModel extends Model
     private $__profiler = array();
 
     public $elasticSearchClient = false;
-    public $s3Client = false;
+
+    /** @var AttachmentTool|null */
+    private $attachmentTool;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -82,6 +86,7 @@ class AppModel extends Model
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
+        57 => false,
     );
 
     public $advanced_updates_description = array(
@@ -192,16 +197,16 @@ class AppModel extends Model
                 $this->Sighting->deleteAll(array('NOT' => array('Sighting.type' => array(0, 1, 2))));
                 break;
             case '2.4.71':
-                $this->OrgBlacklist = Classregistry::init('OrgBlacklist');
+                $this->OrgBlocklist = Classregistry::init('OrgBlocklist');
                 $values = array(
                     array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astrononomy', 'comment' => 'default example'),
                     array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
                 );
                 foreach ($values as $value) {
-                    $found = $this->OrgBlacklist->find('first', array('conditions' => array('org_uuid' => $value['org_uuid']), 'recursive' => -1));
+                    $found = $this->OrgBlocklist->find('first', array('conditions' => array('org_uuid' => $value['org_uuid']), 'recursive' => -1));
                     if (empty($found)) {
-                        $this->OrgBlacklist->create();
-                        $this->OrgBlacklist->save($value);
+                        $this->OrgBlocklist->create();
+                        $this->OrgBlocklist->save($value);
                     }
                 }
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -1378,18 +1383,18 @@ class AppModel extends Model
                 break;
             case 51:
                 $sqlArray[] = "ALTER TABLE `feeds` ADD `orgc_id` int(11) NOT NULL DEFAULT 0";
-                $this->__addIndex('feeds', 'orgc_id');
+                $indexArray[] = array('feeds', 'orgc_id');
                 break;
             case 52:
                 if (!empty($this->query("SHOW COLUMNS FROM `admin_settings` LIKE 'key';"))) {
                     $sqlArray[] = "ALTER TABLE admin_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
-                    $this->__addIndex('admin_settings', 'setting');
+                    $indexArray[] = array('admin_settings', 'setting');
                 }
                 break;
             case 53:
                 if (!empty($this->query("SHOW COLUMNS FROM `user_settings` LIKE 'key';"))) {
                     $sqlArray[] = "ALTER TABLE user_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
-                    $this->__addIndex('user_settings', 'setting');
+                    $indexArray[] = array('user_settings', 'setting');
                 }
                 break;
             case 54:
@@ -1404,6 +1409,12 @@ class AppModel extends Model
                 $this->__dropIndex('correlations', 'a_sharing_group_id');
                 break;
             case 56:
+                //rename tables
+                $sqlArray[] = "RENAME TABLE `org_blacklists` TO `org_blocklists`;";
+                $sqlArray[] = "RENAME TABLE `event_blacklists` TO `event_blocklists`;";
+                $sqlArray[] = "RENAME TABLE `whitelist` TO `allowedlist`;";
+                break;
+            case 57:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS event_reports (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
@@ -1567,7 +1578,7 @@ class AppModel extends Model
                             break;
                         }
                     } else {
-                        $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is whitelisted, the update went through.');
+                        $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is allowed, the update went through.');
                     }
                     $this->Log->save($logMessage);
                 }
@@ -2418,29 +2429,6 @@ class AppModel extends Model
         $this->elasticSearchClient = $client;
     }
 
-    public function getS3Client()
-    {
-        if (!$this->s3Client) {
-            $this->s3Client = $this->loadS3Client();
-        }
-
-        return $this->s3Client;
-    }
-
-    public function loadS3Client()
-    {
-        App::uses('AWSS3Client', 'Tools');
-        $client = new AWSS3Client();
-        $client->initTool();
-        return $client;
-    }
-
-    public function attachmentDirIsS3()
-    {
-        // Naive way to detect if we're working in S3
-        return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
-    }
-
     public function checkVersionRequirements($versionString, $minVersion)
     {
         $version = explode('.', $versionString);
@@ -2869,6 +2857,8 @@ class AppModel extends Model
     }
 
     /**
+     * Log exception with backtrace and with nested exceptions.
+     *
      * @param string $message
      * @param Exception $exception
      * @param int $type
@@ -2948,5 +2938,17 @@ class AppModel extends Model
             '?',
             $input
         );
+    }
+
+    /**
+     * @return AttachmentTool
+     */
+    protected function loadAttachmentTool()
+    {
+        if ($this->attachmentTool === null) {
+            $this->attachmentTool = new AttachmentTool();
+        }
+
+        return $this->attachmentTool;
     }
 }

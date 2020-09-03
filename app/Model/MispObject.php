@@ -2,6 +2,10 @@
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
 
+/**
+ * @property Event $Event
+ * @property SharingGroup $SharingGroup
+ */
 class MispObject extends AppModel
 {
     public $name = 'Object';
@@ -577,7 +581,7 @@ class MispObject extends AppModel
                 $params['page'] = $options['page'];
             }
         }
-        if (Configure::read('MISP.unpublishedprivate')) {
+        if (Configure::read('MISP.unpublishedprivate') && !$user['Role']['perm_site_admin']) {
             $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
         }
         $results = $this->find('all', $params);
@@ -1052,7 +1056,7 @@ class MispObject extends AppModel
         return true;
     }
 
-    public function deleteObject($object, $hard=false, $unpublish=true)
+    public function deleteObject(array $object, $hard=false, $unpublish=true)
     {
         $id = $object['Object']['id'];
         if ($hard) {
@@ -1501,7 +1505,7 @@ class MispObject extends AppModel
         $continue = true;
         while ($continue) {
             $temp = '';
-            $this->Whitelist = ClassRegistry::init('Whitelist');
+            $this->Allowedlist = ClassRegistry::init('Allowedlist');
             $results = $this->fetchObjects($user, $params, $continue);
             if (empty($results)) {
                 $loop = false;
@@ -1515,7 +1519,7 @@ class MispObject extends AppModel
                 $results = $this->Sightingdb->attachToObjects($results, $user);
             }
             $params['page'] += 1;
-            $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+            $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
             $results = array_values($results);
             $i = 0;
             foreach ($results as $object) {

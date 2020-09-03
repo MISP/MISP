@@ -1,7 +1,7 @@
-<div class="eventBlacklist form">
-<?php echo $this->Form->create('EventBlacklist');?>
+<div class="eventBlocklist form">
+<?php echo $this->Form->create('EventBlocklist');?>
     <fieldset>
-        <legend><?php echo __('Add Event Blacklist Entries');?></legend>
+        <legend><?php echo __('Add Event Blocklist Entries');?></legend>
         <p><?php echo __('Simply paste a list of all the event UUIDs that you wish to block from being entered.');?></p>
     <?php
         echo $this->Form->input('uuids', array(
@@ -38,5 +38,9 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlacklistsAdd'));
+    if ($isSiteAdmin) {
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'eventBlocklistsAdd'));
+    } else {
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'eventBlocklistsAdd'));
+    }
 ?>

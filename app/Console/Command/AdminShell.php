@@ -2,7 +2,7 @@
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
+    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce', 'Role', 'Feed');
 
     public $tasks = array('ConfigLoad');
 

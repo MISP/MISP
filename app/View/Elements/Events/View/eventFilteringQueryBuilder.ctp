@@ -503,7 +503,7 @@ function cleanRules(rules) {
 function performQuery(rules) {
     var res = cleanRules(rules);
 
-    var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
+    var url = "<?php echo $baseurl; ?>/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
     $.ajax({
         type:"post",
         url: url,

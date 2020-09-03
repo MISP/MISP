@@ -1,5 +1,5 @@
-<div class="orgBlacklists index">
-    <h2><?php echo __('Organisation Blacklists');?></h2>
+<div class="orgBlocklists index">
+    <h2><?php echo __('Organisation Blocklists');?></h2>
     <div class="pagination">
         <ul>
         <?php
@@ -27,14 +27,14 @@
     </tr><?php
 foreach ($response as $item): ?>
     <tr>
-        <td class="short"><?php echo h($item['OrgBlacklist']['id']); ?>&nbsp;</td>
-        <td class="short"><?php echo (isset($item['OrgBlacklist']['org_name']) ? h($item['OrgBlacklist']['org_name']) : '&nbsp;'); ?></td>
-        <td class="short"><?php echo h($item['OrgBlacklist']['org_uuid']); ?>&nbsp;</td>
-        <td><?php echo h($item['OrgBlacklist']['created']); ?>&nbsp;</td>
-        <td class="short"><?php echo (isset($item['OrgBlacklist']['comment']) ? h($item['OrgBlacklist']['comment']) : '&nbsp;'); ?></td>
+        <td class="short"><?php echo h($item['OrgBlocklist']['id']); ?>&nbsp;</td>
+        <td class="short"><?php echo (isset($item['OrgBlocklist']['org_name']) ? h($item['OrgBlocklist']['org_name']) : '&nbsp;'); ?></td>
+        <td class="short"><?php echo h($item['OrgBlocklist']['org_uuid']); ?>&nbsp;</td>
+        <td><?php echo h($item['OrgBlocklist']['created']); ?>&nbsp;</td>
+        <td class="short"><?php echo (isset($item['OrgBlocklist']['comment']) ? h($item['OrgBlocklist']['comment']) : '&nbsp;'); ?></td>
         <td class="short action-links">
-            <a href="<?php echo $baseurl;?>/orgBlacklists/edit/<?php echo h($item['OrgBlacklist']['id']); ?>" aria-label="<?php echo __('Edit');?>"><span class="fa fa-edit" title="<?php echo __('Edit');?>">&nbsp;</span></a>
-            <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['OrgBlacklist']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete the blacklist entry for the organisation UUID %s?', h($item['OrgBlacklist']['org_uuid']))); ?>
+            <a href="<?php echo $baseurl;?>/orgBlocklists/edit/<?php echo h($item['OrgBlocklist']['id']); ?>" aria-label="<?php echo __('Edit');?>"><span class="fa fa-edit" title="<?php echo __('Edit');?>">&nbsp;</span></a>
+            <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['OrgBlocklist']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete the blocklist entry for the organisation UUID %s?', h($item['OrgBlocklist']['org_uuid']))); ?>
         </td>
     </tr><?php
 endforeach; ?>
@@ -58,4 +58,4 @@ endforeach; ?>
 
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'orgBlacklists'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'orgBlocklists'));

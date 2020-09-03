@@ -593,7 +593,7 @@ class StixBuilder(object):
             ET.title = "Vulnerability {}".format(attribute['value'])
         ET.add_vulnerability(vulnerability)
         ttp.add_exploit_target(ET)
-        self.ttps[uuid] = ttp
+        self.append_ttp(ttp, 'vulnerability', uuid)
 
     def generate_x509_observable(self, attributes_dict, uuid):
         x509_object = X509Certificate()
