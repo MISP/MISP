@@ -86,6 +86,7 @@ class AppModel extends Model
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
+        57 => false
     );
 
     public $advanced_updates_description = array(
@@ -248,7 +249,7 @@ class AppModel extends Model
             case 48:
                 $dbUpdateSuccess = $this->__generateCorrelations();
                 break;
-            case 56:
+            case 57:
                 $dbUpdateSuccess = $this->removeDuplicatedUUIDs();
                 break;
             default:
@@ -2268,7 +2269,8 @@ class AppModel extends Model
             'Object' => $this->removeDuplicateObjectUUIDs(),
             // 'GalaxyCluster' => $this->removeDuplicateClusterUUIDs(),
         );
-        $res = $this->updateDatabase('createUUIDsConstraints');
+        $this->Log->createLogEntry('SYSTEM', 'update_database', 'Server', 0, __('Removed duplicated UUIDs'), __('Event: %s, Attribute: %s, Object: %s', h($removedResults['Event']), h($removedResults['Attribute']), h($removedResults['Object'])));
+        return $this->updateDatabase('createUUIDsConstraints');
     }
 
     public function removeDuplicateAttributeUUIDs()
@@ -2276,20 +2278,26 @@ class AppModel extends Model
         $this->Attribute = ClassRegistry::init('Attribute');
         $this->Log = ClassRegistry::init('Log');
         $duplicates = $this->Attribute->find('all', array(
-            'fields' => array('Attribute.uuid', 'count(*) as occurance'),
+            'fields' => array('Attribute.uuid', 'count(Attribute.uuid) as occurence'),
             'recursive' => -1,
-            'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
+            'group' => array('Attribute.uuid HAVING COUNT(Attribute.uuid) > 1'),
         ));
         $counter = 0;
         foreach ($duplicates as $duplicate) {
             $attributes = $this->Attribute->find('all', array(
                 'recursive' => -1,
-                'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
+                'conditions' => array('uuid' => $duplicate['Attribute']['uuid']),
+                'contain' => array(
+                    'AttributeTag' => array(
+                        'fields' => array('tag_id')
+                    )
+                )
             ));
             foreach ($attributes as $k => $attribute) {
                 if ($k > 0) {
+                    $tagIDs = Hash::extract($attribute['AttributeTag'], '{n}.tag_id');
                     $this->Attribute->delete($attribute['Attribute']['id']);
-                    $this->Log->createLogEntry('SYSTEM', 'delete', 'Attribute', $attribute['Attribute']['id'], __('Removed attribute (%s)', $attribute['Attribute']['id']), __('Attribute\'s UUID duplicated (%s)', $attribute['Attribute']['uuid']));
+                    $this->Log->createLogEntry('SYSTEM', 'delete', 'Attribute', $attribute['Attribute']['id'], __('Removed attribute (%s)', $attribute['Attribute']['id']), __('Attribute\'s UUID duplicated (%s) tag ID attached [%s]', $attribute['Attribute']['uuid'], implode($tagIDs)));
                     $counter++;
                 }
             }
@@ -2303,9 +2311,9 @@ class AppModel extends Model
         $this->Event = ClassRegistry::init('Event');
         $this->Log = ClassRegistry::init('Log');
         $duplicates = $this->Event->find('all', array(
-                'fields' => array('Event.uuid', 'count(*) as occurance'),
+                'fields' => array('Event.uuid', 'count(Event.uuid) as occurence'),
                 'recursive' => -1,
-                'group' => array('Event.uuid HAVING COUNT(*) > 1'),
+                'group' => array('Event.uuid HAVING COUNT(Event.uuid) > 1'),
         ));
         $counter = 0;
 
@@ -2342,9 +2350,9 @@ class AppModel extends Model
         $this->MispObject = ClassRegistry::init('MispObject');
         $this->Log = ClassRegistry::init('Log');
         $duplicates = $this->MispObject->find('all', array(
-            'fields' => array('Object.uuid', 'count(*) as occurance'),
+            'fields' => array('Object.uuid', 'count(Object.uuid) as occurence'),
             'recursive' => -1,
-            'group' => array('Object.uuid HAVING COUNT(*) > 1'),
+            'group' => array('Object.uuid HAVING COUNT(Object.uuid) > 1'),
         ));
         $counter = 0;
         foreach ($duplicates as $duplicate) {
@@ -2371,9 +2379,9 @@ class AppModel extends Model
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Log = ClassRegistry::init('Log');
         $duplicates = $this->GalaxyCluster->find('all', array(
-            'fields' => array('GalaxyCluster.uuid', 'count(*) as occurance'),
+            'fields' => array('GalaxyCluster.uuid', 'count(GalaxyCluster.uuid) as occurence'),
             'recursive' => -1,
-            'group' => array('GalaxyCluster.uuid HAVING COUNT(*) > 1'),
+            'group' => array('GalaxyCluster.uuid HAVING COUNT(GalaxyCluster.uuid) > 1'),
         ));
         $counter = 0;
         foreach ($duplicates as $duplicate) {
