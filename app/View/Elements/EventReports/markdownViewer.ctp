@@ -91,6 +91,18 @@
                         <span class="<?= $this->FontAwesome->getClass('magic') ?> useCursorPointer icon" onclick="$autocompletionCB[0].checked = !$autocompletionCB[0].checked"></span>
                     </span>
                 </span>
+                <span>
+                    <span title="<?= __('Synchronize the scrolling'); ?>">
+                        <input type="checkbox" id="syncScrollCB" style="margin: 0 2px 0 0" checked="checked"></input>
+                        <span class="<?= $this->FontAwesome->getClass('link') ?> useCursorPointer icon" onclick="$syncScrollCB[0].checked = !$syncScrollCB[0].checked"></span>
+                    </span>
+                </span>
+                <span>
+                    <span title="<?= __('Automatically render markdown when typing'); ?>">
+                        <input type="checkbox" id="autoRenderMarkdownCB" style="margin: 0 2px 0 0" checked="checked"></input>
+                        <span class="<?= $this->FontAwesome->getClass('markdown') ?> useCursorPointer icon" onclick="$autoRenderMarkdownCB[0].checked = !$autoRenderMarkdownCB[0].checked"></span>
+                    </span>
+                </span>
             </div>
         </div>
         <div id="resizable-handle" class="ui-resizable-handle ui-resizable-e"></div>
@@ -121,9 +133,7 @@
     ));
 
     // - Add last modified timestamp & time since last edit
-    // - Add Picker for elements [correlation/eventGraph picture/tags/galaxyMatrix]
-    // - Add toggle auto-scroll
-    // - Add toggle auto-render
+    // - Add Picker for elements [correlation/galaxyMatrix]
 ?>
 <script>
     'use strict';
@@ -137,7 +147,7 @@
     var debounceDelay = 50;
     var renderTimer, scrollTimer;
     var scrollMap;
-    var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB
+    var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB
     var $editor, $viewer, $raw
     var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
@@ -164,6 +174,8 @@
         $mardownViewerToolbar = $('#mardown-viewer-toolbar')
         $saveMarkdownButton = $('#saveMarkdownButton')
         $autocompletionCB = $('#autocompletionCB')
+        $syncScrollCB = $('#syncScrollCB')
+        $autoRenderMarkdownCB = $('#autoRenderMarkdownCB')
 
         initMarkdownIt()
         initCodeMirror()
@@ -673,8 +685,10 @@
     }
 
     function doRender() {
-        clearTimeout(renderTimer);
-        renderTimer = setTimeout(renderMarkdown, debounceDelay);
+        if ($autoRenderMarkdownCB.prop('checked')) {
+            clearTimeout(renderTimer);
+            renderTimer = setTimeout(renderMarkdown, debounceDelay);
+        }
     }
 
     function registerListener() {
@@ -1059,8 +1073,10 @@ function buildScrollMap() {
 }
 
 function doScroll(fun) {
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(fun, debounceDelay);
+    if ($syncScrollCB.prop('checked')) {
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(fun, debounceDelay);
+    }
 }
 
 // Synchronize scroll position from source to result
@@ -1215,6 +1231,9 @@ var syncSrcScroll = function () {
     background-color: #3c3c3c;
     color: white;
     padding: 0 20px;
+}
+.editor-action-bar > span {
+    margin-left: 15px;
 }
 #top-bar .icon {
     padding: 2px 2px;
