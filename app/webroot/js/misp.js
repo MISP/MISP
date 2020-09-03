@@ -3872,7 +3872,7 @@ function attributeHoverPlacement(element) {
 $('body').on('click', function (e) {
   $('[data-toggle=popover]').each(function () {
     // hide any open popovers when the anywhere else in the body is clicked
-    if (currentPopover !== undefined && currentPopover !== '') {
+    if (typeof currentPopover !== 'undefined' && currentPopover !== '') {
         if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
           $('#' + currentPopover).popover('destroy');
         }
