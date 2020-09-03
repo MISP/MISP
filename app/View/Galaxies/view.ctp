@@ -44,7 +44,7 @@ $(document).ready(function () {
     var $kco = $('#killChainOrder');
     if ($kco && $kco.length > 0) {
         var j = syntaxHighlightJson($kco.text(), 8)
+        $kco.html(j);
     }
-    $kco.html(j);
 });
 </script>
