@@ -133,7 +133,7 @@
     ));
 
     // - Add last modified timestamp & time since last edit
-    // - Add Picker for elements [correlation/galaxyMatrix]
+    // - Add [correlation]
 ?>
 <script>
     'use strict';

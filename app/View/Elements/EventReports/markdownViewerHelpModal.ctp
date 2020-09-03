@@ -21,6 +21,12 @@
     $syntaxHelp3 = [
         '<code>@![attribute](52)</code>'
     ];
+    $syntaxHelp4 = [
+        '<code>@[eventgraph](12)</code>'
+    ];
+    $syntaxHelp5 = [
+        '<code>@[attackmatrix](46)</code>'
+    ];
 
     $helpHTML = '';
     $helpHTML .= '<ul class="nav nav-tabs" id="tab-markdown-help">';
@@ -36,8 +42,8 @@
         '<li>' . implode('</li><li>', $formatDifferences) . '</li>'
     );
 
-    $helpHTML .= sprintf('<h3>%s</h3>', __('Markdown extended format'));
-    $helpHTML .= sprintf('<h5>%s</h5>', __('MISP Element references'));
+    $helpHTML .= sprintf('<h2>%s</h2>', __('Markdown extended format'));
+    $helpHTML .= sprintf('<h4>%s</h4>', __('1. MISP Element references'));
     $helpHTML .= sprintf('<p>%s</p>', __('In order to have a visually pleasant document but more importantly, avoid hard coding, MISP elements such as attributes and objects can be referenced with the following special syntax'));
     $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@[scope](id)</code>');
     $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
@@ -45,9 +51,33 @@
         '<li>' . implode('</li><li>', $syntaxHelp) . '</li>'
     );
 
-    $helpHTML .= sprintf('<h5>%s</h5>', __('MISP Picture attachment'));
+    $helpHTML .= sprintf('<h4>%s</h4>', __('2. MISP Picture attachment'));
     $helpHTML .= sprintf('<p>%s</p>', __('Picture attachment'));
     $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@![attribute](id)</code>');
+    $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
+    $helpHTML .= sprintf('<ul>%s</ul>',
+        '<li>' . implode('</li><li>', [$syntaxHelp[0]]) . '</li>'
+    );
+    $helpHTML .= sprintf('<span>%s</span>', __('Examples:'));
+    $helpHTML .= sprintf('<ul>%s</ul>',
+        '<li>' . implode('</li><li>', $syntaxHelp3) . '</li>'
+    );
+
+    $helpHTML .= sprintf('<h4>%s</h4>', __('3. MISP Event Graph Picture'));
+    $helpHTML .= sprintf('<p>%s</p>', __('Picture attachment'));
+    $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@[eventgraph](id)</code>');
+    $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
+    $helpHTML .= sprintf('<ul>%s</ul>',
+        '<li>' . implode('</li><li>', [$syntaxHelp[0]]) . '</li>'
+    );
+    $helpHTML .= sprintf('<span>%s</span>', __('Examples:'));
+    $helpHTML .= sprintf('<ul>%s</ul>',
+        '<li>' . implode('</li><li>', $syntaxHelp3) . '</li>'
+    );
+
+    $helpHTML .= sprintf('<h4>%s</h4>', __('4. Att&ck Matrix'));
+    $helpHTML .= sprintf('<p>%s</p>', __('Picture attachment'));
+    $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@[attackmatrix](id)</code>');
     $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
     $helpHTML .= sprintf('<ul>%s</ul>',
         '<li>' . implode('</li><li>', [$syntaxHelp[0]]) . '</li>'
