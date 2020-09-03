@@ -27,7 +27,7 @@ class ComplexTypeTool
         array(
             'from' => '/[\@]|\[at\]/',
             'to' => '@',
-            'types' => array('email-src', 'email-dst')
+            'types' => array('email', 'email-src', 'email-dst')
         ),
         array(
             'from' => '/\[:\]/',
@@ -280,7 +280,7 @@ class ComplexTypeTool
         // quick filter for an @ to see if we should validate a potential e-mail address
         if (strpos($input['refanged'], '@') !== false) {
             if (filter_var($input['refanged'], FILTER_VALIDATE_EMAIL)) {
-                return array('types' => array('email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input['refanged']);
+                return array('types' => array('email', 'email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input['refanged']);
             }
         }
         return false;
