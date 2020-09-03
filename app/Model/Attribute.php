@@ -3468,9 +3468,8 @@ class Attribute extends AppModel
             return $results;
         }
 
-        if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->warninglists)) {
+        if (($options['enforceWarninglist'] || $options['includeWarninglistHits'])) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            $this->warninglists = $this->Warninglist->fetchForEventView();
         }
         if (empty($params['limit'])) {
             $loopLimit = 50000;
@@ -3543,11 +3542,11 @@ class Attribute extends AppModel
                 if (!empty($options['includeEventTags'])) {
                     $results = $this->__attachEventTagsToAttributes($eventTags, $results, $key, $options);
                 }
-                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($this->warninglists, $attribute['Attribute'])) {
+                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($attribute['Attribute'])) {
                     continue;
                 }
                 if ($options['includeWarninglistHits']) {
-                    $results[$key]['Attribute'] = $this->Warninglist->simpleCheckForWarning($results[$key]['Attribute'], $this->warninglists, true);
+                    $results[$key]['Attribute'] = $this->Warninglist->simpleCheckForWarning($results[$key]['Attribute']);
                 }
                 if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
                     $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
@@ -4120,10 +4119,7 @@ class Attribute extends AppModel
         }
         if (!empty($attribute['enforceWarninglist']) || !empty($params['enforceWarninglist'])) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            if (empty($this->warninglists)) {
-                $this->warninglists = $this->Warninglist->fetchForEventView();
-            }
-            if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attributes[$k])) {
+            if (!$this->Warninglist->filterWarninglistAttributes($attribute)) {
                 $this->validationErrors['warninglist'] = 'Attribute could not be saved as it trips over a warninglist and enforceWarninglist is enforced.';
                 $validationErrors = $this->validationErrors['warninglist'];
                 $log->create();

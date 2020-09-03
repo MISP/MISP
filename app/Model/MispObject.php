@@ -545,16 +545,15 @@ class MispObject extends AppModel
             }
         }
         $results = $this->find('all', $params);
-        if ($options['enforceWarninglist']) {
+        if ($options['enforceWarninglist'] && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            $warninglists = $this->Warninglist->fetchForEventView();
         }
         $results = array_values($results);
         $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {
             foreach ($results as $key => $object) {
                 foreach ($object['Attribute'] as $key2 => $attribute) {
-                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
+                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($attribute['Attribute'])) {
                         unset($results[$key][$key2]);
                         continue;
                     }

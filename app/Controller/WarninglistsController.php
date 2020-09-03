@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Warninglist $Warninglist
+ */
 class WarninglistsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -267,7 +270,6 @@ class WarninglistsController extends AppController
     public function checkValue()
     {
         if ($this->request->is('post')) {
-            $warninglists = $this->Warninglist->getWarninglists(array());
             if (empty($this->request->data)) {
                 throw new NotFoundException(__('No valid data received.'));
             }
@@ -279,12 +281,12 @@ class WarninglistsController extends AppController
                 $data = $data['[]'];
             }
             $hits = array();
+
+            $warninglists = $this->Warninglist->fetchForEventView();
             foreach ($data as $dataPoint) {
                 foreach ($warninglists as $warninglist) {
-                    $listValues = $this->Warninglist->getWarninglistEntries($warninglist['Warninglist']['id']);
-                    $listValues = array_combine($listValues, $listValues);
-                    $result = $this->Warninglist->quickCheckValue($listValues, $dataPoint, $warninglist['Warninglist']['type']);
-                    if ($result) {
+                    $result = $this->Warninglist->quickCheckValue($warninglist['values'], $dataPoint, $warninglist['Warninglist']['type']);
+                    if ($result !== false) {
                         $hits[$dataPoint][] = array('id' => $warninglist['Warninglist']['id'], 'name' => $warninglist['Warninglist']['name']);
                     }
                 }

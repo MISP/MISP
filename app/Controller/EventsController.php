@@ -1070,6 +1070,7 @@ class EventsController extends AppController
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
         }
         $conditions['includeFeedCorrelations'] = true;
+        $conditions['includeWarninglistHits'] = true;
         if (!isset($filters['includeServerCorrelations'])) {
             $conditions['includeServerCorrelations'] = 1;
             if ($this->_isRest()) {
@@ -1567,6 +1568,7 @@ class EventsController extends AppController
             $this->set('extended', 0);
         }
         $conditions['excludeLocalTags'] = false;
+        $conditions['includeWarninglistHits'] = true;
         if (isset($this->params['named']['excludeLocalTags'])) {
             $conditions['excludeLocalTags'] = $this->params['named']['excludeLocalTags'];
         }
