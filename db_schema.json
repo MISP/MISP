@@ -6783,7 +6783,7 @@
         },
         "attributes": {
             "id": true,
-            "uuid": false,
+            "uuid": true,
             "event_id": false,
             "sharing_group_id": false,
             "type": false,
@@ -6955,7 +6955,7 @@
             "template_version": false,
             "meta-category": false,
             "event_id": false,
-            "uuid": false,
+            "uuid": true,
             "timestamp": false,
             "distribution": false,
             "sharing_group_id": false,
