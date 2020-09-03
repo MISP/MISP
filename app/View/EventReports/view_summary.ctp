@@ -8,6 +8,7 @@
                     'proxyMISPElements' => $proxyMISPElements,
                     'modelName' => 'EventReport',
                     'mardownModelFieldName' => 'content',
+                    'eventid' => $report['EventReport']['event_id']
                 ))
             ),
         )
