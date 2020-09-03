@@ -455,17 +455,6 @@
                 return dotTemplateObject(templateVariables);
             }
         } else if (scope == 'eventgraph') {
-            // var eventgraph = proxyMISPElements[scope][elementID]
-            // if (eventgraph !== undefined) {
-            //     templateVariables = sanitizeObject({
-            //         scope: 'object',
-            //         elementid: elementID,
-            //         type: eventgraph.name,
-            //         value: eventgraph.Attribute.length
-            //     })
-            //     return dotTemplateObject(templateVariables);
-            // }
-            setTimeout(function() { attachEventgraphPicture('.eventgraphPicture[data-scope="eventgraph"][data-eventid="' + 188 + '"][data-elementid="' + 1 + '"]', 188, 1) }, 200)
             return dotTemplateEventgraph({scope: 'eventgraph', elementid: 1, eventid: 188});
         }
         return renderInvalidMISPElement(scope, elementID)
@@ -629,12 +618,12 @@
         $('#genericModal.markdown-modal-helper').modal();
     }
 
-    function attachEventgraphPicture(selecteur, eventID, graphID) {
+    function attachEventgraphPicture($elem, eventID, graphID) {
         $.getJSON('/eventGraph/view/' + eventID + '/' + graphID, function (data) {
             if (data) {
                 var dataPicture = data[0]['EventGraph']['preview_img']
                 if (dataPicture !== undefined) {
-                    $(selecteur).empty().append($('<img />').attr('src', dataPicture))
+                    $elem.empty().append($('<img />').attr('src', dataPicture))
                 }
             }
             return false
@@ -662,11 +651,12 @@
     }
 
     function renderMarkdown() {
-        var toRender = getEditorData();
-        var result = md.render(toRender);
-        scrollMap = null;
-        $viewer.html(result);
+        var toRender = getEditorData()
+        var result = md.render(toRender)
+        scrollMap = null
+        $viewer.html(result)
         registerListener()
+        postRenderingAction()
     }
 
     function doRender() {
@@ -693,6 +683,12 @@
             title: getTitleFromMISPElementDOM,
             html: true,
             content: getContentFromMISPElementDOM
+        })
+    }
+
+    function postRenderingAction() {
+        $('.eventgraphPicture[data-scope="eventgraph"]').each(function() {
+            attachEventgraphPicture($(this), 188, 1)
         })
     }
 
