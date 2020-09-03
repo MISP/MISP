@@ -12,7 +12,7 @@ class RegexpBehavior extends ModelBehavior
     public $excluded_types = array('sigma', 'float');
 
     /**
-     * replace the current value according to the regexp rules, or block blacklisted regular expressions
+     * replace the current value according to the regexp rules, or block blocklisted regular expressions
      *
      * @param Model $Model
      * @param string $type

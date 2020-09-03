@@ -26,7 +26,7 @@
         <?php
             echo $this->Form->input('to_ids', array(
                 'type' => 'checkbox',
-                'label' => __('Only find IOCs flagged as to_ids')
+                'label' => __('Only find IOCs flagged as to IDS')
             ));
             echo $this->Form->input('alternate', array(
                     'type' => 'checkbox',
@@ -44,7 +44,7 @@
             ));
         ?>
         <div class="clear">
-        <h3><?php echo __('First seen and Last seen.'); ?></h3>
+        <h3><?php echo __('First seen and Last seen'); ?></h3>
         <p><?php echo __('Attributes not having first seen or last seen set might not appear in the search'); ?></p>
     </div>
     </fieldset>
@@ -54,44 +54,9 @@
 </div>
 <?php echo $this->element('form_seen_input'); ?>
 <script type="text/javascript">
-//
-// Generate Category / Type filtering array
-//
-var category_type_mapping = new Array();
-
-<?php
-// all types for Category ALL
-echo "category_type_mapping['ALL'] = {";
-$first = true;
-foreach ($typeDefinitions as $type => $def) {
-        if ($first) $first = false;
-        else echo ', ';
-        echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-}
-echo "}; \n";
-
-// all types for empty Category
-echo "category_type_mapping[''] = {";
-$first = true;
-foreach ($typeDefinitions as $type => $def) {
-        if ($first) $first = false;
-        else echo ', ';
-        echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-}
-echo "}; \n";
-
-// Types per Category
-foreach ($categoryDefinitions as $category => $def) {
-    echo "category_type_mapping['" . addslashes($category) . "'] = {";
-    $first = true;
-    foreach ($def['types'] as $type) {
-        if ($first) $first = false;
-        else echo ', ';
-        echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-    }
-    echo "}; \n";
-}
-?>
+var category_type_mapping = <?= json_encode(array_map(function($value) {
+    return array_combine($value['types'], $value['types']);
+}, $categoryDefinitions)); ?>;
 
 //
 // Generate Type / Category filtering array
@@ -100,50 +65,28 @@ var type_category_mapping = new Array();
 
 <?php
 // all categories for Type ALL
-echo "type_category_mapping['ALL'] = {";
-$first = true;
+echo "type_category_mapping['ALL'] = {'ALL': 'ALL'";
 foreach ($categoryDefinitions as $type => $def) {
-        if ($first) $first = false;
-        else echo ', ';
-        echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
+        echo ", '" . addslashes($type) . "': '" . addslashes($type) . "'";
 }
 echo "}; \n";
 
 // Categories per Type
 foreach ($typeDefinitions as $type => $def) {
-    echo "type_category_mapping['" . addslashes($type) . "'] = {";
-    $first = true;
+    echo "type_category_mapping['" . addslashes($type) . "'] = {'ALL': 'ALL'";
     foreach ($categoryDefinitions as $category => $def) {
         if ( in_array ( $type , $def['types'])) {
-            if ($first) $first = false;
-            else echo ', ';
-            echo "'" . addslashes($category) . "' : '" . addslashes($category) . "'";
+            echo ", '" . addslashes($category) . "': '" . addslashes($category) . "'";
         }
     }
     echo "}; \n";
 }
 ?>
 
-function formCategoryChanged(id) {
-    var alreadySelected = $('#AttributeType').val();
-    // empty the types
-    document.getElementById("AttributeType").options.length = 1;
-    // add new items to options
-    var options = $('#AttributeType').prop('options');
-    $.each(category_type_mapping[$('#AttributeCategory').val()], function(val, text) {
-        options[options.length] = new Option(text, val);
-        if (val == alreadySelected) {
-            options[options.length-1].selected = true;
-        }
-    });
-    // enable the form element
-    $('#AttributeType').prop('disabled', false);
-}
-
-function formTypeChanged(id) {
+function formTypeChanged() {
     var alreadySelected = $('#AttributeCategory').val();
     // empty the categories
-    document.getElementById("AttributeCategory").options.length = 2;
+    $('option', $('#AttributeCategory')).remove();
     // add new items to options
     var options = $('#AttributeCategory').prop('options');
     $.each(type_category_mapping[$('#AttributeType').val()], function(val, text) {
@@ -167,15 +110,14 @@ foreach ($categoryDefinitions as $category => $def) {
     $info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
     echo "formInfoValues['$category'] = \"$info\";\n";
 }
-$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
-$this->Js->get('#AttributeType')->event('change', 'formTypeChanged("#AttributeType")');
+$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("Attribute")');
+$this->Js->get('#AttributeType')->event('change', 'formTypeChanged()');
 ?>
 
-formInfoValues['ALL'] = '';
 formInfoValues[''] = '';
 
 
-$(document).ready(function() {
+$(function() {
 
     $("#AttributeType, #AttributeCategory").on('mouseleave', function(e) {
         $('#'+e.currentTarget.id).popover('destroy');

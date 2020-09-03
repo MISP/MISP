@@ -2,9 +2,9 @@
 
 App::uses('AppModel', 'Model');
 
-class Whitelist extends AppModel
+class Allowedlist extends AppModel
 {
-    public $useTable = 'whitelist';
+    public $useTable = 'allowedlist';
 
     public $displayField = 'name';
 
@@ -17,7 +17,7 @@ class Whitelist extends AppModel
             ),
     );
 
-    public $whitelistedItems = false;
+    public $allowedlistedItems = false;
 
     public $validate = array(
         'name' => array(
@@ -26,7 +26,7 @@ class Whitelist extends AppModel
             ),
             'userdefined' => array(
                 'rule' => array('validateValue'),
-                'message' => 'Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.',             //'allowEmpty' => false,
+                'message' => 'Name not in the right format. Allowedlist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.',             //'allowEmpty' => false,
                 //'allowEmpty' => false,
                 //'required' => true,
                 //'last' => false, // Stop validation after this rule
@@ -56,9 +56,9 @@ class Whitelist extends AppModel
     {
         $value = $fields['name'];
 
-        $whitelist = $this->find('all', array('recursive' => 0,'fields' => 'name'));
-        foreach ($whitelist as $whitelistItem) {
-            if ($value == $whitelistItem['Whitelist']['name']) {
+        $allowedlist = $this->find('all', array('recursive' => 0,'fields' => 'name'));
+        foreach ($allowedlist as $allowedlistItem) {
+            if ($value == $allowedlistItem['Allowedlist']['name']) {
                 return false;
             }
         }
@@ -68,28 +68,28 @@ class Whitelist extends AppModel
 
     public function getBlockedValues()
     {
-        if ($this->whitelistedItems === false) {
-            $Whitelists = $this->find('all', array('fields' => array('name')));
-            $this->whitelistedItems = array();
-            foreach ($Whitelists as $item) {
-                $this->whitelistedItems[] = $item['Whitelist']['name'];
+        if ($this->allowedlistedItems === false) {
+            $Allowedlists = $this->find('all', array('fields' => array('name')));
+            $this->allowedlistedItems = array();
+            foreach ($Allowedlists as $item) {
+                $this->allowedlistedItems[] = $item['Allowedlist']['name'];
             }
         }
-        return $this->whitelistedItems;
+        return $this->allowedlistedItems;
     }
 
-    public function removeWhitelistedFromArray($data, $isAttributeArray)
+    public function removeAllowedlistedFromArray($data, $isAttributeArray)
     {
-        // Let's get all of the values that will be blocked by the whitelist
-        $whitelists = $this->getBlockedValues();
-        // if we don't have any whitelist items in the db, don't loop through each attribute
-        if (!empty($whitelists)) {
+        // Let's get all of the values that will be blocked by the allowedlist
+        $allowedlists = $this->getBlockedValues();
+        // if we don't have any allowedlist items in the db, don't loop through each attribute
+        if (!empty($allowedlists)) {
             // if $isAttributeArray, we know that we have just an array of attributes
             if ($isAttributeArray) {
-                // loop through each attribute and unset the ones that are whitelisted
+                // loop through each attribute and unset the ones that are allowedlisted
                 foreach ($data as $k => $attribute) {
-                    // loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
-                    foreach ($whitelists as $wlitem) {
+                    // loop through each allowedlist item and run a preg match against the attribute value. If it matches, unset the attribute
+                    foreach ($allowedlists as $wlitem) {
                         if (preg_match($wlitem, $attribute['Attribute']['value'])) {
                             unset($data[$k]);
                         }
@@ -100,10 +100,10 @@ class Whitelist extends AppModel
                 // if !$isAttributeArray, we know that we have an array of events that we need to parse through
                 foreach ($data as $ke => $event) {
                     if (isset($event['Attribute'])) {
-                        // loop through each attribute and unset the ones that are whitelisted
+                        // loop through each attribute and unset the ones that are allowedlisted
                         foreach ($event['Attribute'] as $k => $attribute) {
-                            // loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
-                            foreach ($whitelists as $wlitem) {
+                            // loop through each allowedlist item and run a preg match against the attribute value. If it matches, unset the attribute
+                            foreach ($allowedlists as $wlitem) {
                                 if (preg_match($wlitem, $attribute['value'])) {
                                     unset($data[$ke]['Attribute'][$k]);
                                 }
@@ -117,14 +117,14 @@ class Whitelist extends AppModel
         return $data;
     }
 
-    // A simplified whitelist removal, for when we just want to throw values against the list instead of attributes / events
-    public function removeWhitelistedValuesFromArray($data)
+    // A simplified allowedlist removal, for when we just want to throw values against the list instead of attributes / events
+    public function removeAllowedlistedValuesFromArray($data)
     {
-        $whitelists = $this->getBlockedValues();
-        // if we don't have any whitelist items in the db, don't loop through each attribute
-        if (!empty($whitelists)) {
+        $allowedlists = $this->getBlockedValues();
+        // if we don't have any allowedlist items in the db, don't loop through each attribute
+        if (!empty($allowedlists)) {
             foreach ($data as $k => $value) {
-                foreach ($whitelists as $wlitem) {
+                foreach ($allowedlists as $wlitem) {
                     if (preg_match($wlitem, $value)) {
                         unset($data[$k]);
                     }

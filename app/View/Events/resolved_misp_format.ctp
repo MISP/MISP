@@ -2,7 +2,7 @@
     <h2><?php echo h($title); ?></h2>
     <?php
         $event_id = $event['Event']['id'];
-        $url = '/events/handleModuleResults/' . $event_id;
+        $url = $baseurl . '/events/handleModuleResults/' . $event_id;
         echo $this->Form->create('Event', array('url' => $url, 'class' => 'mainForm'));
         $formSettings = array(
             'type' => 'hidden',

@@ -31,7 +31,7 @@ class TagCollection extends AppModel
         )
     );
 
-    public $whitelistedItems = false;
+    public $allowedlistedItems = false;
 
     public $validate = array(
         'name' => array(

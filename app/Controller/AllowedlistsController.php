@@ -2,7 +2,7 @@
 
 App::uses('AppController', 'Controller');
 
-class WhitelistsController extends AppController
+class AllowedlistsController extends AppController
 {
     public $components = array(
         'Security',
@@ -12,7 +12,7 @@ class WhitelistsController extends AppController
     public $paginate = array(
             'limit' => 60,
             'order' => array(
-                    'Whitelist.name' => 'ASC'
+                    'Allowedlist.name' => 'ASC'
             )
     );
 
@@ -27,7 +27,7 @@ class WhitelistsController extends AppController
     public function admin_index()
     {
         if (!$this->userRole['perm_regexp_access']) {
-            $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
+            $this->redirect(array('controller' => 'allowedlists', 'action' => 'index', 'admin' => false));
         }
         $this->AdminCrud->adminIndex();
     }
@@ -35,7 +35,7 @@ class WhitelistsController extends AppController
     public function admin_edit($id = null)
     {
         if (!$this->userRole['perm_regexp_access']) {
-            $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
+            $this->redirect(array('controller' => 'allowedlists', 'action' => 'index', 'admin' => false));
         }
         $this->AdminCrud->adminEdit($id);
     }
@@ -43,7 +43,7 @@ class WhitelistsController extends AppController
     public function admin_delete($id = null)
     {
         if (!$this->userRole['perm_regexp_access']) {
-            $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
+            $this->redirect(array('controller' => 'allowedlists', 'action' => 'index', 'admin' => false));
         }
         $this->AdminCrud->adminDelete($id);
     }

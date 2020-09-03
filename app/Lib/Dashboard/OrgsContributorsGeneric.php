@@ -7,12 +7,12 @@ class OrgsContributorsGeneric
     public $cacheLifetime = 3600;
     public $autoRefreshDelay = false;
     public $params = array (
-        'blacklist_orgs' => 'A list of organisation names to filter out',
+        'blocklist_orgs' => 'A list of organisation names to filter out',
         'timeframe' => 'Number of days considered for the query (30 by default)'
     );
     public $placeholder =
 '{
-    "blacklist_orgs": ["Orgs to filter"],
+    "blocklist_orgs": ["Orgs to filter"],
     "timeframe": "30"
 }';
 
@@ -35,7 +35,7 @@ class OrgsContributorsGeneric
         $orgs = $this->Org->find('all', array( 'conditions' => array('Organisation.local' => 1)));
         $result = array();
         foreach($orgs as $org) {
-            if(!empty($options['blacklist_orgs']) && in_array($org['Organisation']['name'], $options['blacklist_orgs'])) {
+            if(!empty($options['blocklist_orgs']) && in_array($org['Organisation']['name'], $options['blocklist_orgs'])) {
                 continue;
             }
             if ($this->filter($user, $org, $start_timestamp)) {

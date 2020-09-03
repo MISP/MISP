@@ -19,7 +19,7 @@
         <?php if (Configure::read('MISP.main_logo') && file_exists(APP . '/webroot/img/custom/' . Configure::read('MISP.main_logo'))): ?>
             <img src="<?php echo $baseurl?>/img/custom/<?php echo h(Configure::read('MISP.main_logo'));?>" style=" display:block; margin-left: auto; margin-right: auto;" />
         <?php else: ?>
-            <img src="/img/misp-logo.png" style="display:block; margin-left: auto; margin-right: auto;"/>
+            <img src="<?php echo $baseurl?>/img/misp-logo.png" style="display:block; margin-left: auto; margin-right: auto;"/>
         <?php endif;?>
         </div>
         <?php
@@ -49,7 +49,7 @@
                 );
             ?>
             </div>
-            <button class="btn btn-primary" type="submit" onclick="submitLoginForm()"><?= __('Login') ?></button>
+            <?= $this->Form->button(__('Login'), array('class' => 'btn btn-primary')); ?>
         <?php
             echo $this->Form->end();
             if (Configure::read('ApacheShibbAuth') == true) {
@@ -80,8 +80,9 @@ function submitLoginForm() {
     if (!$form[0].checkValidity()) {
         $form[0].reportValidity()
     } else {
-        fetchFormDataAjax(url, function(formHTML) {
-            $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
+        fetchFormDataAjax(url, function(html) {
+            var formHTML = $(html).find('form')
+            $('body').append($('<div id="temp" style="display: none"/>').append(formHTML))
             var $tmpForm = $('#temp form')
             $tmpForm.find('#UserEmail').val(email)
             $tmpForm.find('#UserPassword').val(password)

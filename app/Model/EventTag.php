@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property Event $Event
+ */
 class EventTag extends AppModel
 {
     public $actsAs = array('Containable');
@@ -77,37 +80,6 @@ class EventTag extends AppModel
     public function softDelete($id)
     {
         $this->delete($id);
-    }
-
-    // take an array of tag names to be included and an array with tagnames to be excluded and find all event IDs that fit the criteria
-    public function getEventIDsFromTags($includedTags, $excludedTags)
-    {
-        $conditions = array();
-        if (!empty($includedTags)) {
-            $conditions['OR'] = array('name' => $includedTags);
-        }
-        if (!empty($excludedTags)) {
-            $conditions['NOT'] = array('name' => $excludedTags);
-        }
-        $tags = $this->Tag->find('all', array(
-            'recursive' => -1,
-            'fields' => array('id', 'name'),
-            'conditions' => $conditions
-        ));
-        $tagIDs = array();
-        foreach ($tags as $tag) {
-            $tagIDs[] = $tag['Tag']['id'];
-        }
-        $eventTags = $this->find('all', array(
-            'recursive' => -1,
-            'conditions' => array('tag_id' => $tagIDs)
-        ));
-        $eventIDs = array();
-        foreach ($eventTags as $eventTag) {
-            $eventIDs[] = $eventTag['EventTag']['event_id'];
-        }
-        $eventIDs = array_unique($eventIDs);
-        return $eventIDs;
     }
 
     public function handleEventTag($event_id, $tag, &$nothingToChange = false)
@@ -188,11 +160,29 @@ class EventTag extends AppModel
         return $tags;
     }
 
-    public function countForTag($tag_id, $user)
+    /**
+     * Count number of event that contains given tag for given user. Tag must contains 'EventTag'.
+     *
+     * @param array $tag
+     * @param array $user
+     * @return int
+     */
+    public function countForTag(array $tag, array $user)
     {
-        return $this->find('count', array(
+        $eventIds = [];
+        foreach ($tag['EventTag'] as $eventTag) {
+            $eventIds[] = $eventTag['event_id'];
+        }
+
+        if (empty($eventIds)) {
+            return 0;
+        }
+
+        $conditions = $this->Event->createEventConditions($user);
+        $conditions['Event.id'] = $eventIds;
+        return $this->Event->find('count', array(
             'recursive' => -1,
-            'conditions' => array('EventTag.tag_id' => $tag_id)
+            'conditions' => $conditions,
         ));
     }
 

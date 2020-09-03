@@ -46,8 +46,8 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '108';
-    public $pyMispVersion = '2.4.128';
+    private $__queryVersion = '109';
+    public $pyMispVersion = '2.4.130';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $pythonmin = '3.6';
@@ -1192,6 +1192,9 @@ class AppController extends Controller
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
+        if (empty($filters) && $this->request->is('get')) {
+            throw new InvalidArgumentException(__('Restsearch queries using GET and no parameters are not allowed. If you have passed parameters via a JSON body, make sure you use POST requests.'));
+        }
         if (empty($filters['returnFormat'])) {
             $filters['returnFormat'] = 'json';
         }
@@ -1230,5 +1233,55 @@ class AppController extends Controller
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
+    }
+
+    /**
+     * Returns true if user can modify given event.
+     *
+     * @param array $event
+     * @return bool
+     */
+    protected function __canModifyEvent(array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contains Event.');
+        }
+
+        if ($this->userRole['perm_site_admin']) {
+            return true;
+        }
+        if ($this->userRole['perm_modify_org'] && $event['Event']['orgc_id'] == $this->Auth->user('org_id')) {
+            return true;
+        }
+        if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if user can add or remove tags for given event.
+     *
+     * @param array $event
+     * @param bool $isTagLocal
+     * @return bool
+     */
+    protected function __canModifyTag(array $event, $isTagLocal = false)
+    {
+        // Site admin can add any tag
+        if ($this->userRole['perm_site_admin']) {
+            return true;
+        }
+        // User must have tagger or sync permission
+        if (!$this->userRole['perm_tagger'] && !$this->userRole['perm_sync']) {
+            return false;
+        }
+        if ($this->__canModifyEvent($event)) {
+            return true; // full access
+        }
+        if ($isTagLocal && Configure::read('MISP.host_org_id') == $this->Auth->user('org_id')) {
+            return true;
+        }
+        return false;
     }
 }

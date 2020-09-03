@@ -1,5 +1,5 @@
 <div class="events">
-    <?php echo $this->Form->create('Event', array('id' => 'test', 'url' => '/events/index'));?>
+    <?php echo $this->Form->create('Event', array('id' => 'test', 'url' => $baseurl . '/events/index'));?>
     <fieldset>
         <legend><?php echo __('Filter Event Index');?></legend>
         <div class="overlay_spacing">
@@ -27,7 +27,7 @@
 
 <script type="text/javascript">
 var filterContext = "event";
-var actionUrl = "<?php echo '/servers/previewIndex/' . h($id); ?>"
+var actionUrl = "<?php echo $baseurl . '/servers/previewIndex/' . h($id); ?>"
 $(document).ready(function() {
     $('.datepicker').datepicker().on('changeDate', function(ev) {
         $('.dropdown-menu').hide();

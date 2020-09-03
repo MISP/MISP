@@ -1,5 +1,5 @@
-<div class="whitelist index">
-    <h2><?php echo __('Signature Whitelist');?></h2>
+<div class="allowedlist index">
+    <h2><?php echo __('Signature Allowedlist');?></h2>
     <p><?php echo __('Regex entries (in the standard php regex /{regex}/{modifier} format) entered below will restrict matching attributes from being included in the IDS flag sensitive exports (such as NIDS exports).');?></p>
     <div class="pagination">
         <ul>
@@ -24,8 +24,8 @@
     </tr><?php
 foreach ($list as $item):?>
     <tr>
-        <td class="short"><?php echo h($item['Whitelist']['id']);?>&nbsp;</td>
-        <td><?php echo h($item['Whitelist']['name']);?>&nbsp;</td>
+        <td class="short"><?php echo h($item['Allowedlist']['id']);?>&nbsp;</td>
+        <td><?php echo h($item['Allowedlist']['name']);?>&nbsp;</td>
     </tr><?php
 endforeach;?>
     </table>
@@ -47,4 +47,4 @@ endforeach;?>
     </div>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'whitelist', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'allowedlist', 'menuItem' => 'index'));

@@ -26,7 +26,7 @@ class Log extends AppModel
                     'admin_email',
                     'auth',
                     'auth_fail',
-                    'blacklisted',
+                    'blocklisted',
                     'change_pw',
                     'delete',
                     'disable',
@@ -35,7 +35,7 @@ class Log extends AppModel
                     'edit',
                     'email',
                     'enable',
-                    'enrichment',
+		    'enrichment',
                     'error',
                     'export',
                     'fetchEvent',
@@ -104,8 +104,15 @@ class Log extends AppModel
         if (!empty(Configure::read('MISP.log_skip_db_logs_completely'))) {
             return false;
         }
-        if (Configure::read('MISP.log_client_ip') && isset($_SERVER['REMOTE_ADDR'])) {
-            $this->data['Log']['ip'] = $_SERVER['REMOTE_ADDR'];
+        if (Configure::read('MISP.log_client_ip')) {
+            $ip_header = 'REMOTE_ADDR';
+            if (Configure::read('MISP.log_client_ip_header')) {
+                $ip_header = Configure::read('MISP.log_client_ip_header');
+            }
+
+            if (isset($_SERVER[$ip_header])) {
+                $this->data['Log']['ip'] = $_SERVER[$ip_header];
+            }
         }
         $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '');
         foreach ($setEmpty as $field => $empty) {
@@ -186,6 +193,7 @@ class Log extends AppModel
      * @param string|array $change
      * @return array
      * @throws Exception
+     * @throws InvalidArgumentException
      */
     public function createLogEntry($user, $action, $model, $modelId = 0, $title = '', $change = '')
     {

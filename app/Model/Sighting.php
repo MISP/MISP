@@ -207,7 +207,7 @@ class Sighting extends AppModel
     /**
      * @param array $event
      * @param array $user
-     * @param array|int|null $attribute Attribute array or attribute ID
+     * @param array|int|null $attribute Attribute model or attribute ID
      * @param bool $extraConditions
      * @return array|int
      */
@@ -220,7 +220,7 @@ class Sighting extends AppModel
 
         $contain = [];
         $conditions = array('Sighting.event_id' => $event['Event']['id']);
-        if (is_array($attribute)) {
+        if (isset($attribute['Attribute']['id'])) {
             $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
         } elseif (is_numeric($attribute)) {
             $conditions['Sighting.attribute_id'] = $attribute;
@@ -528,14 +528,6 @@ class Sighting extends AppModel
         $conditions = array(
             'Sighting.date_sighting >' => $this->getMaximumRange(),
             ucfirst($context) . 'Tag.tag_id' => $tagList
-
-        );
-        $contain = array(
-            ucfirst($context) => array(
-                ucfirst($context) . 'Tag' => array(
-                    'Tag'
-                )
-            )
         );
         if ($type !== false) {
             $conditions['Sighting.type'] = $type;
@@ -545,15 +537,16 @@ class Sighting extends AppModel
             'recursive' => -1,
             'contain' => array(ucfirst($context) . 'Tag'),
             'conditions' => $conditions,
-            'fields' => array('Sighting.id', 'Sighting.' . $context . '_id', 'Sighting.date_sighting', ucfirst($context) . 'Tag.tag_id')
+            'fields' => array('Sighting.' . $context . '_id', 'Sighting.date_sighting')
         ));
         $sightingsRearranged = array();
         foreach ($sightings as $sighting) {
             $date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
-            if (isset($sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date])) {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date]++;
+            $contextId = $sighting['Sighting'][$context . '_id'];
+            if (isset($sightingsRearranged[$contextId][$date])) {
+                $sightingsRearranged[$contextId][$date]++;
             } else {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date] = 1;
+                $sightingsRearranged[$contextId][$date] = 1;
             }
         }
         return $sightingsRearranged;
@@ -825,32 +818,34 @@ class Sighting extends AppModel
     {
         $HttpSocket = $this->setupHttpSocket($server);
         $this->Server = ClassRegistry::init('Server');
-        $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, false, 'sightings');
+        try {
+            $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, 'sightings');
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            return 0;
+        }
         $saved = 0;
         // now process the $eventIds to pull each of the events sequentially
-        if (!empty($eventIds)) {
-            // download each event and save sightings
-            foreach ($eventIds as $k => $eventId) {
-                try {
-                    $event = $this->Event->downloadEventFromServer($eventId, $server);
-                } catch (Exception $e) {
-                    $this->logException('Failed downloading the event ' . $eventId, $e);
-                    continue;
-                }
-
-                $sightings = array();
-                if(!empty($event) && !empty($event['Event']['Attribute'])) {
-                    foreach($event['Event']['Attribute'] as $attribute) {
-                        if(!empty($attribute['Sighting'])) {
-                            $sightings = array_merge($sightings, $attribute['Sighting']);
-                        }
+        // download each event and save sightings
+        foreach ($eventIds as $k => $eventId) {
+            try {
+                $event = $this->Event->downloadEventFromServer($eventId, $server);
+            } catch (Exception $e) {
+                $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
+                continue;
+            }
+            $sightings = array();
+            if (!empty($event) && !empty($event['Event']['Attribute'])) {
+                foreach ($event['Event']['Attribute'] as $attribute) {
+                    if (!empty($attribute['Sighting'])) {
+                        $sightings = array_merge($sightings, $attribute['Sighting']);
                     }
                 }
-                if(!empty($event) && !empty($sightings)) {
-                    $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
-                    if (is_numeric($result)) {
-                        $saved += $result;
-                    }
+            }
+            if (!empty($event) && !empty($sightings)) {
+                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+                if (is_numeric($result)) {
+                    $saved += $result;
                 }
             }
         }

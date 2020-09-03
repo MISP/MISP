@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property Attribute $Attribute
+ */
 class AttributeTag extends AppModel
 {
     public $actsAs = array('Containable');
@@ -177,11 +180,30 @@ class AttributeTag extends AppModel
         }
     }
 
-    public function countForTag($tag_id, $user)
+    /**
+     * Count number of not deleted attributes that contains given tag for given user. Tag must contains 'AttributeTag'.
+     *
+     * @param array $tag
+     * @param array $user
+     * @return int
+     */
+    public function countForTag(array $tag, array $user)
     {
-        return $this->find('count', array(
-            'recursive' => -1,
-            'conditions' => array('AttributeTag.tag_id' => $tag_id)
+        $attributeIds = [];
+        foreach ($tag['AttributeTag'] as $attributeTag) {
+            $attributeIds[] = $attributeTag['attribute_id'];
+        }
+
+        if (empty($attributeIds)) {
+            return 0;
+        }
+
+        $conditions = $this->Attribute->buildConditions($user);
+        $conditions['Attribute.id'] = $attributeIds;
+        $conditions['Attribute.deleted'] = 0;
+        return $this->Attribute->find('count', array(
+            'recursive' => 0,
+            'conditions' => $conditions,
         ));
     }
 
@@ -236,22 +258,12 @@ class AttributeTag extends AppModel
 
 
     // find all tags that belong to a list of attributes (contained in the same event)
-    public function getAttributesTags($user, $requestedEventId, $attributeIds=false, $includeGalaxies=false) {
-        $conditions = array('Attribute.event_id' => $requestedEventId);
-        if (is_array($attributeIds) && $attributeIds !== false) {
-            $conditions['Attribute.id'] = $attributeIds;
-        }
-
-        $allTags = array();
-        $attributes = $this->Attribute->fetchAttributes($user, array(
-            'conditions' => $conditions,
-            'flatten' => 1,
-            'includeAllTags' => 1
-        ));
-
+    public function getAttributesTags(array $attributes, $includeGalaxies=false)
+    {
         if (empty($attributes)) {
             return array();
         }
+
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $cluster_names = $this->GalaxyCluster->find('list', array(
                 'recursive' => -1,
@@ -260,7 +272,7 @@ class AttributeTag extends AppModel
         $allTags = array();
         foreach ($attributes as $attribute) {
             $attributeTags = $attribute['AttributeTag'];
-            foreach ($attributeTags as $k => $attributeTag) {
+            foreach ($attributeTags as $attributeTag) {
                 if ($includeGalaxies || !isset($cluster_names[$attributeTag['Tag']['name']])) {
                     $allTags[$attributeTag['Tag']['id']] = $attributeTag['Tag'];
                 }
@@ -270,16 +282,8 @@ class AttributeTag extends AppModel
     }
 
     // find all galaxies that belong to a list of attributes (contains in the same event)
-    public function getAttributesClusters($user, $requestedEventId, $attributeIds=false) {
-        $conditions = array('Attribute.event_id' => $requestedEventId);
-        if (is_array($attributeIds) && $attributeIds !== false) {
-            $conditions['Attribute.id'] = $attributeIds;
-        }
-
-        $attributes = $this->Attribute->fetchAttributes($user, array(
-            'conditions' => $conditions,
-            'flatten' => 1,
-        ));
+    public function getAttributesClusters(array $attributes)
+    {
         if (empty($attributes)) {
             return array();
         }
@@ -294,7 +298,7 @@ class AttributeTag extends AppModel
         foreach ($attributes as $attribute) {
             $attributeTags = $attribute['AttributeTag'];
 
-            foreach ($attributeTags as $k => $attributeTag) {
+            foreach ($attributeTags as $attributeTag) {
                 if (isset($cluster_names[$attributeTag['Tag']['name']])) {
                     $cluster = $this->GalaxyCluster->find('first', array(
                             'conditions' => array('GalaxyCluster.tag_name' => $attributeTag['Tag']['name']),
