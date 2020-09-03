@@ -3839,12 +3839,12 @@ function flashErrorPopover() {
 }
 
 function attributeHoverTitle(id, type) {
-  return `<span>Lookup results:</span>
-		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"
-				style="float: right;"
-				data-object-id="${id}"
-				data-object-type="${type}">
-	</i>`;
+  return '<span>Lookup results:</span>\
+		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"\
+				style="float: right;"\
+				data-object-id="${id}"\
+				data-object-type="${type}">\
+	</i>';
 }
 
 function attributeHoverPlacement(element) {
