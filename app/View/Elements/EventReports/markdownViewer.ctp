@@ -145,7 +145,8 @@
     var modelName = '<?= h($modelName) ?>';
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
     var debounceDelay = 50;
-    var renderTimer, scrollTimer;
+    var slowDebounceDelay = 3000;
+    var renderTimer, scrollTimer, attackMatrixTimer;
     var scrollMap;
     var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB
     var $editor, $viewer, $raw
@@ -154,6 +155,7 @@
     var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
     var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrapper attributePicture useCursorPointer\"><img data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" href=\"#\" src=\"{{=it.src}}\" alt=\"{{=it.alt}}\" title=\"\"/></div>");
     var dotTemplateEventgraph = doT.template("<div class=\"misp-picture-wrapper eventgraphPicture\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
+    var dotTemplateAttackMatrix = doT.template("<div class=\"misp-picture-wrapper embeddedAttackMatrix\" data-scope=\"{{=it.scope}}\" data-eventid=\"{{=it.eventid}}\"></div>");
     var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
     var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 
@@ -426,7 +428,7 @@
     }
 
     function MISPElementRenderer(tokens, idx, options, env, slf) {
-        var allowedScope = ['attribute', 'object', 'eventgraph']
+        var allowedScope = ['attribute', 'object', 'eventgraph', 'attackmatrix']
         var token = tokens[idx];
         var scope = token.content.scope
         var elementID = token.content.elementID
@@ -473,6 +475,8 @@
             }
         } else if (scope == 'eventgraph') {
             return dotTemplateEventgraph({scope: 'eventgraph', elementid: elementID, eventid: eventid});
+        } else if (scope == 'attackmatrix') {
+            return dotTemplateAttackMatrix({scope: 'attackmatrix', eventid: eventid});
         }
         return renderInvalidMISPElement(scope, elementID)
     }
@@ -486,7 +490,7 @@
                 type: attribute.type,
                 value: attribute.value,
                 alt: scope + ' ' + elementID,
-                src: '<?= $baseurl ?>/attributes/viewPicture/1235',
+                src: '<?= $baseurl ?>/attributes/viewPicture/' + attribute.id,
                 title: attribute.type + ' ' + attribute.value,
             })
             return dotTemplateAttributePicture(templateVariables);
@@ -655,6 +659,41 @@
         })
     }
 
+    function attachAttackMatrix($elem, eventid) {
+        $.ajax({
+            data: {
+                "returnFormat": "attack",
+                "eventid": eventid
+            },
+            success:function(data, textStatus) {
+                $elem.empty().append($(data))
+                $elem.find('#attackmatrix_div').css({
+                    'max-width': 'unset',
+                    'min-width': 'unset',
+                    'width': 'calc(100% - 5px)'
+                })
+                $elem.find('#checkbox_attackMatrix_showAll').click()
+                $elem.find('#attackmatrix_div .heatCell').each(function() {
+                    if ($(this).css('background-color').length > 0 && $(this).css('background-color') != 'rgba(0, 0, 0, 0)') {
+                        $(this).attr('style', 'background-color:' + $(this).css('background-color') + ' !important; color:' + $(this).css('color') + ' !important;');
+                    }
+                })
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                var templateVariables = sanitizeObject({
+                    scope: '<?= __('Error while fetching saved Event Graph picture') ?>',
+                    id: graphID
+                })
+                var placeholder = dotTemplateInvalid(templateVariables)
+                $elem.empty()
+                    .css({'text-align': 'center'})
+                    .append($(placeholder))
+            },
+            type:"post",
+            url: "<?= $baseurl ?>/events/restSearch"
+        })
+    }
+
     function replaceMISPElementByTheirValue(raw) {
         var match, replacement, element
         var final = ''
@@ -715,8 +754,16 @@
 
     function postRenderingAction() {
         $('.eventgraphPicture[data-scope="eventgraph"]').each(function() {
-            var $img = $(this)
-            attachEventgraphPicture($img, $img.data('eventid'), $img.data('elementid'))
+            var $div = $(this)
+            attachEventgraphPicture($div, $div.data('eventid'), $div.data('elementid'))
+        })
+        $('.embeddedAttackMatrix[data-scope="attackmatrix"]').each(function() {
+            var $div = $(this)
+            clearTimeout(attackMatrixTimer);
+            $div.append($('<div/>').css('font-size', '24px').append(loadingSpanAnimation))
+            attackMatrixTimer = setTimeout(function() {
+                attachAttackMatrix($div, $div.data('eventid'))
+            }, slowDebounceDelay);
         })
     }
 
@@ -1120,8 +1167,11 @@ var syncSrcScroll = function () {
 
 </script>
 
-<style> 
+<style>
 @media print {
+    body {
+        -webkit-print-color-adjust: exact !important;
+    }
     body * {
         visibility: hidden;
     }
