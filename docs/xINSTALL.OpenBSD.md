@@ -352,16 +352,20 @@ false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/MAECPro
 false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git; done
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-cybox
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-stix
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 cd /var/www/htdocs/MISP/app/files/scripts/python-maec
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 # install mixbox to accommodate the new STIX dependencies:
 cd /var/www/htdocs/MISP/app/files/scripts/mixbox
+$SUDO_WWW git config core.filemode false
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 # install PyMISP
@@ -611,6 +615,7 @@ cd /usr/local/src/
 doas chown ${MISP_USER} /usr/local/src
 doas -u misp git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
+$SUDO_WWW git config core.filemode false
 # pip3 install
 doas /usr/local/virtualenvs/MISP/bin/pip install -I -r REQUIREMENTS
 doas /usr/local/virtualenvs/MISP/bin/pip install -I .
@@ -841,6 +846,7 @@ doas mkdir misp-dashboard
 doas chown www:www misp-dashboard
 ${SUDO_WWW} git clone https://github.com/MISP/misp-dashboard.git
 cd misp-dashboard
+$SUDO_WWW git config core.filemode false
 #/!\ Made on Linux, the next script will fail
 #doas /var/www/misp-dashboard/install_dependencies.sh
 doas virtualenv -ppython3 /usr/local/virtualenvs/DASHENV
