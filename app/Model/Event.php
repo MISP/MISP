@@ -4922,29 +4922,25 @@ class Event extends AppModel
             }
         }
 
+        if (!$include) {
+            return null;
+        }
+
         if (!empty($attribute['ShadowAttribute'])) {
             $temp = array();
             foreach ($attribute['ShadowAttribute'] as $k => $proposal) {
-                $result = $this->__prepareProposalForView(
-                    $proposal,
-                    $correlatedShadowAttributes,
-                    $filterType
-                );
-                if ($result['include']) {
-                    $temp[] = $result['data'];
+                $result = $this->__prepareProposalForView($proposal, $correlatedShadowAttributes, $filterType);
+                if ($result) {
+                    $temp[] = $result;
                 }
             }
             $attribute['ShadowAttribute'] = $temp;
         }
-        $attribute = $this->__prepareGenericForView($attribute);
-        return array('include' => $include, 'data' => $attribute);
+        return $this->__prepareGenericForView($attribute);
     }
 
-    private function __prepareProposalForView(
-        $proposal,
-        $correlatedShadowAttributes,
-        $filterType = false
-    ) {
+    private function __prepareProposalForView($proposal, $correlatedShadowAttributes, $filterType = false)
+    {
         if ($proposal['proposal_to_delete']) {
             $proposal['objectType'] = 'proposal_delete';
         } else {
@@ -5001,9 +4997,11 @@ class Event extends AppModel
             }
         }
 
-        $proposal = $this->__prepareGenericForView($proposal);
+        if (!$include) {
+            return null;
+        }
 
-        return array('include' => $include, 'data' => $proposal);
+        return $this->__prepareGenericForView($proposal);
     }
 
     private function __prepareObjectForView(
@@ -5017,6 +5015,10 @@ class Event extends AppModel
 
         $include = empty($filterType['attributeFilter']) || $filterType['attributeFilter'] == 'object' || $filterType['attributeFilter'] == 'all' || $object['meta-category'] === $filterType['attributeFilter'];
 
+        if (!$include) {
+            return null;
+        }
+
         if (!empty($object['Attribute'])) {
             $temp = array();
             foreach ($object['Attribute'] as $attribute) {
@@ -5027,8 +5029,8 @@ class Event extends AppModel
                     false,
                     $sightingsData
                 );
-                if ($result['include']) {
-                    $temp[] = $result['data'];
+                if ($result) {
+                    $temp[] = $result;
                 }
             }
             $object['Attribute'] = $temp;
@@ -5044,18 +5046,18 @@ class Event extends AppModel
             || $filterType['server'] != 0
         ) {
             $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData);
+            if (!$include) {
+                return null;
+            }
         }
 
-        return array('include' => $include, 'data' => $object);
+        return $object;
     }
 
     private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData)
     {
-        $include = true;
-
         if (empty($object['Attribute'])) { // reject empty object
-            $include = false;
-            return $include;
+            return false;
         }
 
         /* proposal */
@@ -5070,8 +5072,7 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
 
@@ -5099,8 +5100,7 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
 
@@ -5128,8 +5128,7 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
 
@@ -5157,8 +5156,7 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
 
@@ -5186,8 +5184,7 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
 
@@ -5215,11 +5212,10 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
-        return $include;
+        return true;
     }
 
     private function __prepareGenericForView($object)
@@ -5278,34 +5274,32 @@ class Event extends AppModel
                 $filterType,
                 $sightingsData
             );
-            if ($result['include']) {
-                $event['objects'][] = $result['data'];
+            if ($result) {
+                $event['objects'][] = $result;
             }
         }
         unset($event['Attribute']);
-        if (!empty($event['ShadowAttribute'])) {
-            foreach ($event['ShadowAttribute'] as $proposal) {
-                $result = $this->__prepareProposalForView(
-                    $proposal,
-                    $correlatedShadowAttributes,
-                    $filterType
-                );
-                $event['objects'][] = $result['data'];
+        foreach ($event['ShadowAttribute'] as $proposal) {
+            $result = $this->__prepareProposalForView(
+                $proposal,
+                $correlatedShadowAttributes,
+                $filterType
+            );
+            if ($result) {
+                $event['objects'][] = $result;
             }
         }
-        if (!empty($event['Object'])) {
-            foreach ($event['Object'] as $object) {
-                $object['objectType'] = 'object';
-                $result = $this->__prepareObjectForView(
-                    $object,
-                    $correlatedAttributes,
-                    $correlatedShadowAttributes,
-                    $filterType,
-                    $sightingsData
-                );
-                if ($result['include']) {
-                    $event['objects'][] = $result['data'];
-                }
+        foreach ($event['Object'] as $object) {
+            $object['objectType'] = 'object';
+            $result = $this->__prepareObjectForView(
+                $object,
+                $correlatedAttributes,
+                $correlatedShadowAttributes,
+                $filterType,
+                $sightingsData
+            );
+            if ($result) {
+                $event['objects'][] = $result;
             }
         }
         unset($event['Object']);
