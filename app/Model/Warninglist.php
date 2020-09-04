@@ -485,7 +485,7 @@ class Warninglist extends AppModel
                 continue;
             }
             if ($listType === 'cidr') {
-                $result = $this->__evalCIDRList($listValues, $value[$component]);
+                $result = $this->__evalCidrList($listValues, $value[$component]);
             } elseif ($listType === 'string') {
                 $result = $this->__evalString($listValues, $value[$component]);
             } elseif ($listType === 'substring') {
@@ -509,10 +509,14 @@ class Warninglist extends AppModel
         return $this->__checkValue($listValues, $value, '', $type) !== false;
     }
 
-    // This requires an IP type attribute in a non CIDR notation format
-    // For the future we can expand this to look for CIDR overlaps?
-    private function __evalCIDRList($listValues, $value)
+    private function __evalCidrList($listValues, $value)
     {
+        $valueMask = null;
+        if (strpos($value, '/') !== false) {
+            list($value, $valueMask) = explode('/', $value);
+        }
+
+        $match = false;
         if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
             // This code converts IP address to all possible CIDRs that can contains given IP address
             // and then check if given hash table contains that CIDR.
@@ -521,7 +525,8 @@ class Warninglist extends AppModel
                 $mask = -1 << (32 - $bits);
                 $needle = long2ip($ip & $mask) . "/$bits";
                 if (isset($listValues[$needle])) {
-                    return $listValues[$needle];
+                    $match = $listValues[$needle];
+                    break;
                 }
             }
 
@@ -529,13 +534,21 @@ class Warninglist extends AppModel
             foreach ($listValues as $lv) {
                 if (strpos($lv, ':') !== false) { // IPv6 CIDR must contain dot
                     if ($this->__ipv6InCidr($value, $lv)) {
-                        return $lv;
+                        $match = $lv;
+                        break;
                     }
                 }
             }
         }
 
-        return false;
+        if ($match && $valueMask) {
+            $matchMask = explode('/', $match)[1];
+            if ($valueMask < $matchMask) {
+                return false;
+            }
+        }
+
+        return $match;
     }
 
     // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
