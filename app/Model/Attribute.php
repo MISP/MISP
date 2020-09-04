@@ -3468,7 +3468,7 @@ class Attribute extends AppModel
             return $results;
         }
 
-        if (($options['enforceWarninglist'] || $options['includeWarninglistHits'])) {
+        if ($options['enforceWarninglist'] || $options['includeWarninglistHits']) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
         }
         if (empty($params['limit'])) {
@@ -3546,7 +3546,7 @@ class Attribute extends AppModel
                     continue;
                 }
                 if ($options['includeWarninglistHits']) {
-                    $results[$key]['Attribute'] = $this->Warninglist->simpleCheckForWarning($results[$key]['Attribute']);
+                    $results[$key]['Attribute'] = $this->Warninglist->checkForWarning($results[$key]['Attribute']);
                 }
                 if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
                     $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
@@ -4130,7 +4130,7 @@ class Attribute extends AppModel
                         'email' => $user['email'],
                         'action' => 'add',
                         'user_id' => $user['id'],
-                        'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
+                        'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed',
                         'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
                 ));
                 return $attribute;

@@ -24,12 +24,12 @@ class Warninglist extends AppModel
     );
 
     public $hasMany = array(
-            'WarninglistEntry' => array(
-                'dependent' => true
-            ),
-            'WarninglistType' => array(
-                'dependent' => true
-            )
+        'WarninglistEntry' => array(
+            'dependent' => true
+        ),
+        'WarninglistType' => array(
+            'dependent' => true
+        )
     );
 
     private $__tlds = array(
@@ -69,7 +69,7 @@ class Warninglist extends AppModel
                 return []; // no warninglist is enabled
             }
             foreach ($attributes as $pos => $attribute) {
-                $attributes[$pos] = $this->simpleCheckForWarning($attribute, $warninglists);
+                $attributes[$pos] = $this->checkForWarning($attribute, $warninglists);
                 if (isset($event['Attribute'][$pos]['warnings'])) {
                     foreach ($attribute['warnings'] as $match) {
                         $eventWarnings[$match['warninglist_id']] = $match['warninglist_name'];
@@ -108,7 +108,7 @@ class Warninglist extends AppModel
         foreach ($results as $pos => $result) {
             if ($result === false) { // not in cache
                 $attribute = $attributes[$redisResultToAttributePos[$pos]];
-                $attribute = $this->simpleCheckForWarning($attribute, $warninglists);
+                $attribute = $this->checkForWarning($attribute, $warninglists);
 
                 $store = [];
                 if (isset($attribute['warnings'])) {
@@ -441,7 +441,12 @@ class Warninglist extends AppModel
         return $warninglists;
     }
 
-    public function simpleCheckForWarning($object, $warninglists = null)
+    /**
+     * @param array $object
+     * @param array|null $warninglists If null, all enabled warninglists will be used
+     * @return array
+     */
+    public function checkForWarning(array $object, $warninglists = null)
     {
         if ($warninglists === null) {
             $warninglists = $this->getEnabled();
