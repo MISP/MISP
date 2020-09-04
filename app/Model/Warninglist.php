@@ -48,7 +48,7 @@ class Warninglist extends AppModel
     }
 
     /**
-     * Attach warninglist matches to attributes with IDS mark. Results are also saved to
+     * Attach warninglist matches to attributes or proposals with IDS mark.
      *
      * @param array $attributes
      * @return array Warninglist ID => name

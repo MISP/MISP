@@ -2191,6 +2191,7 @@ class Event extends AppModel
             }
             if ($options['includeWarninglistHits'] || $options['enforceWarninglist']) {
                 $eventWarnings = $this->Warninglist->attachWarninglistToAttributes($event['Attribute']);
+                $this->Warninglist->attachWarninglistToAttributes($event['ShadowAttribute']);
                 $event['warnings'] = $eventWarnings;
             }
             $this->__attachReferences($event, $fields);
@@ -4994,9 +4995,9 @@ class Event extends AppModel
             if ($filterType['warning'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
             } else if (!empty($proposal['warnings']) || !empty($proposal['validationIssue'])) { // `include only`
-                $include = $include && ($filterType['correlation'] == 1);
+                $include = $include && ($filterType['warning'] == 1);
             } else { // `exclude`
-                $include = $include && ($filterType['correlation'] == 2);
+                $include = $include && ($filterType['warning'] == 2);
             }
         }
 
