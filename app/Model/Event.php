@@ -832,6 +832,10 @@ class Event extends AppModel
                 'group' => 'Correlation.event_id',
                 'order' => array('Correlation.event_id DESC')));
 
+        if (empty($correlations)) {
+            return [];
+        }
+
         $relatedEventIds = array_values($correlations);
         // now look up the event data for these attributes
         $conditions = $this->createEventConditions($user);
