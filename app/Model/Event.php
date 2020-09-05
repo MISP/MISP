@@ -832,6 +832,10 @@ class Event extends AppModel
                 'group' => 'Correlation.event_id',
                 'order' => array('Correlation.event_id DESC')));
 
+        if (empty($correlations)) {
+            return [];
+        }
+
         $relatedEventIds = array_values($correlations);
         // now look up the event data for these attributes
         $conditions = $this->createEventConditions($user);
@@ -866,18 +870,12 @@ class Event extends AppModel
         return $relatedEvents;
     }
 
-    public function getRelatedAttributes($user, $id = null, $sgids, $shadowAttribute = false, $scope = 'event')
+    public function getRelatedAttributes($user, $id, $sgids, $shadowAttribute = false, $scope = 'event')
     {
         if ($shadowAttribute) {
             $settings = array('model' => 'ShadowAttribute', 'correlationModel' => 'ShadowAttributeCorrelation', 'parentIdField' => '1_shadow_attribute_id');
         } else {
             $settings = array('model' => 'Attribute', 'correlationModel' => 'Correlation', 'parentIdField' => '1_attribute_id');
-        }
-
-        if ($scope === 'event' && $id == null) {
-            $id = $this->data['Event']['id'];
-        } elseif ($scope === 'attribute' && $id == null) {
-            $id = $this->data['Attribute']['id'];
         }
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
@@ -933,10 +931,7 @@ class Event extends AppModel
         } else {
             $conditionsCorrelation = array($settings['correlationModel'] . '.1_' . $scope . '_id' => $id);
         }
-        $max_correlations = Configure::read('MISP.max_correlations_per_event');
-        if (empty($max_correlations)) {
-            $max_correlations = 5000;
-        }
+        $max_correlations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
         $correlations = $this->{$settings['correlationModel']}->find('all', array(
             'fields' => ['event_id', 'attribute_id', 'value', $settings['parentIdField']],
             'conditions' => $conditionsCorrelation,
@@ -1931,7 +1926,6 @@ class Event extends AppModel
         }
         $conditionsAttributes = array();
         $conditionsObjects = array();
-        $conditionsObjectReferences = array();
 
         if (isset($options['flatten']) && $options['flatten']) {
             $flatten = true;
@@ -2084,7 +2078,6 @@ class Event extends AppModel
         $fieldsObj = array('*');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
-        $fieldsServer = array('id', 'url', 'name');
         if (!$options['includeAllTags']) {
             $tagConditions = array('exportable' => 1);
         } else {
@@ -2112,7 +2105,6 @@ class Event extends AppModel
                     'conditions' => $conditionsObjects,
                     'order' => false,
                     'ObjectReference' => array(
-                        'conditions' => $conditionsObjectReferences,
                         'order' => false
                     )
                 ),
@@ -2178,7 +2170,7 @@ class Event extends AppModel
                 unset($results[$eventKey]); // Current user cannot access sharing_group associated to this event
                 continue;
             }
-            $this->__attachReferences($user, $event, $sgids, $fields);
+            $this->__attachReferences($event, $fields);
             $this->__attachTags($user, $event, $tagConditions);
             $event = $this->Orgc->attachOrgsToEvent($event, $fieldsOrg);
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
@@ -6642,28 +6634,37 @@ class Event extends AppModel
         return true;
     }
 
-    private function __attachReferences($user, &$event, $sgids, $fields)
+    /**
+     * Attach referenced object to ObjectReference. Since reference can be just to attribute or object in the same event,
+     * we just find proper element in event.
+     *
+     * @param array $event
+     * @param array $fields
+     */
+    private function __attachReferences(array &$event, array $fields)
     {
-        if (!empty($event['Object'])) {
-            foreach ($event['Object'] as $k => $object) {
-                if (!empty($object['ObjectReference'])) {
-                    foreach ($object['ObjectReference'] as $k2 => $reference) {
-                        $type = array('Attribute', 'Object')[$reference['referenced_type']];
-                        $temp = $this->{$type}->find('first', array(
-                            'recursive' => -1,
-                            'fields' => array_merge($fields['common'], $fields[array('Attribute', 'Object')[$reference['referenced_type']]]),
-                            'conditions' => array('id' => $reference['referenced_id'])
-                        ));
-                        if (!empty($temp)) {
-                            if (!$user['Role']['perm_site_admin'] && $user['org_id'] != $event['Event']['orgc_id']) {
-                                if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgids))) {
-                                    unset($object['ObjectReference'][$k2]);
-                                    continue;
-                                }
-                            }
-                            $event['Object'][$k]['ObjectReference'][$k2][$type] = $temp[$type];
-                        }
+        if (!isset($event['Object'])) {
+            return;
+        }
+        foreach ($event['Object'] as $k => $object) {
+            foreach ($object['ObjectReference'] as $k2 => $reference) {
+                // find referenced object in current event
+                $type = $reference['referenced_type'] == 0 ? 'Attribute' : 'Object';
+                $found = null;
+                foreach ($event[$type] as $o) {
+                    if ($o['id'] == $reference['referenced_id']) {
+                        $found = $o;
+                        break;
                     }
+                }
+
+                if ($found) {
+                    // copy requested fields
+                    $reference = [];
+                    foreach (array_merge($fields['common'], $fields[$type]) as $field) {
+                        $reference[$field] = $found[$field];
+                    }
+                    $event['Object'][$k]['ObjectReference'][$k2][$type] = $reference;
                 }
             }
         }
