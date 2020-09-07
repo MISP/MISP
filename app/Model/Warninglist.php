@@ -398,6 +398,7 @@ class Warninglist extends AppModel
     {
         $outputValues = [];
         foreach ($inputValues as $v) {
+            $v = strtolower($v);
             $parts = explode('/', $v, 2);
             if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                 $maximumNetmask = 32;
@@ -438,7 +439,7 @@ class Warninglist extends AppModel
         if ($warninglist['Warninglist']['type'] === 'hostname') {
             $output = [];
             foreach ($values as $v) {
-                $v = trim($v, '.');
+                $v = strtolower(trim($v, '.'));
                 $output[$v] = true;
             }
             $values = $output;
