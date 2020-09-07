@@ -532,7 +532,8 @@ class Warninglist extends AppModel
             // This code converts IP address to all possible CIDRs that can contains given IP address
             // and then check if given hash table contains that CIDR.
             $ip = ip2long($value);
-            for ($bits = 0; $bits <= 32; $bits++) {
+            // Start from 1, because doesn't make sense to check 0.0.0.0/0 match
+            for ($bits = 1; $bits <= 32; $bits++) {
                 $mask = -1 << (32 - $bits);
                 $needle = long2ip($ip & $mask) . "/$bits";
                 if (isset($listValues[$needle])) {
