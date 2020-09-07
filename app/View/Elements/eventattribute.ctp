@@ -18,24 +18,6 @@
         $page = 0;
     }
     $fieldCount = 11;
-    if (!empty($event['Sighting'])) {
-        foreach ($sightingsData['data'] as $aid => $data) {
-            $sightingsData['data'][$aid]['html'] = '';
-            foreach ($data as $type => $typeData) {
-                $name = (($type != 'expiration') ? Inflector::pluralize($type) : $type);
-                $sightingsData['data'][$aid]['html'] .= '<span class=\'blue bold\'>' . ucfirst(h($name)) . '</span><br />';
-                foreach ($typeData['orgs'] as $org => $orgData) {
-                    $extra = (($org == $me['Organisation']['name']) ? " class=  'bold'" : "");
-                    if ($type == 'expiration') {
-                        $sightingsData['data'][$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'orange bold\'>' . date('Y-m-d H:i:s', $orgData['date']) . '</span><br />';
-                    } else {
-                        $sightingsData['data'][$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'' . (($type == 'sighting') ? 'green' : 'red') . ' bold\'>' . h($orgData['count']) . ' (' . date('Y-m-d H:i:s', $orgData['date']) . ')</span><br />';
-                    }
-                }
-                $sightingsData['data'][$aid]['html'] .= '<br />';
-            }
-        }
-    }
     $filtered = false;
     if(isset($passedArgsArray)){
         if (count($passedArgsArray) > 0) {
