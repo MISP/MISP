@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property WarninglistType $WarninglistType
+ */
 class Warninglist extends AppModel
 {
     public $useTable = 'warninglists';
@@ -42,9 +45,12 @@ class Warninglist extends AppModel
     /** @var array|null */
     private $enabledCache = null;
 
-    public function getTldLists()
+    private $showForAll;
+
+    public function __construct($id = false, $table = null, $ds = null)
     {
-        return $this->__tlds;
+        parent::__construct($id, $table, $ds);
+        $this->showForAll = Configure::read('MISP.warning_for_all');
     }
 
     /**
@@ -95,7 +101,7 @@ class Warninglist extends AppModel
         $pipe = $redis->multi(Redis::PIPELINE);
         $redisResultToAttributePos = [];
         foreach ($attributes as $pos => $attribute) {
-            if ($attribute['to_ids'] && (isset($enabledTypes[$attribute['type']]) || isset($enabledTypes['ALL']))) {
+            if (($attribute['to_ids'] || $this->showForAll) && (isset($enabledTypes[$attribute['type']]) || isset($enabledTypes['ALL']))) {
                 $redisResultToAttributePos[] = $pos;
                 $redis->get('misp:wl-cache:' . md5($attribute['type'] . ':' .  $attribute['value']));
             }
@@ -457,7 +463,7 @@ class Warninglist extends AppModel
             $warninglists = $this->getEnabled();
         }
 
-        if ($object['to_ids']) {
+        if ($object['to_ids'] || $this->showForAll) {
             foreach ($warninglists as $list) {
                 if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
                     $result = $this->__checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
@@ -639,6 +645,9 @@ class Warninglist extends AppModel
         return false;
     }
 
+    /**
+     * @return array
+     */
     public function fetchTLDLists()
     {
         $tldLists = $this->find('list', array(
