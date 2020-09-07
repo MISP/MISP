@@ -931,7 +931,7 @@ function multiSelectToggleFeeds(on, cache) {
     });
 }
 
-function multiSelectDeleteEventBlacklist(on, cache) {
+function multiSelectDeleteEventBlocklist(on, cache) {
     var selected = [];
     $(".select").each(function() {
         if ($(this).is(":checked")) {
@@ -941,7 +941,7 @@ function multiSelectDeleteEventBlacklist(on, cache) {
             }
         }
     });
-    $.get(baseurl + "/eventBlacklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
+    $.get(baseurl + "/eventBlocklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
