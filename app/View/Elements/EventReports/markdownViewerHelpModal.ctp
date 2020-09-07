@@ -9,6 +9,7 @@
         ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'b']) . '</kbd>', __('Makes text bold')],
         ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'i']) . '</kbd>', __('Makes text italic')],
         ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'm']) . '</kbd>', __('Insert a MISP Element')],
+        ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'h']) . '</kbd>', __('Makes text as header')],
     ];
     $syntaxHelp = [
         sprintf('<b>%s</b>: %s','scope', __('Is the scope you want to reference. Can be either %s or %s', sprintf('<code>%s</code>', 'attribute'), sprintf('<code>%s</code>', 'object'))),
@@ -68,11 +69,11 @@
     $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@[eventgraph](id)</code>');
     $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
     $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', [$syntaxHelp[0]]) . '</li>'
+        '<li>' . implode('</li><li>', [$syntaxHelp[1]]) . '</li>'
     );
     $helpHTML .= sprintf('<span>%s</span>', __('Examples:'));
     $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', $syntaxHelp3) . '</li>'
+        '<li>' . implode('</li><li>', $syntaxHelp4) . '</li>'
     );
 
     $helpHTML .= sprintf('<h4>%s</h4>', __('4. Att&ck Matrix'));
@@ -80,11 +81,11 @@
     $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@[attackmatrix](id)</code>');
     $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
     $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', [$syntaxHelp[0]]) . '</li>'
+        '<li>' . implode('</li><li>', [$syntaxHelp[1]]) . '</li>'
     );
     $helpHTML .= sprintf('<span>%s</span>', __('Examples:'));
     $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', $syntaxHelp3) . '</li>'
+        '<li>' . implode('</li><li>', $syntaxHelp5) . '</li>'
     );
     $helpHTML .= '</div>';
 
