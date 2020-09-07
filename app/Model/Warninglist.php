@@ -684,4 +684,20 @@ class Warninglist extends AppModel
         }
         return true;
     }
+
+    public function missingTldLists()
+    {
+        $missingTldLists = array();
+        foreach ($this->__tlds as $tldList) {
+            $temp = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Warninglist.name' => $tldList),
+                'fields' => array('Warninglist.id')
+            ));
+            if (empty($temp)) {
+                $missingTldLists[] = $tldList;
+            }
+        }
+        return $missingTldLists;
+    }
 }
