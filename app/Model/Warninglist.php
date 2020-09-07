@@ -496,30 +496,26 @@ class Warninglist extends AppModel
     private function __checkValue($listValues, $value, $type, $listType)
     {
         if ($type === 'malware-sample' || strpos($type, '|') !== false) {
-            $value = explode('|', $value);
+            $value = explode('|', $value, 2);
         } else {
             $value = array($value);
         }
-        $components = array(0, 1);
-        foreach ($components as $component) {
-            if (!isset($value[$component])) {
-                continue;
-            }
+        foreach ($value as $v) {
             if ($listType === 'cidr') {
-                $result = $this->__evalCidrList($listValues, $value[$component]);
+                $result = $this->__evalCidrList($listValues, $v);
             } elseif ($listType === 'string') {
-                $result = $this->__evalString($listValues, $value[$component]);
+                $result = $this->__evalString($listValues, $v);
             } elseif ($listType === 'substring') {
-                $result = $this->__evalSubString($listValues, $value[$component]);
+                $result = $this->__evalSubString($listValues, $v);
             } elseif ($listType === 'hostname') {
-                $result = $this->__evalHostname($listValues, $value[$component]);
+                $result = $this->__evalHostname($listValues, $v);
             } elseif ($listType === 'regex') {
-                $result = $this->__evalRegex($listValues, $value[$component]);
+                $result = $this->__evalRegex($listValues, $v);
             } else {
                 $result = false;
             }
             if ($result !== false) {
-                return [$result, $value[$component]];
+                return [$result, $v];
             }
         }
         return false;
