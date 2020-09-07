@@ -102,13 +102,12 @@ class Warninglist extends AppModel
         }
         $results = $pipe->exec();
 
-        $warninglists = null;
         $eventWarnings = [];
         $saveToCache = [];
         foreach ($results as $pos => $result) {
             if ($result === false) { // not in cache
                 $attribute = $attributes[$redisResultToAttributePos[$pos]];
-                $attribute = $this->checkForWarning($attribute, $warninglists);
+                $attribute = $this->checkForWarning($attribute);
 
                 $store = [];
                 if (isset($attribute['warnings'])) {
@@ -160,8 +159,9 @@ class Warninglist extends AppModel
         $updated = array('success' => [], 'fails' => []);
         foreach ($directories as $dir) {
             $file = new File($dir . DS . 'list.json');
-            $list = json_decode($file->read(), true);
+            $list = $this->jsonDecode($file->read());
             $file->close();
+
             if (!isset($list['version'])) {
                 $list['version'] = 1;
             }
@@ -171,9 +171,9 @@ class Warninglist extends AppModel
                 $list['type'] = $list['type'][0];
             }
             $current = $this->find('first', array(
-                    'conditions' => array('name' => $list['name']),
-                    'recursive' => -1,
-                    'fields' => array('*')
+                'conditions' => array('name' => $list['name']),
+                'recursive' => -1,
+                'fields' => array('*')
             ));
             if (empty($current) || $list['version'] > $current['Warninglist']['version']) {
                 $result = $this->__updateList($list, $current);
@@ -207,7 +207,7 @@ class Warninglist extends AppModel
         return $result;
     }
 
-    private function __updateList($list, $current)
+    private function __updateList(array $list, array $current)
     {
         $list['enabled'] = 0;
         $warninglist = array();
@@ -257,9 +257,13 @@ class Warninglist extends AppModel
         }
     }
 
-    // regenerate the warninglist caches, but if an ID is passed along, only regen the entries for the given ID.
-    // This allows us to enable/disable a single warninglist without regenerating all caches
-    public function regenerateWarninglistCaches($id = false)
+    /**
+     * Regenerate the warninglist caches, but if an ID is passed along, only regen the entries for the given ID.
+     * This allows us to enable/disable a single warninglist without regenerating all caches.
+     * @param int|null $id
+     * @return bool
+     */
+    public function regenerateWarninglistCaches($id = null)
     {
         $redis = $this->setupRedis();
         if ($redis === false) {
@@ -274,6 +278,7 @@ class Warninglist extends AppModel
             'fields' => ['id', 'name', 'type'],
         ));
         $this->cacheWarninglists($warninglists);
+
         foreach ($warninglists as $warninglist) {
             if ($id && $warninglist['Warninglist']['id'] != $id) {
                 continue;

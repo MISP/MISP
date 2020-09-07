@@ -189,7 +189,6 @@ class WarninglistsController extends AppController
             $this->Warninglist->regenerateWarninglistCaches($warningList['Warninglist']['id']);
         }
         if ($success) {
-            $this->Warninglist->regenerateWarninglistCaches($id);
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success . __(' warninglist(s) ') . $message)), 'status' => 200, 'type' => 'json')); // TODO: non-SVO lang considerations
         } else {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Warninglist(s) could not be toggled.'))), 'status' => 200, 'type' => 'json'));
