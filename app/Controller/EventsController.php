@@ -1521,10 +1521,10 @@ class EventsController extends AppController
             throw new NotFoundException(__('Invalid event'));
         }
 
-        if (!$this->_isRest()) {
-            $conditions['includeAllTags'] = true;
-        } else {
+        if ($this->_isRest()) {
             $conditions['includeAttachments'] = true;
+        } else {
+            $conditions['includeAllTags'] = true;
         }
         $deleted = 0;
         if (isset($this->params['named']['deleted'])) {

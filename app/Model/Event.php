@@ -7,6 +7,7 @@ App::uses('TmpFileTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
+ * @property EventTag $EventTag
  */
 class Event extends AppModel
 {
@@ -1848,7 +1849,7 @@ class Event extends AppModel
             'to',
             'last',
             'to_ids',
-            'includeAllTags',
+            'includeAllTags', // include also non exportable tags, default `false`
             'includeAttachments',
             'event_uuid',
             'distribution',
@@ -2078,11 +2079,7 @@ class Event extends AppModel
         $fieldsObj = array('*');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
-        if (!$options['includeAllTags']) {
-            $tagConditions = array('exportable' => 1);
-        } else {
-            $tagConditions = array();
-        }
+
         $sharingGroupData = $this->__cacheSharingGroupData($user, $useCache);
         $params = array(
             'conditions' => $conditions,
@@ -2153,6 +2150,13 @@ class Event extends AppModel
             'Attribute' => array('value', 'type', 'category', 'to_ids'),
             'Object' => array('name', 'meta-category')
         );
+
+        if (!$options['includeAllTags']) {
+            $justExportableTags = true;
+        } else {
+            $justExportableTags = false;
+        }
+
         foreach ($results as $eventKey => &$event) {
             if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
                 $this->Log = ClassRegistry::init('Log');
@@ -2171,7 +2175,7 @@ class Event extends AppModel
                 continue;
             }
             $this->__attachReferences($event, $fields);
-            $this->__attachTags($user, $event, $tagConditions);
+            $this->__attachTags($event, $justExportableTags);
             $event = $this->Orgc->attachOrgsToEvent($event, $fieldsOrg);
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
                 $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
@@ -6598,24 +6602,82 @@ class Event extends AppModel
         return array($job, $randomFileName, $tempFile);
     }
 
-    private function __cacheTag($tag_id, $tagConditions)
+    /**
+     * Get tag from cache by given ID.
+     *
+     * @param int $tagId
+     * @param bool $justExportable If true, return just exportable tags.
+     * @return array|null
+     */
+    private function __getCachedTag($tagId, $justExportable)
     {
-        if (empty($this->assetCache['tags'][$tag_id])) {
-            $this->assetCache['tags'][$tag_id] = $this->EventTag->Tag->find('first', [
-                'recursive' => -1,
-                'conditions' => array_merge($tagConditions, ['id' => $tag_id])
-            ]);
+        if (!isset($this->assetCache['tags'][$tagId])) {
+            return null;
         }
-        return $this->assetCache['tags'][$tag_id];
+        $tag = $this->assetCache['tags'][$tagId];
+        if ($justExportable && !$tag['exportable']) {
+            return null;
+        }
+        return $tag;
     }
 
-    private function __attachTags($user, &$event, $tagConditions)
+    /**
+     * Fetches all tags for event and event attributes in one query and save to cache.
+     *
+     * @param array $event
+     * @param bool $justExportable If true, cache just exportable tags.
+     */
+    private function __precacheTagsForEvent(array $event, $justExportable)
     {
+        $tagIds = [];
+        if (!empty($event['EventTag'])) {
+            foreach ($event['EventTag'] as $eventTag) {
+                $tagIds[$eventTag['tag_id']] = true;
+            }
+        }
+
+        if (!empty($event['Attribute'])) {
+            foreach ($event['Attribute'] as $attribute) {
+                if (!empty($attribute['AttributeTag'])) {
+                    foreach ($attribute['AttributeTag'] as $attributeTag) {
+                        $tagIds[$attributeTag['tag_id']] = true;
+                    }
+                }
+            }
+        }
+
+        $notCachedTags = array_diff(array_keys($tagIds), isset($this->assetCache['tags']) ? array_keys($this->assetCache['tags']) : []);
+        if (empty($notCachedTags)) {
+            return;
+        }
+        $conditions = ['id' => $notCachedTags];
+        if ($justExportable) {
+            $conditions['exportable'] = 1;
+        }
+        $tags = $this->EventTag->Tag->find('all', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+        ]);
+        foreach ($tags as $tag) {
+            $this->assetCache['tags'][$tag['Tag']['id']] = $tag['Tag'];
+        }
+    }
+
+    /**
+     * Attach tags to attributes and event.
+     *
+     * @param array $event
+     * @param bool $justExportable If true, attach just exportable tags.
+     */
+    private function __attachTags(array &$event, $justExportable)
+    {
+        $this->__precacheTagsForEvent($event, $justExportable);
+
         if (!empty($event['EventTag'])) {
             foreach ($event['EventTag'] as $etk => $eventTag) {
-                $tag = $this->__cacheTag($eventTag['tag_id'], $tagConditions);
-                if (!empty($tag)) {
-                    $event['EventTag'][$etk]['Tag'] = $tag['Tag'];
+                $tag = $this->__getCachedTag($eventTag['tag_id'], $justExportable);
+                if ($tag !== null) {
+                    $event['EventTag'][$etk]['Tag'] = $tag;
                 }
             }
         }
@@ -6623,15 +6685,14 @@ class Event extends AppModel
             foreach ($event['Attribute'] as $ak => $attribute) {
                 if (!empty($attribute['AttributeTag'])) {
                     foreach ($attribute['AttributeTag'] as $atk => $attributeTag) {
-                        $tag = $this->__cacheTag($attributeTag['tag_id'], $tagConditions);
-                        if (!empty($tag)) {
-                            $event['Attribute'][$ak]['AttributeTag'][$atk]['Tag'] = $tag['Tag'];
+                        $tag = $this->__getCachedTag($attributeTag['tag_id'], $justExportable);
+                        if ($tag !== null) {
+                            $event['Attribute'][$ak]['AttributeTag'][$atk]['Tag'] = $tag;
                         }
                     }
                 }
             }
         }
-        return true;
     }
 
     /**
