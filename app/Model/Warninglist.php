@@ -65,18 +65,19 @@ class Warninglist extends AppModel
             return [];
         }
 
+        $enabledWarninglists = $this->getEnabled();
+        if (empty($enabledWarninglists)) {
+            return []; // no warninglist is enabled
+        }
+
         try {
             $redis = $this->setupRedisWithException();
         } catch (Exception $e) {
             // fallback to default implementation when redis is not available
             $eventWarnings = [];
-            $warninglists = $this->getEnabled();
-            if (empty($warninglists)) {
-                return []; // no warninglist is enabled
-            }
             foreach ($attributes as $pos => $attribute) {
-                $attributes[$pos] = $this->checkForWarning($attribute, $warninglists);
-                if (isset($event['Attribute'][$pos]['warnings'])) {
+                $attributes[$pos] = $this->checkForWarning($attribute, $enabledWarninglists);
+                if (isset($attributes[$pos]['warnings'])) {
                     foreach ($attribute['warnings'] as $match) {
                         $eventWarnings[$match['warninglist_id']] = $match['warninglist_name'];
                     }
@@ -87,15 +88,11 @@ class Warninglist extends AppModel
 
         $warninglistIdToName = [];
         $enabledTypes = [];
-        foreach ($this->getEnabled() as $warninglist) {
+        foreach ($enabledWarninglists as $warninglist) {
             $warninglistIdToName[$warninglist['Warninglist']['id']] = $warninglist['Warninglist']['name'];
             foreach ($warninglist['types'] as $type) {
                 $enabledTypes[$type] = true;
             }
-        }
-
-        if (empty($warninglistIdToName)) {
-            return []; // no warninglist is enabled
         }
 
         $pipe = $redis->multi(Redis::PIPELINE);
