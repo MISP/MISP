@@ -549,8 +549,8 @@ class Warninglist extends AppModel
             }
 
         } elseif (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            foreach ($listValues as $lv) {
-                if (strpos($lv, ':') !== false) { // IPv6 CIDR must contain dot
+            foreach ($listValues as $lv => $foo) {
+                if (strpos($lv, ':') !== false) { // Filter out IPv4 CIDR, IPv6 CIDR must contain colon
                     if ($this->__ipv6InCidr($value, $lv)) {
                         $match = $lv;
                         break;
