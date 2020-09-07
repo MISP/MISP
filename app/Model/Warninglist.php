@@ -111,7 +111,7 @@ class Warninglist extends AppModel
         foreach ($results as $pos => $result) {
             if ($result === false) { // not in cache
                 $attribute = $attributes[$redisResultToAttributePos[$pos]];
-                $attribute = $this->checkForWarning($attribute);
+                $attribute = $this->checkForWarning($attribute, $enabledWarninglists);
 
                 $store = [];
                 if (isset($attribute['warnings'])) {
@@ -125,7 +125,7 @@ class Warninglist extends AppModel
                         ];
                         $eventWarnings[$warninglistId] = $warninglistIdToName[$warninglistId];
 
-                        $store[(int)$warninglistId] = [$match['value'], $match['match']];
+                        $store[$warninglistId] = [$match['value'], $match['match']];
                     }
                 }
 
@@ -544,7 +544,7 @@ class Warninglist extends AppModel
                 $mask = -1 << (32 - $bits);
                 $needle = long2ip($ip & $mask) . "/$bits";
                 if (isset($listValues[$needle])) {
-                    $match = $listValues[$needle];
+                    $match = $needle;
                     break;
                 }
             }
@@ -596,10 +596,17 @@ class Warninglist extends AppModel
         return true;
     }
 
+    /**
+     * Check for exact match.
+     *
+     * @param array $listValues
+     * @param string $value
+     * @return false
+     */
     private function __evalString($listValues, $value)
     {
         if (isset($listValues[$value])) {
-            return $listValues[$value];
+            return $value;
         }
         return false;
     }
@@ -638,7 +645,7 @@ class Warninglist extends AppModel
                 $rebuilt = $piece . '.' . $rebuilt;
             }
             if (isset($listValues[$rebuilt])) {
-                return $listValues[$rebuilt];
+                return $rebuilt;
             }
         }
         return false;
