@@ -688,7 +688,7 @@ class Warninglist extends AppModel
      * @param array|null $warninglists If null, all enabled warninglists will be used
      * @return bool
      */
-    public function filterWarninglistAttributes(array $attribute, $warninglists = null)
+    public function filterWarninglistAttribute(array $attribute, $warninglists = null)
     {
         if ($warninglists === null) {
             $warninglists = $this->getEnabled();

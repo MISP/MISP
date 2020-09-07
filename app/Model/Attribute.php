@@ -3542,7 +3542,7 @@ class Attribute extends AppModel
                 if (!empty($options['includeEventTags'])) {
                     $results = $this->__attachEventTagsToAttributes($eventTags, $results, $key, $options);
                 }
-                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($attribute['Attribute'])) {
+                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
                     continue;
                 }
                 if ($options['includeWarninglistHits']) {
@@ -4119,7 +4119,7 @@ class Attribute extends AppModel
         }
         if (!empty($attribute['enforceWarninglist']) || !empty($params['enforceWarninglist'])) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            if (!$this->Warninglist->filterWarninglistAttributes($attribute)) {
+            if (!$this->Warninglist->filterWarninglistAttribute($attribute)) {
                 $this->validationErrors['warninglist'] = 'Attribute could not be saved as it trips over a warninglist and enforceWarninglist is enforced.';
                 $validationErrors = $this->validationErrors['warninglist'];
                 $log->create();
