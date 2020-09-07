@@ -107,9 +107,9 @@ class WarninglistsController extends AppController
             $message = __('Could not update any of the warning lists');
         } else {
             $flashType = 'success';
-            $message = __('Successfully updated ' . $successes . ' warninglists.');
+            $message = __('Successfully updated %s warninglists.', $successes);
             if ($fails != 0) {
-                $message . __(' However, could not update ') . $fails . ' warning list.'; // TODO: non-SVO languages need to be considered
+                $message .= __(' However, could not update %s warninglists.', $fails); // TODO: non-SVO languages need to be considered
             }
         }
         if ($this->_isRest()) {
@@ -279,12 +279,13 @@ class WarninglistsController extends AppController
             if (array_key_exists('[]', $data)) {
                 $data = $data['[]'];
             }
-            $hits = array();
 
-            $warninglists = $this->Warninglist->fetchForEventView();
+            $hits = array();
+            $warninglists = $this->Warninglist->getEnabled();
             foreach ($data as $dataPoint) {
                 foreach ($warninglists as $warninglist) {
-                    $result = $this->Warninglist->quickCheckValue($warninglist['values'], $dataPoint, $warninglist['Warninglist']['type']);
+                    $values = $this->Warninglist->getFilteredEntries($warninglist);
+                    $result = $this->Warninglist->quickCheckValue($values, $dataPoint, $warninglist['Warninglist']['type']);
                     if ($result !== false) {
                         $hits[$dataPoint][] = array('id' => $warninglist['Warninglist']['id'], 'name' => $warninglist['Warninglist']['name']);
                     }

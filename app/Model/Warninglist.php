@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property WarninglistType $WarninglistType
+ * @property WarninglistEntry $WarninglistEntry
  */
 class Warninglist extends AppModel
 {
@@ -124,12 +125,12 @@ class Warninglist extends AppModel
                         ];
                         $eventWarnings[$warninglistId] = $warninglistIdToName[$warninglistId];
 
-                        $store[$warninglistId] = [$match['value'], $match['match']];
+                        $store[(int)$warninglistId] = [$match['value'], $match['match']];
                     }
                 }
 
-                $redisKey = 'misp:wl-cache:' . md5($attribute['type'] . ':' .  $attribute['value']);
-                $saveToCache[$redisKey] = empty($store) ? '' : json_encode($store);
+                $attributeHash = md5($attribute['type'] . ':' .  $attribute['value']);
+                $saveToCache[$attributeHash] = empty($store) ? '' : json_encode($store);
 
             } elseif (!empty($result)) { // empty string means no warning list match
                 $matchedWarningList = json_decode($result, true);
@@ -147,8 +148,8 @@ class Warninglist extends AppModel
 
         if (!empty($saveToCache)) {
             $pipe = $redis->multi(Redis::PIPELINE);
-            foreach ($saveToCache as $redisKey => $json) {
-                $redis->setex($redisKey, 3600 * 24, $json); // cache for one day
+            foreach ($saveToCache as $attributeHash => $json) {
+                $redis->setex('misp:wl-cache:' . $attributeHash, 3600 * 24, $json); // cache for one day
             }
             $pipe->exec();
         }
@@ -272,8 +273,14 @@ class Warninglist extends AppModel
         if ($redis === false) {
             return false;
         }
+
         // Delete cache
         $redis->del($redis->keys('misp:wl-cache:*'));
+
+        if ($id === null) {
+            // delete all cached entries when regenerating whole cache
+            $redis->del($redis->keys('misp:warninglist_entries_cache:*'));
+        }
 
         $warninglists = $this->find('all', array(
             'contain' => array('WarninglistType'),
@@ -296,7 +303,7 @@ class Warninglist extends AppModel
         return true;
     }
 
-    private function cacheWarninglists($warninglists)
+    private function cacheWarninglists(array $warninglists)
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
@@ -309,7 +316,7 @@ class Warninglist extends AppModel
         return false;
     }
 
-    private function cacheWarninglistEntries($warninglistEntries, $id)
+    private function cacheWarninglistEntries(array $warninglistEntries, $id)
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
@@ -319,7 +326,7 @@ class Warninglist extends AppModel
                 $redis->sAddArray($key, $warninglistEntries);
             } else {
                 foreach ($warninglistEntries as $entry) {
-                    $redis->sAdd('misp:warninglist_entries_cache:' . $id, $entry);
+                    $redis->sAdd($key, $entry);
                 }
             }
             return true;
@@ -414,7 +421,7 @@ class Warninglist extends AppModel
         return $outputValues;
     }
 
-    private function getFilteredEntries(array $warninglist)
+    public function getFilteredEntries(array $warninglist)
     {
         if (isset($this->entriesCache[$warninglist['Warninglist']['id']])) {
             return $this->entriesCache[$warninglist['Warninglist']['id']];
@@ -438,15 +445,6 @@ class Warninglist extends AppModel
         $this->entriesCache[$warninglist['Warninglist']['id']] = $values;
 
         return $values;
-    }
-
-    public function fetchForEventView()
-    {
-        $warninglists = $this->getEnabled();
-        foreach ($warninglists as $k => &$t) {
-            $t['values'] = $this->getFilteredEntries($t);
-        }
-        return $warninglists;
     }
 
     /**
@@ -564,7 +562,13 @@ class Warninglist extends AppModel
         return $match;
     }
 
-    // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
+    /**
+     * Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
+     *
+     * @param string $ip
+     * @param string $cidr
+     * @return bool
+     */
     private function __ipv6InCidr($ip, $cidr)
     {
         list($address, $netmask) = explode('/', $cidr);
@@ -605,7 +609,7 @@ class Warninglist extends AppModel
     private function __evalHostname($listValues, $value)
     {
         // php's parse_url is dumb, so let's use some hacky workarounds
-        if (strpos($value, '//') == false) {
+        if (strpos($value, '//') === false) {
             $value = explode('/', $value);
             $hostname = $value[0];
         } else {
@@ -619,7 +623,7 @@ class Warninglist extends AppModel
         $hostname = rtrim($hostname, '.');
         $hostname = explode('.', $hostname);
         $rebuilt = '';
-        foreach (array_reverse($hostname) as $k => $piece) {
+        foreach (array_reverse($hostname) as $piece) {
             if (empty($rebuilt)) {
                 $rebuilt = $piece;
             } else {
@@ -654,7 +658,6 @@ class Warninglist extends AppModel
         ));
         $tlds = array();
         if (!empty($tldLists)) {
-            $tldLists = array_keys($tldLists);
             $tlds = $this->WarninglistEntry->find('list', array(
                 'conditions' => array('WarninglistEntry.warninglist_id' => $tldLists),
                 'fields' => array('WarninglistEntry.value')
