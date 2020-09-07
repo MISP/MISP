@@ -416,33 +416,43 @@ class Warninglist extends AppModel
                 continue;
             }
 
-            $outputValues[$v] = $v;
+            $outputValues[$v] = true;
         }
         return $outputValues;
     }
 
+    /**
+     * For 'hostname', 'string' and 'cidr' warninglist type, values are just in keys to save memory.
+     *
+     * @param array $warninglist
+     * @return array
+     */
     public function getFilteredEntries(array $warninglist)
     {
-        if (isset($this->entriesCache[$warninglist['Warninglist']['id']])) {
-            return $this->entriesCache[$warninglist['Warninglist']['id']];
+        $id = $warninglist['Warninglist']['id'];
+        if (isset($this->entriesCache[$id])) {
+            return $this->entriesCache[$id];
         }
 
-        $values = $this->getWarninglistEntries($warninglist['Warninglist']['id']);
-
+        $values = $this->getWarninglistEntries($id);
         if ($warninglist['Warninglist']['type'] === 'hostname') {
             $output = [];
             foreach ($values as $v) {
                 $v = trim($v, '.');
-                $output[$v] = $v;
+                $output[$v] = true;
             }
             $values = $output;
         } else if ($warninglist['Warninglist']['type'] === 'string') {
-            $values = array_combine($values, $values);
+            $output = [];
+            foreach ($values as $v) {
+                $output[$v] = true;
+            }
+            $values = $output;
         } else if ($warninglist['Warninglist']['type'] === 'cidr') {
             $values = $this->filterCidrList($values);
         }
 
-        $this->entriesCache[$warninglist['Warninglist']['id']] = $values;
+        $this->entriesCache[$id] = $values;
 
         return $values;
     }
