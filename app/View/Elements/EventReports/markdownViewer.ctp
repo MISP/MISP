@@ -133,7 +133,7 @@
     ));
 
     // - Add last modified timestamp & time since last edit
-    // - Add [correlation]
+    // - Add correlation in table
 ?>
 <script>
     'use strict';
@@ -803,7 +803,10 @@
         var attributeFieldsToRender = ['id', 'category', 'type', 'value', 'comment']
         var $tr = $('<tr/>')
         attributeFieldsToRender.forEach(function(field) {
-            $tr.append($('<td/>').text(attribute[field]))
+            $tr.append(
+                $('<td/>').text(attribute[field])
+                    .css('white-space', ['id', 'type'].indexOf(field) != -1 ? 'nowrap' : 'none')
+            )
         })
         var $tags = $('<div/>')
         if (attribute.AttributeTag !== undefined) {
@@ -1343,8 +1346,8 @@ var syncSrcScroll = function () {
 .misp-element-wrapper {
     padding: 2px 3px;
     margin: 3px 3px;
-    border: 1px solid #ddd;
-    background-color: #f5f5f5;
+    border: 1px solid #ddd !important;
+    background-color: #f5f5f5 !important;
     border-radius: 3px;
     line-height: 24px;
 }
@@ -1352,7 +1355,7 @@ var syncSrcScroll = function () {
 .misp-element-wrapper.object {
     border: 0;
     background-color: #3465a4 !important;
-    color: #ffffff;
+    color: #ffffff !important;
 }
 
 .attributePicture > img {
