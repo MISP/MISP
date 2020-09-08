@@ -181,6 +181,10 @@ class GalaxyCluster extends AppModel
             }
         }
 
+        if (empty($clusterTagNames)) {
+            return $events;
+        }
+
         $clusters = $this->find('all', array(
             'conditions' => array('LOWER(GalaxyCluster.tag_name)' => $clusterTagNames),
             'contain' => array('Galaxy', 'GalaxyElement'),

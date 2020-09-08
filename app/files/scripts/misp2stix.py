@@ -475,10 +475,10 @@ class StixBuilder(object):
     def generate_pipe_observable(self, attribute):
         attribute_uuid = attribute['uuid']
         pipe_object = Pipe()
-        pipe.named = True
-        pipe.name = attribute['value']
-        pipe.name.condition = 'Equals'
-        pipe.parent.id_ = "{}PipeObject-{}".format(self.namesapce_prefix, attribute_uuid)
+        pipe_object.named = True
+        pipe_object.name = attribute['value']
+        pipe_object.name.condition = 'Equals'
+        pipe_object.parent.id_ = "{}PipeObject-{}".format(self.namesapce_prefix, attribute_uuid)
         observable = Observable(pipe_object)
         observable.id_ = "{}:Pipe-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
@@ -693,7 +693,7 @@ class StixBuilder(object):
     @staticmethod
     def add_credential_custom_property(attribute, relation):
         prop = Property()
-        prop.name = attribute_relation
+        prop.name = relation
         prop.value = attribute
         return prop
 
@@ -753,7 +753,7 @@ class StixBuilder(object):
         misp_credential_types = ('password', 'api-key', 'encryption-key', 'unknown')
         for _type in credential_types:
             if _type in misp_credential_types:
-                return credential_types.pop(credential_types.index(_types))
+                return credential_types.pop(credential_types.index(_type))
         return credential_types.pop(0)
 
     def parse_domain_ip_object(self, misp_object):

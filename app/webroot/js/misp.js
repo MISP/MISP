@@ -931,7 +931,7 @@ function multiSelectToggleFeeds(on, cache) {
     });
 }
 
-function multiSelectDeleteEventBlacklist(on, cache) {
+function multiSelectDeleteEventBlocklist(on, cache) {
     var selected = [];
     $(".select").each(function() {
         if ($(this).is(":checked")) {
@@ -941,7 +941,7 @@ function multiSelectDeleteEventBlacklist(on, cache) {
             }
         }
     });
-    $.get(baseurl + "/eventBlacklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
+    $.get(baseurl + "/eventBlocklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
@@ -3777,7 +3777,9 @@ function runHoverLookup(type, id) {
                 trigger: 'manual',
                 container: 'body'
             }).popover('show');
-            $('#' + currentPopover).popover('destroy');
+            if (currentPopover !== undefined && currentPopover !== '') {
+                $('#' + currentPopover).popover('destroy');
+            }
             currentPopover = type + '_' + id + '_container'
         },
         cache: false,
@@ -3822,7 +3824,9 @@ $(document).on( "click", ".eventViewAttributePopup", function() {
         var left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
         $('#popover_box').css({'left': left + 'px'});
     }
-    $('#' + currentPopover).popover('destroy');
+    if (currentPopover !== undefined && currentPopover !== '') {
+        $('#' + currentPopover).popover('destroy');
+    }
 });
 
 function flashErrorPopover() {
@@ -3835,12 +3839,12 @@ function flashErrorPopover() {
 }
 
 function attributeHoverTitle(id, type) {
-  return `<span>Lookup results:</span>
-		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"
-				style="float: right;"
-				data-object-id="${id}"
-				data-object-type="${type}">
-	</i>`;
+  return '<span>Lookup results:</span>\
+		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"\
+				style="float: right;"\
+				data-object-id="${id}"\
+				data-object-type="${type}">\
+	</i>';
 }
 
 function attributeHoverPlacement(element) {
@@ -3868,7 +3872,7 @@ function attributeHoverPlacement(element) {
 $('body').on('click', function (e) {
   $('[data-toggle=popover]').each(function () {
     // hide any open popovers when the anywhere else in the body is clicked
-    if (typeof currentPopover !== 'undefined') {
+    if (typeof currentPopover !== 'undefined' && currentPopover !== '') {
         if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
           $('#' + currentPopover).popover('destroy');
         }
@@ -4520,8 +4524,7 @@ $(document).ready(function() {
         $('#quickFilterButton').trigger("click");
     });
     $('#quickFilterField').keyup(function(e){
-        if(e.keyCode == 13)
-        {
+        if (e.keyCode == 13) {
             $('#quickFilterButton').trigger("click");
         }
     });

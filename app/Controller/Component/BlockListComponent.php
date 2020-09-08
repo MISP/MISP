@@ -17,9 +17,12 @@ class BlocklistComponent extends Component
             $this->controller->paginate['conditions'] = $filters;
         }
         if ($rest) {
-            $blocklist = $this->controller->paginate();
-            $blocklist= array();
-            foreach ($blocklist as $item) {
+            $data = $this->controller->{$this->controller->defaultModel}->find('all', array(
+                'recursive' => -1,
+                'conditions' => isset($this->controller->paginate['conditions']) ? $this->controller->paginate['conditions'] : []
+            ));
+            $blocklist = [];
+            foreach ($data as $item) {
                 $blocklist[] = $item[$this->controller->defaultModel];
             }
             return $this->RestResponse->viewData($blocklist);
