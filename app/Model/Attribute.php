@@ -1353,6 +1353,9 @@ class Attribute extends AppModel
             case 'other':
             case 'email-attachment':
             case 'email-body':
+            case 'first-name':
+            case 'middle-name':
+            case 'last-name':
                 $returnValue = true;
                 break;
             case 'hex':
@@ -1383,9 +1386,6 @@ class Attribute extends AppModel
       case 'whois-registrant-org':
             case 'whois-registrar':
             case 'whois-creation-date':
-            case 'first-name':
-            case 'middle-name':
-            case 'last-name':
             case 'date-of-birth':
             case 'place-of-birth':
             case 'gender':
@@ -1486,6 +1486,7 @@ class Attribute extends AppModel
                 if ($value == 1 || $value == 0) {
                     $returnValue = true;
                 }
+                break;
         }
         return $returnValue;
     }
