@@ -2195,7 +2195,7 @@ class Event extends AppModel
             }
             $event = $this->massageTags($event, 'Event', $options['excludeGalaxy']);
             // Let's find all the related events and attach it to the event itself
-            if (!empty($options['includeEventCorrelations'])) {
+            if ($options['includeEventCorrelations']) {
                 $results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
             }
             // Let's also find all the relations for the attributes - this won't be in the xml export though
@@ -2354,7 +2354,7 @@ class Event extends AppModel
         }
         if ($options['extended']) {
             foreach ($results as $k => $result) {
-                $results[$k] = $this->__mergeExtensions($user, $result['Event']['uuid'], $result);
+                $results[$k] = $this->__mergeExtensions($user, $result, $options['includeEventCorrelations']);
             }
         }
         return $results;
@@ -2436,9 +2436,19 @@ class Event extends AppModel
         return $event;
     }
 
-    private function __mergeExtensions(array $user, $uuid, array $event)
+    /**
+     * @param array $user
+     * @param array $event
+     * @param bool $includeEventCorrelations
+     * @return array
+     * @throws Exception
+     */
+    private function __mergeExtensions(array $user, array $event, $includeEventCorrelations)
     {
-        $extensions = $this->fetchEvent($user, array('eventsExtendingUuid' => $uuid));
+        $extensions = $this->fetchEvent($user, [
+            'eventsExtendingUuid' => $event['Event']['uuid'],
+            'includeEventCorrelations' => $includeEventCorrelations,
+        ]);
         foreach ($extensions as $extensionEvent) {
             $eventMeta = array(
                 'id' => $extensionEvent['Event']['id'],
@@ -2463,14 +2473,16 @@ class Event extends AppModel
                 }
                 $event['EventTag'][] = $eventTag;
             }
-            // Merge just related events that are not already in main event
-            foreach ($extensionEvent['RelatedEvent'] as $relatedEvent) {
-                foreach ($event['RelatedEvent'] as $rE) {
-                    if ($rE['Event']['id'] == $relatedEvent['Event']['id']) {
-                        continue 2; // event already exists, skip
+            if ($includeEventCorrelations) {
+                // Merge just related events that are not already in main event
+                foreach ($extensionEvent['RelatedEvent'] as $relatedEvent) {
+                    foreach ($event['RelatedEvent'] as $rE) {
+                        if ($rE['Event']['id'] == $relatedEvent['Event']['id']) {
+                            continue 2; // event already exists, skip
+                        }
                     }
+                    $event['RelatedEvent'][] = $relatedEvent;
                 }
-                $event['RelatedEvent'][] = $relatedEvent;
             }
         }
         return $event;
