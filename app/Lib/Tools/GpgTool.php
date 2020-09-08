@@ -5,7 +5,7 @@ class GpgTool
      * @return CryptGpgExtended
      * @throws Exception
      */
-    public function initializeGpg()
+    public static function initializeGpg()
     {
         if (!class_exists('Crypt_GPG')) {
             // 'Crypt_GPG' class cannot be autoloaded, try to require from include_path.
@@ -29,6 +29,14 @@ class GpgTool
         );
 
         return new CryptGpgExtended($options);
+    }
+
+    /** @var CryptGpgExtended */
+    private $gpg;
+
+    public function __construct($gpg)
+    {
+        $this->gpg = $gpg;
     }
 
     /**
@@ -65,7 +73,39 @@ class GpgTool
 
         $key = $response->body;
 
+        if ($this->gpg) {
+            $fetchedFingerprint = $this->validateGpgKey($key);
+            if (strtolower($fingerprint) !== strtolower($fetchedFingerprint)) {
+                throw new Exception("Requested fingerprint do not match with fetched key fingerprint ($fingerprint != $fetchedFingerprint)");
+            }
+        }
+
         return $key;
+    }
+
+    /**
+     * Validates PGP key
+     * @param string $keyData
+     * @return string Primary key fingerprint
+     * @throws Exception
+     */
+    public function validateGpgKey($keyData)
+    {
+        if (!$this->gpg instanceof CryptGpgExtended) {
+            throw new InvalidArgumentException("Valid CryptGpgExtended instance required.");
+        }
+        $fetchedKeyInfo = $this->gpg->keyInfo($keyData);
+        if (empty($fetchedKeyInfo)) {
+            throw new Exception("No key found");
+        }
+        if (count($fetchedKeyInfo) !== 1) {
+            throw new Exception("Multiple keys found");
+        }
+        $primaryKey = $fetchedKeyInfo[0]->getPrimaryKey();
+        if (empty($primaryKey)) {
+            throw new Exception("No primary key found");
+        }
+        return $primaryKey->getFingerprint();
     }
 
     /**
@@ -105,6 +145,91 @@ class GpgTool
         }
 
         return $final;
+    }
+
+    /**
+     * @see https://tools.ietf.org/html/draft-koch-openpgp-webkey-service-10
+     * @param string $email
+     * @return string
+     * @throws Exception
+     */
+    public function wkd($email)
+    {
+        if (!$this->gpg instanceof CryptGpgExtended) {
+            throw new InvalidArgumentException("Valid CryptGpgExtended instance required.");
+        }
+
+        $parts = explode('@', $email);
+        if (count($parts) !== 2) {
+            throw new InvalidArgumentException("Invalid e-mail address provided.");
+        }
+
+        list($localPart, $domain) = $parts;
+        $localPart = strtolower($localPart);
+        $localPartHash = $this->zbase32(sha1($localPart, true));
+
+        $advancedUrl = "https://openpgpkey.$domain/.well-known/openpgpkey/" . strtolower($domain) . "/hu/$localPartHash";
+        try {
+            $response = $this->keyServerLookup($advancedUrl);
+            return $this->processWkdResponse($response);
+        } catch (Exception $e) {
+            // pass, continue to direct method
+        }
+
+        $directUrl = "https://$domain/.well-known/openpgpkey/hu/$localPartHash";
+        $response = $this->keyServerLookup($directUrl);
+        return $this->processWkdResponse($response);
+    }
+
+    /**
+     * @param HttpSocketResponse $response
+     * @return string
+     * @throws Crypt_GPG_Exception
+     * @throws Crypt_GPG_InvalidOperationException
+     */
+    private function processWkdResponse(HttpSocketResponse $response)
+    {
+        if ($response->code == 404) {
+            throw new NotFoundException("Key not found");
+        } else if (!$response->isOk()) {
+            throw new Exception("Fetching the WKD failed with HTTP error {$response->code}: {$response->reasonPhrase}");
+        }
+
+        return $this->gpg->enarmor($response->body());
+    }
+
+    /**
+     * Converts data to zbase32 string.
+     *
+     * @see http://philzimmermann.com/docs/human-oriented-base-32-encoding.txt
+     * @param string $data
+     * @return string
+     */
+    private function zbase32($data)
+    {
+        $chars = 'ybndrfg8ejkmcpqxot1uwisza345h769'; // lower-case
+        $res = '';
+        $remainder = 0;
+        $remainderSize = 0;
+
+        for ($i = 0; $i < strlen($data); $i++) {
+            $b = ord($data[$i]);
+            $remainder = ($remainder << 8) | $b;
+            $remainderSize += 8;
+            while ($remainderSize > 4) {
+                $remainderSize -= 5;
+                $c = $remainder & (31 << $remainderSize);
+                $c >>= $remainderSize;
+                $res .= $chars[$c];
+            }
+        }
+        if ($remainderSize > 0) {
+            // remainderSize < 5:
+            $remainder <<= (5 - $remainderSize);
+            $c = $remainder & 31;
+            $res .= $chars[$c];
+        }
+        return $res;
     }
 
     /**
