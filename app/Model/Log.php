@@ -114,7 +114,7 @@ class Log extends AppModel
                 $this->data['Log']['ip'] = $_SERVER[$ip_header];
             }
         }
-        $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '');
+        $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '', 'ip' => '');
         foreach ($setEmpty as $field => $empty) {
             if (!isset($this->data['Log'][$field]) || empty($this->data['Log'][$field])) {
                 $this->data['Log'][$field] = $empty;
