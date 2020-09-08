@@ -6879,7 +6879,8 @@
         },
         "feeds": {
             "id": true,
-            "input_source": false
+            "input_source": false,
+            "orgc_id": false
         },
         "fuzzy_correlate_ssdeep": {
             "id": true,
