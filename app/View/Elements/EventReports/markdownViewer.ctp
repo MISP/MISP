@@ -152,7 +152,7 @@
     var $editor, $viewer, $raw
     var $saveMarkdownButton, $mardownViewerToolbar
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
-    var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"blue\"> {{=it.value}}</span></span></span>");
+    var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span>{{=it.type}}</span><span class=\"blue\"> {{=it.value}}</span></span></span>");
     var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrapper attributePicture useCursorPointer\"><img data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" href=\"#\" src=\"{{=it.src}}\" alt=\"{{=it.alt}}\" title=\"\"/></div>");
     var dotTemplateEventgraph = doT.template("<div class=\"misp-picture-wrapper eventgraphPicture\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
     var dotTemplateAttackMatrix = doT.template("<div class=\"misp-picture-wrapper embeddedAttackMatrix\" data-scope=\"{{=it.scope}}\" data-eventid=\"{{=it.eventid}}\"></div>");
@@ -1343,7 +1343,7 @@ var syncSrcScroll = function () {
   color: black;
 }
 
-.misp-element-wrapper {
+span.misp-element-wrapper {
     padding: 2px 3px;
     margin: 3px 3px;
     border: 1px solid #ddd !important;
@@ -1352,8 +1352,21 @@ var syncSrcScroll = function () {
     line-height: 24px;
 }
 
+.misp-element-wrapper.attribute .blue:before {
+    content: ' ';
+    border-right: 1px solid #d2d2d2;
+    margin: 4px;
+}
+.misp-element-wrapper.attribute .blue {
+    max-width: 300px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: table-cell;
+}
+
 .misp-element-wrapper.object {
-    border: 0;
+    border: 0 !important;
     background-color: #3465a4 !important;
     color: #ffffff !important;
 }
