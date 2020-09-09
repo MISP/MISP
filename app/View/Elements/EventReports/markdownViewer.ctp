@@ -134,6 +134,7 @@
 
     // - Add last modified timestamp & time since last edit
     // - Add correlation in table
+    // - Object should display UI-priority first
 ?>
 <script>
     'use strict';
@@ -156,7 +157,8 @@
     var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrapper attributePicture useCursorPointer\"><img data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" href=\"#\" src=\"{{=it.src}}\" alt=\"{{=it.alt}}\" title=\"\"/></div>");
     var dotTemplateEventgraph = doT.template("<div class=\"misp-picture-wrapper eventgraphPicture\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
     var dotTemplateAttackMatrix = doT.template("<div class=\"misp-picture-wrapper embeddedAttackMatrix\" data-scope=\"{{=it.scope}}\" data-eventid=\"{{=it.eventid}}\"></div>");
-    var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\">{{=it.type}}<span class=\"\"> {{=it.value}}</span></span></span>");
+    var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span>{{=it.type}}</span><span class=\"\"> {{=it.value}}</span></span></span>");
+    dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span>{{=it.type}}</span><span class=\"value\">{{=it.value}}</span></span></span>");
     var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 
     var contentChanged = false
@@ -1369,6 +1371,19 @@ span.misp-element-wrapper {
     border: 0 !important;
     background-color: #3465a4 !important;
     color: #ffffff !important;
+}
+
+.misp-element-wrapper.object .value:before {
+    content: ' ';
+    border-right: 1px solid #d2d2d2;
+    margin: 4px;
+}
+.misp-element-wrapper.object .value {
+    max-width: 300px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: table-cell;
 }
 
 .attributePicture > img {
