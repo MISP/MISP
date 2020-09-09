@@ -11,23 +11,8 @@
         ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'm']) . '</kbd>', __('Insert a MISP Element')],
         ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'h']) . '</kbd>', __('Makes text as header')],
     ];
-    $syntaxHelp = [
-        sprintf('<b>%s</b>: %s','scope', __('Is the scope you want to reference. Can be either %s or %s', sprintf('<code>%s</code>', 'attribute'), sprintf('<code>%s</code>', 'object'))),
-        sprintf('<b>%s</b>: %s','id', __('Is the ID of the element')),
-    ];
-    $syntaxHelp2 = [
-       '<code>@[attribute](42)</code>',
-       '<code>@[object](12)</code>',
-    ];
-    $syntaxHelp3 = [
-        '<code>@![attribute](52)</code>'
-    ];
-    $syntaxHelp4 = [
-        '<code>@[eventgraph](12)</code>'
-    ];
-    $syntaxHelp5 = [
-        '<code>@[attackmatrix](46)</code>'
-    ];
+    $allowedScopes = ['attribute', 'object', 'eventgraph', 'attackmatrix'];
+    $allowedScopesHtml = '<code>' . implode('</code> <code>', $allowedScopes) . '</code>';
 
     $helpHTML = '';
     $helpHTML .= '<ul class="nav nav-tabs" id="tab-markdown-help">';
@@ -38,55 +23,48 @@
     $helpHTML .= '<div class="tab-content">';
     $helpHTML .= '<div class="tab-pane active" id="tab-markdown">';
     $helpHTML .= sprintf('<h2>%s</h2>', __('Markdown format'));
-    $helpHTML .= sprintf('<p>%s</p>', __('The suported markdown format is similar to %s with some differences:', sprintf('<a href="%s">GFM</a>', 'https://github.github.com/gfm/')));
+    $helpHTML .= sprintf('<p>%s</p>', __('The suported markdown format is similar to %s with some differences:', sprintf('<a href="%s" target="_blank">GFM</a>', 'https://github.github.com/gfm/')));
     $helpHTML .= sprintf('<ul>%s</ul>',
         '<li>' . implode('</li><li>', $formatDifferences) . '</li>'
     );
 
     $helpHTML .= sprintf('<h2>%s</h2>', __('Markdown extended format'));
-    $helpHTML .= sprintf('<h4>%s</h4>', __('1. MISP Element references'));
-    $helpHTML .= sprintf('<p>%s</p>', __('In order to have a visually pleasant document but more importantly, avoid hard coding, MISP elements such as attributes and objects can be referenced with the following special syntax'));
+    $helpHTML .= sprintf('<p>%s</p>', __('In order to have a visually pleasant report but more importantly, avoid hardcoding elements value or IDs, MISP elements such as attributes and objects can be referenced with the following special syntax'));
     $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@[scope](id)</code>');
     $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
-    $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', $syntaxHelp) . '</li>'
-    );
+    $helpHTML .= sprintf('<ul>%s</ul>', implode('',[
+        sprintf('<li><b>%s</b>: %s</li>', 'scope', __('Is the scope to which the ID is related.')),
+        sprintf('<ul><li>%s</li></ul>', __('Can be one of the following: %s', $allowedScopesHtml)),
+        sprintf('<li><b>%s</b>: %s</li>','id', __('Is the ID of the MISP element'))
+    ]));
+    $helpHTML .= sprintf('<span>%s</span>', __('Examples:'));
+    $helpHTML .= sprintf('<ul>%s</ul>', sprintf('<li>%s</li>', implode('</li><li>', [
+        '<code>@[attribute](42)</code>',
+        '<code>@[object](12)</code>',
+        '<code>@[eventgraph](12)</code>'
+    ])));
 
-    $helpHTML .= sprintf('<h4>%s</h4>', __('2. MISP Picture attachment'));
-    $helpHTML .= sprintf('<p>%s</p>', __('Picture attachment'));
+    $helpHTML .= sprintf('<h4>%s</h4>', __('Picture from attachment attribute'));
+    $helpHTML .= sprintf('<p>%s</p>', __('Syntax for pictures is like the syntax for referencing MISP elements but with two differences:'));
+    $helpHTML .= sprintf('<ul>%s</ul>', sprintf('<li>%s</li>', implode('</li><li>', [
+        __('The addition of the %s character to indicate that the picture should be displayed and not the atttribute', '<code>!</code>'),
+        __('The scope is fixed to %s', '<code>attribute</code>')
+    ])));
     $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@![attribute](id)</code>');
-    $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
-    $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', [$syntaxHelp[0]]) . '</li>'
-    );
     $helpHTML .= sprintf('<span>%s</span>', __('Examples:'));
-    $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', $syntaxHelp3) . '</li>'
-    );
-
-    $helpHTML .= sprintf('<h4>%s</h4>', __('3. MISP Event Graph Picture'));
-    $helpHTML .= sprintf('<p>%s</p>', __('Picture attachment'));
-    $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@[eventgraph](id)</code>');
-    $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
-    $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', [$syntaxHelp[1]]) . '</li>'
-    );
+    $helpHTML .= sprintf('<ul>%s</ul>', sprintf('<li>%s</li>', implode('</li><li>', [
+        '<code>@![attribute](52)</code>'
+    ])));
+    $helpHTML .= sprintf('<h4>%s</h4>', __('Event\'s ATT&CK matrix'));
+    $helpHTML .= sprintf('<p>%s</p>', __('Syntax for embedding the ATT&CK matrix is similar the syntax for referencing MISP elements:'));
+    $helpHTML .= sprintf('<ul>%s</ul>', sprintf('<li>%s</li>', implode('</li><li>', [
+        __('The scope is fixed to %s', '<code>attackmatrix</code>'),
+        __('Here, the ID is irrelevant as the matrix will be taken from the whole event for which the report is linked to'),
+    ])));
     $helpHTML .= sprintf('<span>%s</span>', __('Examples:'));
-    $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', $syntaxHelp4) . '</li>'
-    );
-
-    $helpHTML .= sprintf('<h4>%s</h4>', __('4. Att&ck Matrix'));
-    $helpHTML .= sprintf('<p>%s</p>', __('Picture attachment'));
-    $helpHTML .= sprintf('<h4 style="text-align: center;">%s</h4>', '<code style="font-size: 14px;">@[attackmatrix](id)</code>');
-    $helpHTML .= sprintf('<span>%s</span>', __('Where:'));
-    $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', [$syntaxHelp[1]]) . '</li>'
-    );
-    $helpHTML .= sprintf('<span>%s</span>', __('Examples:'));
-    $helpHTML .= sprintf('<ul>%s</ul>',
-        '<li>' . implode('</li><li>', $syntaxHelp5) . '</li>'
-    );
+    $helpHTML .= sprintf('<ul>%s</ul>', sprintf('<li>%s</li>', implode('</li><li>', [
+        '<code>@[attackmatrix](1)</code>'
+    ])));
     $helpHTML .= '</div>';
 
     $helpHTML .= '<div class="tab-pane" id="tab-editor">';
