@@ -16,8 +16,9 @@
 
     $helpHTML = '';
     $helpHTML .= '<ul class="nav nav-tabs" id="tab-markdown-help">';
-    $helpHTML .=    '<li class="active"><a href="#tab-markdown">Markdown format</a></li>';
-    $helpHTML .=    '<li class=""><a href="#tab-editor">Editor shortcuts</a></li>';
+    $helpHTML .=    sprintf('<li class="active"><a href="#tab-markdown">%s</a></li>', __('Markdown format'));
+    $helpHTML .=    sprintf('<li class=""><a href="#tab-editor">%s</a></li>', __('Editor shortcuts'));
+    $helpHTML .=    sprintf('<li class=""><a href="#tab-plugin">%s</a></li>', __('Markdown plugin'));
     $helpHTML .= '</ul class="nav nav-tabs">';
 
     $helpHTML .= '<div class="tab-content">';
@@ -78,6 +79,17 @@
         $helpBodyHTML
     );
     $helpHTML .= '</div>';
+
+    $helpHTML .= '<div class="tab-pane" id="tab-plugin">';
+    $helpHTML .= sprintf('<h2>%s</h2>', __('Markdown plugins'));
+    $helpHTML .= sprintf('<h3>%s</h3>', __('Highlighted language'));
+    $helpHTML .= sprintf('<p>%s</p>', __('Languages rendered in code block can be highlighted using the %s plugin. The list of supported languages can be found %s.',
+        sprintf('<a href="%s">%s</a>', 'https://highlightjs.org/', 'highlight.js'),
+        sprintf('<a href="%s">%s</a>', 'https://github.com/highlightjs/highlight.js/blob/master/SUPPORTED_LANGUAGES.md', 'here')
+    ));
+
+    $helpHTML .= '</div>';
+
     $helpHTML .= '</div>';
 
     $data = array(
