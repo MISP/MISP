@@ -175,7 +175,8 @@
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
     var debounceDelay = 50;
     var slowDebounceDelay = 3000;
-    var renderTimer, scrollTimer, attackMatrixTimer;
+    var cache_matrix = {}, cache_eventgraph = {};
+    var renderTimer, scrollTimer, attackMatrixTimer, eventgraphTimer;
     var scrollMap;
     var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB
     var $editor, $viewer, $raw
@@ -688,6 +689,7 @@
                 var dataPicture = data[0]['EventGraph']['preview_img']
                 if (dataPicture !== undefined) {
                     $elem.empty().append($('<img />').attr('src', dataPicture))
+                    cache_eventgraph[graphID] = $elem.find('img')[0].outerHTML;
                     return
                 }
             }
@@ -699,6 +701,7 @@
             $elem.empty()
                 .css({'text-align': 'center'})
                 .append($(placeholder))
+            cache_eventgraph[graphID] = $elem.children()[0].outerHTML;
         })
     }
 
@@ -721,6 +724,7 @@
                         $(this).attr('style', 'background-color:' + $(this).css('background-color') + ' !important; color:' + $(this).css('color') + ' !important;');
                     }
                 })
+                cache_matrix[eventid] = $elem.find('#attackmatrix_div')[0].outerHTML;
             },
             error: function(jqXHR, textStatus, errorThrown) {
                 var templateVariables = sanitizeObject({
@@ -804,15 +808,27 @@
     function postRenderingAction() {
         $('.eventgraphPicture[data-scope="eventgraph"]').each(function() {
             var $div = $(this)
-            attachEventgraphPicture($div, $div.data('eventid'), $div.data('elementid'))
+            clearTimeout(eventgraphTimer);
+            $div.append($('<div/>').css('font-size', '24px').append(loadingSpanAnimation))
+            if (cache_eventgraph[$div.data('elementid')] === undefined) {
+                eventgraphTimer = setTimeout(function() {
+                    attachEventgraphPicture($div, $div.data('eventid'), $div.data('elementid'))
+                }, slowDebounceDelay);
+            } else {
+                $div.html(cache_eventgraph[$div.data('elementid')])
+            }
         })
         $('.embeddedAttackMatrix[data-scope="attackmatrix"]').each(function() {
             var $div = $(this)
             clearTimeout(attackMatrixTimer);
             $div.append($('<div/>').css('font-size', '24px').append(loadingSpanAnimation))
-            attackMatrixTimer = setTimeout(function() {
-                attachAttackMatrix($div, $div.data('eventid'))
-            }, slowDebounceDelay);
+            if (cache_matrix[eventid] === undefined) {
+                attackMatrixTimer = setTimeout(function() {
+                    attachAttackMatrix($div, $div.data('eventid'))
+                }, slowDebounceDelay);
+            } else {
+                $div.html(cache_matrix[eventid])
+            }
         })
     }
 
