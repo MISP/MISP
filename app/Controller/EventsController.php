@@ -517,7 +517,6 @@ class EventsController extends AppController
                                         'fields' => array('id', 'name'),
                                         'recursive' => -1,
                                 ));
-
                                 if (empty($tagName)) {
                                     if ($filterString != "") {
                                         $filterString .= "|";
@@ -537,7 +536,7 @@ class EventsController extends AppController
                                         $setOR = true;
                                         $sqlSubQuery .= $a['EventTag']['event_id'] . ',';
                                     }
-                                    $this->paginate['conditions']['AND']['OR'][] = substr($sqlSubQuery, 0, -1) . ')';
+                                    $this->paginate['conditions']['AND'][] = ['OR' => substr($sqlSubQuery, 0, -1) . ')'];
                                 }
                                 if ($filterString != "") {
                                     $filterString .= "|";
@@ -672,6 +671,9 @@ class EventsController extends AppController
         $this->set('passedArgs', json_encode($passedArgs));
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
         $passedArgsArray = $this->__setIndexFilterConditions($passedArgs, $urlparams);
+        debug($passedArgsArray);
+        debug($this->paginate['conditions']);
+        throw new Exception();
         if (!$this->_isRest()) {
             $this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag'));
         } else {
