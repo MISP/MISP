@@ -1,15 +1,20 @@
-<?php echo $this->element('EventReports/markdownViewerHelpModal') ?>
+<?php
+    $insideModal = isset($insideModal) ? $insideModal : false;
+    echo $canEdit ? $this->element('EventReports/markdownViewerHelpModal') : '';
+?>
 
 <div id="mardown-viewer-toolbar" class="btn-toolbar">
     <div class="btn-group">
-        <button type="button" class="btn" data-togglemode="editor" onclick="setMode('editor')">
-            <i class="<?= $this->FontAwesome->getClass('edit') ?> fa-edit"></i>
-            <?= __('Edit') ?>
-        </button>
-        <button type="button" class="btn" data-togglemode="splitscreen" onclick="setMode('splitscreen')">
-            <i class="<?= $this->FontAwesome->getClass('columns') ?> fa-columns"></i>
-            <?= __('Split Screen') ?>
-        </button>
+        <?php if ($canEdit && !$insideModal): ?>
+            <button type="button" class="btn" data-togglemode="editor" onclick="setMode('editor')">
+                <i class="<?= $this->FontAwesome->getClass('edit') ?> fa-edit"></i>
+                <?= __('Edit') ?>
+            </button>
+            <button type="button" class="btn" data-togglemode="splitscreen" onclick="setMode('splitscreen')">
+                <i class="<?= $this->FontAwesome->getClass('columns') ?> fa-columns"></i>
+                <?= __('Split Screen') ?>
+            </button>
+        <?php endif; ?>
         <button type="button" class="btn btn-inverse" data-togglemode="viewer" onclick="setMode('viewer')">
             <i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i>
             <?= __('Markdown') ?>
@@ -20,40 +25,55 @@
         </button>
     </div>
     <div class="btn-group">
-        <button id="saveMarkdownButton" type="button" class="btn btn-primary" onclick="saveMarkdown()">
-            <i class="<?= $this->FontAwesome->getClass('save') ?> fa-save"></i>
-            <?= __('Save') ?>
-        </button>
-        <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
-            <span class="caret"></span>
-        </button>
-        <ul class="dropdown-menu">
-            <li class="dropdown-submenu">
-                <a tabindex="-1" href="#">
-                    <span class="icon"><i class="<?= $this->FontAwesome->getClass('download') ?> fa-download"></i></span>
-                    <?= __('Downloads') ?>
-                </a>
-                <ul class="dropdown-menu">
-                    <li><a tabindex="-1" href="#" onclick="downloadMarkdown('pdf')">
-                        <span class="icon"><i class="<?= $this->FontAwesome->getClass('file-pdf') ?> fa-file-pdf"></i></span>
-                        <?= __('Download PDF (via print)') ?>
-                    </a></li>
-                    <li><a tabindex="-1" href="#" onclick="downloadMarkdown('text')">
-                        <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i></span>
-                        <?= __('Download Markdown') ?>
-                    </a></li>
-                    <li><a tabindex="-1" href="#" title="<?= __('Replace custom syntax by a valid one') ?>" onclick="downloadMarkdown('text-gfm')">
-                        <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i></span>
-                        <?= __('Download GFM simplified format') ?>
-                    </a></li>
-                </ul>
-            </li>
-        </ul>
+        <?php if ($canEdit && !$insideModal): ?>
+            <button id="saveMarkdownButton" type="button" class="btn btn-primary" onclick="saveMarkdown()">
+                <i class="<?= $this->FontAwesome->getClass('save') ?>"></i>
+                <?= __('Save') ?>
+            </button>
+        <?php endif; ?>
+        <?php if (!$insideModal): ?>
+            <button id="saveMarkdownButton" type="button" class="btn btn-primary" onclick="downloadMarkdown('pdf')">
+                <i class="<?= $this->FontAwesome->getClass('file-pdf') ?>" onclick=""></i>
+                <?= __('Download') ?>
+            </button>
+            <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                <li class="dropdown-submenu">
+                    <a tabindex="-1" href="#">
+                        <span class="icon"><i class="<?= $this->FontAwesome->getClass('download') ?> fa-download"></i></span>
+                        <?= __('Downloads') ?>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a tabindex="-1" href="#" onclick="downloadMarkdown('pdf')">
+                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('file-pdf') ?> fa-file-pdf"></i></span>
+                            <?= __('Download PDF (via print)') ?>
+                        </a></li>
+                        <li><a tabindex="-1" href="#" onclick="downloadMarkdown('text')">
+                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i></span>
+                            <?= __('Download Markdown') ?>
+                        </a></li>
+                        <li><a tabindex="-1" href="#" title="<?= __('Replace custom syntax by a valid one') ?>" onclick="downloadMarkdown('text-gfm')">
+                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i></span>
+                            <?= __('Download GFM simplified format') ?>
+                        </a></li>
+                    </ul>
+                </li>
+            </ul>
+        <?php elseif($canEdit): ?>
+            <a id="saveMarkdownButton" type="button" class="btn btn-primary" href="<?= $baseurl . '/eventReports/view/' . $reportid ?>" target="_blank">
+                <i class="<?= $this->FontAwesome->getClass('edit') ?>"></i>
+                <?= __('Edit report') ?>
+            </a>
+        <?php endif; ?>
     </div>
-    <button type="button" class="btn btn-primary" onclick="showHelp()">
-        <i class="<?= $this->FontAwesome->getClass('question-circle') ?> fa-question-circle"></i>
-        <?= __('Help') ?>
-    </button>
+    <?php if ($canEdit && !$insideModal): ?>
+        <button type="button" class="btn btn-primary" onclick="showHelp()">
+            <i class="<?= $this->FontAwesome->getClass('question-circle') ?> fa-question-circle"></i>
+            <?= __('Help') ?>
+        </button>
+    <?php endif; ?>
 </div>
 
 <div class="raw-container">
@@ -119,18 +139,26 @@
             'markdown-it',
             'highlight.min',
             'FileSaver',
-            'codemirror/codemirror',
-            'codemirror/modes/markdown',
-            'codemirror/addons/simplescrollbars',
-            'codemirror/addons/show-hint',
         ),
         'css' => array(
             'highlight.min',
-            'codemirror',
-            'codemirror/simplescrollbars',
-            'codemirror/show-hint',
         )
     ));
+    if ($canEdit) {
+        echo $this->element('genericElements/assetLoader', array(
+            'js' => array(
+                'codemirror/codemirror',
+                'codemirror/modes/markdown',
+                'codemirror/addons/simplescrollbars',
+                'codemirror/addons/show-hint',
+            ),
+            'css' => array(
+                'codemirror',
+                'codemirror/simplescrollbars',
+                'codemirror/show-hint',
+            )
+        ));
+    }
 
     // - Add last modified timestamp & time since last edit
 ?>
@@ -140,6 +168,8 @@
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
     var proxyMISPElements = <?= json_encode(is_array($proxyMISPElements) ? $proxyMISPElements : array($proxyMISPElements), JSON_HEX_TAG); ?>;
     var eventid = '<?= h($eventid) ?>'
+    var reportid = '<?= h($reportid) ?>'
+    var canEdit = <?= $canEdit ? 'true' : 'false' ?>;
     var MISPElementValues = [], MISPElementTypes = [], MISPElementIDs = []
     var modelName = '<?= h($modelName) ?>';
     var mardownModelFieldName = '<?= h($mardownModelFieldName) ?>';
@@ -179,43 +209,50 @@
         $autoRenderMarkdownCB = $('#autoRenderMarkdownCB')
 
         initMarkdownIt()
-        initCodeMirror()
+        if (canEdit) {
+            initCodeMirror()
+        }
         setMode(defaultMode)
-        setEditorData(originalRaw);
+        if (canEdit) {
+            setEditorData(originalRaw);
 
-        $editorContainer.resizable({
-            handles: {
-                e: $resizableHandle
-            },
-            grid: 50,
-            minWidth: 300,
-            maxWidth: window.innerWidth -220 - 300,
-            stop: function() {
-                cm.refresh()
-                scrollMap = null;
-            },
-            helper: 'ui-resizable-helper'
-        })
+            $editorContainer.resizable({
+                handles: {
+                    e: $resizableHandle
+                },
+                grid: 50,
+                minWidth: 300,
+                maxWidth: window.innerWidth -220 - 300,
+                stop: function() {
+                    cm.refresh()
+                    scrollMap = null;
+                },
+                helper: 'ui-resizable-helper'
+            })
+        }
+
         renderMarkdown()
 
-        $editorContainer.on('touchstart mouseover', function () {
-            noEditorScroll = false
-            $viewerContainer.off('scroll');
-            cm.on('scroll', function(event) {
-                if (!noEditorScroll) {
-                    doScroll(syncResultScroll)
-                }
+        if (canEdit) {
+            $editorContainer.on('touchstart mouseover', function () {
+                noEditorScroll = false
+                $viewerContainer.off('scroll');
+                cm.on('scroll', function(event) {
+                    if (!noEditorScroll) {
+                        doScroll(syncResultScroll)
+                    }
+                });
             });
-        });
 
-        $viewerContainer.on('touchstart mouseover', function () {
-            noEditorScroll = true
-            $viewerContainer.on('scroll', function() {
-                doScroll(syncSrcScroll)
+            $viewerContainer.on('touchstart mouseover', function () {
+                noEditorScroll = true
+                $viewerContainer.on('scroll', function() {
+                    doScroll(syncSrcScroll)
+                });
             });
-        });
 
-        buildMISPElementHints()
+            buildMISPElementHints()
+        }
     })
 
     function initMarkdownIt() {
@@ -562,7 +599,7 @@
     }
 
     function getEditorData() {
-        return cm.getValue()
+        return cm !== undefined ? cm.getValue() : originalRaw
     }
 
     function setEditorData(data) {
@@ -1210,6 +1247,9 @@ var syncSrcScroll = function () {
         position: absolute;
         left: 0;
         top: 0;
+    }
+    .misp-element-wrapper.object * {
+        color: white !important;
     }
 }
 

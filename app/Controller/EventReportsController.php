@@ -80,6 +80,8 @@ class EventReportsController extends AppController
         $this->set('ajax', $ajax);
         $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
+        $canEdit = $this->EventReport->canEditReport($this->Auth->user(), $report) === true;
+        $this->set('canEdit', $canEdit);
     }
 
     public function viewSummary($report_id)
@@ -95,6 +97,8 @@ class EventReportsController extends AppController
         $this->set('report', $report);
         $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
+        $canEdit = $this->EventReport->canEditReport($this->Auth->user(), $report) === true;
+        $this->set('canEdit', $canEdit);
     }
 
     public function edit($id)

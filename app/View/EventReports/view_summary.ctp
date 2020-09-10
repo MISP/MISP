@@ -4,11 +4,14 @@
         'content' => array(
             array(
                 'html' => $this->element('EventReports/markdownViewer', array(
+                    'canEdit' => $canEdit,
+                    'insideModal' => true,
                     'markdown' => $report['EventReport']['content'],
                     'proxyMISPElements' => $proxyMISPElements,
                     'modelName' => 'EventReport',
                     'mardownModelFieldName' => 'content',
-                    'eventid' => $report['EventReport']['event_id']
+                    'eventid' => $report['EventReport']['event_id'],
+                    'reportid' => $report['EventReport']['id']
                 ))
             ),
         )
