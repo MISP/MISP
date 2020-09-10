@@ -735,21 +735,27 @@
     function registerListener() {
         $('.misp-element-wrapper').filter('.attribute').popover({
             trigger: 'click',
-            title: getTitleFromMISPElementDOM,
             html: true,
+            container: 'body',
+            placement: 'top',
+            title: getTitleFromMISPElementDOM,
             content: getContentFromMISPElementDOM
         })
         $('.misp-picture-wrapper > img').popover({
             trigger: 'click',
-            title: getTitleFromMISPElementDOM,
             html: true,
+            container: 'body',
+            placement: 'top',
+            title: getTitleFromMISPElementDOM,
             content: getContentFromMISPElementDOM,
             placement: 'top'
         })
         $('.misp-element-wrapper').filter('.object').popover({
             trigger: 'click',
-            title: getTitleFromMISPElementDOM,
             html: true,
+            container: 'body',
+            placement: 'top',
+            title: getTitleFromMISPElementDOM,
             content: getContentFromMISPElementDOM
         })
     }
