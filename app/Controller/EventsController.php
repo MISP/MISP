@@ -671,9 +671,6 @@ class EventsController extends AppController
         $this->set('passedArgs', json_encode($passedArgs));
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
         $passedArgsArray = $this->__setIndexFilterConditions($passedArgs, $urlparams);
-        debug($passedArgsArray);
-        debug($this->paginate['conditions']);
-        throw new Exception();
         if (!$this->_isRest()) {
             $this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag'));
         } else {
