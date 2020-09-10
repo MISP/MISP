@@ -133,7 +133,6 @@
     ));
 
     // - Add last modified timestamp & time since last edit
-    // - Add correlation in table
 ?>
 <script>
     'use strict';
@@ -1376,6 +1375,7 @@ span.misp-element-wrapper {
     background-color: #f5f5f5 !important;
     border-radius: 3px;
     line-height: 24px;
+    white-space: nowrap;
 }
 
 .misp-element-wrapper.attribute .blue:before {
@@ -1413,6 +1413,7 @@ span.misp-element-wrapper {
 .attributePicture > img {
     display: block;
     margin: 0 auto;
+    max-width: 90%;
 }
 
 .CodeMirror-hint-active .blue {

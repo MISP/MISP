@@ -73,45 +73,7 @@ class EventReportsController extends AppController
             throw new NotFoundException(__('Invalid Event Report'));
         }
         $report = $report[0];
-        $event = $this->EventReport->Event->fetchEvent($this->Auth->user(), ['eventid' => $report['EventReport']['event_id']]);
-        if (empty($event)) {
-            throw new NotFoundException(__('Invalid Event'));
-        }
-        $event = $event[0];
-        $objects = [];
-        $templateConditions = [];
-        $recordedConditions = [];
-        foreach ($event['Object'] as $k => $object) {
-            $objects[$object['id']] = $object;
-            $uniqueCondition = sprintf('%s.%s', $object['template_uuid'], $object['template_version']);
-            if (!isset($recordedConditions[$uniqueCondition])) {
-                $templateConditions['OR'][] = [
-                    'ObjectTemplate.uuid' => $object['template_uuid'],
-                    'ObjectTemplate.version' => $object['template_version']
-                ];
-                $recordedConditions[$uniqueCondition] = true;
-            }
-        }
-        $this->loadModel('ObjectTemplate');
-        $templates = $this->ObjectTemplate->find('all', array(
-            'conditions' => $templateConditions,
-            'recursive' => -1,
-            'contain' => array(
-                'ObjectTemplateElement' => [
-                    'order' => ['ui-priority' => 'DESC'],
-                    'fields' => ['object_relation', 'type', 'ui-priority']
-                ]
-            )
-        ));
-        $objectTemplates = [];
-        foreach ($templates as $template) {
-            $objectTemplates[sprintf('%s.%s', $template['ObjectTemplate']['uuid'], $template['ObjectTemplate']['version'])] = $template;
-        }
-        $proxyMISPElements = [
-            'attribute' => Hash::combine($event, 'Attribute.{n}.id', 'Attribute.{n}'),
-            'object' => $objects,
-            'objectTemplates' => $objectTemplates
-        ];
+        $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
         $this->set('proxyMISPElements', $proxyMISPElements);
         $this->set('id', $report_id);
         $this->set('report', $report);
@@ -127,15 +89,7 @@ class EventReportsController extends AppController
             throw new NotFoundException(__('Invalid Event Report'));
         }
         $report = $report[0];
-        $event = $this->EventReport->Event->fetchEvent($this->Auth->user(), ['eventid' => $report['EventReport']['event_id']]);
-        if (empty($event)) {
-            throw new NotFoundException(__('Invalid Event'));
-        }
-        $event = $event[0];
-        $proxyMISPElements = [
-            'attribute' => Hash::combine($event, 'Attribute.{n}.id', 'Attribute.{n}'),
-            'object' => Hash::combine($event, 'Object.{n}.id', 'Object.{n}'),
-        ];
+        $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
         $this->set('proxyMISPElements', $proxyMISPElements);
         $this->set('id', $report_id);
         $this->set('report', $report);
