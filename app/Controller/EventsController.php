@@ -634,10 +634,6 @@ class EventsController extends AppController
                 $passedArgsArray[$searchTerm] = $v;
             }
         }
-        debug($this->paginate);
-
-                                        debug($tagName);
-                                        throw new Exception();
         return $passedArgsArray;
     }
 
