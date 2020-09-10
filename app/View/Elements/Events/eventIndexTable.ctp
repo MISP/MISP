@@ -267,7 +267,7 @@
         var url = '<?= $baseurl ?>/events/delete/' + id
         if (confirm(message)) {
             fetchFormDataAjax(url, function(formData) {
-                $('body').append($('<div id="temp"/>').html(formData));
+                $('body').append($('<div id="temp" class="hidden"/>').html(formData));
                 $('#temp form').submit()
             })
         }
