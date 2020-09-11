@@ -8,6 +8,10 @@ App::uses('Xml', 'Utility');
  */
 class EventsController extends AppController
 {
+    const DELETED_EXCLUDE = 2,
+        DELETED_ONLY = 1,
+        DELETED_BOTH = 0;
+
     public $components = array(
             'Security',
             'Email',
@@ -41,7 +45,7 @@ class EventsController extends AppController
         'proposal' => 0,
         'correlation' => 0,
         'warning' => 0,
-        'deleted' => 2,
+        'deleted' => self::DELETED_EXCLUDE,
         'includeRelatedTags' => 0,
         'includeDecayScore' => 0,
         'toIDS' => 0,
@@ -1058,9 +1062,9 @@ class EventsController extends AppController
         }
         if (isset($filters['deleted'])) {
             $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : [0, 1];
-            if ($filters['deleted'] == 2) { // not-deleted only
+            if ($filters['deleted'] == self::DELETED_EXCLUDE) { // not-deleted only
                 $conditions['deleted'] = 0;
-            } elseif ($filters['deleted'] == 1) { // deleted only
+            } elseif ($filters['deleted'] == self::DELETED_ONLY) { // deleted only
                 $conditions['deleted'] = 1;
             } else { // both
                 $conditions['deleted'] = [0, 1];
@@ -1527,21 +1531,27 @@ class EventsController extends AppController
         } else {
             $conditions['includeAllTags'] = true;
         }
-        $deleted = 0;
+
+        $deleted = self::DELETED_EXCLUDE;
         if (isset($this->params['named']['deleted'])) {
             $deleted = $this->params['named']['deleted'];
         }
         if (isset($this->request->data['deleted'])) {
             $deleted = $this->request->data['deleted'];
         }
-        if (isset($deleted)) {
-            // workaround for old instances trying to pull events with both deleted / non deleted data
-            if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
-                $conditions['deleted'] = array(0, 1);
+        // workaround for old instances trying to pull events with both deleted / non deleted data
+        if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == self::DELETED_ONLY) {
+            $conditions['deleted'] = array(0, 1);
+        } else {
+            if ($deleted == self::DELETED_EXCLUDE) {
+                $conditions['deleted'] = 0;
+            } else if ($deleted == self::DELETED_ONLY) {
+                $conditions['deleted'] = 1;
             } else {
-                $conditions['deleted'] = $deleted == 2 ? array(0, 1) : $deleted;
+                $conditions['deleted'] = [0, 1];
             }
         }
+
         if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
             $conditions['to_ids'] = $this->params['named']['toIDS'] == 2 ? 0 : 1;
         }
@@ -1622,7 +1632,7 @@ class EventsController extends AppController
         if ($this->_isRest()) {
             $this->set('event', $event);
         } else {
-            $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
+            $this->set('deleted', $deleted == self::DELETED_BOTH);
             $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
             $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
 
