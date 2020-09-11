@@ -2889,21 +2889,32 @@ class Server extends AppModel
         return $eventUuids;
     }
 
-    public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $user)
+    /**
+     * @param int $id Server ID
+     * @param string|int $technique Can be 'full', 'incremental' or event ID
+     * @param int|false $jobId
+     * @param HttpSocket $HttpSocket
+     * @param array $user
+     * @return array|bool
+     * @throws Exception
+     */
+    public function push($id, $technique, $jobId = false, $HttpSocket, array $user)
     {
         if ($jobId) {
             $job = ClassRegistry::init('Job');
-            $job->read(null, $jobId);
+        }
+        $server = $this->find('first', ['conditions' => ['Server.id' => $id]]);
+        if (!$server) {
+            throw new NotFoundException('Server not found');
         }
         $this->Event = ClassRegistry::init('Event');
-        $this->read(null, $id);
-        $url = $this->data['Server']['url'];
+        $url = $server['Server']['url'];
         $push = $this->checkVersionCompatibility($id, $user);
         if (is_array($push) && !$push['canPush'] && !$push['canSight']) {
             $push = 'Remote instance is outdated or no permission to push.';
         }
         if (!is_array($push)) {
-            $message = sprintf('Push to server %s failed. Reason: %s', $id, $push);
+            $message = __('Push to server %s failed. Reason: %s', $id, $push);
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
@@ -2929,7 +2940,7 @@ class Server extends AppModel
                 $eventid_conditions_value = 0;
             } elseif ("incremental" == $technique) {
                 $eventid_conditions_key = 'Event.id >';
-                $eventid_conditions_value = $this->data['Server']['lastpushedid'];
+                $eventid_conditions_value = $server['Server']['lastpushedid'];
             } elseif (intval($technique) !== 0) {
                 $eventid_conditions_key = 'Event.id';
                 $eventid_conditions_value = intval($technique);
@@ -2941,8 +2952,8 @@ class Server extends AppModel
                 'contain' => array('Organisation', 'SharingGroupOrg' => array('Organisation'), 'SharingGroupServer')
             ));
             $sgIds = array();
-            foreach ($sgs as $k => $sg) {
-                if ($this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
+            foreach ($sgs as $sg) {
+                if ($this->Event->SharingGroup->checkIfServerInSG($sg, $server)) {
                     $sgIds[] = $sg['SharingGroup']['id'];
                 }
             }
@@ -2975,62 +2986,56 @@ class Server extends AppModel
             );
             $eventIds = $this->Event->find('all', $findParams);
             $eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
-            if ($eventUUIDsFiltered === false || empty($eventUUIDsFiltered)) {
-                $pushFailed = true;
-            }
             if (!empty($eventUUIDsFiltered)) {
                 $eventCount = count($eventUUIDsFiltered);
                 // now process the $eventIds to push each of the events sequentially
-                if (!empty($eventUUIDsFiltered)) {
-                    $successes = array();
-                    $fails = array();
-                    $lowestfailedid = null;
-                    foreach ($eventUUIDsFiltered as $k => $eventUuid) {
-                        $params = array();
-                        if (!empty($this->data['Server']['push_rules'])) {
-                            $push_rules = json_decode($this->data['Server']['push_rules'], true);
-                            if (!empty($push_rules['tags']['NOT'])) {
-                                $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
-                            }
-                        }
-                        $params = array_merge($params, array(
-                            'event_uuid' => $eventUuid,
-                            'includeAttachments' => true,
-                            'includeAllTags' => true,
-                            'deleted' => array(0,1),
-                            'excludeGalaxy' => 1
-                        ));
-                        $event = $this->Event->fetchEvent($user, $params);
-                        $event = $event[0];
-                        $event['Event']['locked'] = 1;
-                        $result = $this->Event->uploadEventToServer($event, $this->data, $HttpSocket);
-                        if ('Success' === $result) {
-                            $successes[] = $event['Event']['id'];
-                        } else {
-                            $fails[$event['Event']['id']] = $result;
-                        }
-                        if ($jobId && $k%10 == 0) {
-                            $job->saveField('progress', 100 * $k / $eventCount);
+                $successes = array();
+                $fails = array();
+                foreach ($eventUUIDsFiltered as $k => $eventUuid) {
+                    $params = array();
+                    if (!empty($server['Server']['push_rules'])) {
+                        $push_rules = json_decode($server['Server']['push_rules'], true);
+                        if (!empty($push_rules['tags']['NOT'])) {
+                            $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
                         }
                     }
-                    if (count($fails) > 0) {
-                        // there are fails, take the lowest fail
-                        $lastpushedid = min(array_keys($fails));
+                    $params = array_merge($params, array(
+                        'event_uuid' => $eventUuid,
+                        'includeAttachments' => true,
+                        'includeAllTags' => true,
+                        'deleted' => array(0,1),
+                        'excludeGalaxy' => 1
+                    ));
+                    $event = $this->Event->fetchEvent($user, $params);
+                    $event = $event[0];
+                    $event['Event']['locked'] = 1;
+                    $result = $this->Event->uploadEventToServer($event, $server, $HttpSocket);
+                    if ('Success' === $result) {
+                        $successes[] = $event['Event']['id'];
                     } else {
-                        // no fails, take the highest success
-                        $lastpushedid = max($successes);
+                        $fails[$event['Event']['id']] = $result;
                     }
-                    // increment lastid based on the highest ID seen
-                    // Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
-                    $this->data['Server']['lastpushedid'] = $lastpushedid;
-                    $this->save($this->data);
+                    if ($jobId && $k % 10 == 0) {
+                        $job->saveProgress($jobId, null, 100 * $k / $eventCount);
+                    }
                 }
+                if (count($fails) > 0) {
+                    // there are fails, take the lowest fail
+                    $lastpushedid = min(array_keys($fails));
+                } else {
+                    // no fails, take the highest success
+                    $lastpushedid = max($successes);
+                }
+                // increment lastid based on the highest ID seen
+                // Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
+                $server['Server']['lastpushedid'] = $lastpushedid;
+                $this->save($server);
             }
-            $this->syncProposals($HttpSocket, $this->data, null, null, $this->Event);
+            $this->syncProposals($HttpSocket, $server, null, null, $this->Event);
         }
 
         if ($push['canPush'] || $push['canSight']) {
-            $sightingSuccesses = $this->syncSightings($HttpSocket, $this->data, $user, $this->Event);
+            $sightingSuccesses = $this->syncSightings($HttpSocket, $server, $user, $this->Event);
         } else {
             $sightingSuccesses = array();
         }
@@ -3118,7 +3123,7 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel)
+    public function syncProposals($HttpSocket, array $server, $sa_id = null, $event_id = null, $eventModel)
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
