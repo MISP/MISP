@@ -2335,7 +2335,7 @@ class Event extends AppModel
                     $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
                 }
             }
-            if (empty($options['metadata'])) {
+            if (empty($options['metadata']) && empty($options['noSightings'])) {
                 $this->Sighting = ClassRegistry::init('Sighting');
                 $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
             }

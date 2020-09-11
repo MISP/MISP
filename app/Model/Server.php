@@ -2933,8 +2933,8 @@ class Server extends AppModel
             return $push;
         }
 
-        // sync events if user is capable
-        if ($push['canPush']) {
+        // sync events if user is capable and server is configured for push
+        if ($push['canPush'] && $server['Server']['push']) {
             if ("full" == $technique) {
                 $eventid_conditions_key = 'Event.id >';
                 $eventid_conditions_value = 0;
@@ -3006,6 +3006,11 @@ class Server extends AppModel
                         'deleted' => array(0,1),
                         'excludeGalaxy' => 1
                     ));
+                    if (empty($server['Server']['push_sightings'])) {
+                        $params = array_merge($params, array(
+                            'noSightings' => 1
+                        ));
+                    }
                     $event = $this->Event->fetchEvent($user, $params);
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
