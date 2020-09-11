@@ -1624,11 +1624,11 @@ class EventsController extends AppController
 
         if ($this->_isRest()) {
             $this->set('event', $event);
-        }
-        $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
-        $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
-        $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
-        if (!$this->_isRest()) {
+        } else {
+            $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
+            $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
+            $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
+
             if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
                 $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
             }
