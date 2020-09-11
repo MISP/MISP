@@ -1537,7 +1537,7 @@ class EventsController extends AppController
         if (isset($deleted)) {
             // workaround for old instances trying to pull events with both deleted / non deleted data
             if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
-                $conditions['deleted'] = array(0,1);
+                $conditions['deleted'] = array(0, 1);
             } else {
                 $conditions['deleted'] = $deleted == 2 ? array(0, 1) : $deleted;
             }
@@ -1585,32 +1585,32 @@ class EventsController extends AppController
             $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
         }
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
+        if (empty($results)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $event = $results[0];
+
         if (!empty($this->params['named']['includeGranularCorrelations'])) {
-            foreach ($results as $k => $event) {
-                if (!empty($event['RelatedAttribute'])) {
-                    foreach ($event['RelatedAttribute'] as $attribute_id => $relation) {
-                        foreach ($event['Attribute'] as $k2 => $attribute) {
-                            if ((int)$attribute['id'] == $attribute_id) {
-                                $results[$k]['Attribute'][$k2]['RelatedAttribute'][] = $relation;
-                                break 2;
-                            }
+            if (!empty($event['RelatedAttribute'])) {
+                foreach ($event['RelatedAttribute'] as $attribute_id => $relation) {
+                    foreach ($event['Attribute'] as $k2 => $attribute) {
+                        if ((int)$attribute['id'] == $attribute_id) {
+                            $event['Attribute'][$k2]['RelatedAttribute'][] = $relation;
+                            break 2;
                         }
-                        foreach ($event['Object'] as $k2 => $object) {
-                            foreach ($object['Attribute'] as $k3 => $attribute) {
-                                if ((int)$attribute['id'] == $attribute_id) {
-                                    $results[$k]['Object'][$k2]['Attribute'][$k3]['RelatedAttribute'][] = $relation;
-                                    break 3;
-                                }
+                    }
+                    foreach ($event['Object'] as $k2 => $object) {
+                        foreach ($object['Attribute'] as $k3 => $attribute) {
+                            if ((int)$attribute['id'] == $attribute_id) {
+                                $event['Object'][$k2]['Attribute'][$k3]['RelatedAttribute'][] = $relation;
+                                break 3;
                             }
                         }
                     }
                 }
             }
         }
-        if (empty($results)) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-        $event = $results[0];
+
         $this->Event->id = $event['Event']['id'];
         if (isset($this->params['named']['searchFor']) && $this->params['named']['searchFor'] !== '') {
             $this->__applyQueryString($event, $this->params['named']['searchFor']);
