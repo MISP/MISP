@@ -1577,10 +1577,7 @@ class EventsController extends AppController
             $conditions['includeGranularCorrelations'] = 1;
         }
         if (!isset($this->params['named']['includeServerCorrelations'])) {
-            $conditions['includeServerCorrelations'] = 1;
-            if ($this->_isRest()) {
-                $conditions['includeServerCorrelations'] = 0;
-            }
+            $conditions['includeServerCorrelations'] = $this->_isRest() ? 0 : 1;
         } else {
             $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
         }
