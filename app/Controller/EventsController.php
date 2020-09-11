@@ -1539,7 +1539,7 @@ class EventsController extends AppController
             if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
                 $conditions['deleted'] = array(0,1);
             } else {
-                $conditions['deleted'] = $deleted == 2 ? array(0,1) : $deleted;
+                $conditions['deleted'] = $deleted == 2 ? array(0, 1) : $deleted;
             }
         }
         if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
