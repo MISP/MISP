@@ -4276,7 +4276,7 @@ class Event extends AppModel
                             'perm_site_admin' => 0
                         )
                     );
-                    $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser);
+                    $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, false, true);
                     if (!empty($sightings)) {
                         $thisUploaded = $this->uploadSightingsToServer($sightings, $server, $event['Event']['uuid'], $HttpSocket);
                     } else {

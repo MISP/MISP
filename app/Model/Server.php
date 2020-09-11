@@ -2057,6 +2057,15 @@ class Server extends AppModel
                             'test' => 'testBool',
                             'type' => 'boolean',
                         ),
+                        'Sightings_anonymise_as' => array(
+                                'level' => 1,
+                                'description' => __('When pushing sightings to another server, report all sightings from this instance as this orignisation. This effectively hides all sightings from this instance behind a single organisation to the outside world. Sightings pulled from this instance follow the Sightings_policy above.'),
+                                'value' => '0',
+                                'errorMessage' => '',
+                                'test' => 'testLocalOrg',
+                                'type' => 'numeric',
+                                'optionsSource' => 'LocalOrgs',
+                        ),
                         'Sightings_range' => array(
                             'level' => 1,
                             'description' => __('Set the range in which sightings will be taken into account when generating graphs. For example a sighting with a sighted_date of 7 years ago might not be relevant anymore. Setting given in number of days, default is 365 days'),
@@ -3113,7 +3122,7 @@ class Server extends AppModel
             $event = $eventModel->fetchEvent($user, $options = array('event_uuid' => $eventId, 'metadata' => true));
             if (!empty($event)) {
                 $event = $event[0];
-                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user, null, false, true);
                 $result = $eventModel->uploadEventToServer($event, $server, $HttpSocket, 'sightings');
                 if ($result === 'Success') {
                     $successes[] = 'Sightings for event ' .  $event['Event']['id'];
