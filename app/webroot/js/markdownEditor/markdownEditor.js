@@ -207,7 +207,7 @@ function saveMarkdown() {
     if (!confirm(saveConfirmMessage)) {
         return
     }
-    var url = "<?= $baseurl ?>/eventReports/edit/<?= h($id) ?>"
+    var url = baseurl + "/eventReports/edit/" + reportid
     fetchFormDataAjax(url, function(formHTML) {
         $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
         var $tmpForm = $('#temp form')

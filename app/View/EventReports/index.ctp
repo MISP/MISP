@@ -70,7 +70,8 @@
                     'url_params_data_paths' => array(
                         'EventReport.id'
                     ),
-                    'icon' => 'eye'
+                    'icon' => 'eye',
+                    'dbclickAction' => true
                 ),
                 array(
                     'url' => '/eventReports/edit',
