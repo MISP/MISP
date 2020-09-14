@@ -99,8 +99,7 @@
             </div>
             <textarea id="editor"></textarea>
             <div id="bottom-bar" class="editor-action-bar">
-                <span id="lastModifiedField">
-                    <?= isset($lastModified) ? h($lastModified) : '' ?>
+                <span id="lastModifiedField" title="<?= __('Last updated') ?>">
                 </span>
                 <span>
                     <span title="<?= __('Toggle autocompletion while typing'); ?>">
@@ -146,6 +145,7 @@
     if ($canEdit) {
         echo $this->element('genericElements/assetLoader', array(
             'js' => array(
+                'moment-with-locales',
                 'codemirror/codemirror',
                 'codemirror/modes/markdown',
                 'codemirror/addons/simplescrollbars',
@@ -171,10 +171,12 @@
     var proxyMISPElements = <?= json_encode(is_array($proxyMISPElements) ? $proxyMISPElements : array($proxyMISPElements), JSON_HEX_TAG); ?>;
     var eventid = '<?= !isset($eventid) ? '' : h($eventid) ?>'
     var reportid = '<?= h($reportid) ?>'
+    var lastModified = '<?= h($lastModified) ?>' + '000'
     var canEdit = <?= $canEdit ? 'true' : 'false' ?>;
     var invalidMessage = '<?= __('invalid scope or id') ?>'
     var saveConfirmMessage = '<?= __('You are about to save the document. Do you wish to proceed?') ?>'
     var saveSuccessMessage = '<?= 'Markdown saved' ?>'
     var saveFailedMessage = '<?= 'Could not save markdown. Reason' ?>'
     var savePDFConfirmMessage = '<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`.') ?>'
+    var confirmationMessageUnsavedChanges = '<?= __('You are about to leave the page with unsaved changes. Do you want to proceed?') ?>'
 </script>

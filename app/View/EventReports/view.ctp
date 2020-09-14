@@ -21,7 +21,7 @@
         )
     );
 
-    $table_data[] = array('key' => __('Timestamp'), 'value' => $report['EventReport']['timestamp']);
+    $table_data[] = array('key' => __('Timestamp'), 'value' => date('Y-m-d H:i:s', $report['EventReport']['timestamp']));
     $table_data[] = array('key' => __('Deleted'), 'value' => $report['EventReport']['deleted'] ? __('Yes') : __('No'));
 ?>
 
@@ -42,6 +42,7 @@
                     'mardownModelFieldName' => 'content',
                     'eventid' => $report['EventReport']['event_id'],
                     'reportid' => $report['EventReport']['id'],
+                    'lastModified' => $report['EventReport']['timestamp'],
                     'webDependencies' => array('js' => array('markdownEditor/event-report'), 'css' => array('markdownEditor/event-report')),
                     'helpModal' => 'EventReports/markdownEditorHelpModal'
                 ));

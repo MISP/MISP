@@ -4,7 +4,7 @@ var debounceDelay = 50, slowDebounceDelay = 3000;
 var cache_matrix = {}, cache_eventgraph = {};
 var renderTimer, scrollTimer, attackMatrixTimer, eventgraphTimer;
 var scrollMap;
-var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar
+var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField
 var $editor, $viewer, $raw
 var $saveMarkdownButton, $mardownViewerToolbar
 var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
@@ -29,10 +29,12 @@ $(document).ready(function() {
     $syncScrollCB = $('#syncScrollCB')
     $autoRenderMarkdownCB = $('#autoRenderMarkdownCB')
     $topBar = $('#top-bar')
+    $lastModifiedField = $('#lastModifiedField')
 
     initMarkdownIt()
     if (canEdit) {
         initCodeMirror()
+        toggleSaveButton(false)
     }
     setMode(defaultMode)
     if (canEdit) {
@@ -79,6 +81,15 @@ $(document).ready(function() {
         if (typeof insertCustomToolbarButtons === 'function') {
             insertCustomToolbarButtons()
         }
+
+        refreshLastUpdatedField()
+        $(window).bind('beforeunload', function(e){
+            if (!contentChanged) {
+                return undefined;
+            }
+            (e || window.event).returnValue = confirmationMessageUnsavedChanges; //Gecko + IE
+            return confirmationMessageUnsavedChanges; //Gecko + Webkit, Safari, Chrome etc.
+        })
     }
 })
 
@@ -130,8 +141,10 @@ function initCodeMirror() {
         cmOptions['hintOptions']['hint'] = cmCustomHints
     }
     cm = CodeMirror.fromTextArea($editor[0], cmOptions);
-    cm.on('changes', function() {
-        doRender();
+    cm.on('changes', function(cm, event) {
+        if (event[0].origin !== 'setValue') {
+            invalidateContentCache()
+        }
     })
     cm.on("keyup", function (cm, event) {
         if (!cm.state.completionActive && /*Enables keyboard navigation in autocomplete list*/
@@ -140,6 +153,36 @@ function initCodeMirror() {
             cm.showHint()
         }
     });
+}
+
+function toggleSaveButton(enabled) {
+    $saveMarkdownButton
+        .prop('disabled', !enabled)
+}
+
+function toggleLoadingInSaveButton(saving) {
+    toggleSaveButton(!saving)
+    if (saving) {
+        $saveMarkdownButton.append(loadingSpanAnimation);
+    } else {
+        $saveMarkdownButton.find('#loadingSpan').remove();
+    }
+}
+
+function invalidateContentCache() {
+    contentChanged = true
+    toggleSaveButton(true)
+    $lastModifiedField.addClass('text-error')
+}
+
+function revalidateContentCache() {
+    contentChanged = false
+    toggleSaveButton(false)
+    $lastModifiedField.removeClass('text-error')
+}
+
+function refreshLastUpdatedField() {
+    $lastModifiedField.text(moment(parseInt(lastModified)).fromNow())
 }
 
 function sanitizeObject(obj) {
@@ -217,22 +260,27 @@ function saveMarkdown() {
         $.ajax({
             data: $tmpForm.serialize(),
             beforeSend: function() {
-                $saveMarkdownButton
-                    .prop('disabled', true)
-                    .append(loadingSpanAnimation);
+                toggleLoadingInSaveButton(true)
                 $editor.prop('disabled', true);
             },
-            success:function(data, textStatus) {
+            success:function(report, textStatus) {
                 showMessage('success', saveSuccessMessage);
+                if (report) {
+                    report = JSON.parse(report)
+                    if (report[0].EventReport !== undefined) {
+                        lastModified = report[0].EventReport.timestamp + '000'
+                        refreshLastUpdatedField()
+                        originalRaw = report[0].EventReport.content
+                        revalidateContentCache()
+                    }
+                }
             },
             error: function(jqXHR, textStatus, errorThrown) {
                 showMessage('fail', saveFailedMessage + ': ' + errorThrown);
             },
             complete:function() {
                 $('#temp').remove();
-                $saveMarkdownButton
-                    .prop('disabled', false)
-                    .find('#loadingSpan').remove();
+                toggleLoadingInSaveButton(false)
                 $editor.prop('disabled', false);
             },
             type:"post",

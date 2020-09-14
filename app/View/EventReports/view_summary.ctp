@@ -12,6 +12,7 @@
                     'mardownModelFieldName' => 'content',
                     'eventid' => $report['EventReport']['event_id'],
                     'reportid' => $report['EventReport']['id'],
+                    'lastModified' => $report['EventReport']['timestamp'],
                     'webDependencies' => array('js' => array('markdownEditor/event-report'), 'css' => array('event-report')),
                     'helpModal' => 'EventReports/markdownEditorHelpModal'
                 ))

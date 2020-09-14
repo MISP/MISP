@@ -111,10 +111,20 @@ class EventReportsController extends AppController
             $report['EventReport']['id'] = $id;
             $errors = $this->EventReport->editReport($this->Auth->user(), $report);
             if (!empty($errors)) {
-                $flashErrorMessage = implode(', ', $errors);
-                $this->Flash->error($flashErrorMessage);
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+                    return $this->RestResponse->viewData($report, $this->response->type());
+                } else {
+                    $flashErrorMessage = implode(', ', $errors);
+                    $this->Flash->error($flashErrorMessage);
+                }
             } else {
-                $this->redirect(array('controller' => 'eventReports', 'action' => 'view', $id));
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+                    return $this->RestResponse->viewData($report, $this->response->type());
+                } else {
+                    $this->redirect(array('controller' => 'eventReports', 'action' => 'view', $id));
+                }
             }
         } else {
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
