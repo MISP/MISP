@@ -128,6 +128,24 @@
     </div>
 </div>
 
+<script>
+    'use strict';
+    var md, cm;
+    var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
+    var proxyMISPElements = <?= json_encode(is_array($proxyMISPElements) ? $proxyMISPElements : array($proxyMISPElements), JSON_HEX_TAG); ?>;
+    var eventid = '<?= !isset($eventid) ? '' : h($eventid) ?>'
+    var reportid = '<?= h($reportid) ?>'
+    var lastModified = '<?= h($lastModified) ?>' + '000'
+    var canEdit = <?= $canEdit ? 'true' : 'false' ?>;
+    var invalidMessage = '<?= __('invalid scope or id') ?>'
+    var saveConfirmMessage = '<?= __('You are about to save the document. Do you wish to proceed?') ?>'
+    var saveSuccessMessage = '<?= 'Markdown saved' ?>'
+    var saveFailedMessage = '<?= 'Could not save markdown. Reason' ?>'
+    var savePDFConfirmMessage = '<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`.') ?>'
+    var confirmationMessageUnsavedChanges = '<?= __('You are about to leave the page with unsaved changes. Do you want to proceed?') ?>'
+    var changeDetectedMessage = '<?= __('Unsaved changes') ?>'
+</script>
+
 <?php
     echo $this->element('genericElements/assetLoader', array(
         'js' => array(
@@ -135,11 +153,9 @@
             'markdown-it',
             'highlight.min',
             'FileSaver',
-            'markdownEditor/markdownEditor'
         ),
         'css' => array(
             'highlight.min',
-            'markdownEditor/markdownEditor'
         )
     ));
     if ($canEdit) {
@@ -161,23 +177,8 @@
     if (!empty($webDependencies)) {
         echo $this->element('genericElements/assetLoader', $webDependencies);
     }
-
-    // - Add last modified timestamp & time since last edit
+    echo $this->element('genericElements/assetLoader', array(
+        'js' => array('markdownEditor/markdownEditor'),
+        'css' => array('markdownEditor/markdownEditor')
+    ));
 ?>
-<script>
-    'use strict';
-    var md, cm;
-    var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
-    var proxyMISPElements = <?= json_encode(is_array($proxyMISPElements) ? $proxyMISPElements : array($proxyMISPElements), JSON_HEX_TAG); ?>;
-    var eventid = '<?= !isset($eventid) ? '' : h($eventid) ?>'
-    var reportid = '<?= h($reportid) ?>'
-    var lastModified = '<?= h($lastModified) ?>' + '000'
-    var canEdit = <?= $canEdit ? 'true' : 'false' ?>;
-    var invalidMessage = '<?= __('invalid scope or id') ?>'
-    var saveConfirmMessage = '<?= __('You are about to save the document. Do you wish to proceed?') ?>'
-    var saveSuccessMessage = '<?= 'Markdown saved' ?>'
-    var saveFailedMessage = '<?= 'Could not save markdown. Reason' ?>'
-    var savePDFConfirmMessage = '<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`.') ?>'
-    var confirmationMessageUnsavedChanges = '<?= __('You are about to leave the page with unsaved changes. Do you want to proceed?') ?>'
-    var changeDetectedMessage = '<?= __('Unsaved changes') ?>'
-</script>

@@ -55,3 +55,7 @@ span.misp-element-wrapper {
 .CodeMirror-hint-active .blue {
     color: white !important;
 }
+
+.popover {
+    z-index: 1060;
+}
