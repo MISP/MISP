@@ -247,8 +247,20 @@ function MISPElementRule(state, startLine, endLine, silent) {
         start = pos;
         res = state.md.helpers.parseLinkDestination(state.src, pos, state.posMax);
         if (res.ok) {
-            elementID = res.str.substring(1, res.str.length-1);
-            pos = res.pos-1;
+            // parseLinkDestination does not support trailing characters such as `.` after the link
+            // so we have to find the matching `)`
+            var destinationEnd = res.str.length - 1
+            var traillingCharNumber = 0
+            for (var i = res.str.length-1; i > 1; i--) {
+                var code = res.str.charCodeAt(i)
+                if (code === 0x29 /* ) */) {
+                    destinationEnd = i
+                    break
+                }
+                traillingCharNumber++
+            }
+            elementID = res.str.substring(1, destinationEnd);
+            pos = res.pos - 1 - traillingCharNumber;
         }
     }
 
