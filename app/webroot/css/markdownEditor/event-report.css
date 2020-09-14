@@ -1,0 +1,57 @@
+@media print {
+    .misp-element-wrapper.object * {
+        color: white !important;
+    }
+}
+
+span.misp-element-wrapper {
+    padding: 2px 3px;
+    margin: 3px 3px;
+    border: 1px solid #ddd !important;
+    background-color: #f5f5f5 !important;
+    border-radius: 3px;
+    line-height: 24px;
+    white-space: nowrap;
+}
+
+.misp-element-wrapper.attribute .blue:before {
+    content: ' ';
+    border-right: 1px solid #d2d2d2;
+    margin: 4px;
+}
+.misp-element-wrapper.attribute .blue {
+    max-width: 300px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: table-cell;
+}
+
+.misp-element-wrapper.object {
+    border: 0 !important;
+    background-color: #3465a4 !important;
+    color: #ffffff !important;
+}
+
+.misp-element-wrapper.object .value:before {
+    content: ' ';
+    border-right: 1px solid #d2d2d2;
+    margin: 4px;
+}
+.misp-element-wrapper.object .value {
+    max-width: 300px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: table-cell;
+}
+
+.attributePicture > img {
+    display: block;
+    margin: 0 auto;
+    max-width: 90%;
+}
+
+.CodeMirror-hint-active .blue {
+    color: white !important;
+}

@@ -36,12 +36,14 @@
                 <?= __('Event Report content') ?>
             </h4>
             <?php 
-                echo $this->element('EventReports/markdownViewer', array(
+                echo $this->element('EventReports/markdownEditor', array(
                     'markdown' => $report['EventReport']['content'],
                     'modelName' => 'EventReport',
                     'mardownModelFieldName' => 'content',
                     'eventid' => $report['EventReport']['event_id'],
-                    'reportid' => $report['EventReport']['id']
+                    'reportid' => $report['EventReport']['id'],
+                    'webDependencies' => array('js' => array('event-report'), 'css' => array('event-report')),
+                    'helpModal' => 'EventReports/markdownEditorHelpModal'
                 ));
             ?>
         </div>
