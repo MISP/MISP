@@ -1,6 +1,6 @@
 'use strict';
 
-var debounceDelay = 50, slowDebounceDelay = 3000;
+var debounceDelay = 150, slowDebounceDelay = 3000;
 var cache_matrix = {}, cache_eventgraph = {};
 var renderTimer, scrollTimer, attackMatrixTimer, eventgraphTimer;
 var scrollMap;
@@ -55,7 +55,7 @@ $(document).ready(function() {
         })
     }
 
-    renderMarkdown()
+    doRender()
 
     if (canEdit) {
         $editorContainer.on('touchstart mouseover', function () {
@@ -145,6 +145,7 @@ function initCodeMirror() {
         if (event[0].origin !== 'setValue') {
             invalidateContentCache()
         }
+        doRender();
     })
     cm.on("keyup", function (cm, event) {
         if (!cm.state.completionActive && /*Enables keyboard navigation in autocomplete list*/
