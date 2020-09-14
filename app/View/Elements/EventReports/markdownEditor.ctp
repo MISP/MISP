@@ -99,7 +99,7 @@
             </div>
             <textarea id="editor"></textarea>
             <div id="bottom-bar" class="editor-action-bar">
-                <span id="lastModifiedField" title="<?= __('Last updated') ?>">
+                <span id="lastModifiedField" title="<?= __('Last updated') ?>" class="label">
                 </span>
                 <span>
                     <span title="<?= __('Toggle autocompletion while typing'); ?>">
@@ -108,7 +108,7 @@
                     </span>
                 </span>
                 <span>
-                    <span title="<?= __('Synchronize the scrolling'); ?>">
+                    <span title="<?= __('Synchronize scrolling'); ?>">
                         <input type="checkbox" id="syncScrollCB" style="margin: 0 2px 0 0" checked="checked"></input>
                         <span class="<?= $this->FontAwesome->getClass('link') ?> useCursorPointer icon" onclick="$syncScrollCB[0].checked = !$syncScrollCB[0].checked"></span>
                     </span>
@@ -179,4 +179,5 @@
     var saveFailedMessage = '<?= 'Could not save markdown. Reason' ?>'
     var savePDFConfirmMessage = '<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`.') ?>'
     var confirmationMessageUnsavedChanges = '<?= __('You are about to leave the page with unsaved changes. Do you want to proceed?') ?>'
+    var changeDetectedMessage = '<?= __('Unsaved changes') ?>'
 </script>

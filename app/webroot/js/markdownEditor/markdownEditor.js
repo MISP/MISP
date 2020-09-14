@@ -172,13 +172,13 @@ function toggleLoadingInSaveButton(saving) {
 function invalidateContentCache() {
     contentChanged = true
     toggleSaveButton(true)
-    $lastModifiedField.addClass('text-error')
+    $lastModifiedField.addClass('label-important').text(changeDetectedMessage)
 }
 
 function revalidateContentCache() {
     contentChanged = false
     toggleSaveButton(false)
-    $lastModifiedField.removeClass('text-error')
+    $lastModifiedField.removeClass('label-important')
 }
 
 function refreshLastUpdatedField() {

@@ -130,6 +130,10 @@
     background-color: #d0d0d0;
 }
 
+#lastModifiedField {
+    border-radius: 0;
+}
+
 .dropdown-menu li .icon {
     width: 20px;
     display: inline-block;
