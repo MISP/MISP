@@ -601,6 +601,10 @@ class Event extends AppModel
             $this->data['Event']['timestamp'] = $date->getTimestamp();
         }
 
+        if (isset($this->data['Event']['publish_timestamp']) && empty($this->data['Event']['publish_timestamp'])) {
+            $this->data['Event']['publish_timestamp'] = 0;
+        }
+
         if (empty($this->data['Event']['date'])) {
             $this->data['Event']['date'] = date('Y-m-d');
         }
