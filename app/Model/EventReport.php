@@ -115,6 +115,34 @@ class EventReport extends AppModel
         return $errors;
     }
 
+    /**
+     * deleteReport Delete the report.
+     *
+     * @param  int  $id
+     * @param  bool $hard
+     * @return bool
+     */
+    public function deleteReport($id, $hard=false)
+    {
+        if ($hard) {
+            $deleteResult = $this->delete($id, true);
+            return $deleteResult;
+        } else {
+            return $this->save(array(
+                'id' => $id,
+                'deleted' => true,
+            ), array('fieldList' => array('deleted')));
+        }
+    }
+
+    public function restoreReport($id)
+    {
+        return $this->save(array(
+            'id' => $id,
+            'deleted' => false,
+        ), array('fieldList' => array('deleted')));
+    }
+
     private function captureSG($user, $report)
     {
         if (isset($report['EventReport']['distribution']) && $report['EventReport']['distribution'] == 4) {

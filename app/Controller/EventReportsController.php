@@ -165,33 +165,65 @@ class EventReportsController extends AppController
         $this->render('add');
     }
 
-    public function delete($id)
+    public function delete($id, $hard=false)
     {
         $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
-        if (empty($report)) {
-            throw new NotFoundException(__('Invalid Event Report'));
-        }
-        $deleted = $this->EventReport->delete($id);
-        if ($deleted) {
-            $successMessage = __('Report deleted');
-            if ($this->_isRest()) {
-                $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
-                return $this->RestResponse->viewData($report[0], $this->response->type());
-            } elseif ($this->request->is('ajax')) {
-                return $this->RestResponse->saveSuccessResponse('EventReport', 'delete', $id, false, $successMessage);
+        if ($this->request->is('post')) {
+            $deleted = $this->EventReport->deleteReport($id, $hard=$hard);
+            if ($deleted) {
+                $successMessage = __('Report %s deleted', $hard ? __('hard') : __('soft'));
+                if ($this->_isRest()) {
+                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+                    return $this->RestResponse->viewData($report[0], $this->response->type());
+                } elseif ($this->request->is('ajax')) {
+                    return $this->RestResponse->saveSuccessResponse('EventReport', 'delete', $id, false, $successMessage);
+                } else {
+                    $this->Flash->success($successMessage);
+                    $this->redirect($this->referer());
+                }
             } else {
-                $this->Flash->success($successMessage);
-                $this->redirect($this->here);
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('EventReport', 'delete', $id, $flashErrorMessage, $this->response->type());
+                } else {
+                    $this->Flash->error(__('Could not delete report'));
+                }
             }
         } else {
-            if ($this->_isRest() || $this->request->is('ajax')) {
-                return $this->RestResponse->saveFailResponse('EventReport', 'delete', $id, $flashErrorMessage, $this->response->type());
+            if ($this->request->is('ajax')) {
+                $this->set('report', $report['EventReport']);
+                $this->render('ajax/delete');
             } else {
-                $this->Flash->error(__('Could not delete report'));
+                throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
             }
         }
     }
 
+    public function restore($id)
+    {
+        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
+        if ($this->request->is('post')) {
+            $result = $this->EventReport->restoreReport($report['EventReport']['id']);
+            if ($result) {
+                $message = __('Report successfuly restored.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('EventReport', 'restore', $report['EventReport']['id'], $this->response->type());
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect($this->referer());
+                }
+            } else {
+                $message = __('Report could not be %s restored.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('EventReport', 'restore', $report['EventReport']['id'], $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                    $this->redirect($this->referer());
+                }
+            }
+        } else {
+            throw new MethodNotAllowedException(__('This function can only be reached via POST.'));
+        }
+    }
 
     public function index()
     {
@@ -250,6 +282,39 @@ class EventReportsController extends AppController
             $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
             $this->set('distributionLevels', $distributionLevels);
         }
+    }
+
+    public function eventIndex($event_id)
+    {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+        }
+        $aclConditions = $this->EventReport->buildConditions($this->Auth->user());
+        $filters = $this->IndexFilter->harvestParameters(array('context'));
+        $eventConditions = array();
+        $eventConditions = array(
+            'EventReport.event_id' => $event_id
+        );
+
+        $contextConditions = array();
+        if (empty($filters['context'])) {
+            $filters['context'] = 'default';
+        }
+        if ($filters['context'] == 'deleted') {
+            $contextConditions['EventReport.deleted'] = true;
+        } elseif ($filters['context'] == 'default') {
+            $contextConditions['EventReport.deleted'] = false;
+        }
+        $this->set('context', $filters['context']);
+        $this->paginate['conditions']['AND'][] = $eventConditions;
+        $this->paginate['conditions']['AND'][] = $aclConditions;
+        $this->paginate['conditions']['AND'][] = $contextConditions;
+        $reports = $this->paginate();
+        $this->set('reports', $reports);
+        $this->set('event_id', $event_id);
+        $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
+        $this->set('distributionLevels', $distributionLevels);
+        $this->render('ajax/index');
     }
 
 }

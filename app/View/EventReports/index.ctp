@@ -82,13 +82,41 @@
                 ),
                 array(
                     'title' => __('Delete'),
-                    'url' => $baseurl . '/event_reports/delete',
-                    'url_params_data_paths' => array(
-                        'EventReport.id'
+                    'icon' => 'trash',
+                    'onclick' => 'simplePopup(\'' . $baseurl . '/event_reports/delete/[onclick_params_data_path]\');',
+                    'onclick_params_data_path' => 'EventReport.id',
+                    'complex_requirement' => array(
+                        'function' => function ($row, $options) {
+                            return ($options['me']['Role']['perm_site_admin'] || $options['me']['org_id'] == $options['datapath']['orgc']) && !$options['datapath']['deleted'];
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'orgc' => 'EventReport.orgc_id',
+                                'deleted' => 'EventReport.deleted'
+                            )
+                        )
                     ),
+                ),
+                array(
+                    'title' => __('Restore report'),
+                    'url' => $baseurl . '/event_reports/restore',
+                    'url_params_data_paths' => array('EventReport.id'),
+                    'icon' => 'trash-restore',
                     'postLink' => true,
-                    'postLinkConfirm' => __('Are you sure you want to delete the report?'),
-                    'icon' => 'trash'
+                    'postLinkConfirm' => __('Are you sure you want to restore the Report?'),
+                    'complex_requirement' => array(
+                        'function' => function ($row, $options) {
+                            return ($options['me']['Role']['perm_site_admin'] || $options['me']['org_id'] == $options['datapath']['orgc']) && $options['datapath']['deleted'];
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'orgc' => 'EventReport.orgc_id',
+                                'deleted' => 'EventReport.deleted'
+                            )
+                        )
+                    ),
                 ),
             )
         )

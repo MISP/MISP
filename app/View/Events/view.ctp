@@ -547,14 +547,7 @@
     </div>
     <div id="eventreport_div">
         <span class="report-title-section"><?php echo __('Event Reports');?></span>
-        <div>
-            <?=
-                $this->element('/EventReports/quickIndex', array(
-                    'reports' => $event['EventReport'],
-                    'eventid' => $event['Event']['id']
-                ))
-            ?>
-        </div>
+        <div id="eventreport_index_div"></div>
     </div>
     <div id="attributes_div">
         <?php echo $this->element('eventattribute'); ?>
@@ -578,6 +571,10 @@ $(document).ready(function () {
 
     $.get("<?php echo $baseurl; ?>/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {
         $("#discussions_div").html(data);
+    });
+
+    $.get("<?php echo $baseurl; ?>/eventReports/eventIndex/<?= h($event['Event']['id']); ?>", function(data) {
+        $("#eventreport_index_div").html(data);
     });
 
 });
