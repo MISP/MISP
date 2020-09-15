@@ -86,6 +86,7 @@ class AppModel extends Model
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
+        57 => false,
     );
 
     public $advanced_updates_description = array(
@@ -1412,6 +1413,9 @@ class AppModel extends Model
                 $sqlArray[] = "RENAME TABLE `org_blacklists` TO `org_blocklists`;";
                 $sqlArray[] = "RENAME TABLE `event_blacklists` TO `event_blocklists`;";
                 $sqlArray[] = "RENAME TABLE `whitelist` TO `allowedlist`;";
+                break;
+            case 57:
+                $sqlArray[] = sprintf("INSERT INTO `admin_settings` (`setting`, `value`) VALUES ('fix_login', %s);", time());
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
