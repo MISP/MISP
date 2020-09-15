@@ -27,12 +27,24 @@ class EventReportsController extends AppController
             $report = $this->request->data;
             $validationErrors = $this->EventReport->captureReport($this->Auth->user(), $report);
             if (!empty($validationErrors)) {
-                $flashErrorMessage = implode(', ', $validationErrors);
-                $this->Flash->error($flashErrorMessage);
+                $flashErrorMessage = implode(', ', $errors);
+                if ($this->_isRest() || $this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('EventReport', 'add', false, $flashErrorMessage, $this->response->type());
+                } else {
+                    $this->Flash->error($flashErrorMessage);
+                }
             } else {
+                $successMessage = __('Report saved.');
                 $this->EventReport->Event->unpublishEvent($event_id);
-                $this->Flash->success(__('Report saved.'));
-                $this->redirect(array('controller' => 'events', 'action' => 'view', $report['EventReport']['event_id']));
+                if ($this->_isRest()) {
+                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $this->EventReport->id)));
+                    return $this->RestResponse->viewData($report[0], $this->response->type());
+                } elseif ($this->request->is('ajax')) {
+                    return $this->RestResponse->saveSuccessResponse('EventReport', 'add', $this->EventReport->id, false, $successMessage);
+                } else {
+                    $this->Flash->success($successMessage);
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $report['EventReport']['event_id']));
+                }
             }
         }
 
@@ -73,6 +85,9 @@ class EventReportsController extends AppController
             throw new NotFoundException(__('Invalid Event Report'));
         }
         $report = $report[0];
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($report, $this->response->type());
+        }
         $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
         $this->set('proxyMISPElements', $proxyMISPElements);
         $this->set('id', $report_id);
@@ -111,18 +126,21 @@ class EventReportsController extends AppController
             $report['EventReport']['id'] = $id;
             $errors = $this->EventReport->editReport($this->Auth->user(), $report);
             if (!empty($errors)) {
+                $flashErrorMessage = implode(', ', $errors);
                 if ($this->_isRest() || $this->request->is('ajax')) {
-                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
-                    return $this->RestResponse->viewData($report, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('EventReport', 'edit', $id, $flashErrorMessage, $this->response->type());
                 } else {
-                    $flashErrorMessage = implode(', ', $errors);
                     $this->Flash->error($flashErrorMessage);
                 }
             } else {
-                if ($this->_isRest() || $this->request->is('ajax')) {
+                $successMessage = __('The report has been saved');
+                if ($this->_isRest()) {
                     $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
-                    return $this->RestResponse->viewData($report, $this->response->type());
+                    return $this->RestResponse->viewData($report[0], $this->response->type());
+                } elseif ($this->request->is('ajax')) {
+                    return $this->RestResponse->saveSuccessResponse('EventReport', 'edit', $this->response->type(), $successMessage);
                 } else {
+                    $this->Flash->success($successMessage);
                     $this->redirect(array('controller' => 'eventReports', 'action' => 'view', $id));
                 }
             }
@@ -149,11 +167,29 @@ class EventReportsController extends AppController
 
     public function delete($id)
     {
-        $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
         if (empty($report)) {
             throw new NotFoundException(__('Invalid Event Report'));
         }
-        $this->EventReport->delete($id);
+        $deleted = $this->EventReport->delete($id);
+        if ($deleted) {
+            $successMessage = __('Report deleted');
+            if ($this->_isRest()) {
+                $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+                return $this->RestResponse->viewData($report[0], $this->response->type());
+            } elseif ($this->request->is('ajax')) {
+                return $this->RestResponse->saveSuccessResponse('EventReport', 'delete', $id, false, $successMessage);
+            } else {
+                $this->Flash->success($successMessage);
+                $this->redirect($this->here);
+            }
+        } else {
+            if ($this->_isRest() || $this->request->is('ajax')) {
+                return $this->RestResponse->saveFailResponse('EventReport', 'delete', $id, $flashErrorMessage, $this->response->type());
+            } else {
+                $this->Flash->error(__('Could not delete report'));
+            }
+        }
     }
 
 
@@ -191,7 +227,7 @@ class EventReportsController extends AppController
             );
         }
         if ($this->_isRest()) {
-            $reports = $this->EventReports->find('all', 
+            $reports = $this->EventReport->find('all', 
                 array(
                     'recursive' => -1,
                     'conditions' => array(
@@ -199,7 +235,7 @@ class EventReportsController extends AppController
                     )
                 )
             );
-            return $this->RestResponse->viewData($galaxies, $this->response->type());
+            return $this->RestResponse->viewData($reports, $this->response->type());
         } else {
             $this->set('embedded_view', !empty($this->params['named']['embedded_view']));
             $this->paginate['conditions']['AND'][] = $eventConditions;

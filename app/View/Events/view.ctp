@@ -550,7 +550,8 @@
         <div>
             <?=
                 $this->element('/EventReports/quickIndex', array(
-                    'reports' => $event['EventReport']
+                    'reports' => $event['EventReport'],
+                    'eventid' => $event['Event']['id']
                 ))
             ?>
         </div>

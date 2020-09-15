@@ -247,7 +247,7 @@ class EventReport extends AppModel
                 $checkResult = $this->canEditReport($user, $report);
                 if ($checkResult !== true) {
                     if ($throwErrors) {
-                        throw new MethodNotAllowedException($checkResult);
+                        throw new UnauthorizedException($checkResult);
                     }
                     return array('authorized' => false, 'error' => $checkResult);
                 }
@@ -258,8 +258,9 @@ class EventReport extends AppModel
 
     public function canEditReport($user, $report)
     {
-        // if ($report['EventReport']['orgc_id'] != $user['org_id']) {
-        if (false) {
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        } elseif ($report['EventReport']['orgc_id'] != $user['org_id']) {
             $message = __('Only the creator organisation can modify the galaxy report');
             return $message;
         }

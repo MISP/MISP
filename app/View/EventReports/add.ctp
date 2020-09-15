@@ -36,8 +36,8 @@
             ),
             'submit' => array(
                 'action' => $this->request->params['action'],
-                'ajaxSubmit' => '',
-            )
+                'ajaxSubmit' => sprintf('submitPopoverForm(\'%s\', \'add\', 0, 1)', h($event_id))
+            ),
         )
     ));
 ?>

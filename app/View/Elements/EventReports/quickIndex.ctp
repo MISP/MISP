@@ -1,4 +1,7 @@
 <div id="eventReportQuickIndex">
+    <button class="btn btn-small btn-primary" onclick="openGenericModal(baseurl + '/eventReports/add/<?= h($eventid) ?>')">
+        <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add Event Report') ?>
+    </button>
     <?php
         echo $this->element('/genericElements/IndexTable/index_table', array(
             'data' => array(
@@ -30,6 +33,11 @@
                         'url' => $baseurl . '/eventReports/view',
                         'url_params_data_paths' => array('id'),
                         'icon' => 'eye'
+                    ),
+                    array(
+                        'url' => '/eventReports/edit',
+                        'url_params_data_paths' => array('id'),
+                        'icon' => 'edit'
                     ),
                     array(
                         'title' => __('Delete'),
