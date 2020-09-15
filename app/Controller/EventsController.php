@@ -468,6 +468,7 @@ class EventsController extends AppController
                         $filterString = "";
                         $expectOR = false;
                         $setOR = false;
+                        $tagRules = [];
                         foreach ($pieces as $piece) {
                             if ($piece[0] == '!') {
                                 if (is_numeric(substr($piece, 1))) {
@@ -498,7 +499,7 @@ class EventsController extends AppController
                                     foreach ($block as $b) {
                                         $sqlSubQuery .= $b['EventTag']['event_id'] . ',';
                                     }
-                                    $this->paginate['conditions']['AND'][] = substr($sqlSubQuery, 0, -1) . ')';
+                                    $tagRules['AND'][] = substr($sqlSubQuery, 0, -1) . ')';
                                 }
                                 if ($filterString != "") {
                                     $filterString .= "|";
@@ -517,7 +518,6 @@ class EventsController extends AppController
                                         'fields' => array('id', 'name'),
                                         'recursive' => -1,
                                 ));
-
                                 if (empty($tagName)) {
                                     if ($filterString != "") {
                                         $filterString .= "|";
@@ -537,7 +537,7 @@ class EventsController extends AppController
                                         $setOR = true;
                                         $sqlSubQuery .= $a['EventTag']['event_id'] . ',';
                                     }
-                                    $this->paginate['conditions']['AND']['OR'][] = substr($sqlSubQuery, 0, -1) . ')';
+                                    $tagRules['OR'][] = substr($sqlSubQuery, 0, -1) . ')';
                                 }
                                 if ($filterString != "") {
                                     $filterString .= "|";
@@ -545,6 +545,7 @@ class EventsController extends AppController
                                 $filterString .= isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece;
                             }
                         }
+                        $this->paginate['conditions']['AND'][] = $tagRules;
                         // If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
                         // If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
                         if ($expectOR && !$setOR) {

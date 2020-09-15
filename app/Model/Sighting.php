@@ -211,7 +211,7 @@ class Sighting extends AppModel
      * @param bool $extraConditions
      * @return array|int
      */
-    public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false)
+    public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
     {
         $ownEvent = false;
         if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) {
@@ -262,14 +262,29 @@ class Sighting extends AppModel
             return array();
         }
         $anonymise = Configure::read('Plugin.Sightings_anonymise');
+        $anonymiseAs = Configure::read('Plugin.Sightings_anonymise_as');
+        $anonOrg = null;
+        if ($forSync && !empty($anonymiseAs)) {
+            $this->Organisation = ClassRegistry::init('Organisation');
+            $anonOrg = $this->Organisation->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Organisation.id' => $anonymiseAs],
+                'fields' => ['Organisation.id', 'Organisation.uuid', 'Organisation.name']
+            ]);
+        }
         foreach ($sightings as $k => $sighting) {
             if (
                 ($sighting['Sighting']['org_id'] == 0 && !empty($sighting['Organisation'])) ||
-                $anonymise
+                $anonymise || !empty($anonOrg)
             ) {
                 if ($sighting['Sighting']['org_id'] != $user['org_id']) {
-                    unset($sightings[$k]['Sighting']['org_id']);
-                    unset($sightings[$k]['Organisation']);
+                    if (empty($anonOrg)) {
+                        unset($sightings[$k]['Sighting']['org_id']);
+                        unset($sightings[$k]['Organisation']);
+                    } else {
+                        $sightings[$k]['Sighting']['org_id'] = $anonOrg['Organisation']['id'];
+                        $sightings[$k]['Organisation'] = $anonOrg['Organisation'];
+                    }
                 }
             }
             // rearrange it to match the event format of fetchevent
