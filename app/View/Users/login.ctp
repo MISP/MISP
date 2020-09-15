@@ -81,7 +81,10 @@ function submitLoginForm() {
         $form[0].reportValidity()
     } else {
         fetchFormDataAjax(url, function(html) {
-            var formHTML = $(html).find('form')
+            var formHTML = $(html).find('form#UserLoginForm')
+            if (!formHTML.length) {
+                window.location = baseurl + '/users/login'
+            }
             $('body').append($('<div id="temp" style="display: none"/>').append(formHTML))
             var $tmpForm = $('#temp form')
             $tmpForm.find('#UserEmail').val(email)
