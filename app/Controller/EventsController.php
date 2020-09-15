@@ -95,32 +95,7 @@ class EventsController extends AppController
 
         // if not admin or own org, check private as well..
         if (!$this->_isSiteAdmin() && in_array($this->action, $this->paginationFunctions)) {
-            $sgids = $this->Event->cacheSgids($this->Auth->user(), true);
-            $conditions = array(
-                'AND' => array(
-                    array(
-                        "OR" => array(
-                            array(
-                                'Event.org_id' => $this->Auth->user('org_id')
-                            ),
-                            array(
-                                'AND' => array(
-                                        'Event.distribution >' => 0,
-                                        'Event.distribution <' => 4,
-                                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                                ),
-                            ),
-                            array(
-                                'AND' => array(
-                                        'Event.distribution' => 4,
-                                        'Event.sharing_group_id' => $sgids,
-                                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                                ),
-                            )
-                        )
-                    )
-                )
-            );
+            $conditions = $this->Event->createEventConditions($this->Auth->user());
             if ($this->userRole['perm_sync'] && $this->Auth->user('Server')['push_rules']) {
                 $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
             }
@@ -128,62 +103,56 @@ class EventsController extends AppController
         }
     }
 
+    /**
+     * @param string $value
+     * @return array[]
+     */
     private function __filterOnAttributeValue($value)
     {
         // dissect the value
-        $pieces = explode('|', $value);
+        $pieces = explode('|', strtolower($value));
         $include = array();
         $exclude = array();
-        $includeIDs = array();
-        $excludeIDs = array();
+
         foreach ($pieces as $piece) {
-            if ($piece[0] == '!') {
-                $exclude[] =  '%' . strtolower(substr($piece, 1)) . '%';
+            if ($piece[0] === '!') {
+                $exclude[] =  '%' . substr($piece, 1) . '%';
             } else {
-                $include[] = '%' . strtolower($piece) . '%';
+                $include[] = "%$piece%";
             }
         }
+
+        $includeIDs = array();
         if (!empty($include)) {
-            // get all of the attributes that should be included
-            $includeQuery = array(
-                    'recursive' => -1,
-                    'fields' => array('id', 'event_id', 'distribution', 'value1', 'value2'),
-                    'conditions' => array(),
-            );
+            $includeConditions = [];
             foreach ($include as $i) {
-                $includeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
-                $includeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
+                $includeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
+                $includeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
             }
-            $includeQuery['conditions']['AND'][] = array('Attribute.deleted' => 0);
-            $includeHits = $this->Event->Attribute->find('all', $includeQuery);
 
-            // convert it into an array that uses the event ID as a key
-            foreach ($includeHits as $iH) {
-                $includeIDs[$iH['Attribute']['event_id']][] = array('attribute_id' => $iH['Attribute']['id'], 'distribution' => $iH['Attribute']['distribution']);
-            }
+            $includeIDs = array_values($this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                'conditions' => $includeConditions,
+                'flatten' => true,
+                'event_ids' => true,
+                'list' => true,
+            )));
         }
 
+        $excludeIDs = array();
         if (!empty($exclude)) {
-            // get all of the attributes that should be excluded
-            $excludeQuery = array(
-                'recursive' => -1,
-                'fields' => array('id', 'event_id', 'distribution', 'value1', 'value2'),
-                'conditions' => array(),
-            );
+            $excludeConditions = [];
             foreach ($exclude as $e) {
-                $excludeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
-                $excludeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
+                $excludeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
+                $excludeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
             }
-            $excludeQuery['conditions']['AND'][] = array('Attribute.deleted' => 0);
-            $excludeHits = $this->Event->Attribute->find('all', $excludeQuery);
 
-            // convert it into an array that uses the event ID as a key
-            foreach ($excludeHits as $eH) {
-                $excludeIDs[$eH['Attribute']['event_id']][] = array('attribute_id' => $eH['Attribute']['id'], 'distribution' => $eH['Attribute']['distribution']);
-            }
+            $excludeIDs = array_values($this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                'conditions' => $excludeConditions,
+                'flatten' => true,
+                'event_ids' => true,
+                'list' => true,
+            )));
         }
-        $includeIDs = array_keys($includeIDs);
-        $excludeIDs = array_keys($excludeIDs);
         // return -1 as the only value in includedIDs if both arrays are empty. This will mean that no events will be shown if there was no hit
         if (empty($includeIDs) && empty($excludeIDs)) {
             $includeIDs[] = -1;
@@ -191,6 +160,10 @@ class EventsController extends AppController
         return array($includeIDs, $excludeIDs);
     }
 
+    /**
+     * @param string|array $value
+     * @return array Event ID that match filter
+     */
     private function __quickFilter($value)
     {
         if (!is_array($value)) {
@@ -201,7 +174,6 @@ class EventsController extends AppController
             $values[] = '%' . strtolower($v) . '%';
         }
 
-        $result = array();
         // get all of the attributes that have a hit on the search term, in either the value or the comment field
         // This is not perfect, the search will be case insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
         $subconditions = array();
@@ -211,32 +183,16 @@ class EventsController extends AppController
             $subconditions[] = array('lower(Attribute.comment) LIKE' => $v);
         }
         $conditions = array(
-            'AND' => array(
-                'OR' => $subconditions,
-                'Attribute.deleted' => 0
-            )
+            'OR' => $subconditions,
         );
         $attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-                'conditions' => $conditions,
-                'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2'),
-                'flatten' => 1
-        ));
-        // rearrange the data into an array where the keys are the event IDs
-        $eventsWithAttributeHits = array();
-        foreach ($attributeHits as $aH) {
-            $eventsWithAttributeHits[$aH['Attribute']['event_id']][] = $aH['Attribute'];
-        }
-
-        // Using the keys from the previously obtained ordered array, let's fetch all of the events involved
-        $events = $this->Event->find('all', array(
-                'recursive' => -1,
-                'fields' => array('id', 'distribution', 'org_id'),
-                'conditions' => array('id' => array_keys($eventsWithAttributeHits)),
+            'conditions' => $conditions,
+            'flatten' => 1,
+            'event_ids' => true,
+            'list' => true,
         ));
 
-        foreach ($events as $event) {
-            $result[] = $event['Event']['id'];
-        }
+        $result = array_values($attributeHits);
 
         // we now have a list of event IDs that match on an attribute level, and the user can see it. Let's also find all of the events that match on other criteria!
         // What is interesting here is that we no longer have to worry about the event's releasability. With attributes this was a different case,
@@ -250,9 +206,9 @@ class EventsController extends AppController
             $subconditions[] = array('lower(name) LIKE' => $v);
         }
         $tags = $this->Event->EventTag->Tag->find('all', array(
-                'conditions' => $subconditions,
-                'fields' => array('name', 'id'),
-                'contain' => array('EventTag', 'AttributeTag'),
+            'conditions' => $subconditions,
+            'fields' => array('id'),
+            'contain' => array('EventTag' => ['fields' => 'event_id'], 'AttributeTag' => ['fields' => 'event_id']),
         ));
         foreach ($tags as $tag) {
             foreach ($tag['EventTag'] as $eventTag) {
@@ -272,12 +228,13 @@ class EventsController extends AppController
         foreach ($values as $v) {
             $subconditions[] = array('lower(name) LIKE' => $v);
         }
-        $conditions = array();
         $orgs = $this->Event->Org->find('list', array(
-                'conditions' => $subconditions,
-                'recursive' => -1,
-                'fields' => array('id')
+            'conditions' => $subconditions,
+            'recursive' => -1,
+            'fields' => array('id')
         ));
+
+        $conditions = empty($result) ? [] : ['NOT' => ['id' => $result]]; // Do not include events that we already found
         foreach ($values as $v) {
             $conditions['OR'][] = array('lower(info) LIKE' => $v);
             $conditions['OR'][] = array('lower(uuid) LIKE' => $v);
@@ -285,15 +242,13 @@ class EventsController extends AppController
         if (!empty($orgs)) {
             $conditions['OR']['orgc_id'] = array_values($orgs);
         }
-        $otherEvents = $this->Event->find('all', array(
-                'recursive' => -1,
-                'fields' => array('id', 'orgc_id', 'info', 'uuid'),
-                'conditions' => $conditions,
+        $otherEvents = $this->Event->find('list', array(
+            'recursive' => -1,
+            'fields' => array('id'),
+            'conditions' => $conditions,
         ));
-        foreach ($otherEvents as $oE) {
-            if (!in_array($oE['Event']['id'], $result)) {
-                $result[] = $oE['Event']['id'];
-            }
+        foreach ($otherEvents as $eventId) {
+            $result[] = $eventId;
         }
         return $result;
     }
@@ -513,6 +468,7 @@ class EventsController extends AppController
                         $filterString = "";
                         $expectOR = false;
                         $setOR = false;
+                        $tagRules = [];
                         foreach ($pieces as $piece) {
                             if ($piece[0] == '!') {
                                 if (is_numeric(substr($piece, 1))) {
@@ -543,7 +499,7 @@ class EventsController extends AppController
                                     foreach ($block as $b) {
                                         $sqlSubQuery .= $b['EventTag']['event_id'] . ',';
                                     }
-                                    $this->paginate['conditions']['AND'][] = substr($sqlSubQuery, 0, -1) . ')';
+                                    $tagRules['AND'][] = substr($sqlSubQuery, 0, -1) . ')';
                                 }
                                 if ($filterString != "") {
                                     $filterString .= "|";
@@ -562,7 +518,6 @@ class EventsController extends AppController
                                         'fields' => array('id', 'name'),
                                         'recursive' => -1,
                                 ));
-
                                 if (empty($tagName)) {
                                     if ($filterString != "") {
                                         $filterString .= "|";
@@ -582,7 +537,7 @@ class EventsController extends AppController
                                         $setOR = true;
                                         $sqlSubQuery .= $a['EventTag']['event_id'] . ',';
                                     }
-                                    $this->paginate['conditions']['AND']['OR'][] = substr($sqlSubQuery, 0, -1) . ')';
+                                    $tagRules['OR'][] = substr($sqlSubQuery, 0, -1) . ')';
                                 }
                                 if ($filterString != "") {
                                     $filterString .= "|";
@@ -590,6 +545,7 @@ class EventsController extends AppController
                                 $filterString .= isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece;
                             }
                         }
+                        $this->paginate['conditions']['AND'][] = $tagRules;
                         // If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
                         // If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
                         if ($expectOR && !$setOR) {
@@ -731,7 +687,6 @@ class EventsController extends AppController
             ),
         ));
         $this->loadModel('GalaxyCluster');
-        $sgids = $this->Event->cacheSgids($this->Auth->user(), true);
 
         // for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
         if ($this->_isRest()) {
@@ -803,7 +758,7 @@ class EventsController extends AppController
                         $elements = ($total_events % 1000);
                     }
                     for ($j = 0; $j < $elements; $j++) {
-                        $event_tag_ids[$events[($i*1000) + $j]['Event']['id']] = array();
+                        $event_tag_ids[$events[($i*1000) + $j]['Event']['id']] = true;
                     }
                     $eventTags = $this->Event->EventTag->find('all', array(
                         'recursive' => -1,
@@ -830,7 +785,6 @@ class EventsController extends AppController
                             }
                         }
                     }
-                    $eventTags = array_values($eventTags);
                     for ($j = 0; $j < $elements; $j++) {
                         if (!empty($event_tag_objects[$events[($i*1000) + $j]['Event']['id']])) {
                             $events[($i*1000) + $j]['EventTag'] = $event_tag_objects[$events[($i*1000) + $j]['Event']['id']];
@@ -841,10 +795,6 @@ class EventsController extends AppController
                 }
                 $events = $this->GalaxyCluster->attachClustersToEventIndex($events);
                 foreach ($events as $key => $event) {
-                    if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
-                        unset($events[$key]);
-                        continue;
-                    }
                     $temp = $events[$key]['Event'];
                     $temp['Org'] = $event['Org'];
                     $temp['Orgc'] = $event['Orgc'];
@@ -871,10 +821,6 @@ class EventsController extends AppController
         } else {
             $events = $this->paginate();
             foreach ($events as $k => $event) {
-                if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
-                    unset($events[$k]);
-                    continue;
-                }
                 if (empty($event['SharingGroup']['name'])) {
                     unset($events[$k]['SharingGroup']);
                 }
@@ -899,19 +845,22 @@ class EventsController extends AppController
             $this->set('events', $events);
         }
 
-        if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
+        $user = $this->Auth->user();
+        $user = $this->Event->User->fillKeysToUser($user);
+
+        if (empty($user['gpgkey']) && Configure::read('GnuPG.onlyencrypted')) {
             // No GnuPG
-            if (Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
+            if (Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
                 // No GnuPG and No SMIME
-                $this->Flash->info(__('No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile.'));
+                $this->Flash->info(__('No X.509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile.'));
             } elseif (!Configure::read('SMIME.enabled')) {
                 $this->Flash->info(__('No GnuPG key set in your profile. To receive emails, submit your public key in your profile.'));
             }
-        } elseif ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
+        } elseif ($this->Auth->user('autoalert') && empty($user['gpgkey']) && Configure::read('GnuPG.bodyonlyencrypted')) {
             // No GnuPG & autoalert
-            if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
+            if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
                 // No GnuPG and No SMIME & autoalert
-                $this->Flash->info(__('No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile.'));
+                $this->Flash->info(__('No X.509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile.'));
             } elseif (!Configure::read('SMIME.enabled')) {
                 $this->Flash->info(__('No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
             }
@@ -1529,7 +1478,7 @@ class EventsController extends AppController
         }
         $this->set('contributors', $contributors);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
-        $attributeUri = '/events/viewEventAttributes/' . $event['Event']['id'];
+        $attributeUri = $this->baseurl . '/events/viewEventAttributes/' . $event['Event']['id'];
         foreach ($this->params->named as $k => $v) {
             if (!is_numeric($k)) {
                 if (is_array($v)) {
@@ -1573,10 +1522,10 @@ class EventsController extends AppController
             throw new NotFoundException(__('Invalid event'));
         }
 
-        if (!$this->_isRest()) {
-            $conditions['includeAllTags'] = true;
-        } else {
+        if ($this->_isRest()) {
             $conditions['includeAttachments'] = true;
+        } else {
+            $conditions['includeAllTags'] = true;
         }
         $deleted = 0;
         if (isset($this->params['named']['deleted'])) {
@@ -1970,7 +1919,7 @@ class EventsController extends AppController
                 if ($add === true && !is_numeric($add)) {
                     if ($this->_isRest()) {
                         if ($add === 'blocked') {
-                            throw new ForbiddenException(__('Event blocked by local blacklist.'));
+                            throw new ForbiddenException(__('Event blocked by local blocklist.'));
                         }
                         // REST users want to see the newly created event
                         $results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $created_id));
@@ -1989,7 +1938,7 @@ class EventsController extends AppController
                 } else {
                     if ($this->_isRest()) { // TODO return error if REST
                         if (is_numeric($add)) {
-                            $this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
+                            $this->response->header('Location', $this->baseurl . '/events/' . $add);
                             $this->response->send();
                             throw new NotFoundException(__('Event already exists, if you would like to edit it, use the url in the location header.'));
                         }
@@ -1997,7 +1946,7 @@ class EventsController extends AppController
                         return $this->RestResponse->saveFailResponse('Events', 'add', false, $validationErrors, $this->response->type());
                     } else {
                         if ($add === 'blocked') {
-                            $this->Flash->error(__('A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance') . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
+                            $this->Flash->error(__('A blocklist entry is blocking you from creating any events. Please contact the administration team of this instance') . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
                         } else {
                             $this->Flash->error(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
                         }
@@ -2606,7 +2555,7 @@ class EventsController extends AppController
                 if (!empty($errors)) {
                     $this->set('errors', $errors);
                 }
-                $this->set('url', '/events/publishSightings/' . $id);
+                $this->set('url', $this->baseurl . '/events/publishSightings/' . $id);
                 $this->set('id', $id);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
@@ -2673,7 +2622,7 @@ class EventsController extends AppController
                 if (!empty($errors)) {
                     $this->set('errors', $errors);
                 }
-                $this->set('url', '/events/alert/' . $id);
+                $this->set('url', $this->baseurl . '/events/alert/' . $id);
                 $this->set('id', $id);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
@@ -2758,7 +2707,7 @@ class EventsController extends AppController
                 if (!empty($errors)) {
                     $this->set('errors', $errors);
                 }
-                $this->set('url', '/events/alert/' . $id);
+                $this->set('url', $this->baseurl . '/events/alert/' . $id);
                 $this->set('id', $id);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
@@ -2805,8 +2754,7 @@ class EventsController extends AppController
                 $creator_only = $this->request->data['Event']['person'];
             }
             $user = $this->Auth->user();
-            $user['gpgkey'] = $this->Event->User->getPGP($user['id']);
-            $user['certif_public'] = $this->Event->User->getCertificate($user['id']);
+            $user = $this->Event->User->fillKeysToUser($user);
 
             $success = $this->Event->sendContactEmailRouter($id, $message, $creator_only, $user, $this->_isSiteAdmin());
             if ($success) {
@@ -3176,7 +3124,7 @@ class EventsController extends AppController
         }
     }
 
-    public function _addMISPExportFile($ext, $take_ownership = false, $publish = false)
+    private function _addMISPExportFile($ext, $take_ownership = false, $publish = false)
     {
         App::uses('FileAccessTool', 'Tools');
         $data = (new FileAccessTool())->readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
@@ -3266,8 +3214,8 @@ class EventsController extends AppController
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event or not authorised.'));
         }
-        $this->loadModel('Whitelist');
-        $temp = $this->Whitelist->removeWhitelistedFromArray(array($event[0]), false);
+        $this->loadModel('Allowedlist');
+        $temp = $this->Allowedlist->removeAllowedlistedFromArray(array($event[0]), false);
         $event = $temp[0];
 
         // send the event and the vars needed to check authorisation to the Component
@@ -3360,7 +3308,6 @@ class EventsController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
-        $this->loadModel('Taxonomy');
         $rearrangeRules = array(
                 'request' => false,
                 'Event' => false,
@@ -3392,11 +3339,6 @@ class EventsController extends AppController
             }
             if (!$this->__canModifyTag($event, $local)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
-            }
-            $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
-            if (!$this->_isSiteAdmin()) {
-                $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-                $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
             }
             if (!is_numeric($tag_id)) {
                 if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
@@ -3430,6 +3372,11 @@ class EventsController extends AppController
                             }
                         }
                     } else {
+                        $conditions = array('LOWER(Tag.name)' => strtolower(trim($tag_id)));
+                        if (!$this->_isSiteAdmin()) {
+                            $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                            $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
+                        }
                         $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
                         if (empty($tag)) {
                             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
@@ -3439,22 +3386,32 @@ class EventsController extends AppController
                 }
             }
             $this->autoRender = false;
-            $error = false;
-            $success = false;
+            $success = 0;
+            $fails = [];
             if (empty($tag_id_list)) {
                 $tag_id_list = array($tag_id);
             }
+
+            if (empty($tag_id_list)) {
+                return new CakeResponse(array('body' => json_encode(['saved' => false, 'errors' => __('Nothing to add.')]), 'status' => 200, 'type' => 'json'));
+            }
+
+            $this->loadModel('Taxonomy');
             foreach ($tag_id_list as $tag_id) {
-                $this->Event->EventTag->Tag->id = $tag_id;
-                if (!$this->Event->EventTag->Tag->exists()) {
-                    $error = __('Invalid Tag.');
-                    continue;
+                $conditions = ['Tag.id' => $tag_id];
+                if (!$this->_isSiteAdmin()) {
+                    $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                    $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
                 }
                 $tag = $this->Event->EventTag->Tag->find('first', array(
-                    'conditions' => array('Tag.id' => $tag_id),
+                    'conditions' => $conditions,
                     'recursive' => -1,
                     'fields' => array('Tag.name')
                 ));
+                if (!$tag) {
+                    $fails[$tag_id] = __('Tag not found.');
+                    continue;
+                }
                 $found = $this->Event->EventTag->find('first', array(
                     'conditions' => array(
                         'event_id' => $id,
@@ -3463,7 +3420,7 @@ class EventsController extends AppController
                     'recursive' => -1,
                 ));
                 if (!empty($found)) {
-                    $error = __('Tag is already attached to this event.');
+                    $fails[$tag_id] = __('Tag is already attached to this event.');
                     continue;
                 }
                 $tagsOnEvent = $this->Event->EventTag->find('all', array(
@@ -3477,7 +3434,7 @@ class EventsController extends AppController
                 ));
                 $exclusiveTestPassed = $this->Taxonomy->checkIfNewTagIsAllowedByTaxonomy($tag['Tag']['name'], Hash::extract($tagsOnEvent, '{n}.Tag.name'));
                 if (!$exclusiveTestPassed) {
-                    $fail = __('Tag is not allowed due to taxonomy exclusivity settings');
+                    $fails[$tag_id] = __('Tag is not allowed due to taxonomy exclusivity settings');
                     continue;
                 }
                 $this->Event->EventTag->create();
@@ -3508,27 +3465,50 @@ class EventsController extends AppController
                             $local ? ' locally' : ''
                         )
                     );
-                    $success = __('Tag(s) added.');
+                    ++$success;
                 } else {
-                    $fail = __('Tag could not be added.');
+                    $fails[$tag_id] = __('Tag could not be added.');
                 }
             }
-            if ($success) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Tag(s) added.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
-            } elseif (empty($fail)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+
+            if ($success && empty($fails)) {
+                $body = ['saved' => true, 'success' => __n('Tag added.', 'Tags added.', $success), 'check_publish' => true];
+            } else if ($success && !empty($fails)) {
+                $message = __n('Tag added', '%s tags added', $success, $success);
+                $message .= __(', but %s could not be added: %s', count($fails), implode(', ', $fails));
+                $body = ['saved' => true, 'success' => $message, 'check_publish' => true];
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $fail)), 'status'=>200, 'type' => 'json'));
+                $body = array('saved' => false, 'errors' => implode(', ', $fails));
             }
+            return new CakeResponse(array('body' => json_encode($body), 'status' => 200, 'type' => 'json'));
         }
     }
 
     public function removeTag($id = false, $tag_id = false, $galaxy = false)
     {
         if (!$this->request->is('post')) {
-            $this->set('id', $id);
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+            if (!$event) {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $eventTag = $this->Event->EventTag->find('first', array(
+                'conditions' => array(
+                    'event_id' => $event['Event']['id'],
+                    'tag_id' => $tag_id,
+                ),
+                'contain' => ['Tag'],
+                'recursive' => -1,
+            ));
+            if (!$eventTag) {
+                throw new NotFoundException(__('Invalid tag.'));
+            }
+
+            $this->set('is_local', $eventTag['EventTag']['local']);
+            $this->set('tag', $eventTag);
+            $this->set('id', $event['Event']['id']);
             $this->set('tag_id', $tag_id);
             $this->set('model', 'Event');
+            $this->set('model_name', $event['Event']['info']);
             $this->render('/Attributes/ajax/tagRemoveConfirmation');
         } else {
             $rearrangeRules = array(
@@ -3946,89 +3926,89 @@ class EventsController extends AppController
         // #TODO i18n
         $exports = array(
             'xml' => array(
-                    'url' => '/events/restSearch/xml/eventid:' . $id . '.xml',
+                    'url' => $this->baseurl . '/events/restSearch/xml/eventid:' . $id . '.xml',
                     'text' => 'MISP XML (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/xml/eventid:' . $id . '/withAttachments:1.xml',
+                    'checkbox_set' => $this->baseurl . '/events/restSearch/xml/eventid:' . $id . '/withAttachments:1.xml',
                     'checkbox_default' => true
             ),
             'json' => array(
-                    'url' => '/events/restSearch/json/eventid:' . $id . '.json',
+                    'url' => $this->baseurl . '/events/restSearch/json/eventid:' . $id . '.json',
                     'text' => 'MISP JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/json/withAttachments:1/eventid:' . $id . '.json',
+                    'checkbox_set' => $this->baseurl . '/events/restSearch/json/withAttachments:1/eventid:' . $id . '.json',
                     'checkbox_default' => true
             ),
             'openIOC' => array(
-                    'url' => '/events/restSearch/openioc/to_ids:1/published:1/eventid:' . $id . '.json',
+                    'url' => $this->baseurl . '/events/restSearch/openioc/to_ids:1/published:1/eventid:' . $id . '.json',
                     'text' => 'OpenIOC (all indicators marked to IDS)',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'csv' => array(
-                    'url' => '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:0/eventid:' . $id,
+                    'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:0/eventid:' . $id,
                     'text' => 'CSV',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:0/eventid:' . $id
+                    'checkbox_set' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:0/eventid:' . $id
             ),
             'csv_with_context' => array(
-                    'url' => '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:1/eventid:' . $id,
+                    'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:1/eventid:' . $id,
                     'text' => 'CSV with additional context',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:1/eventid:' . $id
+                    'checkbox_set' => $this->baseurl . '/events/restSearch/returnFormat:csv/to_ids:1||0/published:1||0/includeContext:1/eventid:' . $id
             ),
             'stix_xml' => array(
-                    'url' => '/events/restSearch/stix/eventid:' . $id,
+                    'url' => $this->baseurl . '/events/restSearch/stix/eventid:' . $id,
                     'text' => 'STIX XML (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
+                    'checkbox_set' => $this->baseurl . '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
             ),
             'stix_json' => array(
-                    'url' => '/events/restSearch/stix-json/eventid:' . $id,
+                    'url' => $this->baseurl . '/events/restSearch/stix-json/eventid:' . $id,
                     'text' => 'STIX JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix-json/withAttachments:1/eventid:' . $id
+                    'checkbox_set' => $this->baseurl . '/events/restSearch/stix-json/withAttachments:1/eventid:' . $id
             ),
             'stix2_json' => array(
-                    'url' => '/events/restSearch/stix2/eventid:' . $id,
+                    'url' => $this->baseurl . '/events/restSearch/stix2/eventid:' . $id,
                     'text' => 'STIX2 (requires the STIX 2 library)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix2/eventid:' . $id . '/withAttachments:1'
+                    'checkbox_set' => $this->baseurl . '/events/restSearch/stix2/eventid:' . $id . '/withAttachments:1'
             ),
             'rpz' => array(
-                    'url' => '/attributes/restSearch/returnFormat:rpz/published:1||0/eventid:' . $id,
+                    'url' => $this->baseurl . '/attributes/restSearch/returnFormat:rpz/published:1||0/eventid:' . $id,
                     'text' => 'RPZ Zone file',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'suricata' => array(
-                    'url' => '/events/restSearch/returnFormat:suricata/published:1||0/eventid:' . $id,
+                    'url' => $this->baseurl . '/events/restSearch/returnFormat:suricata/published:1||0/eventid:' . $id,
                     'text' => 'Download Suricata rules',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'snort' => array(
-                    'url' => '/events/restSearch/returnFormat:snort/published:1||0/eventid:' . $id,
+                    'url' => $this->baseurl . '/events/restSearch/returnFormat:snort/published:1||0/eventid:' . $id,
                     'text' => 'Download Snort rules',
                     'requiresPublished' => false,
                     'checkbox' => false,
             ),
             'bro' => array(
-                    'url' => '/attributes/bro/download/all/false/' . $id,
+                    'url' => $this->baseurl . '/attributes/bro/download/all/false/' . $id,
                     // 'url' => '/attributes/restSearch/returnFormat:bro/published:1||0/eventid:' . $id,
                     'text' => 'Download Bro rules',
                     'requiresPublished' => false,
@@ -4036,11 +4016,11 @@ class EventsController extends AppController
             ),
             'text' => array(
                     'text' => 'Export all attribute values as a text file',
-                    'url' => '/attributes/restSearch/returnFormat:text/published:1||0/eventid:' . $id,
+                    'url' => $this->baseurl . '/attributes/restSearch/returnFormat:text/published:1||0/eventid:' . $id,
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Include non-IDS marked attributes',
-                    'checkbox_set' => '/attributes/restSearch/returnFormat:text/published:1||0/to_ids:1||0/eventid:' . $id
+                    'checkbox_set' => $this->baseurl . '/attributes/restSearch/returnFormat:text/published:1||0/to_ids:1||0/eventid:' . $id
             ),
         );
         if ($event['Event']['published'] == 0) {
@@ -4050,7 +4030,7 @@ class EventsController extends AppController
                 }
             }
             $exports['csv'] = array(
-                'url' => '/events/restSearch/returnFormat:csv/includeContext:0/eventid:' . $id,
+                'url' => $this->baseurl . '/events/restSearch/returnFormat:csv/includeContext:0/eventid:' . $id,
                 'text' => 'CSV (event not published, IDS flag ignored)',
                 'requiresPublished' => false,
                 'checkbox' => false
@@ -4061,7 +4041,7 @@ class EventsController extends AppController
         if (is_array($modules) && !empty($modules)) {
             foreach ($modules['modules'] as $module) {
                 $exports[$module['name']] = array(
-                        'url' => '/events/exportModule/' . $module['name'] . '/' . $id,
+                        'url' => $this->baseurl . '/events/exportModule/' . $module['name'] . '/' . $id,
                         'text' => Inflector::humanize($module['name']),
                         'requiresPublished' => true,
                         'checkbox' => false,
@@ -4085,39 +4065,39 @@ class EventsController extends AppController
             }
             $imports = array(
                     'freetext' => array(
-                            'url' => '/events/freeTextImport/' . $id,
+                            'url' => $this->baseurl . '/events/freeTextImport/' . $id,
                             'text' => __('Freetext Import'),
                             'ajax' => true,
                             'target' => 'popover_form'
                     ),
                     'template' => array(
-                            'url' => '/templates/templateChoices/' . $id,
+                            'url' => $this->baseurl . '/templates/templateChoices/' . $id,
                             'text' => __('Populate using a Template'),
                             'ajax' => true,
                             'target' => 'popover_form'
                     ),
                     'OpenIOC' => array(
-                            'url' => '/events/addIOC/' . $id,
+                            'url' => $this->baseurl . '/events/addIOC/' . $id,
                             'text' => __('OpenIOC Import'),
                             'ajax' => false,
                     ),
                     'ThreatConnect' => array(
-                            'url' => '/attributes/add_threatconnect/' . $id,
+                            'url' => $this->baseurl . '/attributes/add_threatconnect/' . $id,
                             'text' => __('ThreatConnect Import'),
                             'ajax' => false
                     ),
                     'Forensic analysis' => array(
-                        'url' => '/events/upload_analysis_file/'.$id,
-                        'text' => __('(Experimental) Forensic analysis - Mactime'),
-                        'ajax' => false,
-                )
+                            'url' => $this->baseurl . '/events/upload_analysis_file/'.$id,
+                            'text' => __('(Experimental) Forensic analysis - Mactime'),
+                            'ajax' => false,
+                    )
             );
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
             if (is_array($modules) && !empty($modules)) {
                 foreach ($modules['modules'] as $k => $module) {
                     $imports[$module['name']] = array(
-                            'url' => '/events/importModule/' . $module['name'] . '/' . $id,
+                            'url' => $this->baseurl . '/events/importModule/' . $module['name'] . '/' . $id,
                             'text' => Inflector::humanize($module['name']),
                             'ajax' => false
                     );
@@ -4126,18 +4106,18 @@ class EventsController extends AppController
         } else {
             $imports = array(
                 'MISP' => array(
-                        'url' => '/events/add_misp_export',
+                        'url' => $this->baseurl . '/events/add_misp_export',
                         'text' => __('MISP standard (recommended exchange format - lossless)'),
                         'ajax' => false,
                         'bold' => true
                 ),
                 'STIX' => array(
-                        'url' => '/events/upload_stix',
+                        'url' => $this->baseurl . '/events/upload_stix',
                         'text' => __('STIX 1.1.1 format (lossy)'),
                         'ajax' => false,
                 ),
                 'STIX2' => array(
-                        'url' => '/events/upload_stix/2',
+                        'url' => $this->baseurl . '/events/upload_stix/2',
                         'text' => __('STIX 2.0 format (lossy)'),
                         'ajax' => false,
                 )
@@ -4358,7 +4338,7 @@ class EventsController extends AppController
             if ($successCount > 0) {
                 $this->set('name', 'Partial success');
                 $this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
-                $this->set('url', '/events/view/' . $data['settings']['event_id']);
+                $this->set('url', $this->baseurl . '/events/view/' . $data['settings']['event_id']);
                 $this->set('id', $data['settings']['event_id']);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
@@ -4369,7 +4349,7 @@ class EventsController extends AppController
         } else {
             $this->set('name', 'Success');
             $this->set('message', 'Success, saved all attributes.');
-            $this->set('url', '/events/view/' . $data['settings']['event_id']);
+            $this->set('url', $this->baseurl . '/events/view/' . $data['settings']['event_id']);
             $this->set('id', $data['settings']['event_id']);
             $this->set('_serialize', array('name', 'message', 'url', 'id'));
         }
@@ -5602,7 +5582,7 @@ class EventsController extends AppController
             'recursive' => -1
         ));
         $count = 0;
-        $this->Event->skipBlacklist = true;
+        $this->Event->skipBlocklist = true;
         foreach ($eventIds as $eventId => $eventUuid) {
             $result = $this->Event->Attribute->find('first', array(
                 'conditions' => array('Attribute.event_id' => $eventId),
@@ -5614,7 +5594,7 @@ class EventsController extends AppController
                 $count++;
             }
         }
-        $this->Event->skipBlacklist = null;
+        $this->Event->skipBlocklist = null;
         $message = __('%s event(s) deleted.', $count);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($message, $this->response->type());

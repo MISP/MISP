@@ -4,7 +4,7 @@
     <div class="pagination">
         <ul>
         <?php
-            $eventViewURL = '/servers/previewEvent/' . h($id) . '/';
+            $eventViewURL = $baseurl . '/servers/previewEvent/' . h($id) . '/';
             $this->Paginator->options(array(
                 'url' => $id,
                 'update' => '.span12',
@@ -53,7 +53,7 @@
                         ),
                         array(
                             'requirement' => count($passedArgsArray) > 0,
-                            'url' => '/servers/previewIndex/' . h($server['Server']['id']),
+                            'url' => $baseurl . '/servers/previewIndex/' . h($server['Server']['id']),
                             'title' => __('Remove filters'),
                             'fa-icon' => 'times'
                         )
@@ -170,7 +170,7 @@
                 ?>
             </td>
             <td class="short action-links">
-                <?php if ($event['Event']['published']) echo $this->Form->postLink('', '/servers/pull/' . $server['Server']['id'] . '/' . $event['Event']['id'], array('class' => 'fa fa-arrow-circle-down', 'title' => __('Fetch the event')), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Server.id'))); ?>
+                <?php if ($event['Event']['published']) echo $this->Form->postLink('', $baseurl . '/servers/pull/' . $server['Server']['id'] . '/' . $event['Event']['id'], array('class' => 'fa fa-arrow-circle-down', 'title' => __('Fetch the event')), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Server.id'))); ?>
                 <a href='<?php echo $eventViewURL . h($event['Event']['id']);?>' class = "fa fa-eye" title = "<?php echo __('View');?>"></a>
             </td>
         </tr>

@@ -2,6 +2,9 @@
 
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Tag $Tag
+ */
 class TagsController extends AppController
 {
     public $components = array('Security' ,'RequestHandler');
@@ -71,31 +74,31 @@ class TagsController extends AppController
         }
         if ($this->_isRest()) {
             unset($this->paginate['limit']);
-            unset($this->paginate['contain']['EventTag']);
-            unset($this->paginate['contain']['AttributeTag']);
             $paginated = $this->Tag->find('all', $this->paginate);
         } else {
             $paginated = $this->paginate();
         }
         $tagList = array();
         $csv = array();
-        $sgs = $this->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
         foreach ($paginated as $k => $tag) {
             $tagList[] = $tag['Tag']['id'];
-            $paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
+            $paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag, $this->Auth->user());
+            $paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag, $this->Auth->user());
+
             if (!$this->_isRest()) {
                 $paginated[$k]['event_ids'] = array();
-                $paginated[$k]['attribute_ids'] = array();
                 foreach ($paginated[$k]['EventTag'] as $et) {
                     $paginated[$k]['event_ids'][] = $et['event_id'];
                 }
-                unset($paginated[$k]['EventTag']);
+                $paginated[$k]['attribute_ids'] = array();
                 foreach ($paginated[$k]['AttributeTag'] as $at) {
                     $paginated[$k]['attribute_ids'][] = $at['attribute_id'];
                 }
-                unset($paginated[$k]['AttributeTag']);
             }
-            $paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
+
+            unset($paginated[$k]['EventTag']);
+            unset($paginated[$k]['AttributeTag']);
+
             if (!empty($tag['FavouriteTag'])) {
                 foreach ($tag['FavouriteTag'] as $ft) {
                     if ($ft['user_id'] == $this->Auth->user('id')) {
@@ -364,7 +367,7 @@ class TagsController extends AppController
             if ($this->_isRest()) {
                 $this->set('name', 'Tag deleted.');
                 $this->set('message', 'Tag deleted.');
-                $this->set('url', '/tags/delete/' . $id);
+                $this->set('url', $this->baseurl . '/tags/delete/' . $id);
                 $this->set('_serialize', array('name', 'message', 'url'));
             }
             $this->Flash->success(__('Tag deleted'));
@@ -395,58 +398,13 @@ class TagsController extends AppController
             if (empty($tag['EventTag'])) {
                 $tag['Tag']['count'] = 0;
             } else {
-                $eventIDs = array();
-                foreach ($tag['EventTag'] as $eventTag) {
-                    $eventIDs[] = $eventTag['event_id'];
-                }
-                $conditions = array('Event.id' => $eventIDs);
-                if (!$this->_isSiteAdmin()) {
-                    $conditions = array_merge(
-                        $conditions,
-                        array('OR' => array(
-                                array('AND' => array(
-                                        array('Event.distribution >' => 0),
-                                        array('Event.published =' => 1)
-                                )),
-                                array('Event.orgc_id' => $this->Auth->user('org_id'))
-                        ))
-                );
-                }
-                $events = $this->Tag->EventTag->Event->find('all', array(
-                        'fields' => array('Event.id', 'Event.distribution', 'Event.orgc_id'),
-                        'conditions' => $conditions
-                ));
-                $tag['Tag']['count'] = count($events);
+                $tag['Tag']['count'] = $this->Tag->EventTag->countForTag($tag, $this->Auth->user());
             }
             unset($tag['EventTag']);
             if (empty($tag['AttributeTag'])) {
                 $tag['Tag']['attribute_count'] = 0;
             } else {
-                $attributeIDs = array();
-                foreach ($tag['AttributeTag'] as $attributeTag) {
-                    $attributeIDs[] = $attributeTag['attribute_id'];
-                }
-                $conditions = array('Attribute.id' => $attributeIDs);
-                if (!$this->_isSiteAdmin()) {
-                    $conditions = array_merge(
-                        $conditions,
-                        array('OR' => array(
-                            array('AND' => array(
-                                array('Attribute.deleted =' => 0),
-                                array('Attribute.distribution >' => 0),
-                                array('Event.distribution >' => 0),
-                                array('Event.published =' => 1)
-                            )),
-                            array('Event.orgc_id' => $this->Auth->user('org_id'))
-                        ))
-                    );
-                }
-                $attributes = $this->Tag->AttributeTag->Attribute->find('all', array(
-                    'fields'     => array('Attribute.id', 'Attribute.deleted', 'Attribute.distribution', 'Event.id', 'Event.distribution', 'Event.orgc_id'),
-                    'contain'    => array('Event' => array('fields' => array('id', 'distribution', 'orgc_id'))),
-                    'conditions' => $conditions
-                ));
-                $tag['Tag']['attribute_count'] = count($attributes);
+                $tag['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag, $this->Auth->user());;
             }
             unset($tag['AttributeTag']);
             $this->set('Tag', $tag['Tag']);
@@ -574,22 +532,22 @@ class TagsController extends AppController
         if ($favourites) {
             $items[] = array(
                 'name' => __('Favourite Tags'),
-                'value' => "/tags/selectTag/" . h($id) . "/favourites/" . h($scope) . $localFlag
+                'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/favourites/" . h($scope) . $localFlag
             );
         }
         if ($scope !== 'tag_collection') {
             $items[] = array(
                 'name' => __('Tag Collections'),
-                'value' => "/tags/selectTag/" . h($id) . "/collections/" . h($scope) . $localFlag
+                'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/collections/" . h($scope) . $localFlag
             );
         }
         $items[] = array(
             'name' => __('Custom Tags'),
-            'value' => "/tags/selectTag/" . h($id) . "/0/" . h($scope) . $localFlag
+            'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/0/" . h($scope) . $localFlag
         );
         $items[] = array(
             'name' => __('All Tags'),
-            'value' => "/tags/selectTag/" . h($id) . "/all/" . h($scope) . $localFlag
+            'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/all/" . h($scope) . $localFlag
         );
 
         $this->loadModel('Taxonomy');
@@ -597,7 +555,7 @@ class TagsController extends AppController
         foreach ($options as $k => $option) {
             $items[] = array(
                 'name' => __('Taxonomy Library') . ":" . h($option),
-                'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope . $localFlag)
+                'value' => $this->baseurl . "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope . $localFlag)
             );
         }
         $this->set('items', $items);

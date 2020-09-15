@@ -207,11 +207,11 @@ class Sighting extends AppModel
     /**
      * @param array $event
      * @param array $user
-     * @param array|int|null $attribute Attribute array or attribute ID
+     * @param array|int|null $attribute Attribute model or attribute ID
      * @param bool $extraConditions
      * @return array|int
      */
-    public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false)
+    public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
     {
         $ownEvent = false;
         if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) {
@@ -220,7 +220,7 @@ class Sighting extends AppModel
 
         $contain = [];
         $conditions = array('Sighting.event_id' => $event['Event']['id']);
-        if (is_array($attribute)) {
+        if (isset($attribute['Attribute']['id'])) {
             $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
         } elseif (is_numeric($attribute)) {
             $conditions['Sighting.attribute_id'] = $attribute;
@@ -262,14 +262,29 @@ class Sighting extends AppModel
             return array();
         }
         $anonymise = Configure::read('Plugin.Sightings_anonymise');
+        $anonymiseAs = Configure::read('Plugin.Sightings_anonymise_as');
+        $anonOrg = null;
+        if ($forSync && !empty($anonymiseAs)) {
+            $this->Organisation = ClassRegistry::init('Organisation');
+            $anonOrg = $this->Organisation->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Organisation.id' => $anonymiseAs],
+                'fields' => ['Organisation.id', 'Organisation.uuid', 'Organisation.name']
+            ]);
+        }
         foreach ($sightings as $k => $sighting) {
             if (
                 ($sighting['Sighting']['org_id'] == 0 && !empty($sighting['Organisation'])) ||
-                $anonymise
+                $anonymise || !empty($anonOrg)
             ) {
                 if ($sighting['Sighting']['org_id'] != $user['org_id']) {
-                    unset($sightings[$k]['Sighting']['org_id']);
-                    unset($sightings[$k]['Organisation']);
+                    if (empty($anonOrg)) {
+                        unset($sightings[$k]['Sighting']['org_id']);
+                        unset($sightings[$k]['Organisation']);
+                    } else {
+                        $sightings[$k]['Sighting']['org_id'] = $anonOrg['Organisation']['id'];
+                        $sightings[$k]['Organisation'] = $anonOrg['Organisation'];
+                    }
                 }
             }
             // rearrange it to match the event format of fetchevent
@@ -528,14 +543,6 @@ class Sighting extends AppModel
         $conditions = array(
             'Sighting.date_sighting >' => $this->getMaximumRange(),
             ucfirst($context) . 'Tag.tag_id' => $tagList
-
-        );
-        $contain = array(
-            ucfirst($context) => array(
-                ucfirst($context) . 'Tag' => array(
-                    'Tag'
-                )
-            )
         );
         if ($type !== false) {
             $conditions['Sighting.type'] = $type;
@@ -545,15 +552,16 @@ class Sighting extends AppModel
             'recursive' => -1,
             'contain' => array(ucfirst($context) . 'Tag'),
             'conditions' => $conditions,
-            'fields' => array('Sighting.id', 'Sighting.' . $context . '_id', 'Sighting.date_sighting', ucfirst($context) . 'Tag.tag_id')
+            'fields' => array('Sighting.' . $context . '_id', 'Sighting.date_sighting')
         ));
         $sightingsRearranged = array();
         foreach ($sightings as $sighting) {
             $date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
-            if (isset($sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date])) {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date]++;
+            $contextId = $sighting['Sighting'][$context . '_id'];
+            if (isset($sightingsRearranged[$contextId][$date])) {
+                $sightingsRearranged[$contextId][$date]++;
             } else {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date] = 1;
+                $sightingsRearranged[$contextId][$date] = 1;
             }
         }
         return $sightingsRearranged;

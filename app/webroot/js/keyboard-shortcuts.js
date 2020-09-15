@@ -19,10 +19,12 @@ let keyboardShortcutsManager = {
 	 * Fetches the keyboard shortcut config files and populates this.shortcutJSON.
 	 */
 	init() {
+		/* Codacy comment to notify that baseurl is a read-only global variable. */
+		/* global baseurl */
 		let shortcutURIs = [];
 		for(let keyboardShortcutElement of $('.keyboardShortcutsConfig')) {
 			shortcutURIs.push(keyboardShortcutElement.value);
-			this.ajaxGet(window.location.protocol + "//" + window.location.host + keyboardShortcutElement.value).then(response => {
+			this.ajaxGet(baseurl + keyboardShortcutElement.value).then((response) => {
 				this.mapKeyboardShortcuts(JSON.parse(response));
 			});
 		}
@@ -114,3 +116,4 @@ $(document).ready(() => keyboardShortcutsManager.init());
 
 // Inits the click event on the keyboard shortcut triangle at the bottom of the screen.
 $('#triangle').click(keyboardShortcutsManager.onTriangleClick);
+

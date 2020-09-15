@@ -277,15 +277,10 @@ class AttributesController extends AppController
         }
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
-        $this->set('compositeTypes', $this->Attribute->getCompositeTypes());
         // combobox for categories
         $categories = array_keys($this->Attribute->categoryDefinitions);
         $categories = $this->_arrayToValuesIndexArray($categories);
         $this->set('categories', $categories);
-        $this->set('event_id', $event['Event']['id']);
-        // combobox for distribution
-        $this->set('currentDist', $event['Event']['distribution']);
-        // tooltip for distribution
 
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
@@ -313,11 +308,11 @@ class AttributesController extends AppController
         }
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
-        $this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
+        $this->set('notice_list_triggers', json_encode($notice_list_triggers));
         $this->set('fieldDesc', $fieldDesc);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        $this->set('published', $event['Event']['published']);
+        $this->set('event', $event);
         $this->set('action', $this->action);
     }
 
@@ -849,8 +844,7 @@ class AttributesController extends AppController
             $this->set('objectAttribute', false);
         }
         // enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
-        $this->set('event_id', $attribute['Event']['id']);
-        $this->set('published', $attribute['Event']['published']);
+        $this->set('event', $attribute); // Attribute contains 'Event' field
         // needed for RBAC
         // combobox for types
         $types = array_keys($this->Attribute->typeDefinitions);
@@ -862,8 +856,6 @@ class AttributesController extends AppController
         $types = $this->_arrayToValuesIndexArray($types);
         $this->set('types', $types);
         // combobox for categories
-        $this->set('currentDist', $attribute['Event']['distribution']);
-
         $this->loadModel('SharingGroup');
         $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
@@ -903,7 +895,6 @@ class AttributesController extends AppController
         }
         $this->set('categories', $categories);
         $this->set('categoryDefinitions', $categoryDefinitions);
-        $this->set('compositeTypes', $this->Attribute->getCompositeTypes());
         $this->set('action', $this->action);
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
@@ -1485,10 +1476,6 @@ class AttributesController extends AppController
 
     public function search($continue = false)
     {
-        $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-        $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-        $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-        $this->set('shortDist', $this->Attribute->shortDist);
         if ($this->request->is('post') || !empty($this->request->params['named']['tags'])) {
             if (isset($this->request->data['Attribute'])) {
                 $this->request->data = $this->request->data['Attribute'];
@@ -1551,13 +1538,22 @@ class AttributesController extends AppController
                 $filters = json_decode($filters, true);
             }
         } else {
-            $types = array('' => array('ALL' => 'ALL'), 'types' => array());
-            $types['types'] = array_merge($types['types'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions)));
-            ksort($types['types']);
-            $this->set('types', $types);
+            $types = $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions));
+            ksort($types);
+            $this->set('types', array_merge(['ALL' => 'ALL'], $types));
             // combobox for categories
-            $categories['categories'] = array_merge(array('ALL' => 'ALL'), $this->_arrayToValuesIndexArray(array_keys($this->Attribute->categoryDefinitions)));
+            $categories = array_merge(['ALL' => 'ALL'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->categoryDefinitions)));
             $this->set('categories', $categories);
+
+            $categoryDefinition = $this->Attribute->categoryDefinitions;
+            $categoryDefinition['ALL'] = ['types' => array_keys($this->Attribute->typeDefinitions), 'formdesc' => ''];
+            foreach ($categoryDefinition as &$def) {
+                $def['types'] = array_merge(['ALL'], $def['types']);
+            }
+            $this->set('categoryDefinitions', $categoryDefinition);
+
+            $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+
             $this->Session->write('search_attributes_filters', null);
         }
         if (isset($filters)) {
@@ -1587,11 +1583,7 @@ class AttributesController extends AppController
             );
             $attributes = $this->paginate();
             if (!$this->_isRest()) {
-                $temp = $this->__searchUI($attributes);
-                $this->loadModel('Galaxy');
-                $this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
-                $attributes = $temp[0];
-                $sightingsData = $temp[1];
+                list($attributes, $sightingsData) = $this->__searchUI($attributes);
                 $this->set('sightingsData', $sightingsData);
             } else {
                 return $this->RestResponse->viewData($attributes, $this->response->type());
@@ -1618,6 +1610,8 @@ class AttributesController extends AppController
             $this->set('filters', $filters);
             $this->set('attributes', $attributes);
             $this->set('isSearch', 1);
+            $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+            $this->set('shortDist', $this->Attribute->shortDist);
             $this->render('index');
         }
         if (isset($attributeTags)) {
@@ -2563,7 +2557,6 @@ class AttributesController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
-        $this->Taxonomy = ClassRegistry::init('Taxonomy');
         $rearrangeRules = array(
             'request' => false,
             'Attribute' => false,
@@ -2652,6 +2645,7 @@ class AttributesController extends AppController
             }
             $success = 0;
             $fails = 0;
+            $this->Taxonomy = ClassRegistry::init('Taxonomy');
             foreach ($idList as $id) {
                 $attributes = $this->Attribute->fetchAttributes(
                     $this->Auth->user(),
@@ -2679,16 +2673,21 @@ class AttributesController extends AppController
                     $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
                 }
                 foreach ($tag_id_list as $tag_id) {
-                    $this->Attribute->AttributeTag->Tag->id = $tag_id;
-                    if (!$this->Attribute->AttributeTag->Tag->exists()) {
-                        $fails++;
-                        continue;
+                    $conditions = ['Tag.id' => $tag_id];
+                    if (!$this->_isSiteAdmin()) {
+                        $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                        $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
                     }
                     $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
-                        'conditions' => array('Tag.id' => $tag_id),
+                        'conditions' => $conditions,
                         'recursive' => -1,
                         'fields' => array('Tag.name')
                     ));
+                    if (!$tag) {
+                        // Tag not found or user don't have permission to add it.
+                        $fails++;
+                        continue;
+                    }
                     $found = $this->Attribute->AttributeTag->find('first', array(
                         'conditions' => array(
                             'attribute_id' => $id,
@@ -2698,6 +2697,7 @@ class AttributesController extends AppController
                     ));
                     $this->autoRender = false;
                     if (!empty($found)) {
+                        // Tag is already assigned to given attribute.
                         $fails++;
                         continue;
                     }
@@ -2755,20 +2755,12 @@ class AttributesController extends AppController
                 }
             }
             if ($fails == 0) {
-                if ($success == 1) {
-                    $message = 'Tag added.';
-                } else {
-                    $message = $success . ' tags added.';
-                }
+                $message = __n('Tag added.', '%s tags added', $success, $success);
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
             } else {
-                if ($fails == 1) {
-                    $message = 'Tag could not be added.';
-                } else {
-                    $message = $fails . ' tags could not be added.';
-                }
+                $message = __n('Tag could not be added.', '%s tags could not be added.', $fails, $fails);
                 if ($success > 0) {
-                    $message .= ' However, ' . $success . ' tag(s) were added.';
+                    $message .= __n(' However, %s tag was added.', ' However, %s tags were added.', $success, $success);
                 }
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
             }
@@ -2778,9 +2770,28 @@ class AttributesController extends AppController
     public function removeTag($id = false, $tag_id = false)
     {
         if (!$this->request->is('post')) {
-            $this->set('id', $id);
+            $attribute = $this->__fetchAttribute($id);
+            if (!$attribute) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
+            $attributeTag = $this->Attribute->AttributeTag->find('first', array(
+                'conditions' => array(
+                    'attribute_id' => $attribute['Attribute']['id'],
+                    'tag_id' => $tag_id,
+                ),
+                'contain' => ['Tag'],
+                'recursive' => -1,
+            ));
+            if (!$attributeTag) {
+                throw new NotFoundException(__('Invalid tag.'));
+            }
+
+            $this->set('is_local', $attributeTag['AttributeTag']['local']);
+            $this->set('tag', $attributeTag);
+            $this->set('id', $attribute['Attribute']['id']);
             $this->set('tag_id', $tag_id);
             $this->set('model', 'Attribute');
+            $this->set('model_name', $attribute['Attribute']['id']);
             $this->render('ajax/tagRemoveConfirmation');
         } else {
             $rearrangeRules = array(

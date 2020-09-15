@@ -16,6 +16,7 @@ class BroExport
         'ip-src' => array('brotype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET')),
         'ip-dst|port' => array('brotype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET'), 'composite' => 'NONE'),
         'ip-src|port' => array('brotype' => 'ADDR', 'alternate' => array('#/#', 'SUBNET'), 'composite' => 'NONE'),
+        'email' => array('brotype' => 'EMAIL'),
         'email-src' => array('brotype' => 'EMAIL'),
         'email-dst' => array('brotype' => 'EMAIL'),
         'target-email' => array('brotype' => 'EMAIL'),
@@ -79,6 +80,7 @@ class BroExport
             array('domain|ip', 1)
         ),
         'email' => array(
+            array('email', 1),
             array('email-src', 1),
             array('email-dst', 1),
             array('target-email', 1)

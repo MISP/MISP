@@ -78,7 +78,7 @@
                                     )
                             ),
                             'class'=>'btn btn-primary',
-                            'url' => '/attributes/add/' . $event['Event']['id']
+                            'url' => $baseurl . '/attributes/add/' . $event['Event']['id']
                     ));
                     ?>
                 </td>

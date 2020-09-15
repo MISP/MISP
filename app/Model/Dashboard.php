@@ -14,7 +14,7 @@ class Dashboard extends AppModel
         'role_id' => 'numeric',
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'rule' => array('uuid'),
                 'message' => 'Please provide a valid UUID'
             ),
         )

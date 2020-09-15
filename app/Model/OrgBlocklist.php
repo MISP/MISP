@@ -1,8 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
-class OrgBlacklist extends AppModel
+class OrgBlocklist extends AppModel
 {
-    public $useTable = 'org_blacklists';
+    public $useTable = 'org_blocklists';
 
     public $recursive = -1;
 
@@ -13,18 +13,18 @@ class OrgBlacklist extends AppModel
                     'change' => 'full'),
             'Containable',
     );
-    public $blacklistFields = array('org_uuid', 'comment', 'org_name');
+    public $blocklistFields = array('org_uuid', 'comment', 'org_name');
 
-    public $blacklistTarget = 'org';
+    public $blocklistTarget = 'org';
 
     public $validate = array(
             'org_uuid' => array(
                     'unique' => array(
                             'rule' => 'isUnique',
-                            'message' => 'Organisation already blacklisted.'
+                            'message' => 'Organisation already blocklisted.'
                     ),
                     'uuid' => array(
-                        'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                        'rule' => 'uuid',
                         'message' => 'Please provide a valid UUID'
                     ),
             )
@@ -33,8 +33,8 @@ class OrgBlacklist extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
-        if (empty($this->data['OrgBlacklist']['id'])) {
-            $this->data['OrgBlacklist']['date_created'] = date('Y-m-d H:i:s');
+        if (empty($this->data['OrgBlocklist']['id'])) {
+            $this->data['OrgBlocklist']['date_created'] = date('Y-m-d H:i:s');
         }
         return true;
     }

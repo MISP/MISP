@@ -59,7 +59,7 @@ class MispObject extends AppModel
     public $validate = array(
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'rule' => 'uuid',
                 'message' => 'Please provide a valid UUID'
             ),
             'unique' => array(
@@ -1505,7 +1505,7 @@ class MispObject extends AppModel
         $continue = true;
         while ($continue) {
             $temp = '';
-            $this->Whitelist = ClassRegistry::init('Whitelist');
+            $this->Allowedlist = ClassRegistry::init('Allowedlist');
             $results = $this->fetchObjects($user, $params, $continue);
             if (empty($results)) {
                 $loop = false;
@@ -1519,7 +1519,7 @@ class MispObject extends AppModel
                 $results = $this->Sightingdb->attachToObjects($results, $user);
             }
             $params['page'] += 1;
-            $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+            $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
             $results = array_values($results);
             $i = 0;
             foreach ($results as $object) {

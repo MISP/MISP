@@ -37,25 +37,25 @@
                     array(
                         'children' => array(
                             array(
-                                'url' => '/feeds/index/scope:default',
+                                'url' => $baseurl . '/feeds/index/scope:default',
                                 'text' => __('Default feeds'),
                                 'active' => $scope === 'default',
                                 'style' => 'display:inline;'
                             ),
                             array(
-                                'url' => '/feeds/index/scope:custom',
+                                'url' => $baseurl . '/feeds/index/scope:custom',
                                 'text' => __('Custom feeds'),
                                 'active' => $scope === 'custom',
                                 'style' => 'display:inline;'
                             ),
                             array(
-                                'url' => '/feeds/index/scope:all',
+                                'url' => $baseurl . '/feeds/index/scope:all',
                                 'text' => __('All feeds'),
                                 'active' => $scope === 'all',
                                 'style' => 'display:inline;'
                             ),
                             array(
-                                'url' => '/feeds/index/scope:enabled',
+                                'url' => $baseurl . '/feeds/index/scope:enabled',
                                 'text' => __('Enabled feeds'),
                                 'active' => $scope === 'enabled',
                                 'style' => 'display:inline;'

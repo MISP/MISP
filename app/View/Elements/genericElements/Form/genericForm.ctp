@@ -16,7 +16,7 @@
         h(Inflector::singularize(Inflector::classify($this->request->params['controller']))) :
         h($data['model']);
     $fieldsString = '';
-    $simpleFieldWhitelist = array(
+    $simpleFieldAllowedlist = array(
         'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required'
     );
     $fieldsArrayForPersistence = array();
@@ -50,7 +50,7 @@
                 } else {
                     $params['class'] = '';
                 }
-                foreach ($simpleFieldWhitelist as $f) {
+                foreach ($simpleFieldAllowedlist as $f) {
                     if (!empty($fieldData[$f])) {
                         $params[$f] = $fieldData[$f];
                     }

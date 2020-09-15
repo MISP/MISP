@@ -1,15 +1,15 @@
 <div class="confirmation">
     <?php
-        echo $this->Form->create('EventBlacklist', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
+        echo $this->Form->create('EventBlocklist', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
         echo $this->Form->input('ids', array(
                 'type' => 'hidden',
                 'div' => 'hidden',
                 'value' => json_encode($event_ids)
         ));
     ?>
-    <legend><?php echo __('Delete blacklisted events'); ?></legend>
+    <legend><?php echo __('Delete blocklisted events'); ?></legend>
     <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-        <p><?php echo __('Are you sure you want to delete from the blacklist the selected events?'); ?></p>
+        <p><?php echo __('Are you sure you want to delete from the blocklist the selected events?'); ?></p>
         <table>
             <tr>
                 <td style="vertical-align:top">

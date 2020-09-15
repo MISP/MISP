@@ -128,7 +128,7 @@ class ShadowAttribute extends AppModel
         ),
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'rule' => 'uuid',
                 'message' => 'Please provide a valid UUID'
             ),
         ),
@@ -331,6 +331,8 @@ class ShadowAttribute extends AppModel
         // generate UUID if it doesn't exist
         if (empty($this->data['ShadowAttribute']['uuid'])) {
             $this->data['ShadowAttribute']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['ShadowAttribute']['uuid'] = strtolower($this->data['ShadowAttribute']['uuid']);
         }
 
         if (!empty($this->data['ShadowAttribute']['type']) && empty($this->data['ShadowAttribute']['category'])) {
@@ -394,10 +396,19 @@ class ShadowAttribute extends AppModel
         return in_array($type, $this->zippedDefinitions) || in_array($type, $this->uploadDefinitions);
     }
 
-    public function base64EncodeAttachment($attribute)
+    public function base64EncodeAttachment(array $attribute)
     {
-        $content = $this->loadAttachmentTool()->getShadowContent($attribute['event_id'], $attribute['id']);
-        return base64_encode($content);
+        try {
+            return base64_encode($this->getAttachment($attribute));
+        } catch (NotFoundException $e) {
+            $this->log($e->getMessage(), LOG_NOTICE);
+            return '';
+        }
+    }
+
+    public function getAttachment($attribute, $path_suffix='')
+    {
+        return $this->loadAttachmentTool()->getShadowContent($attribute['event_id'], $attribute['id'], $path_suffix);
     }
 
     public function saveBase64EncodedAttachment($attribute)
