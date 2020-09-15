@@ -5603,4 +5603,44 @@ class EventsController extends AppController
             $this->redirect($this->referer());
         }
     }
+
+    public function restoreDeletedEvents($force = false)
+    {
+        $startDate = '2020-07-31 00:00:00';
+        $endDate = date('Y-m-d H:i:s', time());
+        $this->loadModel('Log');
+        $redis = $this->Event->setupRedis();
+        if ($force || ($redis && !$redis->exists('misp:event_recovery'))) {
+            $deleted_events = $this->Log->findDeletedEvents(['created BETWEEN ? AND ?' => [$startDate, $endDate]]);
+            $redis->set('misp:event_recovery', json_encode($deleted_events));
+            $redis->expire('misp:event_recovery', 600);
+        } else {
+            $deleted_events = json_decode($redis->get('misp:event_recovery'), true);
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($deleted_events, 'json');
+        } else {
+            $this->set('data', $deleted_events);
+        }
+    }
+
+    public function recoverEvent($id)
+    {
+        if ($this->request->is('post')) {
+            $this->loadModel('Log');
+            $result = $this->Log->recoverDeletedEvent($id);
+            $message = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
+            if ($this->_isRest()) {
+                $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id]);
+            } else {
+                $this->Flash->success(__('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result));
+            }
+        } else {
+            if ($this->_isRest()) {
+            } else {
+                $this->Flash->error(__('This action is only accessible via POST requests.'));
+            }
+        }
+        $this->redirect(['action' => 'showPotentialUnintendedDeletions']);
+    }
 }
