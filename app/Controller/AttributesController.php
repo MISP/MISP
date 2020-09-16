@@ -1448,7 +1448,6 @@ class AttributesController extends AppController
                 $event['Event']['timestamp'] = $timestamp;
                 $event['Event']['published'] = 0;
                 $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'id')));
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
             } else {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
             }
