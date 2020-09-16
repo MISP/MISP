@@ -1305,7 +1305,9 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 $('#sightingsListAllToggle').addClass('btn-primary');
             }
             if (referer == 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
+                context == 'eventReport'
                 reloadEventReportTable()
+                eventUnpublish()
             }
             if (
                 (
