@@ -110,6 +110,8 @@ function initMarkdownIt() {
     md.renderer.rules.table_open = function () {
         return '<table class="table table-striped">\n';
     };
+    md.renderer.rules.paragraph_open = injectLineNumbers;
+    md.renderer.rules.heading_open = injectLineNumbers;
     if (typeof markdownItCustomRules === 'function') {
         markdownItCustomRules()
     }

@@ -208,8 +208,6 @@ function renderHintElement(scope, element) {
  |_|  |_|\__,_|_|  |_|\_\__,_|\___/ \_/\_/ |_| |_|_____|\__|
  */
 function markdownItSetupRules() {
-    md.renderer.rules.paragraph_open = injectLineNumbers;
-    md.renderer.rules.heading_open = injectLineNumbers;
     md.renderer.rules.MISPElement = MISPElementRenderer;
     md.renderer.rules.MISPPictureElement = MISPPictureElementRenderer;
     md.inline.ruler.push('MISP_element_rule', MISPElementRule);
