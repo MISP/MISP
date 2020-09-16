@@ -5607,7 +5607,11 @@ class EventsController extends AppController
     public function restoreDeletedEvents($force = false)
     {
         $startDate = '2020-07-31 00:00:00';
-        $endDate = date('Y-m-d H:i:s', time());
+        $this->loadModel('AdminSetting');
+        $endDate = date('Y-m-d H:i:s', $this->AdminSetting->getSetting('fix_login'));
+        if (empty($endDate)) {
+            $endDate = date('Y-m-d H:i:s', time());
+        }
         $this->loadModel('Log');
         $redis = $this->Event->setupRedis();
         if ($force || ($redis && !$redis->exists('misp:event_recovery'))) {
