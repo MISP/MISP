@@ -517,7 +517,7 @@
             <span class="icon-plus icon-white" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>" style="vertical-align:top;"></span><?php echo __('ATT&CK matrix');?>
         </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventreport_toggle" data-toggle-type="eventreport">
-            <span class="icon-minus icon-white" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>" style="vertical-align:top;"></span><?php echo __('Event reports');?>
+            <span class="icon-plus icon-white" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>" style="vertical-align:top;"></span><?php echo __('Event reports');?>
         </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
             <span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
@@ -545,7 +545,7 @@
     </div>
     <div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false" data-mitre-attack-galaxy-id="<?php echo h($mitreAttackGalaxyId)?>">
     </div>
-    <div id="eventreport_div">
+    <div id="eventreport_div" style="display: none;">
         <span class="report-title-section"><?php echo __('Event Reports');?></span>
         <div id="eventreport_index_div"></div>
     </div>
@@ -575,6 +575,9 @@ $(document).ready(function () {
 
     $.get("<?php echo $baseurl; ?>/eventReports/eventIndex/<?= h($event['Event']['id']); ?>", function(data) {
         $("#eventreport_index_div").html(data);
+        if ($('#eventreport_index_div table tbody > tr').length) { // open if contain a report
+            $('#eventreport_toggle').click()
+        }
     });
 
 });
