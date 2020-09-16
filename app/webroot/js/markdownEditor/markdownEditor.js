@@ -56,6 +56,7 @@ $(document).ready(function() {
     }
 
     doRender()
+    reloadRuleEnabledUI()
 
     if (canEdit) {
         $editorContainer.on('touchstart mouseover', function () {
@@ -154,6 +155,56 @@ function initCodeMirror() {
             cm.showHint()
         }
     });
+}
+
+function markdownItToggleRule(rulename, event) {
+    if (event !== undefined) {
+        event.stopPropagation()
+    }
+    var enabled
+    if (rulename == 'image') {
+        var rule = getRuleStatus('inline', 'ruler', 'image')
+        if (rule !== false) {
+            enabled = rule.enabled
+        }
+    } else if (rulename == 'link') {
+        var rule = getRuleStatus('inline', 'ruler', 'link')
+        if (rule !== false) {
+            enabled = rule.enabled
+        }
+    } else if (rulename == 'MISP_element_rule') {
+        var rule = getRuleStatus('inline', 'ruler', 'MISP_element_rule')
+        if (rule !== false) {
+            enabled = rule.enabled
+        }
+    }
+    if (enabled !== undefined) {
+        if (enabled) {
+            md.disable([rulename])
+        } else {
+            md.enable([rulename])
+        }
+    }
+    doRender()
+    reloadRuleEnabledUI()
+}
+
+function reloadRuleEnabledUI() {
+    var rulesToUpdate = [
+        ['inline', 'ruler', 'image'],
+        ['inline', 'ruler', 'link'],
+        ['inline', 'ruler', 'MISP_element_rule'],
+    ]
+    rulesToUpdate.forEach(function(rulePath) {
+        var rule = getRuleStatus(rulePath[0], rulePath[1], rulePath[2])
+        if (rule.enabled) {
+            $('#markdownparsing-' + rule.name + '-parsing-enabled').show()
+            $('#markdownparsing-' + rule.name + '-parsing-disabled').hide()
+        } else {
+            $('#markdownparsing-' + rule.name + '-parsing-enabled').hide()
+            $('#markdownparsing-' + rule.name + '-parsing-disabled').show()
+        }
+    })
 }
 
 function toggleSaveButton(enabled) {
@@ -465,6 +516,17 @@ function insertTopToolbarButton(FAClass, replacement) {
             replacementAction(replacement)
         })
     )
+}
+
+function getRuleStatus(context, rulername, rulename) {
+    var rules = md[context][rulername].__rules__
+    for (var i = 0; i < rules.length; i++) {
+        var rule = rules[i];
+        if (rule.name == rulename) {
+            return rule
+        }
+    }
+    return false
 }
 
 // Inject line numbers for sync scroll. Notes:

@@ -34,31 +34,54 @@
             </button>
         <?php endif; ?>
         <?php if (!$insideModal): ?>
-            <button id="saveMarkdownButton" type="button" class="btn btn-primary" onclick="downloadMarkdown('pdf')">
-                <i class="<?= $this->FontAwesome->getClass('file-pdf') ?>" onclick=""></i>
-                <?= __('Download') ?>
-            </button>
             <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                <?= __('Menu') ?>
                 <span class="caret"></span>
             </button>
             <ul class="dropdown-menu">
                 <li class="dropdown-submenu">
                     <a tabindex="-1" href="#">
-                        <span class="icon"><i class="<?= $this->FontAwesome->getClass('download') ?> fa-download"></i></span>
-                        <?= __('Downloads') ?>
+                        <span class="icon"><i class="<?= $this->FontAwesome->getClass('download') ?>"></i></span>
+                        <?= __('Download') ?>
                     </a>
                     <ul class="dropdown-menu">
                         <li><a tabindex="-1" href="#" onclick="downloadMarkdown('pdf')">
-                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('file-pdf') ?> fa-file-pdf"></i></span>
+                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('file-pdf') ?>"></i></span>
                             <?= __('Download PDF (via print)') ?>
                         </a></li>
                         <li><a tabindex="-1" href="#" onclick="downloadMarkdown('text')">
-                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i></span>
+                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?>"></i></span>
                             <?= __('Download Markdown') ?>
                         </a></li>
                         <li><a tabindex="-1" href="#" title="<?= __('Replace custom syntax by a valid one') ?>" onclick="downloadMarkdown('text-gfm')">
-                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?> fa-markdown"></i></span>
+                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?>"></i></span>
                             <?= __('Download GFM simplified format') ?>
+                        </a></li>
+                    </ul>
+                </li>
+                <li class="dropdown-submenu">
+                    <a tabindex="-1" href="#">
+                        <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?>"></i></span>
+                        <?= __('Markdown parsing') ?>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a tabindex="-1" href="#" style="min-width: 200px;" onclick="markdownItToggleRule('MISP_element_rule', arguments[0])" >
+                            <span class="icon"><img src="/favicon.ico"></span>
+                            <?= __('MISP Elements') ?>
+                            <span id="markdownparsing-MISP_element_rule-parsing-enabled" class="bold green hidden" style="float: right;"><?= __('enabled') ?></span>
+                            <span id="markdownparsing-MISP_element_rule-parsing-disabled" class="bold red" style="float: right;"><?= __('disabled') ?></span>
+                        </a></li>
+                        <li><a tabindex="-1" href="#" style="min-width: 200px;" onclick="markdownItToggleRule('image', arguments[0])" >
+                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('image') ?>"></i></span>
+                            <?= __('Image parsing') ?>
+                            <span id="markdownparsing-image-parsing-enabled" class="bold green hidden" style="float: right;"><?= __('enabled') ?></span>
+                            <span id="markdownparsing-image-parsing-disabled" class="bold red" style="float: right;"><?= __('disabled') ?></span>
+                        </a></li>
+                        <li><a tabindex="-1" href="#" style="min-width: 200px;" onclick="markdownItToggleRule('link', arguments[0])" >
+                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('link') ?>"></i></span>
+                            <?= __('Link parsing') ?>
+                            <span id="markdownparsing-link-parsing-enabled" class="bold green hidden" style="float: right;"><?= __('enabled') ?></span>
+                            <span id="markdownparsing-link-parsing-disabled" class="bold red" style="float: right;"><?= __('disabled') ?></span>
                         </a></li>
                     </ul>
                 </li>

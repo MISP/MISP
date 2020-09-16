@@ -169,3 +169,8 @@
   text-decoration: none;
   color: black;
 }
+
+.dropdown-menu > li > a:hover .green,
+.dropdown-menu > li > a:hover .red {
+    color: white !important;
+}
