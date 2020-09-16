@@ -7113,4 +7113,11 @@ class Event extends AppModel
             }
         }
     }
+
+    public function recoverEvent($id)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $result = $this->Log->recoverDeletedEvent($id);
+        return $result;
+    }
 }

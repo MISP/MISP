@@ -381,4 +381,21 @@ class EventShell extends AppShell
         );
         return true;
     }
+
+    public function recoverEvent()
+    {
+        $this->ConfigLoad->execute();
+        $jobId = $this->args[0];
+        $id = $this->args[1];
+        $job = $this->Job->read(null, $jobId);
+        $job['Job']['progress'] = 1;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Recovering event %s', $id);
+        $this->Job->save($job);
+        $result = $this->Event->recoverEvent($id);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        $job['Job']['message'] = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
+        $this->Job->save($job);
+    }
 }

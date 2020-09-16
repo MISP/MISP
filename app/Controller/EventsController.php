@@ -5630,21 +5630,49 @@ class EventsController extends AppController
 
     public function recoverEvent($id)
     {
+        if (!Configure::read('MISP.background_jobs')) {
+            throw new MethodNotAllowedException(__('Workers must be enabled to use this feature'));
+        }
         if ($this->request->is('post')) {
-            $this->loadModel('Log');
-            $result = $this->Log->recoverDeletedEvent($id);
-            $message = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
+            $job_type = 'recover_event';
+            $function = 'recoverEvent';
+            $message = __('Bootstraping recovering of event %s', $id);
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $data = array(
+                    'worker' => $this->Event->__getPrioWorkerIfPossible(),
+                    'job_type' => $job_type,
+                    'job_input' => sprintf('Event ID: %s', $id),
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => 0,
+                    'org' => 'ADMIN',
+                    'message' => $message
+            );
+            $job->save($data);
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                'prio',
+                'EventShell',
+                array($function, $jobId, $id),
+                true
+            );
+            $job->saveField('process_id', $process_id);
+
+            $message = __('Recover event job queued. Job ID: %s', $jobId);
             if ($this->_isRest()) {
-                $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id]);
+                return $this->RestResponse->viewData(array('message' => $message), $this->response->type());
             } else {
-                $this->Flash->success(__('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result));
+                $this->Flash->success($message);
             }
         } else {
+            $message = __('This action is only accessible via POST requests.');
             if ($this->_isRest()) {
+                return $this->RestResponse->viewData(array('message' => $message, 'error' => true), $this->response->type());
             } else {
-                $this->Flash->error(__('This action is only accessible via POST requests.'));
+                $this->Flash->error($message);
             }
         }
-        $this->redirect(['action' => 'showPotentialUnintendedDeletions']);
+        $this->redirect(['action' => 'restoreDeletedEvents']);
     }
 }
