@@ -23,6 +23,7 @@
                                 ),
                                 array(
                                     'active' => $context === 'default',
+                                    'class' => 'defaultContext',
                                     'url' => sprintf('%s/eventReports/eventIndex/%s/context:default', $baseurl, h($event_id)),
                                     'text' => __('Default'),
                                 ),
@@ -146,4 +147,27 @@
             });
         });
     })
+
+    function reloadEventReportTable() {
+        var url = $("#eventReportQuickIndex a.defaultContext").attr('href')
+        $.ajax({
+            dataType:"html",
+            beforeSend: function() {
+                $("#eventreport_index_div").empty()
+                .append(
+                    $('<div></div>')
+                        .css({'text-align': 'center', 'font-size': 'large', 'margin': '5px 0'})
+                        .append(loadingSpanAnimation)
+                )
+            },
+            success:function (data) {
+                $("#eventreport_index_div").html(data);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                $("#eventreport_index_div").empty().text('<?= __('Failed to load Event report table')?>')
+                showMessage('fail', textStatus + ": " + errorThrown);
+            },
+            url:url
+        });
+    }
 </script>
