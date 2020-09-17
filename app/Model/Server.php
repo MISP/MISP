@@ -2495,6 +2495,18 @@ class Server extends AppModel
                     }
                 }
             }
+            if (isset($event['Event']['EventReport']) && !empty($event['Event']['EventReport'])) {
+                foreach ($event['Event']['EventReport'] as $key => $r) {
+                    switch ($r['distribution']) {
+                        case '1':
+                            $event['Event']['EventReport'][$key]['distribution'] = '0';
+                            break;
+                        case '2':
+                            $event['Event']['EventReport'][$key]['distribution'] = '1';
+                            break;
+                    }
+                }
+            }
         }
         // Distribution, set reporter of the event, being the admin that initiated the pull
         $event['Event']['user_id'] = $user['id'];

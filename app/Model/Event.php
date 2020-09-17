@@ -1203,7 +1203,7 @@ class Event extends AppModel
     private function __rearrangeEventStructureForSync($event)
     {
         // rearrange things to be compatible with the Xml::fromArray()
-        $objectsToRearrange = array('Attribute', 'Object', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute');
+        $objectsToRearrange = array('Attribute', 'Object', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute', 'EventReport');
         foreach ($objectsToRearrange as $o) {
             if (isset($event[$o])) {
                 $event['Event'][$o] = $event[$o];
@@ -1270,6 +1270,20 @@ class Event extends AppModel
         return $data;
     }
 
+    private function __prepareEventReportForSync($data, $server)
+    {
+        if (!empty($data['EventReport'])) {
+            foreach ($data['EventReport'] as $key => $report) {
+                $data['EventReport'][$key] = $this->__updateEventReportForSync($report, $server);
+                if (empty($data['EventReport'][$key])) {
+                    unset($data['EventReport'][$key]);
+                }
+            }
+            $data['EventReport'] = array_values($data['EventReport']);
+        }
+        return $data;
+    }
+
     private function __updateEventForSync($event, $server)
     {
         $event = $this->__rearrangeEventStructureForSync($event);
@@ -1288,6 +1302,7 @@ class Event extends AppModel
         }
         $event['Event'] = $this->__prepareAttributesForSync($event['Event'], $server);
         $event['Event'] = $this->__prepareObjectsForSync($event['Event'], $server);
+        $event['Event'] = $this->__prepareEventReportForSync($event['Event'], $server);
 
         // Downgrade the event from connected communities to community only
         if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
@@ -1379,6 +1394,36 @@ class Event extends AppModel
         unset($attribute['value1']);
         unset($attribute['value2']);
         return $attribute;
+    }
+
+    private function __updateEventReportForSync($report, $server)
+    {
+        if (!$server['Server']['internal'] && $report['distribution'] < 2) {
+            return false;
+        }
+        // Downgrade the object from connected communities to community only
+        if (!$server['Server']['internal'] && $report['distribution'] == 2) {
+            $report['distribution'] = 1;
+        }
+        // If the object has a sharing group attached, make sure it can be transferred
+        if ($report['distribution'] == 4) {
+            if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('EventReport' => $report), $server, 'EventReport') === false) {
+                return false;
+            }
+            // Add the local server to the list of instances in the SG
+            if (isset($object['SharingGroup']['SharingGroupServer'])) {
+                foreach ($object['SharingGroup']['SharingGroupServer'] as &$s) {
+                    if ($s['server_id'] == 0) {
+                        $s['Server'] = array(
+                            'id' => 0,
+                            'url' => $this->__getAnnounceBaseurl(),
+                            'name' => $this->__getAnnounceBaseurl()
+                        );
+                    }
+                }
+            }
+        }
+        return $report;
     }
 
     /**
@@ -3664,7 +3709,8 @@ class Event extends AppModel
                 'comment',
                 'deleted'
             ),
-            'ObjectRelation' => array()
+            'ObjectRelation' => array(),
+            'EventReport' => $this->EventReport->captureFields,
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
         $this->Log = ClassRegistry::init('Log');
