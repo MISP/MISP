@@ -1936,6 +1936,7 @@ class Event extends AppModel
         $conditionsAttributes = array();
         $conditionsObjects = array();
         $conditionsObjectReferences = array();
+        $conditionsEventReport = array();
 
         if (isset($options['flatten']) && $options['flatten']) {
             $flatten = true;
@@ -1952,10 +1953,12 @@ class Event extends AppModel
             }
             $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
             $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
+            $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = EventReport.event_id)';
             if ($this->getDataSource()->config['datasource'] == 'Database/Postgres') {
                 $schemaName = $this->getDataSource()->config['schema'];
                 $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);
                 $objectCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Object"."event_id")', $schemaName, $schemaName, $schemaName);
+                $eventReportCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "EventReport"."event_id")', $schemaName, $schemaName, $schemaName);
             }
             $conditionsAttributes['AND'][0]['OR'] = array(
                 array('AND' => array(
@@ -1980,16 +1983,30 @@ class Event extends AppModel
                 )),
                 $objectCondSelect => $user['org_id']
             );
+
+            $conditionsEventReport['AND'][0]['OR'] = array(
+                array('AND' => array(
+                    'EventReport.distribution >' => 0,
+                    'EventReport.distribution !=' => 4,
+                )),
+                array('AND' => array(
+                    'EventReport.distribution' => 4,
+                    'EventReport.sharing_group_id' => $sgids,
+                )),
+                $eventReportCondSelect => $user['org_id']
+            );
         }
         if ($options['distribution']) {
             $conditions['AND'][] = array('Event.distribution' => $options['distribution']);
             $conditionsAttributes['AND'][] = array('Attribute.distribution' => $options['distribution']);
             $conditionsObjects['AND'][] = array('Object.distribution' => $options['distribution']);
+            $conditionsEventReport['AND'][] = array('EventReport.distribution' => $options['distribution']);
         }
         if ($options['sharing_group_id']) {
             $conditions['AND'][] = array('Event.sharing_group_id' => $options['sharing_group_id']);
             $conditionsAttributes['AND'][] = array('Attribute.sharing_group_id' => $options['sharing_group_id']);
             $conditionsObjects['AND'][] = array('Object.sharing_group_id' => $options['sharing_group_id']);
+            $conditionsEventReport['AND'][] = array('EventReport.sharing_group_id' => $options['sharing_group_id']);
         }
         if ($options['from']) {
             $conditions['AND'][] = array('Event.date >=' => $options['from']);
@@ -2010,7 +2027,7 @@ class Event extends AppModel
             $conditions['AND'][] = array('Event.published' => 1);
             $conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
         }
-        $softDeletables = array('Attribute', 'Object', 'ObjectReference');
+        $softDeletables = array('Attribute', 'Object', 'ObjectReference', 'EventReport');
         if (isset($options['deleted'])) {
             if (!is_array($options['deleted'])) {
                 $options['deleted'] = array($options['deleted']);
@@ -2089,6 +2106,7 @@ class Event extends AppModel
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
         $fieldsServer = array('id', 'url', 'name');
+        $fieldsEventReport = array('*');
         if (!$options['includeAllTags']) {
             $tagConditions = array('exportable' => 1);
         } else {
@@ -2129,7 +2147,11 @@ class Event extends AppModel
                 'EventTag' => array(
                     'order' => false
                 ),
-                'EventReport' => array()
+                'EventReport' => array(
+                    'fields' => $fieldsEventReport,
+                    'conditions' => $conditionsEventReport,
+                    'order' => false
+                )
             )
         );
         if (!empty($options['excludeLocalTags'])) {
@@ -2147,6 +2169,7 @@ class Event extends AppModel
             unset($params['contain']['Attribute']);
             unset($params['contain']['ShadowAttribute']);
             unset($params['contain']['Object']);
+            unset($params['contain']['EventReport']);
         }
         if ($user['Role']['perm_site_admin']) {
             $params['contain']['User'] = array('fields' => 'email');
@@ -2317,6 +2340,9 @@ class Event extends AppModel
                     }
                 }
                 unset($tempObjectAttributeContainer);
+            }
+            if (!empty($event['EventReport'])) {
+                $event['EventReport'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['EventReport'], $sharingGroupData);
             }
             if (!empty($event['ShadowAttribute'])) {
                 if ($isSiteAdmin && $options['includeFeedCorrelations']) {
@@ -3266,7 +3292,7 @@ class Event extends AppModel
         return array($bodyevent, $body);
     }
 
-    private function __captureSGForElement($element, $user, $syncLocal=false)
+    public function __captureSGForElement($element, $user, $syncLocal=false)
     {
         if (isset($element['SharingGroup'])) {
             $sg = $this->SharingGroup->captureSG($element['SharingGroup'], $user, $syncLocal);
@@ -3322,6 +3348,19 @@ class Event extends AppModel
                 }
             }
         }
+
+        // Already captured in EventReport->captureReport
+        // if (!empty($data['Event']['EventReport'])) {
+        //     foreach ($data['Event']['EventReport'] as $k => $report) {
+        //         unset($data['Event']['EventReport'][$k]['id']);
+        //         if (isset($report['distribution']) && $report['distribution'] == 4) {
+        //             $report['Event']['EventReport'][$k] = $this->__captureSGForElement($report, $user, $syncLocal);
+        //             if ($data['Event']['EventReport'][$k] === false) {
+        //                 unset($data['Event']['EventReport']);
+        //             }
+        //         }
+        //     }
+        // }
 
         // first we want to see how the creator organisation is encoded
         // The options here are either by passing an organisation object along or simply passing a string along
@@ -3704,6 +3743,11 @@ class Event extends AppModel
                     $this->Log
                 );
             }
+            if (!empty($data['Event']['EventReport'])) {
+                foreach ($data['Event']['EventReport'] as $report) {
+                    $result = $this->EventReport->captureReport($user, $report, $this->id);
+                }
+            }
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting = ClassRegistry::init('Sighting');
@@ -3911,6 +3955,18 @@ class Event extends AppModel
                                 $changed = true;
                             }
                         }
+                    }
+                }
+            }
+            if (isset($data['Event']['EventReport'])) {
+                foreach ($data['Event']['EventReport'] as $i => $report) {
+                    $nothingToChange = false;
+                    $result = $this->EventReport->editEventReport($user, $report, $this->id, true, $nothingToChange);
+                    if (!empty($result)) {
+                        $validationErrors['EventReport'][] = $result;
+                    }
+                    if (!$nothingToChange) {
+                        $changed = true;
                     }
                 }
             }

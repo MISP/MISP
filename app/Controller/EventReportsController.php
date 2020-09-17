@@ -11,12 +11,20 @@ class EventReportsController extends AppController
     );
 
     public $paginate = array(
-            'limit' => 60,
-            'order' => array(
-                    'EventReport.event_id' => 'ASC',
-                    'EventReport.name' => 'ASC'
-            ),
-            'recursive' => -1
+        'limit' => 60,
+        'order' => array(
+                'EventReport.event_id' => 'ASC',
+                'EventReport.name' => 'ASC'
+        ),
+        'recursive' => -1,
+        'contain' => array(
+            'SharingGroup' => array('fields' => array('id', 'name', 'uuid')),
+            'Event' => array(
+                'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+                'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
+                'Org' => array('fields' => array('Org.id', 'Org.name'))
+            )
+        )
     );
 
     public function add($event_id)
@@ -26,7 +34,7 @@ class EventReportsController extends AppController
                 $this->request->data['EventReport'] = $this->request->data;
             }
             $report = $this->request->data;
-            $validationErrors = $this->EventReport->captureReport($this->Auth->user(), $report);
+            $validationErrors = $this->EventReport->captureReport($this->Auth->user(), $report, $event_id);
             if (!empty($validationErrors)) {
                 $flashErrorMessage = implode(', ', $errors);
                 if ($this->_isRest() || $this->request->is('ajax')) {
@@ -82,7 +90,7 @@ class EventReportsController extends AppController
 
     public function view($report_id, $ajax=false)
     {
-        $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $report_id)));
+        $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('EventReport.id' => $report_id)));
         if (empty($report)) {
             throw new NotFoundException(__('Invalid Event Report'));
         }
@@ -103,7 +111,7 @@ class EventReportsController extends AppController
 
     public function viewSummary($report_id)
     {
-        $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $report_id)));
+        $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('EventReport.id' => $report_id)));
         if (empty($report)) {
             throw new NotFoundException(__('Invalid Event Report'));
         }
@@ -126,13 +134,13 @@ class EventReportsController extends AppController
             if (!isset($newReport['EventReport'])) {
                 $newReport = array('EventReport' => $newReport);
             }
-            $fieldList = array('id', 'name', 'content', 'timestamp', 'distribution', 'sharing_group_id', 'deleted');
+            $fieldList = array('id', 'name', 'content', 'timestamp', 'distribution', 'sharing_group_id', 'deleted', 'event_id');
             foreach ($fieldList as $field) {
                 if (!empty($newReport['EventReport'][$field])) {
                     $report['EventReport'][$field] = $newReport['EventReport'][$field];
                 }
             }
-            $errors = $this->EventReport->editReport($this->Auth->user(), $report);
+            $errors = $this->EventReport->editReport($this->Auth->user(), $report, $report['EventReport']['event_id']);
             if (!empty($errors)) {
                 $flashErrorMessage = implode(', ', $errors);
                 if ($this->_isRest() || $this->request->is('ajax')) {

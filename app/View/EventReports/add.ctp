@@ -43,7 +43,9 @@
 ?>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'eventReports', 'menuItem' => $this->request->params['action']));
+    if (empty($ajax)) {
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'eventReports', 'menuItem' => $this->request->params['action']));
+}
 ?>
 
 <script type="text/javascript">

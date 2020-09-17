@@ -3,7 +3,14 @@ App::uses('AppModel', 'Model');
 
 class EventReport extends AppModel
 {
-    public $actsAs = array('Containable');
+    public $actsAs = array(
+        'Containable',
+        'SysLogLogable.SysLogLogable' => array(
+            'userModel' => 'User',
+            'userKey' => 'user_id',
+            'change' => 'full'
+        ),
+    );
 
     public $validate = array(
         'event_id' => array(
@@ -26,6 +33,16 @@ class EventReport extends AppModel
             'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
             'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
             'required' => true
+        )
+    );
+
+    public $captureFields = array('uuid', 'name', 'content', 'distribution', 'sharing_group_id', 'timestamp', 'deleted', 'event_id');
+    public $defaultContain = array(
+        'SharingGroup' => array('fields' => array('id', 'name', 'uuid')),
+        'Event' => array(
+            'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+            'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
+            'Org' => array('fields' => array('Org.id', 'Org.name'))
         )
     );
 
@@ -64,13 +81,21 @@ class EventReport extends AppModel
     }
 
     // Gets a report then save it.
-    public function captureReport($user, $report)
+    public function captureReport($user, $report, $eventId)
     {
         $this->Log = ClassRegistry::init('Log');
+        $report['EventReport']['event_id'] = $eventId;
         $errors = array();
         $report = $this->captureSG($user, $report);
         $this->create();
-        $saveSuccess = $this->save($report);
+        if (!isset($report['EventReport']['distribution'])) {
+            $report['EventReport']['distribution'] = Configure::read('MISP.default_attribute_distribution');
+            if ($report['EventReport']['distribution'] == 'event') {
+                $report['EventReport']['distribution'] = 5;
+            }
+        }
+        $fieldList = $this->captureFields;
+        $saveSuccess = $this->save($report, array('fieldList' => $fieldList));
         if (!$saveSuccess) {
             $this->Log->create();
             $this->Log->save(array(
@@ -80,7 +105,7 @@ class EventReport extends AppModel
                     'email' => $user['email'],
                     'action' => 'add',
                     'user_id' => $user['id'],
-                    'title' => 'Event Report dropped due to validation for Event ' . $report['EventReport']['event_id'] . ' failed: ' . $report['EventReport']['name'],
+                    'title' => 'Event Report dropped due to validation for Event report ' . $report['EventReport']['uuid'] . ' failed: ' . $report['EventReport']['name'],
                     'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Report: ' . json_encode($report['EventReport']),
             ));
         }
@@ -92,20 +117,38 @@ class EventReport extends AppModel
         return $errors;
     }
 
-    public function editReport($user, $report, $fromPull = false)
+    public function editReport($user, $report, $eventId, $fromPull = false, &$nothingToChange = false)
     {
         $errors = array();
-        $permissionCheck = $this->canEditReport($user, $report);
-        if ($permissionCheck !== true) {
-            $errors[] = $permissionCheck;
-        }
-        if (!empty($errors)) {
+        if (!isset($report['EventReport']['uuid'])) {
+            $errors[] = __('Event Report doesn\'t have an UUID');
             return $errors;
         }
-        if (!$fromPull) {
+        $existingReport = $this->find('first', array(
+            'conditions' => array('EventReport.uuid' => $report['EventReport']['uuid']),
+            'recursive' => -1,
+        ));
+        if (empty($existingReport)) {
+            if ($fromPull) {
+                return $this->captureReport($user, $report, $eventId);
+            } else {
+                $errors[] = __('Event Report not found.');
+                return $errors;
+            }
+        }
+
+        if ($fromPull) {
+            if (isset($report['EventReport']['timestamp'])) {
+                if ($report['EventReport']['timestamp'] <= $existingReport['EventReport']['timestamp']) {
+                    $nothingToChange = true;
+                    return array();
+                }
+            }
+        } else {
             unset($report['EventReport']['timestamp']);
         }
-        $fieldList = array('name', 'content', 'timestamp', 'distribution', 'sharing_group_id', 'deleted');
+
+        $fieldList = $this->captureFields;
         $saveSuccess = $this->save($report, array('fieldList' => $fieldList));
         if (!$saveSuccess) {
             foreach ($this->validationErrors as $validationError) {
@@ -143,6 +186,7 @@ class EventReport extends AppModel
 
     private function captureSG($user, $report)
     {
+        $this->Event = ClassRegistry::init('Event');
         if (isset($report['EventReport']['distribution']) && $report['EventReport']['distribution'] == 4) {
             $report['EventReport'] = $this->Event->__captureSGForElement($report['EventReport'], $user);
         }
@@ -213,6 +257,7 @@ class EventReport extends AppModel
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
+            'contain' => $this->defaultContain,
             'recursive' => -1
         );
         if ($full) {
