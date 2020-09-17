@@ -119,12 +119,18 @@ class EventReportsController extends AppController
 
     public function edit($id)
     {
+        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
         if ($this->request->is('post') || $this->request->is('put')) {
-            $report = $this->request->data;
-            if (!isset($report['EventReport'])) {
-                $report = array('EventReport' => $report);
+            $newReport = $this->request->data;
+            if (!isset($newReport['EventReport'])) {
+                $newReport = array('EventReport' => $newReport);
             }
-            $report['EventReport']['id'] = $id;
+            $fieldList = array('id', 'name', 'content', 'timestamp', 'distribution', 'sharing_group_id', 'deleted');
+            foreach ($fieldList as $field) {
+                if (!empty($newReport['EventReport'][$field])) {
+                    $report['EventReport'][$field] = $newReport['EventReport'][$field];
+                }
+            }
             $errors = $this->EventReport->editReport($this->Auth->user(), $report);
             if (!empty($errors)) {
                 $flashErrorMessage = implode(', ', $errors);
@@ -147,10 +153,10 @@ class EventReportsController extends AppController
                 }
             }
         } else {
-            $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
             $this->request->data = $report;
         }
 
+        $this->set('id', $report['EventReport']['id']);
         $this->set('event_id', $report['EventReport']['event_id']);
         $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);

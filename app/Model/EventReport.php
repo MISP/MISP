@@ -26,11 +26,6 @@ class EventReport extends AppModel
             'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
             'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
             'required' => true
-        ),
-        'value' => array(
-            'stringNotEmpty' => array(
-                'rule' => array('stringNotEmpty')
-            ),
         )
     );
 
@@ -112,6 +107,11 @@ class EventReport extends AppModel
         }
         $fieldList = array('name', 'content', 'timestamp', 'distribution', 'sharing_group_id', 'deleted');
         $saveSuccess = $this->save($report, array('fieldList' => $fieldList));
+        if (!$saveSuccess) {
+            foreach ($this->validationErrors as $validationError) {
+                $errors[] = $validationError[0];
+            }
+        }
         return $errors;
     }
 
