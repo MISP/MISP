@@ -406,11 +406,15 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => '/eventReports/index',
                         'text' => __('List Event Reports')
                     ));
-                    if ($isAclAdd && $menuItem === 'add') {
+                    if ($isAclAdd) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
-                            'url' => '/eventReports/add',
-                            'text' => __('Add Event Report')
+                            'text' => __('Add Event Report'),
+                            'title' => __('Add Event Report'),
+                            'onClick' => array(
+                                'function' => 'openIdSelection',
+                                'params' => array('this', 'eventReports', 'add')
+                            ),
                         ));
                     }
                     if ($menuItem === 'view' || $menuItem === 'edit') {

@@ -5089,3 +5089,17 @@ function changeLocationFromIndexDblclick(row_index) {
     var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
     window.location = href;
 }
+
+function openIdSelection(clicked, scope, action) {
+    var onclick = 'redirectIdSelection(\'' + scope + '\', \'' + action + '\')'
+    var html = '<div class="input-append">'
+                + '<input class="span2" id="eventIdSelectionInput" type="number" min="1" step="1">'
+                + '<button class="btn btn-primary" type="button" onclick="' + onclick + '">Submit</button>'
+            + '</div>';
+    openPopover(clicked, html, false, 'right')
+}
+
+function redirectIdSelection(scope, action) {
+    var id = $('#eventIdSelectionInput').val()
+    window.location = baseurl + '/' + scope + '/' + action + '/' + id
+}
