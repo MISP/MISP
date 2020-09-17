@@ -122,25 +122,23 @@ class EventReport extends AppModel
      * @param  bool $hard
      * @return bool
      */
-    public function deleteReport($id, $hard=false)
+    public function deleteReport($user, $id, $hard=false)
     {
+        $report = $this->fetchIfAuthorized($user, $id, 'delete', $throwErrors=true, $full=false);
         if ($hard) {
             $deleteResult = $this->delete($id, true);
             return $deleteResult;
         } else {
-            return $this->save(array(
-                'id' => $id,
-                'deleted' => true,
-            ), array('fieldList' => array('deleted')));
+            $report['EventReport']['deleted'] = true;
+            return $this->save($report, array('fieldList' => array('deleted')));
         }
     }
 
-    public function restoreReport($id)
+    public function restoreReport($user, $id)
     {
-        return $this->save(array(
-            'id' => $id,
-            'deleted' => false,
-        ), array('fieldList' => array('deleted')));
+        $report = $this->fetchIfAuthorized($user, $id, 'edit', $throwErrors=true, $full=false);
+        $report['EventReport']['deleted'] = false;
+        return $this->save($report, array('fieldList' => array('deleted')));
     }
 
     private function captureSG($user, $report)

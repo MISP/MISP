@@ -13,6 +13,7 @@ class EventReportsController extends AppController
     public $paginate = array(
             'limit' => 60,
             'order' => array(
+                    'EventReport.event_id' => 'ASC',
                     'EventReport.name' => 'ASC'
             ),
             'recursive' => -1
@@ -175,9 +176,8 @@ class EventReportsController extends AppController
 
     public function delete($id, $hard=false)
     {
-        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
-            $deleted = $this->EventReport->deleteReport($id, $hard=$hard);
+            $deleted = $this->EventReport->deleteReport($this->Auth->user(), $id, $hard=$hard);
             if ($deleted) {
                 $successMessage = __('Report %s deleted', $hard ? __('hard') : __('soft'));
                 if ($this->_isRest()) {
@@ -198,6 +198,7 @@ class EventReportsController extends AppController
                 }
             }
         } else {
+            $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
             if ($this->request->is('ajax')) {
                 $this->set('report', $report['EventReport']);
                 $this->render('ajax/delete');
@@ -209,21 +210,26 @@ class EventReportsController extends AppController
 
     public function restore($id)
     {
-        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
-            $result = $this->EventReport->restoreReport($report['EventReport']['id']);
+            $result = $this->EventReport->restoreReport($this->Auth->user(), $id);
             if ($result) {
-                $message = __('Report successfuly restored.');
+                $message = __('Report %s successfuly restored.', $id);
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('EventReport', 'restore', $report['EventReport']['id'], $this->response->type());
+                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+                    return $this->RestResponse->viewData($report[0], $this->response->type());
+                } elseif ($this->request->is('ajax')) {
+                    return $this->RestResponse->saveSuccessResponse('EventReport', 'restore', $id, $this->response->type());
                 } else {
                     $this->Flash->success($message);
                     $this->redirect($this->referer());
                 }
             } else {
-                $message = __('Report could not be %s restored.');
+                $message = __('Report %s could not be restored.', $id);
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('EventReport', 'restore', $report['EventReport']['id'], $message, $this->response->type());
+                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+                    return $this->RestResponse->viewData($report[0], $this->response->type());
+                } elseif ($this->request->is('ajax')) {
+                    return $this->RestResponse->saveFailResponse('EventReport', 'restore', $id, $message, $this->response->type());
                 } else {
                     $this->Flash->error($message);
                     $this->redirect($this->referer());
