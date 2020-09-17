@@ -4,7 +4,7 @@ var debounceDelay = 150, slowDebounceDelay = 3000;
 var cache_matrix = {}, cache_eventgraph = {};
 var renderTimer, scrollTimer, attackMatrixTimer, eventgraphTimer;
 var scrollMap;
-var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField
+var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField, $markdownDropdownRulesMenu
 var $editor, $viewer, $raw
 var $saveMarkdownButton, $mardownViewerToolbar
 var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
@@ -30,6 +30,7 @@ $(document).ready(function() {
     $autoRenderMarkdownCB = $('#autoRenderMarkdownCB')
     $topBar = $('#top-bar')
     $lastModifiedField = $('#lastModifiedField')
+    $markdownDropdownRulesMenu = $('#markdown-dropdown-rules-menu')
 
     initMarkdownIt()
     if (canEdit) {
@@ -56,6 +57,11 @@ $(document).ready(function() {
     }
 
     doRender()
+
+    if (typeof injectCustomRulesMenu === 'function') {
+        injectCustomRulesMenu()
+    }
+    
     reloadRuleEnabledUI()
 
     if (canEdit) {
@@ -164,20 +170,23 @@ function markdownItToggleRule(rulename, event) {
         event.stopPropagation()
     }
     var enabled
-    if (rulename == 'image') {
-        var rule = getRuleStatus('inline', 'ruler', 'image')
-        if (rule !== false) {
-            enabled = rule.enabled
-        }
-    } else if (rulename == 'link') {
-        var rule = getRuleStatus('inline', 'ruler', 'link')
-        if (rule !== false) {
-            enabled = rule.enabled
-        }
-    } else if (rulename == 'MISP_element_rule') {
-        var rule = getRuleStatus('inline', 'ruler', 'MISP_element_rule')
-        if (rule !== false) {
-            enabled = rule.enabled
+    var CustomRuleRes, rule
+    if (typeof markdownItToggleCustomRule === 'function') {
+        CustomRuleRes = markdownItToggleCustomRule(rulename, event)
+    }
+    if (CustomRuleRes.found) {
+        enabled = CustomRuleRes.enabled
+    } else {
+        if (rulename == 'image') {
+            rule = getRuleStatus('inline', 'ruler', 'image')
+            if (rule !== false) {
+                enabled = rule.enabled
+            }
+        } else if (rulename == 'link') {
+            rule = getRuleStatus('inline', 'ruler', 'link')
+            if (rule !== false) {
+                enabled = rule.enabled
+            }
         }
     }
     if (enabled !== undefined) {
@@ -518,6 +527,20 @@ function insertTopToolbarButton(FAClass, replacement) {
             replacementAction(replacement)
         })
     )
+}
+
+function createRulesMenuItem(ruleName, text, icon) {
+    var $MISPElementMenuItem = $markdownDropdownRulesMenu.find('li:first').clone()
+    $MISPElementMenuItem.find('a').attr('onclick', 'markdownItToggleRule(\'' + ruleName + '\', arguments[0]); return false;')
+    if (icon instanceof jQuery){
+        $MISPElementMenuItem.find('span.icon').empty().append(icon)
+    } else {
+        $MISPElementMenuItem.find('span.icon > i').attr('class', 'fa fa-'+icon)
+    }
+    $MISPElementMenuItem.find('span.ruleText').text(text)
+    $MISPElementMenuItem.find('span.bold.green').attr('id', 'markdownparsing-' + ruleName + '-parsing-enabled')
+    $MISPElementMenuItem.find('span.bold.red').attr('id', 'markdownparsing-' + ruleName + '-parsing-disabled')
+    return $MISPElementMenuItem
 }
 
 function getRuleStatus(context, rulername, rulename) {

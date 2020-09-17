@@ -62,24 +62,18 @@
                 <li class="dropdown-submenu">
                     <a tabindex="-1" href="#">
                         <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?>"></i></span>
-                        <?= __('Markdown parsing') ?>
+                        <?= __('Markdown rules') ?>
                     </a>
-                    <ul class="dropdown-menu">
-                        <li><a tabindex="-1" href="#" style="min-width: 200px;" onclick="markdownItToggleRule('MISP_element_rule', arguments[0]); return false;" >
-                            <span class="icon"><img src="/favicon.ico"></span>
-                            <?= __('MISP Elements') ?>
-                            <span id="markdownparsing-MISP_element_rule-parsing-enabled" class="bold green hidden" style="float: right;"><?= __('enabled') ?></span>
-                            <span id="markdownparsing-MISP_element_rule-parsing-disabled" class="bold red" style="float: right;"><?= __('disabled') ?></span>
-                        </a></li>
+                    <ul id="markdown-dropdown-rules-menu" class="dropdown-menu">
                         <li><a tabindex="-1" href="#" style="min-width: 200px;" onclick="markdownItToggleRule('image', arguments[0]); return false;" >
                             <span class="icon"><i class="<?= $this->FontAwesome->getClass('image') ?>"></i></span>
-                            <?= __('Image parsing') ?>
+                            <span class="ruleText"><?= __('Image parsing') ?></span>
                             <span id="markdownparsing-image-parsing-enabled" class="bold green hidden" style="float: right;"><?= __('enabled') ?></span>
                             <span id="markdownparsing-image-parsing-disabled" class="bold red" style="float: right;"><?= __('disabled') ?></span>
                         </a></li>
                         <li><a tabindex="-1" href="#" style="min-width: 200px;" onclick="markdownItToggleRule('link', arguments[0]); return false;" >
                             <span class="icon"><i class="<?= $this->FontAwesome->getClass('link') ?>"></i></span>
-                            <?= __('Link parsing') ?>
+                            <span class="ruleText"><?= __('Link parsing') ?></span>
                             <span id="markdownparsing-link-parsing-enabled" class="bold green hidden" style="float: right;"><?= __('enabled') ?></span>
                             <span id="markdownparsing-link-parsing-disabled" class="bold red" style="float: right;"><?= __('disabled') ?></span>
                         </a></li>

@@ -523,6 +523,33 @@ function replaceMISPElementByTheirValue(raw) {
     return final
 }
 
+/**
+  __  __                  
+ |  \/  |                 
+ | \  / | ___ _ __  _   _ 
+ | |\/| |/ _ \ '_ \| | | |
+ | |  | |  __/ | | | |_| |
+ |_|  |_|\___|_| |_|\__,_|
+ */
+function injectCustomRulesMenu() {
+    var $MISPElementMenuItem = createRulesMenuItem('MISP_element_rule', 'MISP Elements', $('<img src="/favicon.ico">'))
+    $markdownDropdownRulesMenu.append($MISPElementMenuItem)
+}
+
+function markdownItToggleCustomRule(rulename, event) {
+    var enabled
+    if (rulename == 'MISP_element_rule') {
+        var rule = getRuleStatus('inline', 'ruler', 'MISP_element_rule')
+        if (rule !== false) {
+            enabled = rule.enabled
+        }
+    }
+    return {
+        found: enabled !== undefined,
+        enabled: enabled
+    }
+}
+
 
 /**
   _    _ _   _ _     
