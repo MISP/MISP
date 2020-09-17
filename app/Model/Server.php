@@ -2504,7 +2504,32 @@ class Server extends AppModel
                     }
                 }
             }
+            if (isset($event['Event']['Object']) && !empty($event['Event']['Object'])) {
+                foreach ($event['Event']['Object'] as $i => $o) {
+                    switch ($o['distribution']) {
+                        case '1':
+                            $event['Event']['Object'][$i]['distribution'] = '0';
+                            break;
+                        case '2':
+                            $event['Event']['Object'][$i]['distribution'] = '1';
+                            break;
+                    }
+                    if (isset($event['Event']['Object'][$i]['Attribute']) && !empty($event['Event']['Object'][$i]['Attribute'])) {
+                        foreach ($event['Event']['Object'][$i]['Attribute'] as $j => $a) {
+                            switch ($a['distribution']) {
+                                case '1':
+                                    $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '0';
+                                    break;
+                                case '2':
+                                    $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '1';
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
         }
+        
         // Distribution, set reporter of the event, being the admin that initiated the pull
         $event['Event']['user_id'] = $user['id'];
         return $event;
