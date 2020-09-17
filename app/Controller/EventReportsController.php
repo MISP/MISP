@@ -32,6 +32,7 @@ class EventReportsController extends AppController
                     return $this->RestResponse->saveFailResponse('EventReport', 'add', false, $flashErrorMessage, $this->response->type());
                 } else {
                     $this->Flash->error($flashErrorMessage);
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
                 }
             } else {
                 $successMessage = __('Report saved.');
@@ -131,6 +132,7 @@ class EventReportsController extends AppController
                     return $this->RestResponse->saveFailResponse('EventReport', 'edit', $id, $flashErrorMessage, $this->response->type());
                 } else {
                     $this->Flash->error($flashErrorMessage);
+                    $this->redirect(array('controller' => 'eventReports', 'action' => 'view', $id));
                 }
             } else {
                 $successMessage = __('The report has been saved');
@@ -186,6 +188,7 @@ class EventReportsController extends AppController
                     return $this->RestResponse->saveFailResponse('EventReport', 'delete', $id, $flashErrorMessage, $this->response->type());
                 } else {
                     $this->Flash->error(__('Could not delete report'));
+                    $this->redirect($this->referer());
                 }
             }
         } else {
