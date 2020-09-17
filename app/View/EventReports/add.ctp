@@ -3,7 +3,7 @@
     echo $this->element('genericElements/Form/genericForm', array(
         'form' => $this->Form,
         'data' => array(
-            'title' => $action == 'add' ? __('Add Event Report (event %s)', h($event_id)) : __('Edit Event Report (event %s)', h($event_id)),
+            'title' => $action == 'add' ? __('Add Event Report (event %s)', h($event_id)) : __('Edit Event Report %s (event %s)', h($id), h($event_id)),
             'model' => 'EventReport',
             'fields' => array(
                 array(
