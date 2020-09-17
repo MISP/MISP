@@ -253,9 +253,12 @@ class EventReportsController extends AppController
 
         $contextConditions = array();
         if (empty($filters['context'])) {
-            $filters['context'] = 'all';
-        } elseif ($filters['context'] == 'deleted') {
+            $filters['context'] = 'default';
+        }
+        if ($filters['context'] == 'deleted') {
             $contextConditions['EventReport.deleted'] = true;
+        } elseif ($filters['context'] == 'default') {
+            $contextConditions['EventReport.deleted'] = false;
         }
         $this->set('context', $filters['context']);
 
@@ -288,6 +291,7 @@ class EventReportsController extends AppController
             $this->paginate['conditions']['AND'][] = $eventConditions;
             $this->paginate['conditions']['AND'][] = $searchConditions;
             $this->paginate['conditions']['AND'][] = $aclConditions;
+            $this->paginate['conditions']['AND'][] = $contextConditions;
             $reports = $this->paginate();
             $this->set('reports', $reports);
             if (!empty($filters['event_id'])) {

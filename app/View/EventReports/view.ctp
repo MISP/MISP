@@ -22,7 +22,7 @@
     );
 
     $table_data[] = array('key' => __('Timestamp'), 'value' => date('Y-m-d H:i:s', $report['EventReport']['timestamp']));
-    $table_data[] = array('key' => __('Deleted'), 'value' => $report['EventReport']['deleted'] ? __('Yes') : __('No'));
+    $table_data[] = array('key' => __('Deleted'), 'boolean' => $report['EventReport']['deleted']);
 ?>
 
 <div class='<?= !isset($ajax) || !$ajax ? 'view' : '' ?>'>
@@ -37,6 +37,7 @@
             </h4>
             <?php 
                 echo $this->element('EventReports/markdownEditor', array(
+                    'canEdit' => $canEdit,
                     'markdown' => $report['EventReport']['content'],
                     'modelName' => 'EventReport',
                     'mardownModelFieldName' => 'content',

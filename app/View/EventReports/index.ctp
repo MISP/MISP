@@ -12,8 +12,14 @@
                         'children' => array(
                             array(
                                 'active' => $context === 'all',
-                                'url' => sprintf('%s/event_reports/index', $baseurl),
+                                'url' => sprintf('%s/eventReports/index/context:all', $baseurl),
                                 'text' => __('All'),
+                            ),
+                            array(
+                                'active' => $context === 'default',
+                                'class' => 'defaultContext',
+                                'url' => sprintf('%s/eventReports/index/context:default', $baseurl),
+                                'text' => __('Default'),
                             ),
                             array(
                                 'active' => $context === 'deleted',

@@ -284,6 +284,9 @@ class EventReport extends AppModel
 
     public function canEditReport($user, $report)
     {
+        if ($report['EventReport']['deleted']) {
+            return false;
+        }
         if ($user['Role']['perm_site_admin']) {
             return true;
         } elseif ($report['EventReport']['orgc_id'] != $user['org_id']) {
