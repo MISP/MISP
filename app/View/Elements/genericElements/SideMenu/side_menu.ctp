@@ -413,10 +413,16 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Add Event Report')
                         ));
                     }
-                    if ($menuItem === 'view') {
+                    if ($menuItem === 'view' || $menuItem === 'edit') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
                             'url' => '/eventReports/view/' . h($id),
                             'text' => __('View Event Report')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'edit',
+                            'url' => '/eventReports/edit/' . h($id),
+                            'text' => __('Edit Event Report')
                         ));
                     }
                     break;

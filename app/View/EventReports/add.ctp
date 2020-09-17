@@ -43,7 +43,7 @@
 ?>
 </div>
 <?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-report', 'menuItem' => $this->request->params['action']));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'eventReports', 'menuItem' => $this->request->params['action']));
 ?>
 
 <script type="text/javascript">
