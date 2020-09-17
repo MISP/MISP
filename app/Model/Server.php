@@ -2535,6 +2535,13 @@ class Server extends AppModel
                 }
             }
         }
+        if (!empty($event['Event']['EventReport'])) {
+            foreach ($event['Event']['EventReport'] as $report) {
+                if (empty($report['deleted'])) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 

@@ -3545,7 +3545,7 @@ class Event extends AppModel
         if (!$this->checkEventBlockRules($data)) {
             return 'Blocked by event block rules';
         }
-        if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published'])) {
+        if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published']) && empty($data['Event']['EventReport'])) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $validationErrors['Event'] = 'Received a published event that was empty. Event add process blocked.';
