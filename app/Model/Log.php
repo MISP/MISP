@@ -1057,6 +1057,7 @@ class Log extends AppModel
         }
         switch($logEntry['action']) {
             case 'add':
+                $logEntry['data'] = $this->Attribute->UTCToISODatetime(['Object' => $logEntry['data']], 'Object');
                 if (!empty($this->mockRecovery)) {
                     $this->mockLog[] = ['model' => 'MispObject', 'action' => 'add', 'data' => $logEntry['data']];
                 } else {
@@ -1065,6 +1066,7 @@ class Log extends AppModel
                 }
                 break;
             case 'edit':
+                $logEntry['data'] = $this->Attribute->UTCToISODatetime(['Object' => $logEntry['data']], 'Object');
                 $object = $this->MispObject->find('first', [
                     'recursive' => -1,
                     'conditions' => ['Object.id' => $logEntry['model_id']]
