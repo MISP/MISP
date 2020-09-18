@@ -5607,7 +5607,11 @@ class EventsController extends AppController
     public function restoreDeletedEvents($force = false)
     {
         $startDate = '2020-07-31 00:00:00';
-        $endDate = date('Y-m-d H:i:s', time());
+        $this->loadModel('AdminSetting');
+        $endDate = date('Y-m-d H:i:s', $this->AdminSetting->getSetting('fix_login'));
+        if (empty($endDate)) {
+            $endDate = date('Y-m-d H:i:s', time());
+        }
         $this->loadModel('Log');
         $redis = $this->Event->setupRedis();
         if ($force || ($redis && !$redis->exists('misp:event_recovery'))) {
@@ -5626,29 +5630,75 @@ class EventsController extends AppController
 
     public function recoverEvent($id, $mock = false)
     {
-        if ($this->request->is('post')) {
-            $this->loadModel('Log');
-            $result = $this->Log->recoverDeletedEvent($id, $mock);
-            $message = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
-            if ($this->_isRest()) {
-                if ($mock) {
-                    $results = $this->Log->mockLog;
-                } else {
-                    $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id]);
-                }
-                return $this->RestResponse->viewData($results, $this->response->type());
-            } else {
-                $this->Flash->success(__('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result));
-            }
-        } else {
-            if ($this->_isRest()) {
-            } else {
-                $this->Flash->error(__('This action is only accessible via POST requests.'));
-            }
+        if (!Configure::read('MISP.background_jobs')) {
+            throw new MethodNotAllowedException(__('Workers must be enabled to use this feature'));
         }
         if ($mock) {
+            if ($this->request->is('post')) {
+                $this->loadModel('Log');
+                $result = $this->Log->recoverDeletedEvent($id, $mock);
+                $message = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
+                if ($this->_isRest()) {
+                    if ($mock) {
+                        $results = $this->Log->mockLog;
+                    } else {
+                        $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id]);
+                    }
+                    return $this->RestResponse->viewData($results, $this->response->type());
+                } else {
+                    $this->Flash->success($message);
+                }
+            } else {
+                $message = __('This action is only accessible via POST requests.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->viewData(array('message' => $message, 'error' => true), $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
+                $this->redirect(['action' => 'restoreDeletedEvents']);
+            }
             $this->set('data', $this->Log->mockLog);
         } else {
+            if ($this->request->is('post')) {
+                $job_type = 'recover_event';
+                $function = 'recoverEvent';
+                $message = __('Bootstraping recovering of event %s', $id);
+                $job = ClassRegistry::init('Job');
+                $job->create();
+                $data = array(
+                        'worker' => $this->Event->__getPrioWorkerIfPossible(),
+                        'job_type' => $job_type,
+                        'job_input' => sprintf('Event ID: %s', $id),
+                        'status' => 0,
+                        'retries' => 0,
+                        'org_id' => 0,
+                        'org' => 'ADMIN',
+                        'message' => $message
+                );
+                $job->save($data);
+                $jobId = $job->id;
+                $process_id = CakeResque::enqueue(
+                    'prio',
+                    'EventShell',
+                    array($function, $jobId, $id),
+                    true
+                );
+                $job->saveField('process_id', $process_id);
+
+                $message = __('Recover event job queued. Job ID: %s', $jobId);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->viewData(array('message' => $message), $this->response->type());
+                } else {
+                    $this->Flash->success($message);
+                }
+            } else {
+                $message = __('This action is only accessible via POST requests.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->viewData(array('message' => $message, 'error' => true), $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
+            }
             $this->redirect(['action' => 'restoreDeletedEvents']);
         }
     }
