@@ -5634,7 +5634,11 @@ class EventsController extends AppController
             if ($this->request->is('post')) {
                 $this->loadModel('Log');
                 $result = $this->Log->recoverDeletedEvent($id, $mock);
-                $message = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
+                if ($mock) {
+                    $message = __('Recovery simulation complete. Event #%s can be recovered using %s log entries.', $id, $result);
+                } else {
+                    $message = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
+                }
                 if ($this->_isRest()) {
                     if ($mock) {
                         $results = $this->Log->mockLog;
