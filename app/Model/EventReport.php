@@ -330,13 +330,16 @@ class EventReport extends AppModel
     public function canEditReport($user, $report)
     {
         if ($report['EventReport']['deleted']) {
-            return false;
+            return __('Deleted report cannot be edited');
         }
         if ($user['Role']['perm_site_admin']) {
             return true;
-        } elseif ($report['EventReport']['orgc_id'] != $user['org_id']) {
-            $message = __('Only the creator organisation can modify the galaxy report');
-            return $message;
+        }
+        if (empty($report['Event'])) {
+            return __('Could not find associated event');
+        }
+        if ($report['Event']['orgc_id'] != $user['org_id']) {
+            return __('Only the creator organisation of the event can modify the report');
         }
         return true;
     }
