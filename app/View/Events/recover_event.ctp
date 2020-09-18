@@ -1,6 +1,6 @@
 <?php
     echo '<div class="index">';
-    echo '<a href="' . $baseurl . '/events/restore_deleted_events">' . __('Return to the event restoration index') . '</a>';
+    echo '<a href="' . $baseurl . '/events/restoreDeletedEvents">' . __('Return to the event restoration index') . '</a>';
     echo $this->element('/genericElements/IndexTable/index_table', [
         'data' => [
             'skip_pagination' => true,
