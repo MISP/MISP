@@ -29,6 +29,21 @@ class EventReportsController extends AppController
 
     public function add($event_id)
     {
+        $event_id = $this->Toolbox->findIdByUuid($this->EventReport->Event, $event_id);
+        if (Validation::uuid($event_id)) {
+            $temp = $this->EventReport->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $event_id)));
+            if (empty($temp)) {
+                throw new NotFoundException(__('Invalid event'));
+            }
+            $event_id = $temp['Event']['id'];
+        } elseif (!is_numeric($event_id)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $event = $this->EventReport->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id));
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['EventReport'])) {
                 $this->request->data['EventReport'] = $this->request->data;
@@ -58,22 +73,7 @@ class EventReportsController extends AppController
             }
         }
 
-        $event_id = $this->Toolbox->findIdByUuid($this->EventReport->Event, $event_id);
-        if (Validation::uuid($event_id)) {
-            $temp = $this->EventReport->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $event_id)));
-            if (empty($temp)) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            $event_id = $temp['Event']['id'];
-        } elseif (!is_numeric($event_id)) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-        $event = $this->EventReport->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id));
-        if (empty($event)) {
-            throw new NotFoundException(__('Invalid event'));
-        }
         $this->set('event_id', $event_id);
-
         $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
         $initialDistribution = 5;
@@ -150,6 +150,7 @@ class EventReportsController extends AppController
                     $this->redirect(array('controller' => 'eventReports', 'action' => 'view', $id));
                 }
             } else {
+                $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
                 $successMessage = __('The report has been saved');
                 if ($this->_isRest()) {
                     $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
@@ -187,9 +188,10 @@ class EventReportsController extends AppController
         if ($this->request->is('post')) {
             $deleted = $this->EventReport->deleteReport($this->Auth->user(), $id, $hard=$hard);
             if ($deleted) {
+                $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+                $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
                 $successMessage = __('Report %s deleted', $hard ? __('hard') : __('soft'));
                 if ($this->_isRest()) {
-                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
                     return $this->RestResponse->viewData($report[0], $this->response->type());
                 } elseif ($this->request->is('ajax')) {
                     return $this->RestResponse->saveSuccessResponse('EventReport', 'delete', $id, false, $successMessage);
@@ -221,9 +223,10 @@ class EventReportsController extends AppController
         if ($this->request->is('post')) {
             $result = $this->EventReport->restoreReport($this->Auth->user(), $id);
             if ($result) {
+                $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+                $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
                 $message = __('Report %s successfuly restored.', $id);
                 if ($this->_isRest()) {
-                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
                     return $this->RestResponse->viewData($report[0], $this->response->type());
                 } elseif ($this->request->is('ajax')) {
                     return $this->RestResponse->saveSuccessResponse('EventReport', 'restore', $id, $this->response->type());
