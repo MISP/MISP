@@ -51,8 +51,20 @@
                 [
                     'url' => $baseurl . '/events/recoverEvent',
                     'url_params_data_paths' => [
+                        'event_id',
                         'event_id'
                     ],
+                    'title' => __('Mock the recovery process and output the potential changes'),
+                    'postLink' => 1,
+                    'postLinkConfirm' => __('Are you sure you want to mock the recovery of the event? No data will be modified, but the request might take some time.'),
+                    'icon' => 'flask'
+                ],
+                [
+                    'url' => $baseurl . '/events/recoverEvent',
+                    'url_params_data_paths' => [
+                        'event_id'
+                    ],
+                    'title' => __('Execute the recovery process'),
                     'postLink' => 1,
                     'postLinkConfirm' => __('Are you sure you want to attempt to recover the event?'),
                     'icon' => 'trash-restore'

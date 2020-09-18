@@ -5624,14 +5624,19 @@ class EventsController extends AppController
         }
     }
 
-    public function recoverEvent($id)
+    public function recoverEvent($id, $mock = false)
     {
         if ($this->request->is('post')) {
             $this->loadModel('Log');
-            $result = $this->Log->recoverDeletedEvent($id);
+            $result = $this->Log->recoverDeletedEvent($id, $mock);
             $message = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
             if ($this->_isRest()) {
-                $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id]);
+                if ($mock) {
+                    $results = $this->Log->mockLog;
+                } else {
+                    $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id]);
+                }
+                return $this->RestResponse->viewData($results, $this->response->type());
             } else {
                 $this->Flash->success(__('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result));
             }
@@ -5641,6 +5646,10 @@ class EventsController extends AppController
                 $this->Flash->error(__('This action is only accessible via POST requests.'));
             }
         }
-        $this->redirect(['action' => 'showPotentialUnintendedDeletions']);
+        if ($mock) {
+            $this->set('data', $this->Log->mockLog);
+        } else {
+            $this->redirect(['action' => 'restoreDeletedEvents']);
+        }
     }
 }

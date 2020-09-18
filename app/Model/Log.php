@@ -480,8 +480,12 @@ class Log extends AppModel
         return $deleted_events;
     }
 
-    public function recoverDeletedEvent($id)
+    public function recoverDeletedEvent($id, $mock = false)
     {
+        if ($mock) {
+            $this->mockRecovery = true;
+            $this->mockLog = [];
+        }
         $objectMap = [];
         $logEntries = [];
         $this->__recoverDeletedEventContainer($id, $objectMap, $logEntries);
@@ -490,6 +494,7 @@ class Log extends AppModel
         $this->__recoverDeletedObjectReferences($id, $objectMap, $logEntries);
         $this->__recoverDeletedTagConnectors($id, $objectMap, $logEntries, 'Event');
         $this->__recoverDeletedTagConnectors($id, $objectMap, $logEntries, 'Attribute');
+        $this->__recoverDeletedProposals($id, $objectMap, $logEntries);
         ksort($logEntries);
         foreach ($logEntries as $logEntry) {
             $this->{'__executeRecovery' . $logEntry['model']}($logEntry, $id);
@@ -696,6 +701,47 @@ class Log extends AppModel
         }
     }
 
+    private function __recoverDeletedProposals($id, &$objectMap, &$logEntries)
+    {
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'ShadowAttribute',
+                'title LIKE ' => '%: to Event (' . $id . '): %',
+                'action' => ['add']
+            ]
+        ]);
+        if (empty($logs)) {
+            return;
+        }
+        foreach ($logs as $log) {
+            $objectMap['ShadowAttribute'][$log['Log']['model_id']] = true;
+        }
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'ShadowAttribute',
+                'model_id' => array_keys($objectMap['ShadowAttribute']),
+                'action' => ['add', 'accept', 'delete']
+            ]
+        ]);
+        foreach ($logs as $log) {
+            $logEntries[$log['Log']['id']] = [
+                'model_id' => $log['Log']['model_id'],
+                'model' => $log['Log']['model'],
+                'action' => $log['Log']['action'],
+                'data' => array_merge(
+                    $this->changeParser($log['Log']['change']),
+                    [
+                        'timestamp' => strtotime($log['Log']['created']),
+                        'id' => $log['Log']['model_id']
+                    ]
+                )
+            ];
+            $objectMap['ShadowAttribute'][$log['Log']['model_id']] = true;
+        }
+    }
+
 
     private function __executeRecoveryEvent($logEntry, $id)
     {
@@ -707,8 +753,12 @@ class Log extends AppModel
         }
         switch($logEntry['action']) {
             case 'add':
-                $this->Event->create();
-                $this->Event->save($logEntry['data']);
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'Event', 'action' => 'add', 'data' => $logEntry['data']];
+                } else {
+                    $this->Event->create();
+                    $this->Event->save($logEntry['data']);
+                }
                 break;
             case 'edit':
             case 'publish':
@@ -725,17 +775,31 @@ class Log extends AppModel
                             $event['Event'][$field] = $value;
                         }
                     }
-                    $this->Event->save($event);
+                    $this->Event->create();
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'Event', 'action' => 'edit', 'data' => $event];
+                    } else {
+                        $this->Event->save($event);
+                    }
                 }
                 break;
             case 'add_tag':
                 $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
                 $this->Event->EventTag->create();
-                $this->Event->EventTag->save([
-                    'tag_id' => $tag_id,
-                    'event_id' => $logEntry['data']['id'],
-                    'local' => !empty($logEntry['data']['local'])
-                ]);
+                $this->Event->create();
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'EventTag', 'action' => 'add', 'data' => [
+                        'tag_id' => $tag_id,
+                        'event_id' => $logEntry['data']['id'],
+                        'local' => !empty($logEntry['data']['local'])
+                    ]];
+                } else {
+                    $this->Event->EventTag->save([
+                        'tag_id' => $tag_id,
+                        'event_id' => $logEntry['data']['id'],
+                        'local' => !empty($logEntry['data']['local'])
+                    ]);
+                }
                 break;
             case 'remove_tag':
                 $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
@@ -747,7 +811,11 @@ class Log extends AppModel
                     ]
                 ]);
                 if (!empty($et)) {
-                    $this->Event->EventTag->delete($et['EventTag']['id']);
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'EventTag', 'action' => 'delete', 'data' => $et['EventTag']['id']];
+                    } else {
+                        $this->Event->EventTag->delete($et['EventTag']['id']);
+                    }
                 }
                 break;
         }
@@ -769,8 +837,12 @@ class Log extends AppModel
         }
         switch($logEntry['action']) {
             case 'add':
-                $this->Attribute->create();
-                $this->Attribute->save($logEntry['data']);
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'Attribute', 'action' => 'add', 'data' => $logEntry['data']];
+                } else {
+                    $this->Attribute->create();
+                    $this->Attribute->save($logEntry['data']);
+                }
                 break;
             case 'edit':
                 $attribute = $this->Attribute->find('first', [
@@ -781,7 +853,11 @@ class Log extends AppModel
                     foreach ($logEntry['data'] as $field => $value) {
                         $attribute['Attribute'][$field] = $value;
                     }
-                    $this->Attribute->save($attribute);
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'Attribute', 'action' => 'edit', 'data' => $attribute];
+                    } else {
+                        $this->Attribute->save($attribute);
+                    }
                 }
                 break;
             case 'delete':
@@ -792,17 +868,31 @@ class Log extends AppModel
                 if (!empty($attribute)) {
                     $attribute['Attribute']['deleted'] = 1;
                     $attribute['Attribute']['timestamp'] = $logEntry['data']['timestamp'];
-                    $this->Attribute->save($attribute);
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'Attribute', 'action' => 'delete', 'data' => $attribute];
+                    } else {
+                        $this->Attribute->save($attribute);
+                    }
                 }
+                break;
             case 'add_tag':
                 $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
-                $this->Attribute->AttributeTag->create();
-                $this->Attribute->AttributeTag->save([
-                    'tag_id' => $tag_id,
-                    'attribute_id' => $logEntry['data']['id'],
-                    'event_id' => $id,
-                    'local' => !empty($logEntry['data']['local'])
-                ]);
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'AttributeTag', 'action' => 'add', 'data' => [
+                        'tag_id' => $tag_id,
+                        'attribute_id' => $logEntry['data']['id'],
+                        'event_id' => $id,
+                        'local' => !empty($logEntry['data']['local'])
+                    ]];
+                } else {
+                    $this->Attribute->AttributeTag->create();
+                    $this->Attribute->AttributeTag->save([
+                        'tag_id' => $tag_id,
+                        'attribute_id' => $logEntry['data']['id'],
+                        'event_id' => $id,
+                        'local' => !empty($logEntry['data']['local'])
+                    ]);
+                }
                 break;
             case 'remove_tag':
                 $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
@@ -815,10 +905,103 @@ class Log extends AppModel
                     ]
                 ]);
                 if (!empty($at)) {
-                    $this->Attribute->AttributeTag->delete($at['AttributeTag']['id']);
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'AttributeTag', 'action' => 'delete', 'data' => $at['AttributeTag']['id']];
+                    } else {
+                        $this->Attribute->AttributeTag->delete($at['AttributeTag']['id']);
+                    }
                 }
                 break;
-            break;
+        }
+    }
+
+    private function __executeRecoveryShadowAttribute($logEntry, $id)
+    {
+        if (empty($this->Attribute)) {
+            $this->Attribute = ClassRegistry::init('Attribute');
+        }
+        if (empty($this->ShadowAttribute)) {
+            $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
+        }
+        if (!empty($logEntry['data']['value1'])) {
+            $logEntry['data']['value'] = $logEntry['data']['value1'];
+            if (!empty($logEntry['data']['value2'])) {
+                $logEntry .= '|' . $logEntry['data']['value2'];
+            }
+        }
+        switch($logEntry['action']) {
+            case 'add':
+                $logEntry['data']['value'] = $logEntry['data']['value1'];
+                if (!empty($logEntry['data']['value2'])) {
+                    $logEntry['data']['value'] .= '|' . $logEntry['data']['value2'];
+                }
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'ShadowAttribute', 'action' => 'add', 'data' => $logEntry['data']];
+                } else {
+                    $this->ShadowAttribute->create();
+                    $this->ShadowAttribute->save($logEntry['data']);
+                }
+                break;
+            case 'delete':
+                $shadow_attribute = $this->ShadowAttribute->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['ShadowAttribute.id' => $logEntry['model_id']]
+                ]);
+                if (!empty($shadow_attribute)) {
+                    $shadow_attribute['ShadowAttribute']['deleted'] = 1;
+                    $shadow_attribute['ShadowAttribute']['timestamp'] = $logEntry['data']['timestamp'];
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'ShadowAttribute', 'action' => 'delete', 'data' => $attribute];
+                    } else {
+                        $this->ShadowAttribute->save($attribute);
+                    }
+                }
+                break;
+            case 'accept':
+                $shadow_attribute = $this->ShadowAttribute->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['ShadowAttribute.id' => $logEntry['model_id']]
+                ]);
+                if (!empty($shadow_attribute['ShadowAttribute']['old_id'])) {
+                    $attribute = $this->Attribute->find('first', [
+                        'conditions' => ['Attribute.id' => $shadow_attribute['ShadowAttribute']['old_id']],
+                        'recursive' => -1
+                    ]);
+                    if (!empty($shadow_attribute['ShadowAttribute']['proposal_to_delete'])) {
+                        $attribute['Attribute']['deleted'] = 1;
+                    } else {
+                        foreach(['category', 'type', 'value', 'to_ids', 'comment', 'first_seen', 'last_seen'] as $field) {
+                            if (isset($shadow_attribute['ShadowAttribute'][$field])) {
+                                $attribute['Attribute'][$field] = $shadow_attribute['ShadowAttribute'][$field];
+                            }
+                        }
+                    }
+                    $attribute['Attribute']['timestamp'] = $logEntry['data']['timestamp'];
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'Attribute', 'action' => 'edit', 'data' => $attribute];
+                    } else {
+                        $this->Attribute->save($attribute);
+                    }
+                } else {
+                    $this->Attribute->create();
+                    $attribute = $shadow_attribute['ShadowAttribute'];
+                    if (isset($attribute['id'])) {
+                        unset($attribute['id']);
+                    }
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'Attribute', 'action' => 'add', 'data' => $attribute];
+                    } else {
+                        $this->Attribute->save($attribute);
+                    }
+                }
+                $shadow_attribute['ShadowAttribute']['deleted'] = 1;
+                $shadow_attribute['ShadowAttribute']['timestamp'] = $logEntry['data']['timestamp'];
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'ShadowAttribute', 'action' => 'delete', 'data' => $shadow_attribute];
+                } else {
+                    $this->ShadowAttribute->save($shadow_attribute);
+                }
+                break;
         }
     }
 
@@ -829,8 +1012,12 @@ class Log extends AppModel
         }
         switch($logEntry['action']) {
             case 'add':
-                $this->ObjectReference->create();
-                $this->ObjectReference->save($logEntry['data']);
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'ObjectReference', 'action' => 'add', 'data' => $logEntry['data']];
+                } else {
+                    $this->ObjectReference->create();
+                    $this->ObjectReference->save($logEntry['data']);
+                }
                 break;
             case 'edit':
                 $objectRef = $this->ObjectReference->find('first', [
@@ -841,7 +1028,11 @@ class Log extends AppModel
                     foreach ($logEntry['data'] as $field => $value) {
                         $object['ObjectReference'][$field] = $value;
                     }
-                    $this->ObjectReference->save($object);
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'ObjectReference', 'action' => 'edit', 'data' => $object];
+                    } else {
+                        $this->ObjectReference->save($object);
+                    }
                 }
                 break;
         }
@@ -854,8 +1045,12 @@ class Log extends AppModel
         }
         switch($logEntry['action']) {
             case 'add':
-                $this->MispObject->create();
-                $this->MispObject->save($logEntry['data']);
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'MispObject', 'action' => 'add', 'data' => $logEntry['data']];
+                } else {
+                    $this->MispObject->create();
+                    $this->MispObject->save($logEntry['data']);
+                }
                 break;
             case 'edit':
                 $object = $this->MispObject->find('first', [
@@ -866,7 +1061,11 @@ class Log extends AppModel
                     foreach ($logEntry['data'] as $field => $value) {
                         $object['Object'][$field] = $value;
                     }
-                    $this->MispObject->save($object);
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'MispObject', 'action' => 'add', 'data' => $object];
+                    } else {
+                        $this->MispObject->save($object);
+                    }
                 }
                 break;
         }
