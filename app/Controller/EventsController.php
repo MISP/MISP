@@ -5630,9 +5630,6 @@ class EventsController extends AppController
 
     public function recoverEvent($id, $mock = false)
     {
-        if (!Configure::read('MISP.background_jobs')) {
-            throw new MethodNotAllowedException(__('Workers must be enabled to use this feature'));
-        }
         if ($mock) {
             if ($this->request->is('post')) {
                 $this->loadModel('Log');
@@ -5659,6 +5656,9 @@ class EventsController extends AppController
             }
             $this->set('data', $this->Log->mockLog);
         } else {
+            if (!Configure::read('MISP.background_jobs')) {
+                throw new MethodNotAllowedException(__('Workers must be enabled to use this feature'));
+            }
             if ($this->request->is('post')) {
                 $job_type = 'recover_event';
                 $function = 'recoverEvent';
