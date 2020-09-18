@@ -35,7 +35,7 @@ class Organisation extends AppModel
             ),
             'uuid' => array(
                 'rule' => 'uuid',
-                'message' => 'Please provide a valid UUID',
+                'message' => 'Please provide a valid RFC 4122 UUID',
                 'allowEmpty' => true
             ),
             'valueNotEmpty' => array(

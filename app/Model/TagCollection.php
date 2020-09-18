@@ -46,7 +46,7 @@ class TagCollection extends AppModel
         'uuid' => array(
             'uuid' => array(
                 'rule' => 'uuid',
-                'message' => 'Please provide a valid UUID'
+                'message' => 'Please provide a valid RFC 4122 UUID'
             ),
         ),
     );
