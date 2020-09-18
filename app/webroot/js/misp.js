@@ -5093,7 +5093,7 @@ function changeLocationFromIndexDblclick(row_index) {
 function openIdSelection(clicked, scope, action) {
     var onclick = 'redirectIdSelection(\'' + scope + '\', \'' + action + '\')'
     var html = '<div class="input-append">'
-                + '<input class="span2" id="eventIdSelectionInput" type="number" min="1" step="1">'
+                + '<input class="span2" id="eventIdSelectionInput" type="number" min="1" step="1" placeholder="42">'
                 + '<button class="btn btn-primary" type="button" onclick="' + onclick + '">Submit</button>'
             + '</div>';
     openPopover(clicked, html, false, 'right')
@@ -5101,5 +5101,9 @@ function openIdSelection(clicked, scope, action) {
 
 function redirectIdSelection(scope, action) {
     var id = $('#eventIdSelectionInput').val()
-    window.location = baseurl + '/' + scope + '/' + action + '/' + id
+    if (id.length > 0) {
+        window.location = baseurl + '/' + scope + '/' + action + '/' + id
+    } else {
+        showMessage('fail', 'Not an valid event id');
+    }
 }

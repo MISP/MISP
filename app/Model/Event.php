@@ -3394,19 +3394,6 @@ class Event extends AppModel
             }
         }
 
-        // Already captured in EventReport->captureReport
-        // if (!empty($data['Event']['EventReport'])) {
-        //     foreach ($data['Event']['EventReport'] as $k => $report) {
-        //         unset($data['Event']['EventReport'][$k]['id']);
-        //         if (isset($report['distribution']) && $report['distribution'] == 4) {
-        //             $report['Event']['EventReport'][$k] = $this->__captureSGForElement($report, $user, $syncLocal);
-        //             if ($data['Event']['EventReport'][$k] === false) {
-        //                 unset($data['Event']['EventReport']);
-        //             }
-        //         }
-        //     }
-        // }
-
         // first we want to see how the creator organisation is encoded
         // The options here are either by passing an organisation object along or simply passing a string along
         if (isset($data['Event']['Orgc'])) {

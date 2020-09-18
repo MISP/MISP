@@ -43,6 +43,8 @@
                     'sort' => 'id',
                     'class' => 'short',
                     'data_path' => 'EventReport.id',
+                    'element' => 'links',
+                    'url' => $baseurl . '/eventReports/view/%s'
                 ),
                 array(
                     'name' => __('Name'),

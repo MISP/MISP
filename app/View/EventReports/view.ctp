@@ -22,7 +22,7 @@
     );
 
     $table_data[] = array('key' => __('Timestamp'), 'value' => date('Y-m-d H:i:s', $report['EventReport']['timestamp']));
-    $table_data[] = array('key' => __('Deleted'), 'boolean' => $report['EventReport']['deleted']);
+    $table_data[] = array('key' => __('Deleted'), 'boolean' => $report['EventReport']['deleted'], 'value_class' => $report['EventReport']['deleted'] ? 'red' : 'green');
 ?>
 
 <div class='<?= !isset($ajax) || !$ajax ? 'view' : '' ?>'>
