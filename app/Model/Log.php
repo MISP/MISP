@@ -751,6 +751,9 @@ class Log extends AppModel
         if (empty($this->GalaxyCluster)) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         }
+        if (empty($this->EventBlocklist)) {
+            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+        }
         switch($logEntry['action']) {
             case 'add':
                 if (!empty($this->mockRecovery)) {
@@ -758,6 +761,13 @@ class Log extends AppModel
                 } else {
                     $this->Event->create();
                     $this->Event->save($logEntry['data']);
+                    $blockListEntry = $this->EventBlocklist->find('first', array(
+                        'conditions' => array('event_uuid' => $logEntry['data']['uuid']),
+                        'fields' => 'id'
+                    ));
+                    if (!empty($blockListEntry)) {
+                        $this->EventBlocklist->delete($blockListEntry['EventBlocklist']['id']);
+                    }
                 }
                 break;
             case 'edit':
