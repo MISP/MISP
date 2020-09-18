@@ -162,7 +162,7 @@ class EventsController extends AppController
 
     /**
      * @param string|array $value
-     * @return array Event ID that match filter
+     * @return array Event IDs that match filter
      */
     private function __quickFilter($value)
     {
@@ -171,28 +171,44 @@ class EventsController extends AppController
         }
         $values = array();
         foreach ($value as $v) {
-            $values[] = '%' . strtolower($v) . '%';
+            $values[] = '%' . strtolower(trim($v)) . '%';
         }
 
-        // get all of the attributes that have a hit on the search term, in either the value or the comment field
+        // get all of the attributes that have a hit on the search term, in either the value, comment or uuid field
         // This is not perfect, the search will be case insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
         $subconditions = array();
         foreach ($values as $v) {
-            $subconditions[] = array('lower(value1) LIKE' => $v);
-            $subconditions[] = array('lower(value2) LIKE' => $v);
+            $subconditions[] = array('lower(Attribute.value1) LIKE' => $v);
+            $subconditions[] = array('lower(Attribute.value2) LIKE' => $v);
             $subconditions[] = array('lower(Attribute.comment) LIKE' => $v);
+            $subconditions[] = array('Attribute.uuid LIKE' => $v);
         }
-        $conditions = array(
-            'OR' => $subconditions,
-        );
         $attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-            'conditions' => $conditions,
+            'conditions' => ['OR' => $subconditions],
             'flatten' => 1,
             'event_ids' => true,
             'list' => true,
         ));
 
         $result = array_values($attributeHits);
+
+        // get all objects that have hit and user can access
+        $subconditions = array();
+        foreach ($values as $v) {
+            $subconditions[] = ['Object.uuid LIKE' => $v];
+        }
+        $conditions = $this->Event->Object->buildConditions($this->Auth->user());
+        $conditions['OR'] = $subconditions;
+        $objectHits = $this->Event->Object->find('list', [
+            'conditions' => $conditions,
+            'contain' => ['Event'],
+            'fields' => ['Object.event_id'],
+        ]);
+        foreach ($objectHits as $eventId) {
+            if (!in_array($eventId, $result)) {
+                $result[] = $eventId;
+            }
+        }
 
         // we now have a list of event IDs that match on an attribute level, and the user can see it. Let's also find all of the events that match on other criteria!
         // What is interesting here is that we no longer have to worry about the event's releasability. With attributes this was a different case,
