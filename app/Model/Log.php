@@ -837,6 +837,7 @@ class Log extends AppModel
         }
         switch($logEntry['action']) {
             case 'add':
+                $logEntry['data'] = $this->Attribute->UTCToISODatetime(['Attribute' => $logEntry['data']], 'Attribute');
                 if (!empty($this->mockRecovery)) {
                     $this->mockLog[] = ['model' => 'Attribute', 'action' => 'add', 'data' => $logEntry['data']];
                 } else {
@@ -850,6 +851,7 @@ class Log extends AppModel
                     'conditions' => ['Attribute.id' => $logEntry['model_id']]
                 ]);
                 if (!empty($attribute)) {
+                    $logEntry['data'] = $this->Attribute->UTCToISODatetime(['Attribute' => $logEntry['data']], 'Attribute');
                     foreach ($logEntry['data'] as $field => $value) {
                         $attribute['Attribute'][$field] = $value;
                     }
