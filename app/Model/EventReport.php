@@ -169,8 +169,7 @@ class EventReport extends AppModel
     {
         $report = $this->fetchIfAuthorized($user, $id, 'delete', $throwErrors=true, $full=false);
         if ($hard) {
-            $deleteResult = $this->delete($id, true);
-            return $deleteResult;
+            return  $this->delete($id, true);
         } else {
             $report['EventReport']['deleted'] = true;
             return $this->save($report, array('fieldList' => array('deleted')));
@@ -250,7 +249,13 @@ class EventReport extends AppModel
         }
         $options = array('conditions' => array("EventReport.id" => $reportId));
         $report = $this->fetchReports($user, $options, $full=$full);
-        return $report;
+        if (!empty($report)) {
+            return $report[0];
+        }
+        if ($throwErrors) {
+            throw new NotFoundException(__('Invalid report'));
+        }
+        return array();
     }
 
     public function fetchReports($user, $options = array(), $full=false)
@@ -300,12 +305,8 @@ class EventReport extends AppModel
             $report = $this->simpleFetchById($user, $report, $throwErrors=$throwErrors, $full=$full);
             if (empty($report)) {
                 $message = __('Invalid report');
-                if ($throwErrors) {
-                    throw new NotFoundException($message);
-                }
                 return array('authorized' => false, 'error' => $message);
             }
-            $report = $report[0];
         }
         if ($user['Role']['perm_site_admin']) {
             return $report;

@@ -27,228 +27,140 @@ class EventReportsController extends AppController
         )
     );
 
-    public function add($event_id)
+    public function add($eventId)
     {
-        $event_id = $this->Toolbox->findIdByUuid($this->EventReport->Event, $event_id);
-        if (Validation::uuid($event_id)) {
-            $temp = $this->EventReport->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $event_id)));
-            if (empty($temp)) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            $event_id = $temp['Event']['id'];
-        } elseif (!is_numeric($event_id)) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-        $event = $this->EventReport->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id));
-        if (empty($event)) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-
+        $event = $this->canModifyEvent($eventId);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['EventReport'])) {
                 $this->request->data['EventReport'] = $this->request->data;
             }
             $report = $this->request->data;
-            $validationErrors = $this->EventReport->captureReport($this->Auth->user(), $report, $event_id);
+            $validationErrors = $this->EventReport->captureReport($this->Auth->user(), $report, $eventId);
+            $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
             if (!empty($validationErrors)) {
-                $flashErrorMessage = implode(', ', $errors);
-                if ($this->_isRest() || $this->request->is('ajax')) {
-                    return $this->RestResponse->saveFailResponse('EventReport', 'add', false, $flashErrorMessage, $this->response->type());
-                } else {
-                    $this->Flash->error($flashErrorMessage);
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
-                }
+                return $this->getFailResponseBasedOnContext($validationErrors, array(), 'add', $this->EventReport->id, $redirectTarget);
             } else {
                 $successMessage = __('Report saved.');
-                $this->EventReport->Event->unpublishEvent($event_id);
-                if ($this->_isRest()) {
-                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $this->EventReport->id)));
-                    return $this->RestResponse->viewData($report[0], $this->response->type());
-                } elseif ($this->request->is('ajax')) {
-                    return $this->RestResponse->saveSuccessResponse('EventReport', 'add', $this->EventReport->id, false, $successMessage);
-                } else {
-                    $this->Flash->success($successMessage);
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $report['EventReport']['event_id']));
-                }
+                $this->EventReport->Event->unpublishEvent($eventId);
+                $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
+                return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'add', false, $redirectTarget);
             }
         }
 
-        $this->set('event_id', $event_id);
-        $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
-        $this->set('distributionLevels', $distributionLevels);
-        $initialDistribution = 5;
-        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
-        if ($configuredDistribution != null && $configuredDistribution != 'event') {
-            $initialDistribution = $configuredDistribution;
-        }
-        $this->set('initialDistribution', $initialDistribution);
-        $sgs = $this->EventReport->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
-        $this->set('sharingGroups', $sgs);
+        $this->set('event_id', $eventId);
         $this->set('action', 'add');
+        $this->injectDistributionLevelToViewContext();
+        $this->injectSharingGroupsDataToViewContext();
     }
 
 
-    public function view($report_id, $ajax=false)
+    public function view($reportId, $ajax=false)
     {
-        $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('EventReport.id' => $report_id)));
-        if (empty($report)) {
-            throw new NotFoundException(__('Invalid Event Report'));
-        }
-        $report = $report[0];
+        $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($report, $this->response->type());
         }
         $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
         $this->set('proxyMISPElements', $proxyMISPElements);
-        $this->set('id', $report_id);
+        $this->set('id', $reportId);
         $this->set('report', $report);
         $this->set('ajax', $ajax);
-        $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
-        $this->set('distributionLevels', $distributionLevels);
-        $canEdit = $this->EventReport->canEditReport($this->Auth->user(), $report) === true;
-        $this->set('canEdit', $canEdit);
+        $this->injectDistributionLevelToViewContext();
+        $this->injectPermissionsToViewContext($this->Auth->user(), $report);
     }
 
-    public function viewSummary($report_id)
+    public function viewSummary($reportId)
     {
-        $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('EventReport.id' => $report_id)));
-        if (empty($report)) {
-            throw new NotFoundException(__('Invalid Event Report'));
-        }
-        $report = $report[0];
+        $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
         $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
         $this->set('proxyMISPElements', $proxyMISPElements);
-        $this->set('id', $report_id);
+        $this->set('id', $reportId);
         $this->set('report', $report);
-        $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
-        $this->set('distributionLevels', $distributionLevels);
-        $canEdit = $this->EventReport->canEditReport($this->Auth->user(), $report) === true;
-        $this->set('canEdit', $canEdit);
+        $this->injectDistributionLevelToViewContext();
+        $this->injectPermissionsToViewContext($this->Auth->user(), $report);
     }
 
     public function edit($id)
     {
-        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
+        $savedReport = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
         if ($this->request->is('post') || $this->request->is('put')) {
             $newReport = $this->request->data;
-            if (!isset($newReport['EventReport'])) {
-                $newReport = array('EventReport' => $newReport);
-            }
-            $fieldList = array('id', 'name', 'content', 'timestamp', 'distribution', 'sharing_group_id', 'deleted', 'event_id');
-            foreach ($fieldList as $field) {
-                if (!empty($newReport['EventReport'][$field])) {
-                    $report['EventReport'][$field] = $newReport['EventReport'][$field];
-                }
-            }
-            $errors = $this->EventReport->editReport($this->Auth->user(), $report, $report['EventReport']['event_id']);
+            $newReport = $this->applyDataFromSavedReport($newReport, $savedReport);
+            $errors = $this->EventReport->editReport($this->Auth->user(), $newReport, $newReport['EventReport']['event_id']);
+            $redirectTarget = array('controller' => 'eventReports', 'action' => 'view', $id);
             if (!empty($errors)) {
-                $flashErrorMessage = implode(', ', $errors);
-                if ($this->_isRest() || $this->request->is('ajax')) {
-                    return $this->RestResponse->saveFailResponse('EventReport', 'edit', $id, $flashErrorMessage, $this->response->type());
-                } else {
-                    $this->Flash->error($flashErrorMessage);
-                    $this->redirect(array('controller' => 'eventReports', 'action' => 'view', $id));
-                }
+                return $this->getFailResponseBasedOnContext($validationErrors, array(), 'edit', $id, $redirectTarget);
             } else {
+                $successMessage = __('Report saved.');
                 $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
-                $successMessage = __('The report has been saved');
-                if ($this->_isRest()) {
-                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
-                    return $this->RestResponse->viewData($report[0], $this->response->type());
-                } elseif ($this->request->is('ajax')) {
-                    return $this->RestResponse->saveSuccessResponse('EventReport', 'edit', $this->response->type(), $successMessage);
-                } else {
-                    $this->Flash->success($successMessage);
-                    $this->redirect(array('controller' => 'eventReports', 'action' => 'view', $id));
-                }
+                $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
+                return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'edit', $id, $redirectTarget);
             }
         } else {
-            $this->request->data = $report;
+            $this->request->data = $savedReport;
         }
 
-        $this->set('id', $report['EventReport']['id']);
-        $this->set('event_id', $report['EventReport']['event_id']);
-        $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
-        $this->set('distributionLevels', $distributionLevels);
-        $initialDistribution = 5;
-        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
-        if ($configuredDistribution != null && $configuredDistribution != 'event') {
-            $initialDistribution = $configuredDistribution;
-        }
-        $this->set('initialDistribution', $initialDistribution);
-        $this->loadModel('SharingGroup');
-        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
-        $this->set('sharingGroups', $sgs);
+        $this->set('id', $savedReport['EventReport']['id']);
+        $this->set('event_id', $savedReport['EventReport']['event_id']);
         $this->set('action', 'edit');
         $this->render('add');
+        $this->injectDistributionLevelToViewContext();
+        $this->injectSharingGroupsDataToViewContext();
     }
 
     public function delete($id, $hard=false)
     {
+        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
             $deleted = $this->EventReport->deleteReport($this->Auth->user(), $id, $hard=$hard);
+            $redirectTarget = $this->referer();
             if ($deleted) {
-                $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+                $successMessage = __('Report %s %s deleted', $id, $hard ? __('hard') : __('soft'));
                 $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
-                $successMessage = __('Report %s deleted', $hard ? __('hard') : __('soft'));
-                if ($this->_isRest()) {
-                    return $this->RestResponse->viewData($report[0], $this->response->type());
-                } elseif ($this->request->is('ajax')) {
-                    return $this->RestResponse->saveSuccessResponse('EventReport', 'delete', $id, false, $successMessage);
-                } else {
-                    $this->Flash->success($successMessage);
-                    $this->redirect($this->referer());
-                }
+                $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
+                return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'delete', $id, $redirectTarget);
             } else {
-                if ($this->_isRest() || $this->request->is('ajax')) {
-                    return $this->RestResponse->saveFailResponse('EventReport', 'delete', $id, $flashErrorMessage, $this->response->type());
-                } else {
-                    $this->Flash->error(__('Could not delete report'));
-                    $this->redirect($this->referer());
-                }
+                $errorMessage = __('Report %s could not be %s deleted', $id, $hard ? __('hard') : __('soft'));
+                return $this->getFailResponseBasedOnContext($errorMessage, array(), 'edit', $id, $redirectTarget);
             }
         } else {
-            $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
-            if ($this->request->is('ajax')) {
-                $this->set('report', $report['EventReport']);
-                $this->render('ajax/delete');
-            } else {
+            if (!$this->request->is('ajax')) {
                 throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+            } else {
+                $this->layout = 'ajax';
+                $this->set('report', $report);
             }
         }
     }
 
     public function restore($id)
     {
+        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
-            $result = $this->EventReport->restoreReport($this->Auth->user(), $id);
-            if ($result) {
-                $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
+            $restored = $this->EventReport->restoreReport($this->Auth->user(), $id);
+            $redirectTarget = $this->referer();
+            if ($restored) {
+                $successMessage = __('Report %s restored', $id);
                 $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
-                $message = __('Report %s successfuly restored.', $id);
-                if ($this->_isRest()) {
-                    return $this->RestResponse->viewData($report[0], $this->response->type());
-                } elseif ($this->request->is('ajax')) {
-                    return $this->RestResponse->saveSuccessResponse('EventReport', 'restore', $id, $this->response->type());
-                } else {
-                    $this->Flash->success($message);
-                    $this->redirect($this->referer());
-                }
+                $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
+                return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'restore', $id, $redirectTarget);
             } else {
-                $message = __('Report %s could not be restored.', $id);
-                if ($this->_isRest()) {
-                    $report = $this->EventReport->fetchReports($this->Auth->user(), array('conditions' => array('id' => $id)));
-                    return $this->RestResponse->viewData($report[0], $this->response->type());
-                } elseif ($this->request->is('ajax')) {
-                    return $this->RestResponse->saveFailResponse('EventReport', 'restore', $id, $message, $this->response->type());
-                } else {
-                    $this->Flash->error($message);
-                    $this->redirect($this->referer());
-                }
+                $errorMessage = __('Report could not be %s restored', $id);
+                return $this->getFailResponseBasedOnContext($errorMessage, array(), 'restore', $id, $redirectTarget);
             }
         } else {
-            throw new MethodNotAllowedException(__('This function can only be reached via POST.'));
+            if (!$this->request->is('ajax')) {
+                throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+            } else {
+                $this->layout = 'ajax';
+                $this->set('report', $report);
+            }
         }
+    }
+
+    private function getIndexConditions()
+    {
+        // add confitions here
     }
 
     public function index()
@@ -347,4 +259,90 @@ class EventReportsController extends AppController
         $this->render('ajax/index');
     }
 
+    private function getSuccessResponseBasedOnContext($message, array $data = array(), $action = '', $id = false, $redirect = array())
+    {
+        if ($this->_isRest()) {
+            if (!empty($data)) {
+                return $this->RestResponse->viewData($data, $this->response->type());
+            } else {
+                return $this->RestResponse->saveSuccessResponse($this->alias, $action, $id, false, $message);
+            }
+        } elseif ($this->request->is('ajax')) {
+            return $this->RestResponse->saveSuccessResponse($this->alias, $action, $id, false, $message);
+        } else {
+            $this->Flash->success($message);
+            $this->redirect($redirect);
+        }
+        return;
+    }
+
+    private function getFailResponseBasedOnContext($message, array $data = array(), $action = '', $id = false, $redirect = array())
+    {
+        if (is_array($message)) {
+            $message = implode(', ', $message);
+        }
+        if ($this->_isRest()) {
+            if (!empty($data)) {
+                return $this->RestResponse->viewData($data, $this->response->type());
+            } else {
+                return $this->RestResponse->saveFailResponse('EventReport', $action, $id, $message, false);
+            }
+        } elseif ($this->request->is('ajax')) {
+            return $this->RestResponse->saveFailResponse('EventReport', $action, $id, $message, false);
+        } else {
+            $this->Flash->error($message);
+            $this->redirect($this->referer());
+        }
+        return;
+    }
+
+    private function injectDistributionLevelToViewContext()
+    {
+        $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
+        $this->set('distributionLevels', $distributionLevels);
+        $initialDistribution = 5;
+        $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
+        if ($configuredDistribution != null && $configuredDistribution != 'event') {
+            $initialDistribution = $configuredDistribution;
+        }
+        $this->set('initialDistribution', $initialDistribution);
+    }
+
+    private function injectSharingGroupsDataToViewContext()
+    {
+        $sgs = $this->EventReport->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $this->set('sharingGroups', $sgs);
+    }
+
+    private function injectPermissionsToViewContext($user, $report)
+    {
+        $canEdit = $this->EventReport->canEditReport($user, $report) === true;
+        $this->set('canEdit', $canEdit);
+    }
+
+    private function canModifyEvent($eventId)
+    {
+        $event = $this->EventReport->Event->fetchSimpleEvent($this->Auth->user(), $eventId, array());
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
+        return $event;
+    }
+
+    private function applyDataFromSavedReport($newReport, $savedReport)
+    {
+        if (!isset($newReport['EventReport'])) {
+            $newReport = array('EventReport' => $newReport);
+        }
+        $fieldList = $this->EventReport->captureFields;
+        foreach ($fieldList as $field) {
+            if (!empty($newReport['EventReport'][$field])) {
+                $savedReport['EventReport'][$field] = $newReport['EventReport'][$field];
+            }
+        }
+        return $savedReport;
+    }
 }
