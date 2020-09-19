@@ -848,10 +848,14 @@ class Log extends AppModel
         switch($logEntry['action']) {
             case 'add':
                 $logEntry['data'] = $this->Attribute->UTCToISODatetime(['Attribute' => $logEntry['data']], 'Attribute');
+                $logEntry['data'] = $logEntry['data']['Attribute'];
                 if (!empty($this->mockRecovery)) {
                     $this->mockLog[] = ['model' => 'Attribute', 'action' => 'add', 'data' => $logEntry['data']];
                 } else {
                     $this->Attribute->create();
+                    if (!isset($logEntry['data']['to_ids'])) {
+                        $logEntry['data']['to_ids'] = 0;
+                    }
                     $this->Attribute->save($logEntry['data']);
                 }
                 break;
@@ -862,6 +866,7 @@ class Log extends AppModel
                 ]);
                 if (!empty($attribute)) {
                     $logEntry['data'] = $this->Attribute->UTCToISODatetime(['Attribute' => $logEntry['data']], 'Attribute');
+                    $logEntry['data'] = $logEntry['data']['Attribute'];
                     foreach ($logEntry['data'] as $field => $value) {
                         $attribute['Attribute'][$field] = $value;
                     }
@@ -1057,6 +1062,8 @@ class Log extends AppModel
         }
         switch($logEntry['action']) {
             case 'add':
+                $logEntry['data'] = $this->MispObject->Attribute->UTCToISODatetime(['Object' => $logEntry['data']], 'Object');
+                $logEntry['data'] = $logEntry['data']['Object'];
                 if (!empty($this->mockRecovery)) {
                     $this->mockLog[] = ['model' => 'MispObject', 'action' => 'add', 'data' => $logEntry['data']];
                 } else {
@@ -1065,6 +1072,8 @@ class Log extends AppModel
                 }
                 break;
             case 'edit':
+                $logEntry['data'] = $this->MispObject->Attribute->UTCToISODatetime(['Object' => $logEntry['data']], 'Object');
+                $logEntry['data'] = $logEntry['data']['Object'];
                 $object = $this->MispObject->find('first', [
                     'recursive' => -1,
                     'conditions' => ['Object.id' => $logEntry['model_id']]

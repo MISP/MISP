@@ -5630,7 +5630,7 @@ class EventsController extends AppController
 
     public function recoverEvent($id, $mock = false)
     {
-        if ($mock) {
+        if ($mock || !Configure::read('MISP.background_jobs')) {
             if ($this->request->is('post')) {
                 $this->loadModel('Log');
                 $result = $this->Log->recoverDeletedEvent($id, $mock);
@@ -5648,6 +5648,9 @@ class EventsController extends AppController
                     return $this->RestResponse->viewData($results, $this->response->type());
                 } else {
                     $this->Flash->success($message);
+                    if (!$mock) {
+                        $this->redirect(['action' => 'restoreDeletedEvents']);
+                    }
                 }
             } else {
                 $message = __('This action is only accessible via POST requests.');
@@ -5660,9 +5663,6 @@ class EventsController extends AppController
             }
             $this->set('data', $this->Log->mockLog);
         } else {
-            if (!Configure::read('MISP.background_jobs')) {
-                throw new MethodNotAllowedException(__('Workers must be enabled to use this feature'));
-            }
             if ($this->request->is('post')) {
                 $job_type = 'recover_event';
                 $function = 'recoverEvent';
