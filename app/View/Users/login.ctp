@@ -86,7 +86,7 @@ function submitLoginForm() {
                 window.location = baseurl + '/users/login'
             }
             $('body').append($('<div id="temp" style="display: none"/>').append(formHTML))
-            var $tmpForm = $('#temp form')
+            var $tmpForm = $('#temp form#UserLoginForm')
             $tmpForm.find('#UserEmail').val(email)
             $tmpForm.find('#UserPassword').val(password)
             $tmpForm.submit()

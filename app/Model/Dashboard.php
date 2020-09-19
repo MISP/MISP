@@ -14,8 +14,8 @@ class Dashboard extends AppModel
         'role_id' => 'numeric',
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('uuid'),
-                'message' => 'Please provide a valid UUID'
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
             ),
         )
     );
