@@ -952,6 +952,7 @@ class Log extends AppModel
                 if (!empty($logEntry['data']['value2'])) {
                     $logEntry['data']['value'] .= '|' . $logEntry['data']['value2'];
                 }
+                $logEntry['data'] = $this->Attribute->UTCToISODatetime(['ShadowAttribute' => $logEntry['data']], 'ShadowAttribute');
                 if (!empty($this->mockRecovery)) {
                     $this->mockLog[] = ['model' => 'ShadowAttribute', 'action' => 'add', 'data' => $logEntry['data']];
                 } else {
@@ -1057,6 +1058,9 @@ class Log extends AppModel
 
     private function __executeRecoveryMispObject($logEntry)
     {
+        if (empty($this->Attribute)) {
+            $this->Attribute = ClassRegistry::init('Attribute');
+        }
         if (empty($this->MispObject)) {
             $this->MispObject = ClassRegistry::init('MispObject');
         }
