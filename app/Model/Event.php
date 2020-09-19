@@ -601,6 +601,10 @@ class Event extends AppModel
             $this->data['Event']['timestamp'] = $date->getTimestamp();
         }
 
+        if (isset($this->data['Event']['publish_timestamp']) && empty($this->data['Event']['publish_timestamp'])) {
+            $this->data['Event']['publish_timestamp'] = 0;
+        }
+
         if (empty($this->data['Event']['date'])) {
             $this->data['Event']['date'] = date('Y-m-d');
         }
@@ -7108,5 +7112,12 @@ class Event extends AppModel
                 unset($event['EventTag'][$k]);
             }
         }
+    }
+
+    public function recoverEvent($id)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $result = $this->Log->recoverDeletedEvent($id);
+        return $result;
     }
 }
