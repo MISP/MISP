@@ -80,9 +80,9 @@ class MispObject extends AppModel
         )
     );
 
-    public function buildFilterConditions($user, &$params)
+    public function buildFilterConditions(&$params)
     {
-        $conditions = $this->buildConditions($user);
+        $conditions = [];
         if (isset($params['wildcard'])) {
             $temp = array();
             $options = array(
@@ -93,8 +93,6 @@ class MispObject extends AppModel
             );
             $conditions['AND'][] = array('OR' => $this->Event->set_filter_wildcard_attributes($params, $temp, $options));
         } else {
-            $attribute_conditions = array();
-            $object_conditions = array();
             if (isset($params['ignore'])) {
                 $params['to_ids'] = array(0, 1);
                 $params['published'] = array(0, 1);
@@ -1381,25 +1379,25 @@ class MispObject extends AppModel
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
-        $conditions = $this->buildFilterConditions($user, $filters);
+        $conditions = $this->buildFilterConditions($filters);
         $params = array(
-                'conditions' => $conditions,
-                'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Object.*'),
-                'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
-                'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
-                'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
-                'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
-                'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
-                'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
-                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
-                'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
-                'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
-                'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
-                'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
-                'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
-                'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
-                'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0,
-                'metadata' => !empty($filters['metadata']) ? $filters['metadata'] : 0,
+            'conditions' => $conditions,
+            'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Object.*'),
+            'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
+            'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
+            'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
+            'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
+            'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
+            'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
+            'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
+            'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
+            'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
+            'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
+            'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
+            'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
+            'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
+            'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0,
+            'metadata' => !empty($filters['metadata']) ? $filters['metadata'] : 0,
         );
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];
