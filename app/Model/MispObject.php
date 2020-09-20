@@ -398,23 +398,12 @@ class MispObject extends AppModel
             $sgids = $this->Event->cacheSgids($user, true);
             $conditions = array(
                 'AND' => array(
+                    $this->Event->createEventConditions($user),
                     'OR' => array(
-                        array(
-                            'AND' => array(
-                                'Event.org_id' => $user['org_id'],
-                            )
-                        ),
-                        array(
-                            'AND' => array(
-                                $this->Event->createEventConditions($user),
-                                'OR' => array(
-                                    'Object.distribution' => array(1, 2, 3, 5),
-                                    'AND' => array(
-                                        'Object.distribution' => 4,
-                                        'Object.sharing_group_id' => $sgids,
-                                    )
-                                )
-                            )
+                        'Object.distribution' => array(1, 2, 3, 5),
+                        'AND' => array(
+                            'Object.distribution' => 4,
+                            'Object.sharing_group_id' => $sgids,
                         )
                     )
                 )
