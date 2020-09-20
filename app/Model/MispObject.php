@@ -5,6 +5,7 @@ App::uses('TmpFileTool', 'Tools');
 /**
  * @property Event $Event
  * @property SharingGroup $SharingGroup
+ * @property Attribute $Attribute
  */
 class MispObject extends AppModel
 {
@@ -557,8 +558,8 @@ class MispObject extends AppModel
         $results = array_values($results);
         $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {
-            foreach ($results as $key => $objects) {
-                foreach ($objects as $key2 => $attribute) {
+            foreach ($results as $key => $object) {
+                foreach ($object['Attribute'] as $key2 => $attribute) {
                     if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
                         unset($results[$key][$key2]);
                         continue;
@@ -571,9 +572,9 @@ class MispObject extends AppModel
                         }
                     }
                     if ($options['withAttachments']) {
-                        if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
-                            $encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-                            $results[$key][$key2]['Attribute']['data'] = $encodedFile;
+                        if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+                            $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+                            $results[$key]['Attribute'][$key2]['data'] = $encodedFile;
                         }
                     }
                 }
