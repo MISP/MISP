@@ -1518,7 +1518,6 @@ class Event extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $sgids = $this->cacheSgids($user, true);
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions['AND']['OR'] = array(
