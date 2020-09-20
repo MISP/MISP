@@ -549,9 +549,6 @@ class MispObject extends AppModel
                 $params['page'] = $options['page'];
             }
         }
-        if (Configure::read('MISP.unpublishedprivate') && !$user['Role']['perm_site_admin']) {
-            $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
-        }
         $results = $this->find('all', $params);
         if ($options['enforceWarninglist']) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
