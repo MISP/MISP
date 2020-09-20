@@ -425,27 +425,27 @@ class MispObject extends AppModel
     }
 
     public function fetchObjectSimple($user, $options = array())
-        {
-            $params = array(
-                'conditions' => $this->buildConditions($user),
-                'fields' => array(),
-                'recursive' => -1
-            );
-            if (isset($options['conditions'])) {
-                $params['conditions']['AND'][] = $options['conditions'];
-            }
-            if (isset($options['fields'])) {
-                $params['fields'] = $options['fields'];
-            }
-            $results = $this->find('all', array(
-                'conditions' => $params['conditions'],
-                'recursive' => -1,
-                'fields' => $params['fields'],
-                'contain' => array('Event' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id')),
-                'sort' => false
-            ));
-            return $results;
+    {
+        $params = array(
+            'conditions' => $this->buildConditions($user),
+            'fields' => array(),
+            'recursive' => -1
+        );
+        if (isset($options['conditions'])) {
+            $params['conditions']['AND'][] = $options['conditions'];
         }
+        if (isset($options['fields'])) {
+            $params['fields'] = $options['fields'];
+        }
+        $results = $this->find('all', array(
+            'conditions' => $params['conditions'],
+            'recursive' => -1,
+            'fields' => $params['fields'],
+            'contain' => array('Event' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id')),
+            'sort' => false
+        ));
+        return $results;
+    }
 
     // Method that fetches all objects
     // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
