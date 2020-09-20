@@ -455,9 +455,9 @@ class MispObject extends AppModel
     //     group
     public function fetchObjects($user, $options = array())
     {
-        $sgsids = $this->SharingGroup->fetchAllAuthorised($user);
         $attributeConditions = array();
         if (!$user['Role']['perm_site_admin']) {
+            $sgids = $this->Event->cacheSgids($user, true);
             $attributeConditions = array(
                 'OR' => array(
                     array(
@@ -468,7 +468,7 @@ class MispObject extends AppModel
                             'Attribute.distribution' => array(1, 2, 3, 5),
                             array(
                                 'Attribute.distribution' => 4,
-                                'Attribute.sharing_group_id' => $sgsids
+                                'Attribute.sharing_group_id' => $sgids,
                             )
                         )
                     )
