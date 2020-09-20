@@ -392,41 +392,11 @@ class MispObject extends AppModel
         return $result;
     }
 
-    public function buildEventConditions($user, $sgids = false)
-    {
-        if ($user['Role']['perm_site_admin']) {
-            return array();
-        }
-        if ($sgids == false) {
-            $sgsids = $this->SharingGroup->fetchAllAuthorised($user);
-        }
-        return array(
-            'OR' => array(
-                array(
-                    'AND' => array(
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published' => 1) : array(),
-                    ),
-                ),
-                array(
-                    'AND' => array(
-                        'Event.sharing_group_id' => $sgids,
-                        'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published' => 1) : array(),
-                    )
-                )
-            )
-        );
-    }
-
-    public function buildConditions($user, $sgids = false)
+    public function buildConditions(array $user)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            if ($sgids === false) {
-                $sgsids = $this->SharingGroup->fetchAllAuthorised($user);
-            }
+            $sgids = $this->Event->cacheSgids($user, true);
             $conditions = array(
                 'AND' => array(
                     'OR' => array(
@@ -437,12 +407,12 @@ class MispObject extends AppModel
                         ),
                         array(
                             'AND' => array(
-                                $this->buildEventConditions($user, $sgids),
+                                $this->Event->createEventConditions($user),
                                 'OR' => array(
-                                    'Object.distribution' => array('1', '2', '3', '5'),
-                                    'AND '=> array(
+                                    'Object.distribution' => array(1, 2, 3, 5),
+                                    'AND' => array(
                                         'Object.distribution' => 4,
-                                        'Object.sharing_group_id' => $sgsids,
+                                        'Object.sharing_group_id' => $sgids,
                                     )
                                 )
                             )
