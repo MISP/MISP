@@ -57,7 +57,7 @@ class EventReport extends AppModel
         ),
     );
 
-    public function beforeValidate($options = array())
+    public function beforeValidate(array $options = array())
     {
         parent::beforeValidate();
         // generate UUID if it doesn't exist
@@ -82,9 +82,16 @@ class EventReport extends AppModel
         }
         return true;
     }
-
-    // Gets a report then save it.
-    public function captureReport($user, $report, $eventId)
+    
+    /**
+     * captureReport Gets a report then save it
+     *
+     * @param  array $user
+     * @param  array $report
+     * @param  int|string $eventId
+     * @return array Any errors preventing the capture
+     */
+    public function captureReport(array $user, array $report, $eventId)
     {
         $this->Log = ClassRegistry::init('Log');
         $report['EventReport']['event_id'] = $eventId;
@@ -99,8 +106,16 @@ class EventReport extends AppModel
         }
         return $errors;
     }
-
-    public function addReport($user, $report, $eventId)
+    
+    /**
+     * addReport Add a report
+     *
+     * @param  array $user
+     * @param  array $report
+     * @param  int|string $eventId
+     * @return array Any errors preventing the addition
+     */
+    public function addReport(array $user, array $report, $eventId)
     {
         $errors = $this->captureReport($user, $report, $eventId);
         if (empty($errors)) {
@@ -108,14 +123,25 @@ class EventReport extends AppModel
         }
         return $errors;
     }
-
-    public function editReport($user, $report, $eventId, $fromPull = false, &$nothingToChange = false)
+    
+    /**
+     * editReport Edit a report
+     *
+     * @param  array $user
+     * @param  array $report
+     * @param  int|string $eventId
+     * @param  bool  $fromPull
+     * @param  bool  $nothingToChange
+     * @return array Any errors preventing the edition
+     */
+    public function editReport(array $user, array $report, $eventId, $fromPull = false, &$nothingToChange = false)
     {
         $errors = array();
         if (!isset($report['EventReport']['uuid'])) {
             $errors[] = __('Event Report doesn\'t have an UUID');
             return $errors;
         }
+        $report['EventReport']['event_id'] = $eventId;
         $existingReport = $this->find('first', array(
             'conditions' => array('EventReport.uuid' => $report['EventReport']['uuid']),
             'recursive' => -1,
@@ -139,7 +165,7 @@ class EventReport extends AppModel
         } else {
             unset($report['EventReport']['timestamp']);
         }
-        $errors = $this->saveAndReturnErrors($report, ['fieldList' => $fieldList], $errors);
+        $errors = $this->saveAndReturnErrors($report, ['fieldList' => $this->captureFields], $errors);
         if (empty($errors)) {
             $this->Event->unpublishEvent($eventId);
         }
@@ -147,13 +173,14 @@ class EventReport extends AppModel
     }
 
     /**
-     * deleteReport Delete the report.
+     * deleteReport ACL-aware method to delete the report.
      *
-     * @param  int  $id
+     * @param  array $user
+     * @param  int|string $id
      * @param  bool $hard
-     * @return bool
+     * @return array Any errors preventing the deletion
      */
-    public function deleteReport($user, $id, $hard=false)
+    public function deleteReport(array $user, $id, $hard=false)
     {
         $report = $this->fetchIfAuthorized($user, $id, 'delete', $throwErrors=true, $full=false);
         $errors = [];
@@ -171,8 +198,15 @@ class EventReport extends AppModel
         }
         return $errors;
     }
-
-    public function restoreReport($user, $id)
+    
+    /**
+     * restoreReport ACL-aware method to restore a report.
+     *
+     * @param  array $user
+     * @param  int|string $id
+     * @return array Any errors preventing the restoration
+     */
+    public function restoreReport(array $user, $id)
     {
         $report = $this->fetchIfAuthorized($user, $id, 'edit', $throwErrors=true, $full=false);
         $report['EventReport']['deleted'] = false;
@@ -183,7 +217,7 @@ class EventReport extends AppModel
         return $errors;
     }
 
-    private function captureSG($user, $report)
+    private function captureSG(array $user, array $report)
     {
         $this->Event = ClassRegistry::init('Event');
         if (isset($report['EventReport']['distribution']) && $report['EventReport']['distribution'] == 4) {
@@ -191,8 +225,14 @@ class EventReport extends AppModel
         }
         return $report;
     }
-
-    public function buildACLConditions($user)
+    
+    /**
+     * buildACLConditions Generate ACL conditions for viewing the report
+     *
+     * @param  array $user
+     * @return array
+     */
+    public function buildACLConditions(array $user)
     {
         $this->Event = ClassRegistry::init('Event');
         $conditions = array();
@@ -223,6 +263,7 @@ class EventReport extends AppModel
      *
      * @param  array $user
      * @param  int|string $reportId
+     * @param  bool  $throwErrors
      * @param  bool  $full
      * @return array
      */
@@ -257,8 +298,16 @@ class EventReport extends AppModel
         }
         return array();
     }
-
-    public function fetchReports($user, $options = array(), $full=false)
+    
+    /**
+     * fetchReports ACL-aware method. Basically find with ACL
+     *
+     * @param  array $user
+     * @param  array $options
+     * @param  bool  $full
+     * @return void
+     */
+    public function fetchReports(array $user, array $options = array(), $full=false)
     {
         $params = array(
             'conditions' => $this->buildACLConditions($user),
@@ -328,7 +377,7 @@ class EventReport extends AppModel
         }
     }
 
-    public function canEditReport($user, $report)
+    public function canEditReport(array $user, array $report)
     {
         if ($report['EventReport']['deleted']) {
             return __('Deleted report cannot be edited');
@@ -344,8 +393,15 @@ class EventReport extends AppModel
         }
         return true;
     }
-
-    public function getProxyMISPElements($user, $eventid)
+    
+    /**
+     * getProxyMISPElements Extract MISP Elements from an event and make them accessible by their ID
+     *
+     * @param  array $user
+     * @param  int|string $eventid
+     * @return array
+     */
+    public function getProxyMISPElements(array $user, $eventid)
     {
         $event = $this->Event->fetchEvent($user, ['eventid' => $eventid]);
         if (empty($event)) {
