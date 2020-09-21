@@ -36,17 +36,25 @@
                 <?= __('Event Report content') ?>
             </h4>
             <?php 
-                echo $this->element('EventReports/markdownEditor', array(
+                echo $this->element('markdownEditor/markdownEditor', [
                     'canEdit' => $canEdit,
                     'markdown' => $report['EventReport']['content'],
                     'modelName' => 'EventReport',
                     'mardownModelFieldName' => 'content',
-                    'eventid' => $report['EventReport']['event_id'],
-                    'reportid' => $report['EventReport']['id'],
                     'lastModified' => $report['EventReport']['timestamp'],
-                    'webDependencies' => array('js' => array('markdownEditor/event-report'), 'css' => array('markdownEditor/event-report')),
-                    'helpModal' => 'EventReports/markdownEditorHelpModal'
-                ));
+                    'additionalMarkdownElements' => [
+                        'path' => 'EventReports/reportEditor',
+                        'variables' => [
+                            'reportid' => $report['EventReport']['id'],
+                            'eventid' => $report['EventReport']['event_id'],
+                            'proxyMISPElements' => $proxyMISPElements,
+                        ]
+                    ],
+                    'additionalMarkdownHelpModalElements' => [[
+                        'path' => 'EventReports/reportHelpModal',
+                        'tab_name' => __('Markdown format'),
+                    ]]
+                ]);
             ?>
         </div>
     </div>

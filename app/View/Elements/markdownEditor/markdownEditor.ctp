@@ -1,7 +1,24 @@
 <?php
+/**
+ * additionalMarkdownElements: List of custom elements linked to the markdown view to be injected
+ *    [
+ *         'path' => 'The path of the element',
+ *         'variables' => 'List of variables to be passed on the element'
+ *    ]
+ * additionalMarkdownHelpModalElements: List of custom elements linked to the help modal to be injected
+ *    [
+ *         'path' => 'The path of the element',
+ *         'tab_name' => 'The name of the navigation tab'
+ *    ]
+ */
     $insideModal = isset($insideModal) ? $insideModal : false;
-    if ($canEdit && isset($helpModal)) {
-        echo $this->element($helpModal);
+    if ($canEdit) {
+        if (!empty($additionalMarkdownHelpModalElements)) {
+            foreach ($additionalMarkdownHelpModalElements as $i => $additionalHelpModal) {
+                $additionalMarkdownHelpModalElements[$i]['tab_content'] = $this->element($additionalHelpModal['path']);
+            }
+        }
+        echo $this->element('markdownEditor/markdownEditorHelpModal', ['additionalMarkdownHelpModalElements' => $additionalMarkdownHelpModalElements]);
     }
 ?>
 
@@ -148,19 +165,15 @@
 <script>
     'use strict';
     var md, cm;
-    var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
-    var proxyMISPElements = <?= json_encode(is_array($proxyMISPElements) ? $proxyMISPElements : array($proxyMISPElements), JSON_HEX_TAG); ?>;
-    var eventid = '<?= !isset($eventid) ? '' : h($eventid) ?>'
-    var reportid = '<?= h($reportid) ?>'
-    var lastModified = '<?= h($lastModified) ?>' + '000'
-    var canEdit = <?= $canEdit ? 'true' : 'false' ?>;
-    var invalidMessage = '<?= __('invalid scope or id') ?>'
     var saveConfirmMessage = '<?= __('You are about to save the document. Do you wish to proceed?') ?>'
     var saveSuccessMessage = '<?= 'Markdown saved' ?>'
     var saveFailedMessage = '<?= 'Could not save markdown. Reason' ?>'
     var savePDFConfirmMessage = '<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`.') ?>'
     var confirmationMessageUnsavedChanges = '<?= __('You are about to leave the page with unsaved changes. Do you want to proceed?') ?>'
     var changeDetectedMessage = '<?= __('Unsaved changes') ?>'
+    var canEdit = <?= $canEdit ? 'true' : 'false' ?>;
+    var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
+    var lastModified = '<?= h($lastModified) ?>' + '000'
 </script>
 
 <?php
@@ -191,11 +204,11 @@
             )
         ));
     }
-    if (!empty($webDependencies)) {
-        echo $this->element('genericElements/assetLoader', $webDependencies);
-    }
     echo $this->element('genericElements/assetLoader', array(
         'js' => array('markdownEditor/markdownEditor'),
         'css' => array('markdownEditor/markdownEditor')
     ));
+    if (!empty($additionalMarkdownElements)) {
+        echo $this->element($additionalMarkdownElements['path'], $additionalMarkdownElements['variables']);
+    }
 ?>
