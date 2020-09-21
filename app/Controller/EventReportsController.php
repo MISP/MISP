@@ -84,7 +84,7 @@ class EventReportsController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $newReport = $this->request->data;
             $newReport = $this->applyDataFromSavedReport($newReport, $savedReport);
-            $errors = $this->EventReport->editReport($this->Auth->user(), $newReport, $newReport['EventReport']['event_id']);
+            $errors = $this->EventReport->editReport($this->Auth->user(), $newReport, $savedReport['EventReport']['event_id']);
             $redirectTarget = array('controller' => 'eventReports', 'action' => 'view', $id);
             if (!empty($errors)) {
                 return $this->getFailResponseBasedOnContext($validationErrors, array(), 'edit', $id, $redirectTarget);
@@ -315,8 +315,9 @@ class EventReportsController extends AppController
             $newReport = array('EventReport' => $newReport);
         }
         $fieldList = $this->EventReport->captureFields;
+        $ignoreFieldList = ['id', 'uuid', 'event_id', 'deleted'];
         foreach ($fieldList as $field) {
-            if (!empty($newReport['EventReport'][$field])) {
+            if (!in_array($field, $ignoreFieldList) && !empty($newReport['EventReport'][$field])) {
                 $savedReport['EventReport'][$field] = $newReport['EventReport'][$field];
             }
         }
