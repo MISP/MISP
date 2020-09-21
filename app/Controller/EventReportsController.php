@@ -103,9 +103,9 @@ class EventReportsController extends AppController
         $this->set('id', $savedReport['EventReport']['id']);
         $this->set('event_id', $savedReport['EventReport']['event_id']);
         $this->set('action', 'edit');
-        $this->render('add');
         $this->injectDistributionLevelToViewContext();
         $this->injectSharingGroupsDataToViewContext();
+        $this->render('add');
     }
 
     public function delete($id, $hard=false)
