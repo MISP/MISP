@@ -192,7 +192,7 @@ class EventReport extends AppModel
         return $report;
     }
 
-    public function buildConditions($user)
+    public function buildACLConditions($user)
     {
         $this->Event = ClassRegistry::init('Event');
         $conditions = array();
@@ -261,7 +261,7 @@ class EventReport extends AppModel
     public function fetchReports($user, $options = array(), $full=false)
     {
         $params = array(
-            'conditions' => $this->buildConditions($user),
+            'conditions' => $this->buildACLConditions($user),
             'contain' => $this->defaultContain,
             'recursive' => -1
         );

@@ -573,13 +573,12 @@ $(document).ready(function () {
         $("#discussions_div").html(data);
     });
 
-    $.get("<?php echo $baseurl; ?>/eventReports/eventIndex/<?= h($event['Event']['id']); ?>", function(data) {
+    $.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1", function(data) {
         $("#eventreport_index_div").html(data);
         if ($('#eventreport_index_div table tbody > tr').length) { // open if contain a report
             $('#eventreport_toggle').click()
         }
     });
-
 });
 
 function enable_correlation_graph() {

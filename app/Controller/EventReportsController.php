@@ -158,23 +158,33 @@ class EventReportsController extends AppController
         }
     }
 
-    private function getIndexConditions()
-    {
-        // add confitions here
-    }
-
     public function index()
     {
-        $aclConditions = $this->EventReport->buildConditions($this->Auth->user());
-        $filters = $this->IndexFilter->harvestParameters(array('event_id', 'embedded_view', 'value', 'context'));
-        $eventConditions = array();
-        if (!empty($filters['event_id'])) {
-            $eventConditions = array(
-                'EventReport.event_id' => $filters['event_id']
-            );
+        $filters = $this->IndexFilter->harvestParameters(['event_id', 'value', 'context', 'index_for_event']);
+        $filters['embedded_view']  = $this->request->is('ajax');
+        $compiledConditions = $this->generateIndexConditions($filters);
+        if ($this->_isRest()) {
+            $reports = $this->EventReport->find('all', [
+                'recursive' => -1,
+                'conditions' => $compiledConditions
+            ]);
+            return $this->RestResponse->viewData($reports, $this->response->type());
+        } else {
+            $this->paginate['conditions']['AND'][] = $compiledConditions;
+            $reports = $this->paginate();
+            $this->set('reports', $reports);
+            $this->injectIndexVariablesToViewContext($filters);
+            if (!empty($filters['index_for_event'])) {
+                $this->render('ajax/indexForEvent');
+            }
         }
+    }
 
-        $contextConditions = array();
+    private function generateIndexConditions($filters = [])
+    {
+        $aclConditions = $this->EventReport->buildACLConditions($this->Auth->user());
+        $eventConditions = !empty($filters['event_id']) ? ['EventReport.event_id' => $filters['event_id']] : [];
+        $contextConditions = [];
         if (empty($filters['context'])) {
             $filters['context'] = 'default';
         }
@@ -183,9 +193,7 @@ class EventReportsController extends AppController
         } elseif ($filters['context'] == 'default') {
             $contextConditions['EventReport.deleted'] = false;
         }
-        $this->set('context', $filters['context']);
-
-        $searchConditions = array();
+        $searchConditions = [];
         if (empty($filters['value'])) {
             $filters['value'] = '';
         } else {
@@ -199,64 +207,15 @@ class EventReportsController extends AppController
                 )
             );
         }
-        if ($this->_isRest()) {
-            $reports = $this->EventReport->find('all', 
-                array(
-                    'recursive' => -1,
-                    'conditions' => array(
-                        'AND' => array($eventConditions, $searchConditions, $aclConditions, $contextConditions)
-                    )
-                )
-            );
-            return $this->RestResponse->viewData($reports, $this->response->type());
-        } else {
-            $this->set('embedded_view', !empty($this->params['named']['embedded_view']));
-            $this->paginate['conditions']['AND'][] = $eventConditions;
-            $this->paginate['conditions']['AND'][] = $searchConditions;
-            $this->paginate['conditions']['AND'][] = $aclConditions;
-            $this->paginate['conditions']['AND'][] = $contextConditions;
-            $reports = $this->paginate();
-            $this->set('reports', $reports);
-            if (!empty($filters['event_id'])) {
-                $this->set('event_id', $filters['event_id']);
-            }
-            $this->set('searchall', $filters['value']);
-            $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
-            $this->set('distributionLevels', $distributionLevels);
-        }
-    }
-
-    public function eventIndex($event_id)
-    {
-        if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
-        }
-        $aclConditions = $this->EventReport->buildConditions($this->Auth->user());
-        $filters = $this->IndexFilter->harvestParameters(array('context'));
-        $eventConditions = array();
-        $eventConditions = array(
-            'EventReport.event_id' => $event_id
-        );
-
-        $contextConditions = array();
-        if (empty($filters['context'])) {
-            $filters['context'] = 'default';
-        }
-        if ($filters['context'] == 'deleted') {
-            $contextConditions['EventReport.deleted'] = true;
-        } elseif ($filters['context'] == 'default') {
-            $contextConditions['EventReport.deleted'] = false;
-        }
-        $this->set('context', $filters['context']);
-        $this->paginate['conditions']['AND'][] = $eventConditions;
-        $this->paginate['conditions']['AND'][] = $aclConditions;
-        $this->paginate['conditions']['AND'][] = $contextConditions;
-        $reports = $this->paginate();
-        $this->set('reports', $reports);
-        $this->set('event_id', $event_id);
-        $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
-        $this->set('distributionLevels', $distributionLevels);
-        $this->render('ajax/index');
+        $compiledConditions = [
+            'AND' => [
+                $aclConditions,
+                $eventConditions,
+                $contextConditions,
+                $searchConditions,
+            ]
+        ];
+        return $compiledConditions;
     }
 
     private function getSuccessResponseBasedOnContext($message, array $data = array(), $action = '', $id = false, $redirect = array())
@@ -294,6 +253,29 @@ class EventReportsController extends AppController
             $this->redirect($this->referer());
         }
         return;
+    }
+
+    private function injectIndexVariablesToViewContext($filters)
+    {
+        if (!empty($filters['context'])) {
+            $this->set('context', $filters['context']);
+        } else {
+            $this->set('context', 'default');
+        }
+        if (!empty($filters['event_id'])) {
+            $this->set('event_id', $filters['event_id']);
+        }
+        if (isset($filters['embedded_view'])) {
+            $this->set('embedded_view', $filters['embedded_view']);
+        } else {
+            $this->set('embedded_view', false);
+        }
+        if (!empty($filters['value'])) {
+            $this->set('searchall', $filters['value']);
+        } else {
+            $this->set('searchall', '');
+        }
+        $this->injectDistributionLevelToViewContext();
     }
 
     private function injectDistributionLevelToViewContext()

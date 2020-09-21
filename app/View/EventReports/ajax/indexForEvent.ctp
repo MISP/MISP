@@ -18,18 +18,18 @@
                             'children' => array(
                                 array(
                                     'active' => $context === 'all',
-                                    'url' => sprintf('%s/eventReports/eventIndex/%s/context:all', $baseurl, h($event_id)),
+                                    'url' => sprintf('%s/eventReports/index/event_id:%s/index_for_event:1/context:all', $baseurl, h($event_id)),
                                     'text' => __('All'),
                                 ),
                                 array(
                                     'active' => $context === 'default',
                                     'class' => 'defaultContext',
-                                    'url' => sprintf('%s/eventReports/eventIndex/%s/context:default', $baseurl, h($event_id)),
+                                    'url' => sprintf('%s/eventReports/index/event_id:%s/index_for_event:1/context:default', $baseurl, h($event_id)),
                                     'text' => __('Default'),
                                 ),
                                 array(
                                     'active' => $context === 'deleted',
-                                    'url' => sprintf('%s/event_reports/eventIndex/%s/context:deleted', $baseurl, h($event_id)),
+                                    'url' => sprintf('%s/event_reports/index/event_id:%s/index_for_event:1/context:deleted', $baseurl, h($event_id)),
                                     'text' => __('Deleted'),
                                 ),
                             )

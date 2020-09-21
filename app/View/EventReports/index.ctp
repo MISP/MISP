@@ -37,6 +37,8 @@
                     )
                 )
             ),
+            'title' => sprintf(__('Event Reports %s'), !empty($event_id) ? sprintf(__('for Event %s'), h($event_id)) : ''),
+            'primary_id_path' => 'EventReport.id',
             'fields' => array(
                 array(
                     'name' => __('Id'),
@@ -71,7 +73,6 @@
                     'data_path' => 'EventReport.distribution',
                 )
             ),
-            'title' => sprintf(__('Event Reports %s'), !empty($event_id) ? sprintf(__('for Event %s'), h($event_id)) : ''),
             'actions' => array(
                 array(
                     'url' => '/eventReports/view',
