@@ -57,7 +57,7 @@ class EventReport extends AppModel
         ),
     );
 
-    public function beforeValidate(array $options = array())
+    public function beforeValidate($options = array())
     {
         parent::beforeValidate();
         // generate UUID if it doesn't exist
