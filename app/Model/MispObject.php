@@ -393,23 +393,28 @@ class MispObject extends AppModel
 
     public function buildConditions(array $user)
     {
-        $conditions = array();
-        if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->Event->cacheSgids($user, true);
-            $conditions = array(
-                'AND' => array(
-                    $this->Event->createEventConditions($user),
-                    'OR' => array(
-                        'Object.distribution' => array(1, 2, 3, 5),
-                        'AND' => array(
-                            'Object.distribution' => 4,
-                            'Object.sharing_group_id' => $sgids,
-                        )
-                    )
-                )
-            );
+        if ($user['Role']['perm_site_admin']) {
+            return [];
         }
-        return $conditions;
+
+        $sgids = $this->Event->cacheSgids($user, true);
+        return [
+            'AND' => [
+                'OR' => [
+                    'Event.org_id' => $user['org_id'], // if event is owned by current user org, allow access to all objects
+                    'AND' => [
+                        $this->Event->createEventConditions($user),
+                        'OR' => [
+                            'Object.distribution' => array(1, 2, 3, 5),
+                            'AND' => [
+                                'Object.distribution' => 4,
+                                'Object.sharing_group_id' => $sgids,
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
     }
 
     public function fetchObjectSimple($user, $options = array())
