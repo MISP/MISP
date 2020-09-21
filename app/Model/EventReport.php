@@ -76,6 +76,9 @@ class EventReport extends AppModel
         // These fields all have sane defaults either based on another field, or due to server settings
         if (!isset($this->data['EventReport']['distribution'])) {
             $this->data['EventReport']['distribution'] = Configure::read('MISP.default_attribute_distribution');
+            if ($report['EventReport']['distribution'] == 'event') {
+                $report['EventReport']['distribution'] = 5;
+            }
         }
         return true;
     }
@@ -85,34 +88,14 @@ class EventReport extends AppModel
     {
         $this->Log = ClassRegistry::init('Log');
         $report['EventReport']['event_id'] = $eventId;
-        $errors = array();
         $report = $this->captureSG($user, $report);
         $this->create();
-        if (!isset($report['EventReport']['distribution'])) {
-            $report['EventReport']['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($report['EventReport']['distribution'] == 'event') {
-                $report['EventReport']['distribution'] = 5;
-            }
-        }
-        $fieldList = $this->captureFields;
-        $saveSuccess = $this->save($report, array('fieldList' => $fieldList));
-        if (!$saveSuccess) {
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'EventReport',
-                    'model_id' => 0,
-                    'email' => $user['email'],
-                    'action' => 'add',
-                    'user_id' => $user['id'],
-                    'title' => 'Event Report dropped due to validation for Event report ' . $report['EventReport']['uuid'] . ' failed: ' . $report['EventReport']['name'],
-                    'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Report: ' . json_encode($report['EventReport']),
-            ));
-        }
-        if (!empty($this->validationErrors)) {
-            foreach($this->validationErrors as $validationError) {
-                $errors[] = $validationError[0];
-            }
+        $errors = $this->saveAndReturnErrors($report, ['fieldList' => $this->captureFields]);
+        if (!empty($errors)) {
+            $this->Log->createLogEntry($user, 'add', 'EventReport', 0,
+                __('Event Report dropped due to validation for Event report %s failed: %s', $report['EventReport']['uuid'], ' failed: ' . $report['EventReport']['name']),
+                __('Validation errors: %s.%sFull report: %s', json_encode($errors), PHP_EOL, json_encode($report['EventReport']))
+            );
         }
         return $errors;
     }
@@ -147,15 +130,7 @@ class EventReport extends AppModel
         } else {
             unset($report['EventReport']['timestamp']);
         }
-
-        $fieldList = $this->captureFields;
-        $saveSuccess = $this->save($report, array('fieldList' => $fieldList));
-        if (!$saveSuccess) {
-            foreach ($this->validationErrors as $validationError) {
-                $errors[] = $validationError[0];
-            }
-        }
-        return $errors;
+        return $this->saveAndReturnErrors($report, ['fieldList' => $fieldList], $errors);
     }
 
     /**
@@ -172,7 +147,7 @@ class EventReport extends AppModel
             return  $this->delete($id, true);
         } else {
             $report['EventReport']['deleted'] = true;
-            return $this->save($report, array('fieldList' => array('deleted')));
+            return $this->saveAndReturnErrors($report, ['fieldList' => ['deleted']]);
         }
     }
 
@@ -180,7 +155,7 @@ class EventReport extends AppModel
     {
         $report = $this->fetchIfAuthorized($user, $id, 'edit', $throwErrors=true, $full=false);
         $report['EventReport']['deleted'] = false;
-        return $this->save($report, array('fieldList' => array('deleted')));
+        return $this->saveAndReturnErrors($report, ['fieldList' => ['deleted']]);
     }
 
     private function captureSG($user, $report)
@@ -387,5 +362,16 @@ class EventReport extends AppModel
             'objectTemplates' => $objectTemplates
         ];
         return $proxyMISPElements;
+    }
+
+    private function saveAndReturnErrors($data, $saveOptions = [], $errors = [])
+    {
+        $saveSuccess = $this->save($data, $saveOptions);
+        if (!$saveSuccess) {
+            foreach ($this->validationErrors as $validationError) {
+                $errors[] = $validationError[0];
+            }
+        }
+        return $errors;
     }
 }

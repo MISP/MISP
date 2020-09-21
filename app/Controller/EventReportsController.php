@@ -46,7 +46,6 @@ class EventReportsController extends AppController
                 return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'add', false, $redirectTarget);
             }
         }
-
         $this->set('event_id', $eventId);
         $this->set('action', 'add');
         $this->injectDistributionLevelToViewContext();
@@ -61,10 +60,10 @@ class EventReportsController extends AppController
             return $this->RestResponse->viewData($report, $this->response->type());
         }
         $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
+        $this->set('ajax', $ajax);
         $this->set('proxyMISPElements', $proxyMISPElements);
         $this->set('id', $reportId);
         $this->set('report', $report);
-        $this->set('ajax', $ajax);
         $this->injectDistributionLevelToViewContext();
         $this->injectPermissionsToViewContext($this->Auth->user(), $report);
     }
@@ -112,15 +111,15 @@ class EventReportsController extends AppController
     {
         $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
-            $deleted = $this->EventReport->deleteReport($this->Auth->user(), $id, $hard=$hard);
+            $errors = $this->EventReport->deleteReport($this->Auth->user(), $id, $hard=$hard);
             $redirectTarget = $this->referer();
-            if ($deleted) {
+            if (empty($errors)) {
                 $successMessage = __('Report %s %s deleted', $id, $hard ? __('hard') : __('soft'));
                 $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
                 return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'delete', $id, $redirectTarget);
             } else {
-                $errorMessage = __('Report %s could not be %s deleted', $id, $hard ? __('hard') : __('soft'));
+                $errorMessage = __('Report %s could not be %s deleted.%sReasons: %s', $id, $hard ? __('hard') : __('soft'), PHP_EOL, json_encode($errors));
                 return $this->getFailResponseBasedOnContext($errorMessage, array(), 'edit', $id, $redirectTarget);
             }
         } else {
@@ -137,15 +136,15 @@ class EventReportsController extends AppController
     {
         $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
-            $restored = $this->EventReport->restoreReport($this->Auth->user(), $id);
+            $errors = $this->EventReport->restoreReport($this->Auth->user(), $id);
             $redirectTarget = $this->referer();
-            if ($restored) {
+            if (empty($errors)) {
                 $successMessage = __('Report %s restored', $id);
                 $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
                 return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'restore', $id, $redirectTarget);
             } else {
-                $errorMessage = __('Report could not be %s restored', $id);
+                $errorMessage = __('Report %s could not be %s restored.%sReasons: %s', $id, PHP_EOL, json_encode($errors));
                 return $this->getFailResponseBasedOnContext($errorMessage, array(), 'restore', $id, $redirectTarget);
             }
         } else {
