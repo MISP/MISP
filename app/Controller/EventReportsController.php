@@ -35,13 +35,12 @@ class EventReportsController extends AppController
                 $this->request->data['EventReport'] = $this->request->data;
             }
             $report = $this->request->data;
-            $validationErrors = $this->EventReport->captureReport($this->Auth->user(), $report, $eventId);
+            $errors = $this->EventReport->addReport($this->Auth->user(), $report, $eventId);
             $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
-            if (!empty($validationErrors)) {
-                return $this->getFailResponseBasedOnContext($validationErrors, array(), 'add', $this->EventReport->id, $redirectTarget);
+            if (!empty($errors)) {
+                return $this->getFailResponseBasedOnContext($errors, array(), 'add', $this->EventReport->id, $redirectTarget);
             } else {
                 $successMessage = __('Report saved.');
-                $this->EventReport->Event->unpublishEvent($eventId);
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
                 return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'add', false, $redirectTarget);
             }
@@ -91,7 +90,6 @@ class EventReportsController extends AppController
                 return $this->getFailResponseBasedOnContext($validationErrors, array(), 'edit', $id, $redirectTarget);
             } else {
                 $successMessage = __('Report saved.');
-                $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
                 return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'edit', $id, $redirectTarget);
             }
@@ -115,7 +113,6 @@ class EventReportsController extends AppController
             $redirectTarget = $this->referer();
             if (empty($errors)) {
                 $successMessage = __('Report %s %s deleted', $id, $hard ? __('hard') : __('soft'));
-                $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
                 return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'delete', $id, $redirectTarget);
             } else {
@@ -140,7 +137,6 @@ class EventReportsController extends AppController
             $redirectTarget = $this->referer();
             if (empty($errors)) {
                 $successMessage = __('Report %s restored', $id);
-                $this->EventReport->Event->unpublishEvent($report['EventReport']['event_id']);
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
                 return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'restore', $id, $redirectTarget);
             } else {

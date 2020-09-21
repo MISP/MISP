@@ -100,6 +100,15 @@ class EventReport extends AppModel
         return $errors;
     }
 
+    public function addReport($user, $report, $eventId)
+    {
+        $errors = $this->captureReport($user, $report, $eventId);
+        if (empty($errors)) {
+            $this->Event->unpublishEvent($eventId);
+        }
+        return $errors;
+    }
+
     public function editReport($user, $report, $eventId, $fromPull = false, &$nothingToChange = false)
     {
         $errors = array();
@@ -130,7 +139,11 @@ class EventReport extends AppModel
         } else {
             unset($report['EventReport']['timestamp']);
         }
-        return $this->saveAndReturnErrors($report, ['fieldList' => $fieldList], $errors);
+        $errors = $this->saveAndReturnErrors($report, ['fieldList' => $fieldList], $errors);
+        if (empty($errors)) {
+            $this->Event->unpublishEvent($eventId);
+        }
+        return $errors;
     }
 
     /**
@@ -143,19 +156,31 @@ class EventReport extends AppModel
     public function deleteReport($user, $id, $hard=false)
     {
         $report = $this->fetchIfAuthorized($user, $id, 'delete', $throwErrors=true, $full=false);
+        $errors = [];
         if ($hard) {
-            return  $this->delete($id, true);
+            $deleted = $this->delete($id, true);
+            if (!$deleted) {
+                $errors[] = __('Failed to delete report');
+            }
         } else {
             $report['EventReport']['deleted'] = true;
-            return $this->saveAndReturnErrors($report, ['fieldList' => ['deleted']]);
+            $errors = $this->saveAndReturnErrors($report, ['fieldList' => ['deleted']]);
         }
+        if (empty($errors)) {
+            $this->Event->unpublishEvent($eventId);
+        }
+        return $errors;
     }
 
     public function restoreReport($user, $id)
     {
         $report = $this->fetchIfAuthorized($user, $id, 'edit', $throwErrors=true, $full=false);
         $report['EventReport']['deleted'] = false;
-        return $this->saveAndReturnErrors($report, ['fieldList' => ['deleted']]);
+        $errors = $this->saveAndReturnErrors($report, ['fieldList' => ['deleted']]);
+        if (empty($errors)) {
+            $this->Event->unpublishEvent($eventId);
+        }
+        return $errors;
     }
 
     private function captureSG($user, $report)
