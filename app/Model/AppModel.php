@@ -1415,6 +1415,9 @@ class AppModel extends Model
                 $sqlArray[] = "RENAME TABLE `whitelist` TO `allowedlist`;";
                 break;
             case 57:
+                $sqlArray[] = sprintf("INSERT INTO `admin_settings` (`setting`, `value`) VALUES ('fix_login', %s);", time());
+                break;
+            case 58:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS event_reports (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,

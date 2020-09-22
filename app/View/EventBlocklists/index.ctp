@@ -66,7 +66,7 @@ foreach ($response as $item): ?>
         <td class="short"><?php echo (isset($item['EventBlocklist']['event_info']) ? h($item['EventBlocklist']['event_info']) : '&nbsp;'); ?></td>
         <td class="short"><?php echo (isset($item['EventBlocklist']['comment']) ? h($item['EventBlocklist']['comment']) : '&nbsp;'); ?></td>
         <td class="short action-links">
-            <a href="<?php echo $baseurl;?>/eventBlocklists/edit/<?php echo h($item['EventBlocklist']['id']); ?>"><span class="fa fa-edit block" title=<?php echo __('Edit')?> role="button" tabindex="0" aria-label="Edit blocklist entry">&nbsp;</span></a>
+            <a href="<?= $baseurl;?>/eventBlocklists/edit/<?= h($item['EventBlocklist']['id']); ?>" class="fa fa-edit" title="<?= __('Edit')?>" role="button" tabindex="0" aria-label="Edit blocklist entry">&nbsp</a>
             <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['EventBlocklist']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete the blocklist entry for the event UUID %s?', h($item['EventBlocklist']['event_uuid']))); ?>
         </td>
     </tr><?php
@@ -96,9 +96,6 @@ endforeach; ?>
         $('.select').on('change', function() {
             listCheckboxesChecked();
         });
-        $('.select').on('change', function() {
-            listCheckboxesChecked();
-        });
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
         });
@@ -115,4 +112,3 @@ endforeach; ?>
     } else {
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'eventBlocklists'));
     }
-?>

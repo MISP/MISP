@@ -335,7 +335,9 @@ attributes or the appropriate distribution level. If you think there is a mistak
             genericPopup(url, '#popover_box');
         });
         $(".eventViewAttributeHover").mouseenter(function() {
-            $('#' + currentPopover).popover('destroy');
+            if (currentPopover !== undefined && currentPopover !== '') {
+                $('#' + currentPopover).popover('destroy');
+            }
             var type = $(this).attr('data-object-type');
             var id = $(this).attr('data-object-id');
 

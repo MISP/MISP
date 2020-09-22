@@ -747,6 +747,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     break;
 
                 case 'admin':
+                    if ($menuItem === 'restore_deleted_events') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'restore_deleted_events',
+                            'url' => $baseurl . '/events/restoreDeletedEvents',
+                            'text' => __('Restore Deleted Events')
+                        ));
+                    }
                     if ($menuItem === 'editUser' || $menuItem === 'viewUser') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewUser',

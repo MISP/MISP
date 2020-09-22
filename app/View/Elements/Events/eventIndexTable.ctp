@@ -231,7 +231,7 @@
                     <a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' title = "<?php echo __('Edit');?>" aria-label = "<?php echo __('Edit');?>"><i class="black fa fa-edit"></i></a>
             <?php
 
-                    echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
+                    echo sprintf('<a class="useCursorPointer fa fa-trash" title="%s" aria-label="%s" onclick="deleteEvent(%s)"></a>', __('Delete'), __('Delete'), h($event['Event']['id']));
                 endif;
             ?>
             <a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"><i class="fa black fa-eye"></i></a>
@@ -261,4 +261,15 @@
             });
         });
     });
+
+    function deleteEvent(id) {
+        var message = "<?= __('Are you sure you want to delete # ') ?>" + id + "?"
+        var url = '<?= $baseurl ?>/events/delete/' + id
+        if (confirm(message)) {
+            fetchFormDataAjax(url, function(formData) {
+                $('body').append($('<div id="temp" class="hidden"/>').html(formData));
+                $('#temp form').submit()
+            })
+        }
+    }
 </script>

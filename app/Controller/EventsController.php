@@ -468,6 +468,7 @@ class EventsController extends AppController
                         $filterString = "";
                         $expectOR = false;
                         $setOR = false;
+                        $tagRules = [];
                         foreach ($pieces as $piece) {
                             if ($piece[0] == '!') {
                                 if (is_numeric(substr($piece, 1))) {
@@ -498,7 +499,7 @@ class EventsController extends AppController
                                     foreach ($block as $b) {
                                         $sqlSubQuery .= $b['EventTag']['event_id'] . ',';
                                     }
-                                    $this->paginate['conditions']['AND'][] = substr($sqlSubQuery, 0, -1) . ')';
+                                    $tagRules['AND'][] = substr($sqlSubQuery, 0, -1) . ')';
                                 }
                                 if ($filterString != "") {
                                     $filterString .= "|";
@@ -517,7 +518,6 @@ class EventsController extends AppController
                                         'fields' => array('id', 'name'),
                                         'recursive' => -1,
                                 ));
-
                                 if (empty($tagName)) {
                                     if ($filterString != "") {
                                         $filterString .= "|";
@@ -537,7 +537,7 @@ class EventsController extends AppController
                                         $setOR = true;
                                         $sqlSubQuery .= $a['EventTag']['event_id'] . ',';
                                     }
-                                    $this->paginate['conditions']['AND']['OR'][] = substr($sqlSubQuery, 0, -1) . ')';
+                                    $tagRules['OR'][] = substr($sqlSubQuery, 0, -1) . ')';
                                 }
                                 if ($filterString != "") {
                                     $filterString .= "|";
@@ -545,6 +545,7 @@ class EventsController extends AppController
                                 $filterString .= isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece;
                             }
                         }
+                        $this->paginate['conditions']['AND'][] = $tagRules;
                         // If we have a list of OR-d arguments, we expect to end up with a list of allowed event IDs
                         // If we don't however, it means that none of the tags was found. To prevent displaying the entire event index in this case:
                         if ($expectOR && !$setOR) {
@@ -1521,10 +1522,10 @@ class EventsController extends AppController
             throw new NotFoundException(__('Invalid event'));
         }
 
-        if (!$this->_isRest()) {
-            $conditions['includeAllTags'] = true;
-        } else {
+        if ($this->_isRest()) {
             $conditions['includeAttachments'] = true;
+        } else {
+            $conditions['includeAllTags'] = true;
         }
         $deleted = 0;
         if (isset($this->params['named']['deleted'])) {
@@ -2755,7 +2756,7 @@ class EventsController extends AppController
             $user = $this->Auth->user();
             $user = $this->Event->User->fillKeysToUser($user);
 
-            $success = $this->Event->sendContactEmailRouter($id, $message, $creator_only, $user, $this->_isSiteAdmin());
+            $success = $this->Event->sendContactEmailRouter($id, $message, $creator_only, $user);
             if ($success) {
                 $return_message = __('Email sent to the reporter.');
                 if ($this->_isRest()) {
@@ -5600,6 +5601,109 @@ class EventsController extends AppController
         } else {
             $this->Flash->success($message);
             $this->redirect($this->referer());
+        }
+    }
+
+    public function restoreDeletedEvents($force = false)
+    {
+        $startDate = '2020-07-31 00:00:00';
+        $this->loadModel('AdminSetting');
+        $endDate = date('Y-m-d H:i:s', $this->AdminSetting->getSetting('fix_login'));
+        if (empty($endDate)) {
+            $endDate = date('Y-m-d H:i:s', time());
+        }
+        $this->loadModel('Log');
+        $redis = $this->Event->setupRedis();
+        if ($force || ($redis && !$redis->exists('misp:event_recovery'))) {
+            $deleted_events = $this->Log->findDeletedEvents(['created BETWEEN ? AND ?' => [$startDate, $endDate]]);
+            $redis->set('misp:event_recovery', json_encode($deleted_events));
+            $redis->expire('misp:event_recovery', 600);
+        } else {
+            $deleted_events = json_decode($redis->get('misp:event_recovery'), true);
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($deleted_events, 'json');
+        } else {
+            $this->set('data', $deleted_events);
+        }
+    }
+
+    public function recoverEvent($id, $mock = false)
+    {
+        if ($mock || !Configure::read('MISP.background_jobs')) {
+            if ($this->request->is('post')) {
+                $this->loadModel('Log');
+                $result = $this->Log->recoverDeletedEvent($id, $mock);
+                if ($mock) {
+                    $message = __('Recovery simulation complete. Event #%s can be recovered using %s log entries.', $id, $result);
+                } else {
+                    $message = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
+                }
+                if ($this->_isRest()) {
+                    if ($mock) {
+                        $results = $this->Log->mockLog;
+                    } else {
+                        $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id]);
+                    }
+                    return $this->RestResponse->viewData($results, $this->response->type());
+                } else {
+                    $this->Flash->success($message);
+                    if (!$mock) {
+                        $this->redirect(['action' => 'restoreDeletedEvents']);
+                    }
+                }
+            } else {
+                $message = __('This action is only accessible via POST requests.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->viewData(array('message' => $message, 'error' => true), $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
+                $this->redirect(['action' => 'restoreDeletedEvents']);
+            }
+            $this->set('data', $this->Log->mockLog);
+        } else {
+            if ($this->request->is('post')) {
+                $job_type = 'recover_event';
+                $function = 'recoverEvent';
+                $message = __('Bootstraping recovering of event %s', $id);
+                $job = ClassRegistry::init('Job');
+                $job->create();
+                $data = array(
+                        'worker' => $this->Event->__getPrioWorkerIfPossible(),
+                        'job_type' => $job_type,
+                        'job_input' => sprintf('Event ID: %s', $id),
+                        'status' => 0,
+                        'retries' => 0,
+                        'org_id' => 0,
+                        'org' => 'ADMIN',
+                        'message' => $message
+                );
+                $job->save($data);
+                $jobId = $job->id;
+                $process_id = CakeResque::enqueue(
+                    'prio',
+                    'EventShell',
+                    array($function, $jobId, $id),
+                    true
+                );
+                $job->saveField('process_id', $process_id);
+
+                $message = __('Recover event job queued. Job ID: %s', $jobId);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->viewData(array('message' => $message), $this->response->type());
+                } else {
+                    $this->Flash->success($message);
+                }
+            } else {
+                $message = __('This action is only accessible via POST requests.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->viewData(array('message' => $message, 'error' => true), $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
+            }
+            $this->redirect(['action' => 'restoreDeletedEvents']);
         }
     }
 }

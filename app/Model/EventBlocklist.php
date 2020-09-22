@@ -25,8 +25,8 @@ class EventBlocklist extends AppModel
                             'message' => 'Event already blocklisted.'
                     ),
                     'uuid' => array(
-                            'rule' => array('uuid'),
-                            'message' => 'Please provide a valid UUID'
+                            'rule' => 'uuid',
+                            'message' => 'Please provide a valid RFC 4122 UUID'
                     ),
             )
     );
