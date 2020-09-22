@@ -1523,6 +1523,11 @@ class Event extends AppModel
                 'table' => 'object_references',
                 'foreign_key' => 'event_id',
                 'value' => $id
+            ),
+            array(
+                'table' => 'event_reports',
+                'foreign_key' => 'event_id',
+                'value' => $id
             )
         );
         if ($thread_id) {
