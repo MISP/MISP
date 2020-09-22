@@ -1612,10 +1612,6 @@ class EventsController extends AppController
         }
         $event = $results[0];
         $this->Event->id = $event['Event']['id'];
-        //if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
-        if ($this->userRole['perm_admin'] && !$this->_isSiteAdmin() && ($event['Org']['id'] == $this->Auth->user('org_id'))) {
-            $event['User']['email'] = $this->User->field('email', array('id' => $event['Event']['user_id']));
-        }
         if (isset($this->params['named']['searchFor']) && $this->params['named']['searchFor'] !== '') {
             $this->__applyQueryString($event, $this->params['named']['searchFor']);
         }
