@@ -686,15 +686,15 @@ class GalaxyCluster extends AppModel
             }
         }
 
-        if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false) {
-            $this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
+        if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
+            $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
             if (!isset($cluster['GalaxyCluster']['Orgc']['uuid'])) {
                 $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $cluster['GalaxyCluster']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
             } else {
                 $orgc = array('Orgc' => array('uuid' => $cluster['GalaxyCluster']['Orgc']['uuid']));
             }
-            if ($cluster['GalaxyCluster']['orgc_id'] != 0 && $this->OrgBlacklist->hasAny(array('OrgBlacklist.org_uuid' => $orgc['Orgc']['uuid']))) {
-                $results['errors'][] = __('Organisation blacklisted (%s)', $orgc['Orgc']['uuid']);
+            if ($cluster['GalaxyCluster']['orgc_id'] != 0 && $this->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgc['Orgc']['uuid']))) {
+                $results['errors'][] = __('Organisation blocklisted (%s)', $orgc['Orgc']['uuid']);
                 $results['ignored']++;
                 return $results;
             }

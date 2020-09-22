@@ -3,7 +3,7 @@ App::uses('AppController', 'Controller');
 
 class GalaxyClusterBlocklistsController extends AppController
 {
-    public $components = array('Session', 'RequestHandler', 'BlackList');
+    public $components = array('Session', 'RequestHandler', 'BlockList');
 
     public $paginate = array(
             'limit' => 60,
@@ -34,18 +34,18 @@ class GalaxyClusterBlocklistsController extends AppController
         }
         $this->set('passedArgs', json_encode($passedArgs));
         $this->set('passedArgsArray', $passedArgsArray);
-        $this->BlackList->index($this->_isRest(), $params);
+        $this->BlockList->index($this->_isRest(), $params);
     }
 
     public function add()
     {
-        $this->BlackList->add($this->_isRest());
+        $this->BlockList->add($this->_isRest());
         $this->set('action', 'add');
     }
 
     public function edit($id)
     {
-        $this->BlackList->edit($this->_isRest(), $id);
+        $this->BlockList->edit($this->_isRest(), $id);
         $this->set('action', 'edit');
         $this->render('add');
     }
@@ -57,11 +57,11 @@ class GalaxyClusterBlocklistsController extends AppController
                 'conditions' => array('cluster_uuid' => $id)
             ));
             if (empty($entry)) {
-                throw new NotFoundException(__('Invalid blacklist entry'));
+                throw new NotFoundException(__('Invalid blocklist entry'));
             }
             $id = $entry['GalaxyClusterBlocklist']['id'];
         }
-        $this->BlackList->delete($this->_isRest(), $id);
+        $this->BlockList->delete($this->_isRest(), $id);
     }
 
     public function massDelete()
@@ -80,7 +80,7 @@ class GalaxyClusterBlocklistsController extends AppController
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterBlocklist', 'Deleted', $ids, $this->response->type());
                 } else {
-                    $this->Flash->success('Blacklist entry removed');
+                    $this->Flash->success('Blocklist entry removed');
                     $this->redirect(array('controller' => 'GalaxyClusterBlocklist', 'action' => 'index'));
                 }
             } else {

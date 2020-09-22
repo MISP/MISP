@@ -15,7 +15,7 @@ class GalaxyClusterBlocklist extends AppModel
         'Containable',
     );
 
-    public $blacklistFields = array('cluster_uuid', 'comment', 'cluster_info', 'cluster_orgc');
+    public $blocklistFields = array('cluster_uuid', 'comment', 'cluster_info', 'cluster_orgc');
 
     public $validate = array(
         'cluster_uuid' => array(
