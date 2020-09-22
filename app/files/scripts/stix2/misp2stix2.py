@@ -1790,7 +1790,7 @@ class StixBuilder():
     def handle_time_fields(attribute, timestamp, stix_type):
         to_return = {'created': timestamp, 'modified': timestamp}
         for misp_field, stix_field in zip(('first_seen', 'last_seen'), _time_fields[stix_type]):
-            to_return[stix_field] = datetime.strptime(attribute[misp_field].split('+')[0], '%Y-%m-%dT%H:%M:%S.%f') if attribute[misp_field] else timestamp
+            to_return[stix_field] = datetime.strptime(attribute[misp_field].split('+')[0], '%Y-%m-%dT%H:%M:%S.%f') if attribute.get(misp_field) else timestamp
         return to_return
 
     @staticmethod

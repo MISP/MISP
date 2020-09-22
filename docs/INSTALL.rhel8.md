@@ -134,7 +134,9 @@ yumInstallCoreDeps () {
                    mariadb-server \
                    python3-devel python3-pip python3-virtualenv \
                    python3-policycoreutils \
-                   libxslt-devel zlib-devel ssdeep-devel -y
+                   policycoreutils-python-utils \
+                   libxslt-devel zlib-devel -y
+  # ssdeep-devel available: dnf install https://extras.getpagespeed.com/release-el8-latest.rpm
   sudo alternatives --set python /usr/bin/python3
 
   # Enable and start redis
@@ -148,6 +150,7 @@ yumInstallCoreDeps () {
        php-bcmath \
        php-opcache \
        php-json \
+       php-zip \
        php-gd -y
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
@@ -165,14 +168,7 @@ yumInstallCoreDeps () {
 sudo systemctl enable --now php-fpm.service
 ```
 
-```bash
-# <snippet-begin 0_yumInstallHaveged.sh>
-# GPG needs lots of entropy, haveged provides entropy
-# /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
-sudo yum install haveged -y
-sudo systemctl enable --now haveged.service
-# <snippet-end 0_yumInstallHaveged.sh>
-```
+TODO: Add a CentOS/RHEL rng thing, à la haveged (not in base anymore) or similar.
 
 ### 3/ MISP code
 ## 3.01/ Download MISP code using git in /var/www/ directory
@@ -268,7 +264,8 @@ installCoreRHEL () {
   echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
 
   # install magic, pydeep
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
+##$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic plyara
 
   # install PyMISP
   cd $PATH_TO_MISP/PyMISP
@@ -688,7 +685,7 @@ Make the workers' script executable and reload the systemd units :
 ```bash
 sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
 sudo systemctl daemon-reload
-sudo checkmodule -M -m -o /tmp/workerstartsh.mod $PATH_TO_MISP/INSTALL/worker/startsh.te
+sudo checkmodule -M -m -o /tmp/workerstartsh.mod $PATH_TO_MISP/INSTALL/workerstartsh.te
 sudo semodule_package -o /tmp/workerstartsh.pp -m /tmp/workerstartsh.mod
 sudo semodule -i /tmp/workerstartsh.pp
 ```

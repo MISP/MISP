@@ -1,5 +1,5 @@
 <?php
-    $urlHere = $this->here;
+    $urlHere = Router::url(null);
     $urlHere = explode('/', $urlHere);
     foreach ($urlHere as $k => $v) {
         $urlHere[$k] = urlencode($v);
@@ -9,8 +9,7 @@
     $mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
     $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
     $mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
-    $possibleAction = 'Proposal';
-    if ($mayModify) $possibleAction = 'Attribute';
+    $possibleAction = $mayModify ? 'attribute' : 'shadow_attribute';
     $all = false;
     if (isset($this->params->params['paging']['Event']['page'])) {
         if ($this->params->params['paging']['Event']['page'] == 0) $all = true;
@@ -75,7 +74,7 @@
 <br />
 <div id="edit_object_div">
     <?php
-        $deleteSelectedUrl = '/attributes/deleteSelected/' . $event['Event']['id'];
+        $deleteSelectedUrl = $baseurl . '/attributes/deleteSelected/' . $event['Event']['id'];
         if (empty($event['Event']['publish_timestamp'])) {
             $deleteSelectedUrl .= '/1';
         }
@@ -89,7 +88,7 @@
         echo $this->Form->end();
     ?>
         <?php
-        echo $this->Form->create('ShadowAttribute', array('id' => 'accept_selected', 'url' => '/shadow_attributes/acceptSelected/' . $event['Event']['id']));
+        echo $this->Form->create('ShadowAttribute', array('id' => 'accept_selected', 'url' => $baseurl . '/shadow_attributes/acceptSelected/' . $event['Event']['id']));
         echo $this->Form->input('ids_accept', array(
             'type' => 'text',
             'value' => '',
@@ -99,7 +98,7 @@
         echo $this->Form->end();
     ?>
         <?php
-        echo $this->Form->create('ShadowAttribute', array('id' => 'discard_selected', 'url' => '/shadow_attributes/discardSelected/' . $event['Event']['id']));
+        echo $this->Form->create('ShadowAttribute', array('id' => 'discard_selected', 'url' => $baseurl . '/shadow_attributes/discardSelected/' . $event['Event']['id']));
         echo $this->Form->input('ids_discard', array(
             'type' => 'text',
             'value' => '',
@@ -173,7 +172,7 @@
                     $fieldCount += 1;
                 }
                 if ($includeDecayScore) {
-                    sprintf(
+                    echo sprintf(
                         '<th class="decayingScoreField" title="%s">%s</th>',
                         __('Decaying Score'),
                         __('Score')
@@ -260,7 +259,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         </ul>
     </div>
 <script type="text/javascript">
-    var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
+    var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : $baseurl . '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
     var currentPopover = "";
     var ajaxResults = {"hover": [], "persistent": []};
     var timer;
@@ -336,7 +335,9 @@ attributes or the appropriate distribution level. If you think there is a mistak
             genericPopup(url, '#popover_box');
         });
         $(".eventViewAttributeHover").mouseenter(function() {
-            $('#' + currentPopover).popover('destroy');
+            if (currentPopover !== undefined && currentPopover !== '') {
+                $('#' + currentPopover).popover('destroy');
+            }
             var type = $(this).attr('data-object-type');
             var id = $(this).attr('data-object-id');
 

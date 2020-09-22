@@ -103,7 +103,7 @@
             <td class="actions short" style="<?php echo $style; ?>">
 <?php
         if ($worker_array['controls']) {
-            echo $this->Form->postLink('', '/servers/stopWorker/' . h($worker['pid']), array('class' => 'fa fa-trash black' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
+            echo $this->Form->postLink('', $baseurl . '/servers/stopWorker/' . h($worker['pid']), array('class' => 'fa fa-trash black' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
         }
             ?>
             </td>
@@ -115,7 +115,7 @@
     </table>
     <?php
         if ($worker_array['controls']) {
-            echo $this->Form->create('Server', array('url' => '/servers/startWorker/' . h($type)));
+            echo $this->Form->create('Server', array('url' => $baseurl . '/servers/startWorker/' . h($type)));
             echo $this->Form->button(__('Start a worker'), array('class' => 'btn btn-inverse'));
             echo $this->Form->end();
         }
@@ -126,8 +126,30 @@
 
 <?php
 if ($worker_array['controls']) {
-    echo $this->Form->create('Server', array('url' => '/servers/restartDeadWorkers'));
-    echo $this->Form->button(__('Restart dead workers'), array('class' => 'btn btn-primary'));
-    echo $this->Form->end();
+    echo $this->Form->postLink(
+        __('Restart dead workers'),
+        $baseurl . '/servers/restartDeadWorkers',
+        [
+            'class' => 'btn btn-primary',
+            'style' => 'margin-right:5px;'
+        ]
+    );
+    echo $this->Form->postLink(
+        __('Kill all workers'),
+        $baseurl . '/servers/killAllWorkers',
+        [
+            'class' => 'btn btn-primary',
+            'style' => 'margin-right:5px;'
+        ]
+    );
+    echo $this->Form->postLink(
+        __('Force kill all workers'),
+        $baseurl . '/servers/killAllWorkers/1',
+        [
+            'class' => 'btn btn-primary',
+            'style' => 'margin-right:5px;',
+            'confirm' => __('Are you sure you want to force kill all workers? This will issue a kill -9 and terminate any processing underway.')
+        ]
+    );
 }
 ?>

@@ -33,9 +33,9 @@ class Organisation extends AppModel
                 'rule' => 'isUnique',
                 'message' => 'An organisation with this UUID already exists.'
             ),
-            'simpleuuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
-                'message' => 'Please provide a valid UUID',
+            'uuid' => array(
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID',
                 'allowEmpty' => true
             ),
             'valueNotEmpty' => array(
@@ -105,7 +105,7 @@ class Organisation extends AppModel
         if (empty($this->data['Organisation']['uuid'])) {
             $this->data['Organisation']['uuid'] = CakeText::uuid();
         } else {
-            $this->data['Organisation']['uuid'] = trim($this->data['Organisation']['uuid']);
+            $this->data['Organisation']['uuid'] = strtolower(trim($this->data['Organisation']['uuid']));
         }
         $date = date('Y-m-d H:i:s');
         if (!empty($this->data['Organisation']['restricted_to_domain'])) {

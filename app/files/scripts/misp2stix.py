@@ -8,7 +8,7 @@ import re
 import ntpath
 import socket
 import traceback
-from misp2stix_mapping import *
+import misp2stix_mapping
 from collections import defaultdict
 from copy import deepcopy
 from cybox.core import Object, Observable, ObservableComposition, RelatedObject
@@ -29,7 +29,7 @@ from cybox.objects.network_connection_object import NetworkConnection
 from cybox.objects.network_socket_object import NetworkSocket
 from cybox.objects.pipe_object import Pipe
 from cybox.objects.port_object import Port
-from cybox.objects.process_object import Process
+from cybox.objects.process_object import ChildPIDList, ImageInfo, PortList, Process
 from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.system_object import System, NetworkInterface, NetworkInterfaceList
 from cybox.objects.unix_user_account_object import UnixUserAccount
@@ -90,42 +90,6 @@ class StixBuilder(object):
             except TypeError:
                 idgen.set_id_namespace(Namespace(self.baseurl, self.orgname, "MISP"))
         self.namespace_prefix = idgen.get_id_namespace_alias()
-        ## MAPPING FOR ATTRIBUTES
-        self.simple_type_to_method = {"port": 'generate_port_observable', "domain|ip": 'generate_domain_ip_observable',
-                                      "named pipe": 'generate_pipe_observable'}
-        self.simple_type_to_method.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"], 'resolve_file_observable'))
-        self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], 'generate_ip_observable'))
-        self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], 'generate_socket_address_observable'))
-        self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], 'generate_regkey_observable'))
-        self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link", "windows-service-name"], 'generate_simple_observable'))
-        self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to"], 'resolve_email_observable'))
-        self.simple_type_to_method.update(dict.fromkeys(["http-method", "user-agent"], 'resolve_http_observable'))
-        self.simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traffic", "pattern-in-memory"], 'resolve_pattern_observable'))
-        self.simple_type_to_method.update(dict.fromkeys(["mac-address"], 'resolve_system_observable'))
-        self.simple_type_to_method.update(dict.fromkeys(["attachment"], 'resolve_attachment'))
-        self.simple_type_to_method.update(dict.fromkeys(["email-attachment"], 'generate_email_attachment_observable'))
-        self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], 'resolve_malware_sample'))
-        ## MAPPING FOR OBJECTS
-        self.ttp_names = {'attack-pattern': 'parse_attack_pattern',
-                          'course-of-action': 'parse_course_of_action',
-                          'vulnerability': 'parse_vulnerability',
-                          'weakness': 'parse_weakness'}
-        self.objects_mapping = {"asn": 'parse_asn_object',
-                                "credential": 'parse_credential_object',
-                                "domain-ip": 'parse_domain_ip_object',
-                                "email": 'parse_email_object',
-                                "file": 'parse_file_object',
-                                "ip-port": 'parse_ip_port_object',
-                                "network-connection": 'parse_network_connection_object',
-                                "network-socket": 'parse_network_socket_object',
-                                "pe": 'store_pe',
-                                "pe-section": 'store_pe',
-                                "process": 'parse_process_object',
-                                "registry-key": 'parse_regkey_object',
-                                "url": 'parse_url_object',
-                                "user-account": 'parse_user_account_object',
-                                "whois": 'parse_whois',
-                                "x509": 'parse_x509_object'}
 
     def loadEvent(self):
         pathname = os.path.dirname(self.args[0])
@@ -182,7 +146,7 @@ class StixBuilder(object):
 
     def generate_stix_objects(self):
         self.history = History()
-        threat_level_name = threat_level_mapping.get(str(self.misp_event['threat_level_id']), None)
+        threat_level_name = misp2stix_mapping.threat_level_mapping.get(str(self.misp_event['threat_level_id']), None)
         if threat_level_name:
             threat_level_s = "Event Threat Level: {}".format(threat_level_name)
             self.add_journal_entry(threat_level_s)
@@ -192,7 +156,7 @@ class StixBuilder(object):
             self.incident.handling = self.set_handling(tags)
         external_id = ExternalID(value=str(self.misp_event['id']), source="MISP Event")
         self.incident.add_external_id(external_id)
-        incident_status_name = status_mapping.get(str(self.misp_event['analysis']), None)
+        incident_status_name = misp2stix_mapping.status_mapping.get(str(self.misp_event['analysis']), None)
         if incident_status_name is not None:
             self.incident.status = IncidentStatus(incident_status_name)
         self.incident.information_source = self.set_src()
@@ -226,20 +190,20 @@ class StixBuilder(object):
     def resolve_galaxies(self):
         for galaxy in self.misp_event.get('Galaxy', []):
             galaxy_type = galaxy['type']
-            if galaxy_type in galaxy_types_mapping:
-                getattr(self, galaxy_types_mapping[galaxy_type])(galaxy)
+            if galaxy_type in misp2stix_mapping.galaxy_types_mapping:
+                getattr(self, misp2stix_mapping.galaxy_types_mapping[galaxy_type])(galaxy)
 
     def resolve_attributes(self):
         for attribute in self.misp_event['Attribute']:
             attribute_type = attribute['type']
-            if attribute_type in not_implemented_attributes:
+            if attribute_type in misp2stix_mapping.not_implemented_attributes:
                 if attribute_type == "snort":
                     self.generate_TM(attribute)
                 else:
                     journal_entry = "!Not implemented attribute category/type combination caught! attribute[{}][{}]: {}".format(attribute['category'],
                     attribute_type, attribute['value'])
                     self.add_journal_entry(journal_entry)
-            elif attribute_type in non_indicator_attributes:
+            elif attribute_type in misp2stix_mapping.non_indicator_attributes:
                 self.handle_non_indicator_attribute(attribute)
             else:
                 self.handle_attribute(attribute)
@@ -249,12 +213,12 @@ class StixBuilder(object):
             name = misp_object['name']
             if name == 'original-imported-file':
                 continue
-            if name in self.ttp_names:
-                getattr(self, self.ttp_names[name])(misp_object)
+            if name in misp2stix_mapping.ttp_names:
+                getattr(self, misp2stix_mapping.ttp_names[name])(misp_object)
             else:
                 category = misp_object.get('meta-category')
                 try:
-                    to_ids, observable = getattr(self, self.objects_mapping[name])(misp_object)
+                    to_ids, observable = getattr(self, misp2stix_mapping.objects_mapping[name])(misp_object)
                 except KeyError:
                     to_ids, observable = self.create_custom_observable(name, misp_object['Attribute'], misp_object['uuid'])
                 except TypeError:
@@ -354,7 +318,7 @@ class StixBuilder(object):
                 indicator = self.generate_indicator(attribute)
                 indicator.add_indicator_type("Malware Artifacts")
                 try:
-                    indicator.add_indicator_type(misp_indicator_type[attribute['type']])
+                    indicator.add_indicator_type(misp2stix_mapping.misp_indicator_type[attribute['type']])
                 except KeyError:
                     pass
                 indicator.add_valid_time_position(ValidTime())
@@ -478,7 +442,7 @@ class StixBuilder(object):
         indicator.title = "{}: {} (MISP Attribute)".format(attribute['category'], attribute['value'])
         indicator.description = indicator.title
         confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
-        confidence_value = confidence_mapping.get(attribute['to_ids'], None)
+        confidence_value = misp2stix_mapping.confidence_mapping.get(attribute['to_ids'], None)
         if confidence_value is None:
             return indicator
         indicator.confidence = Confidence(value=confidence_value, description=confidence_description, timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
@@ -496,7 +460,7 @@ class StixBuilder(object):
         attribute_type = attribute['type']
         attribute_uuid = attribute['uuid']
         try:
-            observable_property = getattr(self, self.simple_type_to_method[attribute_type])(attribute)
+            observable_property = getattr(self, misp2stix_mapping.simple_type_to_method[attribute_type])(attribute)
         except KeyError:
             return False
         if isinstance(observable_property, Observable):
@@ -511,10 +475,10 @@ class StixBuilder(object):
     def generate_pipe_observable(self, attribute):
         attribute_uuid = attribute['uuid']
         pipe_object = Pipe()
-        pipe.named = True
-        pipe.name = attribute['value']
-        pipe.name.condition = 'Equals'
-        pipe.parent.id_ = "{}PipeObject-{}".format(self.namesapce_prefix, attribute_uuid)
+        pipe_object.named = True
+        pipe_object.name = attribute['value']
+        pipe_object.name.condition = 'Equals'
+        pipe_object.parent.id_ = "{}PipeObject-{}".format(self.namesapce_prefix, attribute_uuid)
         observable = Observable(pipe_object)
         observable.id_ = "{}:Pipe-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
@@ -546,13 +510,13 @@ class StixBuilder(object):
 
     def generate_simple_observable(self, attribute):
         attribute_uuid = attribute['uuid']
-        cybox_name = misp_cybox_name[attribute['type']]
+        cybox_name = misp2stix_mapping.misp_cybox_name[attribute['type']]
         if cybox_name == "AutonomousSystem":
             attribute_value = self.define_attribute_value(attribute['value'], attribute['comment'])
-            stix_field = cybox_name_attribute[cybox_name] if not attribute_value.startswith('AS') else 'handle'
+            stix_field = misp2stix_mapping.cybox_name_attribute[cybox_name] if not attribute_value.startswith('AS') else 'handle'
         else:
             attribute_value = attribute['value']
-            stix_field = cybox_name_attribute[cybox_name]
+            stix_field = misp2stix_mapping.cybox_name_attribute[cybox_name]
         constructor = getattr(this_module, cybox_name, None)
         new_object = constructor()
         setattr(new_object, stix_field, attribute_value)
@@ -629,7 +593,27 @@ class StixBuilder(object):
             ET.title = "Vulnerability {}".format(attribute['value'])
         ET.add_vulnerability(vulnerability)
         ttp.add_exploit_target(ET)
-        self.ttps[uuid] = ttp
+        self.append_ttp(ttp, 'vulnerability', uuid)
+
+    def generate_x509_observable(self, attributes_dict, uuid):
+        x509_object = X509Certificate()
+        if 'raw_certificate' in attributes_dict:
+            raw_certificate = attributes_dict.pop('raw_certificate')
+            x509_object.raw_certificate = raw_certificate['pem'] if 'pem' in raw_certificate else raw_certificate['raw-base64']
+        if 'signature' in attributes_dict:
+            signature = attributes_dict.pop('signature')
+            x509_object.certificate_signature = self.fill_x509_signature(signature)
+        x509_cert = self.fill_x509_contents(attributes_dict.pop('contents')) if 'contents' in attributes_dict else X509Cert()
+        if 'validity' in attributes_dict:
+            x509_cert.validity = self.fill_x509_validity(attributes_dict.pop('validity'))
+        if attributes_dict:
+            x509_cert.subject_public_key = self.fill_x509_pubkey(attributes_dict)
+        if x509_cert.to_dict():
+            x509_object.certificate = x509_cert
+        x509_object.parent.id_ = "{}:x509CertificateObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(x509_object)
+        observable.id_ = "{}:x509Certificate-{}".format(self.namespace_prefix, uuid)
+        return observable
 
     def parse_asn_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
@@ -654,7 +638,7 @@ class StixBuilder(object):
         uuid = misp_object['uuid']
         attack_pattern.id_ = "{}:AttackPattern-{}".format(self.namespace_prefix, uuid)
         attributes_dict = self.create_ttp_attributes_dict(misp_object['Attribute'])
-        for relation, feature in attack_pattern_object_mapping.items():
+        for relation, feature in misp2stix_mapping.attack_pattern_object_mapping.items():
             if relation in attributes_dict:
                 setattr(attack_pattern, feature, attributes_dict[relation])
         if attack_pattern.capec_id and not attack_pattern.capec_id.startswith('CAPEC'):
@@ -709,7 +693,7 @@ class StixBuilder(object):
     @staticmethod
     def add_credential_custom_property(attribute, relation):
         prop = Property()
-        prop.name = attribute_relation
+        prop.name = relation
         prop.value = attribute
         return prop
 
@@ -751,7 +735,7 @@ class StixBuilder(object):
         course_of_action.id_ = "{}:CourseOfAction-{}".format(self.namespace_prefix, uuid)
         if 'name' in attributes_dict:
             course_of_action.title = attributes_dict['name']
-        for feature in course_of_action_object_keys:
+        for feature in misp2stix_mapping.course_of_action_object_keys:
             if feature in attributes_dict:
                 setattr(course_of_action, feature, attributes_dict[feature])
         self.append_course_of_action(course_of_action)
@@ -769,7 +753,7 @@ class StixBuilder(object):
         misp_credential_types = ('password', 'api-key', 'encryption-key', 'unknown')
         for _type in credential_types:
             if _type in misp_credential_types:
-                return credential_types.pop(credential_types.index(_types))
+                return credential_types.pop(credential_types.index(_type))
         return credential_types.pop(0)
 
     def parse_domain_ip_object(self, misp_object):
@@ -795,7 +779,7 @@ class StixBuilder(object):
                 for value in attributes_dict[feature]:
                     recipient.append(value['value'])
                 setattr(email_header, feature, recipient)
-        for feature, key in email_object_mapping.items():
+        for feature, key in misp2stix_mapping.email_object_mapping.items():
             if feature in attributes_dict:
                 setattr(email_header, key, attributes_dict[feature][0]['value'])
                 setattr(getattr(email_header, key), 'condition', 'Equals')
@@ -930,16 +914,31 @@ class StixBuilder(object):
         attributes = misp_object['Attribute']
         to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
         process_object = Process()
-        for feature in process_object_keys:
+        for feature in misp2stix_mapping.process_object_keys:
             if feature in attributes_dict:
                 setattr(process_object, feature.replace('-', '_'), attributes_dict[feature][0])
         if 'child-pid' in attributes_dict:
-            # child-pid = attributes['child-pid']
-            for child in attributes['child-pid']:
-                process_object.child_pid_list.append(child)
-        # if 'port' in attributes_dict:
-        #     for port in attributes['port']:
-        #         process_object.port_list.append(self.create_port_object(port['value']))
+            for child in attributes_dict['child-pid']:
+                try:
+                    process_object.child_pid_list.append(child)
+                except AttributeError:
+                    process_object.child_pid_list = ChildPIDList()
+                    process_object.child_pid_list.append(child)
+        if 'port' in attributes_dict:
+            for port in attributes_dict['port']:
+                port_object = self.create_port_object(port)
+                try:
+                    process_object.port_list.append(port_object)
+                except AttributeError:
+                    process_object.port_list = PortList()
+                    process_object.port_list.append(port_object)
+        for key, feature in zip(('image', 'command-line'), ('file_name', 'command_line')):
+            if key in attributes_dict:
+                try:
+                    setattr(process_object.image_info, feature, attributes_dict[key])
+                except AttributeError:
+                    process_object.image_info = ImageInfo()
+                    setattr(process_object.image_info, feature, attributes_dict[key][0])
         uuid = misp_object['uuid']
         process_object.parent.id_ = "{}:ProcessObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(process_object)
@@ -965,7 +964,7 @@ class StixBuilder(object):
         if 'last-modified' in attributes_dict:
             reg_object.modified_time = attributes_dict['last-modified']
             reg_object.modified_time.condition = "Equals"
-        for feature, key in regkey_object_mapping.items():
+        for feature, key in misp2stix_mapping.regkey_object_mapping.items():
             if feature in attributes_dict:
                 setattr(reg_value_object, key, attributes_dict[feature].strip())
                 setattr(getattr(reg_value_object, key), 'condition', 'Equals')
@@ -1035,7 +1034,7 @@ class StixBuilder(object):
             authentication.authentication_data = attributes_dict['password'][0]
             authentication.authentication_data.condition = 'Equals'
             user_account.authentication = authentication
-        for feature, key in user_account_object_mapping.items():
+        for feature, key in misp2stix_mapping.user_account_object_mapping.items():
             if feature in attributes_dict:
                 setattr(user_account, key, attributes_dict[feature][0])
                 setattr(getattr(user_account, key), 'condition', 'Equals')
@@ -1049,7 +1048,7 @@ class StixBuilder(object):
         ttp = self.create_ttp_from_object(misp_object)
         vulnerability = Vulnerability()
         attributes_dict = self.create_ttp_attributes_dict_multiple(misp_object['Attribute'])
-        for relation, feature in vulnerability_object_mapping.items():
+        for relation, feature in misp2stix_mapping.vulnerability_object_mapping.items():
             if relation in attributes_dict:
                 setattr(vulnerability, feature, attributes_dict[relation][0])
         if 'cvss-score' in attributes_dict:
@@ -1091,7 +1090,7 @@ class StixBuilder(object):
         ttp = self.create_ttp_from_object(misp_object)
         weakness = Weakness()
         attributes_dict = self.create_ttp_attributes_dict(misp_object['Attribute'])
-        for relation, feature in weakness_object_mapping.items():
+        for relation, feature in misp2stix_mapping.weakness_object_mapping.items():
             if relation in attributes_dict:
                 setattr(weakness, feature, attributes_dict[relation])
         uuid = misp_object['uuid']
@@ -1115,7 +1114,7 @@ class StixBuilder(object):
             whois_registrar = WhoisRegistrar()
             whois_registrar.name = attributes_dict['registrar'][0]
             whois_object.registrar_info = whois_registrar
-        for feature, key in whois_object_mapping.items():
+        for feature, key in misp2stix_mapping.whois_object_mapping.items():
             if feature in attributes_dict:
                 setattr(whois_object, key, attributes_dict[feature][0])
                 setattr(getattr(whois_object, key), 'condition', 'Equals')
@@ -1145,7 +1144,7 @@ class StixBuilder(object):
     def fill_whois_registrants(attributes):
         registrants = WhoisRegistrants()
         registrant = WhoisRegistrant()
-        for feature, key in whois_registrant_mapping.items():
+        for feature, key in misp2stix_mapping.whois_registrant_mapping.items():
             if feature in attributes:
                 setattr(registrant, key, attributes[feature][0])
                 setattr(getattr(registrant, key), 'condition', 'Equals')
@@ -1153,31 +1152,22 @@ class StixBuilder(object):
         return registrants
 
     def parse_x509_object(self, misp_object):
-        to_ids, attributes_dict = self.create_x509_attributes_dict(misp_object['Attribute'])
-        x509_object = X509Certificate()
-        if 'raw_certificate' in attributes_dict:
-            raw_certificate = attributes_dict.pop('raw_certificate')
-            x509_object.raw_certificate = raw_certificate['pem'] if 'pem' in raw_certificate else raw_certificate['raw-base64']
-        if 'signature' in attributes_dict:
-            signature = attributes_dict.pop('signature')
-            x509_object.certificate_signature = self.fill_x509_signature(signature)
-        x509_cert = self.fill_x509_contents(attributes_dict.pop('contents')) if 'contents' in attributes_dict else X509Cert()
-        if 'validity' in attributes_dict:
-            x509_cert.validity = self.fill_x509_validity(attributes_dict.pop('validity'))
-        if attributes_dict:
-            x509_cert.subject_public_key = self.fill_x509_pubkey(attributes_dict)
-        if x509_cert.to_dict():
-            x509_object.certificate = x509_cert
         uuid = misp_object['uuid']
-        x509_object.parent.id_ = "{}:x509CertificateObject-{}".format(self.namespace_prefix, uuid)
-        observable = Observable(x509_object)
-        observable.id_ = "{}:x509Certificate-{}".format(self.namespace_prefix, uuid)
-        return to_ids, observable
+        if 'Attribute' in misp_object:
+            to_ids, attributes_dict = self.create_x509_attributes_dict(misp_object['Attribute'])
+            observable = self.generate_x509_observable(attributes_dict, uuid)
+            return to_ids, observable
+        attributes_dict = {
+            misp2stix_mapping.x509_creation_mapping[misp_object['type']]: {
+                misp_object['type']: misp_object['value']
+            }
+        }
+        return self.generate_x509_observable(attributes_dict, uuid)
 
     @staticmethod
     def fill_x509_contents(contents):
         x509_cert = X509Cert()
-        for feature in x509_object_keys:
+        for feature in misp2stix_mapping.x509_object_keys:
             if feature in contents:
                 setattr(x509_cert, feature.replace('-', '_'), contents[feature])
         return x509_cert
@@ -1265,7 +1255,7 @@ class StixBuilder(object):
         fuzzy = False
         f, h = [""] * 2
         attribute_type = attribute['type']
-        if attribute_type in hash_type_attributes['composite'] or attribute_type == "malware-sample":
+        if attribute_type in misp2stix_mapping.hash_type_attributes['composite'] or attribute_type == "malware-sample":
             f, h = attribute_value.split('|')
             composite = attribute_type.split('|')
             if len(composite) > 1 and composite[1] == "ssdeep":
@@ -1502,7 +1492,7 @@ class StixBuilder(object):
         attributes_dict = defaultdict(dict)
         for attribute in attributes:
             relation = attribute['object_relation']
-            attributes_dict[x509_creation_mapping[relation]][relation] = attribute['value']
+            attributes_dict[misp2stix_mapping.x509_creation_mapping[relation]][relation] = attribute['value']
         return to_ids, attributes_dict
 
     def create_custom_observable(self, name, attributes, uuid):
@@ -1646,7 +1636,7 @@ class StixBuilder(object):
         if 'size-in-bytes' in header_dict:
             pe_file_header.size_of_optional_header = header_dict.pop('size-in-bytes')
         for key, value in header_dict.items():
-            if key in hash_type_attributes['single']:
+            if key in misp2stix_mapping.hash_type_attributes['single']:
                 hashlist.append(Hash(hash_value=value, exact=True))
         if hashlist:
             pe_file_header.hashes = HashList()
@@ -1671,7 +1661,7 @@ class StixBuilder(object):
             except KeyError:
                 pass
         for key, value in section_dict.items():
-            if key in hash_type_attributes['single']:
+            if key in misp2stix_mapping.hash_type_attributes['single']:
                 hashlist.append(Hash(hash_value=value, exact=True))
         if hashlist:
             section.header_hashes = HashList()
@@ -1692,7 +1682,7 @@ class StixBuilder(object):
             user_account_object = UnixUserAccount() if account_type == 'unix' else WinUser()
             if 'user-id' in attributes_dict:
                 try:
-                    key = user_account_id_mapping[account_type]
+                    key = misp2stix_mapping.user_account_id_mapping[account_type]
                     setattr(user_account_object, key, attributes_dict['user-id'][0])
                     setattr(getattr(user_account_object, key), 'condition', 'Equals')
                 except ValueError:
@@ -1712,12 +1702,12 @@ class StixBuilder(object):
             #     custom_property = CustomProp
             #     filename.custom_properties.append()
             self.resolve_filename(file_object, attributes_dict.pop('filename'))
-        for feature, key in file_object_mapping.items():
+        for feature, key in misp2stix_mapping.file_object_mapping.items():
             if feature in attributes_dict:
                 setattr(file_object, key, attributes_dict.pop(feature))
                 setattr(getattr(file_object, key), 'condition', 'Equals')
         for key, value in attributes_dict.items():
-            if key in hash_type_attributes['single']:
+            if key in misp2stix_mapping.hash_type_attributes['single']:
                 file_object.add_hash(Hash(hash_value=value, exact=True))
 
     @staticmethod
@@ -1770,16 +1760,16 @@ class StixBuilder(object):
     def resolve_reg_hive(reg):
         reg = reg.lstrip('\\')
         upper_reg = reg.upper()
-        for hive in misp_reghive:
+        for hive in misp2stix_mapping.misp_reghive:
             if upper_reg.startswith(hive):
-                return misp_reghive[hive], reg[len(hive):].lstrip('\\').replace('\\\\', '\\')
+                return misp2stix_mapping.misp_reghive[hive], reg[len(hive):].lstrip('\\').replace('\\\\', '\\')
         return None, reg
 
     @staticmethod
     def set_color(colors):
         tlp_color = 0
         for color in colors:
-            color_num = TLP_order[color]
+            color_num = misp2stix_mapping.TLP_order[color]
             if color_num > tlp_color:
                 tlp_color = color_num
                 color_value = color

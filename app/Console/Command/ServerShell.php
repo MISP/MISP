@@ -247,7 +247,7 @@ class ServerShell extends AppShell
                     $this->Job->saveStatus($jobId, false);
                     echo 'Job failed.' . PHP_EOL;
                 } else {
-                    $this->Job->saveStatus($jobId, false);
+                    $this->Job->saveStatus($jobId, true);
                     echo 'Job done.' . PHP_EOL;
                 }
             } else {
@@ -338,7 +338,7 @@ class ServerShell extends AppShell
             $message = __n(
                 '%s feed from %s cached. Failed: %s',
                 '%s feeds from %s cached. Failed: %s',
-                $result['successes'], $total, $result['fails']
+                $result['successes'], $result['successes'], $total, $result['fails']
             );
             if ($result['fails'] > 0) {
                 $message .= ' ' . __('See error logs for more details.');

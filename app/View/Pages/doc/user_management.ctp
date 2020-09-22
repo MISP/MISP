@@ -66,7 +66,7 @@
 <a id="filters"></a><h3><?php echo __('Inspecting the input filters');?>:</h3>
 <?php echo __('All the events and attributes that get entered into MISP will be run through a series of input filters. These are defined by the site administrators or users with special privileges to edit the filters, but every user can take a look at the currently active lists.');?><br><br>
 <ul>
-    <li><b><?php echo __('Import Regexp');?>:</b> <?php echo __('All Attribute value and Event info fields will be parsed for a set of regular expressions and replaced based on the replacement values contained in this section. This has many uses, such as unifying similar data for better correlation, removing personal data from file-paths or simply for clarity. It is also possible to blacklist data by not defining a replacement for a regular expression.');?> <br /><br /></li>
-    <li><b><?php echo __('Signature Whitelist');?>:</b> <?php echo __('This list (can) contain a set of addresses that are allowed to be entered as attribute values but will be blocked from being exported to NIDS-es.');?><br /><br /> </li>
+    <li><b><?php echo __('Import Regexp');?>:</b> <?php echo __('All Attribute value and Event info fields will be parsed for a set of regular expressions and replaced based on the replacement values contained in this section. This has many uses, such as unifying similar data for better correlation, removing personal data from file-paths or simply for clarity. It is also possible to blocklist data by not defining a replacement for a regular expression.');?> <br /><br /></li>
+    <li><b><?php echo __('Signature Allowedlist');?>:</b> <?php echo __('This list (can) contain a set of addresses that are allowed to be entered as attribute values but will be blocked from being exported to NIDS-es.');?><br /><br /> </li>
 </ul>
 </div>

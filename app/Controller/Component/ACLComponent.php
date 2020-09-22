@@ -53,6 +53,7 @@ class ACLComponent extends Component
                     'fetchEditForm' => array('perm_add'),
                     'fetchViewValue' => array('*'),
                     'generateCorrelation' => array(),
+                    'getMassEditForm' => array('perm_add'),
                     'hoverEnrichment' => array('perm_add'),
                     'index' => array('*'),
                     'pruneOrphanedAttributes' => array(),
@@ -110,12 +111,37 @@ class ACLComponent extends Component
                     'requestAccess' => array(),
                     'view' => array()
             ),
-            'eventBlacklists' => array(
-                    'add' => array(),
-                    'delete' => array(),
-                    'edit' => array(),
-                    'index' => array(),
-                    'massDelete' => array()
+            'eventBlocklists' => array(
+                    'add' => [
+                        'AND' => [
+                            'host_org_user',
+                            'perm_add'
+                        ]
+                    ],
+                    'delete' => [
+                        'AND' => [
+                            'host_org_user',
+                            'perm_add'
+                        ]
+                    ],
+                    'edit' => [
+                        'AND' => [
+                            'host_org_user',
+                            'perm_add'
+                        ]
+                    ],
+                    'index' => [
+                        'AND' => [
+                            'host_org_user',
+                            'perm_add'
+                        ]
+                    ],
+                    'massDelete' => [
+                        'AND' => [
+                            'host_org_user',
+                            'perm_add'
+                        ]
+                    ]
             ),
             'eventDelegations' => array(
                     'acceptDelegation' => array('perm_add'),
@@ -177,9 +203,11 @@ class ACLComponent extends Component
                     'pushEventToKafka' => array('perm_publish_kafka'),
                     'pushProposals' => array('perm_sync'),
                     'queryEnrichment' => array('perm_add'),
+                    'recoverEvent' => array('perm_site_admin'),
                     'removePivot' => array('*'),
                     'removeTag' => array('perm_tagger'),
                     'reportValidationIssuesEvents' => array(),
+                    'restoreDeletedEvents' => array('perm_site_admin'),
                     'restSearch' => array('*'),
                     'saveFreeText' => array('perm_add'),
                     'stix' => array('*'),
@@ -352,7 +380,7 @@ class ACLComponent extends Component
             'objectTemplateElements' => array(
                 'viewElements' => array('*')
             ),
-            'orgBlacklists' => array(
+            'orgBlocklists' => array(
                     'add' => array(),
                     'delete' => array(),
                     'edit' => array(),
@@ -426,6 +454,7 @@ class ACLComponent extends Component
                     'getSubmoduleQuickUpdateForm' => array(),
                     'getWorkers' => array(),
                     'getVersion' => array('*'),
+                    'idTranslator' => array('*'),
                     'import' => array(),
                     'index' => array(),
                     'ondemandAction' => array(),
@@ -635,7 +664,7 @@ class ACLComponent extends Component
                     'update' => array(),
                     'view' => array('*')
             ),
-            'whitelists' => array(
+            'allowedlists' => array(
                     'admin_add' => array('perm_regexp_access'),
                     'admin_delete' => array('perm_regexp_access'),
                     'admin_edit' => array('perm_regexp_access'),
@@ -742,6 +771,7 @@ class ACLComponent extends Component
     {
         $controller = lcfirst(Inflector::camelize($controller));
         $action = strtolower($action);
+        $host_org_id = Configure::read('MISP.host_org_id');
         $aclList = $this->__aclList;
         foreach ($aclList as $k => $v) {
             $aclList[$k] = array_change_key_case($v);
@@ -759,21 +789,35 @@ class ACLComponent extends Component
             }
             if (isset($aclList[$controller][$action]['OR'])) {
                 foreach ($aclList[$controller][$action]['OR'] as $permission) {
-                    if ($user['Role'][$permission]) {
-                        return true;
+                    if ($permission === 'host_org_user') {
+                        if ((int)$user['org_id'] === (int)$host_org_id) {
+                            return true;
+                        }
+                    } else {
+                        if ($user['Role'][$permission]) {
+                            return true;
+                        }
                     }
                 }
             } elseif (isset($aclList[$controller][$action]['AND'])) {
                 $allConditionsMet = true;
                 foreach ($aclList[$controller][$action]['AND'] as $permission) {
-                    if (!$user['Role'][$permission]) {
-                        $allConditionsMet = false;
+                    if ($permission === 'host_org_user') {
+                        if ((int)$user['org_id'] !== (int)$host_org_id) {
+                            $allConditionsMet = false;
+                        }
+                    } else {
+                        if (!$user['Role'][$permission]) {
+                            $allConditionsMet = false;
+                        }
                     }
                 }
                 if ($allConditionsMet) {
                     return true;
                 }
-            } elseif ($user['Role'][$aclList[$controller][$action][0]]) {
+            } elseif ($aclList[$controller][$action][0] !== 'host_org_user' && $user['Role'][$aclList[$controller][$action][0]]) {
+                return true;
+            } elseif ($aclList[$controller][$action][0] === 'host_org_user' && (int)$user['org_id'] === (int)$host_org_id) {
                 return true;
             }
         }

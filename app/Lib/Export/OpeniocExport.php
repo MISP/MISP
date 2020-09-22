@@ -55,6 +55,7 @@ class OpeniocExport
                 'ip-src' => array('PortItem', 'PortItem/remoteIP', 'IP'),
                 'ip-dst' => array('RouteEntryItem', 'RouteEntryItem/Destination', 'IP'),
                 'hostname' => array('RouteEntryItem', 'RouteEntryItem/Destination', 'string'),
+                'email' => array('Email', 'Email/From', 'string'),
                 'email-src' => array('Email', 'Email/From', 'string'),
                 'email-dst' => array('Email', 'Email/To', 'string'),
                 'email-subject' => array('Email', 'Email/Subject', 'string'),

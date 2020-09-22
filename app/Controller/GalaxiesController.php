@@ -281,14 +281,14 @@ class GalaxiesController extends AppController
         $items = array(
             array(
                 'name' => __('All clusters'),
-                'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local
+                'value' => $this->baseurl . "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local
             )
         );
         foreach ($galaxies as $galaxy) {
             if (!isset($galaxy['Galaxy']['kill_chain_order']) || $noGalaxyMatrix) {
                 $items[] = array(
                     'name' => h($galaxy['Galaxy']['name']),
-                    'value' => "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local,
+                    'value' => $this->baseurl . "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local,
                     'template' => array(
                         'preIcon' => 'fa-' . $galaxy['Galaxy']['icon'],
                         'name' => $galaxy['Galaxy']['name'],
@@ -309,7 +309,7 @@ class GalaxiesController extends AppController
                     'isMatrix' => true
                 );
                 if ($galaxy['Galaxy']['id'] == $mitreAttackGalaxyId) {
-                    $param['img'] = "/img/mitre-attack-icon.ico";
+                    $param['img'] = $this->baseurl . "/img/mitre-attack-icon.ico";
                 }
                 $items[] = $param;
             }
@@ -331,12 +331,12 @@ class GalaxiesController extends AppController
         $items = array();
         $items[] = array(
             'name' => __('All namespaces'),
-            'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/' . $noGalaxyMatrix . '/local:' . $local
+            'value' => $baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/' . $noGalaxyMatrix . '/local:' . $local
         );
         foreach ($namespaces as $namespace) {
             $items[] = array(
                 'name' => $namespace,
-                'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/' . $noGalaxyMatrix . '/local:' . $local
+                'value' => $baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/' . $noGalaxyMatrix . '/local:' . $local
             );
         }
 

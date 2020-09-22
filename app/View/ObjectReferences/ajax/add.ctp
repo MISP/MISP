@@ -1,5 +1,5 @@
 <div class="popover_choice">
-        <?php echo $this->Form->create('ObjectReference', array('url' => '/objectReferences/add/' . $objectId));?>
+        <?php echo $this->Form->create('ObjectReference', array('url' => $baseurl . '/objectReferences/add/' . $objectId));?>
         <fieldset>
             <legend><?php echo __('Add Object Reference'); ?></legend>
                 <div class="overlay_spacing">

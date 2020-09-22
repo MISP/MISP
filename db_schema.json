@@ -35,7 +35,7 @@
                 "extra": ""
             }
         ],
-        "attribute_tags": [
+        "allowedlist": [
             {
                 "column_name": "id",
                 "is_nullable": "NO",
@@ -48,47 +48,14 @@
                 "extra": "auto_increment"
             },
             {
-                "column_name": "attribute_id",
+                "column_name": "name",
                 "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
                 "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "event_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "tag_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "local",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
-                "column_default": "0",
                 "extra": ""
             }
         ],
@@ -289,6 +256,63 @@
                 "collation_name": null,
                 "column_type": "bigint(20)",
                 "column_default": null,
+                "extra": ""
+            }
+        ],
+        "attribute_tags": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "attribute_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "event_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "tag_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "local",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
                 "extra": ""
             }
         ],
@@ -641,41 +665,6 @@
                 "extra": ""
             }
         ],
-        "decaying_model_mappings": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": "auto_increment"
-            },
-            {
-                "column_name": "attribute_type",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "model_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            }
-        ],
         "decaying_models": [
             {
                 "column_name": "id",
@@ -821,7 +810,264 @@
                 "extra": ""
             }
         ],
-        "event_blacklists": [
+        "decaying_model_mappings": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "attribute_type",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "model_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
+        "events": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "org_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "date",
+                "is_nullable": "NO",
+                "data_type": "date",
+                "character_maximum_length": null,
+                "numeric_precision": null,
+                "collation_name": null,
+                "column_type": "date",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "info",
+                "is_nullable": "NO",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "user_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "published",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "analysis",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(4)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "attribute_count",
+                "is_nullable": "YES",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11) unsigned",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "orgc_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "timestamp",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "distribution",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(4)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "sharing_group_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "proposal_email_lock",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "locked",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "threat_level_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "publish_timestamp",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "sighting_timestamp",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "disable_correlation",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "extends_uuid",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": "",
+                "extra": ""
+            }
+        ],
+        "event_blocklists": [
             {
                 "column_name": "id",
                 "is_nullable": "NO",
@@ -1147,228 +1393,6 @@
                 "collation_name": null,
                 "column_type": "tinyint(1)",
                 "column_default": "0",
-                "extra": ""
-            }
-        ],
-        "events": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": "auto_increment"
-            },
-            {
-                "column_name": "org_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "date",
-                "is_nullable": "NO",
-                "data_type": "date",
-                "character_maximum_length": null,
-                "numeric_precision": null,
-                "collation_name": null,
-                "column_type": "date",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "info",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "user_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "uuid",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "40",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(40)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "published",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "analysis",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(4)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "attribute_count",
-                "is_nullable": "YES",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11) unsigned",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "orgc_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "timestamp",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "distribution",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(4)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "sharing_group_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "proposal_email_lock",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "locked",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "threat_level_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "publish_timestamp",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "sighting_timestamp",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "disable_correlation",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "extends_uuid",
-                "is_nullable": "YES",
-                "data_type": "varchar",
-                "character_maximum_length": "40",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(40)",
-                "column_default": "",
                 "extra": ""
             }
         ],
@@ -2505,41 +2529,6 @@
                 "extra": ""
             }
         ],
-        "noticelist_entries": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": "auto_increment"
-            },
-            {
-                "column_name": "noticelist_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "data",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_unicode_ci",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            }
-        ],
         "noticelists": [
             {
                 "column_name": "id",
@@ -2619,6 +2608,41 @@
                 "extra": ""
             }
         ],
+        "noticelist_entries": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "noticelist_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "data",
+                "is_nullable": "NO",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
         "notification_logs": [
             {
                 "column_name": "id",
@@ -2662,6 +2686,173 @@
                 "collation_name": null,
                 "column_type": "int(11)",
                 "column_default": "0",
+                "extra": ""
+            }
+        ],
+        "objects": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "name",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "meta-category",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_unicode_ci",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "description",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "template_uuid",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "template_version",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "event_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "uuid",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "timestamp",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "distribution",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(4)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "sharing_group_id",
+                "is_nullable": "YES",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "comment",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "deleted",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "first_seen",
+                "is_nullable": "YES",
+                "data_type": "bigint",
+                "character_maximum_length": null,
+                "numeric_precision": "19",
+                "collation_name": null,
+                "column_type": "bigint(20)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "last_seen",
+                "is_nullable": "YES",
+                "data_type": "bigint",
+                "character_maximum_length": null,
+                "numeric_precision": "19",
+                "collation_name": null,
+                "column_type": "bigint(20)",
+                "column_default": null,
                 "extra": ""
             }
         ],
@@ -2856,129 +3047,6 @@
                 "extra": ""
             }
         ],
-        "object_template_elements": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": "auto_increment"
-            },
-            {
-                "column_name": "object_template_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "object_relation",
-                "is_nullable": "YES",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "type",
-                "is_nullable": "YES",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "ui-priority",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "categories",
-                "is_nullable": "YES",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "sane_default",
-                "is_nullable": "YES",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "values_list",
-                "is_nullable": "YES",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "description",
-                "is_nullable": "YES",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "disable_correlation",
-                "is_nullable": "YES",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "multiple",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
-                "column_default": "0",
-                "extra": ""
-            }
-        ],
         "object_templates": [
             {
                 "column_name": "id",
@@ -3102,7 +3170,7 @@
                 "extra": ""
             }
         ],
-        "objects": [
+        "object_template_elements": [
             {
                 "column_name": "id",
                 "is_nullable": "NO",
@@ -3115,24 +3183,79 @@
                 "extra": "auto_increment"
             },
             {
-                "column_name": "name",
+                "column_name": "object_template_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "object_relation",
                 "is_nullable": "YES",
                 "data_type": "varchar",
                 "character_maximum_length": "255",
                 "numeric_precision": null,
-                "collation_name": "utf8_unicode_ci",
+                "collation_name": "utf8_bin",
                 "column_type": "varchar(255)",
                 "column_default": null,
                 "extra": ""
             },
             {
-                "column_name": "meta-category",
+                "column_name": "type",
                 "is_nullable": "YES",
                 "data_type": "varchar",
                 "character_maximum_length": "255",
                 "numeric_precision": null,
-                "collation_name": "utf8_unicode_ci",
+                "collation_name": "utf8_bin",
                 "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "ui-priority",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "categories",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "sane_default",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "values_list",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null,
                 "extra": ""
             },
@@ -3142,101 +3265,24 @@
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
-                "collation_name": "utf8_unicode_ci",
+                "collation_name": "utf8_bin",
                 "column_type": "text",
                 "column_default": null,
                 "extra": ""
             },
             {
-                "column_name": "template_uuid",
+                "column_name": "disable_correlation",
                 "is_nullable": "YES",
-                "data_type": "varchar",
-                "character_maximum_length": "40",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(40)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "template_version",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "event_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "uuid",
-                "is_nullable": "YES",
-                "data_type": "varchar",
-                "character_maximum_length": "40",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(40)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "timestamp",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "distribution",
-                "is_nullable": "NO",
                 "data_type": "tinyint",
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
-                "column_type": "tinyint(4)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "sharing_group_id",
-                "is_nullable": "YES",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "tinyint(1)",
                 "column_default": null,
                 "extra": ""
             },
             {
-                "column_name": "comment",
-                "is_nullable": "YES",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_unicode_ci",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "deleted",
+                "column_name": "multiple",
                 "is_nullable": "NO",
                 "data_type": "tinyint",
                 "character_maximum_length": null,
@@ -3244,85 +3290,6 @@
                 "collation_name": null,
                 "column_type": "tinyint(1)",
                 "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "first_seen",
-                "is_nullable": "YES",
-                "data_type": "bigint",
-                "character_maximum_length": null,
-                "numeric_precision": "19",
-                "collation_name": null,
-                "column_type": "bigint(20)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "last_seen",
-                "is_nullable": "YES",
-                "data_type": "bigint",
-                "character_maximum_length": null,
-                "numeric_precision": "19",
-                "collation_name": null,
-                "column_type": "bigint(20)",
-                "column_default": null,
-                "extra": ""
-            }
-        ],
-        "org_blacklists": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": "auto_increment"
-            },
-            {
-                "column_name": "org_uuid",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "40",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(40)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "created",
-                "is_nullable": "NO",
-                "data_type": "datetime",
-                "character_maximum_length": null,
-                "numeric_precision": null,
-                "collation_name": null,
-                "column_type": "datetime",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "org_name",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "comment",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_unicode_ci",
-                "column_type": "text",
-                "column_default": null,
                 "extra": ""
             }
         ],
@@ -3473,6 +3440,63 @@
             {
                 "column_name": "landingpage",
                 "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_unicode_ci",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
+        "org_blocklists": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "org_uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "created",
+                "is_nullable": "NO",
+                "data_type": "datetime",
+                "character_maximum_length": null,
+                "numeric_precision": null,
+                "collation_name": null,
+                "column_type": "datetime",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "org_name",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "comment",
+                "is_nullable": "NO",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
@@ -4361,140 +4385,6 @@
                 "extra": ""
             }
         ],
-        "shadow_attribute_correlations": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": "auto_increment"
-            },
-            {
-                "column_name": "org_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "value",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_general_ci",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "distribution",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(4)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "a_distribution",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(4)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "sharing_group_id",
-                "is_nullable": "YES",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "a_sharing_group_id",
-                "is_nullable": "YES",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "attribute_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "1_shadow_attribute_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "event_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "1_event_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "info",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            }
-        ],
         "shadow_attributes": [
             {
                 "column_name": "id",
@@ -4717,7 +4607,7 @@
                 "extra": ""
             }
         ],
-        "sharing_group_orgs": [
+        "shadow_attribute_correlations": [
             {
                 "column_name": "id",
                 "is_nullable": "NO",
@@ -4728,17 +4618,6 @@
                 "column_type": "int(11)",
                 "column_default": null,
                 "extra": "auto_increment"
-            },
-            {
-                "column_name": "sharing_group_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
             },
             {
                 "column_name": "org_id",
@@ -4752,31 +4631,62 @@
                 "extra": ""
             },
             {
-                "column_name": "extend",
+                "column_name": "value",
+                "is_nullable": "NO",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_general_ci",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "distribution",
                 "is_nullable": "NO",
                 "data_type": "tinyint",
                 "character_maximum_length": null,
                 "numeric_precision": "3",
                 "collation_name": null,
-                "column_type": "tinyint(1)",
-                "column_default": "0",
-                "extra": ""
-            }
-        ],
-        "sharing_group_servers": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "tinyint(4)",
                 "column_default": null,
-                "extra": "auto_increment"
+                "extra": ""
+            },
+            {
+                "column_name": "a_distribution",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(4)",
+                "column_default": null,
+                "extra": ""
             },
             {
                 "column_name": "sharing_group_id",
+                "is_nullable": "YES",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "a_sharing_group_id",
+                "is_nullable": "YES",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "attribute_id",
                 "is_nullable": "NO",
                 "data_type": "int",
                 "character_maximum_length": null,
@@ -4787,7 +4697,7 @@
                 "extra": ""
             },
             {
-                "column_name": "server_id",
+                "column_name": "1_shadow_attribute_id",
                 "is_nullable": "NO",
                 "data_type": "int",
                 "character_maximum_length": null,
@@ -4798,13 +4708,35 @@
                 "extra": ""
             },
             {
-                "column_name": "all_orgs",
+                "column_name": "event_id",
                 "is_nullable": "NO",
-                "data_type": "tinyint",
+                "data_type": "int",
                 "character_maximum_length": null,
-                "numeric_precision": "3",
+                "numeric_precision": "10",
                 "collation_name": null,
-                "column_type": "tinyint(1)",
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "1_event_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "info",
+                "is_nullable": "NO",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "text",
                 "column_default": null,
                 "extra": ""
             }
@@ -4954,7 +4886,7 @@
                 "extra": ""
             }
         ],
-        "sightingdb_orgs": [
+        "sharing_group_orgs": [
             {
                 "column_name": "id",
                 "is_nullable": "NO",
@@ -4967,7 +4899,7 @@
                 "extra": "auto_increment"
             },
             {
-                "column_name": "sightingdb_id",
+                "column_name": "sharing_group_id",
                 "is_nullable": "NO",
                 "data_type": "int",
                 "character_maximum_length": null,
@@ -4985,6 +4917,63 @@
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "extend",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            }
+        ],
+        "sharing_group_servers": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "sharing_group_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "server_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "all_orgs",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": null,
                 "extra": ""
             }
@@ -5112,6 +5101,41 @@
                 "extra": ""
             }
         ],
+        "sightingdb_orgs": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "sightingdb_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "org_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
         "sightings": [
             {
                 "column_name": "id",
@@ -5202,7 +5226,7 @@
                 "extra": ""
             }
         ],
-        "tag_collection_tags": [
+        "tags": [
             {
                 "column_name": "id",
                 "is_nullable": "NO",
@@ -5215,19 +5239,74 @@
                 "extra": "auto_increment"
             },
             {
-                "column_name": "tag_collection_id",
+                "column_name": "name",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "colour",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "7",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(7)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "exportable",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "org_id",
                 "is_nullable": "NO",
                 "data_type": "int",
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": null,
+                "column_default": "0",
                 "extra": ""
             },
             {
-                "column_name": "tag_id",
+                "column_name": "user_id",
                 "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "hide_tag",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "numerical_value",
+                "is_nullable": "YES",
                 "data_type": "int",
                 "character_maximum_length": null,
                 "numeric_precision": "10",
@@ -5316,7 +5395,7 @@
                 "extra": ""
             }
         ],
-        "tags": [
+        "tag_collection_tags": [
             {
                 "column_name": "id",
                 "is_nullable": "NO",
@@ -5329,74 +5408,19 @@
                 "extra": "auto_increment"
             },
             {
-                "column_name": "name",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "colour",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "7",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(7)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "exportable",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "org_id",
+                "column_name": "tag_collection_id",
                 "is_nullable": "NO",
                 "data_type": "int",
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": "0",
+                "column_default": null,
                 "extra": ""
             },
             {
-                "column_name": "user_id",
+                "column_name": "tag_id",
                 "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "hide_tag",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
-                "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "numerical_value",
-                "is_nullable": "YES",
                 "data_type": "int",
                 "character_maximum_length": null,
                 "numeric_precision": "10",
@@ -5744,6 +5768,109 @@
                 "extra": ""
             }
         ],
+        "templates": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "name",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "description",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "org",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "share",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
+        "template_elements": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "template_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "position",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "element_definition",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
         "template_element_attributes": [
             {
                 "column_name": "id",
@@ -5992,52 +6119,6 @@
                 "extra": ""
             }
         ],
-        "template_elements": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": "auto_increment"
-            },
-            {
-                "column_name": "template_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "position",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "element_definition",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            }
-        ],
         "template_tags": [
             {
                 "column_name": "id",
@@ -6069,63 +6150,6 @@
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            }
-        ],
-        "templates": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": "auto_increment"
-            },
-            {
-                "column_name": "name",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "description",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "org",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "share",
-                "is_nullable": "NO",
-                "data_type": "tinyint",
-                "character_maximum_length": null,
-                "numeric_precision": "3",
-                "collation_name": null,
-                "column_type": "tinyint(1)",
                 "column_default": null,
                 "extra": ""
             }
@@ -6284,63 +6308,6 @@
                 "numeric_precision": null,
                 "collation_name": "latin1_swedish_ci",
                 "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            }
-        ],
-        "user_settings": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": "auto_increment"
-            },
-            {
-                "column_name": "setting",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "varchar(255)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "value",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_bin",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "user_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "timestamp",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
                 "column_default": null,
                 "extra": ""
             }
@@ -6600,7 +6567,7 @@
                 "extra": ""
             }
         ],
-        "warninglist_entries": [
+        "user_settings": [
             {
                 "column_name": "id",
                 "is_nullable": "NO",
@@ -6613,42 +6580,7 @@
                 "extra": "auto_increment"
             },
             {
-                "column_name": "value",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8_unicode_ci",
-                "column_type": "text",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "warninglist_id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            }
-        ],
-        "warninglist_types": [
-            {
-                "column_name": "id",
-                "is_nullable": "NO",
-                "data_type": "int",
-                "character_maximum_length": null,
-                "numeric_precision": "10",
-                "collation_name": null,
-                "column_type": "int(11)",
-                "column_default": null,
-                "extra": "auto_increment"
-            },
-            {
-                "column_name": "type",
+                "column_name": "setting",
                 "is_nullable": "NO",
                 "data_type": "varchar",
                 "character_maximum_length": "255",
@@ -6659,7 +6591,29 @@
                 "extra": ""
             },
             {
-                "column_name": "warninglist_id",
+                "column_name": "value",
+                "is_nullable": "NO",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "user_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "timestamp",
                 "is_nullable": "NO",
                 "data_type": "int",
                 "character_maximum_length": null,
@@ -6749,7 +6703,7 @@
                 "extra": ""
             }
         ],
-        "whitelist": [
+        "warninglist_entries": [
             {
                 "column_name": "id",
                 "is_nullable": "NO",
@@ -6762,7 +6716,7 @@
                 "extra": "auto_increment"
             },
             {
-                "column_name": "name",
+                "column_name": "value",
                 "is_nullable": "NO",
                 "data_type": "text",
                 "character_maximum_length": "65535",
@@ -6771,400 +6725,447 @@
                 "column_type": "text",
                 "column_default": null,
                 "extra": ""
+            },
+            {
+                "column_name": "warninglist_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
+        "warninglist_types": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "type",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "warninglist_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
             }
         ]
     },
     "indexes": {
-        "admin_settings": [
-            "id"
-        ],
-        "attribute_tags": [
-            "id",
-            "attribute_id",
-            "event_id",
-            "tag_id"
-        ],
-        "attributes": [
-            "id",
-            "uuid",
-            "event_id",
-            "sharing_group_id",
-            "type",
-            "category",
-            "value1",
-            "value2",
-            "object_id",
-            "object_relation",
-            "deleted",
-            "first_seen",
-            "last_seen"
-        ],
+        "admin_settings": {
+            "id": true
+        },
+        "allowedlist": {
+            "id": true
+        },
+        "attributes": {
+            "id": true,
+            "uuid": false,
+            "event_id": false,
+            "sharing_group_id": false,
+            "type": false,
+            "category": false,
+            "value1": false,
+            "value2": false,
+            "object_id": false,
+            "object_relation": false,
+            "deleted": false,
+            "first_seen": false,
+            "last_seen": false
+        },
+        "attribute_tags": {
+            "id": true,
+            "attribute_id": false,
+            "event_id": false,
+            "tag_id": false
+        },
         "bruteforces": [],
-        "cake_sessions": [
-            "id",
-            "expires"
-        ],
-        "correlations": [
-            "id",
-            "event_id",
-            "1_event_id",
-            "attribute_id",
-            "1_attribute_id"
-        ],
-        "dashboards": [
-            "id",
-            "name",
-            "uuid",
-            "user_id",
-            "restrict_to_org_id",
-            "restrict_to_permission_flag"
-        ],
-        "decaying_model_mappings": [
-            "id",
-            "model_id"
-        ],
-        "decaying_models": [
-            "id",
-            "uuid",
-            "name",
-            "org_id",
-            "enabled",
-            "all_orgs",
-            "version"
-        ],
-        "event_blacklists": [
-            "id",
-            "event_uuid",
-            "event_orgc"
-        ],
-        "event_delegations": [
-            "id",
-            "org_id",
-            "event_id"
-        ],
-        "event_graph": [
-            "id",
-            "event_id",
-            "user_id",
-            "org_id",
-            "timestamp"
-        ],
-        "event_locks": [
-            "id",
-            "event_id",
-            "user_id",
-            "timestamp"
-        ],
-        "event_tags": [
-            "id",
-            "event_id",
-            "tag_id"
-        ],
-        "events": [
-            "id",
-            "uuid",
-            "info",
-            "sharing_group_id",
-            "org_id",
-            "orgc_id",
-            "extends_uuid"
-        ],
-        "favourite_tags": [
-            "id",
-            "user_id",
-            "tag_id"
-        ],
-        "feeds": [
-            "id",
-            "input_source"
-        ],
-        "fuzzy_correlate_ssdeep": [
-            "id",
-            "chunk",
-            "attribute_id"
-        ],
-        "galaxies": [
-            "id",
-            "name",
-            "uuid",
-            "type",
-            "namespace"
-        ],
-        "galaxy_clusters": [
-            "id",
-            "value",
-            "uuid",
-            "collection_uuid",
-            "galaxy_id",
-            "version",
-            "tag_name",
-            "type"
-        ],
-        "galaxy_elements": [
-            "id",
-            "key",
-            "value",
-            "galaxy_cluster_id"
-        ],
-        "galaxy_reference": [
-            "id",
-            "galaxy_cluster_id",
-            "referenced_galaxy_cluster_id",
-            "referenced_galaxy_cluster_value",
-            "referenced_galaxy_cluster_type"
-        ],
-        "inbox": [
-            "id",
-            "title",
-            "type",
-            "uuid",
-            "user_agent_sha256",
-            "ip",
-            "timestamp"
-        ],
-        "jobs": [
-            "id"
-        ],
-        "logs": [
-            "id"
-        ],
-        "news": [
-            "id"
-        ],
-        "noticelist_entries": [
-            "id",
-            "noticelist_id"
-        ],
-        "noticelists": [
-            "id",
-            "name",
-            "geographical_area"
-        ],
-        "notification_logs": [
-            "id",
-            "org_id",
-            "type"
-        ],
-        "object_references": [
-            "id",
-            "source_uuid",
-            "referenced_uuid",
-            "timestamp",
-            "object_id",
-            "referenced_id",
-            "relationship_type"
-        ],
-        "object_relationships": [
-            "id",
-            "name"
-        ],
-        "object_template_elements": [
-            "id",
-            "object_relation",
-            "type"
-        ],
-        "object_templates": [
-            "id",
-            "user_id",
-            "org_id",
-            "uuid",
-            "name",
-            "meta-category"
-        ],
-        "objects": [
-            "id",
-            "name",
-            "template_uuid",
-            "template_version",
-            "meta-category",
-            "event_id",
-            "uuid",
-            "timestamp",
-            "distribution",
-            "sharing_group_id",
-            "first_seen",
-            "last_seen"
-        ],
-        "org_blacklists": [
-            "id"
-        ],
-        "organisations": [
-            "id",
-            "uuid",
-            "name"
-        ],
-        "posts": [
-            "id",
-            "post_id",
-            "thread_id"
-        ],
-        "regexp": [
-            "id"
-        ],
-        "rest_client_histories": [
-            "id",
-            "org_id",
-            "user_id",
-            "timestamp"
-        ],
-        "roles": [
-            "id"
-        ],
-        "servers": [
-            "id",
-            "org_id",
-            "priority",
-            "remote_org_id"
-        ],
-        "shadow_attribute_correlations": [
-            "id",
-            "org_id",
-            "attribute_id",
-            "a_sharing_group_id",
-            "event_id",
-            "1_event_id",
-            "sharing_group_id",
-            "1_shadow_attribute_id"
-        ],
-        "shadow_attributes": [
-            "id",
-            "event_id",
-            "event_uuid",
-            "event_org_id",
-            "uuid",
-            "old_id",
-            "value1",
-            "value2",
-            "type",
-            "category",
-            "first_seen",
-            "last_seen"
-        ],
-        "sharing_group_orgs": [
-            "id",
-            "org_id",
-            "sharing_group_id"
-        ],
-        "sharing_group_servers": [
-            "id",
-            "server_id",
-            "sharing_group_id"
-        ],
-        "sharing_groups": [
-            "id",
-            "uuid",
-            "org_id",
-            "sync_user_id",
-            "organisation_uuid"
-        ],
-        "sightingdb_orgs": [
-            "id",
-            "sightingdb_id",
-            "org_id"
-        ],
-        "sightingdbs": [
-            "id",
-            "name",
-            "owner",
-            "host",
-            "port"
-        ],
-        "sightings": [
-            "id",
-            "attribute_id",
-            "event_id",
-            "org_id",
-            "uuid",
-            "source",
-            "type"
-        ],
-        "tag_collection_tags": [
-            "id",
-            "tag_collection_id",
-            "tag_id"
-        ],
-        "tag_collections": [
-            "id",
-            "uuid",
-            "user_id",
-            "org_id"
-        ],
-        "tags": [
-            "id",
-            "name",
-            "org_id",
-            "user_id",
-            "numerical_value"
-        ],
-        "tasks": [
-            "id"
-        ],
-        "taxonomies": [
-            "id"
-        ],
-        "taxonomy_entries": [
-            "id",
-            "taxonomy_predicate_id",
-            "numerical_value"
-        ],
-        "taxonomy_predicates": [
-            "id",
-            "taxonomy_id",
-            "numerical_value"
-        ],
-        "template_element_attributes": [
-            "id"
-        ],
-        "template_element_files": [
-            "id"
-        ],
-        "template_element_texts": [
-            "id"
-        ],
-        "template_elements": [
-            "id"
-        ],
-        "template_tags": [
-            "id"
-        ],
-        "templates": [
-            "id"
-        ],
-        "threads": [
-            "id",
-            "user_id",
-            "event_id",
-            "org_id",
-            "sharing_group_id"
-        ],
-        "threat_levels": [
-            "id"
-        ],
-        "user_settings": [
-            "id",
-            "setting",
-            "user_id",
-            "timestamp"
-        ],
-        "users": [
-            "id",
-            "email",
-            "org_id",
-            "server_id"
-        ],
-        "warninglist_entries": [
-            "id",
-            "warninglist_id"
-        ],
-        "warninglist_types": [
-            "id"
-        ],
-        "warninglists": [
-            "id"
-        ],
-        "whitelist": [
-            "id"
-        ]
+        "cake_sessions": {
+            "id": true,
+            "expires": false
+        },
+        "correlations": {
+            "id": true,
+            "event_id": false,
+            "1_event_id": false,
+            "attribute_id": false,
+            "1_attribute_id": false
+        },
+        "dashboards": {
+            "id": true,
+            "name": false,
+            "uuid": false,
+            "user_id": false,
+            "restrict_to_org_id": false,
+            "restrict_to_permission_flag": false
+        },
+        "decaying_models": {
+            "id": true,
+            "uuid": false,
+            "name": false,
+            "org_id": false,
+            "enabled": false,
+            "all_orgs": false,
+            "version": false
+        },
+        "decaying_model_mappings": {
+            "id": true,
+            "model_id": false
+        },
+        "events": {
+            "id": true,
+            "uuid": true,
+            "info": false,
+            "sharing_group_id": false,
+            "org_id": false,
+            "orgc_id": false,
+            "extends_uuid": false
+        },
+        "event_blocklists": {
+            "id": true,
+            "event_uuid": false,
+            "event_orgc": false
+        },
+        "event_delegations": {
+            "id": true,
+            "org_id": false,
+            "event_id": false
+        },
+        "event_graph": {
+            "id": true,
+            "event_id": false,
+            "user_id": false,
+            "org_id": false,
+            "timestamp": false
+        },
+        "event_locks": {
+            "id": true,
+            "event_id": false,
+            "user_id": false,
+            "timestamp": false
+        },
+        "event_tags": {
+            "id": true,
+            "event_id": false,
+            "tag_id": false
+        },
+        "favourite_tags": {
+            "id": true,
+            "user_id": false,
+            "tag_id": false
+        },
+        "feeds": {
+            "id": true,
+            "input_source": false,
+            "orgc_id": false
+        },
+        "fuzzy_correlate_ssdeep": {
+            "id": true,
+            "chunk": false,
+            "attribute_id": false
+        },
+        "galaxies": {
+            "id": true,
+            "name": false,
+            "uuid": false,
+            "type": false,
+            "namespace": false
+        },
+        "galaxy_clusters": {
+            "id": true,
+            "value": false,
+            "uuid": false,
+            "collection_uuid": false,
+            "galaxy_id": false,
+            "version": false,
+            "tag_name": false,
+            "type": false
+        },
+        "galaxy_elements": {
+            "id": true,
+            "key": false,
+            "value": false,
+            "galaxy_cluster_id": false
+        },
+        "galaxy_reference": {
+            "id": true,
+            "galaxy_cluster_id": false,
+            "referenced_galaxy_cluster_id": false,
+            "referenced_galaxy_cluster_value": false,
+            "referenced_galaxy_cluster_type": false
+        },
+        "inbox": {
+            "id": true,
+            "title": false,
+            "type": false,
+            "uuid": false,
+            "user_agent_sha256": false,
+            "ip": false,
+            "timestamp": false
+        },
+        "jobs": {
+            "id": true
+        },
+        "logs": {
+            "id": true
+        },
+        "news": {
+            "id": true
+        },
+        "noticelists": {
+            "id": true,
+            "name": false,
+            "geographical_area": false
+        },
+        "noticelist_entries": {
+            "id": true,
+            "noticelist_id": false
+        },
+        "notification_logs": {
+            "id": true,
+            "org_id": false,
+            "type": false
+        },
+        "objects": {
+            "id": true,
+            "name": false,
+            "template_uuid": false,
+            "template_version": false,
+            "meta-category": false,
+            "event_id": false,
+            "uuid": false,
+            "timestamp": false,
+            "distribution": false,
+            "sharing_group_id": false,
+            "first_seen": false,
+            "last_seen": false
+        },
+        "object_references": {
+            "id": true,
+            "source_uuid": false,
+            "referenced_uuid": false,
+            "timestamp": false,
+            "object_id": false,
+            "referenced_id": false,
+            "relationship_type": false
+        },
+        "object_relationships": {
+            "id": true,
+            "name": false
+        },
+        "object_templates": {
+            "id": true,
+            "user_id": false,
+            "org_id": false,
+            "uuid": false,
+            "name": false,
+            "meta-category": false
+        },
+        "object_template_elements": {
+            "id": true,
+            "object_relation": false,
+            "type": false
+        },
+        "organisations": {
+            "id": true,
+            "uuid": false,
+            "name": false
+        },
+        "org_blocklists": {
+            "id": true
+        },
+        "posts": {
+            "id": true,
+            "post_id": false,
+            "thread_id": false
+        },
+        "regexp": {
+            "id": true
+        },
+        "rest_client_histories": {
+            "id": true,
+            "org_id": false,
+            "user_id": false,
+            "timestamp": false
+        },
+        "roles": {
+            "id": true
+        },
+        "servers": {
+            "id": true,
+            "org_id": false,
+            "priority": false,
+            "remote_org_id": false
+        },
+        "shadow_attributes": {
+            "id": true,
+            "event_id": false,
+            "event_uuid": false,
+            "event_org_id": false,
+            "uuid": false,
+            "old_id": false,
+            "value1": false,
+            "value2": false,
+            "type": false,
+            "category": false,
+            "first_seen": false,
+            "last_seen": false
+        },
+        "shadow_attribute_correlations": {
+            "id": true,
+            "org_id": false,
+            "attribute_id": false,
+            "a_sharing_group_id": false,
+            "event_id": false,
+            "1_event_id": false,
+            "sharing_group_id": false,
+            "1_shadow_attribute_id": false
+        },
+        "sharing_groups": {
+            "id": true,
+            "uuid": true,
+            "org_id": false,
+            "sync_user_id": false,
+            "organisation_uuid": false
+        },
+        "sharing_group_orgs": {
+            "id": true,
+            "org_id": false,
+            "sharing_group_id": false
+        },
+        "sharing_group_servers": {
+            "id": true,
+            "server_id": false,
+            "sharing_group_id": false
+        },
+        "sightingdbs": {
+            "id": true,
+            "name": false,
+            "owner": false,
+            "host": false,
+            "port": false
+        },
+        "sightingdb_orgs": {
+            "id": true,
+            "sightingdb_id": false,
+            "org_id": false
+        },
+        "sightings": {
+            "id": true,
+            "attribute_id": false,
+            "event_id": false,
+            "org_id": false,
+            "uuid": false,
+            "source": false,
+            "type": false
+        },
+        "tags": {
+            "id": true,
+            "name": false,
+            "org_id": false,
+            "user_id": false,
+            "numerical_value": false
+        },
+        "tag_collections": {
+            "id": true,
+            "uuid": false,
+            "user_id": false,
+            "org_id": false
+        },
+        "tag_collection_tags": {
+            "id": true,
+            "tag_collection_id": false,
+            "tag_id": false
+        },
+        "tasks": {
+            "id": true
+        },
+        "taxonomies": {
+            "id": true
+        },
+        "taxonomy_entries": {
+            "id": true,
+            "taxonomy_predicate_id": false,
+            "numerical_value": false
+        },
+        "taxonomy_predicates": {
+            "id": true,
+            "taxonomy_id": false,
+            "numerical_value": false
+        },
+        "templates": {
+            "id": true
+        },
+        "template_elements": {
+            "id": true
+        },
+        "template_element_attributes": {
+            "id": true
+        },
+        "template_element_files": {
+            "id": true
+        },
+        "template_element_texts": {
+            "id": true
+        },
+        "template_tags": {
+            "id": true
+        },
+        "threads": {
+            "id": true,
+            "user_id": false,
+            "event_id": false,
+            "org_id": false,
+            "sharing_group_id": false
+        },
+        "threat_levels": {
+            "id": true
+        },
+        "users": {
+            "id": true,
+            "email": false,
+            "org_id": false,
+            "server_id": false
+        },
+        "user_settings": {
+            "id": true,
+            "setting": false,
+            "user_id": false,
+            "timestamp": false
+        },
+        "warninglists": {
+            "id": true
+        },
+        "warninglist_entries": {
+            "id": true,
+            "warninglist_id": false
+        },
+        "warninglist_types": {
+            "id": true
+        }
     },
-    "db_version": "55"
+    "db_version": "57"
 }

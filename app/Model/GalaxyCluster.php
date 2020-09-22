@@ -1351,6 +1351,10 @@ class GalaxyCluster extends AppModel
             }
         }
 
+        if (empty($clusterTagNames)) {
+            return $events;
+        }
+
         $clusters = $this->getClusters($clusterTagNames, $user, false);
 
         $clustersByTagName = array();
@@ -1940,5 +1944,14 @@ class GalaxyCluster extends AppModel
             $this->__assetCache['gcids'] = $gcids;
             return $gcids;
         }
+    }
+    public function getTagIdByClusterId($cluster_id)
+    {
+        $cluster = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['GalaxyCluster.id' => $cluster_id],
+            'contain' => ['Tag']
+        ]);
+        return empty($cluster['Tag']['id']) ? false : $cluster['Tag']['id'];
     }
 }

@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property GalaxyCluster $GalaxyCluster
+ */
 class GalaxyClustersController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -90,14 +93,20 @@ class GalaxyClustersController extends AppController
             $this->paginate['conditions']['AND'][] = $aclConditions;
             $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup', 'GalaxyClusterRelation', 'TargetingClusterRelation'));
             $clusters = $this->paginate();
+            $sgs = $this->GalaxyCluster->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
             foreach ($clusters as $k => $cluster) {
                 $clusters[$k] = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
                 $clusters[$k] = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
-            }
-            $sgs = $this->GalaxyCluster->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
-            foreach ($clusters as $k => $cluster) {
-                if (!empty($cluster['Tag']['id'])) {
-                    $clusters[$k]['GalaxyCluster']['event_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($cluster['Tag']['id'], $this->Auth->user(), $sgs);
+                $tag = $this->GalaxyCluster->Tag->find('first', array(
+                    'conditions' => array(
+                        'LOWER(name)' => strtolower($cluster['GalaxyCluster']['tag_name']),
+                    ),
+                    'fields' => array('id'),
+                    'recursive' => -1,
+                    'contain' => array('EventTag.event_id')
+                ));
+                if ($tag) {
+                    $clusters[$k]['GalaxyCluster']['event_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag, $this->Auth->user());
                 } else {
                     $clusters[$k]['GalaxyCluster']['event_count'] = 0;
                 }
@@ -166,17 +175,16 @@ class GalaxyClustersController extends AppController
     public function view($id)
     {
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
-        $this->loadModel('Tag');
-        $tag = $this->Tag->find('first', array(
+        $tag = $this->GalaxyCluster->Tag->find('first', array(
             'conditions' => array(
                 'LOWER(name)' => strtolower($cluster['GalaxyCluster']['tag_name']),
             ),
             'fields' => array('id'),
             'recursive' => -1,
-            'contain' => array('EventTag.tag_id')
+            'contain' => array('EventTag.event_id')
         ));
         if (!empty($tag)) {
-            $cluster['GalaxyCluster']['tag_count'] = count($tag['EventTag']);
+            $cluster['GalaxyCluster']['tag_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag, $this->Auth->user());
             $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
         }
         if ($this->_isRest()) {

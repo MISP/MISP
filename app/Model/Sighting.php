@@ -3,6 +3,9 @@ App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 
+/**
+ * @property Attribute $Attribute
+ */
 class Sighting extends AppModel
 {
     public $useTable = 'sightings';
@@ -201,32 +204,41 @@ class Sighting extends AppModel
         return $result;
     }
 
-    public function attachToEvent($event, $user = array(), $attribute_id = false, $extraConditions = false)
+    /**
+     * @param array $event
+     * @param array $user
+     * @param array|int|null $attribute Attribute model or attribute ID
+     * @param bool $extraConditions
+     * @return array|int
+     */
+    public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
     {
-        if (empty($user)) {
-            $user = array(
-                'org_id' => -1,
-                'Role' => array(
-                    'perm_site_admin' => 0
-                )
-            );
-        }
         $ownEvent = false;
         if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) {
             $ownEvent = true;
         }
+
+        $contain = [];
         $conditions = array('Sighting.event_id' => $event['Event']['id']);
-        if ($attribute_id) {
-            $attribute = $this->Attribute->fetchAttribute($attribute_id);
-            $conditions['Sighting.attribute_id'] = $attribute_id;
+        if (isset($attribute['Attribute']['id'])) {
+            $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
+        } elseif (is_numeric($attribute)) {
+            $conditions['Sighting.attribute_id'] = $attribute;
+            $attribute = $this->Attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $attribute],
+                'fields' => ['Attribute.uuid']
+            ]);
+        } else {
+            $contain['Attribute'] = ['fields' => 'Attribute.uuid'];
         }
+
         if (!$ownEvent && (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0)) {
             $conditions['Sighting.org_id'] = $user['org_id'];
         }
         if ($extraConditions !== false) {
             $conditions['AND'] = $extraConditions;
         }
-        $contain = array();
         if (Configure::read('MISP.showorg')) {
             $contain['Organisation'] = array('fields' => array('Organisation.id', 'Organisation.uuid', 'Organisation.name'));
         }
@@ -250,14 +262,29 @@ class Sighting extends AppModel
             return array();
         }
         $anonymise = Configure::read('Plugin.Sightings_anonymise');
+        $anonymiseAs = Configure::read('Plugin.Sightings_anonymise_as');
+        $anonOrg = null;
+        if ($forSync && !empty($anonymiseAs)) {
+            $this->Organisation = ClassRegistry::init('Organisation');
+            $anonOrg = $this->Organisation->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Organisation.id' => $anonymiseAs],
+                'fields' => ['Organisation.id', 'Organisation.uuid', 'Organisation.name']
+            ]);
+        }
         foreach ($sightings as $k => $sighting) {
             if (
                 ($sighting['Sighting']['org_id'] == 0 && !empty($sighting['Organisation'])) ||
-                $anonymise
+                $anonymise || !empty($anonOrg)
             ) {
                 if ($sighting['Sighting']['org_id'] != $user['org_id']) {
-                    unset($sightings[$k]['Sighting']['org_id']);
-                    unset($sightings[$k]['Organisation']);
+                    if (empty($anonOrg)) {
+                        unset($sightings[$k]['Sighting']['org_id']);
+                        unset($sightings[$k]['Organisation']);
+                    } else {
+                        $sightings[$k]['Sighting']['org_id'] = $anonOrg['Organisation']['id'];
+                        $sightings[$k]['Organisation'] = $anonOrg['Organisation'];
+                    }
                 }
             }
             // rearrange it to match the event format of fetchevent
@@ -265,10 +292,11 @@ class Sighting extends AppModel
                 $sightings[$k]['Sighting']['Organisation'] = $sightings[$k]['Organisation'];
             }
             // zeroq: add attribute UUID to sighting to make synchronization easier
-            if (!isset($attribute)) {
-                $attribute = $this->Attribute->fetchAttribute($sighting['Sighting']['attribute_id']);
+            if (isset($sighting['Attribute']['uuid'])) {
+                $sightings[$k]['Sighting']['attribute_uuid'] = $sighting['Attribute']['uuid'];
+            } else {
+                $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
             }
-            $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
 
             $sightings[$k] = $sightings[$k]['Sighting'] ;
         }
@@ -515,14 +543,6 @@ class Sighting extends AppModel
         $conditions = array(
             'Sighting.date_sighting >' => $this->getMaximumRange(),
             ucfirst($context) . 'Tag.tag_id' => $tagList
-
-        );
-        $contain = array(
-            ucfirst($context) => array(
-                ucfirst($context) . 'Tag' => array(
-                    'Tag'
-                )
-            )
         );
         if ($type !== false) {
             $conditions['Sighting.type'] = $type;
@@ -532,15 +552,16 @@ class Sighting extends AppModel
             'recursive' => -1,
             'contain' => array(ucfirst($context) . 'Tag'),
             'conditions' => $conditions,
-            'fields' => array('Sighting.id', 'Sighting.' . $context . '_id', 'Sighting.date_sighting', ucfirst($context) . 'Tag.tag_id')
+            'fields' => array('Sighting.' . $context . '_id', 'Sighting.date_sighting')
         ));
         $sightingsRearranged = array();
         foreach ($sightings as $sighting) {
             $date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
-            if (isset($sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date])) {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date]++;
+            $contextId = $sighting['Sighting'][$context . '_id'];
+            if (isset($sightingsRearranged[$contextId][$date])) {
+                $sightingsRearranged[$contextId][$date]++;
             } else {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date] = 1;
+                $sightingsRearranged[$contextId][$date] = 1;
             }
         }
         return $sightingsRearranged;
@@ -812,32 +833,34 @@ class Sighting extends AppModel
     {
         $HttpSocket = $this->setupHttpSocket($server);
         $this->Server = ClassRegistry::init('Server');
-        $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, false, 'sightings');
+        try {
+            $eventIds = $this->Server->getEventIdsFromServer($server, false, $HttpSocket, false, 'sightings');
+        } catch (Exception $e) {
+            $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+            return 0;
+        }
         $saved = 0;
         // now process the $eventIds to pull each of the events sequentially
-        if (!empty($eventIds)) {
-            // download each event and save sightings
-            foreach ($eventIds as $k => $eventId) {
-                try {
-                    $event = $this->Event->downloadEventFromServer($eventId, $server);
-                } catch (Exception $e) {
-                    $this->logException('Failed downloading the event ' . $eventId, $e);
-                    continue;
-                }
-
-                $sightings = array();
-                if(!empty($event) && !empty($event['Event']['Attribute'])) {
-                    foreach($event['Event']['Attribute'] as $attribute) {
-                        if(!empty($attribute['Sighting'])) {
-                            $sightings = array_merge($sightings, $attribute['Sighting']);
-                        }
+        // download each event and save sightings
+        foreach ($eventIds as $k => $eventId) {
+            try {
+                $event = $this->Event->downloadEventFromServer($eventId, $server);
+            } catch (Exception $e) {
+                $this->logException("Failed downloading the event $eventId from {$server['Server']['name']}.", $e);
+                continue;
+            }
+            $sightings = array();
+            if (!empty($event) && !empty($event['Event']['Attribute'])) {
+                foreach ($event['Event']['Attribute'] as $attribute) {
+                    if (!empty($attribute['Sighting'])) {
+                        $sightings = array_merge($sightings, $attribute['Sighting']);
                     }
                 }
-                if(!empty($event) && !empty($sightings)) {
-                    $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
-                    if (is_numeric($result)) {
-                        $saved += $result;
-                    }
+            }
+            if (!empty($event) && !empty($sightings)) {
+                $result = $this->bulkSaveSightings($event['Event']['uuid'], $sightings, $user, $server['Server']['id']);
+                if (is_numeric($result)) {
+                    $saved += $result;
                 }
             }
         }

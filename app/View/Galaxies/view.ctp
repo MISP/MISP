@@ -32,7 +32,7 @@
 <script type="text/javascript">
 $(document).ready(function () {
     <?php
-        $uri = "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
+        $uri = $baseurl . "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
         if (isset($passedArgsArray) && isset($passedArgsArray['context']) && $passedArgsArray['context'] == 'fork_tree') {
             $uri = '/galaxies/forkTree/' . $galaxy['Galaxy']['id'];
         } elseif (isset($passedArgsArray) && isset($passedArgsArray['context']) && $passedArgsArray['context'] == 'relations') {
@@ -51,7 +51,7 @@ $(document).ready(function () {
     var $kco = $('#killChainOrder');
     if ($kco && $kco.length > 0) {
         var j = syntaxHighlightJson($kco.text(), 8)
+        $kco.html(j);
     }
-    $kco.html(j);
 });
 </script>

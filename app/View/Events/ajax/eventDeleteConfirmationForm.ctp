@@ -1,6 +1,6 @@
 <div class="confirmation">
 <?php
-    echo $this->Form->create('Event', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/events/delete'));
+    echo $this->Form->create('Event', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/events/delete'));
   echo $this->Form->hidden('id');
 ?>
 <legend><?php echo __('Event Deletion');?></legend>

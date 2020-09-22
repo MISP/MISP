@@ -54,7 +54,7 @@
                 array(
                     'field' => 'to_ids',
                     'type' => 'checkbox',
-                    'label' => __("for Intrusion Detection System"),
+                    'label' => __("For Intrusion Detection System"),
                     //'stayInLine' => 1
                 ),
                 array(
@@ -75,13 +75,12 @@
                     'type' => 'text',
                     'hidden' => true
                 ),
-                '<div id="extended_event_preview" style="width:446px;"></div>'
             ),
             'submit' => array(
                 'action' => $action,
                 'ajaxSubmit' => sprintf(
                     'submitPopoverForm(%s, %s, 0, 1)',
-                    "'" . ($action == 'add' ? h($event_id) : h($attribute['Attribute']['id'])) . "'",
+                    "'" . ($action === 'add' ? h($event['Event']['id']) : h($attribute['Attribute']['id'])) . "'",
                     "'" . h($action) . "'"
                 )
             ),
@@ -91,14 +90,12 @@
         )
     ));
     if (!$ajax) {
-        $event = ['Event' => ['id' => $event_id, 'published' => $published ]];
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
     }
 ?>
 
 <script type="text/javascript">
     var notice_list_triggers = <?php echo $notice_list_triggers; ?>;
-    var composite_types = <?php echo json_encode($compositeTypes); ?>;
     var category_type_mapping = <?php echo json_encode(array_map(function($value) {
         return array_combine($value['types'], $value['types']);
     }, $categoryDefinitions)); ?>;

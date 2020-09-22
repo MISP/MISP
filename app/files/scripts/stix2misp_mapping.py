@@ -3,17 +3,53 @@ _network_socket_addresses = ['local_address', 'remote_address']
 _network_connection_addresses = ['source_socket_address', 'destination_socket_address']
 _s_types = ['src', 'dst']
 
-eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachment"},
-              "DomainNameObjectType": {"type": "domain", "relation": "domain"},
-              "FileObjectType": _file_attribute_type,
-              "HostnameObjectType": {"type": "hostname", "relation": "host"},
-              "MutexObjectType": {"type": "mutex", "relation": "mutex"},
-              "PDFFileObjectType": _file_attribute_type,
-              "PortObjectType": {"type": "port", "relation": "port"},
-              "URIObjectType": {"type": "url", "relation": "url"},
-              "WindowsFileObjectType": _file_attribute_type,
-              "WindowsExecutableFileObjectType": _file_attribute_type,
-              "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
+attribute_types_mapping = {
+    'AccountObjectType': 'handle_credential',
+    'AddressObjectType': 'handle_address',
+    'ArtifactObjectType': 'handle_attachment',
+    'ASObjectType': 'handle_as',
+    'CustomObjectType': 'handle_custom',
+    'DNSRecordObjectType': 'handle_dns',
+    'DomainNameObjectType': 'handle_domain_or_url',
+    'EmailMessageObjectType': 'handle_email_attribute',
+    'FileObjectType': 'handle_file',
+    'HostnameObjectType': 'handle_hostname',
+    'HTTPSessionObjectType': 'handle_http',
+    'LinkObjectType': 'handle_link',
+    'MutexObjectType': 'handle_mutex',
+    'NetworkConnectionObjectType': 'handle_network_connection',
+    'NetworkSocketObjectType': 'handle_network_socket',
+    'PDFFileObjectType': 'handle_file',
+    'PipeObjectType': 'handle_pipe',
+    'PortObjectType': 'handle_port',
+    'ProcessObjectType': 'handle_process',
+    'SocketAddressObjectType': 'handle_socket_address',
+    'SystemObjectType': 'handle_system',
+    'UnixUserAccountObjectType': 'handle_unix_user',
+    'URIObjectType': 'handle_domain_or_url',
+    'UserAccountObjectType': 'handle_user',
+    'WhoisObjectType': 'handle_whois',
+    'WindowsFileObjectType': 'handle_file',
+    'WindowsRegistryKeyObjectType': 'handle_regkey',
+    'WindowsExecutableFileObjectType': 'handle_pe',
+    'WindowsServiceObjectType': 'handle_windows_service',
+    'WindowsUserAccountObjectType': 'handle_windows_user',
+    'X509CertificateObjectType': 'handle_x509'
+}
+
+eventTypes = {
+    "ArtifactObjectType": {"type": "attachment", "relation": "attachment"},
+    "DomainNameObjectType": {"type": "domain", "relation": "domain"},
+    "FileObjectType": _file_attribute_type,
+    "HostnameObjectType": {"type": "hostname", "relation": "host"},
+    "MutexObjectType": {"type": "mutex", "relation": "mutex"},
+    "PDFFileObjectType": _file_attribute_type,
+    "PortObjectType": {"type": "port", "relation": "port"},
+    "URIObjectType": {"type": "url", "relation": "url"},
+    "WindowsFileObjectType": _file_attribute_type,
+    "WindowsExecutableFileObjectType": _file_attribute_type,
+    "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}
+}
 
 _AS_attribute = ('AS', 'asn')
 _as_mapping = {'number': _AS_attribute, 'handle': _AS_attribute, 'name': ('text', 'description')}
@@ -70,36 +106,33 @@ _x509_datetime_types = ('not_before', 'not_after')
 _x509_pubkey_types = ('exponent', 'modulus')
 _x509_certificate_types = ('version', 'serial_number', 'issuer', 'subject')
 
-_galaxy_mapping = {'Enterprise Attack - Course of Action': 'mitre-enterprise-attack-course-of-action',
-                   'Tool': 'tool', 'Preventive Measure': 'preventive-measure',
-                   'Course of Action': 'mitre-course-of-action', 'TDS': 'tds',
-                   'attck4fraud': 'attck4fraud', 'Malware': 'mitre-malware',
-                   'Mobile Attack - Attack Pattern': 'mitre-mobile-attack-attack-pattern',
-                   'Exploit-Kit': 'exploit-kit', 'Sector': 'sector',
-                   'Mobile Attack - Intrusion Set': 'mitre-mobile-attack-intrusion-set',
-                   'Banker': 'banker', 'Backdoor': 'backdoor', 'RAT': 'rat',
-                   'o365-exchange-techniques': 'o365-exchange-techniques',
-                   'Microsoft Activity Group actor': 'microsoft-activity-group',
-                   'Intrusion Set': 'mitre-intrusion-set', 'Android': 'android',
-                   'Mobile Attack - Malware': 'mitre-mobile-attack-malware',
-                   'Cert EU GovSector': 'cert-eu-govsector', 'Stealer': 'stealer',
-                   'Enterprise Attack - Intrusion Set': 'mitre-enterprise-attack-intrusion-set',
-                   'Mobile Attack - Course of Action': 'mitre-mobile-attack-course-of-action',
-                   'Mobile Attack - Tool': 'mitre-mobile-attack-tool',
-                   'Target Information': 'target-information','Botnet': 'botnet',
-                   'Attack Pattern': 'mitre-attack-pattern','Malpedia': 'malpedia',
-                   'Enterprise Attack - Malware': 'mitre-enterprise-attack-malware',
-                   'Enterprise Attack - Attack Pattern': 'mitre-enterprise-attack-attack-pattern',
-                   'Pre Attack - Intrusion Set': 'mitre-pre-attack-intrusion-set',
-                   'Branded Vulnerability': 'branded_vulnerability',
-                   'Pre Attack - Attack Pattern': 'mitre-pre-attack-attack-pattern',
-                   'Election guidelines': 'election-guidelines',
-                   'Enterprise Attack - Tool': 'mitre-enterprise-attack-tool',
-                   'Threat Actor': 'threat-actor', 'Mitre Tool': 'tool',
-                   'Ransomware': 'ransomware'}
+cybox_to_misp_object = {
+    "Account": "credential",
+    "AutonomousSystem": "asn",
+    "EmailMessage": "email",
+    "NetworkConnection": "network-connection",
+    "NetworkSocket": "network-socket",
+    "Process": "process",
+    "UnixUserAccount": "user-account",
+    "UserAccount": "user-account",
+    "WindowsUserAccount": "user-account",
+    "x509Certificate": "x509",
+    "Whois": "whois"
+}
+
+test_mechanisms_mapping = {
+    'yaraTM:YaraTestMechanismType': 'yara'
+}
+
+marking_mapping = {
+    'AIS:AISMarkingStructure': 'parse_AIS_marking',
+    'tlpMarking:TLPMarkingStructureType': 'parse_TLP_marking'
+}
 
 _AIS_marking_mapping = {'prefix': 'ais-marking:',
                         'proprietary': 'AISMarking="{}_Proprietary"',
                         'cisa_proprietary': 'CISA_Proprietary="{}"',
                         'ais_consent': ('consent', 'AISConsent="{}"'),
                         'tlp_marking': ('color', 'TLPMarking="{}"')}
+
+threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}

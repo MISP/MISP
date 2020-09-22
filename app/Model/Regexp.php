@@ -63,7 +63,7 @@ class Regexp extends AppModel
         }
         // if we found the original, let's try to find all of the regexp values that match the original in the regexp and replacement fields.
         // We should get a list of all the IDs (and their respective types) of regular expression entries that are duplicates created for various types.
-        // ip-src /127.0.0.1/ -> '' and ip-dst /127.0.0.1/ -> '' (entries that blacklists the ip-source and ip-destination addresses 127.0.0.1) will be returned when editing
+        // ip-src /127.0.0.1/ -> '' and ip-dst /127.0.0.1/ -> '' (entries that blocklists the ip-source and ip-destination addresses 127.0.0.1) will be returned when editing
         // ip-src /127.0.0.1/ -> '', but other /127.0.0.1/ -> 'localhost' will not
         if ($original != null) {
             foreach ($allRegexp as $k => $v) {

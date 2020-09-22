@@ -31,7 +31,7 @@ class TagCollection extends AppModel
         )
     );
 
-    public $whitelistedItems = false;
+    public $allowedlistedItems = false;
 
     public $validate = array(
         'name' => array(
@@ -42,7 +42,13 @@ class TagCollection extends AppModel
                     'rule' => 'isUnique',
                     'message' => 'A similar name already exists.',
             ),
-        )
+        ),
+        'uuid' => array(
+            'uuid' => array(
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ),
+        ),
     );
 
     public function beforeValidate($options = array())
@@ -51,6 +57,8 @@ class TagCollection extends AppModel
         // generate UUID if it doesn't exist
         if (empty($this->data['TagCollection']['uuid'])) {
             $this->data['TagCollection']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['TagCollection']['uuid'] = strtolower($this->data['TagCollection']['uuid']);
         }
         return true;
     }

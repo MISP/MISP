@@ -2,6 +2,9 @@
 
 App::uses('AppController', 'Controller');
 
+/**
+ * @property MispObject $MispObject
+ */
 class ObjectsController extends AppController
 {
     public $uses = 'MispObject';
@@ -29,11 +32,6 @@ class ObjectsController extends AppController
             throw new MethodNotAllowedException(__('This action can only be reached via POST requests'));
         }
         $this->request->data = $this->MispObject->attributeCleanup($this->request->data);
-        $eventFindParams = array(
-            'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array('Event.id' => $event_id)
-        );
         $template = $this->MispObject->ObjectTemplate->find('first', array(
             'conditions' => array('ObjectTemplate.id' => $template_id),
             'recursive' => -1,
@@ -41,9 +39,12 @@ class ObjectsController extends AppController
                 'ObjectTemplateElement'
             )
         ));
-        $event = $this->MispObject->Event->find('first', $eventFindParams);
-        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $event_id);
+        if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $sharing_groups = array();
         if ($this->request->data['Object']['distribution'] == 4) {
@@ -55,33 +56,8 @@ class ObjectsController extends AppController
             }
         }
         if (!empty($sharing_groups)) {
-            $sgs = $this->MispObject->SharingGroup->find('all', array(
-                'conditions' => array('SharingGroup.id' => array_keys($sharing_groups)),
-                'recursive' => -1,
-                'fields' => array('SharingGroup.id', 'SharingGroup.name'),
-                'order' => false
-            ));
-            foreach ($sgs as $sg) {
-                $sharing_groups[$sg['SharingGroup']['id']] = $sg;
-            }
-            foreach ($sharing_groups as $k => $sg) {
-                if (empty($sg)) {
-                    throw new NotFoundException(__('Invalid sharing group.'));
-                }
-            }
-            $this->set('sharing_groups', $sharing_groups);
-        }
-        if ($this->request->data['Object']['distribution'] == 4) {
-            $sg = $this->MispObject->SharingGroup->find('first', array(
-                'conditions' => array('SharingGroup.id' => $this->request->data['Object']['sharing_group_id']),
-                'recursive' => -1,
-                'fields' => array('SharingGroup.id', 'SharingGroup.name'),
-                'order' => false
-            ));
-            if (empty($sg)) {
-                throw new NotFoundException(__('Invalid sharing group.'));
-            }
-            $this->set('sg', $sg);
+            $sgs = $this->MispObject->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', false, array_keys($sharing_groups));
+            $this->set('sharing_groups', $sgs);
         }
         $multiple_template_elements = Hash::extract($template['ObjectTemplateElement'], sprintf('{n}[multiple=true]'));
         $multiple_attribute_allowed = array();
@@ -117,6 +93,13 @@ class ObjectsController extends AppController
         $this->set('object_id', $object_id);
         $this->set('event', $event);
         $this->set('data', $this->request->data);
+        // Make sure the data stored in the session applies to this object. User might be prompted to perform a merge with another object if the session's data is somehow not cleaned
+        $curObjectTmpUuid = CakeText::uuid();
+        $this->set('cur_object_tmp_uuid', $curObjectTmpUuid);
+        $this->Session->write('object_being_created', array(
+            'cur_object_tmp_uuid' => $curObjectTmpUuid,
+            'data' => $this->request->data
+        ));
         if (!empty($similar_object_ids)) {
             $this->set('similar_objects_count', count($similar_object_ids));
             $similar_object_ids = array_slice($similar_object_ids, 0, $similar_objects_display_threshold); // slice to honor the threshold
@@ -150,13 +133,8 @@ class ObjectsController extends AppController
     public function add($eventId, $templateId = false, $version = false)
     {
         if (!$this->userRole['perm_modify']) {
-            throw new MethodNotAllowedException(__('You don\'t have permissions to create objects.'));
+            throw new ForbiddenException(__('You don\'t have permissions to create objects.'));
         }
-        $eventFindParams = array(
-            'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array()
-        );
 
         if (!empty($templateId) && Validation::uuid($templateId)) {
             $conditions = array('ObjectTemplate.uuid' => $templateId);
@@ -182,16 +160,12 @@ class ObjectsController extends AppController
             }
         }
         // Find the event that is to be updated
-        if (Validation::uuid($eventId)) {
-            $eventFindParams['conditions']['Event.uuid'] = $eventId;
-        } elseif (is_numeric($eventId)) {
-            $eventFindParams['conditions']['Event.id'] = $eventId;
-        } else {
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
         }
-        $event = $this->MispObject->Event->find('first', $eventFindParams);
-        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
-            throw new NotFoundException(__('Invalid event.'));
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $eventId = $event['Event']['id'];
         if (!$this->_isRest()) {
@@ -367,16 +341,17 @@ class ObjectsController extends AppController
 
     public function edit($id, $update_template_available=false, $onlyAddNewAttribute=false)
     {
-        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
-        $object = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
+        $object = $this->MispObject->fetchObjects($this->Auth->user(), array(
+            'conditions' => $this->__objectIdToConditions($id),
+        ));
         if (empty($object)) {
             throw new NotFoundException(__('Invalid object.'));
         }
         $object = $object[0];
-        if ((!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
-            throw new MethodNotAllowedException(__('Insufficient permissions to edit this object.'));
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $object['Event']['id']);
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('Insufficient permissions to edit this object.'));
         }
-        $event = $this->MispObject->Event->fetchEvent($this->Auth->user(), array('eventid' => $object['Event']['id'], 'metadata' => 1))[0];
         if (!$this->_isRest()) {
             $this->MispObject->Event->insertLock($this->Auth->user(), $object['Event']['id']);
         }
@@ -397,15 +372,25 @@ class ObjectsController extends AppController
         $templateData = $this->MispObject->resolveUpdatedTemplate($template, $object, $update_template_available);
         $this->set('updateable_attribute', $templateData['updateable_attribute']);
         $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
-        if (isset($this->params['named']['revised_object'])) {
-            $revisedData = $this->MispObject->reviseObject($this->params['named']['revised_object'], $object, $template);
+        if (!empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
+            $revisedObjectData = $this->Session->read('object_being_created');
+            if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed session data is for the correct object
+                $revisedObjectData = $revisedObjectData['data'];
+            } else {
+                $this->Session->delete('object_being_created');
+                $revisedObjectData = array();
+            }
+        }
+        if (!empty($revisedObjectData)) {
+            $revisedData = $this->MispObject->reviseObject($revisedObjectData, $object, $template);
             $this->set('revised_object', $revisedData['revised_object_both']);
             $object = $revisedData['object'];
         }
         if (!empty($templateData['template'])) {
-          $template = $this->MispObject->prepareTemplate($templateData['template'], $object);
+            $template = $this->MispObject->prepareTemplate($templateData['template'], $object);
         }
         if ($this->request->is('post') || $this->request->is('put')) {
+            $this->Session->delete('object_being_created');
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
             }
@@ -420,7 +405,7 @@ class ObjectsController extends AppController
                 unset($this->request->data['Object']);
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
-            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute);
+            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $this->Auth->user());
             $error_message = __('Object could not be saved.');
             if (!is_numeric($objectToSave)){
                 $object_validation_errors = array();
@@ -429,19 +414,26 @@ class ObjectsController extends AppController
                 }
                 $error_message = __('Object could not be saved.') . PHP_EOL . implode(PHP_EOL, $object_validation_errors);
             }
+            $savedObject = array();
+            if (is_numeric($objectToSave)) {
+                $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $object['Object']['id'])));
+                if (isset($this->request->data['deleted']) && $this->request->data['deleted']) {
+                    $this->MispObject->deleteObject($savedObject[0], $hard=false, $unpublish=false);
+                    $savedObject = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $object['Object']['id']))); // make sure the object is deleted
+                }
+            }
             // we pre-validate the attributes before we create an object at this point
             // This allows us to stop the process and return an error (API) or return
             //  to the add form
             if ($this->_isRest()) {
                 if (is_numeric($objectToSave)) {
-                    $objectToSave = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
-                    if (!empty($objectToSave)) {
-                        $objectToSave = $objectToSave[0];
-                        $objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
-                        unset($objectToSave['Attribute']);
+                    if (!empty($savedObject)) {
+                        $savedObject = $savedObject[0];
+                        $savedObject['Object']['Attribute'] = $savedObject['Attribute'];
+                        unset($savedObject['Attribute']);
+                        $this->MispObject->Event->unpublishEvent($savedObject['Object']['event_id']);
                     }
-                    $this->MispObject->Event->unpublishEvent($objectToSave['Object']['event_id']);
-                    return $this->RestResponse->viewData($objectToSave, $this->response->type());
+                    return $this->RestResponse->viewData($savedObject, $this->response->type());
                 } else {
                     return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $id, $this->response->type());
                 }
@@ -504,35 +496,19 @@ class ObjectsController extends AppController
     // ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
     public function editField($id)
     {
-        if (Validation::uuid($id)) {
-            $this->MispObject->recursive = -1;
-            $temp = $this->MispObject->findByUuid($id);
-            if ($temp == null) {
-                throw new NotFoundException(__('Invalid object'));
-            }
-            $id = $temp['Object']['id'];
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid event id.'));
-        }
         if ((!$this->request->is('post') && !$this->request->is('put'))) {
             throw new MethodNotAllowedException(__('This function can only be accessed via POST or PUT'));
         }
         $object = $this->MispObject->find('first', array(
-            'conditions' => array('Object.id' => $id),
+            'conditions' => $this->__objectIdToConditions($id),
             'contain' => 'Event',
             'recursive' => -1
         ));
         if (empty($object)) {
             return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid object');
         }
-        if (!$this->_isSiteAdmin()) {
-            if ($this->MispObject->data['Event']['orgc_id'] == $this->Auth->user('org_id')
-            && (($this->userRole['perm_modify'] && $this->MispObject->data['Event']['user_id'] != $this->Auth->user('id'))
-            || $this->userRole['perm_modify_org'])) {
-                // Allow the edit
-            } else {
-                return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid attribute');
-            }
+        if (!$this->__canModifyEvent($object)) {
+            return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'You do not have permission to do that.');
         }
         $validFields = array('comment', 'distribution', 'first_seen', 'last_seen');
         $changed = false;
@@ -565,18 +541,10 @@ class ObjectsController extends AppController
         $object['Object']['timestamp'] = $date->getTimestamp();
         $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements);
         if ($this->MispObject->save($object)) {
-            $event = $this->MispObject->Event->find('first', array(
-                'recursive' => -1,
-                'fields' => array('id', 'published', 'timestamp', 'info', 'uuid'),
-                'conditions' => array(
-                    'id' => $object['Object']['event_id'],
-            )));
-            $event['Event']['timestamp'] = $date->getTimestamp();
-            $event['Event']['published'] = 0;
+            $this->MispObject->Event->unpublishEvent($object['Event']['id']);
             if ($seen_changed) {
-                $this->MispObject->Attribute->saveAttributes($object['Attribute']);
+                $this->MispObject->Attribute->saveAttributes($object['Attribute'], $this->Auth->user());
             }
-            $this->MispObject->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
             return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, false, 'Field updated');
         } else {
             return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $this->MispObject->validationErrors);
@@ -641,14 +609,8 @@ class ObjectsController extends AppController
             throw new NotFoundException(__('Invalid attribute'));
         }
         $object = $object[0];
-        if (!$this->_isSiteAdmin()) {
-            if ($object['Event']['orgc_id'] == $this->Auth->user('org_id')
-            && (($this->userRole['perm_modify'] && $object['Event']['user_id'] != $this->Auth->user('id'))
-                    || $this->userRole['perm_modify_org'])) {
-                // Allow the edit
-            } else {
-                throw new NotFoundException(__('Invalid object'));
-            }
+        if (!$this->__canModifyEvent($object)) {
+            throw new NotFoundException(__('Invalid object'));
         }
         $this->layout = 'ajax';
         if ($field == 'distribution') {
@@ -662,15 +624,8 @@ class ObjectsController extends AppController
     }
 
     // Construct a template with valid object attributes to add to an object
-    public function quickFetchTemplateWithValidObjectAttributes($id) {
-        $this->MispObject->id = $id;
-        if (!$this->MispObject->exists()) {
-            if ($this->request->is('ajax')) {
-                return $this->RestResponse->saveFailResponse('Objects', 'add', false, 'Invalid object', $this->response->type());
-            } else {
-                throw new NotFoundException(__('Invalid object'));
-            }
-        }
+    public function quickFetchTemplateWithValidObjectAttributes($id)
+    {
         $fields = array('template_uuid', 'template_version', 'id');
         $params = array(
             'conditions' => array('Object.id' => $id),
@@ -747,20 +702,20 @@ class ObjectsController extends AppController
      * GET: Returns a form allowing to add a valid object attribute to an object
      * POST/PUT: Add the attribute to the object
      */
-    public function quickAddAttributeForm($id, $fieldName = null) {
+    public function quickAddAttributeForm($id, $fieldName = null)
+    {
         if ($this->request->is('GET')) {
             if (!isset($fieldName)) {
                 throw new MethodNotAllowedException('No field requested.');
-            }
-            $this->MispObject->id = $id;
-            if (!$this->MispObject->exists()) {
-                throw new NotFoundException(__('Invalid object'));
             }
             $fields = array('template_uuid', 'template_version', 'id', 'event_id');
             $params = array(
                 'conditions' => array('Object.id' => $id),
                 'fields' => $fields,
                 'flatten' => 1,
+                'contain' => array(
+                    'Event'
+                )
             );
             // fetchObjects restrict access based on user
             $object = $this->MispObject->fetchObjects($this->Auth->user(), $params);
@@ -768,6 +723,9 @@ class ObjectsController extends AppController
                 throw new NotFoundException(__('Invalid object'));
             } else {
                 $object = $object[0];
+            }
+            if (!$this->__canModifyEvent($object)) {
+                throw new ForbiddenException(__('You do not have permission to do that.'));
             }
             $template = $this->MispObject->ObjectTemplate->find('first', array(
                 'conditions' => array(
@@ -783,7 +741,7 @@ class ObjectsController extends AppController
                 )
             ));
             if (empty($template)) {
-                throw new NotFoundException(__('Invalid object'));
+                throw new NotFoundException(__('Invalid template'));
             }
             if (empty($template['ObjectTemplateElement'])) {
                 throw new NotFoundException(__('Invalid fields') . ' `' . h($fieldName) . '`');
@@ -817,30 +775,29 @@ class ObjectsController extends AppController
 
     public function delete($id, $hard = false)
     {
-        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if (!$this->userRole['perm_modify']) {
-            throw new MethodNotAllowedException(__('You don\'t have permissions to delete objects.'));
+            throw new ForbiddenException(__('You don\'t have permissions to delete objects.'));
         }
         $object = $this->MispObject->find('first', array(
             'recursive' => -1,
-            'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array('Object.id' => $id),
+            'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id'),
+            'conditions' => $this->__objectIdToConditions($id),
             'contain' => array(
                 'Event'
             )
         ));
         if (empty($object)) {
-            throw new NotFoundException(__('Invalid event.'));
+            throw new NotFoundException(__('Invalid object.'));
+        }
+        if (!$this->__canModifyEvent($object)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $eventId = $object['Event']['id'];
-        if (!$this->_isSiteAdmin() && ($object['Event']['orgc_id'] != $this->Auth->user('org_id') || !$this->userRole['perm_modify'])) {
-            throw new UnauthorizedException(__('You do not have permission to do that.'));
-        }
         if (!$this->_isRest()) {
             $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
         }
         if ($this->request->is('post') || $this->request->is('delete')) {
-            if ($this->__delete($id, $hard)) {
+            if ($this->__delete($object['Object']['id'], $hard)) {
                 $message = 'Object deleted.';
                 if ($this->request->is('ajax')) {
                     return new CakeResponse(
@@ -859,12 +816,12 @@ class ObjectsController extends AppController
                     return $this->RestResponse->saveSuccessResponse(
                         'Objects',
                         'delete',
-                        $id,
+                        $eventId,
                         $this->response->type()
                     );
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Event']['id']));
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                 }
             } else {
                 $message = 'Object could not be deleted.';
@@ -898,7 +855,7 @@ class ObjectsController extends AppController
             if ($this->request->is('ajax') && $this->request->is('get')) {
                 $this->set('hard', $hard);
                 $this->set('id', $id);
-                $this->set('event_id', $object['Event']['id']);
+                $this->set('event_id', $eventId);
                 $this->render('ajax/delete');
             }
         }
@@ -906,93 +863,23 @@ class ObjectsController extends AppController
 
     private function __delete($id, $hard)
     {
-        $this->MispObject->id = $id;
-        if (!$this->MispObject->exists()) {
-            return false;
-        }
-        $object = $this->MispObject->find('first', array(
-            'conditions' => array('Object.id' => $id),
-            'fields' => array('Object.*'),
-            'contain' => array(
-                'Event' => array(
-                    'fields' => array('Event.*')
-                ),
-                'Attribute' => array(
-                    'fields' => array('Attribute.*')
-                )
-            ),
-        ));
+        $options = array(
+            'conditions' => array('Object.id' => $id)
+        );
+        $object = $this->MispObject->fetchObjects($this->Auth->user(), $options);
         if (empty($object)) {
             throw new MethodNotAllowedException(__('Object not found or not authorised.'));
         }
-
-        // check for permissions
-        if (!$this->_isSiteAdmin()) {
-            if ($object['Event']['locked']) {
-                if ($this->Auth->user('org_id') != $object['Event']['org_id'] || !$this->userRole['perm_sync']) {
-                    throw new MethodNotAllowedException(__('Object not found or not authorised.'));
-                }
-            } else {
-                if ($this->Auth->user('org_id') != $object['Event']['orgc_id']) {
-                    throw new MethodNotAllowedException(__('Object not found or not authorised.'));
-                }
-            }
-        }
-        $date = new DateTime();
-        if ($hard) {
-            // For a hard delete, simply run the delete, it will cascade
-            $this->MispObject->delete($id);
-            return true;
-        } else {
-            // For soft deletes, sanitise the object first if the setting is enabled
-            if (Configure::read('Security.sanitise_attribute_on_delete')) {
-                $object['Object']['name'] = 'N/A';
-                $object['Object']['category'] = 'N/A';
-                $object['Object']['description'] = 'N/A';
-                $object['Object']['template_uuid'] = 'N/A';
-                $object['Object']['template_version'] = 0;
-                $object['Object']['comment'] = '';
-            }
-            $object['Object']['deleted'] = 1;
-            $object['Object']['timestamp'] = $date->getTimestamp();
-            $this->MispObject->save($object);
-            foreach ($object['Attribute'] as $attribute) {
-                if (Configure::read('Security.sanitise_attribute_on_delete')) {
-                    $attribute['category'] = 'Other';
-                    $attribute['type'] = 'comment';
-                    $attribute['value'] = 'deleted';
-                    $attribute['comment'] = '';
-                    $attribute['to_ids'] = 0;
-                }
-                $attribute['deleted'] = 1;
-                $attribute['timestamp'] = $date->getTimestamp();
-                $this->MispObject->Attribute->save(array('Attribute' => $attribute));
-                $this->MispObject->Event->ShadowAttribute->deleteAll(
-                    array('ShadowAttribute.old_id' => $attribute['id']),
-                    false
-                );
-            }
-            $this->MispObject->Event->unpublishEvent($object['Event']['id']);
-            $object_refs = $this->MispObject->ObjectReference->find('all', array(
-                'conditions' => array(
-                    'ObjectReference.referenced_type' => 1,
-                    'ObjectReference.referenced_id' => $id,
-                ),
-                'recursive' => -1
-            ));
-            foreach ($object_refs as $ref) {
-                $ref['ObjectReference']['deleted'] = 1;
-                $this->MispObject->ObjectReference->save($ref);
-            }
-            return true;
-        }
+        $object = $object[0];
+        return $this->MispObject->deleteObject($object, $hard=$hard);
     }
 
     public function view($id)
     {
-        $id = $this->Toolbox->findIdByUuid($this->MispObject, $id);
         if ($this->_isRest()) {
-            $objects = $this->MispObject->fetchObjects($this->Auth->user(), array('conditions' => array('Object.id' => $id)));
+            $objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
+                'conditions' => $this->__objectIdToConditions($id),
+            ));
             if (!empty($objects)) {
                 $object = $objects[0];
                 if (!empty($object['Event'])) {
@@ -1234,15 +1121,18 @@ class ObjectsController extends AppController
         $this->set('event_id', $event_id);
     }
 
-    function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
+    public function groupAttributesIntoObject($event_id, $selected_template, $selected_attribute_ids='[]')
     {
         $event = $this->MispObject->Event->find('first', array(
             'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.publish_timestamp'),
+            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id', 'Event.publish_timestamp'),
             'conditions' => array('Event.id' => $event_id)
         ));
-        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+        if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         $hard_delete_attribute = $event['Event']['publish_timestamp'] == 0;
         if (!$this->request->is('ajax')) {
@@ -1262,12 +1152,7 @@ class ObjectsController extends AppController
             $selected_attribute_ids = json_decode($this->request->data['Object']['selectedAttributeIds'], true);
             $selected_object_relation_mapping = json_decode($this->request->data['Object']['selectedObjectRelationMapping'], true);
             if ($distribution == 4) {
-                $sg = $this->MispObject->SharingGroup->find('first', array(
-                    'conditions' => array('SharingGroup.id' => $sharing_group_id),
-                    'recursive' => -1,
-                    'fields' => array('SharingGroup.id', 'SharingGroup.name'),
-                    'order' => false
-                ));
+                $sg = $this->MispObject->SharingGroup->fetchSG($sharing_group_id, $this->Auth->user());
                 if (empty($sg)) {
                     throw new NotFoundException(__('Invalid sharing group.'));
                 }
@@ -1356,4 +1241,15 @@ class ObjectsController extends AppController
         }
     }
 
+    private function __objectIdToConditions($id)
+    {
+        if (is_numeric($id)) {
+            $conditions = array('Object.id' => $id);
+        } elseif (Validation::uuid($id)) {
+            $conditions = array('Object.uuid' => $id);
+        } else {
+            throw new NotFoundException(__('Invalid object ID.'));
+        }
+        return $conditions;
+    }
 }

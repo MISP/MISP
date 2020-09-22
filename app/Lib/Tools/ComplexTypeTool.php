@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/TmpFileTool.php';
 
 class ComplexTypeTool
 {
@@ -26,7 +27,7 @@ class ComplexTypeTool
         array(
             'from' => '/[\@]|\[at\]/',
             'to' => '@',
-            'types' => array('email-src', 'email-dst')
+            'types' => array('email', 'email-src', 'email-dst')
         ),
         array(
             'from' => '/\[:\]/',
@@ -140,31 +141,28 @@ class ComplexTypeTool
         return array_values($array);
     }
 
-    /*
-     * parse a CSV file with the given settings
+    /**
+     * Parse a CSV file with the given settings
      * All lines starting with # are stripped
      * The settings can contain the following:
      *     delimiter: Expects a delimiter string (default is a simple comma).
      *                For example, to split the following line: "value1##comma##value2" simply pass $settings['delimiter'] = "##comma##";
      *     values:    Expects an array (or a comma separated string) with numeric values denoting the columns containing indicators. If this is not set then every value will be checked. (column numbers start at 1)
+     * @param string $input
+     * @param array $settings
+     * @return array
+     * @throws Exception
      */
     public function checkCSV($input, $settings = array())
     {
-        $delimiter = !empty($settings['delimiter']) ? $settings['delimiter'] : ",";
-        $rows = str_getcsv($input, "\n");
-        unset($input);
-        $data = array();
-        foreach ($rows as $k => $row) {
-            if (empty($row[0]) || $row[0] === '#') {
-                continue;
-            }
-            if ($delimiter == '\t') {
-                $data[$k] = explode("\t", $row);
-            } else {
-                $data[$k] = str_getcsv($row, $delimiter);
-            }
+        if (empty($input)) {
+            return [];
         }
-        unset($rows);
+
+        $delimiter = !empty($settings['delimiter']) ? $settings['delimiter'] : ",";
+        if ($delimiter === '\t') {
+            $delimiter = "\t";
+        }
         $values = !empty($settings['value']) ? $settings['value'] : array();
         if (!is_array($values)) {
             $values = explode(',', $values);
@@ -172,23 +170,34 @@ class ComplexTypeTool
         foreach ($values as $key => $value) {
             $values[$key] = intval($value);
         }
-        $iocArray = array();
-        foreach ($data as $rowPos => $row) {
+
+        // Write to tmp file to save memory
+        $tmpFile = new TmpFileTool();
+        $tmpFile->write($input);
+        unset($input);
+
+        $iocArray = [];
+        foreach ($tmpFile->csv($delimiter) as $row) {
+            if (!empty($row[0][0]) && $row[0][0] === '#') { // Comment
+                continue;
+            }
             foreach ($row as $elementPos => $element) {
-                if ((!empty($values) && in_array(($elementPos + 1), $values)) || empty($values)) {
+                if (empty($values) || in_array(($elementPos + 1), $values)) {
                     $element = trim($element, " \t\n\r\0\x0B\"\'");
-                    if (isset($settings['excluderegex']) && !empty($settings['excluderegex'])) {
-                        if (preg_match($settings['excluderegex'], $element)) {
-                            continue;
-                        }
+                    if (empty($element)) {
+                        continue;
+                    }
+                    if (!empty($settings['excluderegex']) && preg_match($settings['excluderegex'], $element)) {
+                        continue;
                     }
                     $resolvedResult = $this->__resolveType($element);
-                    if (!empty($resolvedResult)) {
+                    if ($resolvedResult) {
                         $iocArray[] = $resolvedResult;
                     }
                 }
             }
         }
+
         return $iocArray;
     }
 
@@ -244,9 +253,8 @@ class ComplexTypeTool
 
     private function __resolveType($raw_input)
     {
-        $input = array(
-            'raw' => trim($raw_input)
-        );
+        $input = array('raw' => trim($raw_input));
+
         $input = $this->__refangInput($input);
         $input = $this->__extractPort($input);
 
@@ -272,7 +280,7 @@ class ComplexTypeTool
         // quick filter for an @ to see if we should validate a potential e-mail address
         if (strpos($input['refanged'], '@') !== false) {
             if (filter_var($input['refanged'], FILTER_VALIDATE_EMAIL)) {
-                return array('types' => array('email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input['refanged']);
+                return array('types' => array('email', 'email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input['refanged']);
             }
         }
         return false;

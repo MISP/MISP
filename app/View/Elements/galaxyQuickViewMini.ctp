@@ -123,7 +123,7 @@
         }
         if (
             (!isset($local_tag_off) || !$local_tag_off) &&
-            ($isSiteAdmin || ($isAclTagger && Configure::read('MISP.host_org_id') == $me['org_id']))
+            ($isSiteAdmin || ($mayModify && $isAclTagger) || ($isAclTagger && Configure::read('MISP.host_org_id') == $me['org_id']))
         ) {
             echo sprintf(
                 '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="true" role="button" tabindex="0" aria-label="' . __('Add new local cluster') . '" title="' . __('Add a local tag') . '" style="%s">%s</button>',

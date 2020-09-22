@@ -93,7 +93,7 @@ sudo yum install gcc git zip \
        libxslt-devel zlib-devel ssdeep-devel -y
 
 # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
-sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache rh-php72-php-gd -y
+sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache rh-php72-php-gd rh-php72-php-zip -y
 
 # Python 3.6 in now available in CentOS 7.7 base
 sudo yum install python3 python3-devel -y

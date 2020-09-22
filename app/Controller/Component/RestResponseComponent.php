@@ -329,7 +329,7 @@ class RestResponseComponent extends Component
                         $action = substr($action, 6);
                         $admin_routing = 'admin/';
                     }
-                    $url = '/' . $admin_routing . $controller . '/' . $action;
+                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
                     $result[$url] = $data;
                 }
             }
@@ -372,7 +372,7 @@ class RestResponseComponent extends Component
                         }
                     }
                     $data['body'] = json_encode($data['body'], JSON_PRETTY_PRINT);
-                    $url = '/' . $admin_routing . $controller . '/' . $action;
+                    $url = $this->baseurl . '/' . $admin_routing . $controller . '/' . $action;
                     $data['url'] = $url;
                     if (!empty($data['params'])) {
                         foreach ($data['params'] as $param) {
@@ -1140,7 +1140,7 @@ class RestResponseComponent extends Component
                 'input' => 'select',
                 'type' => 'string',
                 'operators' => array('equal'),
-                'values' => array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist'),
+                'values' => array('Attribute', 'Event', 'EventBlocklist', 'EventTag', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist'),
             ),
             'model_id' => array(
                 'input' => 'number',
@@ -1809,6 +1809,10 @@ class RestResponseComponent extends Component
             unset($tags[$i]);
         }
         $field['values'] = $tags;
+
+        if ($action == 'attachTagToObject') {
+            $field['help'] = __('Also supports array of tags');
+        }
     }
     private function __overwriteNationality($scope, $action, &$field) {
         $field['values'] = ClassRegistry::init("Organisation")->countries;

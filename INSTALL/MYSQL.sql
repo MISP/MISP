@@ -604,7 +604,6 @@ CREATE TABLE IF NOT EXISTS `object_references` (
   `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `comment` text COLLATE utf8_bin NOT NULL,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
-
   PRIMARY KEY (id),
   INDEX `source_uuid` (`source_uuid`),
   INDEX `referenced_uuid` (`referenced_uuid`),
@@ -1013,8 +1012,8 @@ CREATE TABLE IF NOT EXISTS tag_collection_tags (
     `tag_collection_id` int(11) NOT NULL,
     `tag_id` int(11) NOT NULL,
     PRIMARY KEY (id),
-    INDEX `uuid` (`tag_collection_id`),
-    INDEX `user_id` (`tag_id`)
+    INDEX `tag_collection_id` (`tag_collection_id`),
+    INDEX `tag_id` (`tag_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
