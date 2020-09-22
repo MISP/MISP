@@ -2202,7 +2202,7 @@ class Event extends AppModel
                 }
 
                 $userEmail = $userEmails[$event['Event']['user_id']];
-                if ($sameOrg && $user['Role']['perm_auditor']) {
+                if ($sameOrg && $user['Role']['perm_audit']) {
                     $event['Event']['event_creator_email'] = $userEmail;
                 }
                 $event['User']['email'] = $userEmail;
