@@ -319,7 +319,7 @@ class EventReportsController extends AppController
         $fieldList = $this->EventReport->captureFields;
         $ignoreFieldList = ['id', 'uuid', 'event_id', 'deleted'];
         foreach ($fieldList as $field) {
-            if (!in_array($field, $ignoreFieldList) && !empty($newReport['EventReport'][$field])) {
+            if (!in_array($field, $ignoreFieldList) && isset($newReport['EventReport'][$field])) {
                 $savedReport['EventReport'][$field] = $newReport['EventReport'][$field];
             }
         }
