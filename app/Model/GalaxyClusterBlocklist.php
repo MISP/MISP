@@ -16,6 +16,7 @@ class GalaxyClusterBlocklist extends AppModel
     );
 
     public $blocklistFields = array('cluster_uuid', 'comment', 'cluster_info', 'cluster_orgc');
+    public $blocklistTarget = 'cluster';
 
     public $validate = array(
         'cluster_uuid' => array(

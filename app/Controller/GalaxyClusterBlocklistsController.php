@@ -34,20 +34,19 @@ class GalaxyClusterBlocklistsController extends AppController
         }
         $this->set('passedArgs', json_encode($passedArgs));
         $this->set('passedArgsArray', $passedArgsArray);
-        $this->BlockList->index($this->_isRest(), $params);
+        return $this->BlockList->index($this->_isRest(), $params);
     }
 
     public function add()
     {
-        $this->BlockList->add($this->_isRest());
         $this->set('action', 'add');
+        return $this->BlockList->add($this->_isRest());
     }
 
     public function edit($id)
     {
-        $this->BlockList->edit($this->_isRest(), $id);
         $this->set('action', 'edit');
-        $this->render('add');
+        return $this->BlockList->edit($this->_isRest(), $id);
     }
 
     public function delete($id)
@@ -61,7 +60,7 @@ class GalaxyClusterBlocklistsController extends AppController
             }
             $id = $entry['GalaxyClusterBlocklist']['id'];
         }
-        $this->BlockList->delete($this->_isRest(), $id);
+        return $this->BlockList->delete($this->_isRest(), $id);
     }
 
     public function massDelete()
