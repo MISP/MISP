@@ -84,7 +84,7 @@
         )
     ));
     echo '</div>';
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'index', 'element_id' => 'galaxy_index'));
 ?>
 <script type="text/javascript">
     var passedArgsArray = <?php echo $passedArgs; ?>;

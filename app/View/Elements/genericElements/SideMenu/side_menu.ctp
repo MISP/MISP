@@ -1181,6 +1181,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
 
                 case 'galaxies':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'galaxy_index',
                         'url' => $baseurl . '/galaxies/index',
                         'text' => __('List Galaxies')
                     ));
@@ -1192,6 +1193,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         )); 
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'relationship_index',
                         'url' => $baseurl . '/galaxy_cluster_relations/index',
                         'text' => __('List Relationships')
                     ));
@@ -1295,11 +1297,6 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'element_id' => 'view',
                             'url' => $baseurl . '/galaxies/view/' . h($galaxy['Galaxy']['id']),
                             'text' => __('View Galaxy')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'view_cluster',
-                            'url' => $baseurl . '/galaxy_clusters/view/' . h($id),
-                            'text' => __('View Cluster')
                         ));
                     }
                     break;
