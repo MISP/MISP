@@ -3049,7 +3049,7 @@ class Event extends AppModel
         } else {
             $threatLevel = $event['ThreatLevel']['name'] . " - ";
         }
-        $subject = "[" . Configure::read('MISP.org') . " MISP] Event $id - $subject $threatLevel " . strtoupper($subjMarkingString);
+        $subject = "[" . Configure::read('MISP.org') . " MISP] Event $id - $subject$threatLevel" . strtoupper($subjMarkingString);
 
         $eventUrl = $this->__getAnnounceBaseurl() . "/events/view/" . $id;
         $bodyNoEnc = __("A new or modified event was just published on %s", $eventUrl) . "\n\n";
