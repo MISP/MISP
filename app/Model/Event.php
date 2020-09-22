@@ -2198,7 +2198,7 @@ class Event extends AppModel
             $sameOrg = $event['Event']['orgc_id'] === $user['org_id'];
             if ($sameOrg || $user['Role']['perm_site_admin']) {
                 if (!isset($userEmails[$event['Event']['user_id']])) {
-                    $userEmails[$event['Event']['user_id']] = $this->User->getAuthUser($event['Event']['user_id'])['email'];
+                    $userEmails[$event['Event']['user_id']] = $this->User->field('email', ['id' => $event['Event']['user_id']]);
                 }
 
                 $userEmail = $userEmails[$event['Event']['user_id']];
