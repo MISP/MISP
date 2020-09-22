@@ -7125,7 +7125,6 @@ class Event extends AppModel
             }
         }
     }
-<<<<<<< HEAD
     
     /**
      * extractAllTagNames Returns all tag names attached to any elements in an event
@@ -7137,31 +7136,31 @@ class Event extends AppModel
     {
         $tags = array();
         if (!empty($event['EventTag'])) {
-            foreach($event['EventTag'] as $eventTag) {
+            foreach ($event['EventTag'] as $eventTag) {
                 $tagName = $eventTag['Tag']['name'];
                 $tags[$tagName] = $tagName;
             }
         }
         if (!empty($event['Attribute'])) {
-            foreach($event['Attribute'] as $attribute) {
-                foreach($attribute['AttributeTag'] as $attributeTag) {
+            foreach ($event['Attribute'] as $attribute) {
+                foreach ($attribute['AttributeTag'] as $attributeTag) {
                     $tagName = $attributeTag['Tag']['name'];
                     $tags[$tagName] = $tagName;
                 }
             }
         }
         if (!empty($event['ShadowAttribute'])) {
-            foreach($event['ShadowAttribute'] as $attribute) {
-                foreach($attribute['AttributeTag'] as $attributeTag) {
+            foreach ($event['ShadowAttribute'] as $attribute) {
+                foreach ($attribute['AttributeTag'] as $attributeTag) {
                     $tagName = $attributeTag['Tag']['name'];
                     $tags[$tagName] = $tagName;
                 }
             }
         }
         if (!empty($event['Object'])) {
-            foreach($event['Object'] as $object) {
-                foreach($object['Attribute'] as $attribute) {
-                    foreach($attribute['AttributeTag'] as $attributeTag) {
+            foreach ($event['Object'] as $object) {
+                foreach ($object['Attribute'] as $attribute) {
+                    foreach ($attribute['AttributeTag'] as $attributeTag) {
                         $tagName = $attributeTag['Tag']['name'];
                         $tags[$tagName] = $tagName;
                     }
@@ -7169,7 +7168,7 @@ class Event extends AppModel
             }
         }
         return $tags;
-=======
+    }
 
     public function recoverEvent($id)
     {
@@ -7199,6 +7198,5 @@ class Event extends AppModel
 
         // default value if no match found
         return Configure::read('MISP.email_subject_TLP_string') ?: "tlp:amber";
->>>>>>> origin/2.4
     }
 }
