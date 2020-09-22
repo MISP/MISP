@@ -94,6 +94,9 @@ class EventReport extends AppModel
     public function captureReport(array $user, array $report, $eventId)
     {
         $this->Log = ClassRegistry::init('Log');
+        if (!isset($report['EventReport'])) {
+            $report = ['EventReport' => $report];
+        }
         $report['EventReport']['event_id'] = $eventId;
         $report = $this->captureSG($user, $report);
         $this->create();
