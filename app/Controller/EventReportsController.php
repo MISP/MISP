@@ -112,11 +112,11 @@ class EventReportsController extends AppController
             $errors = $this->EventReport->deleteReport($this->Auth->user(), $id, $hard=$hard);
             $redirectTarget = $this->referer();
             if (empty($errors)) {
-                $successMessage = __('Report %s %s deleted', $id, $hard ? __('hard') : __('soft'));
+                $successMessage = __('Event Report %s %s deleted', $id, $hard ? __('hard') : __('soft'));
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
                 return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'delete', $id, $redirectTarget);
             } else {
-                $errorMessage = __('Report %s could not be %s deleted.%sReasons: %s', $id, $hard ? __('hard') : __('soft'), PHP_EOL, json_encode($errors));
+                $errorMessage = __('Event Report %s could not be %s deleted.%sReasons: %s', $id, $hard ? __('hard') : __('soft'), PHP_EOL, json_encode($errors));
                 return $this->getFailResponseBasedOnContext($errorMessage, array(), 'edit', $id, $redirectTarget);
             }
         } else {
@@ -125,6 +125,7 @@ class EventReportsController extends AppController
             } else {
                 $this->layout = 'ajax';
                 $this->set('report', $report);
+                $this->render('ajax/delete');
             }
         }
     }
@@ -136,11 +137,11 @@ class EventReportsController extends AppController
             $errors = $this->EventReport->restoreReport($this->Auth->user(), $id);
             $redirectTarget = $this->referer();
             if (empty($errors)) {
-                $successMessage = __('Report %s restored', $id);
+                $successMessage = __('Event Report %s restored', $id);
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
                 return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'restore', $id, $redirectTarget);
             } else {
-                $errorMessage = __('Report %s could not be %s restored.%sReasons: %s', $id, PHP_EOL, json_encode($errors));
+                $errorMessage = __('Event Report %s could not be %s restored.%sReasons: %s', $id, PHP_EOL, json_encode($errors));
                 return $this->getFailResponseBasedOnContext($errorMessage, array(), 'restore', $id, $redirectTarget);
             }
         } else {
@@ -213,16 +214,16 @@ class EventReportsController extends AppController
         return $compiledConditions;
     }
 
-    private function getSuccessResponseBasedOnContext($message, array $data = array(), $action = '', $id = false, $redirect = array())
+    private function getSuccessResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
     {
         if ($this->_isRest()) {
-            if (!empty($data)) {
+            if (!is_null($data)) {
                 return $this->RestResponse->viewData($data, $this->response->type());
             } else {
-                return $this->RestResponse->saveSuccessResponse($this->alias, $action, $id, false, $message);
+                return $this->RestResponse->saveSuccessResponse($this->EventReport->alias, $action, $id, false, $message);
             }
         } elseif ($this->request->is('ajax')) {
-            return $this->RestResponse->saveSuccessResponse($this->alias, $action, $id, false, $message);
+            return $this->RestResponse->saveSuccessResponse($this->EventReport->alias, $action, $id, false, $message, $data);
         } else {
             $this->Flash->success($message);
             $this->redirect($redirect);
@@ -230,19 +231,19 @@ class EventReportsController extends AppController
         return;
     }
 
-    private function getFailResponseBasedOnContext($message, array $data = array(), $action = '', $id = false, $redirect = array())
+    private function getFailResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
     {
         if (is_array($message)) {
             $message = implode(', ', $message);
         }
         if ($this->_isRest()) {
-            if (!empty($data)) {
+            if (!is_null($data)) {
                 return $this->RestResponse->viewData($data, $this->response->type());
             } else {
                 return $this->RestResponse->saveFailResponse('EventReport', $action, $id, $message, false);
             }
         } elseif ($this->request->is('ajax')) {
-            return $this->RestResponse->saveFailResponse('EventReport', $action, $id, $message, false);
+            return $this->RestResponse->saveFailResponse('EventReport', $action, $id, $message, false, $data);
         } else {
             $this->Flash->error($message);
             $this->redirect($this->referer());

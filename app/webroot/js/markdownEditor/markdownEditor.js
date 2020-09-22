@@ -327,13 +327,12 @@ function saveMarkdown() {
                 $editor.prop('disabled', true);
             },
             success:function(report, textStatus) {
-                showMessage('success', saveSuccessMessage);
                 if (report) {
-                    report = JSON.parse(report)
-                    if (report[0].EventReport !== undefined) {
-                        lastModified = report[0].EventReport.timestamp + '000'
+                    showMessage('success', report.message);
+                    if (report.data !== undefined) {
+                        lastModified = report.data.EventReport.timestamp + '000'
                         refreshLastUpdatedField()
-                        originalRaw = report[0].EventReport.content
+                        originalRaw = report.data.EventReport.content
                         revalidateContentCache()
                     }
                 }

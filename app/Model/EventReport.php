@@ -194,7 +194,7 @@ class EventReport extends AppModel
             $errors = $this->saveAndReturnErrors($report, ['fieldList' => ['deleted']]);
         }
         if (empty($errors)) {
-            $this->Event->unpublishEvent($eventId);
+            $this->Event->unpublishEvent($report['EventReport']['event_id']);
         }
         return $errors;
     }
@@ -212,7 +212,7 @@ class EventReport extends AppModel
         $report['EventReport']['deleted'] = false;
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => ['deleted']]);
         if (empty($errors)) {
-            $this->Event->unpublishEvent($eventId);
+            $this->Event->unpublishEvent($report['EventReport']['event_id']);
         }
         return $errors;
     }
