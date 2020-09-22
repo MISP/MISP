@@ -1471,6 +1471,18 @@ class ServersController extends AppController
         }
     }
 
+    public function killAllWorkers($force = false)
+    {
+        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        $this->Server->killAllWorkers($this->Auth->user(), $force);
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'killAllWorkers', false, $this->response->type(), __('Killing workers.'));
+        }
+        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
+    }
+
     public function restartWorkers()
     {
         if (!$this->_isSiteAdmin() || !$this->request->is('post')) {

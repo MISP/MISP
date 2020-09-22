@@ -126,8 +126,30 @@
 
 <?php
 if ($worker_array['controls']) {
-    echo $this->Form->create('Server', array('url' => $baseurl . '/servers/restartDeadWorkers'));
-    echo $this->Form->button(__('Restart dead workers'), array('class' => 'btn btn-primary'));
-    echo $this->Form->end();
+    echo $this->Form->postLink(
+        __('Restart dead workers'),
+        $baseurl . '/servers/restartDeadWorkers',
+        [
+            'class' => 'btn btn-primary',
+            'style' => 'margin-right:5px;'
+        ]
+    );
+    echo $this->Form->postLink(
+        __('Kill all workers'),
+        $baseurl . '/servers/killAllWorkers',
+        [
+            'class' => 'btn btn-primary',
+            'style' => 'margin-right:5px;'
+        ]
+    );
+    echo $this->Form->postLink(
+        __('Force kill all workers'),
+        $baseurl . '/servers/killAllWorkers/1',
+        [
+            'class' => 'btn btn-primary',
+            'style' => 'margin-right:5px;',
+            'confirm' => __('Are you sure you want to force kill all workers? This will issue a kill -9 and terminate any processing underway.')
+        ]
+    );
 }
 ?>
