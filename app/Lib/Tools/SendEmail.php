@@ -516,6 +516,9 @@ class SendEmail
         // If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender.
         // For this reason we should also attach the public key of the sender along with the message (if applicable).
         if ($replyToUser) {
+            if (!isset($replyToUser['User']['email'])) {
+                throw new InvalidArgumentException("Invalid replyToUser model provided.");
+            }
             $email->replyTo($replyToUser['User']['email']);
             if (!empty($replyToUser['User']['gpgkey'])) {
                 $attachments['gpgkey.asc'] = $replyToUser['User']['gpgkey'];
