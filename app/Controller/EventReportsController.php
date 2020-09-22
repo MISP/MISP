@@ -162,7 +162,8 @@ class EventReportsController extends AppController
         if ($this->_isRest()) {
             $reports = $this->EventReport->find('all', [
                 'recursive' => -1,
-                'conditions' => $compiledConditions
+                'conditions' => $compiledConditions,
+                'contain' => $this->EventReport->defaultContain,
             ]);
             return $this->RestResponse->viewData($reports, $this->response->type());
         } else {
