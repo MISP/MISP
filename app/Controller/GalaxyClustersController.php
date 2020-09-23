@@ -206,6 +206,9 @@ class GalaxyClustersController extends AppController
             $this->loadModel('Attribute');
             $distributionLevels = $this->Attribute->distributionLevels;
             $this->set('distributionLevels', $distributionLevels);
+            if (!$cluster['GalaxyCluster']['default'] && !$cluster['GalaxyCluster']['published']) {
+                $this->Flash->warning(__('This cluster is not published. Users will not be able to use it'));
+            }
         }
     }
     
