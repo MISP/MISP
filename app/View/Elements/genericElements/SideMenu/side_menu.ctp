@@ -1366,7 +1366,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
                             'url' => $baseurl . '/galaxy_cluster_relations/add/',
-                            'text' => __('Add Relationships')
+                            'text' => __('Add Relationship')
                         ));
                     }
                     break;

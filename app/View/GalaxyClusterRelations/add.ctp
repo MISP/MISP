@@ -5,7 +5,7 @@
     echo $this->element('genericElements/Form/genericForm', array(
         'form' => $this->Form,
         'data' => array(
-            'title' => $action == 'add' ? __('Add Galaxy Cluster Relationships') : __('Edit Galaxy Cluster Relationships'),
+            'title' => ($action == 'add' ? __('Add') : __('Edit')) . ' ' . __('Galaxy Cluster Relationship'),
             'fields' => array(
                 array(
                     'field' => 'galaxy_cluster_uuid',
