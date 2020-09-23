@@ -359,6 +359,9 @@ class GalaxiesController extends AppController
                 'GalaxyCluster.deleted' => false,
             )
         );
+        if ($target_type == 'galaxyClusterRelation') {
+            $conditions['OR']['GalaxyCluster.published'] = [true, false];
+        }
         if ($selectGalaxy) {
             $conditions['GalaxyCluster.galaxy_id'] = $selectGalaxy;
         }
