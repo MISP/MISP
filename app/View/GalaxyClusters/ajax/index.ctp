@@ -1,4 +1,9 @@
 <?php
+    foreach ($list as $i => $cluster) {
+        if ($cluster['GalaxyCluster']['default']) {
+            $list[$i]['GalaxyCluster']['published'] = null;
+        }
+    }
     echo $this->element('/genericElements/IndexTable/index_table', array(
         'data' => array(
             'paginatorOptions' => array(
@@ -59,7 +64,7 @@
                 array(
                     'name' => __('Published'),
                     'sort' => 'GalaxyCluster.published',
-                    'element' => 'boolean',
+                    'element' => 'booleanOrNA',
                     'class' => 'short',
                     'data_path' => 'GalaxyCluster.published'
                 ),
