@@ -194,7 +194,11 @@
                     'postLinkConfirm' => __('Are you sure you want to publish the Galaxy Cluster?'),
                     'complex_requirement' => array(
                         'function' => function($row, $options) {
-                            return ($options['me']['Role']['perm_site_admin'] || $options['me']['org_id'] == $options['datapath']['orgc']) && !$options['datapath']['published'];
+                            return !$options['datapath']['published'] &&
+                                (
+                                    $options['me']['Role']['perm_site_admin'] ||
+                                    ($options['me']['org_id'] == $options['datapath']['orgc'] && $options['me']['Role']['perm_site_admin'])
+                                );
                         },
                         'options' => array(
                             'me' => $me,
@@ -231,7 +235,23 @@
                     'url_named_params_data_paths' => array(
                         'forkUuid' => 'GalaxyCluster.uuid'
                     ),
-                    'icon' => 'code-branch'
+                    'icon' => 'code-branch',
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return !$options['datapath']['default'] &&
+                            (
+                                $options['me']['Role']['perm_site_admin'] ||
+                                ($options['me']['org_id'] == $options['datapath']['org'] && $options['me']['Role']['perm_galaxy_editor'])
+                            );
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'org' => 'GalaxyCluster.org_id',
+                                'default' => 'GalaxyCluster.default'
+                            )
+                        )
+                    ),
                 ),
                 array(
                     'title' => 'Edit',
@@ -242,7 +262,11 @@
                     'icon' => 'edit',
                     'complex_requirement' => array(
                         'function' => function($row, $options) {
-                            return !$options['datapath']['default'] && ($options['me']['Role']['perm_site_admin'] || ($options['me']['org_id'] == $options['datapath']['org']));
+                            return !$options['datapath']['default'] &&
+                            (
+                                $options['me']['Role']['perm_site_admin'] ||
+                                ($options['me']['org_id'] == $options['datapath']['org'] && $options['me']['Role']['perm_galaxy_editor'])
+                            );
                         },
                         'options' => array(
                             'me' => $me,
@@ -258,6 +282,18 @@
                     'icon' => 'trash',
                     'onclick' => 'simplePopup(\'' . $baseurl . '/galaxy_clusters/delete/[onclick_params_data_path]\');',
                     'onclick_params_data_path' => 'GalaxyCluster.id',
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return $options['me']['Role']['perm_site_admin'] || ($options['me']['org_id'] == $options['datapath']['org'] && $options['me']['Role']['perm_galaxy_editor']);
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'org' => 'GalaxyCluster.org_id',
+                                'default' => 'GalaxyCluster.default'
+                            )
+                        )
+                    ),
                 ),
             )
         )
