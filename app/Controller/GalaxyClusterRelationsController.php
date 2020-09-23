@@ -130,7 +130,7 @@ class GalaxyClusterRelationsController extends AppController
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
                 $errors = array($clusterSource['error']);
             }
-
+            
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
                 $tags = array_map('trim', $tags);
@@ -138,11 +138,11 @@ class GalaxyClusterRelationsController extends AppController
             } else {
                 $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
-
+            
             if (empty($errors)) {
                 $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['SourceCluster'], $relation);
             }
-
+            
             if (empty($errors)) {
                 $message = __('Relationship added.');
                 $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['SourceCluster']['id']);
@@ -169,7 +169,7 @@ class GalaxyClusterRelationsController extends AppController
                     $this->Flash->success($message);
                     $this->redirect(array('action' => 'index'));
                 } else {
-                    $message .= __(' Reason: %s', json_encode($this->GalaxyClusterRelation->validationErrors, true));
+                    $message .= __(' Reason: %s', json_encode(array_merge($errors, $this->GalaxyClusterRelation->validationErrors)));
                     $this->Flash->error($message);
                 }
             }
