@@ -193,6 +193,7 @@ class GalaxyClustersController extends AppController
             $cluster = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $cluster);
             $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);
             $this->set('id', $id);
+            $this->set('galaxy', ['Galaxy' => $cluster['GalaxyCluster']['Galaxy']]);
             $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
             $this->set('cluster', $cluster);
             $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
