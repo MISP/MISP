@@ -505,11 +505,15 @@ class GalaxyCluster extends AppModel
             $cluster = $this->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
             $this->GalaxyClusterBlocklist = ClassRegistry::init('GalaxyClusterBlocklist');
             $this->GalaxyClusterBlocklist->create();
-            $orgc = $this->Orgc->find('first', array(
-                'conditions' => array('Orgc.id' => $cluster['GalaxyCluster']['orgc_id']),
-                'recursive' => -1,
-                'fields' => array('Orgc.name')
-            ));
+            if (!empty($cluster['GalaxyCluster']['orgc_id'])) {
+                $orgc = $this->Orgc->find('first', array(
+                    'conditions' => array('Orgc.id' => $cluster['GalaxyCluster']['orgc_id']),
+                    'recursive' => -1,
+                    'fields' => array('Orgc.name')
+                ));
+            } else {
+                $orgc = ['Orgc' => ['name' => 'MISP']];
+            }
             $this->GalaxyClusterBlocklist->save(array('cluster_uuid' => $cluster['GalaxyCluster']['uuid'], 'cluster_info' => $cluster['GalaxyCluster']['value'], 'cluster_orgc' => $orgc['Orgc']['name']));
             $deleteResult = $this->delete($id, true);
             return $deleteResult;
