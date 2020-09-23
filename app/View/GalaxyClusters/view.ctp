@@ -42,6 +42,7 @@
     $table_data[] = array('key' => __('Parent Galaxy'), 'value' => $cluster['GalaxyCluster']['Galaxy']['name'] ? $cluster['GalaxyCluster']['Galaxy']['name'] : $cluster['GalaxyCluster']['Galaxy']['type']);
     $table_data[] = array('key' => __('Description'), 'value' => $cluster['GalaxyCluster']['description']);
     $table_data[] = array('key' => __('Published'), 'boolean' => $cluster['GalaxyCluster']['published'], 'class' => (!$cluster['GalaxyCluster']['published'] ? 'background-red bold': ''));
+    $table_data[] = array('key' => __('Default'), 'boolean' => $cluster['GalaxyCluster']['default'], 'class' => (!$cluster['GalaxyCluster']['published'] ? 'black': 'black'));
     $table_data[] = array('key' => __('Version'), 'value' => $cluster['GalaxyCluster']['version']);
     $table_data[] = array('key' => __('UUID'), 'value' => $cluster['GalaxyCluster']['uuid']);
     $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid']);

@@ -1260,9 +1260,9 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'text' => __('Fork Cluster')
                             ));
                             if (
-                                $isSiteAdmin || (
-                                    isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id'] &&
-                                    !$cluster['GalaxyCluster']['default']
+                                !$cluster['GalaxyCluster']['default'] &&
+                                (
+                                    $isSiteAdmin || (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id'])
                                 )
                             ) {
                                 echo $this->element('/genericElements/SideMenu/side_menu_divider');
