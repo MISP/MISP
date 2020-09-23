@@ -118,7 +118,19 @@
                     ),
                     'postLink' => true,
                     'postLinkConfirm' => __('Are you sure you want to delete the Relationship?'),
-                    'icon' => 'trash'
+                    'icon' => 'trash',
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return $options['me']['Role']['perm_site_admin'] || ($options['me']['org_id'] == $options['datapath']['org'] && $options['me']['Role']['perm_galaxy_editor']);
+                        },
+                        'options' => array(
+                            'me' => $me,
+                            'datapath' => array(
+                                'org' => 'SourceCluster.org_id',
+                                'default' => 'SourceCluster.default'
+                            )
+                        )
+                    ),
                 ),
             )
         )
