@@ -81,6 +81,28 @@
                     )
                 ),
                 array(
+                    'name' => __('Owner Org'),
+                    'class' => 'short',
+                    'element' => 'org',
+                    'data_path' => 'SourceCluster.Org',
+                    'fields' => array(
+                        'allow_picture' => true,
+                        'default_org' => 'MISP'
+                    ),
+                    'requirement' => $isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))
+                ),
+                array(
+                    'name' => __('Creator Org'),
+                    'class' => 'short',
+                    'element' => 'org',
+                    'data_path' => 'SourceCluster.Orgc',
+                    'fields' => array(
+                        'allow_picture' => true,
+                        'default_org' => 'MISP'
+                    ),
+                    'requirement' => (Configure::read('MISP.showorg') || $isAdmin) || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))
+                ),
+                array(
                     'name' => __('Distribution'),
                     'sort' => 'distribution',
                     'data_path' => 'GalaxyClusterRelation.distribution',
