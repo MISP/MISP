@@ -1225,12 +1225,6 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/galaxies/export/' . h($galaxy['Galaxy']['id']),
                             'text' => __('Export Galaxy Clusters')
                         ));
-                        if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'url' => $baseurl . '/galaxy_clusters/add/' . h($galaxy['Galaxy']['id']),
-                                'text' => __('Add Galaxy Cluster')
-                            ));
-                        }
                     }
                     if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster' || $menuItem === 'update_cluster' || $menuItem === 'add_cluster' || $menuItem === 'edit_cluster') {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
@@ -1297,6 +1291,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'element_id' => 'view',
                             'url' => $baseurl . '/galaxies/view/' . h($galaxy['Galaxy']['id']),
                             'text' => __('View Galaxy')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add_cluster',
+                            'url' => $baseurl . '/galaxy_clusters/add/' . h($galaxy['Galaxy']['id']),
+                            'text' => __('Add Cluster')
                         ));
                     }
                     break;
