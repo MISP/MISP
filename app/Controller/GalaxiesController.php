@@ -331,12 +331,12 @@ class GalaxiesController extends AppController
         $items = array();
         $items[] = array(
             'name' => __('All namespaces'),
-            'value' => $baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/' . $noGalaxyMatrix . '/local:' . $local
+            'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/' . $noGalaxyMatrix . '/local:' . $local
         );
         foreach ($namespaces as $namespace) {
             $items[] = array(
                 'name' => $namespace,
-                'value' => $baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/' . $noGalaxyMatrix . '/local:' . $local
+                'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/' . $noGalaxyMatrix . '/local:' . $local
             );
         }
 
