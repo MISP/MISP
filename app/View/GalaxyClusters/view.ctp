@@ -76,7 +76,7 @@
     <div class="row-fluid">
         <div class="span8">
             <h2>
-                <?php echo isset($cluster['GalaxyCluster']['Galaxy']['name']) ? h($cluster['GalaxyCluster']['Galaxy']['name']) : h($cluster['GalaxyCluster']['type']) . ': ' . $cluster['GalaxyCluster']['value']; ?>
+                <?= sprintf('%s :: %s', h($cluster['GalaxyCluster']['Galaxy']['name']), $cluster['GalaxyCluster']['value']); ?>
             </h2>
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
