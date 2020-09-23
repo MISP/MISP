@@ -2145,9 +2145,6 @@ class Event extends AppModel
             unset($params['contain']['ShadowAttribute']);
             unset($params['contain']['Object']);
         }
-        if ($user['Role']['perm_site_admin']) {
-            $params['contain']['User'] = array('fields' => 'email');
-        }
         $results = $this->find('all', $params);
         if (empty($results)) {
             return array();
@@ -2156,8 +2153,9 @@ class Event extends AppModel
         if ($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) {
             $this->Feed = ClassRegistry::init('Feed');
         }
+        // Precache current user email
+        $userEmails = array($user['id'] => $user['email']);
         // Do some refactoring with the event
-        $userEmails = array();
         $fields = array(
             'common' => array('distribution', 'sharing_group_id', 'uuid'),
             'Attribute' => array('value', 'type', 'category', 'to_ids'),
@@ -2193,12 +2191,22 @@ class Event extends AppModel
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
                 $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
             }
-            // Add information for auditor user
-            if ($event['Event']['orgc_id'] === $user['org_id'] && $user['Role']['perm_audit']) {
+
+            // Include information about event creator user email. This information is included for:
+            // - users from event creator org
+            // - site admins
+            // In export, this information will be included in `event_creator_email` field just for auditors of event creator org.
+            $sameOrg = $event['Event']['orgc_id'] === $user['org_id'];
+            if ($sameOrg || $user['Role']['perm_site_admin']) {
                 if (!isset($userEmails[$event['Event']['user_id']])) {
-                    $userEmails[$event['Event']['user_id']] = $this->User->getAuthUser($event['Event']['user_id'])['email'];
+                    $userEmails[$event['Event']['user_id']] = $this->User->field('email', ['id' => $event['Event']['user_id']]);
                 }
-                $event['Event']['event_creator_email'] = $userEmails[$event['Event']['user_id']];
+
+                $userEmail = $userEmails[$event['Event']['user_id']];
+                if ($sameOrg && $user['Role']['perm_audit']) {
+                    $event['Event']['event_creator_email'] = $userEmail;
+                }
+                $event['User']['email'] = $userEmail;
             }
             $event = $this->massageTags($user, $event, 'Event', $options['excludeGalaxy']);
             // Let's find all the related events and attach it to the event itself
@@ -3050,7 +3058,7 @@ class Event extends AppModel
         } else {
             $threatLevel = $event['ThreatLevel']['name'] . " - ";
         }
-        $subject = "[" . Configure::read('MISP.org') . " MISP] Event $id - $subject $threatLevel " . strtoupper($subjMarkingString);
+        $subject = "[" . Configure::read('MISP.org') . " MISP] Event $id - $subject$threatLevel" . strtoupper($subjMarkingString);
 
         $eventUrl = $this->__getAnnounceBaseurl() . "/events/view/" . $id;
         $bodyNoEnc = __("A new or modified event was just published on %s", $eventUrl) . "\n\n";

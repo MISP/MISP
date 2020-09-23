@@ -117,10 +117,10 @@
                 'html' => $contributorsContent
             );
         }
-        if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))) {
+        if (isset($event['User']['email'])) {
             $table_data[] = array(
-                'key' => __('Email'),
-                'value' => h($event['User']['email'])
+                'key' => __('Creator user'),
+                'value' => h($event['User']['email']),
             );
         }
         $table_data[] = array(
