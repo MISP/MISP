@@ -77,26 +77,31 @@ class GalaxyClusterRelation extends AppModel
     public function buildConditions($user)
     {
         $this->Event = ClassRegistry::init('Event');
-        $conditions = array();
+        $conditions = [];
         if (!$user['Role']['perm_site_admin']) {
             $alias = $this->alias;
             $sgids = $this->Event->cacheSgids($user, true);
-            $gcids = $this->SourceCluster->cacheGalaxyClusterIDs($user);
-            $conditions['AND']['OR'] = array(
-                "${alias}.galaxy_cluster_id" => $gcids,
-                array(
-                    'AND' => array(
+            $conditionsRelations['AND']['OR'] = [
+                [
+                    'AND' => [
                         "${alias}.distribution >" => 0,
                         "${alias}.distribution <" => 4
-                    ),
-                ),
-                array(
-                    'AND' => array(
+                    ],
+                ],
+                [
+                    'AND' => [
                         "${alias}.sharing_group_id" => $sgids,
                         "${alias}.distribution" => 4
-                    )
-                )
-            );
+                    ]
+                ]
+            ];
+            $conditionsSourceCluster = $this->SourceCluster->buildConditions($user);
+            $conditions = [
+                'AND' => [
+                    $conditionsRelations,
+                    $conditionsSourceCluster
+                ]
+            ];
         }
         return $conditions;
     }
@@ -426,6 +431,21 @@ class GalaxyClusterRelation extends AppModel
 
         $results['success'] = $results['imported'] > 0;
         return $results;
+    }
+
+    public function removeNonAccessibleTargetCluster($user, $relations)
+    {
+        $availableTargetClusterIDs = $this->TargetCluster->cacheGalaxyClusterIDs($user);
+        $availableTargetClusterIDsKeyed = array_flip($availableTargetClusterIDs);
+        foreach ($relations as $i => $relation) {
+            if (
+                isset($relation['TargetCluster']['id']) &&
+                !isset($availableTargetClusterIDsKeyed[$relation['TargetCluster']['id']])
+            ) {
+                $relations[$i]['TargetCluster'] = null;
+            }
+        }
+        return $relations;
     }
     
     /**

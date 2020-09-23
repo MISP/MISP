@@ -1936,9 +1936,6 @@ class GalaxyCluster extends AppModel
         } else {
             $gcids = $this->fetchGalaxyClusters($user, array(
                 'fields' => 'id',
-                'conditions' => array(
-                    'org_id' => $user['org_id']
-                )
             ), false);
             $alias = $this->alias;
             $gcids = Hash::extract($gcids, "{n}.${alias}.id");

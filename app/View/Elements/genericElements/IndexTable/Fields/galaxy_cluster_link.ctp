@@ -31,8 +31,8 @@
     } elseif (!empty($relation)) {
         $span = sprintf(
             '<span title="%s">%s</span>',
-            sprintf(__('Target galaxy cluster not found.')),
-            sprintf('%s :: %s', h($relation['galaxy_cluster_uuid']), h($relation['referenced_galaxy_cluster_uuid']))
+            __('Target galaxy cluster not found.'),
+            __('Unkown cluster')
         );
         echo $span;
     }
