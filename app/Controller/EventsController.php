@@ -5151,6 +5151,7 @@ class EventsController extends AppController
         $this->set('configTypes', $this->Module->configTypes);
         $this->set('module', $module);
         $this->set('eventId', $eventId);
+        $this->set('event', $event);
     }
 
     public function exportModule($module, $id, $standard = false)
