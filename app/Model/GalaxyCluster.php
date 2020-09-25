@@ -1963,6 +1963,26 @@ class GalaxyCluster extends AppModel
             return $gcids;
         }
     }
+    public function cacheGalaxyClusterOwnerIDs($user)
+    {
+        if (isset($this->__assetCache['gcOwnerIds'])) {
+            return $this->__assetCache['gcOwnerIds'];
+        } else {
+            $gcOwnerIds = $this->fetchGalaxyClusters($user, array(
+                'fields' => 'id',
+                'conditions' => array(
+                    'org_id' => $user['org_id']
+                )
+            ), false);
+            $alias = $this->alias;
+            $gcOwnerIds = Hash::extract($gcOwnerIds, "{n}.${alias}.id");
+            if (empty($gcOwnerIds)) {
+                $gcOwnerIds = array(-1);
+            }
+            $this->__assetCache['gcOwnerIds'] = $gcOwnerIds;
+            return $gcOwnerIds;
+        }
+    }
     public function getTagIdByClusterId($cluster_id)
     {
         $cluster = $this->find('first', [
