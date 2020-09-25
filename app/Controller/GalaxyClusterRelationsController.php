@@ -85,7 +85,7 @@ class GalaxyClusterRelationsController extends AppController
             $conditions = array('GalaxyClusterRelation.id' => $id);
             $relation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array(
                 'conditions' => $conditions,
-                'contain' => array('SharingGroup', 'SourceCluster', 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'))
+                'contain' => array('SharingGroup', 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'))
             ));
             if (empty($relation)) {
                 throw new NotFoundException(__('Invalid cluster relation'));
@@ -182,7 +182,7 @@ class GalaxyClusterRelationsController extends AppController
 
     public function edit($id)
     {
-        $conditions = array('conditions' => array('GalaxyClusterRelation.id' => $id), 'contain' => array('GalaxyClusterRelationTag' => 'Tag', 'SourceCluster'));
+        $conditions = array('conditions' => array('GalaxyClusterRelation.id' => $id), 'contain' => array('GalaxyClusterRelationTag' => 'Tag'));
         $existingRelation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), $conditions);
         if (empty($existingRelation)) {
             throw new NotFoundException(__('Invalid cluster relation'));

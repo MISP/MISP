@@ -987,7 +987,7 @@ class GalaxyClustersController extends AppController
             'conditions' => array(
                 'GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster['GalaxyCluster']['uuid']
             ),
-            'contain' => array('SharingGroup', 'SourceCluster', 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'))
+            'contain' => array('SharingGroup', 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'))
         ));
         $this->set('relations', $relations);
         $this->set('tree', $tree);

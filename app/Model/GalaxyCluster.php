@@ -987,7 +987,6 @@ class GalaxyCluster extends AppModel
                     'contain' => array(
                         'GalaxyClusterRelationTag' => array('Tag'),
                         'SharingGroup',
-                        'SourceCluster',
                     ),
                     'conditions' => array(
                         'TargetingClusterRelation.referenced_galaxy_cluster_id' => $cluster['GalaxyCluster']['id']

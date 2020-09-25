@@ -120,6 +120,9 @@ class GalaxyClusterRelation extends AppModel
         } elseif ($full) {
             $params['contain'] = array('SharingGroup', 'SourceCluster', 'TargetCluster');
         }
+        if (!in_array('SourceCluster', $params['contain'])) {
+            $params['contain'][] = 'SourceCluster';
+        }
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];
         }
