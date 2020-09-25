@@ -982,7 +982,7 @@ class GalaxyCluster extends AppModel
                     }
                 }
             }
-            if (isset($cluster['GalaxyCluster'])) {
+            if ($full && isset($cluster['GalaxyCluster']['id'])) {
                 $targetingClusterRelations = $this->TargetingClusterRelation->fetchRelations($user, array(
                     'contain' => array(
                         'GalaxyClusterRelationTag' => array('Tag'),
