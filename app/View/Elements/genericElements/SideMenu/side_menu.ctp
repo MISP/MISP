@@ -1240,7 +1240,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'text' => __('View Cluster')
                             ));
                         }
-                        if ($menuItem !== 'add_cluster' && !$defaultCluster && ($isSiteAdmin || $me['Role']['perm_galaxy_editor'])) {
+                        if ($menuItem !== 'add_cluster' && !$defaultCluster && ($isSiteAdmin || ($me['Role']['perm_galaxy_editor'] && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id']))) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit_cluster',
                                 'url' => $baseurl . '/galaxy_clusters/edit/' . h($id),
