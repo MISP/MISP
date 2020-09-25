@@ -272,7 +272,7 @@ class GalaxyClusterRelationsController extends AppController
     public function delete($id)
     {
         if ($this->request->is('post')) {
-            $relation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array('conditions' => array('id' => $id)));
+            $relation = $this->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array('conditions' => array('GalaxyClusterRelation.id' => $id)));
             if (empty($relation)) {
                 throw new NotFoundException(__('Relation not found.'));
             }
