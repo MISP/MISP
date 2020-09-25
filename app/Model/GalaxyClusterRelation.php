@@ -74,7 +74,7 @@ class GalaxyClusterRelation extends AppModel
         return $results;
     }
 
-    public function buildConditions($user)
+    public function buildConditions($user, $clusterConditions = true)
     {
         $this->Event = ClassRegistry::init('Event');
         $conditions = [];
@@ -95,7 +95,7 @@ class GalaxyClusterRelation extends AppModel
                     ]
                 ]
             ];
-            $conditionsSourceCluster = $this->SourceCluster->buildConditions($user);
+            $conditionsSourceCluster = $clusterConditions ? $this->SourceCluster->buildConditions($user) : [];
             $conditions = [
                 'AND' => [
                     $conditionsRelations,

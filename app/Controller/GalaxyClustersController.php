@@ -206,7 +206,7 @@ class GalaxyClustersController extends AppController
             $this->loadModel('Attribute');
             $distributionLevels = $this->Attribute->distributionLevels;
             $this->set('distributionLevels', $distributionLevels);
-            if (!$cluster['GalaxyCluster']['default'] && !$cluster['GalaxyCluster']['published']) {
+            if (!$cluster['GalaxyCluster']['default'] && !$cluster['GalaxyCluster']['published'] && $cluster['GalaxyCluster']['orgc_id'] == $this->Auth->user()['org_id']) {
                 $this->Flash->warning(__('This cluster is not published. Users will not be able to use it'));
             }
         }
@@ -987,7 +987,7 @@ class GalaxyClustersController extends AppController
             'conditions' => array(
                 'GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster['GalaxyCluster']['uuid']
             ),
-            'contain' => array('SharingGroup', 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'))
+            'contain' => array('SharingGroup', 'SourceCluster', 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'))
         ));
         $this->set('relations', $relations);
         $this->set('tree', $tree);

@@ -930,14 +930,9 @@ class GalaxyCluster extends AppModel
                 'Galaxy',
                 'GalaxyElement',
                 'GalaxyClusterRelation' => array(
-                    'conditions' => $this->GalaxyClusterRelation->buildConditions($user),
+                    'conditions' => $this->GalaxyClusterRelation->buildConditions($user, false),
                     'GalaxyClusterRelationTag' => array('Tag'),
-                    'SharingGroup'
-                ),
-                'TargetingClusterRelation' => array(
-                    'conditions' => $this->TargetingClusterRelation->buildConditions($user),
-                    'GalaxyClusterRelationTag' => array('Tag'),
-                    'SharingGroup'
+                    'SharingGroup',
                 ),
                 'Orgc',
                 'Org',
@@ -986,6 +981,28 @@ class GalaxyCluster extends AppModel
                         $clusters[$i]['GalaxyClusterRelation'][$j]['SharingGroup'] = $sharingGroupData[$relation['sharing_group_id']]['SharingGroup'];
                     }
                 }
+            }
+            if (isset($cluster['GalaxyCluster'])) {
+                $targetingClusterRelations = $this->TargetingClusterRelation->fetchRelations($user, array(
+                    'contain' => array(
+                        'GalaxyClusterRelationTag' => array('Tag'),
+                        'SharingGroup',
+                        'SourceCluster',
+                    ),
+                    'conditions' => array(
+                        'TargetingClusterRelation.referenced_galaxy_cluster_id' => $cluster['GalaxyCluster']['id']
+                    )
+                ));
+                foreach ($targetingClusterRelations as $k => $targetingClusterRelation) {
+                    if (!empty($targetingClusterRelation['GalaxyClusterRelationTag'])) {
+                        $targetingClusterRelation['TargetingClusterRelation']['Tag'] = Hash::extract($targetingClusterRelation['GalaxyClusterRelationTag'], '{n}.Tag');
+                    }
+                    if (!empty($targetingClusterRelation['SharingGroup']['id'])) {
+                        $targetingClusterRelation['TargetingClusterRelation']['SharingGroup'] = $TargetingClusterRelation['SharingGroup'];
+                    }
+                    $targetingClusterRelations[$k] = $targetingClusterRelation['TargetingClusterRelation'];
+                }
+                $clusters[$i]['TargetingClusterRelation'] = $targetingClusterRelations;
             }
             $clusters[$i] = $this->arrangeData($clusters[$i]);
             $clusters[$i] = $this->GalaxyClusterRelation->massageRelationTag($clusters[$i]);
