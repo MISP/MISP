@@ -520,8 +520,6 @@
     </div>
     <div id="discussions_div">
     </div>
-    <div id="attribute_creation_div" style="display:none;">
-    </div>
 </div>
 <script type="text/javascript">
 var showContext = false;
