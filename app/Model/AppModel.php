@@ -1731,14 +1731,6 @@ class AppModel extends Model
         }
     }
 
-    public function checkMISPVersion()
-    {
-        $file = new File(ROOT . DS . 'VERSION.json', true);
-        $version_array = json_decode($file->read(), true);
-        $file->close();
-        return $version_array;
-    }
-
     public function getPythonVersion()
     {
         if (!empty(Configure::read('MISP.python_bin'))) {
@@ -2564,34 +2556,65 @@ class AppModel extends Model
         return $HttpSocket;
     }
 
-    public function setupSyncRequest($server)
-    {
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json'
-                )
-        );
-        $request = $this->addHeaders($request);
-        return $request;
-    }
-
-    public function addHeaders($request)
+    /**
+     * @param array $server
+     * @return array[]
+     * @throws JsonException
+     */
+    protected function setupSyncRequest(array $server)
     {
         $version = $this->checkMISPVersion();
-        $version = implode('.', $version);
-        try {
-            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
-        } catch (Exception $e) {
-            $commit = false;
-        }
-        $request['header']['MISP-version'] = $version;
+        $request = array(
+            'header' => array(
+                'Authorization' => $server['Server']['authkey'],
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'MISP-version' => implode('.', $version),
+            )
+        );
+
+        $commit = $this->checkMIPSCommit();
         if ($commit) {
             $request['header']['commit'] = $commit;
         }
         $request['header']['User-Agent'] = 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit);
         return $request;
+    }
+
+    /**
+     * Returns MISP version from VERSION.json file as array with major, minor and hotfix keys.
+     *
+     * @return array
+     * @throws JsonException
+     */
+    public function checkMISPVersion()
+    {
+        static $versionArray;
+        if ($versionArray === null) {
+            $file = new File(ROOT . DS . 'VERSION.json', true);
+            $versionArray = $this->jsonDecode($file->read());
+            $file->close();
+        }
+        return $versionArray;
+    }
+
+    /**
+     * Returns MISP commit hash.
+     *
+     * @return false|string
+     */
+    protected function checkMIPSCommit()
+    {
+        static $commit;
+        if ($commit === null) {
+            $commit = shell_exec('git log --pretty="%H" -n1 HEAD');
+            if ($commit) {
+                $commit = trim($commit);
+            } else {
+                $commit = false;
+            }
+        }
+        return $commit;
     }
 
     // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions
