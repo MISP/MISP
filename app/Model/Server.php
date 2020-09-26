@@ -2464,8 +2464,7 @@ class Server extends AppModel
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false) {
             $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            $r = $this->EventBlocklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
-            if (!empty($r)) {
+            if ($this->EventBlocklist->isBlocked($event['Event']['uuid'])) {
                 return true;
             }
         }
