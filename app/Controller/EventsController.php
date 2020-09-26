@@ -2051,7 +2051,14 @@ class EventsController extends AppController
                     $takeOwnership = Configure::read('MISP.take_ownership_xml_import')
                         && (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1);
 
-                    $results = $this->Event->addMISPExportFile($this->Auth->user(), $data, $isXml, $takeOwnership, $this->data['Event']['publish']);
+                    try {
+                        $results = $this->Event->addMISPExportFile($this->Auth->user(), $data, $isXml, $takeOwnership, $this->data['Event']['publish']);
+                    } catch (Exception $e) {
+                        $filename = $this->data['Event']['submittedfile']['name'];
+                        $this->log("Exception during processing MISP file import '$filename': {$e->getMessage()}");
+                        $this->Flash->error(__('Could not process MISP export file. Probably file content is invalid.'));
+                        $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
+                    }
                 }
             }
             $this->set('results', $results);
