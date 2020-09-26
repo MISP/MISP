@@ -3613,8 +3613,12 @@ class Event extends AppModel
         if (!$this->checkEventBlockRules($data)) {
             return 'Blocked by event block rules';
         }
+
+        if (!isset($this->Log)) {
+            $this->Log = ClassRegistry::init('Log'); // initialize Log class if not
+        }
+
         if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published'])) {
-            $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $validationErrors['Event'] = 'Received a published event that was empty. Event add process blocked.';
             $this->Log->save(array(
@@ -3729,7 +3733,6 @@ class Event extends AppModel
             }
         }
         if (!empty($failedCapture)) {
-            $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
@@ -3780,7 +3783,6 @@ class Event extends AppModel
             'ObjectRelation' => array()
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
-        $this->Log = ClassRegistry::init('Log');
         if ($saveResult) {
             if ($passAlong) {
                 if ($server['Server']['publish_without_email'] == 0) {
@@ -3898,8 +3900,7 @@ class Event extends AppModel
                             if (empty($found)) {
                                 $this->EventTag->create();
                                 if ($this->EventTag->save(array('event_id' => $this->id, 'tag_id' => $tag_id))) {
-                                    $log = ClassRegistry::init('Log');
-                                    $log->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
+                                    $this->Log->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
                                 }
                             }
                         }
