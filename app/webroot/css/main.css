@@ -1738,6 +1738,7 @@ span.success {
     width:100%;
     line-height:30px;
     border-top:1px solid black;
+    cursor: pointer;
 }
 
 .templateChoiceButton:hover {
