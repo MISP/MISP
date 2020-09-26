@@ -118,29 +118,34 @@
         });
     });
     $('.hex-value-convert').click(function() {
-        var val = $(this).parent().children(':first-child').text();
-        if ($(this).parent().children(':first-child').attr('data-original-title') == 'Hexadecimal representation') {
+        var $hexValueSpan = $(this).parent().children(':first-child');
+        var val = $hexValueSpan.text().trim();
+        if (!$hexValueSpan.hasClass('binary-representation')) {
             var bin = [];
-            var temp;
             val.split('').forEach(function(entry) {
-                temp = parseInt(entry, 16).toString(2);
+                var temp = parseInt(entry, 16).toString(2);
                 bin.push(Array(5 - (temp.length)).join('0') + temp);
             });
             bin = bin.join(' ');
-            $(this).parent().children(':first-child').text(bin);
-            $(this).parent().children(':first-child').attr('data-original-title', __('Binary representation'));
-            $(this).parent().children(':nth-child(2)').attr('data-original-title', __('Switch to hexadecimal representation'));
-            $(this).parent().children(':nth-child(2)').attr('aria-label', __('Switch to hexadecimal representation'));
+            $hexValueSpan
+                .text(bin)
+                .attr('data-original-title', 'Binary representation')
+                .addClass('binary-representation');
+            $(this)
+                .attr('data-original-title', 'Switch to hexadecimal representation')
+                .attr('aria-label', 'Switch to hexadecimal representation');
         } else {
-            val = val.split(' ');
-            hex = '';
-            val.forEach(function(entry) {
+            var hex = '';
+            val.split(' ').forEach(function(entry) {
                 hex += parseInt(entry , 2).toString(16).toUpperCase();
             });
-            $(this).parent().children(':first-child').text(hex);
-            $(this).parent().children(':first-child').attr('data-original-title', __('Hexadecimal representation'));
-            $(this).parent().children(':nth-child(2)').attr('data-original-title', __('Switch to binary representation'));
-            $(this).parent().children(':nth-child(2)').attr('aria-label', __('Switch to binary representation'));
+            $hexValueSpan
+                .text(hex)
+                .attr('data-original-title', 'Hexadecimal representation')
+                .removeClass('binary-representation');
+            $(this)
+                .attr('data-original-title', 'Switch to binary representation')
+                .attr('aria-label', 'Switch to binary representation');
         }
     });
 </script>
