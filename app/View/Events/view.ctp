@@ -333,7 +333,7 @@
         <div class="related span4">
 
             <?php if (!empty($warningTagConflicts)): ?>
-                <div class="warning_container" style="width:80%;">
+                <div class="warning_container">
                     <h4 class="red"><?php echo __('Warning: Taxonomy inconsistencies');?></h4>
                     <?php echo '<ul>'; ?>
                     <?php
@@ -483,15 +483,14 @@
                 endif;
             ?>
             <?php if (!empty($event['Event']['warnings'])): ?>
-                <div class="warning_container" style="width:80%;">
-                    <h4 class="red"><?php echo __('Warning: Potential false positives');?></h4>
+                <div class="warning_container">
+                    <h4 class="red"><?= __('Warning: Potential false positives') ?> <a href="#attributeList" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'warning')"><?= __('(show)') ?></a></h4>
                     <?php
-                        $total = count($event['Event']['warnings']);
-                        $current = 1;
+                        $links = [];
                         foreach ($event['Event']['warnings'] as $id => $name) {
-                            echo '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>' . ($current == $total ? '' : '<br />');
-                            $current++;
+                            $links[] = '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>';
                         }
+                        echo implode('<br>', $links);
                     ?>
                 </div>
             <?php endif; ?>
