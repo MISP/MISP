@@ -369,32 +369,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
             filterAttributes('value', eventid);
         }
     });
-    $('.hex-value-convert').click(function() {
-        var val = $(this).parent().children(':first-child').text();
-        if ($(this).parent().children(':first-child').attr('data-original-title') == 'Hexadecimal representation') {
-            var bin = [];
-            var temp;
-            val.split('').forEach(function(entry) {
-                temp = parseInt(entry, 16).toString(2);
-                bin.push(Array(5 - (temp.length)).join('0') + temp);
-            });
-            bin = bin.join(' ');
-            $(this).parent().children(':first-child').text(bin);
-            $(this).parent().children(':first-child').attr('data-original-title', 'Binary representation');
-            $(this).parent().children(':nth-child(2)').attr('data-original-title', 'Switch to hexadecimal representation');
-            $(this).parent().children(':nth-child(2)').attr('aria-label', 'Switch to hexadecimal representation');
-        } else {
-            val = val.split(' ');
-            hex = '';
-            val.forEach(function(entry) {
-                hex += parseInt(entry , 2).toString(16).toUpperCase();
-            });
-            $(this).parent().children(':first-child').text(hex);
-            $(this).parent().children(':first-child').attr('data-original-title', 'Hexadecimal representation');
-            $(this).parent().children(':nth-child(2)').attr('data-original-title', 'Switch to binary representation');
-            $(this).parent().children(':nth-child(2)').attr('aria-label', 'Switch to binary representation');
-        }
-    });
     $('.searchFilterButton').click(function() {
         filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
     });
