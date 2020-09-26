@@ -3643,11 +3643,25 @@ function filterAttributes(filter, id) {
 }
 
 function pivotObjectReferences(url, uuid) {
+    var foundOnCurrentPage = false;
+    $('#attributeList tr[id^="Object"]').each(function () {
+        var objectUuid = $('td:nth-child(3)', this).text().trim();
+        if (objectUuid === uuid) {
+            location.hash = $(this)[0].id;
+            foundOnCurrentPage = true;
+            return false;
+        }
+    });
+
+    if (foundOnCurrentPage) {
+        return;
+    }
+
     url += '/focus:' + uuid;
     $.ajax({
-        type:"get",
-        url:url,
-        beforeSend: function (XMLHttpRequest) {
+        type: "get",
+        url: url,
+        beforeSend: function () {
             $(".loading").show();
         },
         success: function (data) {
