@@ -3522,6 +3522,82 @@ class Event extends AppModel
         return true;
     }
 
+    /**
+     * @param array $user
+     * @param string $data
+     * @param bool $isXml
+     * @param bool $takeOwnership
+     * @param bool $publish
+     * @return array[]
+     * @throws Exception
+     */
+    public function addMISPExportFile(array $user, $data, $isXml = false, $takeOwnership = false, $publish = false)
+    {
+        if (empty($data)) {
+            throw new Exception("File is empty");
+        }
+
+        if ($isXml) {
+            App::uses('Xml', 'Utility');
+            $dataArray = Xml::toArray(Xml::build($data));
+        } else {
+            $dataArray = $this->jsonDecode($data);
+            if (isset($dataArray['response'][0])) {
+                foreach ($dataArray['response'] as $k => $temp) {
+                    $dataArray['Event'][] = $temp['Event'];
+                    unset($dataArray['response'][$k]);
+                }
+            }
+        }
+        // In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail),
+        // but just in case, let's clean it up anyway.
+        if (isset($dataArray['Event'])) {
+            $dataArray['response']['Event'] = $dataArray['Event'];
+            unset($dataArray['Event']);
+        }
+        if (!isset($dataArray['response']) || !isset($dataArray['response']['Event'])) {
+            $exception = $isXml ? __('This is not a valid MISP XML file.') : __('This is not a valid MISP JSON file.');
+            throw new Exception($exception);
+        }
+        $dataArray = $this->updateXMLArray($dataArray);
+        $results = array();
+        $validationIssues = array();
+        if (isset($dataArray['response']['Event'][0])) {
+            foreach ($dataArray['response']['Event'] as $event) {
+                $result = array('info' => $event['info']);
+                if ($takeOwnership) {
+                    $event['orgc_id'] = $user['org_id'];
+                    unset($event['Orgc']);
+                }
+                $event = array('Event' => $event);
+                $created_id = 0;
+                $event['Event']['locked'] = 1;
+                $event['Event']['published'] = $publish;
+                $result['result'] = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
+                $result['id'] = $created_id;
+                $result['validationIssues'] = $validationIssues;
+                $results[] = $result;
+            }
+        } else {
+            $temp['Event'] = $dataArray['response']['Event'];
+            if ($takeOwnership) {
+                $temp['Event']['orgc_id'] = $user['org_id'];
+                unset($temp['Event']['Orgc']);
+            }
+            $created_id = 0;
+            $temp['Event']['locked'] = 1;
+            $temp['Event']['published'] = $publish;
+            $result = $this->_add($temp, true, $user, '', null, false, null, $created_id, $validationIssues);
+            $results = array(array(
+                'info' => $temp['Event']['info'],
+                'result' => $result,
+                'id' => $created_id,
+                'validationIssues' => $validationIssues,
+            ));
+        }
+        return $results;
+    }
+
     // Low level function to add an Event based on an Event $data array
     public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
     {
@@ -3530,8 +3606,7 @@ class Event extends AppModel
         }
         if (Configure::read('MISP.enableEventBlocklisting') !== false && isset($data['Event']['uuid'])) {
             $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            $r = $this->EventBlocklist->find('first', array('conditions' => array('event_uuid' => $data['Event']['uuid'])));
-            if (!empty($r)) {
+            if ($this->EventBlocklist->isBlocked($data['Event']['uuid'])) {
                 return 'Blocked by blocklist';
             }
         }
