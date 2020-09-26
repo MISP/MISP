@@ -1471,12 +1471,10 @@ function showMessage(success, message, context) {
 
 function cancelPopoverForm(id) {
     $("#gray_out").fadeOut();
-    $("#popover_form").fadeOut();
     $("#popover_form_large").fadeOut();
     $("#screenshot_box").fadeOut();
     $("#popover_box").fadeOut();
     $("#confirmation_box").fadeOut();
-    $('#gray_out').fadeOut();
     $('#popover_form').fadeOut();
     if (id !== undefined && id !== '') {
         $(id).fadeOut();
