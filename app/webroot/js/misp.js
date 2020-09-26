@@ -1652,11 +1652,13 @@ function openPopup(id, adjust_layout, callback) {
     var $id = $(id);
     adjust_layout = adjust_layout === undefined ? true : adjust_layout;
     if (adjust_layout) {
+        $id.css({'top': '', 'height': ''}).removeClass('vertical-scroll'); // reset inline values
+
         var window_height = $(window).height();
         var popup_height = $id.height();
         if (window_height < popup_height) {
             $id.css("top", 50);
-            $id.css("height", window_height);
+            $id.css("height", window_height - 50);
             $id.addClass('vertical-scroll');
         } else {
             if (window_height > (300 + popup_height)) {
@@ -1664,7 +1666,7 @@ function openPopup(id, adjust_layout, callback) {
             } else {
                 var top_offset = (window_height - popup_height) / 2;
             }
-            $id.css("top", top_offset + 'px');
+            $id.css("top", top_offset);
         }
     }
     $("#gray_out").fadeIn();
