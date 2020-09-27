@@ -1,37 +1,7 @@
 <?php
     $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
     $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-    $csv = array();
-    $sightingPopover = '';
-    if (isset($event['Sighting']) && !empty($event['Sighting'])) {
-        $ownSightings = array();
-        $orgSightings = array();
-        $sparklineData = array();
-        foreach ($event['Sighting'] as $sighting) {
-            if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
-            if (isset($sighting['org_id'])) {
-                if (isset($orgSightings[$sighting['Organisation']['name']])) {
-                    $orgSightings[$sighting['Organisation']['name']]['count']++;
-                    if (!isset($orgSightings[$sighting['Organisation']['name']]['date']) || $orgSightings[$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
-                        $orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
-                    }
-                } else {
-                    $orgSightings[$sighting['Organisation']['name']]['count'] = 1;
-                    $orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
-                }
-            } else {
-                if (isset($orgSightings['Other organisations']['count'])) {
-                    $orgSightings['Other organisations']['count']++;
-                    if (!isset($orgSightings['Other organisations']['date']) || $orgSightings['Other organisations']['date'] < $sighting['date_sighting']) {
-                        $orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
-                    }
-                } else {
-                    $orgSightings['Other organisations']['count'] = 1;
-                    $orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
-                }
-            }
-        }
-    }
+
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
     echo $this->Html->script('doT');
     echo $this->Html->script('extendext');
@@ -191,7 +161,7 @@
             'html' => ($event['Event']['published'] == 0) ? __('No') : sprintf('<span class="green bold">%s</span>', __('Yes')) . ((empty($event['Event']['publish_timestamp'])) ? __('N/A') :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
         );
         $attribute_text = $attribute_count;
-        $attribute_text .= $object_count > 1 ? sprintf(__(' (%s Objects)'), h($object_count)) : sprintf(__(' (%s Object)'), h($object_count));
+        $attribute_text .= __n(' (%s Object)', ' (%s Objects)', $object_count, h($object_count));
         $table_data[] = array(
             'key' => __('#Attributes'),
             'value' => $attribute_text
@@ -252,9 +222,7 @@
             'key' => __('Sightings'),
             'element' => '/Events/View/eventSightingValue',
             'element_params' => array(
-                'sightingPopover' => $sightingPopover,
                 'event' => $event,
-                'ownSightings' => empty($ownSightings) ? array() : $ownSightings
             )
         );
         if (!empty($sightingsData['csv']['event'])) {
