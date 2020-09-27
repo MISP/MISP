@@ -47,6 +47,9 @@
         <ul>
         <?php
             $params = $this->request->named;
+            if (isset($params['focus'])) {
+                $focus = $params['focus'];
+            }
             unset($params['focus']);
             $url = array_merge(array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']), $params);
             $this->Paginator->options(array(
@@ -132,17 +135,13 @@
             <?php
                 endif;
             ?>
-            <th class="context hidden"><?php echo $this->Paginator->sort('id');?></th>
+            <th class="context hidden"><?php echo $this->Paginator->sort('id', 'ID');?></th>
             <th class="context hidden">UUID</th>
             <th class="context hidden"><?php echo __('First seen') ?> <i class="fas fa-arrow-right"></i> <?php echo __('Last seen') ?></th>
             <th><?php echo $this->Paginator->sort('timestamp', __('Date'), array('direction' => 'desc'));?></th>
-            <?php
-                if ($extended):
-            ?>
-                    <th class="event_id"><?php echo $this->Paginator->sort('event_id', __('Event'));?></th>
-            <?php
-                endif;
-            ?>
+            <?php if ($extended): ?>
+                <th class="event_id"><?php echo $this->Paginator->sort('event_id', __('Event'));?></th>
+            <?php endif; ?>
             <th><?php echo $this->Paginator->sort('Org.name', __('Org')); ?>
             <th><?php echo $this->Paginator->sort('category');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
@@ -183,15 +182,7 @@
             <th class="actions"><?php echo __('Actions');?></th>
         </tr>
         <?php
-            $elements = array(
-                0 => 'attribute',
-                1 => 'proposal',
-                2 => 'proposal_delete',
-                3 => 'object'
-            );
-            $focusedRow = false;
             foreach ($event['objects'] as $k => $object) {
-                $insertBlank = false;
                 echo $this->element('/Events/View/row_' . $object['objectType'], array(
                     'object' => $object,
                     'k' => $k,
@@ -203,12 +194,9 @@
                     'includeDecayingScore' => !empty($includeDecayingScore) ? 1 : 0,
                     'includeSightingdb' => !empty($includeSightingdb) ? 1 : 0
                 ));
-                if (!empty($focus) && ($object['objectType'] == 'object' || $object['objectType'] == 'attribute') && $object['uuid'] == $focus) {
-                    $focusedRow = $k;
-                }
                 if (
-                    ($object['objectType'] == 'attribute' && !empty($object['ShadowAttribute'])) ||
-                    $object['objectType'] == 'object'
+                    ($object['objectType'] === 'attribute' && !empty($object['ShadowAttribute'])) ||
+                    $object['objectType'] === 'object'
                 ):
         ?>
                     <tr class="blank_table_row"><td colspan="<?php echo $fieldCount; ?>"></td></tr>
@@ -266,25 +254,20 @@ attributes or the appropriate distribution level. If you think there is a mistak
     var lastSelected = false;
     var deleted = <?php echo (!empty($deleted)) ? '1' : '0';?>;
     var includeRelatedTags = <?php echo (!empty($includeRelatedTags)) ? '1' : '0';?>;
-    $(document).ready(function() {
+    $(function() {
         $('.addGalaxy').click(function() {
             addGalaxyListener(this);
         });
         <?php
-            if ($focusedRow !== false):
+            if (isset($focus)):
         ?>
-            //window.location.hash = '.row_' + '<?php echo h($focusedRow); ?>';
-            //$.scrollTo('#row_' + '<?php echo h($k); ?>', 800, {easing:'elasout'});
-            //$('html,body').animate({scrollTop: $('#row_' + '<?php echo h($k); ?>').offset().top}, 'slow');
-                $('.row_' + '<?php echo h($focusedRow); ?>').focus();
+        focusObjectByUuid('<?= h($focus); ?>');
         <?php
             endif;
         ?>
         setContextFields();
         popoverStartup();
-        $('.select_attribute').removeAttr('checked');
-        $('.select_proposal').removeAttr('checked');
-        $('.select_attribute').click(function(e) {
+        $('.select_attribute').removeAttr('checked').click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
                     selectAllInbetween(lastSelected, this.id);
@@ -293,7 +276,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
             }
             attributeListAnyAttributeCheckBoxesChecked();
         });
-        $('.select_proposal').click(function(e){
+        $('.select_proposal').removeAttr('checked').click(function(e){
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
                     selectAllInbetween(lastSelected, this.id);
@@ -369,10 +352,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
             filterAttributes('value', eventid);
         }
     });
-    $('.searchFilterButton').click(function() {
-        filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
-    });
-    $('#quickFilterButton').click(function() {
+    $('.searchFilterButton, #quickFilterButton').click(function() {
         filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
     });
     $('#quickFilterField').on('keypress', function (e) {

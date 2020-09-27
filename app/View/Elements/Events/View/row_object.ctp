@@ -33,9 +33,7 @@
   <td class="short context hidden">
     <?php echo h($object['id']); ?>
   </td>
-  <td class="short context hidden">
-    <?php echo h($object['uuid']); ?>
-  </td>
+  <td class="short context hidden uuid"><?php echo h($object['uuid']); ?></td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
