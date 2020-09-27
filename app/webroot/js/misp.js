@@ -124,7 +124,7 @@ function screenshotPopup(url, title) {
     if (!url.startsWith('data:image/')) {
         url = url.slice(0, -1);
     }
-    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
+    var popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
     url = $('<div>').text(url).html();
     title = $('<div>').text(title).html();
     popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
@@ -3642,12 +3642,49 @@ function filterAttributes(filter, id) {
     });
 }
 
+// Find object or attribute by UUID on current page
+function findObjectByUuid(uuid) {
+    var $tr = null;
+    $('#attributeList tr').each(function () {
+        var trId = $(this).attr('id');
+        if (trId && (trId.startsWith("Object") || trId.startsWith("Attribute"))) {
+            var objectUuid = $('.uuid', this).text().trim();
+            if (objectUuid === uuid) {
+                $tr = $(this);
+                return false;
+            }
+        }
+    });
+    return $tr;
+}
+
+function focusObjectByUuid(uuid) {
+    var $tr = findObjectByUuid(uuid);
+    if (!$tr) {
+        return false;
+    }
+
+    $([document.documentElement, document.body]).animate({
+        scrollTop: $tr.offset().top - 45, // 42px is #topBar size, so make little bit more space
+    }, 1000, null, function () {
+        $tr.fadeTo(100, 0.3, function () { // blink active row
+            $(this).fadeTo(500, 1.0);
+        });
+        $tr.focus();
+    });
+    return true;
+}
+
 function pivotObjectReferences(url, uuid) {
+    if (focusObjectByUuid(uuid)) {
+        return; // object is on the same page, we don't need to reload page
+    }
+
     url += '/focus:' + uuid;
     $.ajax({
-        type:"get",
-        url:url,
-        beforeSend: function (XMLHttpRequest) {
+        type: "get",
+        url: url,
+        beforeSend: function () {
             $(".loading").show();
         },
         success: function (data) {
