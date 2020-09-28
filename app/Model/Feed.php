@@ -428,27 +428,7 @@ class Feed extends AppModel
             return $attributes; // nothing matches, skip
         }
 
-        if ($scope === 'Feed') {
-            $params = array(
-                'recursive' => -1,
-                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
-            );
-            if (!$user['Role']['perm_site_admin']) {
-                $params['conditions'] = array('Feed.lookup_visible' => 1);
-            }
-            $sources = $this->find('all', $params);
-        } else {
-            $params = array(
-                'recursive' => -1,
-                'fields' => array('id', 'name', 'url', 'caching_enabled')
-            );
-            if (!$user['Role']['perm_site_admin']) {
-                $params['conditions'] = array('Server.caching_enabled' => 1);
-            }
-            $this->Server = ClassRegistry::init('Server');
-            $sources = $this->Server->find('all', $params);
-        }
-
+        $sources = $this->getCachedFeedsOrServers($user, $scope);
         foreach ($sources as $source) {
             $sourceId = $source[$scope]['id'];
 
@@ -510,6 +490,53 @@ class Feed extends AppModel
         }
 
         return $attributes;
+    }
+
+    /**
+     * Return just feeds or servers that has some data in Redis cache.
+     * @param array $user
+     * @param string $scope 'Feed' or 'Server'
+     * @return array
+     */
+    private function getCachedFeedsOrServers(array $user, $scope)
+    {
+        if ($scope === 'Feed') {
+            $params = array(
+                'recursive' => -1,
+                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+            );
+            if (!$user['Role']['perm_site_admin']) {
+                $params['conditions'] = array('Feed.lookup_visible' => 1);
+            }
+            $sources = $this->find('all', $params);
+        } else {
+            $params = array(
+                'recursive' => -1,
+                'fields' => array('id', 'name', 'url')
+            );
+            if (!$user['Role']['perm_site_admin']) {
+                $params['conditions'] = array('Server.caching_enabled' => 1);
+            }
+            $this->Server = ClassRegistry::init('Server');
+            $sources = $this->Server->find('all', $params);
+        }
+
+        try {
+            $redis = $this->setupRedisWithException();
+            $pipe = $redis->multi(Redis::PIPELINE);
+            $cachePrefix = 'misp:' . strtolower($scope) . '_cache:';
+            foreach ($sources as $source) {
+                $pipe->exists($cachePrefix . $source[$scope]['id']);
+            }
+            $results = $pipe->exec();
+            foreach ($sources as $k => $source) {
+                if (!$results[$k]) {
+                    unset($sources[$k]);
+                }
+            }
+        } catch (Exception $e) {}
+
+        return $sources;
     }
 
     public function downloadFromFeed($actions, $feed, HttpSocket $HttpSocket = null, $user, $jobId = false)
