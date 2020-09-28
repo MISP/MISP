@@ -163,7 +163,7 @@ class Feed extends AppModel
     /**
      * @param array $feed
      * @param HttpSocket|null $HttpSocket Null can be for local feed
-     * @return Generator|array
+     * @return Generator
      * @throws Exception
      */
     public function getCache(array $feed, HttpSocket $HttpSocket = null)
@@ -180,10 +180,7 @@ class Feed extends AppModel
         $tmpFile->write(trim($data));
         unset($data);
 
-        foreach ($tmpFile->lines() as $line) {
-            yield explode(',', rtrim($line));
-        }
-        return;
+        return $tmpFile->csv();
     }
 
     /**
@@ -250,9 +247,7 @@ class Feed extends AppModel
             $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket, true);
 
             if (!$isLocal) {
-                $redis = $this->setupRedisWithException();
-                $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
-                file_put_contents($feedCache, $data);
+                file_put_contents($feedCache, $data); // save to cache
             }
         }
 
@@ -485,7 +480,7 @@ class Feed extends AppModel
             }
         }
 
-        if (!empty($event[$scope])) {
+        if (isset($event[$scope])) {
             $event[$scope] = array_values($event[$scope]);
         }
 
@@ -1198,17 +1193,28 @@ class Feed extends AppModel
         }
     }
 
+    /**
+     * @param array $feed
+     * @param Redis $redis
+     * @param HttpSocket|null $HttpSocket
+     * @param int|false $jobId
+     * @return bool
+     */
     private function __cacheFreetextFeed(array $feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
     {
         $feedId = $feed['Feed']['id'];
+
+        $this->jobProgress($jobId, __("Feed %s: Fetching.", $feedId));
 
         try {
             $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
         } catch (Exception $e) {
             $this->logException("Could not get freetext feed $feedId", $e);
-            $this->jobProgress($jobId, 'Could not fetch freetext feed. See error log for more details.');
+            $this->jobProgress($jobId, __('Could not fetch freetext feed. See error log for more details.'));
             return false;
         }
+
+        $redis->del('misp:feed_cache:' . $feedId);
 
         $pipe = $redis->multi(Redis::PIPELINE);
         foreach ($values as $k => $value) {
@@ -1290,6 +1296,8 @@ class Feed extends AppModel
             $this->logException("Could not get cache file for $feedId.", $e, LOG_NOTICE);
             return false;
         }
+
+        $redis->del('misp:feed_cache:' . $feedId);
 
         $pipe = $redis->multi(Redis::PIPELINE);
         foreach ($cache as $v) {
