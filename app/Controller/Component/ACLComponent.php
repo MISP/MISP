@@ -748,7 +748,9 @@ class ACLComponent extends Component
         foreach ($aclList as $k => $v) {
             $aclList[$k] = array_change_key_case($v);
         }
-        $this->__checkLoggedActions($user, $controller, $action);
+        if (!$soft) {
+            $this->__checkLoggedActions($user, $controller, $action);
+        }
         if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
@@ -804,7 +806,6 @@ class ACLComponent extends Component
         switch ($code) {
             case 404:
                 throw new NotFoundException($message);
-                break;
             case 403:
                 throw new MethodNotAllowedException($message);
             default:
