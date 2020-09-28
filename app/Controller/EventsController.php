@@ -171,17 +171,21 @@ class EventsController extends AppController
         }
         $values = array();
         foreach ($value as $v) {
-            $values[] = '%' . strtolower(trim($v)) . '%';
+            $values[] = strtolower(trim($v));
         }
 
         // get all of the attributes that have a hit on the search term, in either the value, comment or uuid field
         // This is not perfect, the search will be case insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
         $subconditions = array();
         foreach ($values as $v) {
-            $subconditions[] = array('lower(Attribute.value1) LIKE' => $v);
-            $subconditions[] = array('lower(Attribute.value2) LIKE' => $v);
-            $subconditions[] = array('lower(Attribute.comment) LIKE' => $v);
-            $subconditions[] = array('Attribute.uuid LIKE' => $v);
+            $subconditions[] = array('lower(Attribute.value1) LIKE' => "%$v%");
+            $subconditions[] = array('lower(Attribute.value2) LIKE' => "%$v%");
+            $subconditions[] = array('lower(Attribute.comment) LIKE' => "%$v%");
+            if (Validation::uuid($v)) {
+                $subconditions[] = array('Attribute.uuid' => $v);
+            } else if ($this->__isPartOfUuid($v)) {
+                $subconditions[] = array('Attribute.uuid LIKE' => "%$v%");
+            }
         }
         $attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
             'conditions' => ['OR' => $subconditions],
@@ -195,20 +199,28 @@ class EventsController extends AppController
         // get all objects that have hit and user can access
         $subconditions = array();
         foreach ($values as $v) {
-            $subconditions[] = ['Object.uuid LIKE' => $v];
-        }
-        $conditions = $this->Event->Object->buildConditions($this->Auth->user());
-        $conditions['OR'] = $subconditions;
-        $objectHits = $this->Event->Object->find('list', [
-            'conditions' => $conditions,
-            'contain' => ['Event'],
-            'fields' => ['Object.event_id'],
-        ]);
-        foreach ($objectHits as $eventId) {
-            if (!in_array($eventId, $result)) {
-                $result[] = $eventId;
+            if (Validation::uuid($v)) {
+                $subconditions[] = ['Object.uuid' => $v];
+            } else if ($this->__isPartOfUuid($v)) {
+                $subconditions[] = ['Object.uuid LIKE' => "%$v%"];
             }
         }
+
+        if (!empty($subconditions)) {
+            $conditions = $this->Event->Object->buildConditions($this->Auth->user());
+            $conditions['OR'] = $subconditions;
+            $objectHits = $this->Event->Object->find('list', [
+                'conditions' => $conditions,
+                'contain' => ['Event'],
+                'fields' => ['Object.event_id'],
+            ]);
+            foreach ($objectHits as $eventId) {
+                if (!in_array($eventId, $result)) {
+                    $result[] = $eventId;
+                }
+            }
+        }
+
 
         // we now have a list of event IDs that match on an attribute level, and the user can see it. Let's also find all of the events that match on other criteria!
         // What is interesting here is that we no longer have to worry about the event's releasability. With attributes this was a different case,
@@ -242,7 +254,7 @@ class EventsController extends AppController
         // Finally, let's search on the event metadata!
         $subconditions = array();
         foreach ($values as $v) {
-            $subconditions[] = array('lower(name) LIKE' => $v);
+            $subconditions[] = array('lower(name) LIKE' => "%$v%");
         }
         $orgs = $this->Event->Org->find('list', array(
             'conditions' => $subconditions,
@@ -252,8 +264,12 @@ class EventsController extends AppController
 
         $conditions = empty($result) ? [] : ['NOT' => ['id' => $result]]; // Do not include events that we already found
         foreach ($values as $v) {
-            $conditions['OR'][] = array('lower(info) LIKE' => $v);
-            $conditions['OR'][] = array('lower(uuid) LIKE' => $v);
+            $conditions['OR'][] = array('lower(info) LIKE' => "%$v%");
+            if (Validation::uuid($v)) {
+                $conditions['OR'][] = array('uuid' => $v);
+            } else if ($this->__isPartOfUuid($v)) {
+                $conditions['OR'][] = array('uuid LIKE' => "%$v%");
+            }
         }
         if (!empty($orgs)) {
             $conditions['OR']['orgc_id'] = array_values($orgs);
@@ -267,6 +283,17 @@ class EventsController extends AppController
             $result[] = $eventId;
         }
         return $result;
+    }
+
+    /**
+     * Check if input value can be part of uuid.
+     *
+     * @param string $value
+     * @return bool
+     */
+    private function __isPartOfUuid($value)
+    {
+        return Validation::custom($value, '/[a-f0-9\-]+/');
     }
 
     private function __setIndexFilterConditions($passedArgs, $urlparams)
