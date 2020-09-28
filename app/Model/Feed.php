@@ -1171,16 +1171,27 @@ class Feed extends AppModel
         return $results;
     }
 
-    public function attachFeedCacheTimestamps($data)
+    /**
+     * @param array $feeds
+     * @return array
+     */
+    public function attachFeedCacheTimestamps(array $feeds)
     {
-        $redis = $this->setupRedis();
-        if ($redis === false) {
-            return $data;
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return $feeds;
         }
-        foreach ($data as $k => $v) {
-            $data[$k]['Feed']['cache_timestamp'] = $redis->get('misp:feed_cache_timestamp:' . $data[$k]['Feed']['id']);
+
+        $pipe = $redis->multi(Redis::PIPELINE);
+        foreach ($feeds as $feed) {
+            $pipe->get('misp:feed_cache_timestamp:' . $feed['Feed']['id']);
         }
-        return $data;
+        $result = $redis->exec();
+        foreach ($feeds as $k => $feed) {
+            $feeds[$k]['Feed']['cache_timestamp'] = $result[$k];
+        }
+        return $feeds;
     }
 
     private function __cacheFeed($feed, $redis, $jobId = false)
@@ -1221,7 +1232,7 @@ class Feed extends AppModel
             $md5Value = md5($value['value']);
             $redis->sAdd('misp:feed_cache:' . $feedId, $md5Value);
             $redis->sAdd('misp:feed_cache:combined', $md5Value);
-            if ($k % 1000 == 0) {
+            if ($k % 1000 === 0) {
                 $this->jobProgress($jobId, "Feed $feedId: $k/" . count($values) . " values cached.");
                 $pipe->exec();
                 $pipe = $redis->multi(Redis::PIPELINE);
