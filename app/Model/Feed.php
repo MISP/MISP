@@ -1197,7 +1197,7 @@ class Feed extends AppModel
     private function __cacheFeed($feed, $redis, $jobId = false)
     {
         $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket($feed);
-        if ($feed['Feed']['source_format'] == 'misp') {
+        if ($feed['Feed']['source_format'] === 'misp') {
             return $this->__cacheMISPFeed($feed, $redis, $HttpSocket, $jobId);
         } else {
             return $this->__cacheFreetextFeed($feed, $redis, $HttpSocket, $jobId);
@@ -1225,9 +1225,8 @@ class Feed extends AppModel
             return false;
         }
 
-        $redis->del('misp:feed_cache:' . $feedId);
-
         $pipe = $redis->multi(Redis::PIPELINE);
+        $pipe->del('misp:feed_cache:' . $feedId);
         foreach ($values as $k => $value) {
             $md5Value = md5($value['value']);
             $redis->sAdd('misp:feed_cache:' . $feedId, $md5Value);
@@ -1238,7 +1237,7 @@ class Feed extends AppModel
                 $pipe = $redis->multi(Redis::PIPELINE);
             }
         }
-        $redis->set('misp:feed_cache_timestamp:' . $feedId, time());
+        $pipe->set('misp:feed_cache_timestamp:' . $feedId, time());
         $pipe->exec();
         return true;
     }
@@ -1308,9 +1307,8 @@ class Feed extends AppModel
             return false;
         }
 
-        $redis->del('misp:feed_cache:' . $feedId);
-
         $pipe = $redis->multi(Redis::PIPELINE);
+        $pipe->del('misp:feed_cache:' . $feedId);
         foreach ($cache as $v) {
             list($hash, $eventUuid) = $v;
             $redis->sAdd('misp:feed_cache:' . $feedId, $hash);
@@ -1327,7 +1325,7 @@ class Feed extends AppModel
         $result = true;
         if (!$this->__cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId)) {
             $result = $this->__cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId);
-        };
+        }
         if ($result) {
             $redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
         }
