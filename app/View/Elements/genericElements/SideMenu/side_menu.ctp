@@ -601,6 +601,10 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/servers/createSync',
                             'text' => __('Create Sync Config')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/servers/index',
+                            'text' => __('List Servers')
+                        ));
                     }
                     if ($menuItem === 'import' && ($me['Role']['perm_site_admin'])) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -669,10 +673,6 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'message' => __('Are you sure you want to delete # %s?', $this->Form->value('Server.id'))
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/servers/index',
-                        'text' => __('List Servers')
-                    ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/servers/add',

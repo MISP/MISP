@@ -257,7 +257,7 @@
             array(
                 'type' => 'root',
                 'text' => __('Sync Actions'),
-                'requirement' =>  ($isAclSync || $isAdmin || $hostOrgUser),
+                'requirement' =>  ($isAclSync || $isSiteAdmin || $hostOrgUser || Configure::read("Security.open_id_translation")),
                 'children' => array(
                     array(
                         'text' => __('Create Sync Config'),
@@ -272,7 +272,7 @@
                     array(
                         'text' => __('List Servers'),
                         'url' => $baseurl . '/servers/index',
-                        'requirement' => ($isAclSync || $isAdmin)
+                        'requirement' => ($isAclSync || $isSiteAdmin)
                     ),
                     array(
                         'text' => __('List Feeds'),
@@ -302,7 +302,7 @@
                     array(
                         'text' => __('Event ID translator'),
                         'url' => '/servers/idTranslator',
-                        'requirement' => ($isSiteAdmin || $hostOrgUser)
+                        'requirement' => ($isSiteAdmin || $hostOrgUser || Configure::read("Security.open_id_translation"))
                     )
                 )
             ),
