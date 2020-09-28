@@ -1226,7 +1226,7 @@ class Feed extends AppModel
         }
 
         $pipe = $redis->multi(Redis::PIPELINE);
-        $pipe->del('misp:feed_cache:' . $feedId);
+        $redis->del('misp:feed_cache:' . $feedId);
         foreach ($values as $k => $value) {
             $md5Value = md5($value['value']);
             $redis->sAdd('misp:feed_cache:' . $feedId, $md5Value);
@@ -1308,7 +1308,7 @@ class Feed extends AppModel
         }
 
         $pipe = $redis->multi(Redis::PIPELINE);
-        $pipe->del('misp:feed_cache:' . $feedId);
+        $redis->del('misp:feed_cache:' . $feedId);
         foreach ($cache as $v) {
             list($hash, $eventUuid) = $v;
             $redis->sAdd('misp:feed_cache:' . $feedId, $hash);
@@ -1835,8 +1835,10 @@ class Feed extends AppModel
     private function jobProgress($jobId = null, $message = null, $progress = null)
     {
         if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->saveProgress($jobId, $message, $progress);
+            if (!isset($this->Job)) {
+                $this->Job = ClassRegistry::init('Job');
+            }
+            $this->Job->saveProgress($jobId, $message, $progress);
         }
     }
 
