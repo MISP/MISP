@@ -236,7 +236,7 @@
                         $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
                     }
                     $liContents = '';
-                    if ($isSiteAdmin) {
+                    if ($isSiteAdmin || $hostOrgUser) {
                         if ($feed['source_format'] == 'misp') {
                             $liContents .= sprintf(
                                 '<form action="%s/feeds/previewIndex/%s" method="post" style="margin:0px;line-height:auto;">%s%s</form>',
