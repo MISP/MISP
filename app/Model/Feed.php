@@ -331,7 +331,7 @@ class Feed extends AppModel
      * @param array $attributes
      * @param array $user
      * @param array $event
-     * @param bool $overrideLimit Override hardcoded limit for 10 000 attribute correlations.
+     * @param bool $overrideLimit Override hardcoded limit for 10 000 correlations.
      * @param string $scope `Feed` or `Server`
      * @return array
      */
@@ -398,20 +398,6 @@ class Feed extends AppModel
 
         $results = $pipe->exec();
 
-        if (!$overrideLimit && count($attributes) > 10000) {
-            foreach ($results as $k => $result) {
-                if ($result) {
-                    if (isset($event['FeedCount'])) {
-                        $event['FeedCount']++;
-                    } else {
-                        $event['FeedCount'] = 1;
-                    }
-                    $attributes[$redisResultToAttributePosition[$k]]['FeedHit'] = true;
-                }
-            }
-            return $attributes;
-        }
-
         $hitIds = [];
         foreach ($results as $k => $result) {
             if ($result) {
@@ -421,6 +407,15 @@ class Feed extends AppModel
 
         if (empty($hitIds)) {
             return $attributes; // nothing matches, skip
+        }
+
+        $hitCount = count($hitIds);
+        if (!$overrideLimit && $hitCount > 10000) {
+            $event['FeedCount'] = $hitCount;
+            foreach ($hitIds as $k) {
+                $attributes[$redisResultToAttributePosition[$k]]['FeedHit'] = true;
+            }
+            return $attributes;
         }
 
         $sources = $this->getCachedFeedsOrServers($user, $scope);
