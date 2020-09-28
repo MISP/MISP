@@ -1272,7 +1272,7 @@ class ServersController extends AppController
     public function idTranslator() {
 
         // The id translation feature is limited to people from the host org
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
+        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id') && !Configure::read('Security.open_id_translation')) {
             throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
         }
 

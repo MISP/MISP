@@ -1336,6 +1336,15 @@ class Server extends AppModel
                                 'type' => 'string',
                                 'null' => true,
                         ),
+                        'open_id_translation' => array (
+                            'level' => 2,
+                            'description' => __('Enabling this setting will allow all users in this instance the capability to use the id translation feature (by default only members of the host org are allowed). Only enable if you trust your local organisations.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
                         'allow_self_registration' => array(
                             'level' => 1,
                             'description' => __('Enabling this setting will allow users to have access to the pre-auth registration form. This will create an inbox entry for administrators to review.'),
