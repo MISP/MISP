@@ -2877,9 +2877,17 @@ class Event extends AppModel
     public function set_filter_timestamp(&$params, $conditions, $options)
     {
         if ($options['filter'] == 'from') {
-            $conditions['AND']['Event.date >='] = $params['from'];
+            if (is_numeric($params['from'])) {
+                $conditions['AND']['Event.date >='] = date('Y-m-d', $params['from']);
+            } else {
+                $conditions['AND']['Event.date >='] = $params['from'];
+            }
         } elseif ($options['filter'] == 'to') {
-            $conditions['AND']['Event.date <='] = $params['to'];
+            if (is_numeric($params['to'])) {
+                $conditions['AND']['Event.date <='] = date('Y-m-d', $params['to']);
+            } else {
+                $conditions['AND']['Event.date <='] = $params['to'];
+            }
         } else {
             if (empty($options['scope'])) {
                 $scope = 'Attribute';
