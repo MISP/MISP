@@ -32,8 +32,6 @@
         ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'm']) . '</kbd>', __('Insert a MISP Element')],
         ['<kbd>' . implode('</kbd><kbd>', ['ctrl', ' + ', 'h']) . '</kbd>', __('Makes text as header')],
     ];
-    $allowedScopes = ['attribute', 'object', 'eventgraph', 'attackmatrix'];
-    $allowedScopesHtml = '<code>' . implode('</code> <code>', $allowedScopes) . '</code>';
 
     $helpHTML = '';
     $helpHTML .= '<ul class="nav nav-tabs" id="tab-markdown-help">';

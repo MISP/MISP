@@ -450,10 +450,14 @@ class EventReport extends AppModel
         foreach ($templates as $template) {
             $objectTemplates[sprintf('%s.%s', $template['ObjectTemplate']['uuid'], $template['ObjectTemplate']['version'])] = $template;
         }
+        $this->Galaxy = ClassRegistry::init('Galaxy');
+        $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
+        $allowedGalaxies = Hash::combine($allowedGalaxies, '{n}.Galaxy.id', '{n}.Galaxy');
         $proxyMISPElements = [
             'attribute' => Hash::combine($event, 'Attribute.{n}.id', 'Attribute.{n}'),
             'object' => $objects,
-            'objectTemplates' => $objectTemplates
+            'objectTemplates' => $objectTemplates,
+            'galaxymatrix' => $allowedGalaxies
         ];
         return $proxyMISPElements;
     }

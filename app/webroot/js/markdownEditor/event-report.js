@@ -25,10 +25,12 @@ var markdownModelFieldNameForSave = 'content';
 var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span>{{=it.type}}</span><span class=\"blue\"> {{=it.value}}</span></span></span>");
 var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrapper attributePicture useCursorPointer\"><img data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" href=\"#\" src=\"{{=it.src}}\" alt=\"{{=it.alt}}\" title=\"\"/></div>");
 var dotTemplateEventgraph = doT.template("<div class=\"misp-picture-wrapper eventgraphPicture\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
-var dotTemplateAttackMatrix = doT.template("<div class=\"misp-picture-wrapper embeddedAttackMatrix\" data-scope=\"{{=it.scope}}\" data-eventid=\"{{=it.eventid}}\"></div>");
+var dotTemplateGalaxyMatrix = doT.template("<div class=\"misp-picture-wrapper embeddedGalaxyMatrix\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
 var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span>{{=it.type}}</span><span class=\"value\">{{=it.value}}</span></span></span>");
 var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 
+var galaxyMatrixTimer, eventgraphTimer;
+var cache_matrix = {}, cache_eventgraph = {};
 
 /**
    _____          _      __  __ _                     
@@ -76,6 +78,11 @@ function MISPElementReplacementActions(action) {
             end = null
             setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
             break;
+        case 'galaxymatrix':
+            replacement = '@[galaxymatrix]()'
+            end = null
+            setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
+            break;
         default:
             noMatch = true;
             break;
@@ -97,6 +104,7 @@ function insertMISPElementToolbarButtons() {
     insertTopToolbarButton('cubes', 'object')
     insertTopToolbarButton('image', 'attribute-attachment')
     insertTopToolbarButton('project-diagram', 'eventgraph')
+    insertTopToolbarButton('table', 'galaxy-matrix')
 }
 
 /* Hints */
@@ -104,22 +112,30 @@ var MISPElementValues = [], MISPElementTypes = [], MISPElementIDs = []
 function buildMISPElementHints() {
     Object.keys(proxyMISPElements['attribute']).forEach(function(k) {
         var attribute = proxyMISPElements['attribute'][k]
-        MISPElementValues.push([attribute.value, k])
-        MISPElementTypes.push([attribute.type, k])
-        MISPElementIDs.push([attribute.id, k])
-        MISPElementIDs.push([attribute.uuid, k])
+        MISPElementValues.push([attribute.value, k, 'attribute'])
+        MISPElementTypes.push([attribute.type, k], 'attribute')
+        MISPElementIDs.push([attribute.id, k, 'attribute'])
+        MISPElementIDs.push([attribute.uuid, k, 'attribute'])
     })
     Object.keys(proxyMISPElements['object']).forEach(function(k) {
         var object = proxyMISPElements['object'][k]
-        MISPElementTypes.push([object.name, k])
-        MISPElementIDs.push([object.id, k])
-        MISPElementIDs.push([object.uuid, k])
+        MISPElementTypes.push([object.name, k, 'object'])
+        MISPElementIDs.push([object.id, k, 'object'])
+        MISPElementIDs.push([object.uuid, k, 'object'])
+    })
+    Object.keys(proxyMISPElements['galaxymatrix']).forEach(function(k) {
+        var galaxy = proxyMISPElements['galaxymatrix'][k]
+        MISPElementIDs.push([galaxy.id, k, 'galaxymatrix'])
+        MISPElementIDs.push([galaxy.uuid, k, 'galaxymatrix'])
+        MISPElementValues.push([galaxy.name, k, 'galaxymatrix'])
+        MISPElementTypes.push([galaxy.namespace, k, 'galaxymatrix'])
+        MISPElementTypes.push([galaxy.type, k, 'galaxymatrix'])
     })
 }
 
 function hintMISPElements(cm, options) {
-    var authorizedMISPElements = ['attribute', 'object']
-    var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)\\)');
+    var authorizedMISPElements = ['attribute', 'object', 'galaxymatrix']
+    var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)?\\)');
     var reExtendedWord = /\S/
     var scope, elementID, element
     var cursor = cm.getCursor()
@@ -133,7 +149,7 @@ function hintMISPElements(cm, options) {
     var res = reMISPElement.exec(word)
     if (res !== null) {
         scope = res.groups.scope
-        elementID = res.groups.elementid
+        elementID = res.groups.elementid !== undefined ? res.groups.elementid : ''
         element = proxyMISPElements[scope][elementID]
         var hintList = []
         if (element !== undefined) {
@@ -148,6 +164,8 @@ function hintMISPElements(cm, options) {
                 }
             )
         } else { // search in hint arrays
+            var fullHint
+            var addedItems = {}
             var maxHints = 10
             var MISPElementToCheck = [MISPElementValues, MISPElementTypes, MISPElementIDs]
             MISPElementToCheck.forEach(function(MISPElement) {
@@ -155,18 +173,24 @@ function hintMISPElements(cm, options) {
                     if (hintList.length >= maxHints) {
                         return false
                     }
-                    if (hint[0].startsWith(elementID)) {
-                        element = proxyMISPElements[scope][hint[1]]
-                        if (element !== undefined) { // Correct scope
-                            hintList.push({
-                                text: '@[' + scope + '](' + element.id + ')',
-                                element: element,
-                                render: function(elem, self, data) {
-                                    var hintElement = renderHintElement(scope, data.element)
-                                    $(elem).append(hintElement)
-                                },
-                                className: 'hint-container',
-                            })
+                    if (scope == hint[2]) {
+                        if (hint[0].startsWith(elementID)) {
+                            fullHint = hint[2] + '-' + hint[1]
+                            if (addedItems[fullHint] === undefined) {
+                                element = proxyMISPElements[scope][hint[1]]
+                                if (element !== undefined) { // Correct scope
+                                    hintList.push({
+                                        text: '@[' + scope + '](' + element.id + ')',
+                                        element: element,
+                                        render: function(elem, self, data) {
+                                            var hintElement = renderHintElement(scope, data.element)
+                                            $(elem).append(hintElement)
+                                        },
+                                        className: 'hint-container',
+                                    })
+                                }
+                                addedItems[fullHint] = true
+                            }
                         }
                     }
                 })
@@ -193,6 +217,11 @@ function renderHintElement(scope, element) {
         $node.append($('<i/>').addClass('').text('[' + element.id + '] '))
             .append($('<span/>').addClass('bold').text(element.name + ' '))
             .append($('<span/>').addClass('bold blue').text(element.Attribute.length))
+    } else if (scope == 'galaxymatrix') {
+        $node = $('<span/>').addClass('hint-object')
+        $node.append($('<i/>').addClass('').text('[' + element.id + '] '))
+            .append($('<span/>').addClass('bold').text(element.type + ' '))
+            .append($('<span/>').addClass('bold blue').text(element.name))
     } else {
         $node = $('<span>No match</span>') // should not happen
     }
@@ -294,7 +323,7 @@ function MISPElementRule(state, startLine, endLine, silent) {
 
 /* Rendering rules */
 function MISPElementRenderer(tokens, idx, options, env, slf) {
-    var allowedScope = ['attribute', 'object', 'eventgraph', 'attackmatrix']
+    var allowedScope = ['attribute', 'object', 'eventgraph', 'galaxymatrix']
     var token = tokens[idx];
     var scope = token.content.scope
     var elementID = token.content.elementID
@@ -348,8 +377,8 @@ function renderMISPElement(scope, elementID) {
         }
     } else if (scope == 'eventgraph') {
         return dotTemplateEventgraph({scope: 'eventgraph', elementid: elementID, eventid: eventid});
-    } else if (scope == 'attackmatrix') {
-        return dotTemplateAttackMatrix({scope: 'attackmatrix', eventid: eventid});
+    } else if (scope == 'galaxymatrix') {
+        return dotTemplateGalaxyMatrix({scope: 'galaxymatrix', elementid: elementID, eventid: eventid});
     }
     return renderInvalidMISPElement(scope, elementID)
 }
@@ -420,16 +449,19 @@ function attachRemoteMISPElements() {
             $div.html(cache_eventgraph[$div.data('elementid')])
         }
     })
-    $('.embeddedAttackMatrix[data-scope="attackmatrix"]').each(function() {
+    $('.embeddedGalaxyMatrix[data-scope="galaxymatrix"]').each(function() {
         var $div = $(this)
-        clearTimeout(attackMatrixTimer);
+        clearTimeout(galaxyMatrixTimer);
         $div.append($('<div/>').css('font-size', '24px').append(loadingSpanAnimation))
-        if (cache_matrix[eventid] === undefined) {
-            attackMatrixTimer = setTimeout(function() {
-                attachAttackMatrix($div, $div.data('eventid'))
+        var eventID = $div.data('eventid')
+        var elementID = $div.data('elementid')
+        var cacheKey = eventid + '-' + elementID
+        if (cache_matrix[cacheKey] === undefined) {
+            galaxyMatrixTimer = setTimeout(function() {
+                attachGalaxyMatrix($div, eventID, elementID)
             }, slowDebounceDelay);
         } else {
-            $div.html(cache_matrix[eventid])
+            $div.html(cache_matrix[cacheKey])
         }
     })
 }
@@ -456,11 +488,18 @@ function attachEventgraphPicture($elem, eventID, graphID) {
     })
 }
 
-function attachAttackMatrix($elem, eventid) {
+function attachGalaxyMatrix($elem, eventid, elementID) {
+    var galaxy = proxyMISPElements['galaxymatrix'][elementID]
+    if (galaxy === undefined) {
+        console.log('Something wrong happened. Could not fetch galaxy from proxy')
+        return
+    }
+    var galaxyType = galaxy.type
     $.ajax({
         data: {
             "returnFormat": "attack",
-            "eventid": eventid
+            "eventid": eventid,
+            "attackGalaxy": galaxyType
         },
         success:function(data, textStatus) {
             $elem.empty().append($(data))
@@ -475,7 +514,8 @@ function attachAttackMatrix($elem, eventid) {
                     $(this).attr('style', 'background-color:' + $(this).css('background-color') + ' !important; color:' + $(this).css('color') + ' !important;');
                 }
             })
-            cache_matrix[eventid] = $elem.find('#attackmatrix_div')[0].outerHTML;
+            var cacheKey = eventid + '-' + elementID
+            cache_matrix[cacheKey] = $elem.find('#attackmatrix_div')[0].outerHTML;
         },
         error: function(jqXHR, textStatus, errorThrown) {
             var templateVariables = sanitizeObject({

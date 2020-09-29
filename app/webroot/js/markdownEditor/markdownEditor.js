@@ -1,7 +1,6 @@
 'use strict';
 
 var debounceDelay = 150, slowDebounceDelay = 3000;
-var cache_matrix = {}, cache_eventgraph = {};
 var renderTimer, scrollTimer, attackMatrixTimer, eventgraphTimer;
 var scrollMap;
 var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField, $markdownDropdownRulesMenu
