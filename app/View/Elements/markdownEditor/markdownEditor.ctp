@@ -97,8 +97,8 @@
                     </ul>
                 </li>
             </ul>
-        <?php elseif($canEdit): ?>
-            <a id="saveMarkdownButton" type="button" class="btn btn-primary" href="<?= $baseurl . '/eventReports/view/' . $reportid ?>" target="_blank">
+        <?php elseif($canEdit && !empty($editRedirect)): ?>
+            <a id="saveMarkdownButton" type="button" class="btn btn-primary" href="<?= h($editRedirect) ?>" target="_blank">
                 <i class="<?= $this->FontAwesome->getClass('edit') ?>"></i>
                 <?= __('Edit report') ?>
             </a>

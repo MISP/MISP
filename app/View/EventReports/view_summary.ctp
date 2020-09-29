@@ -3,19 +3,27 @@
         'title' => __('Event report: %s', h($report['EventReport']['name'])),
         'content' => array(
             array(
-                'html' => $this->element('EventReports/markdownEditor', array(
-                    'canEdit' => $canEdit,
+                'html' => $this->element('markdownEditor/markdownEditor', [
                     'insideModal' => true,
+                    'canEdit' => $canEdit,
                     'markdown' => $report['EventReport']['content'],
-                    'proxyMISPElements' => $proxyMISPElements,
                     'modelName' => 'EventReport',
                     'mardownModelFieldName' => 'content',
-                    'eventid' => $report['EventReport']['event_id'],
-                    'reportid' => $report['EventReport']['id'],
                     'lastModified' => $report['EventReport']['timestamp'],
-                    'webDependencies' => array('js' => array('markdownEditor/event-report'), 'css' => array('markdownEditor/event-report')),
-                    'helpModal' => 'EventReports/markdownEditorHelpModal'
-                ))
+                    'additionalMarkdownElements' => [
+                        'path' => 'EventReports/reportEditor',
+                        'variables' => [
+                            'reportid' => $report['EventReport']['id'],
+                            'eventid' => $report['EventReport']['event_id'],
+                            'proxyMISPElements' => $proxyMISPElements,
+                        ]
+                    ],
+                    'additionalMarkdownHelpModalElements' => [[
+                        'path' => 'EventReports/reportHelpModal',
+                        'tab_name' => __('Markdown format'),
+                    ]],
+                    'editRedirect' => sprintf('%s/eventReports/view/%s', $baseurl, $report['EventReport']['id']),
+                ])
             ),
         )
     );
