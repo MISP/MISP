@@ -393,6 +393,20 @@ class EventReport extends AppModel
         return true;
     }
     
+    public function reArrangeReport(array $report)
+    {
+        $rearrangeObjects = array('Event', 'SharingGroup');
+        if (isset($report['EventReport'])) {
+            foreach ($rearrangeObjects as $ro) {
+                if (isset($report[$ro]) && !is_null($report[$ro]['id'])) {
+                    $report['EventReport'][$ro] = $report[$ro];
+                }
+                unset($report[$ro]);
+            }
+        }
+        return $report;
+    }
+
     /**
      * getProxyMISPElements Extract MISP Elements from an event and make them accessible by their ID
      *
