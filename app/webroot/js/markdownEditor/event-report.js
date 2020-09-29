@@ -135,6 +135,7 @@ function buildMISPElementHints() {
 
 function hintMISPElements(cm, options) {
     var authorizedMISPElements = ['attribute', 'object', 'galaxymatrix']
+    var availableScopes = ['attribute', 'object', 'eventgraph', 'galaxymatrix']
     var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)?\\)');
     var reExtendedWord = /\S/
     var scope, elementID, element
@@ -146,6 +147,20 @@ function hintMISPElements(cm, options) {
     while (end < line.length && reExtendedWord.test(line.charAt(end))) ++end
     var word = line.slice(start, end).toLowerCase()
     
+    if (word === '@[]()') {
+        var hintList = []
+        availableScopes.forEach(function(scope) {
+            hintList.push({
+                text: '@[' + scope + ']()'
+            })
+        });
+        return {
+            list: hintList,
+            from: CodeMirror.Pos(cursor.line, start),
+            to: CodeMirror.Pos(cursor.line, end)
+        }
+    }
+
     var res = reMISPElement.exec(word)
     if (res !== null) {
         scope = res.groups.scope
