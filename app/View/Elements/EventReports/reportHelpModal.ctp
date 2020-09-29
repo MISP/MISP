@@ -3,7 +3,7 @@
         __('No html support, typographer & autolinker'),
         __('An additional syntax to reference MISP Elements'),
     ];
-    $allowedScopes = ['attribute', 'object', 'eventgraph', 'attackmatrix'];
+    $allowedScopes = ['attribute', 'object', 'eventgraph', 'galaxymatrix'];
     $allowedScopesHtml = '<code>' . implode('</code> <code>', $allowedScopes) . '</code>';
 ?>
 
@@ -30,7 +30,7 @@
 </ul>
 <span><?= __('Examples:') ?></span>
 <ul>
-    <li><code>@[attribute](42)</code>, <code>@[object](12)</code>, <code>@[eventgraph](12)</code></li>
+    <li><code>@[attribute](42)</code>, <code>@[object](12)</code>, <code>@[eventgraph](12)</code></li>, <code>@[galaxymatrix](42)</code></li>
 </ul>
 
 <h4><?= __('Picture from attachment attribute') ?></h4>
@@ -48,13 +48,13 @@
     <li><code>@![attribute](52)</code></li>
 </ul>
 
-<h4><?= __('Event\'s ATT&CK matrix') ?></h4>
-<p><?=  __('Syntax for embedding the ATT&CK matrix is similar the syntax for referencing MISP elements:') ?></p>
+<h4><?= __('Event\'s Galaxy matrixes') ?></h4>
+<p><?=  __('Syntax for embedding the ATT&CK matrix or any other Galaxy matrixes is similar the syntax for referencing MISP elements:') ?></p>
 <ul>
-    <li><?= __('The scope is fixed to %s', '<code>attackmatrix</code>') ?></li>
-    <li><?= __('Here, the ID is irrelevant as the matrix will be taken from the whole event for which the report is linked to') ?></li>
+    <li><?= __('The scope is fixed to %s', '<code>galaxymatrix</code>') ?></li>
+    <li><?= __('The ID of the galaxy matrix. The matrix will be generated for the whole event for which the report is linked to') ?></li>
 </ul>
 <span><?= __('Examples:') ?></span>
 <ul>
-    <li><code>@[attackmatrix](1)</code></li>
+    <li><code>@[galaxymatrix](12)</code></li>
 </ul>
