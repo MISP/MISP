@@ -2464,8 +2464,7 @@ class Server extends AppModel
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false) {
             $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            $r = $this->EventBlocklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
-            if (!empty($r)) {
+            if ($this->EventBlocklist->isBlocked($event['Event']['uuid'])) {
                 return true;
             }
         }
@@ -2529,7 +2528,7 @@ class Server extends AppModel
                 }
             }
         }
-        
+
         // Distribution, set reporter of the event, being the admin that initiated the pull
         $event['Event']['user_id'] = $user['id'];
         return $event;
@@ -5421,6 +5420,27 @@ class Server extends AppModel
             }
             $this->ResqueStatus->removeWorker($pid);
         }
+    }
+
+    public function killAllWorkers($user = false, $force = false)
+    {
+        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+        $workers = $this->ResqueStatus->getWorkers();
+        $killed = array();
+        foreach ($workers as $pid => $worker) {
+            if (!is_numeric($pid)) {
+                continue;
+            }
+            if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0) {
+                shell_exec('kill ' . ($force ? ' -9 ' : '') . $pid . ' > /dev/null 2>&1 &');
+                $this->ResqueStatus->removeWorker($pid);
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], false);
+            } else {
+                $this->ResqueStatus->removeWorker($pid);
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
+            }
+        }
+        return $killed;
     }
 
     public function workerRemoveDead($user = false)

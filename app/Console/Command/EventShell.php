@@ -2,6 +2,12 @@
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 require_once 'AppShell.php';
+
+/**
+ * @property User $User
+ * @property Event $Event
+ * @property Job $Job
+ */
 class EventShell extends AppShell
 {
     public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation');
@@ -131,19 +137,14 @@ class EventShell extends AppShell
     {
         $this->ConfigLoad->execute();
         $userId = $this->args[0];
-        $processId = $this->args[1];
-        $job = $this->Job->read(null, $processId);
+        $jobId = $this->args[1];
         $eventId = $this->args[2];
         $oldpublish = $this->args[3];
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->User->getUserById($userId);
         if (empty($user)) {
             die("Invalid user ID '$userId' provided.");
         }
-        $result = $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $processId);
-        $job['Job']['progress'] = 100;
-        $job['Job']['message'] = 'Emails sent.';
-        //$job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $this->Job->save($job);
+        $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $jobId);
     }
 
     public function contactemail()
@@ -153,17 +154,14 @@ class EventShell extends AppShell
         $message = $this->args[1];
         $all = $this->args[2];
         $userId = $this->args[3];
-        $isSiteAdmin = $this->args[4];
-        $processId = $this->args[5];
-        $this->Job->id = $processId;
-        $user = $this->User->getAuthUser($userId);
+        $processId = $this->args[4];
+
+        $user = $this->User->getUserById($userId);
         if (empty($user)) {
             die("Invalid user ID '$userId' provided.");
         }
-        $result = $this->Event->sendContactEmail($id, $message, $all, array('User' => $user), $isSiteAdmin);
-        $this->Job->saveField('progress', '100');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-        if ($result != true) $this->Job->saveField('message', 'Job done.');
+        $result = $this->Event->sendContactEmail($id, $message, $all, $user);
+        $this->Job->saveStatus($processId, $result);
     }
 
     public function postsemail()

@@ -2592,6 +2592,7 @@ class AppModel extends Model
         if ($commit) {
             $request['header']['commit'] = $commit;
         }
+        $request['header']['User-Agent'] = 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit);
         return $request;
     }
 

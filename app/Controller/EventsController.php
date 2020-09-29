@@ -1612,10 +1612,6 @@ class EventsController extends AppController
         }
         $event = $results[0];
         $this->Event->id = $event['Event']['id'];
-        //if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
-        if ($this->userRole['perm_admin'] && !$this->_isSiteAdmin() && ($event['Org']['id'] == $this->Auth->user('org_id'))) {
-            $event['User']['email'] = $this->User->field('email', array('id' => $event['Event']['user_id']));
-        }
         if (isset($this->params['named']['searchFor']) && $this->params['named']['searchFor'] !== '') {
             $this->__applyQueryString($event, $this->params['named']['searchFor']);
         }
@@ -2049,11 +2045,19 @@ class EventsController extends AppController
                     throw new MethodNotAllowedException(__('File upload failed or file does not have the expected extension (.xml / .json).'));
                 }
                 if (isset($this->data['Event']['submittedfile'])) {
-                    if (Configure::read('MISP.take_ownership_xml_import')
-                        && (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1)) {
-                        $results = $this->_addMISPExportFile($ext, true, $this->data['Event']['publish']);
-                    } else {
-                        $results = $this->_addMISPExportFile($ext, false, $this->data['Event']['publish']);
+                    $isXml = strtolower($ext) === 'xml';
+                    App::uses('FileAccessTool', 'Tools');
+                    $data = (new FileAccessTool())->readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
+                    $takeOwnership = Configure::read('MISP.take_ownership_xml_import')
+                        && (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1);
+
+                    try {
+                        $results = $this->Event->addMISPExportFile($this->Auth->user(), $data, $isXml, $takeOwnership, $this->data['Event']['publish']);
+                    } catch (Exception $e) {
+                        $filename = $this->data['Event']['submittedfile']['name'];
+                        $this->log("Exception during processing MISP file import '$filename': {$e->getMessage()}");
+                        $this->Flash->error(__('Could not process MISP export file. Probably file content is invalid.'));
+                        $this->redirect(['controller' => 'events', 'action' => 'add_misp_export']);
                     }
                 }
             }
@@ -2756,7 +2760,7 @@ class EventsController extends AppController
             $user = $this->Auth->user();
             $user = $this->Event->User->fillKeysToUser($user);
 
-            $success = $this->Event->sendContactEmailRouter($id, $message, $creator_only, $user, $this->_isSiteAdmin());
+            $success = $this->Event->sendContactEmailRouter($id, $message, $creator_only, $user);
             if ($success) {
                 $return_message = __('Email sent to the reporter.');
                 if ($this->_isRest()) {
@@ -3122,66 +3126,6 @@ class EventsController extends AppController
             $this->set('saveEvent', $saveEvent);
             $this->render('showIOCResults');
         }
-    }
-
-    private function _addMISPExportFile($ext, $take_ownership = false, $publish = false)
-    {
-        App::uses('FileAccessTool', 'Tools');
-        $data = (new FileAccessTool())->readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
-
-        if ($ext == 'xml') {
-            App::uses('Xml', 'Utility');
-            $dataArray = Xml::toArray(Xml::build($data));
-        } else {
-            $dataArray = json_decode($data, true);
-            if (isset($dataArray['response'][0])) {
-                foreach ($dataArray['response'] as $k => $temp) {
-                    $dataArray['Event'][] = $temp['Event'];
-                    unset($dataArray['response'][$k]);
-                }
-            }
-        }
-        // In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail),
-        // but just in case, let's clean it up anyway.
-        if (isset($dataArray['Event'])) {
-            $dataArray['response']['Event'] = $dataArray['Event'];
-            unset($dataArray['Event']);
-        }
-        if (!isset($dataArray['response']) || !isset($dataArray['response']['Event'])) {
-            throw new Exception(__('This is not a valid MISP XML file.'));
-        }
-        $dataArray = $this->Event->updateXMLArray($dataArray);
-        $results = array();
-        $validationIssues = array();
-        if (isset($dataArray['response']['Event'][0])) {
-            foreach ($dataArray['response']['Event'] as $k => $event) {
-                $result = array('info' => $event['info']);
-                if ($take_ownership) {
-                    $event['orgc_id'] = $this->Auth->user('org_id');
-                    unset($event['Orgc']);
-                }
-                $event = array('Event' => $event);
-                $created_id = 0;
-                $event['Event']['locked'] = 1;
-                $event['Event']['published'] = $publish;
-                $result['result'] = $this->Event->_add($event, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
-                $result['id'] = $created_id;
-                $result['validationIssues'] = $validationIssues;
-                $results[] = $result;
-            }
-        } else {
-            $temp['Event'] = $dataArray['response']['Event'];
-            if ($take_ownership) {
-                $temp['Event']['orgc_id'] = $this->Auth->user('org_id');
-                unset($temp['Event']['Orgc']);
-            }
-            $created_id = 0;
-            $temp['Event']['locked'] = 1;
-            $temp['Event']['published'] = $publish;
-            $result = $this->Event->_add($temp, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
-            $results = array(0 => array('info' => $temp['Event']['info'], 'result' => $result, 'id' => $created_id, 'validationIssues' => $validationIssues));
-        }
-        return $results;
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
@@ -5155,6 +5099,7 @@ class EventsController extends AppController
         $this->set('configTypes', $this->Module->configTypes);
         $this->set('module', $module);
         $this->set('eventId', $eventId);
+        $this->set('event', $event);
     }
 
     public function exportModule($module, $id, $standard = false)

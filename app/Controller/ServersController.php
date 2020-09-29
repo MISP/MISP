@@ -3,6 +3,9 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 
+/**
+ * @property Server $Server
+ */
 class ServersController extends AppController
 {
     public $components = array('Security' ,'RequestHandler');   // XXX ACL component
@@ -1469,6 +1472,18 @@ class ServersController extends AppController
                 }
             }
         }
+    }
+
+    public function killAllWorkers($force = false)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        $this->Server->killAllWorkers($this->Auth->user(), $force);
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'killAllWorkers', false, $this->response->type(), __('Killing workers.'));
+        }
+        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }
 
     public function restartWorkers()

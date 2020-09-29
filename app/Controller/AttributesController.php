@@ -1950,14 +1950,10 @@ class AttributesController extends AppController
             throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
         }
         $params = array(
-                'conditions' => array('Attribute.id' => $id),
-                'fields' => array('id', 'distribution', 'event_id', $field),
-                'contain' => array(
-                        'Event' => array(
-                                'fields' => array('distribution', 'id', 'org_id'),
-                        )
-                ),
-                'flatten' => 1
+            'conditions' => array('Attribute.id' => $id),
+            'fields' => array('id', 'category', 'type', $field),
+            'contain' => ['Event'],
+            'flatten' => 1,
         );
         $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
         if (empty($attribute)) {
@@ -1977,6 +1973,8 @@ class AttributesController extends AppController
             }
         }
         $this->set('value', $result);
+        $this->set('object', $attribute);
+        $this->set('field', $field);
         $this->layout = 'ajax';
         $this->render('ajax/attributeViewFieldForm');
     }
