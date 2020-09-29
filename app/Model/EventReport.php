@@ -82,7 +82,6 @@ class EventReport extends AppModel
         }
         return true;
     }
-    
     /**
      * captureReport Gets a report then save it
      *
@@ -382,9 +381,6 @@ class EventReport extends AppModel
 
     public function canEditReport(array $user, array $report)
     {
-        if ($report['EventReport']['deleted']) {
-            return __('Deleted report cannot be edited');
-        }
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
