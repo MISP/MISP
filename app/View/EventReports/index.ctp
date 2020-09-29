@@ -101,7 +101,7 @@
                         'options' => array(
                             'me' => $me,
                             'datapath' => array(
-                                'orgc' => 'EventReport.orgc_id',
+                                'orgc' => 'Event.orgc_id',
                                 'deleted' => 'EventReport.deleted'
                             )
                         )
@@ -121,7 +121,7 @@
                         'options' => array(
                             'me' => $me,
                             'datapath' => array(
-                                'orgc' => 'EventReport.orgc_id',
+                                'orgc' => 'Event.orgc_id',
                                 'deleted' => 'EventReport.deleted'
                             )
                         )
