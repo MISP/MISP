@@ -1,9 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
 
-/**
- * @property Attribute $Attribute
- */
 class AttributeTag extends AppModel
 {
     public $actsAs = array('Containable');
@@ -180,30 +177,11 @@ class AttributeTag extends AppModel
         }
     }
 
-    /**
-     * Count number of not deleted attributes that contains given tag for given user. Tag must contains 'AttributeTag'.
-     *
-     * @param array $tag
-     * @param array $user
-     * @return int
-     */
-    public function countForTag(array $tag, array $user)
+    public function countForTag($tag_id, $user)
     {
-        $attributeIds = [];
-        foreach ($tag['AttributeTag'] as $attributeTag) {
-            $attributeIds[] = $attributeTag['attribute_id'];
-        }
-
-        if (empty($attributeIds)) {
-            return 0;
-        }
-
-        $conditions = $this->Attribute->buildConditions($user);
-        $conditions['Attribute.id'] = $attributeIds;
-        $conditions['Attribute.deleted'] = 0;
-        return $this->Attribute->find('count', array(
-            'recursive' => 0,
-            'conditions' => $conditions,
+        return $this->find('count', array(
+            'recursive' => -1,
+            'conditions' => array('AttributeTag.tag_id' => $tag_id)
         ));
     }
 
