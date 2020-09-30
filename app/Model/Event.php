@@ -1169,8 +1169,10 @@ class Event extends AppModel
                 $newTextBody = $response->body();
                 return 404;
             case '405':
+                $newTextBody = $response->body();
                 return 405;
             case '403': // Not authorised
+                $newTextBody = $response->body();
                 return 403;
         }
     }
@@ -2153,7 +2155,9 @@ class Event extends AppModel
             $this->Feed = ClassRegistry::init('Feed');
         }
         // Precache current user email
-        $userEmails = array($user['id'] => $user['email']);
+        if (!empty($user['id'])) {
+            $userEmails = array($user['id'] => $user['email']);
+        }
         // Do some refactoring with the event
         $fields = array(
             'common' => array('distribution', 'sharing_group_id', 'uuid'),
