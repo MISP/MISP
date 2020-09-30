@@ -543,6 +543,14 @@ class Sighting extends AppModel
         $conditions = array(
             'Sighting.date_sighting >' => $this->getMaximumRange(),
             ucfirst($context) . 'Tag.tag_id' => $tagList
+
+        );
+        $contain = array(
+            ucfirst($context) => array(
+                ucfirst($context) . 'Tag' => array(
+                    'Tag'
+                )
+            )
         );
         if ($type !== false) {
             $conditions['Sighting.type'] = $type;
@@ -552,16 +560,15 @@ class Sighting extends AppModel
             'recursive' => -1,
             'contain' => array(ucfirst($context) . 'Tag'),
             'conditions' => $conditions,
-            'fields' => array('Sighting.' . $context . '_id', 'Sighting.date_sighting')
+            'fields' => array('Sighting.id', 'Sighting.' . $context . '_id', 'Sighting.date_sighting', ucfirst($context) . 'Tag.tag_id')
         ));
         $sightingsRearranged = array();
         foreach ($sightings as $sighting) {
             $date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
-            $contextId = $sighting['Sighting'][$context . '_id'];
-            if (isset($sightingsRearranged[$contextId][$date])) {
-                $sightingsRearranged[$contextId][$date]++;
+            if (isset($sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date])) {
+                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date]++;
             } else {
-                $sightingsRearranged[$contextId][$date] = 1;
+                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date] = 1;
             }
         }
         return $sightingsRearranged;
