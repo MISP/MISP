@@ -18,19 +18,21 @@
 <h2><?= __('Markdown extended format') ?></h2>
 <p><?= __('In order to have a visually pleasant report but more importantly, avoid hardcoding elements value or IDs, MISP elements such as attributes and objects can be referenced with the following special syntax') ?></p>
 <h4 style="text-align: center;">
-    <code style="font-size: 14px;">@[scope](id)</code>
+    <code style="font-size: 14px;">@[scope](UUID)</code>
 </h4>
 <span><?= __('Where:') ?></span>
 <ul>
-    <li><b>scope</b>: <?= __('Is the scope to which the ID is related.') ?></li>
+    <li><b>scope</b>: <?= __('Is the scope to which the UUID is related.') ?></li>
     <ul>
         <li><?= __('Can be one of the following: %s', $allowedScopesHtml) ?></li>
     </ul>
-    <li><b>id</b>: <?= __('Is the ID of the MISP element.') ?></li>
+    <li><b>id</b>: <?= __('Is the UUID of the MISP element.') ?></li>
 </ul>
 <span><?= __('Examples:') ?></span>
 <ul>
-    <li><code>@[attribute](42)</code>, <code>@[object](12)</code>, <code>@[eventgraph](12)</code></li>, <code>@[galaxymatrix](42)</code></li>
+    <li><code>@[attribute](5f1accda-cde4-47fc-baf1-6ab8f331dc3b)</code></li>
+    <li><code>@[object](5f1accda-cde4-47fc-baf1-6ab8f331dc3b)</code></li>
+    <li><code>@[galaxymatrix](5f1accda-cde4-47fc-baf1-6ab8f331dc3b)</code></li>
 </ul>
 
 <h4><?= __('Picture from attachment attribute') ?></h4>
@@ -41,11 +43,11 @@
 </ul>
 
 <h4 style="text-align: center;">
-    <code style="font-size: 14px;">@![attribute](id)</code>
+    <code style="font-size: 14px;">@![attribute](UUID)</code>
 </h4>
 <span><?= __('Examples:') ?></span>
 <ul>
-    <li><code>@![attribute](52)</code></li>
+    <li><code>@![attribute](5f1accda-cde4-47fc-baf1-6ab8f331dc3b)</code></li>
 </ul>
 
 <h4><?= __('Event\'s Galaxy matrixes') ?></h4>
@@ -56,5 +58,5 @@
 </ul>
 <span><?= __('Examples:') ?></span>
 <ul>
-    <li><code>@[galaxymatrix](12)</code></li>
+    <li><code>@[galaxymatrix](5f1accda-cde4-47fc-baf1-6ab8f331dc3b)</code></li>
 </ul>

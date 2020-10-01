@@ -425,7 +425,7 @@ class EventReport extends AppModel
         $templateConditions = [];
         $recordedConditions = [];
         foreach ($event['Object'] as $k => $object) {
-            $objects[$object['id']] = $object;
+            $objects[$object['uuid']] = $object;
             $uniqueCondition = sprintf('%s.%s', $object['template_uuid'], $object['template_version']);
             if (!isset($recordedConditions[$uniqueCondition])) {
                 $templateConditions['OR'][] = [
@@ -452,9 +452,9 @@ class EventReport extends AppModel
         }
         $this->Galaxy = ClassRegistry::init('Galaxy');
         $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
-        $allowedGalaxies = Hash::combine($allowedGalaxies, '{n}.Galaxy.id', '{n}.Galaxy');
+        $allowedGalaxies = Hash::combine($allowedGalaxies, '{n}.Galaxy.uuid', '{n}.Galaxy');
         $proxyMISPElements = [
-            'attribute' => Hash::combine($event, 'Attribute.{n}.id', 'Attribute.{n}'),
+            'attribute' => Hash::combine($event, 'Attribute.{n}.uuid', 'Attribute.{n}'),
             'object' => $objects,
             'objectTemplates' => $objectTemplates,
             'galaxymatrix' => $allowedGalaxies

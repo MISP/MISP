@@ -170,7 +170,7 @@ function hintMISPElements(cm, options) {
         if (element !== undefined) {
             hintList.push(
                 {
-                    text: '@[' + scope + '](' + element.id + ')',
+                    text: '@[' + scope + '](' + element.uuid + ')',
                     render: function(elem, self, data) {
                         var hintElement = renderHintElement(scope, element)
                         $(elem).append(hintElement)
@@ -195,7 +195,7 @@ function hintMISPElements(cm, options) {
                                 element = proxyMISPElements[scope][hint[1]]
                                 if (element !== undefined) { // Correct scope
                                     hintList.push({
-                                        text: '@[' + scope + '](' + element.id + ')',
+                                        text: '@[' + scope + '](' + element.uuid + ')',
                                         element: element,
                                         render: function(elem, self, data) {
                                             var hintElement = renderHintElement(scope, data.element)
@@ -312,7 +312,8 @@ function MISPElementRule(state, startLine, endLine, silent) {
     }
     pos++;
 
-    if (!/^\d+$/.test(elementID)) {
+    var reUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+    if (!reUUID.test(elementID)) {
         return false;
     }
 
