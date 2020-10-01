@@ -25,11 +25,14 @@ var markdownModelFieldNameForSave = 'content';
 var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span>{{=it.type}}</span><span class=\"blue\"> {{=it.value}}</span></span></span>");
 var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrapper attributePicture useCursorPointer\"><img data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" href=\"#\" src=\"{{=it.src}}\" alt=\"{{=it.alt}}\" title=\"\"/></div>");
 var dotTemplateGalaxyMatrix = doT.template("<div class=\"misp-picture-wrapper embeddedGalaxyMatrix\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
+var dotTemplateTag = doT.template("<span class=\"tag embeddedTag useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{!it.elementid}}\" data-eventid=\"{{=it.eventid}}\">{{=it.elementid}}</span>");
 var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span>{{=it.type}}</span><span class=\"value\">{{=it.value}}</span></span></span>");
 var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
+var dotCloseButtonTemplate = doT.template('<button type="button" class="close" style="margin-left: 5px;" data-scope=\"{{=it.scope}}\" data-elementid=\"{{!it.elementID}}\" onclick="closeThePopover(this)">×</button>');
 
-var galaxyMatrixTimer;
-var cache_matrix = {};
+var galaxyMatrixTimer, tagTimers = {};
+var cache_matrix = {}, cache_tag = {};
+proxyMISPElements['tag'] = []
 
 /**
    _____          _      __  __ _                     
@@ -72,6 +75,11 @@ function MISPElementReplacementActions(action) {
             end = null
             setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
             break;
+        case 'tag':
+            replacement = '@[tag]()'
+            end = null
+            setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
+            break;
         case 'galaxymatrix':
             replacement = '@[galaxymatrix]()'
             end = null
@@ -97,6 +105,7 @@ function insertMISPElementToolbarButtons() {
     insertTopToolbarButton('cube', 'attribute')
     insertTopToolbarButton('cubes', 'object')
     insertTopToolbarButton('image', 'attribute-attachment')
+    insertTopToolbarButton('tag', 'tag')
     insertTopToolbarButton('table', 'galaxy-matrix')
 }
 
@@ -280,7 +289,11 @@ function MISPElementRule(state, startLine, endLine, silent) {
     pos = labelEnd + 1;
     if (pos < max && state.src.charCodeAt(pos) === 0x28/* ( */) {
         start = pos;
-        res = state.md.helpers.parseLinkDestination(state.src, pos, state.posMax);
+        if (scope == 'tag') { // tags may contain spaces
+            res = parseTag(state.src, pos, state.posMax);
+        } else {
+            res = state.md.helpers.parseLinkDestination(state.src, pos, state.posMax);
+        }
         if (res.ok) {
             // parseLinkDestination does not support trailing characters such as `.` after the link
             // so we have to find the matching `)`
@@ -305,9 +318,16 @@ function MISPElementRule(state, startLine, endLine, silent) {
     }
     pos++;
 
-    var reUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
-    if (!reUUID.test(elementID)) {
-        return false;
+    if (scope == 'tag') {
+        var reTagName = /^[^\n)]+$/
+        if (!reTagName.test(elementID)) {
+            return false;
+        }
+    } else {
+        var reUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+        if (!reUUID.test(elementID)) {
+            return false;
+        }
     }
 
     // We found the end of the link, and know for a fact it's a valid link;
@@ -332,7 +352,7 @@ function MISPElementRule(state, startLine, endLine, silent) {
 
 /* Rendering rules */
 function MISPElementRenderer(tokens, idx, options, env, slf) {
-    var allowedScope = ['attribute', 'object', 'galaxymatrix']
+    var allowedScope = ['attribute', 'object', 'galaxymatrix', 'tag']
     var token = tokens[idx];
     var scope = token.content.scope
     var elementID = token.content.elementID
@@ -384,8 +404,10 @@ function renderMISPElement(scope, elementID) {
             })
             return dotTemplateObject(templateVariables);
         }
+    } else if (scope == 'tag') {
+        return dotTemplateTag(sanitizeObject({scope: 'tag', elementid: elementID, eventid: eventid}));
     } else if (scope == 'galaxymatrix') {
-        return dotTemplateGalaxyMatrix({scope: 'galaxymatrix', elementid: elementID, eventid: eventid});
+        return dotTemplateGalaxyMatrix(sanitizeObject({scope: 'galaxymatrix', elementid: elementID, eventid: eventid}));
     }
     return renderInvalidMISPElement(scope, elementID)
 }
@@ -441,6 +463,14 @@ function setupMISPElementMarkdownListeners() {
         title: getTitleFromMISPElementDOM,
         content: getContentFromMISPElementDOM
     })
+    $('.embeddedTag').popover({
+        trigger: 'click',
+        html: true,
+        container: 'body',
+        placement: 'top',
+        title: getTitleFromMISPElementDOM,
+        content: getContentFromMISPElementDOM
+    })
 }
 
 function attachRemoteMISPElements() {
@@ -457,6 +487,22 @@ function attachRemoteMISPElements() {
             }, slowDebounceDelay);
         } else {
             $div.html(cache_matrix[cacheKey])
+        }
+    })
+    $('.embeddedTag[data-scope="tag"]').each(function() {
+        var $div = $(this)
+        $div.append($('<span/>').append(loadingSpanAnimation))
+        var eventID = $div.data('eventid')
+        var elementID = $div.data('elementid')
+        var cacheKey = eventid + '-' + elementID
+        clearTimeout(tagTimers[cacheKey]);
+        if (cache_tag[cacheKey] === undefined) {
+            tagTimers[cacheKey] = setTimeout(function() {
+                attachTagInfo($div, eventID, elementID)
+            // }, slowDebounceDelay);
+            }, debounceDelay);
+        } else {
+            $div.html(cache_tag[cacheKey])
         }
     })
 }
@@ -502,6 +548,54 @@ function attachGalaxyMatrix($elem, eventid, elementID) {
         },
         type:"post",
         url: baseurl + "/events/restSearch"
+    })
+}
+
+function attachTagInfo($elem, eventid, elementID) {
+    $.ajax({
+        data: {
+            "tag": elementID,
+        },
+        success:function(data, textStatus) {
+            var $tag
+            data = $.parseJSON(data)
+            var tagData;
+            for (var i = 0; i < data.length; i++) {
+                var tag = data[i];
+                if (tag.Tag.name == elementID) {
+                    tagData = data[i]
+                    break
+                }
+            }
+            if (tagData === undefined) {
+                tagData = {}
+                $tag = $('<span/>').text(elementID).addClass('tag').css('box-shadow', '3px 3px 3px #888888')
+            } else {
+                $tag = $('<span/>').text(tagData.Tag.name)
+                    .addClass('tag')
+                    .css({
+                        'box-shadow': '3px 3px 3px #888888',
+                        'background-color': tagData.Tag.colour,
+                        'color': getTextColour(tagData.Tag.colour)
+                    })
+            }
+            $elem.empty().append($tag)
+            proxyMISPElements['tag'][elementID] = tagData
+            var cacheKey = eventid + '-' + elementID
+            cache_tag[cacheKey] = $tag[0].outerHTML;
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            var templateVariables = sanitizeObject({
+                scope: 'Error while fetching tag',
+                id: elementID
+            })
+            var placeholder = dotTemplateInvalid(templateVariables)
+            $elem.empty()
+                .css({'text-align': 'center'})
+                .append($(placeholder))
+        },
+        type:"post",
+        url: baseurl + "/tags/search/0/1"
     })
 }
 
@@ -590,8 +684,9 @@ function getTitleFromMISPElementDOM() {
     var title = invalidMessage
     var dismissButton = ''
     if (data !== false) {
-        dismissButton = '<button type="button" class="close" style="margin-left: 5px;" data-scope="' + data.scope + '" data-elementid="' + data.elementID + '" onclick="closeThePopover(this)">×</button>';
-        title = data.scope.charAt(0).toUpperCase() + data.scope.slice(1) + ' ' + data.elementID
+        var templateVariables =  sanitizeObject(data)
+        var dismissButton = dotCloseButtonTemplate(templateVariables)
+        title = data.scope.charAt(0).toUpperCase() + templateVariables.scope.slice(1) + ' ' + templateVariables.elementID
     }
     return title + dismissButton
 }
@@ -600,7 +695,7 @@ function getTitleFromMISPElementDOM() {
 function closeThePopover(closeButton) {
     var scope = $(closeButton).data('scope')
     var elementID = $(closeButton).data('elementid')
-    var $MISPElement = $('[data-scope="' + scope + '"][data-elementid="' + elementID + '"]')
+    var $MISPElement = $('[data-scope="' + scope + '"][data-elementid="' + elementID.replaceAll('\"', '\\\"') + '"]')
     $MISPElement.popover('hide');
 }
 
@@ -699,9 +794,104 @@ function getPriorityValue(mispObject, objectTemplate) {
     return false
 }
 
+function constructTag(tagName) {
+    var tagData = proxyMISPElements['tag'][tagName]
+    var $info
+    if (tagData.Taxonomy !== undefined) {
+        $info = constructTaxonomyInfo(tagData)
+    } else if(tagData.GalaxyCluster !== undefined) {
+        $info = constructGalaxyInfo(tagData)
+    } else {
+        $info = 'No information about this tag'
+    }
+    return $('<div/>').append($info)
+}
+
+function constructTaxonomyInfo(tagData) {
+    var cacheKey = eventid + '-' + tagData.Tag.name
+    var tagHTML = cache_tag[cacheKey]
+    var $tag = $(tagHTML)
+    var $predicate = $('<div/>').append(
+        $('<span/>').append($tag),
+        $('<h3/>').text('Predicate info'),
+        $('<p/>').append(
+            $('<strong/>').text('Expanded tag: '),
+            $('<span/>').text(tagData.TaxonomyPredicate.expanded),
+        ),
+        $('<p/>').append(
+            $('<strong/>').text('Description: '),
+            $('<span/>').text(tagData.TaxonomyPredicate.description),
+        )
+    )
+    var $meta = $('<div/>').append(
+        $('<h3/>').text('Taxonomy info'),
+        $('<p/>').append(
+            $('<strong/>').text(tagData.Taxonomy.namespace + ': '),
+            $('<span/>').text(tagData.Taxonomy.description),
+        )
+    )
+    return $('<div/>').append($predicate, $meta)
+}
+
+function constructGalaxyInfo(tagData) {
+    var cacheKey = eventid + '-' + tagData.Tag.name
+    var tagHTML = cache_tag[cacheKey]
+    var $tag = $(tagHTML)
+    var $cluster = $('<div/>').append(
+        $('<span/>').append($tag),
+        $('<h3/>').text('Cluster info'),
+    )
+    var fields = ['description', 'source', 'author']
+    fields.forEach(function(field) {
+        $cluster.append(
+            $('<div/>').css({
+                'max-height': '100px',
+                'overflow-y': 'auto',
+            })
+            .append(
+                $('<strong/>').text(field + ': '),
+                $('<span/>').text(tagData.GalaxyCluster[field] === undefined || tagData.GalaxyCluster[field].length == 0 ? '-' : tagData.GalaxyCluster[field]),
+            )
+        )
+    })
+    var $clusterMeta = $('<div/>').css({
+        'height': '100px',
+        'overflow-y': 'auto',
+        'resize': 'vertical',
+        'border': '1px solid #0088cc',
+        'border-radius': '3px',
+        'padding': '5px'
+    })
+    if (tagData.GalaxyCluster.meta !== undefined) {
+        Object.keys(tagData.GalaxyCluster.meta).forEach(function(metaKey) {
+            var metaValue = tagData.GalaxyCluster.meta[metaKey]
+            $clusterMeta.append(
+                $('<div/>').append(
+                    $('<strong/>').addClass('blue').text(metaKey + ': '),
+                    $('<span/>').text(metaValue),
+                )
+            )
+        })
+    }
+    $cluster.append($clusterMeta)
+    var $galaxy = $('<div/>').append(
+        $('<h3/>').text('Galaxy info'),
+        $('<div/>').append(
+            $('<div/>').append(
+                $('<strong/>').text('Name: '),
+                $('<span/>').text(tagData.GalaxyCluster.Galaxy.name),
+            ),
+            $('<div/>').append(
+                $('<strong/>').text('Description: '),
+                $('<span/>').text(tagData.GalaxyCluster.Galaxy.description),
+            )
+        )
+    )
+    return $('<div/>').append($cluster, $galaxy)
+}
+
 function getContentFromMISPElementDOM() {
     var data = getElementFromDom(this)
-    
     if (data !== false) {
         if (data.scope == 'attribute') {
             var $thead = constructAttributeHeader(data.element)
@@ -716,7 +906,54 @@ function getContentFromMISPElementDOM() {
         } else if (data.scope == 'object') {
             var $object = constructObject(data.element)
             return $object.html()
+        } else if (data.scope == 'tag') {
+            var $tag = constructTag(data.elementID)
+            return $tag.html()
         }
     }
     return invalidMessage
+}
+
+function parseTag(str, pos, max) {
+    var level = 0
+    var lines = 0
+    var code
+    var start = pos
+    var result = {
+        ok: false,
+        pos: 0,
+        lines: 0,
+        str: ''
+      };
+    while (pos < max) {
+        code = str.charCodeAt(pos);
+
+        // ascii control characters
+        if (code < 0x20 || code === 0x7F) { break; }
+
+        if (code === 0x5C /* \ */ && pos + 1 < max) {
+            pos += 2;
+            continue;
+        }
+
+        if (code === 0x28 /* ( */) {
+            level++;
+        }
+
+        if (code === 0x29 /* ) */) {
+            if (level === 0) { break; }
+            level--;
+        }
+
+        pos++;
+    }
+
+    if (start === pos) { return result; }
+    if (level !== 0) { return result; }
+
+    result.str = md.utils.unescapeAll(str.slice(start, pos));
+    result.lines = lines;
+    result.pos = pos;
+    result.ok = true;
+    return result;
 }
