@@ -5265,45 +5265,56 @@ class Event extends AppModel
 
         $correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
         $correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
-        $event['objects'] = array();
-        foreach ($event['Attribute'] as $attribute) {
-            $result = $this->__prepareAttributeForView(
-                $attribute,
-                $correlatedAttributes,
-                $correlatedShadowAttributes,
-                $filterType,
-                $sightingsData
-            );
-            if ($result) {
-                $event['objects'][] = $result;
+        $objects = array();
+
+        if (isset($event['Attribute'])) {
+            foreach ($event['Attribute'] as $attribute) {
+                $result = $this->__prepareAttributeForView(
+                    $attribute,
+                    $correlatedAttributes,
+                    $correlatedShadowAttributes,
+                    $filterType,
+                    $sightingsData
+                );
+                if ($result) {
+                    $objects[] = $result;
+                }
             }
+            unset($event['Attribute']);
         }
-        unset($event['Attribute']);
-        foreach ($event['ShadowAttribute'] as $proposal) {
-            $result = $this->__prepareProposalForView(
-                $proposal,
-                $correlatedShadowAttributes,
-                $filterType
-            );
-            if ($result) {
-                $event['objects'][] = $result;
+
+        if (isset($event['ShadowAttribute'])) {
+            foreach ($event['ShadowAttribute'] as $proposal) {
+                $result = $this->__prepareProposalForView(
+                    $proposal,
+                    $correlatedShadowAttributes,
+                    $filterType
+                );
+                if ($result) {
+                    $objects[] = $result;
+                }
             }
+            unset($event['ShadowAttribute']);
         }
-        foreach ($event['Object'] as $object) {
-            $object['objectType'] = 'object';
-            $result = $this->__prepareObjectForView(
-                $object,
-                $correlatedAttributes,
-                $correlatedShadowAttributes,
-                $filterType,
-                $sightingsData
-            );
-            if ($result) {
-                $event['objects'][] = $result;
+        if (isset($event['Object'])) {
+            foreach ($event['Object'] as $object) {
+                $object['objectType'] = 'object';
+                $result = $this->__prepareObjectForView(
+                    $object,
+                    $correlatedAttributes,
+                    $correlatedShadowAttributes,
+                    $filterType,
+                    $sightingsData
+                );
+                if ($result) {
+                    $objects[] = $result;
+                }
             }
+            unset($event['Object']);
         }
-        unset($event['Object']);
-        unset($event['ShadowAttribute']);
+
+        $event['objects'] = $objects;
+
         $referencedByArray = array();
         foreach ($event['objects'] as $object) {
             if (!in_array($object['objectType'], array('attribute', 'object'))) {
