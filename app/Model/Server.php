@@ -5334,12 +5334,12 @@ class Server extends AppModel
             $currentUser = trim(shell_exec('whoami'));
         }
         $worker_array = array(
-                'cache' => array('ok' => true),
-                'default' => array('ok' => true),
-                'email' => array('ok' => true),
-                'prio' => array('ok' => true),
-                'update' => array('ok' => true),
-                'scheduler' => array('ok' => true)
+                'cache' => array('ok' => false),
+                'default' => array('ok' => false),
+                'email' => array('ok' => false),
+                'prio' => array('ok' => false),
+                'update' => array('ok' => false),
+                'scheduler' => array('ok' => false)
         );
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
@@ -5358,7 +5358,13 @@ class Server extends AppModel
                 $ok = false;
                 $workerIssueCount++;
             }
-            $worker_array[$entry]['workers'][] = array('pid' => $pid, 'user' => $worker['user'], 'alive' => $alive, 'correct_user' => $correct_user, 'ok' => $ok);
+            $worker_array[$entry]['workers'][] = array(
+                'pid' => $pid,
+                'user' => $worker['user'],
+                'alive' => $alive,
+                'correct_user' => $correct_user,
+                'ok' => $ok
+            );
         }
         foreach ($worker_array as $k => $queue) {
             if (isset($worker_array[$k]['workers'])) {
