@@ -2155,9 +2155,8 @@ class Event extends AppModel
             $this->Feed = ClassRegistry::init('Feed');
         }
         // Precache current user email
-        if (!empty($user['id'])) {
-            $userEmails = array($user['id'] => $user['email']);
-        }
+        $userEmails = empty($user['id']) ? [] : [$user['id'] => $user['email']];
+
         // Do some refactoring with the event
         $fields = array(
             'common' => array('distribution', 'sharing_group_id', 'uuid'),

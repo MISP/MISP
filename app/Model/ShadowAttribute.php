@@ -317,7 +317,7 @@ class ShadowAttribute extends AppModel
         }
 
         if (!isset($this->data['ShadowAttribute']['org'])) {
-            return $this->data['ShadowAttribute']['org'] = '';
+            $this->data['ShadowAttribute']['org'] = '';
         }
 
         if (empty($this->data['ShadowAttribute']['timestamp'])) {
