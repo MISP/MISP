@@ -2944,12 +2944,14 @@ class AttributesController extends AppController
             $exists = $attachmentTool->exists($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
             if (!$exists) {
                 $results['affectedEvents'][$attribute['Attribute']['event_id']] = $attribute['Attribute']['event_id'];
-                $results['affectedEvents'][] = $attribute['Attribute']['id'];
+                $results['affectedAttributes'][] = $attribute['Attribute']['id'];
                 $counter++;
             }
         }
         if (!empty($results)) {
             $results['affectedEvents'] = array_values($results['affectedEvents']);
+            rsort($results['affectedEvents']);
+            rsort($results['affectedAttributes']);
         }
         file_put_contents(APP . '/tmp/logs/missing_attachments.log', json_encode($results, JSON_PRETTY_PRINT));
         return new CakeResponse(array('body' => $counter, 'status' => 200));
