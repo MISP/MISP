@@ -2935,17 +2935,37 @@ class AttributesController extends AppController
                 'all',
                 array(
                     'conditions' => array('Attribute.type' => array('attachment', 'malware-sample')),
-                    'recursive' => -1)
+                    'contain' => ['Event.orgc_id', 'Event.org_id'],
+                    'recursive' => -1
+                )
             );
         $counter = 0;
         $attachmentTool = new AttachmentTool();
+        $results = [];
         foreach ($attributes as $attribute) {
             $exists = $attachmentTool->exists($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
             if (!$exists) {
+                $results['affectedEvents'][$attribute['Attribute']['event_id']] = $attribute['Attribute']['event_id'];
+                $results['affectedAttributes'][] = $attribute['Attribute']['id'];
+                foreach (['orgc', 'org'] as $type) {
+                    if (empty($results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']])) {
+                        $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] = 0;
+                    } else {
+                        $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] += 1;
+                    }
+                }
                 $counter++;
             }
         }
-
+        if (!empty($results)) {
+            $results['affectedEvents'] = array_values($results['affectedEvents']);
+            rsort($results['affectedEvents']);
+            rsort($results['affectedAttributes']);
+            foreach (['orgc', 'org'] as $type) {
+                arsort($results['affectedOrgs'][$type]);
+            }
+        }
+        file_put_contents(APP . '/tmp/logs/missing_attachments.log', json_encode($results, JSON_PRETTY_PRINT));
         return new CakeResponse(array('body' => $counter, 'status' => 200));
     }
 
