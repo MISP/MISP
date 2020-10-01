@@ -135,7 +135,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'function' => 'getPopup',
                                 'params' => array($eventId, 'events', 'importChoice')
                             ),
-                            'text' => __('Populate from...')
+                            'text' => __('Populate from…')
                         ));
                         if ($menuItem === 'populateFromtemplate') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -154,7 +154,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'merge',
                             'url' => $baseurl . '/events/merge/' . $eventId,
-                            'text' => __('Merge attributes from...')
+                            'text' => __('Merge attributes from…')
                         ));
                     }
                     if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)) {
@@ -267,7 +267,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'function' => 'getPopup',
                             'params' => array($eventId, 'events', 'exportChoice')
                         ),
-                        'text' => __('Download as...')
+                        'text' => __('Download as…')
                     ));
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -292,7 +292,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/tag_collections/add',
                             'text' => __('Add Tag Collection')
                         ));
-                        if (($menuItem === 'edit')) {
+                        if ($menuItem === 'edit') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => $baseurl . '/tag_collections/edit/' . $id,
                                 'text' => __('Add Tag Collection')
@@ -354,7 +354,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'function' => 'getPopup',
                                 'params' => array(0, 'attributes', 'exportSearch')
                             ),
-                            'text' => __('Download as...')
+                            'text' => __('Download as…')
                         ));
                     }
                     echo $divider;
@@ -385,7 +385,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Automation')
                         ));
                     }
-                    if (!$isSiteAdmin && (int)$me['org_id'] === Configure::read('MISP.host_org_id')) {
+                    if (!$isSiteAdmin && $hostOrgUser) {
                         echo $divider;
                         if (Configure::read('MISP.enableEventBlocklisting') !== false) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -462,7 +462,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'url' => $baseurl . '/admin/regexp/delete/' . h($id),
                             'text' => __('Delete Regexp'),
-                            'message' => __('Are you sure you want to delete # %s?', h($id))
+                            'message' => __('Are you sure you want to delete #%s?', h($id))
                         ));
                     }
                 break;
@@ -530,7 +530,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'url' => $baseurl . '/admin/allowedlists/delete/' . h($id),
                             'text' => __('Delete Allowedlist'),
-                            'message' => __('Are you sure you want to delete # %s?', h($id))
+                            'message' => __('Are you sure you want to delete #%s?', h($id))
                         ));
                     }
                     break;
@@ -702,7 +702,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 $this->Form->value('Server.id')
                             ),
                             'text' => __('Delete'),
-                            'message' => __('Are you sure you want to delete # %s?', $this->Form->value('Server.id'))
+                            'message' => __('Are you sure you want to delete #%s?', $this->Form->value('Server.id'))
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -778,7 +778,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'event_id' => 'deleteUser',
                             'url' => $baseurl . '/admin/users/delete/' . h($id),
                             'text' => __('Delete User'),
-                            'message' => __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id))
+                            'message' => __('Are you sure you want to delete #%s? It is highly recommended to never delete users but to disable them instead.', h($id))
                         ));
                         echo $divider;
                     }
@@ -792,7 +792,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'event_id' => 'deleteRole',
                             'url' => $baseurl . '/admin/roles/delete/' . h($id),
                             'text' => __('Delete Role'),
-                            'message' => __('Are you sure you want to delete # %s?', h($id))
+                            'message' => __('Are you sure you want to delete #%s?', h($id))
                         ));
                         echo $divider;
                     }
@@ -859,7 +859,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                                 'url' => $baseurl . '/admin/organisations/delete/' . h($id),
                                 'text' => __('Delete Organisation'),
-                                'message' => __('Are you sure you want to delete # %s?', h($id))
+                                'message' => __('Are you sure you want to delete #%s?', h($id))
                             ));
                         }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(

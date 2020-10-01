@@ -4641,6 +4641,11 @@ $(document).ready(function() {
     $('.quickToggleCheckbox').toggle(function() {
         var url = $(this).data('checkbox-url');
     });
+
+    $('#setHomePage').click(function(event) {
+        event.preventDefault();
+        setHomePage();
+    })
 });
 
 $("body").on("click", ".correlation-expand-button", function() {

@@ -4,9 +4,10 @@ body {
 }
 
 #topBar {
-     height:42px;
-     width:100%;
-     min-width:1300px;
+    height:42px;
+    width:100%;
+    min-width:1300px;
+    z-index: 20;
 }
 
 input[type="file"] {
