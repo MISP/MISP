@@ -5313,7 +5313,7 @@ class Server extends AppModel
 
     public function workerDiagnostics(&$workerIssueCount)
     {
-	$worker_array = array(
+        $worker_array = array(
             'cache' => array('ok' => false),
             'default' => array('ok' => false),
             'email' => array('ok' => false),
