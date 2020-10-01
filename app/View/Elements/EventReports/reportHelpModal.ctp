@@ -3,7 +3,7 @@
         __('No html support, typographer & autolinker'),
         __('An additional syntax to reference MISP Elements'),
     ];
-    $allowedScopes = ['attribute', 'object', 'galaxymatrix'];
+    $allowedScopes = ['attribute', 'object', 'galaxymatrix' ,'tag'];
     $allowedScopesHtml = '<code>' . implode('</code> <code>', $allowedScopes) . '</code>';
 ?>
 
@@ -26,7 +26,7 @@
     <ul>
         <li><?= __('Can be one of the following: %s', $allowedScopesHtml) ?></li>
     </ul>
-    <li><b>id</b>: <?= __('Is the UUID of the MISP element.') ?></li>
+    <li><b>UUID</b>: <?= __('Is the UUID of the MISP element with only one excpetion for the tag') ?></li>
 </ul>
 <span><?= __('Examples:') ?></span>
 <ul>
@@ -50,11 +50,23 @@
     <li><code>@![attribute](5f1accda-cde4-47fc-baf1-6ab8f331dc3b)</code></li>
 </ul>
 
+<h4><?= __('Tags') ?></h4>
+<p><?=  __('Syntax for representing tags is similar the syntax for referencing MISP elements:') ?></p>
+<ul>
+    <li><?= __('The scope is fixed to %s', '<code>tag</code>') ?></li>
+    <li><?= __('The UUID is replaced by the tag name') ?></li>
+</ul>
+<span><?= __('Examples:') ?></span>
+<ul>
+    <li><code>@[tag](tlp:green)</code></li>
+    <li><code>@[tag](misp-galaxy:threat-actor="APT 29")</code></li>
+</ul>
+
 <h4><?= __('Event\'s Galaxy matrixes') ?></h4>
 <p><?=  __('Syntax for embedding the ATT&CK matrix or any other Galaxy matrixes is similar the syntax for referencing MISP elements:') ?></p>
 <ul>
     <li><?= __('The scope is fixed to %s', '<code>galaxymatrix</code>') ?></li>
-    <li><?= __('The ID of the galaxy matrix. The matrix will be generated for the whole event for which the report is linked to') ?></li>
+    <li><?= __('The UUID of the galaxy matrix. The matrix will be generated for the whole event for which the report is linked to') ?></li>
 </ul>
 <span><?= __('Examples:') ?></span>
 <ul>
