@@ -153,6 +153,7 @@ class Server extends AppModel
             ),
             'console_automation_tasks' => array(
                 'data' => array(
+                    'PullAll' => 'MISP/app/Console/cake Server pullAll [user_id] [full|update]',
                     'Pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
