@@ -111,6 +111,7 @@
   },
   {
     "name": "PISAX -  pan-European Information Sharing and Analysis Center (ISAC) to IXPs and GRXs",
+    "logo": "https://www.pisax.org/assets/img/pisax.jpg",
     "uuid": "1c8793f0-5f91-4213-84b1-a038692a3e5c",
     "org_uuid": "5ebd3e6c-b97c-4e3b-868a-4ebc02de0b81",
     "org_name": "PISAX.org",
