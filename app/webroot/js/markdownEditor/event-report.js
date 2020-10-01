@@ -137,7 +137,7 @@ function buildMISPElementHints() {
 
 function hintMISPElements(cm, options) {
     var authorizedMISPElements = ['attribute', 'object', 'galaxymatrix']
-    var availableScopes = ['attribute', 'object', 'galaxymatrix']
+    var availableScopes = ['attribute', 'object', 'galaxymatrix', 'tag']
     var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)?\\)');
     var reExtendedWord = /\S/
     var scope, elementID, element
@@ -499,8 +499,7 @@ function attachRemoteMISPElements() {
         if (cache_tag[cacheKey] === undefined) {
             tagTimers[cacheKey] = setTimeout(function() {
                 attachTagInfo($div, eventID, elementID)
-            // }, slowDebounceDelay);
-            }, debounceDelay);
+            }, slowDebounceDelay);
         } else {
             $div.html(cache_tag[cacheKey])
         }
