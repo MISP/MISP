@@ -2949,9 +2949,9 @@ class AttributesController extends AppController
                 $results['affectedAttributes'][] = $attribute['Attribute']['id'];
                 foreach (['orgc', 'org'] as $type) {
                     if (empty($results['affectedOrgs'][$type][$attribute['Event_' . $type . '_id']])) {
-                        $results['affectedOrgs'][$type][$attribute['Event_' . $type . '_id']] = 0;
+                        $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] = 0;
                     } else {
-                        $results['affectedOrgs'][$type][$attribute['Event_' . $type . '_id']] += 1;
+                        $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] += 1;
                     }
                 }
                 $counter++;
