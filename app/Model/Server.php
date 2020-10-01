@@ -5313,18 +5313,19 @@ class Server extends AppModel
 
     public function workerDiagnostics(&$workerIssueCount)
     {
+	$worker_array = array(
+            'cache' => array('ok' => false),
+            'default' => array('ok' => false),
+            'email' => array('ok' => false),
+            'prio' => array('ok' => false),
+            'update' => array('ok' => false),
+            'scheduler' => array('ok' => false)
+        );
         try {
             $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         } catch (Exception $e) {
             // redis connection failed
-            return array(
-                    'cache' => array('ok' => false),
-                    'default' => array('ok' => false),
-                    'email' => array('ok' => false),
-                    'prio' => array('ok' => false),
-                    'update' => array('ok' => false),
-                    'scheduler' => array('ok' => false)
-            );
+            return $worker_array;
         }
         $workers = $this->ResqueStatus->getWorkers();
         if (function_exists('posix_getpwuid')) {
@@ -5333,14 +5334,6 @@ class Server extends AppModel
         } else {
             $currentUser = trim(shell_exec('whoami'));
         }
-        $worker_array = array(
-                'cache' => array('ok' => false),
-                'default' => array('ok' => false),
-                'email' => array('ok' => false),
-                'prio' => array('ok' => false),
-                'update' => array('ok' => false),
-                'scheduler' => array('ok' => false)
-        );
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
             $entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
