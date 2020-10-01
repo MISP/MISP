@@ -1173,8 +1173,10 @@ class Event extends AppModel
                 $newTextBody = $response->body();
                 return 404;
             case '405':
+                $newTextBody = $response->body();
                 return 405;
             case '403': // Not authorised
+                $newTextBody = $response->body();
                 return 403;
         }
     }
@@ -2228,9 +2230,6 @@ class Event extends AppModel
             unset($params['contain']['Object']);
             unset($params['contain']['EventReport']);
         }
-        if ($user['Role']['perm_site_admin']) {
-            $params['contain']['User'] = array('fields' => 'email');
-        }
         $results = $this->find('all', $params);
         if (empty($results)) {
             return array();
@@ -2239,8 +2238,11 @@ class Event extends AppModel
         if ($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) {
             $this->Feed = ClassRegistry::init('Feed');
         }
+        // Precache current user email
+        if (!empty($user['id'])) {
+            $userEmails = array($user['id'] => $user['email']);
+        }
         // Do some refactoring with the event
-        $userEmails = array();
         $fields = array(
             'common' => array('distribution', 'sharing_group_id', 'uuid'),
             'Attribute' => array('value', 'type', 'category', 'to_ids'),
@@ -2276,13 +2278,24 @@ class Event extends AppModel
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
                 $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
             }
-            // Add information for auditor user
-            if ($event['Event']['orgc_id'] === $user['org_id'] && $user['Role']['perm_audit']) {
+
+            // Include information about event creator user email. This information is included for:
+            // - users from event creator org
+            // - site admins
+            // In export, this information will be included in `event_creator_email` field just for auditors of event creator org.
+            $sameOrg = $event['Event']['orgc_id'] === $user['org_id'];
+            if ($sameOrg || $user['Role']['perm_site_admin']) {
                 if (!isset($userEmails[$event['Event']['user_id']])) {
-                    $userEmails[$event['Event']['user_id']] = $this->User->getAuthUser($event['Event']['user_id'])['email'];
+                    $userEmails[$event['Event']['user_id']] = $this->User->field('email', ['id' => $event['Event']['user_id']]);
                 }
-                $event['Event']['event_creator_email'] = $userEmails[$event['Event']['user_id']];
+
+                $userEmail = $userEmails[$event['Event']['user_id']];
+                if ($sameOrg && $user['Role']['perm_audit']) {
+                    $event['Event']['event_creator_email'] = $userEmail;
+                }
+                $event['User']['email'] = $userEmail;
             }
+
             $event = $this->massageTags($event, 'Event', $options['excludeGalaxy']);
             // Let's find all the related events and attach it to the event itself
             if ($options['includeEventCorrelations']) {
@@ -3136,7 +3149,7 @@ class Event extends AppModel
         } else {
             $threatLevel = $event['ThreatLevel']['name'] . " - ";
         }
-        $subject = "[" . Configure::read('MISP.org') . " MISP] Event $id - $subject $threatLevel " . strtoupper($subjMarkingString);
+        $subject = "[" . Configure::read('MISP.org') . " MISP] Event $id - $subject$threatLevel" . strtoupper($subjMarkingString);
 
         $eventUrl = $this->__getAnnounceBaseurl() . "/events/view/" . $id;
         $bodyNoEnc = __("A new or modified event was just published on %s", $eventUrl) . "\n\n";
@@ -3600,6 +3613,82 @@ class Event extends AppModel
         return true;
     }
 
+    /**
+     * @param array $user
+     * @param string $data
+     * @param bool $isXml
+     * @param bool $takeOwnership
+     * @param bool $publish
+     * @return array[]
+     * @throws Exception
+     */
+    public function addMISPExportFile(array $user, $data, $isXml = false, $takeOwnership = false, $publish = false)
+    {
+        if (empty($data)) {
+            throw new Exception("File is empty");
+        }
+
+        if ($isXml) {
+            App::uses('Xml', 'Utility');
+            $dataArray = Xml::toArray(Xml::build($data));
+        } else {
+            $dataArray = $this->jsonDecode($data);
+            if (isset($dataArray['response'][0])) {
+                foreach ($dataArray['response'] as $k => $temp) {
+                    $dataArray['Event'][] = $temp['Event'];
+                    unset($dataArray['response'][$k]);
+                }
+            }
+        }
+        // In case we receive an event that is not encapsulated in a response. This should never happen (unless it's a copy+paste fail),
+        // but just in case, let's clean it up anyway.
+        if (isset($dataArray['Event'])) {
+            $dataArray['response']['Event'] = $dataArray['Event'];
+            unset($dataArray['Event']);
+        }
+        if (!isset($dataArray['response']) || !isset($dataArray['response']['Event'])) {
+            $exception = $isXml ? __('This is not a valid MISP XML file.') : __('This is not a valid MISP JSON file.');
+            throw new Exception($exception);
+        }
+        $dataArray = $this->updateXMLArray($dataArray);
+        $results = array();
+        $validationIssues = array();
+        if (isset($dataArray['response']['Event'][0])) {
+            foreach ($dataArray['response']['Event'] as $event) {
+                $result = array('info' => $event['info']);
+                if ($takeOwnership) {
+                    $event['orgc_id'] = $user['org_id'];
+                    unset($event['Orgc']);
+                }
+                $event = array('Event' => $event);
+                $created_id = 0;
+                $event['Event']['locked'] = 1;
+                $event['Event']['published'] = $publish;
+                $result['result'] = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
+                $result['id'] = $created_id;
+                $result['validationIssues'] = $validationIssues;
+                $results[] = $result;
+            }
+        } else {
+            $temp['Event'] = $dataArray['response']['Event'];
+            if ($takeOwnership) {
+                $temp['Event']['orgc_id'] = $user['org_id'];
+                unset($temp['Event']['Orgc']);
+            }
+            $created_id = 0;
+            $temp['Event']['locked'] = 1;
+            $temp['Event']['published'] = $publish;
+            $result = $this->_add($temp, true, $user, '', null, false, null, $created_id, $validationIssues);
+            $results = array(array(
+                'info' => $temp['Event']['info'],
+                'result' => $result,
+                'id' => $created_id,
+                'validationIssues' => $validationIssues,
+            ));
+        }
+        return $results;
+    }
+
     // Low level function to add an Event based on an Event $data array
     public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
     {
@@ -3608,16 +3697,15 @@ class Event extends AppModel
         }
         if (Configure::read('MISP.enableEventBlocklisting') !== false && isset($data['Event']['uuid'])) {
             $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            $r = $this->EventBlocklist->find('first', array('conditions' => array('event_uuid' => $data['Event']['uuid'])));
-            if (!empty($r)) {
+            if ($this->EventBlocklist->isBlocked($data['Event']['uuid'])) {
                 return 'Blocked by blocklist';
             }
         }
         if (!$this->checkEventBlockRules($data)) {
             return 'Blocked by event block rules';
         }
+        $this->Log = ClassRegistry::init('Log');
         if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published']) && empty($data['Event']['EventReport'])) {
-            $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $validationErrors['Event'] = 'Received a published event that was empty. Event add process blocked.';
             $this->Log->save(array(
@@ -3732,7 +3820,6 @@ class Event extends AppModel
             }
         }
         if (!empty($failedCapture)) {
-            $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
@@ -3784,7 +3871,6 @@ class Event extends AppModel
             'EventReport' => $this->EventReport->captureFields,
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
-        $this->Log = ClassRegistry::init('Log');
         if ($saveResult) {
             if ($passAlong) {
                 if ($server['Server']['publish_without_email'] == 0) {
@@ -3907,8 +3993,7 @@ class Event extends AppModel
                             if (empty($found)) {
                                 $this->EventTag->create();
                                 if ($this->EventTag->save(array('event_id' => $this->id, 'tag_id' => $tag_id))) {
-                                    $log = ClassRegistry::init('Log');
-                                    $log->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
+                                    $this->Log->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
                                 }
                             }
                         }

@@ -463,7 +463,8 @@ class ACLComponent extends Component
                     'updateProgress' => array(),
                     'updateSubmodule' => array(),
                     'uploadFile' => array(),
-                    'viewDeprecatedFunctionUse' => array()
+                    'viewDeprecatedFunctionUse' => array(),
+                    'killAllWorkers' => ['perm_site_admin'],
             ),
             'shadowAttributes' => array(
                     'accept' => array('perm_add'),

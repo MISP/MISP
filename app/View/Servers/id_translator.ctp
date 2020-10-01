@@ -18,7 +18,7 @@
                     ),
                     array(
                       "field" => "local",
-                      "label" => __("referencing an event which is"),
+                      "label" => __("Referencing an event which is"),
                       "default" => "local",
                       "options" => array("local" => __("local"), "remote" => __("remote")),
                       "type" => "select",
@@ -28,7 +28,7 @@
                         "field" => "Server.id",
                         "div" => "input select optional-server-select hide",
                         "options" => $servers,
-                        "label" => __("ID referenced on server:"),
+                        "label" => __("ID referenced on server"),
                         "type" => "select",
                     )
             ),
@@ -42,11 +42,11 @@
     if (isset($remote_events) && isset($local_event)) {
         $table_data = array();
         $table_data[] = array('key' => __('UUID'), 'value' => $local_event['Event']['uuid']);
-        $link = '<a href="'.$base_url.'/events/view/'.$local_event['Event']['id'].'" target="_blank">'.$local_event['Event']['id'].'</a>';
+        $link = '<a href="' . $baseurl . '/events/view/' . $local_event['Event']['id'] . '" target="_blank">' . $local_event['Event']['id'] . '</a>';
         $table_data[] = array('key' => __('Local ID'), 'html' => $link);
-        foreach($remote_events as $remote_event) {
-            if($remote_event['remote_id']) {
-                $value = __('Remote ID: ').'<a href="'.h($remote_event['url']).'" target="_blank">'.$remote_event['remote_id'].'</a>';
+        foreach ($remote_events as $remote_event) {
+            if ($remote_event['remote_id']) {
+                $value = __('Remote ID:') . ' <a href="'.h($remote_event['url']).'" target="_blank">' . $remote_event['remote_id'] . '</a>';
                 $table_data[] = array('key' => h($remote_event['server_name']), 'html' => $value);
             } else {
                 $table_data[] = array('key' => h($remote_event['server_name']), 'value' => __('Not found or server unreachable'));
@@ -60,7 +60,7 @@
 ?>
 <script type="text/javascript">
 function IDTranslatorUISetup() {
-    if($('#EventLocal').val() == "remote") {
+    if($('#EventLocal').val() === "remote") {
         $(".optional-server-select").show();
     } else {
         $(".optional-server-select").hide();

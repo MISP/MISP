@@ -124,7 +124,7 @@ function screenshotPopup(url, title) {
     if (!url.startsWith('data:image/')) {
         url = url.slice(0, -1);
     }
-    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
+    var popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
     url = $('<div>').text(url).html();
     title = $('<div>').text(title).html();
     popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
@@ -1477,12 +1477,10 @@ function showMessage(success, message, context) {
 
 function cancelPopoverForm(id) {
     $("#gray_out").fadeOut();
-    $("#popover_form").fadeOut();
     $("#popover_form_large").fadeOut();
     $("#screenshot_box").fadeOut();
     $("#popover_box").fadeOut();
     $("#confirmation_box").fadeOut();
-    $('#gray_out').fadeOut();
     $('#popover_form').fadeOut();
     if (id !== undefined && id !== '') {
         $(id).fadeOut();
@@ -1655,25 +1653,28 @@ function templateElementFileCategoryChange(category) {
 }
 
 function openPopup(id, adjust_layout, callback) {
+    var $id = $(id);
     adjust_layout = adjust_layout === undefined ? true : adjust_layout;
     if (adjust_layout) {
+        $id.css({'top': '', 'height': ''}).removeClass('vertical-scroll'); // reset inline values
+
         var window_height = $(window).height();
-        var popup_height = $(id).height();
+        var popup_height = $id.height();
         if (window_height < popup_height) {
-            $(id).css("top", 50);
-            $(id).css("height", window_height);
-            $(id).addClass('vertical-scroll');
+            $id.css("top", 50);
+            $id.css("height", window_height - 50);
+            $id.addClass('vertical-scroll');
         } else {
             if (window_height > (300 + popup_height)) {
                 var top_offset = ((window_height - popup_height) / 2) - 150;
             } else {
                 var top_offset = (window_height - popup_height) / 2;
             }
-            $(id).css("top", top_offset + 'px');
+            $id.css("top", top_offset);
         }
     }
     $("#gray_out").fadeIn();
-    $(id).fadeIn(400, function() {
+    $id.fadeIn(400, function() {
         if (callback !== undefined) {
             callback();
         }
@@ -3648,12 +3649,49 @@ function filterAttributes(filter, id) {
     });
 }
 
+// Find object or attribute by UUID on current page
+function findObjectByUuid(uuid) {
+    var $tr = null;
+    $('#attributeList tr').each(function () {
+        var trId = $(this).attr('id');
+        if (trId && (trId.startsWith("Object") || trId.startsWith("Attribute"))) {
+            var objectUuid = $('.uuid', this).text().trim();
+            if (objectUuid === uuid) {
+                $tr = $(this);
+                return false;
+            }
+        }
+    });
+    return $tr;
+}
+
+function focusObjectByUuid(uuid) {
+    var $tr = findObjectByUuid(uuid);
+    if (!$tr) {
+        return false;
+    }
+
+    $([document.documentElement, document.body]).animate({
+        scrollTop: $tr.offset().top - 45, // 42px is #topBar size, so make little bit more space
+    }, 1000, null, function () {
+        $tr.fadeTo(100, 0.3, function () { // blink active row
+            $(this).fadeTo(500, 1.0);
+        });
+        $tr.focus();
+    });
+    return true;
+}
+
 function pivotObjectReferences(url, uuid) {
+    if (focusObjectByUuid(uuid)) {
+        return; // object is on the same page, we don't need to reload page
+    }
+
     url += '/focus:' + uuid;
     $.ajax({
-        type:"get",
-        url:url,
-        beforeSend: function (XMLHttpRequest) {
+        type: "get",
+        url: url,
+        beforeSend: function () {
             $(".loading").show();
         },
         success: function (data) {
@@ -4213,15 +4251,19 @@ function checkAndSetPublishedInfo(skip_reload) {
     }
 }
 
+$(function() {
+    $('#gray_out').click(function() {
+        cancelPopoverForm();
+        $("#popover_matrix").fadeOut();
+        $(".loading").hide();
+        resetForms();
+    })
+});
+
 $(document).keyup(function(e){
     if (e.keyCode === 27) {
-    $("#gray_out").fadeOut();
-        $("#popover_form").fadeOut();
-        $("#popover_form_large").fadeOut();
+        cancelPopoverForm();
         $("#popover_matrix").fadeOut();
-        $("#screenshot_box").fadeOut();
-        $("#popover_box").fadeOut();
-        $("#confirmation_box").fadeOut();
         $(".loading").hide();
         resetForms();
     }
@@ -4609,6 +4651,27 @@ $("body").on("click", ".correlation-expand-button", function() {
     $(this).parent().children(".correlation-expanded-area").hide();
     $(this).parent().children(".correlation-expand-button").show();
     $(this).hide();
+}).on('click', 'span[data-full] a', function(e) { // show full truncated atrribute values
+    e.preventDefault();
+
+    var $parent = $(this).parent();
+    var data = $parent.attr('data-full');
+    var type = $parent.attr('data-full-type');
+    var $box;
+    if (type === 'raw') {
+        $box = $('<pre>')
+            .css('background', 'white')
+            .css('border', '0')
+            .text(data);
+    } else {
+        $box = $('<div>')
+            .css('background', 'white')
+            .css('white-space', 'pre-wrap')
+            .css('padding', '1em')
+            .text(data);
+    }
+    $('#popover_form_large').html($box[0].outerHTML);
+    openPopup('#popover_form_large');
 });
 
 function queryEventLock(event_id, user_org_id) {
@@ -5111,3 +5174,41 @@ function redirectIdSelection(scope, action) {
         showMessage('fail', 'Not an valid event id');
     }
 }
+
+$('body').on('click', '.hex-value-convert', function() {
+    var $hexValueSpan = $(this).parent().children(':first-child');
+    var val = $hexValueSpan.text().trim();
+    if (!$hexValueSpan.hasClass('binary-representation')) {
+        var bin = [];
+        val.split('').forEach(function (entry) {
+            var temp = parseInt(entry, 16).toString(2);
+            bin.push(Array(5 - (temp.length)).join('0') + temp);
+        });
+        bin = bin.join(' ');
+        $hexValueSpan
+            .text(bin)
+            .attr('data-original-title', 'Binary representation')
+            .addClass('binary-representation');
+        if ($hexValueSpan.attr('title')) {
+            $hexValueSpan.attr('title', 'Binary representation');
+        }
+        $(this)
+            .attr('data-original-title', 'Switch to hexadecimal representation')
+            .attr('aria-label', 'Switch to hexadecimal representation');
+    } else {
+        var hex = '';
+        val.split(' ').forEach(function (entry) {
+            hex += parseInt(entry, 2).toString(16).toUpperCase();
+        });
+        $hexValueSpan
+            .text(hex)
+            .attr('data-original-title', 'Hexadecimal representation')
+            .removeClass('binary-representation');
+        if ($hexValueSpan.attr('title')) {
+            $hexValueSpan.attr('title', 'Hexadecimal representation');
+        }
+        $(this)
+            .attr('data-original-title', 'Switch to binary representation')
+            .attr('aria-label', 'Switch to binary representation');
+    }
+});

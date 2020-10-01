@@ -163,7 +163,7 @@ class Feed extends AppModel
     /**
      * @param array $feed
      * @param HttpSocket|null $HttpSocket Null can be for local feed
-     * @return Generator|array
+     * @return Generator
      * @throws Exception
      */
     public function getCache(array $feed, HttpSocket $HttpSocket = null)
@@ -180,10 +180,7 @@ class Feed extends AppModel
         $tmpFile->write(trim($data));
         unset($data);
 
-        foreach ($tmpFile->lines() as $line) {
-            yield explode(',', rtrim($line));
-        }
-        return;
+        return $tmpFile->csv();
     }
 
     /**
@@ -250,9 +247,7 @@ class Feed extends AppModel
             $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket, true);
 
             if (!$isLocal) {
-                $redis = $this->setupRedisWithException();
-                $redis->del('misp:feed_cache:' . $feed['Feed']['id']);
-                file_put_contents($feedCache, $data);
+                file_put_contents($feedCache, $data); // save to cache
             }
         }
 
@@ -333,126 +328,146 @@ class Feed extends AppModel
     /**
      * Attach correlations from cached servers or feeds.
      *
-     * @param array $objects
+     * @param array $attributes
      * @param array $user
      * @param array $event
-     * @param bool $overrideLimit Override hardcoded limit for 10 000 attribute correlations.
+     * @param bool $overrideLimit Override hardcoded limit for 10 000 correlations.
      * @param string $scope `Feed` or `Server`
      * @return array
      */
-    public function attachFeedCorrelations($objects, $user, &$event, $overrideLimit = false, $scope = 'Feed')
+    public function attachFeedCorrelations(array $attributes, array $user, array &$event, $overrideLimit = false, $scope = 'Feed')
     {
+        if (empty($attributes)) {
+            return $attributes;
+        }
+
         try {
             $redis = $this->setupRedisWithException();
         } catch (Exception $e) {
-            return $objects;
+            return $attributes;
         }
 
         $cachePrefix = 'misp:' . strtolower($scope) . '_cache:';
 
-        // Redis cache for $scope is empty.
+        // Skip if redis cache for $scope is empty.
         if ($redis->sCard($cachePrefix . 'combined') === 0) {
-            return $objects;
+            return $attributes;
         }
+
+        if (!isset($this->Attribute)) {
+            $this->Attribute = ClassRegistry::init('Attribute');
+        }
+        $compositeTypes = $this->Attribute->getCompositeTypes();
 
         $pipe = $redis->multi(Redis::PIPELINE);
-        $hashTable = array();
+        $hashTable = [];
+        $redisResultToAttributePosition = [];
 
-        $this->Event = ClassRegistry::init('Event');
-        $compositeTypes = $this->Event->Attribute->getCompositeTypes();
-
-        foreach ($objects as $k => $object) {
-            if (in_array($object['type'], $compositeTypes)) {
-                $value = explode('|', $object['value']);
-                $hashTable[$k] = md5($value[0]);
-            } else {
-                $hashTable[$k] = md5($object['value']);
+        foreach ($attributes as $k => $attribute) {
+            if (in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
+                continue; // attribute type is not correlateable
             }
-            $redis->sismember($cachePrefix . 'combined', $hashTable[$k]);
+            if (!empty($attribute['disable_correlation'])) {
+                continue; // attribute correlation is disabled
+            }
+
+            if (in_array($attribute['type'], $compositeTypes)) {
+                list($value1, $value2) = explode('|', $attribute['value']);
+                $parts = [$value1];
+
+                if (!in_array($attribute['type'], $this->Attribute->primaryOnlyCorrelatingTypes)) {
+                    $parts[] = $value2;
+                }
+            } else {
+                $parts = [$attribute['value']];
+            }
+
+            foreach ($parts as $part) {
+                $md5 = md5($part);
+                $hashTable[] = $md5;
+                $redis->sismember($cachePrefix . 'combined', $md5);
+                $redisResultToAttributePosition[] = $k;
+            }
         }
+
+        if (empty($redisResultToAttributePosition)) {
+            // No attribute that can be correlated
+            $pipe->discard();
+            return $attributes;
+        }
+
         $results = $pipe->exec();
-        if (!$overrideLimit && count($objects) > 10000) {
-            foreach ($results as $k => $result) {
-                if ($result && empty($objects[$k]['disable_correlation'])) {
-                    if (isset($event['FeedCount'])) {
-                        $event['FeedCount']++;
-                    } else {
-                        $event['FeedCount'] = 1;
+
+        $hitIds = [];
+        foreach ($results as $k => $result) {
+            if ($result) {
+                $hitIds[] = $k;
+            }
+        }
+
+        if (empty($hitIds)) {
+            return $attributes; // nothing matches, skip
+        }
+
+        $hitCount = count($hitIds);
+        if (!$overrideLimit && $hitCount > 10000) {
+            $event['FeedCount'] = $hitCount;
+            foreach ($hitIds as $k) {
+                $attributes[$redisResultToAttributePosition[$k]]['FeedHit'] = true;
+            }
+            return $attributes;
+        }
+
+        $sources = $this->getCachedFeedsOrServers($user, $scope);
+        foreach ($sources as $source) {
+            $sourceId = $source[$scope]['id'];
+
+            $pipe = $redis->multi(Redis::PIPELINE);
+            foreach ($hitIds as $k) {
+                $redis->sismember($cachePrefix . $sourceId, $hashTable[$k]);
+            }
+            $sourceHits = $pipe->exec();
+            $sourceHasHit = false;
+            foreach ($sourceHits as $k => $hit) {
+                if ($hit) {
+                    if (!isset($event[$scope][$sourceId])) {
+                        $event[$scope][$sourceId] = $source[$scope];
                     }
-                    $objects[$k]['FeedHit'] = true;
+                    $attributePosition = $redisResultToAttributePosition[$hitIds[$k]];
+                    $attributes[$attributePosition][$scope][] = $source[$scope];
+                    $sourceHasHit = true;
                 }
             }
-        } else {
-            if ($scope === 'Feed') {
-                $params = array(
-                    'recursive' => -1,
-                    'fields' => array('id', 'name', 'url', 'provider', 'source_format')
-                );
-                if (!$user['Role']['perm_site_admin']) {
-                    $params['conditions'] = array('Feed.lookup_visible' => 1);
-                }
-                $sources = $this->find('all', $params);
-            } else {
-                $params = array(
-                    'recursive' => -1,
-                    'fields' => array('id', 'name', 'url', 'caching_enabled')
-                );
-                if (!$user['Role']['perm_site_admin']) {
-                    $params['conditions'] = array('Server.caching_enabled' => 1);
-                }
-                $this->Server = ClassRegistry::init('Server');
-                $sources = $this->Server->find('all', $params);
-            }
-
-            $hitIds = array();
-            foreach ($results as $k => $result) {
-                if ($result && empty($objects[$k]['disable_correlation'])) {
-                    $hitIds[] = $k;
-                }
-            }
-            foreach ($sources as $source) {
-                $sourceScopeId = $source[$scope]['id'];
-
+            // Append also exact MISP feed event UUID
+            // TODO: This can be optimised in future to do that in one pass
+            if ($sourceHasHit && $source[$scope]['source_format'] === 'misp') {
                 $pipe = $redis->multi(Redis::PIPELINE);
-                foreach ($hitIds as $k) {
-                    $redis->sismember($cachePrefix . $sourceScopeId, $hashTable[$k]);
-                }
-                $sourceHits = $pipe->exec();
-                foreach ($sourceHits as $k4 => $hit) {
-                    if ($hit) {
-                        if (!isset($event[$scope][$sourceScopeId]['id'])) {
-                            if (!isset($event[$scope][$sourceScopeId])) {
-                                $event[$scope][$sourceScopeId] = array();
-                            }
-                            $event[$scope][$sourceScopeId] = array_merge($event[$scope][$sourceScopeId], $source[$scope]);
-                        }
-                        $objects[$hitIds[$k4]][$scope][] = $source[$scope];
+                $eventUuidHitPosition = [];
+                foreach ($hitIds as $sourceHitPos => $k) {
+                    if ($sourceHits[$sourceHitPos]) {
+                        $redis->smembers($cachePrefix . 'event_uuid_lookup:' . $hashTable[$k]);
+                        $eventUuidHitPosition[] = $redisResultToAttributePosition[$k];
                     }
                 }
-                if ($scope === 'Server' || $source[$scope]['source_format'] == 'misp') {
-                    $pipe = $redis->multi(Redis::PIPELINE);
-                    $eventUuidHitPosition = array();
-                    foreach ($objects as $k => $object) {
-                        if (isset($object[$scope])) {
-                            foreach ($object[$scope] as $currentFeed) {
-                                if ($source[$scope]['id'] == $currentFeed['id']) {
-                                    $eventUuidHitPosition[] = $k;
-                                    $redis->smembers($cachePrefix . 'event_uuid_lookup:' . $hashTable[$k]);
-                                }
-                            }
-                        }
+                $mispFeedHits = $pipe->exec();
+                foreach ($mispFeedHits as $sourceHitPos => $feedUuidMatches) {
+                    if (empty($feedUuidMatches)) {
+                        continue;
                     }
-                    $mispFeedHits = $pipe->exec();
-                    foreach ($mispFeedHits as $sourcehitPos => $f) {
-                        foreach ($f as $url) {
-                            list($feedId, $eventUuid) = explode('/', $url);
-                            if (empty($event[$scope][$feedId]['event_uuids']) || !in_array($eventUuid, $event[$scope][$feedId]['event_uuids'])) {
-                                $event[$scope][$feedId]['event_uuids'][] = $eventUuid;
-                            }
-                            foreach ($objects[$eventUuidHitPosition[$sourcehitPos]][$scope] as $tempKey => $tempFeed) {
-                                if ($tempFeed['id'] == $feedId) {
-                                    $objects[$eventUuidHitPosition[$sourcehitPos]][$scope][$tempKey]['event_uuids'][] = $eventUuid;
-                                }
+                    foreach ($feedUuidMatches as $url) {
+                        list($feedId, $eventUuid) = explode('/', $url);
+                        if ($feedId != $sourceId) {
+                            continue; // just process current source, skip others
+                        }
+
+                        if (empty($event[$scope][$feedId]['event_uuids']) || !in_array($eventUuid, $event[$scope][$feedId]['event_uuids'])) {
+                            $event[$scope][$feedId]['event_uuids'][] = $eventUuid;
+                        }
+                        $attributePosition = $eventUuidHitPosition[$sourceHitPos];
+                        foreach ($attributes[$attributePosition][$scope] as $tempKey => $tempFeed) {
+                            if ($tempFeed['id'] == $feedId) {
+                                $attributes[$attributePosition][$scope][$tempKey]['event_uuids'][] = $eventUuid;
+                                break;
                             }
                         }
                     }
@@ -460,11 +475,58 @@ class Feed extends AppModel
             }
         }
 
-        if (!empty($event[$scope])) {
+        if (isset($event[$scope])) {
             $event[$scope] = array_values($event[$scope]);
         }
 
-        return $objects;
+        return $attributes;
+    }
+
+    /**
+     * Return just feeds or servers that has some data in Redis cache.
+     * @param array $user
+     * @param string $scope 'Feed' or 'Server'
+     * @return array
+     */
+    private function getCachedFeedsOrServers(array $user, $scope)
+    {
+        if ($scope === 'Feed') {
+            $params = array(
+                'recursive' => -1,
+                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+            );
+            if (!$user['Role']['perm_site_admin']) {
+                $params['conditions'] = array('Feed.lookup_visible' => 1);
+            }
+            $sources = $this->find('all', $params);
+        } else {
+            $params = array(
+                'recursive' => -1,
+                'fields' => array('id', 'name', 'url')
+            );
+            if (!$user['Role']['perm_site_admin']) {
+                $params['conditions'] = array('Server.caching_enabled' => 1);
+            }
+            $this->Server = ClassRegistry::init('Server');
+            $sources = $this->Server->find('all', $params);
+        }
+
+        try {
+            $redis = $this->setupRedisWithException();
+            $pipe = $redis->multi(Redis::PIPELINE);
+            $cachePrefix = 'misp:' . strtolower($scope) . '_cache:';
+            foreach ($sources as $source) {
+                $pipe->exists($cachePrefix . $source[$scope]['id']);
+            }
+            $results = $pipe->exec();
+            foreach ($sources as $k => $source) {
+                if (!$results[$k]) {
+                    unset($sources[$k]);
+                }
+            }
+        } catch (Exception $e) {}
+
+        return $sources;
     }
 
     public function downloadFromFeed($actions, $feed, HttpSocket $HttpSocket = null, $user, $jobId = false)
@@ -1104,52 +1166,73 @@ class Feed extends AppModel
         return $results;
     }
 
-    public function attachFeedCacheTimestamps($data)
+    /**
+     * @param array $feeds
+     * @return array
+     */
+    public function attachFeedCacheTimestamps(array $feeds)
     {
-        $redis = $this->setupRedis();
-        if ($redis === false) {
-            return $data;
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return $feeds;
         }
-        foreach ($data as $k => $v) {
-            $data[$k]['Feed']['cache_timestamp'] = $redis->get('misp:feed_cache_timestamp:' . $data[$k]['Feed']['id']);
+
+        $pipe = $redis->multi(Redis::PIPELINE);
+        foreach ($feeds as $feed) {
+            $pipe->get('misp:feed_cache_timestamp:' . $feed['Feed']['id']);
         }
-        return $data;
+        $result = $redis->exec();
+        foreach ($feeds as $k => $feed) {
+            $feeds[$k]['Feed']['cache_timestamp'] = $result[$k];
+        }
+        return $feeds;
     }
 
     private function __cacheFeed($feed, $redis, $jobId = false)
     {
         $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket($feed);
-        if ($feed['Feed']['source_format'] == 'misp') {
+        if ($feed['Feed']['source_format'] === 'misp') {
             return $this->__cacheMISPFeed($feed, $redis, $HttpSocket, $jobId);
         } else {
             return $this->__cacheFreetextFeed($feed, $redis, $HttpSocket, $jobId);
         }
     }
 
+    /**
+     * @param array $feed
+     * @param Redis $redis
+     * @param HttpSocket|null $HttpSocket
+     * @param int|false $jobId
+     * @return bool
+     */
     private function __cacheFreetextFeed(array $feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
     {
         $feedId = $feed['Feed']['id'];
+
+        $this->jobProgress($jobId, __("Feed %s: Fetching.", $feedId));
 
         try {
             $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
         } catch (Exception $e) {
             $this->logException("Could not get freetext feed $feedId", $e);
-            $this->jobProgress($jobId, 'Could not fetch freetext feed. See error log for more details.');
+            $this->jobProgress($jobId, __('Could not fetch freetext feed. See error log for more details.'));
             return false;
         }
 
         $pipe = $redis->multi(Redis::PIPELINE);
+        $redis->del('misp:feed_cache:' . $feedId);
         foreach ($values as $k => $value) {
             $md5Value = md5($value['value']);
             $redis->sAdd('misp:feed_cache:' . $feedId, $md5Value);
             $redis->sAdd('misp:feed_cache:combined', $md5Value);
-            if ($k % 1000 == 0) {
+            if ($k % 1000 === 0) {
                 $this->jobProgress($jobId, "Feed $feedId: $k/" . count($values) . " values cached.");
                 $pipe->exec();
                 $pipe = $redis->multi(Redis::PIPELINE);
             }
         }
-        $redis->set('misp:feed_cache_timestamp:' . $feedId, time());
+        $pipe->set('misp:feed_cache_timestamp:' . $feedId, time());
         $pipe->exec();
         return true;
     }
@@ -1182,16 +1265,18 @@ class Feed extends AppModel
                     if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
                         if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
                             $value = explode('|', $attribute['value']);
-                            $redis->sAdd('misp:feed_cache:' . $feedId, md5($value[0]));
-                            $redis->sAdd('misp:feed_cache:' . $feedId, md5($value[1]));
-                            $redis->sAdd('misp:feed_cache:combined', md5($value[0]));
-                            $redis->sAdd('misp:feed_cache:combined', md5($value[1]));
-                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[0]), $feedId . '/' . $event['Event']['uuid']);
-                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[1]), $feedId . '/' . $event['Event']['uuid']);
+                            if (in_array($attribute['type'], $this->Attribute->primaryOnlyCorrelatingTypes)) {
+                                unset($value[1]);
+                            }
                         } else {
-                            $redis->sAdd('misp:feed_cache:' . $feedId, md5($attribute['value']));
-                            $redis->sAdd('misp:feed_cache:combined', md5($attribute['value']));
-                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($attribute['value']), $feedId . '/' . $event['Event']['uuid']);
+                            $value = [$attribute['value']];
+                        }
+
+                        foreach ($value as $v) {
+                            $md5 = md5($v);
+                            $redis->sAdd('misp:feed_cache:' . $feedId, $md5);
+                            $redis->sAdd('misp:feed_cache:combined', $md5);
+                            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . $md5, $feedId . '/' . $event['Event']['uuid']);
                         }
                     }
                 }
@@ -1218,10 +1303,12 @@ class Feed extends AppModel
         }
 
         $pipe = $redis->multi(Redis::PIPELINE);
+        $redis->del('misp:feed_cache:' . $feedId);
         foreach ($cache as $v) {
-            $redis->sAdd('misp:feed_cache:' . $feedId, $v[0]);
-            $redis->sAdd('misp:feed_cache:combined', $v[0]);
-            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . $v[0], $feedId . '/' . $v[1]);
+            list($hash, $eventUuid) = $v;
+            $redis->sAdd('misp:feed_cache:' . $feedId, $hash);
+            $redis->sAdd('misp:feed_cache:combined', $hash);
+            $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . $hash, "$feedId/$eventUuid");
         }
         $pipe->exec();
         $this->jobProgress($jobId, "Feed $feedId: cached via quick cache.");
@@ -1233,7 +1320,7 @@ class Feed extends AppModel
         $result = true;
         if (!$this->__cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId)) {
             $result = $this->__cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId);
-        };
+        }
         if ($result) {
             $redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
         }
@@ -1743,8 +1830,10 @@ class Feed extends AppModel
     private function jobProgress($jobId = null, $message = null, $progress = null)
     {
         if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->saveProgress($jobId, $message, $progress);
+            if (!isset($this->Job)) {
+                $this->Job = ClassRegistry::init('Job');
+            }
+            $this->Job->saveProgress($jobId, $message, $progress);
         }
     }
 

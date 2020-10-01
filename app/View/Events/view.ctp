@@ -1,37 +1,7 @@
 <?php
     $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
     $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-    $csv = array();
-    $sightingPopover = '';
-    if (isset($event['Sighting']) && !empty($event['Sighting'])) {
-        $ownSightings = array();
-        $orgSightings = array();
-        $sparklineData = array();
-        foreach ($event['Sighting'] as $sighting) {
-            if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
-            if (isset($sighting['org_id'])) {
-                if (isset($orgSightings[$sighting['Organisation']['name']])) {
-                    $orgSightings[$sighting['Organisation']['name']]['count']++;
-                    if (!isset($orgSightings[$sighting['Organisation']['name']]['date']) || $orgSightings[$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
-                        $orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
-                    }
-                } else {
-                    $orgSightings[$sighting['Organisation']['name']]['count'] = 1;
-                    $orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
-                }
-            } else {
-                if (isset($orgSightings['Other organisations']['count'])) {
-                    $orgSightings['Other organisations']['count']++;
-                    if (!isset($orgSightings['Other organisations']['date']) || $orgSightings['Other organisations']['date'] < $sighting['date_sighting']) {
-                        $orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
-                    }
-                } else {
-                    $orgSightings['Other organisations']['count'] = 1;
-                    $orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
-                }
-            }
-        }
-    }
+
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
     echo $this->Html->script('doT');
     echo $this->Html->script('extendext');
@@ -117,10 +87,10 @@
                 'html' => $contributorsContent
             );
         }
-        if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))) {
+        if (isset($event['User']['email'])) {
             $table_data[] = array(
-                'key' => __('Email'),
-                'value' => h($event['User']['email'])
+                'key' => __('Creator user'),
+                'value' => h($event['User']['email']),
             );
         }
         $table_data[] = array(
@@ -191,7 +161,7 @@
             'html' => ($event['Event']['published'] == 0) ? __('No') : sprintf('<span class="green bold">%s</span>', __('Yes')) . ((empty($event['Event']['publish_timestamp'])) ? __('N/A') :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
         );
         $attribute_text = $attribute_count;
-        $attribute_text .= $object_count > 1 ? sprintf(__(' (%s Objects)'), h($object_count)) : sprintf(__(' (%s Object)'), h($object_count));
+        $attribute_text .= __n(' (%s Object)', ' (%s Objects)', $object_count, h($object_count));
         $table_data[] = array(
             'key' => __('#Attributes'),
             'value' => $attribute_text
@@ -252,9 +222,7 @@
             'key' => __('Sightings'),
             'element' => '/Events/View/eventSightingValue',
             'element_params' => array(
-                'sightingPopover' => $sightingPopover,
                 'event' => $event,
-                'ownSightings' => empty($ownSightings) ? array() : $ownSightings
             )
         );
         if (!empty($sightingsData['csv']['event'])) {
@@ -333,7 +301,7 @@
         <div class="related span4">
 
             <?php if (!empty($warningTagConflicts)): ?>
-                <div class="warning_container" style="width:80%;">
+                <div class="warning_container">
                     <h4 class="red"><?php echo __('Warning: Taxonomy inconsistencies');?></h4>
                     <?php echo '<ul>'; ?>
                     <?php
@@ -411,15 +379,20 @@
             <div class="correlation-container">
                 <?php
                         foreach ($event['Feed'] as $relatedFeed):
-                            $relatedData = array('Name' => $relatedFeed['name'], 'URL' => $relatedFeed['url'], 'Provider' => $relatedFeed['provider'], 'Source Format' => $relatedFeed['source_format'] == 'misp' ? 'MISP' : $relatedFeed['source_format']);
+                            $relatedData = array(
+                                'Name' => $relatedFeed['name'],
+                                'URL' => $relatedFeed['url'],
+                                'Provider' => $relatedFeed['provider'],
+                                'Source Format' => $relatedFeed['source_format'] === 'misp' ? 'MISP' : $relatedFeed['source_format'],
+                            );
                             $popover = '';
                             foreach ($relatedData as $k => $v) {
-                                $popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+                                $popover .= '<span class="bold">' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br>';
                             }
                 ?>
                                 <span style="white-space: nowrap;">
                                     <?php
-                                        if ($relatedFeed ['source_format'] == 'misp'):
+                                        if ($relatedFeed ['source_format'] === 'misp'):
                                     ?>
                                             <form action="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" method="post" style="margin:0px;">
                                                 <input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'], true)); ?>">
@@ -482,15 +455,14 @@
                 endif;
             ?>
             <?php if (!empty($event['Event']['warnings'])): ?>
-                <div class="warning_container" style="width:80%;">
-                    <h4 class="red"><?php echo __('Warning: Potential false positives');?></h4>
+                <div class="warning_container">
+                    <h4 class="red"><?= __('Warning: Potential false positives') ?> <a href="#attributeList" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'warning')"><?= __('(show)') ?></a></h4>
                     <?php
-                        $total = count($event['Event']['warnings']);
-                        $current = 1;
+                        $links = [];
                         foreach ($event['Event']['warnings'] as $id => $name) {
-                            echo '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>' . ($current == $total ? '' : '<br />');
-                            $current++;
+                            $links[] = '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>';
                         }
+                        echo implode('<br>', $links);
                     ?>
                 </div>
             <?php endif; ?>

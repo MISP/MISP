@@ -130,6 +130,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Add Event Report')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'populateFrom',
                             'onClick' => array(
                                 'function' => 'getPopup',
                                 'params' => array($eventId, 'events', 'importChoice')
@@ -138,6 +139,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                         if ($menuItem === 'populateFromtemplate') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'populateFromtemplate',
                                 'url' => $baseurl . '/templates/populateEventFromTemplate/' . $template_id . '/' . $eventId,
                                 'text' => __('Populate From Template')
                             ));
@@ -544,10 +546,10 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Change Password')
                         ));
                         echo $divider;
-                    } else if((Configure::read('Plugin.CustomAuth_custom_password_reset'))) {
+                    } else if (Configure::read('Plugin.CustomAuth_custom_password_reset')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'custom_pw_reset',
-                            'url' => $baseurl . Configure::read('Plugin.CustomAuth_custom_password_reset'),
+                            'url' => Configure::read('Plugin.CustomAuth_custom_password_reset'),
                             'text' => __('Reset Password')
                         ));
                     }
