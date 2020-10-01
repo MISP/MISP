@@ -2935,7 +2935,7 @@ class AttributesController extends AppController
                 'all',
                 array(
                     'conditions' => array('Attribute.type' => array('attachment', 'malware-sample')),
-                    'contain' => 'Event.orgc_id', 'Event.org_id',
+                    'contain' => ['Event.orgc_id', 'Event.org_id'],
                     'recursive' => -1
                 )
             );
@@ -2948,7 +2948,7 @@ class AttributesController extends AppController
                 $results['affectedEvents'][$attribute['Attribute']['event_id']] = $attribute['Attribute']['event_id'];
                 $results['affectedAttributes'][] = $attribute['Attribute']['id'];
                 foreach (['orgc', 'org'] as $type) {
-                    if (empty($results['affectedOrgs'][$type][$attribute['Event_' . $type . '_id']])) {
+                    if (empty($results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']])) {
                         $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] = 0;
                     } else {
                         $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] += 1;
