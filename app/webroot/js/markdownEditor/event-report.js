@@ -24,13 +24,12 @@ var markdownModelFieldNameForSave = 'content';
 
 var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span>{{=it.type}}</span><span class=\"blue\"> {{=it.value}}</span></span></span>");
 var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrapper attributePicture useCursorPointer\"><img data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" href=\"#\" src=\"{{=it.src}}\" alt=\"{{=it.alt}}\" title=\"\"/></div>");
-var dotTemplateEventgraph = doT.template("<div class=\"misp-picture-wrapper eventgraphPicture\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
 var dotTemplateGalaxyMatrix = doT.template("<div class=\"misp-picture-wrapper embeddedGalaxyMatrix\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
 var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span>{{=it.type}}</span><span class=\"value\">{{=it.value}}</span></span></span>");
 var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 
-var galaxyMatrixTimer, eventgraphTimer;
-var cache_matrix = {}, cache_eventgraph = {};
+var galaxyMatrixTimer;
+var cache_matrix = {};
 
 /**
    _____          _      __  __ _                     
@@ -73,11 +72,6 @@ function MISPElementReplacementActions(action) {
             end = null
             setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
             break;
-        case 'eventgraph':
-            replacement = '@[eventgraph]()'
-            end = null
-            setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
-            break;
         case 'galaxymatrix':
             replacement = '@[galaxymatrix]()'
             end = null
@@ -103,7 +97,6 @@ function insertMISPElementToolbarButtons() {
     insertTopToolbarButton('cube', 'attribute')
     insertTopToolbarButton('cubes', 'object')
     insertTopToolbarButton('image', 'attribute-attachment')
-    insertTopToolbarButton('project-diagram', 'eventgraph')
     insertTopToolbarButton('table', 'galaxy-matrix')
 }
 
@@ -135,7 +128,7 @@ function buildMISPElementHints() {
 
 function hintMISPElements(cm, options) {
     var authorizedMISPElements = ['attribute', 'object', 'galaxymatrix']
-    var availableScopes = ['attribute', 'object', 'eventgraph', 'galaxymatrix']
+    var availableScopes = ['attribute', 'object', 'galaxymatrix']
     var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)?\\)');
     var reExtendedWord = /\S/
     var scope, elementID, element
@@ -339,7 +332,7 @@ function MISPElementRule(state, startLine, endLine, silent) {
 
 /* Rendering rules */
 function MISPElementRenderer(tokens, idx, options, env, slf) {
-    var allowedScope = ['attribute', 'object', 'eventgraph', 'galaxymatrix']
+    var allowedScope = ['attribute', 'object', 'galaxymatrix']
     var token = tokens[idx];
     var scope = token.content.scope
     var elementID = token.content.elementID
@@ -391,8 +384,6 @@ function renderMISPElement(scope, elementID) {
             })
             return dotTemplateObject(templateVariables);
         }
-    } else if (scope == 'eventgraph') {
-        return dotTemplateEventgraph({scope: 'eventgraph', elementid: elementID, eventid: eventid});
     } else if (scope == 'galaxymatrix') {
         return dotTemplateGalaxyMatrix({scope: 'galaxymatrix', elementid: elementID, eventid: eventid});
     }
@@ -453,18 +444,6 @@ function setupMISPElementMarkdownListeners() {
 }
 
 function attachRemoteMISPElements() {
-    $('.eventgraphPicture[data-scope="eventgraph"]').each(function() {
-        var $div = $(this)
-        clearTimeout(eventgraphTimer);
-        $div.append($('<div/>').css('font-size', '24px').append(loadingSpanAnimation))
-        if (cache_eventgraph[$div.data('elementid')] === undefined) {
-            eventgraphTimer = setTimeout(function() {
-                attachEventgraphPicture($div, $div.data('eventid'), $div.data('elementid'))
-            }, slowDebounceDelay);
-        } else {
-            $div.html(cache_eventgraph[$div.data('elementid')])
-        }
-    })
     $('.embeddedGalaxyMatrix[data-scope="galaxymatrix"]').each(function() {
         var $div = $(this)
         clearTimeout(galaxyMatrixTimer);
@@ -479,28 +458,6 @@ function attachRemoteMISPElements() {
         } else {
             $div.html(cache_matrix[cacheKey])
         }
-    })
-}
-
-function attachEventgraphPicture($elem, eventID, graphID) {
-    $.getJSON(baseurl + '/eventGraph/view/' + eventID + '/' + graphID, function (data) {
-        if (data && data.length > 0) {
-            var dataPicture = data[0]['EventGraph']['preview_img']
-            if (dataPicture !== undefined) {
-                $elem.empty().append($('<img />').attr('src', dataPicture))
-                cache_eventgraph[graphID] = $elem.find('img')[0].outerHTML;
-                return
-            }
-        }
-        var templateVariables = sanitizeObject({
-            scope: 'Error while fetching saved Event Graph picture',
-            id: graphID
-        })
-        var placeholder = dotTemplateInvalid(templateVariables)
-        $elem.empty()
-            .css({'text-align': 'center'})
-            .append($(placeholder))
-        cache_eventgraph[graphID] = $elem.children()[0].outerHTML;
     })
 }
 

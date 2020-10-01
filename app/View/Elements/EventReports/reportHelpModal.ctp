@@ -3,7 +3,7 @@
         __('No html support, typographer & autolinker'),
         __('An additional syntax to reference MISP Elements'),
     ];
-    $allowedScopes = ['attribute', 'object', 'eventgraph', 'galaxymatrix'];
+    $allowedScopes = ['attribute', 'object', 'galaxymatrix'];
     $allowedScopesHtml = '<code>' . implode('</code> <code>', $allowedScopes) . '</code>';
 ?>
 
