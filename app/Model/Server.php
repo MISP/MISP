@@ -543,6 +543,14 @@ class Server extends AppModel
                             'test' => 'testBool',
                             'type' => 'boolean',
                         ),
+                        'osuser' => array(
+                                'level' => 0,
+                                'description' => __('The Unix user MISP (php) is running as'),
+                                'value' => 'www-data',
+                                'errorMessage' => '',
+                                'test' => 'testForEmpty',
+                                'type' => 'string',
+                        ),
                         'email' => array(
                                 'level' => 0,
                                 'description' => __('The e-mail address that MISP should use for all notifications'),
