@@ -275,7 +275,7 @@
                     array(
                         'text' => __('Import Server Settings'),
                         'url' => $baseurl . '/servers/import',
-                        'requirement' => $isSiteAdmin
+                        'requirement' => $canAccess('servers', 'import'),
                     ),
                     array(
                         'text' => __('List Servers'),
@@ -285,32 +285,32 @@
                     array(
                         'text' => __('List Feeds'),
                         'url' => $baseurl . '/feeds/index',
-                        'requirement' => $isSiteAdmin || $hostOrgUser
+                        'requirement' => $canAccess('feeds', 'index'),
                     ),
                     array(
                         'text' => __('Search Feed Caches'),
                         'url' => $baseurl . '/feeds/searchCaches',
-                        'requirement' => $isSiteAdmin || $hostOrgUser
+                        'requirement' => $canAccess('feeds', 'searchCaches'),
                     ),
                     array(
                         'text' => __('List SightingDB Connections'),
                         'url' => $baseurl . '/sightingdb/index',
-                        'requirement' => $isSiteAdmin
+                        'requirement' => $canAccess('sightingdb', 'index'),
                     ),
                     array(
                         'text' => __('Add SightingDB Connection'),
                         'url' => $baseurl . '/sightingdb/add',
-                        'requirement' => $isSiteAdmin
+                        'requirement' => $canAccess('sightingdb', 'add'),
                     ),
                     array(
                         'text' => __('List Communities'),
                         'url' => $baseurl . '/communities/index',
-                        'requirement' => $isSiteAdmin
+                        'requirement' => $canAccess('communities', 'index'),
                     ),
                     array(
                         'text' => __('Event ID translator'),
                         'url' => '/servers/idTranslator',
-                        'requirement' => $isSiteAdmin || $hostOrgUser
+                        'requirement' => $canAccess('servers', 'idTranslator')
                     )
                 )
             ),
