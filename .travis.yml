@@ -162,9 +162,7 @@ script:
     - pushd PyMISP/examples/events/
     - poetry run python ./create_massive_dummy_events.py -l 5 -a 30
     - popd
-    - pushd app/files/feed-metadata
-    - jsonschema -i defaults.json schema.json
-    - popd
+    - python3 tools/misp-feed/validate.py
 
 after_failure:
     - ls -aRl `pwd`
