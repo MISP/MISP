@@ -612,7 +612,7 @@ function attachTagInfo($elem, eventid, elementID) {
             }
             if (tagData === undefined) {
                 tagData = {}
-                $tag = constructTagHtml(elementID, 'white')
+                $tag = constructTagHtml(elementID, '#ffffff', {'border': '1px solid #000'})
             } else {
                 $tag = getTagReprensentation(tagData)
                 proxyMISPElements['tag'][elementID] = tagData
@@ -868,8 +868,10 @@ function constructTagHtml(tagName, tagColour, additionalCSS) {
 }
 
 function constructClusterTagHtml(tagData) {
+    var addBorder = false
     if (tagData.Tag.colour === undefined) {
         tagData.Tag.colour = '#ffffff'
+        addBorder = true
     }
     var $tag = $('<span/>').append(
         $('<i/>').addClass('fa fa-' + tagData.GalaxyCluster.Galaxy.icon).css('margin-right', '5px'),
@@ -880,6 +882,7 @@ function constructClusterTagHtml(tagData) {
             'background-color': tagData.Tag.colour,
             'color': getTextColour(tagData.Tag.colour),
             'box-shadow': '3px 3px 3px #888888',
+            'border': (addBorder ? '1px solid #000' : 'none')
         })
     return $tag
 }

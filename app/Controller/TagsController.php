@@ -1158,19 +1158,25 @@ class TagsController extends AppController
         if (!$searchIfTagExists && empty($tags)) {
             $tags = [];
             foreach ($tag as $i => $tagName) {
-                $tags[] = ['Tag' => ['name' => $tagName]];
+                $tags[] = ['Tag' => ['name' => $tagName], 'simulatedTag' => true];
             }
         }
         $this->loadModel('Taxonomy');
         foreach ($tags as $k => $t) {
+            $dataFound = false;
             $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name'], false);
             if (!empty($taxonomy)) {
+                $dataFound = true;
                 $tags[$k]['Taxonomy'] = $taxonomy['Taxonomy'];
                 $tags[$k]['TaxonomyPredicate'] = $taxonomy['TaxonomyPredicate'][0];
             }
             $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name']);
             if (!empty($cluster)) {
+                $dataFound = true;
                 $tags[$k]['GalaxyCluster'] = $cluster['GalaxyCluster'];
+            }
+            if (!$searchIfTagExists && !$dataFound && !empty($t['simulatedTag'])) {
+                unset($tags[$k]);
             }
         }
         return $this->RestResponse->viewData($tags, $this->response->type());
