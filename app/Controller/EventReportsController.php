@@ -27,8 +27,14 @@ class EventReportsController extends AppController
         )
     );
 
-    public function add($eventId)
+    public function add($eventId = false)
     {
+        if ($this->request->is('get') && $this->_isRest()) {
+            return $this->RestResponse->describe('EventReports', 'add', false, $this->response->type());
+        }
+        if ($eventId === false) {
+            throw new MethodNotAllowedException(__('No event ID set.'));
+        }
         $event = $this->canModifyEvent($eventId);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['EventReport'])) {

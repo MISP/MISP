@@ -83,6 +83,18 @@ class RestResponseComponent extends Component
                 'optional' => array('network_name')
             )
         ),
+        'EventReport' => array(
+            'add' => array(
+                'description' => "POST a report in JSON format to create a report for the provided event",
+                'mandatory' => array('name'),
+                'optional' => array('distribution', 'content')
+            ),
+            'edit' => array(
+                'description' => "POST a report in JSON format to update the report",
+                'mandatory' => array(),
+                'optional' => array('name', 'distribution', 'content')
+            )
+        ),
         'Feed' => array(
             'add' => array(
                 'description' => "POST a MISP Feed descriptor JSON to this API to add a Feed.",
