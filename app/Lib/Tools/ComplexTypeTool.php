@@ -507,7 +507,7 @@ class ComplexTypeTool
     private function __resolveHash($value)
     {
         $strlen = strlen($value);
-        if (isset($this->__hexHashTypes[$strlen]) && preg_match("#[0-9a-f]{" . $strlen . "}$#i", $value)) {
+        if (isset($this->__hexHashTypes[$strlen]) && ctype_xdigit($value)) {
             return $this->__hexHashTypes[$strlen];
         }
         return false;

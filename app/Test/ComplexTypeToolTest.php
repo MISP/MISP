@@ -438,6 +438,15 @@ EOT;
         $this->assertEquals('md5', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextMd5Uppercase(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('9E107D9D372BB6826BD81D3542A419D6');
+        $this->assertCount(1, $results);
+        $this->assertEquals('9E107D9D372BB6826BD81D3542A419D6', $results[0]['value']);
+        $this->assertEquals('md5', $results[0]['default_type']);
+    }
+
     public function testCheckFreeTextSha1(): void
     {
         $complexTypeTool = new ComplexTypeTool();
