@@ -110,36 +110,51 @@ function insertMISPElementToolbarButtons() {
 }
 
 /* Hints */
-var MISPElementValues = [], MISPElementTypes = [], MISPElementIDs = []
+var MISPElementHints = {}
 function buildMISPElementHints() {
-    Object.keys(proxyMISPElements['attribute']).forEach(function(k) {
-        var attribute = proxyMISPElements['attribute'][k]
-        MISPElementValues.push([attribute.value, k, 'attribute'])
-        MISPElementTypes.push([attribute.type, k], 'attribute')
-        MISPElementIDs.push([attribute.id, k, 'attribute'])
-        MISPElementIDs.push([attribute.uuid, k, 'attribute'])
+    MISPElementHints['attribute'] = []
+    Object.keys(proxyMISPElements['attribute']).forEach(function(uuid) {
+        var attribute = proxyMISPElements['attribute'][uuid]
+        MISPElementHints['attribute'].push(
+            [attribute.value, uuid],
+            [attribute.type, uuid],
+            [attribute.id, uuid],
+            [attribute.uuid, uuid],
+        )
     })
-    Object.keys(proxyMISPElements['object']).forEach(function(k) {
-        var object = proxyMISPElements['object'][k]
-        MISPElementTypes.push([object.name, k, 'object'])
-        MISPElementIDs.push([object.id, k, 'object'])
-        MISPElementIDs.push([object.uuid, k, 'object'])
+    MISPElementHints['object'] = []
+    Object.keys(proxyMISPElements['object']).forEach(function(uuid) {
+        var object = proxyMISPElements['object'][uuid]
+        MISPElementHints['object'].push(
+            [object.name, uuid],
+            [object.id, uuid],
+            [object.uuid, uuid],
+        )
     })
-    Object.keys(proxyMISPElements['galaxymatrix']).forEach(function(k) {
-        var galaxy = proxyMISPElements['galaxymatrix'][k]
-        MISPElementIDs.push([galaxy.id, k, 'galaxymatrix'])
-        MISPElementIDs.push([galaxy.uuid, k, 'galaxymatrix'])
-        MISPElementValues.push([galaxy.name, k, 'galaxymatrix'])
-        MISPElementTypes.push([galaxy.namespace, k, 'galaxymatrix'])
-        MISPElementTypes.push([galaxy.type, k, 'galaxymatrix'])
+    MISPElementHints['galaxymatrix'] = []
+    Object.keys(proxyMISPElements['galaxymatrix']).forEach(function(uuid) {
+        var galaxy = proxyMISPElements['galaxymatrix'][uuid]
+        MISPElementHints['galaxymatrix'].push(
+            [galaxy.id, uuid],
+            [galaxy.uuid, uuid],
+            [galaxy.name, uuid],
+            [galaxy.namespace, uuid],
+            [galaxy.type, uuid],
+        )
+    })
+    MISPElementHints['tag'] = []
+    Object.keys(proxyMISPElements['tagname']).forEach(function(tagName) {
+        var tag = proxyMISPElements['tagname'][tagName]
+        MISPElementHints['tag'].push([tagName, tagName])
     })
 }
 
 function hintMISPElements(cm, options) {
-    var authorizedMISPElements = ['attribute', 'object', 'galaxymatrix']
+    var authorizedMISPElements = ['attribute', 'object', 'galaxymatrix', 'tag']
     var availableScopes = ['attribute', 'object', 'galaxymatrix', 'tag']
     var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)?\\)');
     var reExtendedWord = /\S/
+    var hintList = []
     var scope, elementID, element
     var cursor = cm.getCursor()
     var line = cm.getLine(cursor.line)
@@ -150,7 +165,6 @@ function hintMISPElements(cm, options) {
     var word = line.slice(start, end).toLowerCase()
     
     if (word === '@[]()') {
-        var hintList = []
         availableScopes.forEach(function(scope) {
             hintList.push({
                 text: '@[' + scope + ']()'
@@ -167,8 +181,11 @@ function hintMISPElements(cm, options) {
     if (res !== null) {
         scope = res.groups.scope
         elementID = res.groups.elementid !== undefined ? res.groups.elementid : ''
-        element = proxyMISPElements[scope][elementID]
-        var hintList = []
+        if (scope === 'tag') {
+            element = proxyMISPElements['tagname'][elementID]
+        } else {
+            element = proxyMISPElements[scope][elementID]
+        }
         if (element !== undefined) {
             hintList.push(
                 {
@@ -181,37 +198,40 @@ function hintMISPElements(cm, options) {
                 }
             )
         } else { // search in hint arrays
-            var fullHint
             var addedItems = {}
             var maxHints = 10
-            var MISPElementToCheck = [MISPElementValues, MISPElementTypes, MISPElementIDs]
-            MISPElementToCheck.forEach(function(MISPElement) {
-                MISPElement.forEach(function(hint) {
+            if (MISPElementHints[scope] !== undefined) {
+                for (var i = 0; i < MISPElementHints[scope].length; i++) {
+                    var hintArray = MISPElementHints[scope][i];
+                    var hintValue = hintArray[0]
+                    var hintUUID = hintArray[1]
                     if (hintList.length >= maxHints) {
-                        return false
+                        break
                     }
-                    if (scope == hint[2]) {
-                        if (hint[0].startsWith(elementID)) {
-                            fullHint = hint[2] + '-' + hint[1]
-                            if (addedItems[fullHint] === undefined) {
-                                element = proxyMISPElements[scope][hint[1]]
-                                if (element !== undefined) { // Correct scope
-                                    hintList.push({
-                                        text: '@[' + scope + '](' + element.uuid + ')',
-                                        element: element,
-                                        render: function(elem, self, data) {
-                                            var hintElement = renderHintElement(scope, data.element)
-                                            $(elem).append(hintElement)
-                                        },
-                                        className: 'hint-container',
-                                    })
-                                }
-                                addedItems[fullHint] = true
+                    if (hintValue.startsWith(elementID)) {
+                        if (addedItems[hintUUID] === undefined) {
+                            if (scope === 'tag') {
+                                element = proxyMISPElements['tagname'][hintUUID]
+                                element.uuid = hintUUID
+                            } else {
+                                element = proxyMISPElements[scope][hintUUID]
                             }
+                            if (element !== undefined) {
+                                hintList.push({
+                                    text: '@[' + scope + '](' + element.uuid + ')',
+                                    element: element,
+                                    render: function(elem, self, data) {
+                                        var hintElement = renderHintElement(scope, data.element)
+                                        $(elem).append(hintElement)
+                                    },
+                                    className: 'hint-container',
+                                })
+                            }
+                            addedItems[hintUUID] = true
                         }
                     }
-                })
-            })
+                }
+            }
         }
         return {
             list: hintList,
@@ -235,10 +255,14 @@ function renderHintElement(scope, element) {
             .append($('<span/>').addClass('bold').text(element.name + ' '))
             .append($('<span/>').addClass('bold blue').text(element.Attribute.length))
     } else if (scope == 'galaxymatrix') {
-        $node = $('<span/>').addClass('hint-object')
+        $node = $('<span/>').addClass('hint-galaxymatrix')
         $node.append($('<i/>').addClass('').text('[' + element.id + '] '))
             .append($('<span/>').addClass('bold').text(element.type + ' '))
             .append($('<span/>').addClass('bold blue').text(element.name))
+    } else if (scope == 'tag') {
+        // element.colour = element.colour === undefined ? 'white' : element.colour
+        $node = $('<span/>').addClass('hint-tag')
+        $node.append(constructTagHtml(element.name, element.colour, {'box-shadow': 'none'}))
     } else {
         $node = $('<span>No match</span>') // should not happen
     }
@@ -568,18 +592,12 @@ function attachTagInfo($elem, eventid, elementID) {
             }
             if (tagData === undefined) {
                 tagData = {}
-                $tag = $('<span/>').text(elementID).addClass('tag').css('box-shadow', '3px 3px 3px #888888')
+                $tag = constructTagHtml(elementID, 'white')
             } else {
-                $tag = $('<span/>').text(tagData.Tag.name)
-                    .addClass('tag')
-                    .css({
-                        'box-shadow': '3px 3px 3px #888888',
-                        'background-color': tagData.Tag.colour,
-                        'color': getTextColour(tagData.Tag.colour)
-                    })
+                $tag = constructTagHtml(tagData.Tag.name, tagData.Tag.colour)
+                proxyMISPElements['tag'][elementID] = tagData
             }
             $elem.empty().append($tag)
-            proxyMISPElements['tag'][elementID] = tagData
             var cacheKey = eventid + '-' + elementID
             cache_tag[cacheKey] = $tag[0].outerHTML;
         },
@@ -804,6 +822,19 @@ function constructTag(tagName) {
         $info = 'No information about this tag'
     }
     return $('<div/>').append($info)
+}
+
+function constructTagHtml(tagName, tagColour, additionalCSS) {
+    additionalCSS = additionalCSS === undefined ? {} : additionalCSS
+    var $tag = $('<span/>').text(tagName)
+        .addClass('tag')
+        .css({
+            'background-color': tagColour,
+            'color': getTextColour(tagColour),
+            'box-shadow': '3px 3px 3px #888888',
+        })
+        .css(additionalCSS)
+    return $tag
 }
 
 function constructTaxonomyInfo(tagData) {

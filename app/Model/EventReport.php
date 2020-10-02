@@ -421,11 +421,17 @@ class EventReport extends AppModel
             throw new NotFoundException(__('Invalid Event'));
         }
         $event = $event[0];
+        $this->AttributeTag = ClassRegistry::init('AttributeTag');
+        $allTagNames = Hash::combine($event['EventTag'], '{n}.Tag.name', '{n}.Tag');
+        $attributeTags = Hash::combine($this->AttributeTag->getAttributesTags($event['Attribute'], true), '{n}.name', '{n}');
+        $allTagNames = array_merge($allTagNames, $attributeTags);
         $objects = [];
         $templateConditions = [];
         $recordedConditions = [];
         foreach ($event['Object'] as $k => $object) {
             $objects[$object['uuid']] = $object;
+            $objectAttributeTags = Hash::combine($this->AttributeTag->getAttributesTags($object['Attribute'], true), '{n}.name', '{n}');
+            $allTagNames = array_merge($allTagNames, $objectAttributeTags);
             $uniqueCondition = sprintf('%s.%s', $object['template_uuid'], $object['template_version']);
             if (!isset($recordedConditions[$uniqueCondition])) {
                 $templateConditions['OR'][] = [
@@ -457,7 +463,8 @@ class EventReport extends AppModel
             'attribute' => Hash::combine($event, 'Attribute.{n}.uuid', 'Attribute.{n}'),
             'object' => $objects,
             'objectTemplates' => $objectTemplates,
-            'galaxymatrix' => $allowedGalaxies
+            'galaxymatrix' => $allowedGalaxies,
+            'tagname' => $allTagNames
         ];
         return $proxyMISPElements;
     }
