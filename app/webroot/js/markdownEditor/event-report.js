@@ -260,7 +260,6 @@ function renderHintElement(scope, element) {
             .append($('<span/>').addClass('bold').text(element.type + ' '))
             .append($('<span/>').addClass('bold blue').text(element.name))
     } else if (scope == 'tag') {
-        // element.colour = element.colour === undefined ? 'white' : element.colour
         $node = $('<span/>').addClass('hint-tag')
         $node.append(constructTagHtml(element.name, element.colour, {'box-shadow': 'none'}))
     } else {
@@ -594,7 +593,7 @@ function attachTagInfo($elem, eventid, elementID) {
                 tagData = {}
                 $tag = constructTagHtml(elementID, 'white')
             } else {
-                $tag = constructTagHtml(tagData.Tag.name, tagData.Tag.colour)
+                $tag = getTagReprensentation(tagData)
                 proxyMISPElements['tag'][elementID] = tagData
             }
             $elem.empty().append($tag)
@@ -824,6 +823,16 @@ function constructTag(tagName) {
     return $('<div/>').append($info)
 }
 
+function getTagReprensentation(tagData) {
+    var $tag
+    if(tagData.GalaxyCluster !== undefined) {
+        $tag = constructClusterTagHtml(tagData)
+    } else {
+        $tag = constructTagHtml(tagData.Tag.name, tagData.Tag.colour)
+    }
+    return $tag
+}
+
 function constructTagHtml(tagName, tagColour, additionalCSS) {
     additionalCSS = additionalCSS === undefined ? {} : additionalCSS
     var $tag = $('<span/>').text(tagName)
@@ -834,6 +843,20 @@ function constructTagHtml(tagName, tagColour, additionalCSS) {
             'box-shadow': '3px 3px 3px #888888',
         })
         .css(additionalCSS)
+    return $tag
+}
+
+function constructClusterTagHtml(tagData) {
+    var $tag = $('<span/>').append(
+        $('<i/>').addClass('fa fa-' + tagData.GalaxyCluster.Galaxy.icon).css('margin-right', '5px'),
+        $('<span/>').text(tagData.GalaxyCluster.type + ' ↦ ' + tagData.GalaxyCluster.value)
+    )
+        .addClass('tag')
+        .css({
+            'background-color': tagData.Tag.colour,
+            'color': getTextColour(tagData.Tag.colour),
+            'box-shadow': '3px 3px 3px #888888',
+        })
     return $tag
 }
 
