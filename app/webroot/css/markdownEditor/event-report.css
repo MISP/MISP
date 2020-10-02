@@ -5,21 +5,30 @@
 }
 
 span.misp-element-wrapper {
-    padding: 2px 3px;
     margin: 3px 3px;
     border: 1px solid #ddd !important;
-    background-color: #f5f5f5 !important;
     border-radius: 3px;
-    line-height: 24px;
     white-space: nowrap;
+    display: inline-block;
+    padding: 0;
 }
 
-.misp-element-wrapper.attribute .blue:before {
-    content: ' ';
-    border-right: 1px solid #d2d2d2;
-    margin: 4px;
+.misp-element-wrapper.attribute .attr-type {
+    background-color: #f5f5f5 !important;
+    border-right: 1px solid #ddd !important;
+    display: inline-block;
 }
-.misp-element-wrapper.attribute .blue {
+
+.misp-element-wrapper.attribute .attr-type > span {
+    margin: 2px 3px;
+}
+
+.misp-element-wrapper.attribute .attr-value {
+    display: inline-table;
+    margin: 0px 3px;
+}
+
+.misp-element-wrapper.attribute .attr-value > span {
     max-width: 300px;
     text-overflow: ellipsis;
     overflow: hidden;
