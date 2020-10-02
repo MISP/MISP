@@ -36,18 +36,26 @@ span.misp-element-wrapper {
     display: table-cell;
 }
 
-.misp-element-wrapper.object {
-    border: 0 !important;
+span.misp-element-wrapper.object {
+    border: 1px solid #3465a4 !important;
+}
+
+.misp-element-wrapper.object .obj-type {
+    display: inline-block;
     background-color: #3465a4 !important;
     color: #ffffff !important;
 }
 
-.misp-element-wrapper.object .value:before {
-    content: ' ';
-    border-right: 1px solid #d2d2d2;
-    margin: 4px;
+.misp-element-wrapper.object .obj-type > span {
+    margin: 2px 3px;
 }
-.misp-element-wrapper.object .value {
+
+.misp-element-wrapper.object .obj-value {
+    display: inline-table;
+    margin: 0px 3px;
+}
+
+.misp-element-wrapper.object .obj-value > span {
     max-width: 300px;
     text-overflow: ellipsis;
     overflow: hidden;

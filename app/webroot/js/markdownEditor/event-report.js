@@ -26,7 +26,7 @@ var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attr
 var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrapper attributePicture useCursorPointer\"><img data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" href=\"#\" src=\"{{=it.src}}\" alt=\"{{=it.alt}}\" title=\"\"/></div>");
 var dotTemplateGalaxyMatrix = doT.template("<div class=\"misp-picture-wrapper embeddedGalaxyMatrix\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
 var dotTemplateTag = doT.template("<span class=\"tag embeddedTag useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{!it.elementid}}\" data-eventid=\"{{=it.eventid}}\">{{=it.elementid}}</span>");
-var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span>{{=it.type}}</span><span class=\"value\">{{=it.value}}</span></span></span>");
+var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object useCursorPointer\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span class=\"obj-type\"><span>{{=it.type}}</span></span><span class=\"obj-value\"><span>{{=it.value}}</span></span></span></span>");
 var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 var dotCloseButtonTemplate = doT.template('<button type="button" class="close" style="margin-left: 5px;" data-scope=\"{{=it.scope}}\" data-elementid=\"{{!it.elementID}}\" onclick="closeThePopover(this)">×</button>');
 
