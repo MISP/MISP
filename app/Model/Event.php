@@ -2077,7 +2077,6 @@ class Event extends AppModel
                 $conditions['AND'][] = $rules;
             }
         }
-
         if (!empty($options['to_ids']) || $options['to_ids'] === 0) {
             $conditionsAttributes['AND'][] = array('Attribute.to_ids' => $options['to_ids']);
         }
@@ -2093,7 +2092,6 @@ class Event extends AppModel
         $fieldsObj = array('*');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
-
         $sharingGroupData = $this->__cacheSharingGroupData($user, $useCache);
         $params = array(
             'conditions' => $conditions,
@@ -5808,16 +5806,11 @@ class Event extends AppModel
             $tag = ClassRegistry::init('Tag');
             $args = $this->Attribute->dissectArgs($tagRules);
             $tagArray = $this->EventTag->Tag->fetchEventTagIds($args[0], $args[1]);
-            $temp = array();
-            foreach ($tagArray[0] as $accepted) {
-                $temp['OR'][] = array('Event.id' => $accepted);
+            if (!empty($tagArray[0])) {
+                $filters[] = ['OR' => ['Event.id' => $tagArray[0]]];
+            } else {
+                $filters[] = ['AND' => ['Event.id NOT IN' => $tagArray[1]]];
             }
-            $filters[] = $temp;
-            $temp = array();
-            foreach ($tagArray[1] as $rejected) {
-                $temp['AND'][] = array('Event.id !=' => $rejected);
-            }
-            $filters[] = $temp;
             if ($useCache) {
                 $this->assetCache['tagFilters'] = $filters;
             }
@@ -6907,11 +6900,9 @@ class Event extends AppModel
         if (isset($filters['tag']) and !isset($filters['tags'])) {
             $filters['tags'] = $filters['tag'];
         }
-
         $subqueryElements = $this->harvestSubqueryElements($filters);
         $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements);
         $filters = $this->addFiltersFromUserSettings($user, $filters);
-
         if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
             $eventid = $this->filterEventIds($user, $filters, $elementCounter);
@@ -6950,6 +6941,7 @@ class Event extends AppModel
             $filters['eventid'] = $chunk;
             if (!empty($filters['tags']['NOT'])) {
                 $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
+                unset($filters['tags']['NOT']);
             }
             $result = $this->fetchEvent(
                 $user,

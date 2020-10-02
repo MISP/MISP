@@ -1888,9 +1888,7 @@ class AppModel extends Model
                     $workerType = '';
                     if (isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
                         $workerType = 'update';
-                    } elseif (isset($workerDiagnostic['prio']['ok']) && $workerDiagnostic['prio']['ok']) {
-                        $workerType = 'prio';
-                    } else { // no worker running, doing inline update
+                    } else { // update worker not running, doing the update inline
                         return $this->runUpdates($verbose, false);
                     }
                     $this->Job->create();

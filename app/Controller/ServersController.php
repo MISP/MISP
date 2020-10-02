@@ -1235,8 +1235,12 @@ class ServersController extends AppController
 
     public function getWorkers()
     {
-        $issues = 0;
-        $worker_array = $this->Server->workerDiagnostics($issues);
+        if (Configure::read('MISP.background_jobs')) {
+            $workerIssueCount = 0;
+            $worker_array = $this->Server->workerDiagnostics($workerIssueCount);
+        } else {
+            $worker_array = [__('Background jobs not enabled')];
+        }
         return $this->RestResponse->viewData($worker_array);
     }
 
