@@ -208,7 +208,7 @@ function hintMISPElements(cm, options) {
                     if (hintList.length >= maxHints) {
                         break
                     }
-                    if (hintValue.startsWith(elementID)) {
+                    if (hintValue.includes(elementID)) {
                         if (addedItems[hintUUID] === undefined) {
                             if (scope === 'tag') {
                                 element = proxyMISPElements['tagname'][hintUUID]
