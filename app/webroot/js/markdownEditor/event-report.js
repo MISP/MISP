@@ -813,13 +813,13 @@ function getPriorityValue(mispObject, objectTemplate) {
 
 function constructTag(tagName) {
     var tagData = proxyMISPElements['tag'][tagName]
-    var $info
-    if (tagData.Taxonomy !== undefined) {
-        $info = constructTaxonomyInfo(tagData)
-    } else if(tagData.GalaxyCluster !== undefined) {
-        $info = constructGalaxyInfo(tagData)
-    } else {
-        $info = 'No information about this tag'
+    var $info = 'No information about this tag'
+    if (tagData !== undefined) {
+        if (tagData.Taxonomy !== undefined) {
+            $info = constructTaxonomyInfo(tagData)
+        } else if(tagData.GalaxyCluster !== undefined) {
+            $info = constructGalaxyInfo(tagData)
+        }
     }
     return $('<div/>').append($info)
 }
