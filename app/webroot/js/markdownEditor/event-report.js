@@ -632,7 +632,7 @@ function attachTagInfo($elem, eventid, elementID) {
                 .append($(placeholder))
         },
         type:"post",
-        url: baseurl + "/tags/search/0/1"
+        url: baseurl + "/tags/search/0/1/0"
     })
 }
 
@@ -868,6 +868,9 @@ function constructTagHtml(tagName, tagColour, additionalCSS) {
 }
 
 function constructClusterTagHtml(tagData) {
+    if (tagData.Tag.colour === undefined) {
+        tagData.Tag.colour = '#ffffff'
+    }
     var $tag = $('<span/>').append(
         $('<i/>').addClass('fa fa-' + tagData.GalaxyCluster.Galaxy.icon).css('margin-right', '5px'),
         $('<span/>').text(tagData.GalaxyCluster.type + ' ↦ ' + tagData.GalaxyCluster.value)

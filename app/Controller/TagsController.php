@@ -1112,7 +1112,7 @@ class TagsController extends AppController
         $this->render('/Events/view_graph');
     }
 
-    public function search($tag = false, $strictTagNameOnly = false)
+    public function search($tag = false, $strictTagNameOnly = false, $searchIfTagExists = true)
     {
         if (isset($this->request->data['Tag'])) {
             $this->request->data = $this->request->data['Tag'];
@@ -1155,6 +1155,12 @@ class TagsController extends AppController
             'conditions' => $conditions,
             'recursive' => -1
         ));
+        if (!$searchIfTagExists && empty($tags)) {
+            $tags = [];
+            foreach ($tag as $i => $tagName) {
+                $tags[] = ['Tag' => ['name' => $tagName]];
+            }
+        }
         $this->loadModel('Taxonomy');
         foreach ($tags as $k => $t) {
             $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name'], false);
