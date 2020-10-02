@@ -1418,6 +1418,7 @@ class Event extends AppModel
         // check if remote version support event reports
         $eventReportSupportedByRemote = false;
         $uri = $server['Server']['url'] . '/eventReports/add';
+        $HttpSocket = $this->setupHttpSocket($server, null);
         try {
             $response = $HttpSocket->get($uri, false, $request);
             if ($response->isOk()) {
