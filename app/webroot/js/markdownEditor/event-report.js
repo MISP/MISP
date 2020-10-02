@@ -1021,8 +1021,11 @@ function parseTag(str, pos, max) {
         }
 
         if (code === 0x29 /* ) */) {
-            if (level === 0) { break; }
             level--;
+            if (level === 0) {
+                pos++;
+                break;
+            }
         }
 
         pos++;
