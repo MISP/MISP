@@ -101,7 +101,7 @@ class Warninglist extends AppModel
         foreach ($attributes as $pos => $attribute) {
             if (($attribute['to_ids'] || $this->showForAll) && (isset($enabledTypes[$attribute['type']]) || isset($enabledTypes['ALL']))) {
                 $redisResultToAttributePos[] = $pos;
-                $redis->get('misp:wl-cache:' . md5($attribute['type'] . ':' .  $attribute['value']));
+                $redis->get('misp:wlc:' . md5($attribute['type'] . ':' . $attribute['value'], true));
             }
         }
         $results = $pipe->exec();
@@ -129,7 +129,7 @@ class Warninglist extends AppModel
                     }
                 }
 
-                $attributeHash = md5($attribute['type'] . ':' .  $attribute['value']);
+                $attributeHash = md5($attribute['type'] . ':' .  $attribute['value'], true);
                 $saveToCache[$attributeHash] = empty($store) ? '' : json_encode($store);
 
             } elseif (!empty($result)) { // empty string means no warning list match
@@ -149,7 +149,7 @@ class Warninglist extends AppModel
         if (!empty($saveToCache)) {
             $pipe = $redis->multi(Redis::PIPELINE);
             foreach ($saveToCache as $attributeHash => $json) {
-                $redis->setex('misp:wl-cache:' . $attributeHash, 3600 * 24, $json); // cache for one day
+                $redis->setex('misp:wlc:' . $attributeHash, 3600, $json); // cache for one hour
             }
             $pipe->exec();
         }
