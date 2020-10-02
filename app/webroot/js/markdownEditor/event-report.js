@@ -246,17 +246,38 @@ function renderHintElement(scope, element) {
     var $node;
     if (scope == 'attribute') {
         $node = $('<span/>').addClass('hint-attribute')
-        $node.append($('<i/>').addClass('').text('[' + element.id + '] '))
+        $node.append($('<i/>').addClass('').text('[' + element.category + '] '))
             .append($('<span/>').addClass('bold').text(element.type + ' '))
-            .append($('<span/>').addClass('bold blue').text(element.value + ' '))
+            .append(
+                $('<span/>').addClass('bold blue ellipsis-overflow')
+                    .css({
+                        'max-width': '500px',
+                        'display': 'table-cell'
+                    })
+                    .text(element.value)
+            )
     } else if (scope == 'object') {
+        var associatedTemplate = element.template_uuid + '.' + element.template_version
+        var objectTemplate = proxyMISPElements['objectTemplates'][associatedTemplate]
+        var topPriorityValue = element.Attribute.length
+        if (objectTemplate !== undefined) {
+            var temp = getPriorityValue(element, objectTemplate)
+            topPriorityValue = temp !== false ? temp : topPriorityValue
+        }
         $node = $('<span/>').addClass('hint-object')
-        $node.append($('<i/>').addClass('').text('[' + element.id + '] '))
+        $node.append($('<i/>').addClass('').text('[' + element['meta-category'] + '] '))
             .append($('<span/>').addClass('bold').text(element.name + ' '))
-            .append($('<span/>').addClass('bold blue').text(element.Attribute.length))
+            .append(
+                $('<span/>').addClass('bold blue ellipsis-overflow')
+                    .css({
+                        'max-width': '500px',
+                        'display': 'table-cell'
+                    })
+                    .text(topPriorityValue)
+            )
     } else if (scope == 'galaxymatrix') {
         $node = $('<span/>').addClass('hint-galaxymatrix')
-        $node.append($('<i/>').addClass('').text('[' + element.id + '] '))
+        $node.append($('<i/>').addClass('').text('[' + element.namespace + '] '))
             .append($('<span/>').addClass('bold').text(element.type + ' '))
             .append($('<span/>').addClass('bold blue').text(element.name))
     } else if (scope == 'tag') {
