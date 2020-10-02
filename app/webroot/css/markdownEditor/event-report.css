@@ -1,6 +1,10 @@
 @media print {
-    .misp-element-wrapper.object * {
+    .misp-element-wrapper.object .obj-type {
         color: white !important;
+    }
+
+    .misp-element-wrapper.object .obj-value {
+        color: black !important;
     }
 }
 

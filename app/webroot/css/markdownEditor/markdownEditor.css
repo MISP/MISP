@@ -9,7 +9,7 @@
         visibility: visible;
     }
     #viewer {
-        position: absolute;
+        position: absolute !important;
         left: 0;
         top: 0;
     }
