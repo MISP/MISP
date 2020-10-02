@@ -235,7 +235,7 @@
                     ),
                     array(
                         'text' => __('User Guide'),
-                        'url' => $baseurl . 'https://www.circl.lu/doc/misp/'
+                        'url' => 'https://www.circl.lu/doc/misp/'
                     ),
                     array(
                         'text' => __('Categories & Types'),
