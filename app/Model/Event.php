@@ -1292,6 +1292,9 @@ class Event extends AppModel
             }
             $data['EventReport'] = array_values($data['EventReport']);
         }
+        if (isset($data['EventReport']) && empty($data['EventReport'])) {
+            unset($data['EventReport']);
+        }
         return $data;
     }
 
@@ -1412,6 +1415,25 @@ class Event extends AppModel
         if (!$server['Server']['internal'] && $report['distribution'] < 2) {
             return false;
         }
+        // check if remote version support event reports
+        $eventReportSupportedByRemote = false;
+        $uri = $server['Server']['url'] . '/eventReports/add';
+        try {
+            $response = $HttpSocket->get($uri, false, $request);
+            if ($response->isOk()) {
+                $apiDescription = json_decode($response->body, true);
+                $eventReportSupportedByRemote = !empty($apiDescription['description']);
+            }
+        } catch (Exception $e) {
+            $this->Log = ClassRegistry::init('Log');
+            $message = __('Remote version does not support event report.');
+            $this->Log->createLogEntry('SYSTEM', $action, 'Server', $id, $message);
+        }
+
+        if (!$eventReportSupportedByRemote) {
+            return [];
+        }
+        
         // Downgrade the object from connected communities to community only
         if (!$server['Server']['internal'] && $report['distribution'] == 2) {
             $report['distribution'] = 1;
