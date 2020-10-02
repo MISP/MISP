@@ -96,19 +96,22 @@ class Warninglist extends AppModel
             }
         }
 
-        $pipe = $redis->multi(Redis::PIPELINE);
         $redisResultToAttributePos = [];
+        $keysToGet = [];
         foreach ($attributes as $pos => $attribute) {
             if (($attribute['to_ids'] || $this->showForAll) && (isset($enabledTypes[$attribute['type']]) || isset($enabledTypes['ALL']))) {
                 $redisResultToAttributePos[] = $pos;
-                $redis->get('misp:wlc:' . md5($attribute['type'] . ':' . $attribute['value'], true));
+                $keysToGet[] = 'misp:wlc:' . md5($attribute['type'] . ':' . $attribute['value'], true);
             }
         }
-        $results = $pipe->exec();
+
+        if (empty($keysToGet)) {
+            return []; // no attribute suitable for warninglist check
+        }
 
         $eventWarnings = [];
         $saveToCache = [];
-        foreach ($results as $pos => $result) {
+        foreach ($redis->mget($keysToGet) as $pos => $result) {
             if ($result === false) { // not in cache
                 $attribute = $attributes[$redisResultToAttributePos[$pos]];
                 $attribute = $this->checkForWarning($attribute, $enabledWarninglists);
@@ -129,8 +132,8 @@ class Warninglist extends AppModel
                     }
                 }
 
-                $attributeHash = md5($attribute['type'] . ':' .  $attribute['value'], true);
-                $saveToCache[$attributeHash] = empty($store) ? '' : json_encode($store);
+                $attributeKey = $keysToGet[$pos];
+                $saveToCache[$attributeKey] = empty($store) ? '' : json_encode($store);
 
             } elseif (!empty($result)) { // empty string means no warning list match
                 $matchedWarningList = json_decode($result, true);
@@ -148,8 +151,8 @@ class Warninglist extends AppModel
 
         if (!empty($saveToCache)) {
             $pipe = $redis->multi(Redis::PIPELINE);
-            foreach ($saveToCache as $attributeHash => $json) {
-                $redis->setex('misp:wlc:' . $attributeHash, 3600, $json); // cache for one hour
+            foreach ($saveToCache as $attributeKey => $json) {
+                $redis->setex($attributeKey, 3600, $json); // cache for one hour
             }
             $pipe->exec();
         }
