@@ -2150,10 +2150,10 @@ class Event extends AppModel
             return array();
         }
 
-        if ($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) {
+        if (($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) && !isset($this->Feed)) {
             $this->Feed = ClassRegistry::init('Feed');
         }
-        if ($options['enforceWarninglist'] || $options['includeWarninglistHits']) {
+        if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
         }
         // Precache current user email
@@ -2370,7 +2370,7 @@ class Event extends AppModel
         }
         if ($options['extended']) {
             foreach ($results as $k => $result) {
-                $results[$k] = $this->__mergeExtensions($user, $result, $options['includeEventCorrelations']);
+                $results[$k] = $this->__mergeExtensions($user, $result, $options);
             }
         }
         return $results;
@@ -2455,15 +2455,16 @@ class Event extends AppModel
     /**
      * @param array $user
      * @param array $event
-     * @param bool $includeEventCorrelations
+     * @param array $options
      * @return array
      * @throws Exception
      */
-    private function __mergeExtensions(array $user, array $event, $includeEventCorrelations)
+    private function __mergeExtensions(array $user, array $event, array $options)
     {
         $extensions = $this->fetchEvent($user, [
             'eventsExtendingUuid' => $event['Event']['uuid'],
-            'includeEventCorrelations' => $includeEventCorrelations,
+            'includeEventCorrelations' => $options['includeEventCorrelations'],
+            'includeWarninglistHits' => $options['includeWarninglistHits'],
         ]);
         foreach ($extensions as $extensionEvent) {
             $eventMeta = array(
@@ -2489,7 +2490,7 @@ class Event extends AppModel
                 }
                 $event['EventTag'][] = $eventTag;
             }
-            if ($includeEventCorrelations) {
+            if ($options['includeEventCorrelations']) {
                 // Merge just related events that are not already in main event
                 foreach ($extensionEvent['RelatedEvent'] as $relatedEvent) {
                     foreach ($event['RelatedEvent'] as $rE) {
@@ -2498,6 +2499,14 @@ class Event extends AppModel
                         }
                     }
                     $event['RelatedEvent'][] = $relatedEvent;
+                }
+            }
+            if ($options['includeWarninglistHits']) {
+                // Merge just event warninglist that are not already in main event
+                foreach ($extensionEvent['warnings'] as $warninglistId => $warning) {
+                    if (!isset($event['warnings'][$warninglistId])) {
+                        $event['warnings'][$warninglistId] = $warning;
+                    }
                 }
             }
         }
