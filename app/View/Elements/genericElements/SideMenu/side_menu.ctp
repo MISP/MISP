@@ -1,4 +1,12 @@
 <?php
+$canAccess = function ($controller, $action) use ($me, $aclComponent) {
+    $response = $aclComponent->checkAccess($me, $controller, $action, true);
+    if ($response === 404) {
+        throw new Exception("Invalid controller '$controller' specified for menu requirements.");
+    }
+    return $response === true;
+};
+
 $this->set('menuItem', $menuItem);
 $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
 ?>
@@ -299,11 +307,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         $baseurl,
                         __('Export Tag Collections')
                     );
-                    echo sprintf(
-                        '<li id="liimport"><a href="%s/tag_collections/import">%s</a></li>',
-                        $baseurl,
-                        __('Import Tag Collections')
-                    );
+                    if ($canAccess('tagCollections', 'import')) {
+                        echo sprintf(
+                            '<li id="liimport"><a href="%s/tag_collections/import">%s</a></li>',
+                            $baseurl,
+                            __('Import Tag Collections')
+                        );
+                    }
                     break;
 
                 case 'event-collection':
@@ -463,11 +473,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/noticelists/index',
                         'text' => __('List Noticelist')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                        'url' => $baseurl . '/noticelists/update',
-                        'text' => __('Update Noticelists'),
-                        'message' => __('Do you wish to continue and update all noticelists?')
-                    ));
+                    if ($canAccess('noticelists', 'update')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'url' => $baseurl . '/noticelists/update',
+                            'text' => __('Update Noticelists'),
+                            'message' => __('Do you wish to continue and update all noticelists?')
+                        ));
+                    }
                     break;
 
                 case 'allowedlist':
@@ -669,10 +681,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'message' => __('Are you sure you want to delete #%s?', $this->Form->value('Server.id'))
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/servers/index',
-                        'text' => __('List Servers')
-                    ));
+                    if ($canAccess('servers', 'index')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/servers/index',
+                            'text' => __('List Servers')
+                        ));
+                    }
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/servers/add',
