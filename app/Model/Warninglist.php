@@ -101,6 +101,8 @@ class Warninglist extends AppModel
         foreach ($attributes as $pos => $attribute) {
             if (($attribute['to_ids'] || $this->showForAll) && (isset($enabledTypes[$attribute['type']]) || isset($enabledTypes['ALL']))) {
                 $redisResultToAttributePos[] = $pos;
+                // Use hash as binary string to save memory and CPU time
+                // Hash contains just attribute type and value, so can be reused in another event attributes
                 $keysToGet[] = 'misp:wlc:' . md5($attribute['type'] . ':' . $attribute['value'], true);
             }
         }
@@ -135,7 +137,7 @@ class Warninglist extends AppModel
                 $attributeKey = $keysToGet[$pos];
                 $saveToCache[$attributeKey] = empty($store) ? '' : json_encode($store);
 
-            } elseif (!empty($result)) { // empty string means no warning list match
+            } elseif (!empty($result)) { // skip empty string that means no warning list match
                 $matchedWarningList = json_decode($result, true);
                 foreach ($matchedWarningList as $warninglistId => $matched) {
                     $attributes[$redisResultToAttributePos[$pos]]['warnings'][] = [
@@ -277,8 +279,12 @@ class Warninglist extends AppModel
             return false;
         }
 
-        // Delete cache
-        $redis->del($redis->keys('misp:wl-cache:*'));
+        if (method_exists($redis, 'unlink')) {
+            // Delete attributes cache non blocking way if available
+            $redis->unlink($redis->keys('misp:wlc:*'));
+        } else {
+            $redis->del($redis->keys('misp:wlc:*'));
+        }
 
         if ($id === null) {
             // delete all cached entries when regenerating whole cache
