@@ -37,6 +37,7 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @link http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  *
  * @throws ForbiddenException // TODO Exception
+ * @property ACLComponent $ACL
  */
 class AppController extends Controller
 {
@@ -461,6 +462,7 @@ class AppController extends Controller
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
+            $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 
             $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));

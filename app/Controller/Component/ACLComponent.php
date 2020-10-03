@@ -244,11 +244,17 @@ class ACLComponent extends Component
                     'fetchSelectedFromFreetextIndex' => array(),
                     'getEvent' => array(),
                     'importFeeds' => array(),
-                    'index' => array('*'),
+                    'index' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
                     'loadDefaultFeeds' => array('perm_site_admin'),
                     'previewEvent' => array('*'),
                     'previewIndex' => array('*'),
-                    'searchCaches' => array('*'),
+                    'searchCaches' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
                     'toggleSelected' => array('perm_site_admin'),
                     'view' => array('*'),
             ),
@@ -425,7 +431,10 @@ class ACLComponent extends Component
                     'getSubmoduleQuickUpdateForm' => array(),
                     'getWorkers' => array(),
                     'getVersion' => array('*'),
-                    'idTranslator' => array('*'),
+                    'idTranslator' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
                     'import' => array(),
                     'index' => array(),
                     'ondemandAction' => array(),
@@ -748,7 +757,9 @@ class ACLComponent extends Component
         foreach ($aclList as $k => $v) {
             $aclList[$k] = array_change_key_case($v);
         }
-        $this->__checkLoggedActions($user, $controller, $action);
+        if (!$soft) {
+            $this->__checkLoggedActions($user, $controller, $action);
+        }
         if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
@@ -804,7 +815,6 @@ class ACLComponent extends Component
         switch ($code) {
             case 404:
                 throw new NotFoundException($message);
-                break;
             case 403:
                 throw new MethodNotAllowedException($message);
             default:
