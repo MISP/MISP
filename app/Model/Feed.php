@@ -580,7 +580,6 @@ class Feed extends AppModel
     {
         $version = $this->checkMISPVersion();
         $version = implode('.', $version);
-        $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
 
         $result = array(
             'header' => array(
@@ -595,6 +594,7 @@ class Feed extends AppModel
             $result['header']['Accept-Encoding'] = 'gzip';
         }
 
+        $commit = $this->checkMIPSCommit();
         if ($commit) {
             $result['header']['commit'] = $commit;
         }
