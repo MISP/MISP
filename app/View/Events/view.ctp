@@ -455,12 +455,12 @@
                     endif;
                 endif;
             ?>
-            <?php if (!empty($event['Event']['warnings'])): ?>
+            <?php if (!empty($event['warnings'])): ?>
                 <div class="warning_container">
                     <h4 class="red"><?= __('Warning: Potential false positives') ?> <a href="#attributeList" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'warning')"><?= __('(show)') ?></a></h4>
                     <?php
                         $links = [];
-                        foreach ($event['Event']['warnings'] as $id => $name) {
+                        foreach ($event['warnings'] as $id => $name) {
                             $links[] = '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>';
                         }
                         echo implode('<br>', $links);

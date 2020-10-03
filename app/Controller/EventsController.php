@@ -1070,6 +1070,7 @@ class EventsController extends AppController
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
         }
         $conditions['includeFeedCorrelations'] = true;
+        $conditions['includeWarninglistHits'] = true;
         if (!isset($filters['includeServerCorrelations'])) {
             $conditions['includeServerCorrelations'] = 1;
             if ($this->_isRest()) {
@@ -1567,6 +1568,7 @@ class EventsController extends AppController
             $this->set('extended', 0);
         }
         $conditions['excludeLocalTags'] = false;
+        $conditions['includeWarninglistHits'] = true;
         if (isset($this->params['named']['excludeLocalTags'])) {
             $conditions['excludeLocalTags'] = $this->params['named']['excludeLocalTags'];
         }
@@ -3632,19 +3634,7 @@ class EventsController extends AppController
             $this->set('importComment', '');
             $this->set('title', 'Freetext Import Results');
             $this->loadModel('Warninglist');
-            $tldLists = $this->Warninglist->getTldLists();
-            $missingTldLists = array();
-            foreach ($tldLists as $tldList) {
-                $temp = $this->Warninglist->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('Warninglist.name' => $tldList),
-                    'fields' => array('Warninglist.id')
-                ));
-                if (empty($temp)) {
-                    $missingTldLists[] = $tldList;
-                }
-            }
-            $this->set('missingTldLists', $missingTldLists);
+            $this->set('missingTldLists', $this->Warninglist->missingTldLists());
             $this->render('resolved_attributes');
         }
     }
