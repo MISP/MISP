@@ -206,9 +206,8 @@
         ?>
     </table>
 </div>
-    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all')): ?>
-        <div class="background-red bold">
-            <span>
+    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all') && !$filtered): ?>
+        <div class="background-red bold" style="padding: 2px 5px">
             <?php
                 if ($me['org_id'] != $event['Event']['orgc_id']) {
                     echo __('Attribute warning: This event doesn\'t have any attributes visible to you. Either the owner of the event decided to have
@@ -218,7 +217,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
                     echo __('Attribute warning: This event doesn\'t contain any attribute. It\'s strongly advised to populate the event with attributes (indicators, observables or information) to provide a meaningful event');
                 }
             ?>
-            </span>
         </div>
     <?php endif;?>
     <div class="pagination">
