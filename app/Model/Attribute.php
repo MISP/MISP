@@ -3468,7 +3468,7 @@ class Attribute extends AppModel
             return $results;
         }
 
-        if ($options['enforceWarninglist'] || $options['includeWarninglistHits']) {
+        if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
         }
         if (empty($params['limit'])) {
@@ -3539,11 +3539,12 @@ class Attribute extends AppModel
             $results = array_values($results);
             $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
             foreach ($results as $key => $attribute) {
+                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
+                    unset($results[$key]); // Remove attribute that match any enabled warninglists
+                    continue;
+                }
                 if (!empty($options['includeEventTags'])) {
                     $results = $this->__attachEventTagsToAttributes($eventTags, $results, $key, $options);
-                }
-                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
-                    continue;
                 }
                 if ($options['includeWarninglistHits']) {
                     $results[$key]['Attribute'] = $this->Warninglist->checkForWarning($results[$key]['Attribute']);
