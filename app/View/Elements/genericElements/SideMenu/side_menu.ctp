@@ -465,6 +465,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 case 'noticelist':
                     if ($menuItem === 'view') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
                             'text' => __('View Noticelist')
                         ));
                     }
