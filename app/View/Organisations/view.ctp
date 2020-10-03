@@ -2,7 +2,7 @@
     <div class="row-fluid">
     <?php
         $table_data = array();
-        $table_data[] = array('key' => __('Id'), 'value' => $org['Organisation']['id']);
+        $table_data[] = array('key' => __('ID'), 'value' => $org['Organisation']['id']);
         $table_data[] = array('key' => __('Organisation name'), 'value' => $org['Organisation']['name']);
         $table_data[] = array(
             'key' => __('Local or remote'),
@@ -21,7 +21,10 @@
             $domains = implode("<br />", $domains);
             $table_data[] = array('key' => __('Domain restrictions'), 'html' => $domains);
         }
-        $table_data[] = array('key' => __('UUID'), 'value' => !empty(trim($org['Organisation']['uuid'])) ? $org['Organisation']['uuid'] : '');
+        $table_data[] = array(
+            'key' => __('UUID'),
+            'html' => !empty(trim($org['Organisation']['uuid'])) ? '<span class="quickSelect">' . $org['Organisation']['uuid'] . '</span>' : '',
+        );
         if ($isSiteAdmin) {
             $table_data[] = array('key' => __('Created by'), 'value' => isset($org['Organisation']['created_by_email']) ? $org['Organisation']['created_by_email'] : __("Unknown"));
             $table_data[] = array('key' => __('Creation time'), 'value' => $org['Organisation']['date_created']);

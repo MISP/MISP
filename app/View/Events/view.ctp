@@ -23,7 +23,7 @@
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
         $table_data[] = array(
             'key' => 'UUID',
-            'html' => sprintf('%s %s',
+            'html' => sprintf('<span class="quickSelect">%s</span> %s',
                 $event['Event']['uuid'],
                 sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px;" title="%s">+</a>',
                     $baseurl,
