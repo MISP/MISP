@@ -538,19 +538,18 @@ class Sighting extends AppModel
         return $sightingsRearranged;
     }
 
-    public function getSightingsForObjectIds($user, $tagList, $context = 'event', $type = '0')
+    /**
+     * @param $user - not used
+     * @param array $tagIds
+     * @param string $context 'event' or 'attribute'
+     * @param string|false $type
+     * @return array
+     */
+    public function getSightingsForObjectIds($user, array $tagIds, $context = 'event', $type = '0')
     {
         $conditions = array(
             'Sighting.date_sighting >' => $this->getMaximumRange(),
-            ucfirst($context) . 'Tag.tag_id' => $tagList
-
-        );
-        $contain = array(
-            ucfirst($context) => array(
-                ucfirst($context) . 'Tag' => array(
-                    'Tag'
-                )
-            )
+            ucfirst($context) . 'Tag.tag_id' => $tagIds
         );
         if ($type !== false) {
             $conditions['Sighting.type'] = $type;
@@ -560,15 +559,16 @@ class Sighting extends AppModel
             'recursive' => -1,
             'contain' => array(ucfirst($context) . 'Tag'),
             'conditions' => $conditions,
-            'fields' => array('Sighting.id', 'Sighting.' . $context . '_id', 'Sighting.date_sighting', ucfirst($context) . 'Tag.tag_id')
+            'fields' => array('Sighting.' . $context . '_id', 'Sighting.date_sighting')
         ));
         $sightingsRearranged = array();
         foreach ($sightings as $sighting) {
             $date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
-            if (isset($sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date])) {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date]++;
+            $contextId = $sighting['Sighting'][$context . '_id'];
+            if (isset($sightingsRearranged[$contextId][$date])) {
+                $sightingsRearranged[$contextId][$date]++;
             } else {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date] = 1;
+                $sightingsRearranged[$contextId][$date] = 1;
             }
         }
         return $sightingsRearranged;
