@@ -774,17 +774,21 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                         echo $divider;
                     }
-                    if ($isSiteAdmin) {
+                    if ($canAccess('users', 'admin_add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addUser',
                             'url' => $baseurl . '/admin/users/add',
                             'text' => __('Add User')
                         ));
+                    }
+                    if ($canAccess('users', 'admin_index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexUser',
                             'url' => $baseurl . '/admin/users/index',
                             'text' => __('List Users')
                         ));
+                    }
+                    if ($canAccess('users', 'registrations')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'registrations',
                             'url' => $baseurl . '/users/registrations',
