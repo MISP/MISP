@@ -375,7 +375,7 @@
           if ($isAclAdd && ($isSiteAdmin || !$mayModify)):
             if (isset($modules) && isset($modules['types'][$object['type']])):
       ?>
-        <span class="icon-asterisk useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query enrichment');?>" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/ShadowAttribute');" title="<?php echo __('Propose enrichment');?>">&nbsp;</span>
+        <span class="fas fa-asterisk useCursorPointer" role="button" tabindex="0" aria-label="<?php echo __('Query enrichment');?>" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/ShadowAttribute');" title="<?php echo __('Propose enrichment');?>">&nbsp;</span>
       <?php
             endif;
             if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
@@ -395,7 +395,7 @@
           if ($isSiteAdmin || $mayModify):
             if (isset($modules) && isset($modules['types'][$object['type']])):
       ?>
-        <span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Attribute');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment');?>">&nbsp;</span>
+        <span class="fas fa-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?= $objectId ?>/Attribute');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment');?>">&nbsp;</span>
       <?php
             endif;
             if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
