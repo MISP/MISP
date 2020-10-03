@@ -342,7 +342,8 @@
                     ),
                     array(
                         'text' => __('User Registrations'),
-                        'url' => $baseurl . '/users/registrations'
+                        'url' => $baseurl . '/users/registrations',
+                        'requirement' => $canAccess('users', 'registrations'),
                     ),
                     array(
                         'type' => 'separator'
@@ -353,7 +354,8 @@
                     ),
                     array(
                         'text' => __('Add Organisations'),
-                        'url' => $baseurl . '/admin/organisations/add'
+                        'url' => $baseurl . '/admin/organisations/add',
+                        'requirement' => $canAccess('organisations', 'admin_add'),
                     ),
                     array(
                         'type' => 'separator'
@@ -369,6 +371,7 @@
                     ),
                     array(
                         'type' => 'separator',
+                        'requirement' => $isSiteAdmin,
                     ),
                     array(
                         'text' => __('Server Settings & Maintenance'),
