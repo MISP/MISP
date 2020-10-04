@@ -1254,10 +1254,6 @@ class EventsController extends AppController
         $warningTagConflicts = array();
         $filters = $this->_harvestParameters($filterData, $exception);
 
-        $this->loadModel('GalaxyCluster');
-        if (!$this->_isRest()) {
-            //$attack = $this->GalaxyCluster->Galaxy->constructAttackReport($event);
-        }
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
         $this->set('emptyEvent', $emptyEvent);
         $attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
