@@ -353,11 +353,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
     $('.searchFilterButton, #quickFilterButton').click(function() {
         filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
     });
-    $('#quickFilterField').on('keypress', function (e) {
-        if(e.which === 13) {
-            filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
-        }
-    });
 </script>
 <?php
     echo $this->Js->writeBuffer();

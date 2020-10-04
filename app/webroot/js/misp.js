@@ -4561,15 +4561,6 @@ $(document).ready(function() {
             return $(this).data('disabled-reason');
         }
     });
-
-    $('#quickFilterField').bind("enterKey",function(e){
-        $('#quickFilterButton').trigger("click");
-    });
-    $('#quickFilterField').keyup(function(e){
-        if (e.keyCode == 13) {
-            $('#quickFilterButton').trigger("click");
-        }
-    });
     $(".queryPopover").click(function() {
         url = $(this).data('url');
         id = $(this).data('id');
@@ -4685,6 +4676,10 @@ $("body").on("click", ".correlation-expand-button", function() {
     }
     $('#popover_form_large').html($box[0].outerHTML);
     openPopup('#popover_form_large');
+}).on('keyup', '#quickFilterField', function(e) { // submit quick filter form when user press enter in input field
+    if (e.keyCode === 13) { // ENTER key
+        $('#quickFilterButton').trigger("click");
+    }
 });
 
 function queryEventLock(event_id, user_org_id) {
