@@ -1254,10 +1254,6 @@ class EventsController extends AppController
         $warningTagConflicts = array();
         $filters = $this->_harvestParameters($filterData, $exception);
 
-        $this->loadModel('GalaxyCluster');
-        if (!$this->_isRest()) {
-            //$attack = $this->GalaxyCluster->Galaxy->constructAttackReport($event);
-        }
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
         $this->set('emptyEvent', $emptyEvent);
         $attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
@@ -1587,32 +1583,31 @@ class EventsController extends AppController
             $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
         }
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
-        if (!empty($this->params['named']['includeGranularCorrelations'])) {
-            foreach ($results as $k => $event) {
-                if (!empty($event['RelatedAttribute'])) {
-                    foreach ($event['RelatedAttribute'] as $attribute_id => $relation) {
-                        foreach ($event['Attribute'] as $k2 => $attribute) {
-                            if ((int)$attribute['id'] == $attribute_id) {
-                                $results[$k]['Attribute'][$k2]['RelatedAttribute'][] = $relation;
-                                break 2;
-                            }
-                        }
-                        foreach ($event['Object'] as $k2 => $object) {
-                            foreach ($object['Attribute'] as $k3 => $attribute) {
-                                if ((int)$attribute['id'] == $attribute_id) {
-                                    $results[$k]['Object'][$k2]['Attribute'][$k3]['RelatedAttribute'][] = $relation;
-                                    break 3;
-                                }
-                            }
+        if (empty($results)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $event = $results[0];
+
+        // Attach related attributes to proper attribute
+        if (!empty($this->params['named']['includeGranularCorrelations']) && !empty($event['RelatedAttribute'])) {
+            foreach ($event['RelatedAttribute'] as $attribute_id => $relation) {
+                foreach ($event['Attribute'] as $k2 => $attribute) {
+                    if ((int)$attribute['id'] == $attribute_id) {
+                        $event['Attribute'][$k2]['RelatedAttribute'][] = $relation;
+                        break 2;
+                    }
+                }
+                foreach ($event['Object'] as $k2 => $object) {
+                    foreach ($object['Attribute'] as $k3 => $attribute) {
+                        if ((int)$attribute['id'] == $attribute_id) {
+                            $event['Object'][$k2]['Attribute'][$k3]['RelatedAttribute'][] = $relation;
+                            break 3;
                         }
                     }
                 }
             }
         }
-        if (empty($results)) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-        $event = $results[0];
+
         $this->Event->id = $event['Event']['id'];
         if (isset($this->params['named']['searchFor']) && $this->params['named']['searchFor'] !== '') {
             $this->__applyQueryString($event, $this->params['named']['searchFor']);
@@ -1626,11 +1621,11 @@ class EventsController extends AppController
 
         if ($this->_isRest()) {
             $this->set('event', $event);
-        }
-        $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
-        $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
-        $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
-        if (!$this->_isRest()) {
+        } else {
+            $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
+            $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
+            $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
+
             if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
                 $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
             }
