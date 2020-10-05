@@ -117,7 +117,8 @@
             $table_data[] = array(
                 'key' => __('Threat Level'),
                 'key_title' => $eventDescriptions['threat_level_id']['desc'],
-                'value' => $event['ThreatLevel']['name']
+                'value' => $event['ThreatLevel']['name'],
+                'value_class' => 'threat-level-' . strtolower($event['ThreatLevel']['name']),
             );
         }
         $table_data[] = array(

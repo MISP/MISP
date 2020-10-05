@@ -2543,3 +2543,32 @@ table tr:hover .down-expand-button {
     flex-direction: column;
     flex-grow: 1;
 }
+
+/* Threat levels */
+.threat-level-high::before, .threat-level-medium::before, .threat-level-low::before {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+    padding-right: .3em;
+}
+
+.threat-level-high::before {
+    content: "\f102";
+    color: rgb(192,0,0);
+}
+
+.threat-level-medium::before {
+    content: "\f068";
+    color: #3465a4;
+}
+
+.threat-level-low::before {
+    content: "\f103";
+    color: rgb(35,120,40);
+}
