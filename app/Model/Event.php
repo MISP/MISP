@@ -1419,6 +1419,7 @@ class Event extends AppModel
         $eventReportSupportedByRemote = false;
         $uri = $server['Server']['url'] . '/eventReports/add';
         $HttpSocket = $this->setupHttpSocket($server, null);
+        $request = $this->setupSyncRequest($server);
         try {
             $response = $HttpSocket->get($uri, false, $request);
             if ($response->isOk()) {
