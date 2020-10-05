@@ -207,8 +207,8 @@ attributes or the appropriate distribution level. If you think there is a mistak
                 'url' => $url,
                 'update' => '#attributes_div',
                 'evalScripts' => true,
-                'before' => '$(".progress").show()',
-                'complete' => '$(".progress").hide()',
+                'before' => '$(".loading").show()',
+                'complete' => '$(".loading").hide()',
             ));
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
