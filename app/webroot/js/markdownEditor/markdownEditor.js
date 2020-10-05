@@ -137,7 +137,6 @@ function initCodeMirror() {
         scrollbarStyle: 'overlay',
         extraKeys: {
             "Esc": function(cm) {
-                console.log('<esc>')
             },
             "Ctrl-Space": "autocomplete",
             "Ctrl-B": function() { replacementAction('bold') },

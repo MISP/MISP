@@ -80,7 +80,7 @@ function MISPElementReplacementActions(action) {
             end = null
             setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
             break;
-        case 'galaxymatrix':
+        case 'galaxy-matrix':
             replacement = '@[galaxymatrix]()'
             end = null
             setCursorTo = {line: start.line, ch: start.ch + replacement.length - 1}
@@ -106,7 +106,7 @@ function insertMISPElementToolbarButtons() {
     insertTopToolbarButton('cubes', 'object')
     insertTopToolbarButton('image', 'attribute-attachment')
     insertTopToolbarButton('tag', 'tag')
-    insertTopToolbarButton('table', 'galaxy-matrix')
+    insertTopToolbarButton('atlas', 'galaxy-matrix')
 }
 
 /* Hints */
