@@ -58,6 +58,14 @@ span.misp-element-wrapper.object {
     color: #ffffff !important;
 }
 
+.misp-element-wrapper.object .obj-type .object-attribute-type {
+    margin-left: 0;
+    background-color: #f5f5f5;
+    color: black;
+    padding: 1px 3px;
+    border-radius: 7px;
+}
+
 .misp-element-wrapper.object .obj-type > span {
     margin: 2px 3px;
 }

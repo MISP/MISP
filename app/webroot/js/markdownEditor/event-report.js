@@ -27,6 +27,7 @@ var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrappe
 var dotTemplateGalaxyMatrix = doT.template("<div class=\"misp-picture-wrapper embeddedGalaxyMatrix\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" data-eventid=\"{{=it.eventid}}\"></div>");
 var dotTemplateTag = doT.template("<span class=\"tag misp-tag-wrapper embeddedTag\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{!it.elementid}}\" data-eventid=\"{{=it.eventid}}\">{{=it.elementid}}</span>");
 var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span class=\"obj-type\"><span>{{=it.type}}</span></span><span class=\"obj-value\"><span>{{=it.value}}</span></span></span></span>");
+var dotTemplateObjectAttribute = doT.template("<span class=\"misp-element-wrapper object\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span class=\"obj-type\"><span class=\"object-name\">{{=it.objectname}}</span>↦ <span class=\"object-attribute-type\">{{=it.type}}</span></span><span class=\"obj-value\"><span>{{=it.value}}</span></span></span></span>");
 var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 var dotCloseButtonTemplate = doT.template('<button type="button" class="close" style="margin-left: 5px;" data-scope=\"{{=it.scope}}\" data-elementid=\"{{!it.elementID}}\" onclick="closeThePopover(this)">×</button>');
 
@@ -422,13 +423,23 @@ function renderMISPElement(scope, elementID) {
     if (scope == 'attribute') {
         var attribute = proxyMISPElements[scope][elementID]
         if (attribute !== undefined) {
-            templateVariables = sanitizeObject({
+            var templateToRender = dotTemplateAttribute
+            var attributeData = {
                 scope: 'attribute',
                 elementid: elementID,
                 type: attribute.type,
                 value: attribute.value
-            })
-            return dotTemplateAttribute(templateVariables);
+            }
+            if (isValidObjectAttribute(attribute)) {
+                var mispObject = getObjectFromAttribute(attribute)
+                if (mispObject !== undefined) {
+                    attributeData.type = attribute.object_relation
+                    attributeData.objectname = mispObject.name
+                    templateToRender = dotTemplateObjectAttribute
+                }
+            }
+            templateVariables = sanitizeObject(attributeData)
+            return templateToRender(templateVariables);
         }
     } else if (scope == 'object') {
         var mispObject = proxyMISPElements[scope][elementID]
@@ -736,9 +747,10 @@ function closeThePopover(closeButton) {
     $MISPElement.popover('hide');
 }
 
-function constructAttributeRow(attribute)
+function constructAttributeRow(attribute, fromObject)
 {
-    var attributeFieldsToRender = ['id', 'category', 'type', 'value', 'comment']
+    fromObject = fromObject !== undefined ? fromObject : false
+    var attributeFieldsToRender = ['id', 'category', 'type'].concat(fromObject ? ['object_relation'] : [], ['value', 'comment'])
     var $tr = $('<tr/>')
     attributeFieldsToRender.forEach(function(field) {
         $tr.append(
@@ -776,9 +788,10 @@ function constructAttributeRow(attribute)
     return $tr
 }
 
-function constructAttributeHeader(attribute, showAll) {
+function constructAttributeHeader(attribute, showAll, fromObject) {
     showAll = showAll !== undefined ? showAll : false
-    var attributeFieldsToRender = ['id', 'category', 'type', 'value', 'comment']
+    fromObject = fromObject !== undefined ? fromObject : false
+    var attributeFieldsToRender = ['id', 'category', 'type'].concat(fromObject ? ['object_relation'] : [], ['value', 'comment'])
     var $tr = $('<tr/>')
     attributeFieldsToRender.forEach(function(field) {
         $tr.append($('<th/>').text(field))
@@ -808,10 +821,10 @@ function constructObject(object) {
     
     var $attributeTable = $('<table/>').addClass('table table-striped table-condensed')
         .css({'margin-bottom': '3px'})
-    var $thead = constructAttributeHeader({}, true)
+    var $thead = constructAttributeHeader({}, true, true)
     var $tbody = $('<tbody/>')
     object.Attribute.forEach(function(attribute) {
-        $tbody.append(constructAttributeRow(attribute))
+        $tbody.append(constructAttributeRow(attribute, true))
     })
     $attributeTable.append($thead, $tbody)
     $object.append($top, $attributeTable)
@@ -973,6 +986,10 @@ function constructGalaxyInfo(tagData) {
 function getContentFromMISPElementDOM() {
     var data = getElementFromDom(this)
     if (data !== false) {
+        if (data.scope == 'attribute' && isValidObjectAttribute(data.element)) {
+            data.scope = 'object'
+            data.element = getObjectFromAttribute(data.element)
+        }
         if (data.scope == 'attribute') {
             var $thead = constructAttributeHeader(data.element)
             var $row = constructAttributeRow(data.element)
@@ -992,6 +1009,15 @@ function getContentFromMISPElementDOM() {
         }
     }
     return invalidMessage
+}
+
+function isValidObjectAttribute(attribute) {
+    var mispObject = getObjectFromAttribute(attribute)
+    return attribute.object_relation !== null && mispObject !== undefined
+}
+
+function getObjectFromAttribute(attribute) {
+    return proxyMISPElements['object'][attribute.object_uuid]
 }
 
 function parseTag(str, pos, max) {

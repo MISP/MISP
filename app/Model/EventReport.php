@@ -421,6 +421,7 @@ class EventReport extends AppModel
             throw new NotFoundException(__('Invalid Event'));
         }
         $event = $event[0];
+        $attributes = Hash::combine($event, 'Attribute.{n}.uuid', 'Attribute.{n}');
         $this->AttributeTag = ClassRegistry::init('AttributeTag');
         $allTagNames = Hash::combine($event['EventTag'], '{n}.Tag.name', '{n}.Tag');
         $attributeTags = Hash::combine($this->AttributeTag->getAttributesTags($event['Attribute'], true), '{n}.name', '{n}');
@@ -430,6 +431,12 @@ class EventReport extends AppModel
         $recordedConditions = [];
         foreach ($event['Object'] as $k => $object) {
             $objects[$object['uuid']] = $object;
+            $objectAttributes = [];
+            foreach ($object['Attribute'] as $i => $objectAttribute) {
+                $objectAttributes[$objectAttribute['uuid']] = $object['Attribute'][$i];
+                $objectAttributes[$objectAttribute['uuid']]['object_uuid'] = $object['uuid'];
+            }
+            $attributes = array_merge($attributes, $objectAttributes);
             $objectAttributeTags = Hash::combine($this->AttributeTag->getAttributesTags($object['Attribute'], true), '{n}.name', '{n}');
             $allTagNames = array_merge($allTagNames, $objectAttributeTags);
             $uniqueCondition = sprintf('%s.%s', $object['template_uuid'], $object['template_version']);
@@ -460,7 +467,7 @@ class EventReport extends AppModel
         $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
         $allowedGalaxies = Hash::combine($allowedGalaxies, '{n}.Galaxy.uuid', '{n}.Galaxy');
         $proxyMISPElements = [
-            'attribute' => Hash::combine($event, 'Attribute.{n}.uuid', 'Attribute.{n}'),
+            'attribute' => $attributes,
             'object' => $objects,
             'objectTemplates' => $objectTemplates,
             'galaxymatrix' => $allowedGalaxies,
