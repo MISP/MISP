@@ -60,7 +60,7 @@ function quickDeleteSighting(id, rawId, context) {
     }).fail(xhrFailCallback)
 }
 
-function fetchAddSightingForm(type, attribute_id, page, onvalue) {
+function fetchAddSightingForm(type, attribute_id, onvalue) {
     var url = baseurl + "/sightings/quickAdd/" + attribute_id + "/" + type;
     if (onvalue) {
         url = url + "/1";
@@ -73,7 +73,7 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
     });
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placement) {
+function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
     var $clicked = $(clicked);
     var hoverbroken = false;
     $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
@@ -83,8 +83,8 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placem
         $clicked.off('mouseleave.temp');
         if ($clicked.is(":hover") && !hoverbroken) {
             var html = '<div>'
-                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">This attribute</button>'
-                + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">Global value</button>'
+                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\')">This attribute</button>'
+                + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', true)">Global value</button>'
                 + '</div>';
             openPopover(clicked, html, true, placement);
         }
@@ -586,30 +586,26 @@ function quickEditHover(td, type, id, field, event) {
     });
 }
 
-function addSighting(type, attribute_id, event_id, page) {
+function addSighting(type, attribute_id, event_id) {
     $('#Sighting_' + attribute_id + '_type').val(type);
     $.ajax({
         data: $('#Sighting_' + attribute_id).closest("form").serialize(),
         cache: false,
-        success:function (data, textStatus) {
+        success: function (data, textStatus) {
             handleGenericAjaxResponse(data);
             var result = data;
             if (result.saved == true) {
                 $('.sightingsCounter').each(function( counter ) {
                     $(this).html(parseInt($(this).html()) + 1);
                 });
-                if (typeof currentUri == 'undefined') {
-                    location.reload();
-                } else {
-                    updateIndex(event_id, 'event');
-                }
+                updateIndex(event_id, 'event');
             }
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Request failed for an unknown reason.');
-            updateIndex(context, 'event');
+            updateIndex(event_id, 'event');
         },
-        type:"post",
+        type: "post",
         url: baseurl + "/sightings/add/" + attribute_id
     });
 }
