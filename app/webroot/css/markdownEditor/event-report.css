@@ -21,6 +21,10 @@ span.misp-element-wrapper {
     cursor: help;
 }
 
+.misp-element-wrapper.invalid > span {
+    margin: 0 3px;
+}
+
 .misp-element-wrapper.attribute .attr-type {
     background-color: #f5f5f5 !important;
     border-right: 1px solid #ddd !important;
