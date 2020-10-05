@@ -101,7 +101,7 @@
             'target' => $target,
             'attributeFilter' => $attributeFilter,
             'urlHere' => $urlHere,
-            'filtered' =>$filtered,
+            'filtered' => $filtered,
             'mayModify' => $mayModify,
             'possibleAction' => $possibleAction
         ));
