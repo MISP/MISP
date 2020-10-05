@@ -31,7 +31,7 @@
             $date = time();
             $day = 86400;
         ?>
-        <th><?php echo $this->Paginator->sort('id', null, array('direction' => 'desc'));?></th>
+        <th><?php echo $this->Paginator->sort('id', __('ID'), array('direction' => 'desc'));?></th>
         <th><?php echo __('Clusters');?></th>
         <?php if (Configure::read('MISP.tagging')): ?>
             <th class="filter"><?php echo __('Tags');?></th>
@@ -241,11 +241,10 @@
 </table>
 <script type="text/javascript">
     var lastSelected = false;
-    $(document).ready(function() {
+    $(function() {
         $('.select').on('change', function() {
             listCheckboxesChecked();
-        });
-        $('.select').click(function(e) {
+        }).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
                     selectAllInbetween(lastSelected, this.id);
@@ -263,7 +262,7 @@
     });
 
     function deleteEvent(id) {
-        var message = "<?= __('Are you sure you want to delete # ') ?>" + id + "?"
+        var message = "<?= __('Are you sure you want to delete #') ?>" + id + "?"
         var url = '<?= $baseurl ?>/events/delete/' + id
         if (confirm(message)) {
             fetchFormDataAjax(url, function(formData) {
