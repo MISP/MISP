@@ -3013,11 +3013,16 @@ class Server extends AppModel
             if (empty($sgIds)) {
                 $sgIds = array(-1);
             }
+            $tableName = $this->Event->EventReport->table;
+            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
             $findParams = array(
                     'conditions' => array(
                             $eventid_conditions_key => $eventid_conditions_value,
                             'Event.published' => 1,
-                            'Event.attribute_count >' => 0,
+                            'OR' => array(
+                                array('Event.attribute_count >' => 0),
+                                array($eventReportQuery),
+                            ),
                             'OR' => array(
                                 array(
                                     'AND' => array(
