@@ -3,7 +3,7 @@
 var debounceDelay = 150, slowDebounceDelay = 3000;
 var renderTimer, scrollTimer, attackMatrixTimer, eventgraphTimer;
 var scrollMap;
-var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField, $markdownDropdownRulesMenu
+var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField, $markdownDropdownRulesMenu, $toggleFullScreenMode
 var $editor, $viewer, $raw
 var $saveMarkdownButton, $mardownViewerToolbar
 var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
@@ -27,6 +27,7 @@ $(document).ready(function() {
     $autocompletionCB = $('#autocompletionCB')
     $syncScrollCB = $('#syncScrollCB')
     $autoRenderMarkdownCB = $('#autoRenderMarkdownCB')
+    $toggleFullScreenMode = $('#toggleFullScreenMode')
     $topBar = $('#top-bar')
     $lastModifiedField = $('#lastModifiedField')
     $markdownDropdownRulesMenu = $('#markdown-dropdown-rules-menu')
@@ -47,6 +48,9 @@ $(document).ready(function() {
             grid: 50,
             minWidth: 300,
             maxWidth: window.innerWidth -220 - 300,
+            start: function( event, ui ) {
+                ui.helper.detach().appendTo('.markdownEditor-full-container')
+            },
             stop: function() {
                 cm.refresh()
                 scrollMap = null;
@@ -162,6 +166,7 @@ function initCodeMirror() {
             cm.showHint()
         }
     });
+    checkIfFullScreenEnabled()
 }
 
 function markdownItToggleRule(rulename, event) {
@@ -228,6 +233,23 @@ function toggleLoadingInSaveButton(saving) {
         $saveMarkdownButton.append(loadingSpanAnimation);
     } else {
         $saveMarkdownButton.find('#loadingSpan').remove();
+    }
+}
+
+function toggleFullscreenMode() {
+    var wholeContainer = $('.markdownEditor-full-container')[0]
+    if (!document.fullscreenElement) {
+        wholeContainer.requestFullscreen();
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen(); 
+        }
+    }
+}
+
+function checkIfFullScreenEnabled() {
+    if (!document.fullscreenEnabled) {
+        $toggleFullScreenMode.hide()
     }
 }
 

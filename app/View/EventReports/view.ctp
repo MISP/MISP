@@ -32,30 +32,30 @@
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
         <div class="clear">
-            <h4>
-                <?= __('Event Report content') ?>
-            </h4>
-            <?php 
-                echo $this->element('markdownEditor/markdownEditor', [
-                    'canEdit' => $canEdit,
-                    'markdown' => $report['EventReport']['content'],
-                    'modelName' => 'EventReport',
-                    'mardownModelFieldName' => 'content',
-                    'lastModified' => $report['EventReport']['timestamp'],
-                    'additionalMarkdownElements' => [
-                        'path' => 'EventReports/reportEditor',
-                        'variables' => [
-                            'reportid' => $report['EventReport']['id'],
-                            'eventid' => $report['EventReport']['event_id'],
-                            'proxyMISPElements' => $proxyMISPElements,
-                        ]
-                    ],
-                    'additionalMarkdownHelpModalElements' => [[
-                        'path' => 'EventReports/reportHelpModal',
-                        'tab_name' => __('Markdown format'),
-                    ]]
-                ]);
-            ?>
+            <h4><?= __('Event Report content') ?></h4>
+            <div class="markdownEditor-full-container">
+                <?php 
+                    echo $this->element('markdownEditor/markdownEditor', [
+                        'canEdit' => $canEdit,
+                        'markdown' => $report['EventReport']['content'],
+                        'modelName' => 'EventReport',
+                        'mardownModelFieldName' => 'content',
+                        'lastModified' => $report['EventReport']['timestamp'],
+                        'additionalMarkdownElements' => [
+                            'path' => 'EventReports/reportEditor',
+                            'variables' => [
+                                'reportid' => $report['EventReport']['id'],
+                                'eventid' => $report['EventReport']['event_id'],
+                                'proxyMISPElements' => $proxyMISPElements,
+                            ]
+                        ],
+                        'additionalMarkdownHelpModalElements' => [[
+                            'path' => 'EventReports/reportHelpModal',
+                            'tab_name' => __('Markdown format'),
+                        ]]
+                    ]);
+                ?>
+            </div>
         </div>
     </div>
     <div style="margin-bottom: 15px;"></div>

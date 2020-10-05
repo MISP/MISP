@@ -15,6 +15,25 @@
     }
 }
 
+.markdownEditor-full-container:fullscreen {
+    background-color: white;
+}
+
+.markdownEditor-full-container:fullscreen .raw-container, 
+.markdownEditor-full-container:fullscreen .split-container, 
+.markdownEditor-full-container:fullscreen #editor-container, 
+.markdownEditor-full-container:fullscreen #viewer-container {
+    max-height: calc(100vh - 50px) !important;
+}
+
+.markdownEditor-full-container:fullscreen #editor-container {
+    border: 0;
+}
+
+.markdownEditor-full-container:fullscreen .btn-toolbar {
+    margin-left: 15px;
+}
+
 .split-container {
     overflow: hidden;
     min-height: 500px;
@@ -22,9 +41,6 @@
 
 .modal-body-xl .split-container {
     max-height: calc(70vh - 50px)
-}
-
-.split-container > div {
 }
 
 .split-container.split-actif > #editor-container, .split-container.split-actif > #viewer-container {
@@ -142,6 +158,10 @@
 .cm-s-default {
     width: 100%;
     height: calc(100vh - 120px - 1.5em - 34px) !important;
+}
+
+.markdownEditor-full-container:fullscreen .cm-s-default {
+    height: calc(100vh - 50px - 1.5em - 34px) !important;
 }
 
 .modal-body-xl .split-container .cm-s-default{

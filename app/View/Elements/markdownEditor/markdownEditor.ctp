@@ -133,8 +133,7 @@
             </div>
             <textarea id="editor"></textarea>
             <div id="bottom-bar" class="editor-action-bar">
-                <span id="lastModifiedField" title="<?= __('Last updated') ?>" class="label">
-                </span>
+                <span id="lastModifiedField" title="<?= __('Last updated') ?>" class="label"></span>
                 <span>
                     <span title="<?= __('Toggle autocompletion while typing'); ?>">
                         <input type="checkbox" id="autocompletionCB" style="margin: 0 2px 0 0" checked="checked"></input>
@@ -151,6 +150,11 @@
                     <span title="<?= __('Automatically render markdown when typing'); ?>">
                         <input type="checkbox" id="autoRenderMarkdownCB" style="margin: 0 2px 0 0" checked="checked"></input>
                         <span class="<?= $this->FontAwesome->getClass('markdown') ?> useCursorPointer icon" onclick="$autoRenderMarkdownCB[0].checked = !$autoRenderMarkdownCB[0].checked"></span>
+                    </span>
+                </span>
+                <span style="margin-left: auto">
+                    <span title="<?= __('Toggle fullscreen mode'); ?>">
+                        <span id="toggleFullScreenMode" class="<?= $this->FontAwesome->getClass('expand-arrows-alt') ?> useCursorPointer icon" onclick="toggleFullscreenMode()"></span>
                     </span>
                 </span>
             </div>

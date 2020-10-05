@@ -17,6 +17,10 @@ span.misp-element-wrapper {
     padding: 0;
 }
 
+.misp-element-wrapper, .misp-tag-wrapper, .misp-picture-wrapper {
+    cursor: help;
+}
+
 .misp-element-wrapper.attribute .attr-type {
     background-color: #f5f5f5 !important;
     border-right: 1px solid #ddd !important;
