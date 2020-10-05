@@ -325,12 +325,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
             clearTimeout(timer);
         });
     });
-    $('#attributesFilterField').bind("keydown", function(e) {
-        var eventid = $('#attributesFilterField').data("eventid");
-        if ((e.keyCode == 13 || e.keyCode == 10)) {
-            filterAttributes('value', eventid);
-        }
-    });
     $('.searchFilterButton, #quickFilterButton').click(function() {
         filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
     });

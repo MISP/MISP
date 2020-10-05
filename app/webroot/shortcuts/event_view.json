@@ -18,7 +18,7 @@
 		{
 			"key": "s",
 			"description": "Focus the filter attribute bar",
-			"action": "$('#attributesFilterField').focus()"
+			"action": "$('#quickFilterField').focus()"
 		}
 	]
 }
