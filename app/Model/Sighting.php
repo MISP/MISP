@@ -5,6 +5,7 @@ App::uses('TmpFileTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
+ * @property Event $Event
  */
 class Sighting extends AppModel
 {
@@ -21,6 +22,7 @@ class Sighting extends AppModel
         'attribute_id' => 'numeric',
         'org_id' => 'numeric',
         'date_sighting' => 'numeric',
+        'uuid' => 'uuid',
         'type' => array(
             'rule' => array('inList', array(0, 1, 2)),
             'message' => 'Invalid type. Valid options are: 0 (Sighting), 1 (False-positive), 2 (Expiration).'
@@ -56,6 +58,8 @@ class Sighting extends AppModel
         }
         if (empty($this->data['Sighting']['uuid'])) {
             $this->data['Sighting']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['Sighting']['uuid'] = strtolower($this->data['Sighting']['uuid']);
         }
         return true;
     }
