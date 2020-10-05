@@ -56,7 +56,6 @@
         </li>
         </ul>
     </div>
-<br />
 <div id="edit_object_div">
     <?php
         $deleteSelectedUrl = $baseurl . '/attributes/deleteSelected/' . $event['Event']['id'];
