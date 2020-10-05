@@ -631,7 +631,7 @@ class EventsController extends AppController
                         $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
                         $this->paginate['conditions']['AND'][] = [
                             'OR' => [
-                                ['NOT' => [ 'Event.attribute_count' => 0]],
+                                ['Event.attribute_count >' => 0],
                                 [$eventReportQuery]
                             ]
                         ];
