@@ -376,7 +376,13 @@ class ComplexTypeTool
     {
         // CVE numbers
         if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input['raw'])) {
-            return array('types' => array('vulnerability'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'vulnerability', 'value' => $input['raw']);
+            return [
+                'types' => ['vulnerability'],
+                'categories' => ['External analysis'],
+                'to_ids' => false,
+                'default_type' => 'vulnerability',
+                'value' => strtoupper($input['raw']), // 'CVE' must be uppercase
+            ];
         }
         // Phone numbers - for automatic recognition, needs to start with + or include dashes
         if ($input['raw'][0] === '+' || strpos($input['raw'], '-')) {

@@ -420,6 +420,15 @@ EOT;
         $this->assertEquals('vulnerability', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextCveLowercase(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('cve-2019-16202');
+        $this->assertCount(1, $results);
+        $this->assertEquals('CVE-2019-16202', $results[0]['value']);
+        $this->assertEquals('vulnerability', $results[0]['default_type']);
+    }
+
     public function testCheckFreeTextAs(): void
     {
         $complexTypeTool = new ComplexTypeTool();
