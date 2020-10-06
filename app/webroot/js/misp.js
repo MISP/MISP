@@ -1749,7 +1749,7 @@ function openPopover(clicked, data, hover, placement, callback) {
         }
 
     } else {
-        // $clicked.popover('show');
+        $clicked.popover('show');
     }
     var popover = $clicked.data('popover');
 
