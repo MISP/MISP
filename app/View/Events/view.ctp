@@ -25,7 +25,7 @@
             'key' => 'UUID',
             'html' => sprintf('<span class="quickSelect">%s</span> %s',
                 $event['Event']['uuid'],
-                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px;" title="%s">+</a>',
+                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px; margin-left: 0.3em" title="%s">+</a>',
                     $baseurl,
                     $event['Event']['id'],
                     __('Extend this event')
