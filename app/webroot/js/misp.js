@@ -4662,16 +4662,17 @@ $("body").on("click", ".correlation-expand-button", function() {
     var type = $parent.attr('data-full-type');
     var $box;
     if (type === 'raw') {
-        $box = $('<pre>')
-            .css('background', 'white')
-            .css('border', '0')
-            .text(data);
+        $box = $('<pre>').css({
+            'background': 'white',
+            'border': '0',
+        }).text(data);
     } else {
-        $box = $('<div>')
-            .css('background', 'white')
-            .css('white-space', 'pre-wrap')
-            .css('padding', '1em')
-            .text(data);
+        $box = $('<div>').css({
+            'background': 'white',
+            'white-space': 'pre-wrap',
+            'word-wrap': 'break-word',
+            'padding': '1em',
+        }).text(data);
     }
     $('#popover_form_large').html($box[0].outerHTML);
     openPopup('#popover_form_large');
