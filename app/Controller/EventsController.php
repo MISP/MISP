@@ -5080,7 +5080,8 @@ class EventsController extends AppController
                     $this->set('importComment', $importComment);
                     $this->render($render_name);
                 }
-            } else {
+            }
+            if ($fail) {
                 $this->Flash->error($fail);
             }
         }
