@@ -121,7 +121,7 @@ switch ($object['type']) {
             $sigDisplay = str_replace("\r", '', $sigDisplay);
             $truncated = $truncateLongText($sigDisplay);
             if ($truncated) {
-                $rawTypes = ['email-header', 'yara', 'pgp-private-key', 'pgp-public-key'];
+                $rawTypes = ['email-header', 'yara', 'pgp-private-key', 'pgp-public-key', 'url'];
                 $dataFullType = in_array($object['type'], $rawTypes) ? 'raw' : 'text';
                 echo '<span data-full="' . h($sigDisplay) .'" data-full-type="' . $dataFullType .'">' . h($truncated) .
                     ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
