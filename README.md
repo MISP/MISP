@@ -1,4 +1,4 @@
-MISP - Threat Intelligence Sharing Platform
+MISP Threat Intelligence Sharing Platform
 -------------------------------------------
 
 ![logo](./INSTALL/logos/misp-logo.png?raw=true "MISP")
