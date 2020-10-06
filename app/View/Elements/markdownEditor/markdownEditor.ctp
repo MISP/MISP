@@ -55,7 +55,7 @@
                 <?= __('Menu') ?>
                 <span class="caret"></span>
             </button>
-            <ul class="dropdown-menu">
+            <ul id="markdownDropdownGeneralMenu" class="dropdown-menu">
                 <li class="dropdown-submenu">
                     <a tabindex="-1" href="#">
                         <span class="icon"><i class="<?= $this->FontAwesome->getClass('download') ?>"></i></span>
@@ -79,7 +79,7 @@
                 <li class="dropdown-submenu">
                     <a tabindex="-1" href="#">
                         <span class="icon"><i class="<?= $this->FontAwesome->getClass('markdown') ?>"></i></span>
-                        <?= __('Markdown rules') ?>
+                        <?= __('Markdown parsing rules') ?>
                     </a>
                     <ul id="markdown-dropdown-rules-menu" class="dropdown-menu">
                         <li><a tabindex="-1" href="#" style="min-width: 200px;" onclick="markdownItToggleRule('image', arguments[0]); return false;" >
@@ -119,17 +119,17 @@
     <div id="editor-container">
         <div id="editor-subcontainer">
             <div id="top-bar" class="editor-action-bar">
-                <span class="<?= $this->FontAwesome->getClass('bold') ?> useCursorPointer icon" onclick="replacementAction('bold')"></span>
-                <span class="<?= $this->FontAwesome->getClass('italic') ?> useCursorPointer icon" onclick="replacementAction('italic')"></span>
-                <span class="<?= $this->FontAwesome->getClass('heading') ?> useCursorPointer icon" onclick="replacementAction('heading')"></span>
-                <span class="<?= $this->FontAwesome->getClass('strikethrough') ?> useCursorPointer icon" onclick="replacementAction('strikethrough')"></span>
+                <span class="<?= $this->FontAwesome->getClass('bold') ?> useCursorPointer icon" onclick="replacementAction('bold')" title="<?= __('Bold') ?>"></span>
+                <span class="<?= $this->FontAwesome->getClass('italic') ?> useCursorPointer icon" onclick="replacementAction('italic')" title="<?= __('Italic') ?>"></span>
+                <span class="<?= $this->FontAwesome->getClass('heading') ?> useCursorPointer icon" onclick="replacementAction('heading')" title="<?= __('Heading') ?>"></span>
+                <span class="<?= $this->FontAwesome->getClass('strikethrough') ?> useCursorPointer icon" onclick="replacementAction('strikethrough')" title="<?= __('Strikethrough') ?>"></span>
                 <i class="top-bar-separator"></i>
-                <span class="<?= $this->FontAwesome->getClass('list-ul') ?> useCursorPointer icon" onclick="replacementAction('list-ul')"></span>
-                <span class="<?= $this->FontAwesome->getClass('list-ol') ?> useCursorPointer icon" onclick="replacementAction('list-ol')"></span>
+                <span class="<?= $this->FontAwesome->getClass('list-ul') ?> useCursorPointer icon" onclick="replacementAction('list-ul')" title="<?= __('Unordered list') ?>"></span>
+                <span class="<?= $this->FontAwesome->getClass('list-ol') ?> useCursorPointer icon" onclick="replacementAction('list-ol')" title="<?= __('Ordered list') ?>"></span>
                 <i class="top-bar-separator"></i>
-                <span class="<?= $this->FontAwesome->getClass('quote-left') ?> useCursorPointer icon" onclick="replacementAction('quote')"></span>
-                <span class="<?= $this->FontAwesome->getClass('code') ?> useCursorPointer icon" onclick="replacementAction('code')"></span>
-                <span class="<?= $this->FontAwesome->getClass('table') ?> useCursorPointer icon" onclick="replacementAction('table')"></span>
+                <span class="<?= $this->FontAwesome->getClass('quote-left') ?> useCursorPointer icon" onclick="replacementAction('quote')" title="<?= __('Quote') ?>"></span>
+                <span class="<?= $this->FontAwesome->getClass('code') ?> useCursorPointer icon" onclick="replacementAction('code')" title="<?= __('Code') ?>"></span>
+                <span class="<?= $this->FontAwesome->getClass('table') ?> useCursorPointer icon" onclick="replacementAction('table')" title="<?= __('Table') ?>"></span>
             </div>
             <textarea id="editor"></textarea>
             <div id="bottom-bar" class="editor-action-bar">

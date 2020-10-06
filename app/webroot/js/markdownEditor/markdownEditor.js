@@ -3,7 +3,7 @@
 var debounceDelay = 150, slowDebounceDelay = 3000;
 var renderTimer, scrollTimer, attackMatrixTimer, eventgraphTimer;
 var scrollMap;
-var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField, $markdownDropdownRulesMenu, $toggleFullScreenMode
+var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField, $markdownDropdownRulesMenu, $markdownDropdownGeneralMenu, $toggleFullScreenMode
 var $editor, $viewer, $raw
 var $saveMarkdownButton, $mardownViewerToolbar
 var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
@@ -31,6 +31,7 @@ $(document).ready(function() {
     $topBar = $('#top-bar')
     $lastModifiedField = $('#lastModifiedField')
     $markdownDropdownRulesMenu = $('#markdown-dropdown-rules-menu')
+    $markdownDropdownGeneralMenu = $('#markdownDropdownGeneralMenu')
 
     initMarkdownIt()
     if (canEdit) {
@@ -539,27 +540,61 @@ function insertTopToolbarSection() {
     $topBar.append($('<i />').addClass('top-bar-separator'))
 }
 
-function insertTopToolbarButton(FAClass, replacement) {
+function insertTopToolbarButton(FAClass, replacement, title) {
+    title = title === undefined ? '' : title
     $topBar.append(
         $('<span />').addClass('useCursorPointer icon fa fa-' + FAClass)
-            .click(function() {
+        .attr('title', title)
+        .click(function() {
             replacementAction(replacement)
         })
     )
 }
 
-function createRulesMenuItem(ruleName, text, icon) {
+// function createRulesMenuItem(ruleName, text, icon) {
+function createRulesMenuItem(itemName, icon, ruleScope, ruleName) {
+    var functionName = 'markdownItToggleRule'
+    var classPrefix = 'parsing'
+    if (ruleScope == 'render' && typeof markdownItToggleRenderingRule === 'function') {
+        functionName = 'markdownItToggleRenderingRule'
+        classPrefix = 'rendering'
+    }
     var $MISPElementMenuItem = $markdownDropdownRulesMenu.find('li:first').clone()
-    $MISPElementMenuItem.find('a').attr('onclick', 'markdownItToggleRule(\'' + ruleName + '\', arguments[0]); return false;')
+    $MISPElementMenuItem.find('a').attr('onclick', functionName + '(\'' + ruleName + '\', arguments[0]); return false;')
     if (icon instanceof jQuery){
         $MISPElementMenuItem.find('span.icon').empty().append(icon)
     } else {
-        $MISPElementMenuItem.find('span.icon > i').attr('class', 'fa fa-'+icon)
+        $MISPElementMenuItem.find('span.icon > i').attr('class', 'fas fa-'+icon)
     }
-    $MISPElementMenuItem.find('span.ruleText').text(text)
-    $MISPElementMenuItem.find('span.bold.green').attr('id', 'markdownparsing-' + ruleName + '-parsing-enabled')
-    $MISPElementMenuItem.find('span.bold.red').attr('id', 'markdownparsing-' + ruleName + '-parsing-disabled')
+    $MISPElementMenuItem.find('span.ruleText').text(itemName)
+    $MISPElementMenuItem.find('span.bold.green').attr('id', 'markdown' + classPrefix + '-' + ruleName + '-' + classPrefix + '-enabled')
+    $MISPElementMenuItem.find('span.bold.red').attr('id', 'markdown' + classPrefix + '-' + ruleName + '-' + classPrefix + '-disabled')
     return $MISPElementMenuItem
+}
+
+function createMenuItem(itemName, icon, clickHandler) {
+    return $('<li/>').append(
+            $('<a/>').attr('tabindex', '-1').attr('href', '#').click(clickHandler).append(
+                $('<span/>').addClass('icon').append(
+                    icon instanceof jQuery ? icon : $('<i/>').addClass(icon)
+                ),
+                $('<span/>').text(' ' + itemName)
+            )
+        )
+     
+}
+
+function createSubMenu(submenuConfig) {
+    var $submenus = $('<ul/>').addClass('dropdown-menu')
+    submenuConfig.items.forEach(function(item) {
+        if (item.isToggleableRule) {
+            $submenus.append(createRulesMenuItem(item.name, item.icon, item.ruleScope, item.ruleName))
+        } else {
+            $submenus.append(createMenuItem(item.name, item.icon, item.clickHandler))
+        }
+    });
+    var $dropdownSubmenu = createMenuItem(submenuConfig.name, submenuConfig.icon).addClass('dropdown-submenu').append($submenus)
+    $markdownDropdownGeneralMenu.append($dropdownSubmenu)
 }
 
 function getRuleStatus(context, rulername, rulename) {

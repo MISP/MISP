@@ -30,7 +30,16 @@ var dotTemplateObject = doT.template("<span class=\"misp-element-wrapper object\
 var dotTemplateObjectAttribute = doT.template("<span class=\"misp-element-wrapper object\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span class=\"obj-type\"><span class=\"object-name\">{{=it.objectname}}</span>↦ <span class=\"object-attribute-type\">{{=it.type}}</span></span><span class=\"obj-value\"><span>{{=it.value}}</span></span></span></span>");
 var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 var dotCloseButtonTemplate = doT.template('<button type="button" class="close" style="margin-left: 5px;" data-scope=\"{{=it.scope}}\" data-elementid=\"{{!it.elementID}}\" onclick="closeThePopover(this)">×</button>');
+var dotTemplateRenderingDisabled = doT.template("<span class=\"misp-element-wrapper attribute\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{!it.elementid}}\" data-eventid=\"{{=it.eventid}}\">{{=it.value}}</span>");
 
+var renderingRules = {
+    'attribute': true,
+    'attribute-picture': true,
+    'object': true,
+    'object-attribute': true,
+    'tag': true,
+    'galaxymatrix': true,
+}
 var galaxyMatrixTimer, tagTimers = {};
 var cache_matrix = {}, cache_tag = {};
 proxyMISPElements['tag'] = []
@@ -103,11 +112,11 @@ function MISPElementReplacementActions(action) {
 
 function insertMISPElementToolbarButtons() {
     insertTopToolbarSection()
-    insertTopToolbarButton('cube', 'attribute')
-    insertTopToolbarButton('cubes', 'object')
-    insertTopToolbarButton('image', 'attribute-attachment')
-    insertTopToolbarButton('tag', 'tag')
-    insertTopToolbarButton('atlas', 'galaxy-matrix')
+    insertTopToolbarButton('cube', 'attribute', 'Attribute')
+    insertTopToolbarButton('cubes', 'object', 'Object')
+    insertTopToolbarButton('image', 'attribute-attachment', 'Attribute picture')
+    insertTopToolbarButton('tag', 'tag', 'Tag')
+    insertTopToolbarButton('atlas', 'galaxy-matrix', 'Galaxy matrix')
 }
 
 /* Hints */
@@ -439,7 +448,7 @@ function renderMISPElement(scope, elementID) {
                 }
             }
             templateVariables = sanitizeObject(attributeData)
-            return templateToRender(templateVariables);
+            return renderTemplateBasedOnRenderingOptions(scope, templateToRender, templateVariables);
         }
     } else if (scope == 'object') {
         var mispObject = proxyMISPElements[scope][elementID]
@@ -457,12 +466,14 @@ function renderMISPElement(scope, elementID) {
                 type: mispObject.name,
                 value: topPriorityValue
             })
-            return dotTemplateObject(templateVariables);
+            return renderTemplateBasedOnRenderingOptions(scope, dotTemplateObject, templateVariables);
         }
     } else if (scope == 'tag') {
-        return dotTemplateTag(sanitizeObject({scope: 'tag', elementid: elementID, eventid: eventid}));
+        templateVariables = sanitizeObject({scope: 'tag', elementid: elementID, eventid: eventid, value: elementID})
+        return renderTemplateBasedOnRenderingOptions(scope, dotTemplateTag, templateVariables);
     } else if (scope == 'galaxymatrix') {
-        return dotTemplateGalaxyMatrix(sanitizeObject({scope: 'galaxymatrix', elementid: elementID, eventid: eventid}));
+        templateVariables = sanitizeObject({scope: 'galaxymatrix', elementid: elementID, eventid: eventid, value: elementID})
+        return renderTemplateBasedOnRenderingOptions(scope, dotTemplateGalaxyMatrix, templateVariables);
     }
     return renderInvalidMISPElement(scope, elementID)
 }
@@ -479,7 +490,7 @@ function renderMISPPictureElement(scope, elementID) {
             src: baseurl + '/attributes/viewPicture/' + attribute.id,
             title: attribute.type + ' ' + attribute.value,
         })
-        return dotTemplateAttributePicture(templateVariables);
+        return renderTemplateBasedOnRenderingOptions('attribute-picture', dotTemplateAttributePicture, templateVariables);
     }
     return renderInvalidMISPElement(scope, elementID)
 }
@@ -490,6 +501,41 @@ function renderInvalidMISPElement(scope, elementID) {
         id: elementID
     })
     return dotTemplateInvalid(templateVariables);
+}
+
+function renderTemplateBasedOnRenderingOptions(scope, templateToRender, templateVariables) {
+    if (renderingRules[scope]) {
+        return templateToRender(templateVariables)
+    } else {
+        return dotTemplateRenderingDisabled(templateVariables)
+    }
+}
+
+
+function markdownItToggleRenderingRule(rulename, event) {
+    if (event !== undefined) {
+        event.stopPropagation()
+    }
+    if (renderingRules[rulename] === undefined) {
+        console.log('Rule does not exists')
+        return
+    }
+    renderingRules[rulename] = !renderingRules[rulename]
+    doRender()
+    reloadRenderingRuleEnabledUI()
+}
+
+function reloadRenderingRuleEnabledUI() {
+    Object.keys(renderingRules).forEach(function(rulename) {
+        var enabled = renderingRules[rulename]
+        if (enabled) {
+            $('#markdownrendering-' + rulename + '-rendering-enabled').show()
+            $('#markdownrendering-' + rulename + '-rendering-disabled').hide()
+        } else {
+            $('#markdownrendering-' + rulename + '-rendering-enabled').hide()
+            $('#markdownrendering-' + rulename + '-rendering-disabled').show()
+        }
+    })
 }
 
 function setupMISPElementMarkdownListeners() {
@@ -687,8 +733,21 @@ function replaceMISPElementByTheirValue(raw) {
  |_|  |_|\___|_| |_|\__,_|
  */
 function injectCustomRulesMenu() {
-    var $MISPElementMenuItem = createRulesMenuItem('MISP_element_rule', 'MISP Elements', $('<img src="/favicon.ico">'))
+    var $MISPElementMenuItem = createRulesMenuItem('MISP Elements', $('<img src="/favicon.ico">'), 'parser', 'MISP_element_rule')
     $markdownDropdownRulesMenu.append($MISPElementMenuItem)
+    createSubMenu({
+        name: 'Markdown rendering rules',
+        icon: 'fab fa-markdown',
+        items: [
+            {name: 'Attribute', icon: 'fas fa-cube', ruleScope: 'render', ruleName: 'attribute', isToggleableRule: true },
+            {name: 'Attribute picture', icon: 'fas fa-image', ruleScope: 'render', ruleName: 'attribute-picture', isToggleableRule: true },
+            {name: 'Object', icon: 'fas fa-cubes', ruleScope: 'render', ruleName: 'object', isToggleableRule: true },
+            {name: 'Object Attribute', icon: 'fas fa-cube', ruleScope: 'render', ruleName: 'object-attribute', isToggleableRule: true },
+            {name: 'Tag', icon: 'fas fa-tag', ruleScope: 'render', ruleName: 'tag', isToggleableRule: true },
+            {name: 'Galaxy matrix', icon: 'fas fa-atlas', ruleScope: 'render', ruleName: 'galaxymatrix', isToggleableRule: true },
+        ]
+    })
+    reloadRenderingRuleEnabledUI()
 }
 
 function markdownItToggleCustomRule(rulename, event) {
