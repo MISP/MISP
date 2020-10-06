@@ -18,24 +18,6 @@
         $page = 0;
     }
     $fieldCount = 11;
-    if (!empty($event['Sighting'])) {
-        foreach ($sightingsData['data'] as $aid => $data) {
-            $sightingsData['data'][$aid]['html'] = '';
-            foreach ($data as $type => $typeData) {
-                $name = (($type != 'expiration') ? Inflector::pluralize($type) : $type);
-                $sightingsData['data'][$aid]['html'] .= '<span class=\'blue bold\'>' . ucfirst(h($name)) . '</span><br />';
-                foreach ($typeData['orgs'] as $org => $orgData) {
-                    $extra = (($org == $me['Organisation']['name']) ? " class=  'bold'" : "");
-                    if ($type == 'expiration') {
-                        $sightingsData['data'][$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'orange bold\'>' . date('Y-m-d H:i:s', $orgData['date']) . '</span><br />';
-                    } else {
-                        $sightingsData['data'][$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'' . (($type == 'sighting') ? 'green' : 'red') . ' bold\'>' . h($orgData['count']) . ' (' . date('Y-m-d H:i:s', $orgData['date']) . ')</span><br />';
-                    }
-                }
-                $sightingsData['data'][$aid]['html'] .= '<br />';
-            }
-        }
-    }
     $filtered = false;
     if(isset($passedArgsArray)){
         if (count($passedArgsArray) > 0) {
@@ -74,7 +56,6 @@
         </li>
         </ul>
     </div>
-<br />
 <div id="edit_object_div">
     <?php
         $deleteSelectedUrl = $baseurl . '/attributes/deleteSelected/' . $event['Event']['id'];
@@ -120,7 +101,7 @@
             'target' => $target,
             'attributeFilter' => $attributeFilter,
             'urlHere' => $urlHere,
-            'filtered' =>$filtered,
+            'filtered' => $filtered,
             'mayModify' => $mayModify,
             'possibleAction' => $possibleAction
         ));
@@ -206,9 +187,8 @@
         ?>
     </table>
 </div>
-    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all')): ?>
-        <div class="background-red bold">
-            <span>
+    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all') && !$filtered): ?>
+        <div class="background-red bold" style="padding: 2px 5px">
             <?php
                 if ($me['org_id'] != $event['Event']['orgc_id']) {
                     echo __('Attribute warning: This event doesn\'t have any attributes visible to you. Either the owner of the event decided to have
@@ -218,7 +198,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
                     echo __('Attribute warning: This event doesn\'t contain any attribute. It\'s strongly advised to populate the event with attributes (indicators, observables or information) to provide a meaningful event');
                 }
             ?>
-            </span>
         </div>
     <?php endif;?>
     <div class="pagination">
@@ -228,8 +207,8 @@ attributes or the appropriate distribution level. If you think there is a mistak
                 'url' => $url,
                 'update' => '#attributes_div',
                 'evalScripts' => true,
-                'before' => '$(".progress").show()',
-                'complete' => '$(".progress").hide()',
+                'before' => '$(".loading").show()',
+                'complete' => '$(".loading").hide()',
             ));
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
             echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
@@ -346,19 +325,8 @@ attributes or the appropriate distribution level. If you think there is a mistak
             clearTimeout(timer);
         });
     });
-    $('#attributesFilterField').bind("keydown", function(e) {
-        var eventid = $('#attributesFilterField').data("eventid");
-        if ((e.keyCode == 13 || e.keyCode == 10)) {
-            filterAttributes('value', eventid);
-        }
-    });
     $('.searchFilterButton, #quickFilterButton').click(function() {
         filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
-    });
-    $('#quickFilterField').on('keypress', function (e) {
-        if(e.which === 13) {
-            filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
-        }
     });
 </script>
 <?php

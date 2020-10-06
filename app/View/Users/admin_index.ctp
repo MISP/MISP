@@ -226,10 +226,5 @@
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter('/context:' + passedArgsArray['context']);
         });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter('/context:' + passedArgsArray['context']);
-            }
-        });
     });
 </script>

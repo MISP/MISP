@@ -60,7 +60,7 @@ function quickDeleteSighting(id, rawId, context) {
     }).fail(xhrFailCallback)
 }
 
-function fetchAddSightingForm(type, attribute_id, page, onvalue) {
+function fetchAddSightingForm(type, attribute_id, onvalue) {
     var url = baseurl + "/sightings/quickAdd/" + attribute_id + "/" + type;
     if (onvalue) {
         url = url + "/1";
@@ -73,7 +73,7 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
     });
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placement) {
+function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
     var $clicked = $(clicked);
     var hoverbroken = false;
     $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
@@ -83,8 +83,8 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placem
         $clicked.off('mouseleave.temp');
         if ($clicked.is(":hover") && !hoverbroken) {
             var html = '<div>'
-                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">This attribute</button>'
-                + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">Global value</button>'
+                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\')">This attribute</button>'
+                + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', true)">Global value</button>'
                 + '</div>';
             openPopover(clicked, html, true, placement);
         }
@@ -586,30 +586,26 @@ function quickEditHover(td, type, id, field, event) {
     });
 }
 
-function addSighting(type, attribute_id, event_id, page) {
+function addSighting(type, attribute_id, event_id) {
     $('#Sighting_' + attribute_id + '_type').val(type);
     $.ajax({
         data: $('#Sighting_' + attribute_id).closest("form").serialize(),
         cache: false,
-        success:function (data, textStatus) {
+        success: function (data, textStatus) {
             handleGenericAjaxResponse(data);
             var result = data;
             if (result.saved == true) {
                 $('.sightingsCounter').each(function( counter ) {
                     $(this).html(parseInt($(this).html()) + 1);
                 });
-                if (typeof currentUri == 'undefined') {
-                    location.reload();
-                } else {
-                    updateIndex(event_id, 'event');
-                }
+                updateIndex(event_id, 'event');
             }
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Request failed for an unknown reason.');
-            updateIndex(context, 'event');
+            updateIndex(event_id, 'event');
         },
-        type:"post",
+        type: "post",
         url: baseurl + "/sightings/add/" + attribute_id
     });
 }
@@ -3616,12 +3612,14 @@ function syncUserSelected() {
     }
 }
 
-function filterAttributes(filter, id) {
-    var url = baseurl + "/events/viewEventAttributes/" + id;
-    if(filter === 'value'){
+function filterAttributes(filter, event_id) {
+    var url = baseurl + "/events/viewEventAttributes/" + event_id;
+    if (filter === 'value'){
         filter = encodeURIComponent($('#quickFilterField').val().trim());
         url += filter.length > 0 ? "/searchFor:" + filter : "";
-    } else if(filter !== 'all') {
+    } else if (filter === 'all') {
+        $('#quickFilterField').val(''); // clear input value
+    } else {
         url += "/attributeFilter:" + filter
         filter = encodeURIComponent($('#quickFilterField').val().trim());
         url += filter.length > 0 ? "/searchFor:" + filter : "";
@@ -3630,15 +3628,16 @@ function filterAttributes(filter, id) {
     $.ajax({
         type: "get",
         url: url,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function() {
             $(".loading").show();
         },
-        success:function (data) {
+        success: function(data) {
             $("#attributes_div").html(data);
             $(".loading").hide();
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
+            $(".loading").hide();
         }
     });
 }
@@ -3648,7 +3647,7 @@ function findObjectByUuid(uuid) {
     var $tr = null;
     $('#attributeList tr').each(function () {
         var trId = $(this).attr('id');
-        if (trId && (trId.startsWith("Object") || trId.startsWith("Attribute"))) {
+        if (trId && (trId.startsWith("Object") || trId.startsWith("Attribute") || trId.startsWith('proposal'))) {
             var objectUuid = $('.uuid', this).text().trim();
             if (objectUuid === uuid) {
                 $tr = $(this);
@@ -4561,15 +4560,6 @@ $(document).ready(function() {
             return $(this).data('disabled-reason');
         }
     });
-
-    $('#quickFilterField').bind("enterKey",function(e){
-        $('#quickFilterButton').trigger("click");
-    });
-    $('#quickFilterField').keyup(function(e){
-        if (e.keyCode == 13) {
-            $('#quickFilterButton').trigger("click");
-        }
-    });
     $(".queryPopover").click(function() {
         url = $(this).data('url');
         id = $(this).data('id');
@@ -4639,7 +4629,21 @@ $(document).ready(function() {
     $('#setHomePage').click(function(event) {
         event.preventDefault();
         setHomePage();
-    })
+    });
+
+    $('.privacy-toggle').on('click', function() {
+        var $this = $(this);
+        var $privacy_target = $this.parent().find('.privacy-value');
+        if ($this.hasClass('fa-eye')) {
+            $privacy_target.text($privacy_target.data('hidden-value'));
+            $this.removeClass('fa-eye');
+            $this.addClass('fa-eye-slash');
+        } else {
+            $privacy_target.text('****************************************');
+            $this.removeClass('fa-eye-slash');
+            $this.addClass('fa-eye');
+        }
+    });
 });
 
 $("body").on("click", ".correlation-expand-button", function() {
@@ -4671,6 +4675,10 @@ $("body").on("click", ".correlation-expand-button", function() {
     }
     $('#popover_form_large').html($box[0].outerHTML);
     openPopup('#popover_form_large');
+}).on('keyup', '#quickFilterField', function(e) { // submit quick filter form when user press enter in input field
+    if (e.keyCode === 13) { // ENTER key
+        $('#quickFilterButton').trigger("click");
+    }
 });
 
 function queryEventLock(event_id, user_org_id) {
