@@ -1,49 +1,48 @@
-<div style="overflow-y:auto;max-height:75vh">
-    <?php
-        foreach ($results as $enrichment_type => $enrichment_values):
-            echo sprintf('<h5><span class="hover_enrichment_title blue">%s</span>:</h5>', Inflector::humanize(h($enrichment_type)));
-            if (empty($enrichment_values)) {
-                echo '<div style="padding: 2px;"><span class="empty_results_text red">Empty results</span></div>';
-                continue;
+<div style="overflow-y:auto;max-height:75vh;padding: .3em 1em">
+<?php
+foreach ($results as $enrichment_type => $enrichment_values):
+    echo sprintf('<h5><span class="hover_enrichment_title blue">%s</span>:</h5>', Inflector::humanize(h($enrichment_type)));
+    if (empty($enrichment_values)) {
+        echo '<div style="padding: 2px;"><span class="empty_results_text red">Empty results</span></div>';
+        continue;
+    }
+    if (!empty($enrichment_values['Object'])) {
+        foreach ($enrichment_values['Object'] as $object) {
+            echo '<h6><span class="bold blue">' . __('Object: %s', h($object['name'])) . '</span></h6>';
+            echo '<table class="table table-striped table-condensed">';
+            foreach ($object['Attribute'] as $object_attribute) {
+                echo '<tr><th style="width: 15em">' . h($object_attribute['object_relation']) . '</th><td>' . h($object_attribute['value']) . '</td></tr>';
             }
-            if (!empty($enrichment_values['Object'])) {
-                echo '<h6><span class="bold blue">Objects</span></h6>';
-                foreach ($enrichment_values['Object'] as $object) {
-                    echo '<span class="object_name bold blue">' . h($object['name']) . '</span><br />';
-                    foreach ($object['Attribute'] as $object_attribute) {
-                        echo '<div style="padding: 2px;"><pre class="object_attribute">';
-                        echo '<span class="attribute_object_relation bold blue">' . h($object_attribute['object_relation']) . '</span>';
-                        echo ': <span class="attribute_value red">' . h($object_attribute['value']) . '</span></pre></div>';
+            echo '</table>';
+        }
+        unset($enrichment_values['Object']);
+    }
+    if (!empty($enrichment_values['Attribute'])) {
+        echo '<h6><span class="bold blue">Attributes</span></h6>';
+        echo '<table class="table table-striped table-condensed">';
+        foreach ($enrichment_values['Attribute'] as $attribute) {
+            echo '<tr><th style="width: 15em">' . h($attribute['type']). '</th><td>' . h($attribute['value']) . '</td></tr>';
+        }
+        echo '</table>';
+        unset($enrichment_values['Attribute']);
+    }
+    foreach ($enrichment_values as $attributes):
+        foreach ($attributes as $attribute):
+            echo '<div style="padding: 2px;">';
+            if (is_array($attribute)) {
+                foreach ($attribute as $attribute_name => $attribute_value) {
+                    if (!is_numeric($attribute_name)) {
+                        echo '<strong>' . h($attribute_name) . ':</strong>';
                     }
+                    echo ' ' . h($attribute_value);
                 }
-                unset($enrichment_values['Object']);
+            } else {
+                echo h($attribute);
             }
-            if (!empty($enrichment_values['Attribute'])) {
-                echo '<h6><span class="bold blue">Attributes</span><br />';
-                foreach ($enrichment_values['Attribute'] as $attribute) {
-                    echo '<div style="padding: 2px;"><pre class="attribute">';
-                    echo '<span class="attribute_type bold blue">' . h($attribute['type']) . '</span>';
-                    echo ': <span class="attribute_value red">' . h($attribute['value']) . '</span></pre></div>';
-                }
-                unset($enrichment_values['Attribute']);
-            }
-            foreach ($enrichment_values as $attributes):
-                foreach ($attributes as $attribute):
-                    echo '<div style="padding: 2px;">';
-                    if (is_array($attribute)) {
-                        foreach ($attribute as $attribute_name => $attribute_value) {
-                            if (!is_numeric($attribute_name)) {
-                                echo '<span class="hover_enrichment_text blue">' . h($attribute_name) . ':</span>';
-                            }
-                            echo '<span><pre class="hover_enrichment_text red">' . h($attribute_value) . '</pre></span>';
-                        }
-                    } else {
-                        echo '<span><pre class="hover_enrichment_text red ">' . h($attribute) . '</pre></span>';
-                    }
-                    echo '</div>';
-                endforeach;
-            endforeach;
-            echo "<br/>";
+            echo '</div>';
         endforeach;
-    ?>
+    endforeach;
+    echo "<br>";
+endforeach;
+?>
 </div>

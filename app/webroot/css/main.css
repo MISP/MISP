@@ -1045,9 +1045,10 @@ a.proposal_link_red:hover {
 }
 
 .hover_enrichment_text {
-    border:0px;
-    background-color:transparent;
-    display:inline;
+    border: 0;
+    background-color: transparent;
+    display: inline;
+    padding: 0;
 }
 
 .hover_enrichment_title {
