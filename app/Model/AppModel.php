@@ -2566,13 +2566,13 @@ class AppModel extends Model
      */
     protected function setupSyncRequest(array $server)
     {
-        $version = $this->checkMISPVersion();
+        $version = implode('.', $this->checkMISPVersion());
         $request = array(
             'header' => array(
                 'Authorization' => $server['Server']['authkey'],
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-                'MISP-version' => implode('.', $version),
+                'MISP-version' => $version,
             )
         );
 
