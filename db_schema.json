@@ -6693,13 +6693,13 @@
             },
             {
                 "column_name": "warninglist_entry_count",
-                "is_nullable": "YES",
+                "is_nullable": "NO",
                 "data_type": "int",
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11) unsigned",
-                "column_default": null,
+                "column_default": "0",
                 "extra": ""
             }
         ],
@@ -7167,5 +7167,5 @@
             "id": true
         }
     },
-    "db_version": "57"
+    "db_version": "58"
 }
