@@ -4948,25 +4948,27 @@ class EventsController extends AppController
                     $this->request->data['Event']['config']['special_delimiter'] = ' ';
                 }
             }
-            foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
-                if (!$fail) {
-                    if (isset($config['validation'])) {
-                        if ($config['validation'] === '0' && $config['type'] == 'String') {
-                            $validation = true;
-                        }
-                    } else {
-                        $validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
-                    }
-                    if ($validation !== true) {
-                        $fail = ucfirst($configName) . ': ' . $validation;
-                    } else {
-                        if (isset($config['regex']) && !empty($config['regex'])) {
-                            $fail = preg_match($config['regex'], $this->request->data['Event']['config'][$configName]) ? false : ucfirst($configName) . ': ' . 'Invalid setting' . ($config['errorMessage'] ? ' - ' . $config['errorMessage'] : '');
-                            if (!empty($fail)) {
-                                $modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+            if (isset($module['mispattributes']['userConfig'])) {
+                foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
+                    if (!$fail) {
+                        if (isset($config['validation'])) {
+                            if ($config['validation'] === '0' && $config['type'] == 'String') {
+                                $validation = true;
                             }
                         } else {
-                            $modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+                            $validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
+                        }
+                        if ($validation !== true) {
+                            $fail = ucfirst($configName) . ': ' . $validation;
+                        } else {
+                            if (isset($config['regex']) && !empty($config['regex'])) {
+                                $fail = preg_match($config['regex'], $this->request->data['Event']['config'][$configName]) ? false : ucfirst($configName) . ': ' . 'Invalid setting' . ($config['errorMessage'] ? ' - ' . $config['errorMessage'] : '');
+                                if (!empty($fail)) {
+                                    $modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+                                }
+                            } else {
+                                $modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+                            }
                         }
                     }
                 }
