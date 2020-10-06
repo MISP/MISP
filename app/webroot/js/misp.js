@@ -3832,37 +3832,45 @@ $(".cortex-json").click(function() {
 
 });
 
+function showEnrichmentPopover(type, id) {
+    var $popoverBox = $('#popover_box');
+    $popoverBox.empty();
+    var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
+    enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
+    $popoverBox.html('<div class="screenshot_content">' + enrichment_popover + '</div>');
+    $popoverBox.show();
+    $("#gray_out").fadeIn();
+    $popoverBox.css({
+        'padding': '5px',
+        'maxWidth': ($(window).width() * 0.9 | 0) + "px",
+        'maxHeight': ($(window).width() - 300 | 0) + "px", // why width?
+        'overflow-y': 'auto',
+    });
+
+    var left = ($(window).width() / 2) - ($popoverBox.width() / 2);
+    $popoverBox.css({'left': left + 'px'});
+
+    if (currentPopover !== undefined && currentPopover !== '') {
+        $('#' + currentPopover).popover('destroy');
+    }
+}
+
 // add the same as below for click popup
 $(document).on( "click", ".eventViewAttributePopup", function() {
-    $('#popover_box').empty();
-    type = $(this).attr('data-object-type');
-    id = $(this).attr('data-object-id');
+    var type = $(this).attr('data-object-type');
+    var id = $(this).attr('data-object-id');
     if (!(type + "_" + id in ajaxResults["persistent"])) {
         $.ajax({
-            success:function (html) {
+            success: function (html) {
                 ajaxResults["persistent"][type + "_" + id] = html;
+                showEnrichmentPopover(type, id);
             },
-            async: false,
+            error: xhrFailCallback,
             cache: false,
             url: baseurl + "/attributes/hoverEnrichment/" + id + "/1",
         });
-    }
-    if (type + "_" + id in ajaxResults["persistent"]) {
-        var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
-        enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
-        $('#popover_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
-        $('#popover_box').show();
-        $("#gray_out").fadeIn();
-        $('#popover_box').css({'padding': '5px'});
-        $('#popover_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
-        $('#popover_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
-        $('#popover_box').css( "overflow-y", "auto");
-
-        var left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
-        $('#popover_box').css({'left': left + 'px'});
-    }
-    if (currentPopover !== undefined && currentPopover !== '') {
-        $('#' + currentPopover).popover('destroy');
+    } else {
+        showEnrichmentPopover(type, id);
     }
 });
 
@@ -3879,8 +3887,8 @@ function attributeHoverTitle(id, type) {
   return '<span>Lookup results:</span>\
 		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"\
 				style="float: right;"\
-				data-object-id="${id}"\
-				data-object-type="${type}">\
+				data-object-id="' + id + '"\
+				data-object-type="' +  type + '">\
 	</i>';
 }
 
