@@ -135,3 +135,20 @@
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'eventReports', 'menuItem' => 'index'));
     }
 ?>
+
+<script type="text/javascript">
+    var passedArgsArray = <?php echo $passedArgs; ?>;
+    if (passedArgsArray['context'] === undefined) {
+        passedArgsArray['context'] = '';
+    }
+    $(document).ready(function() {
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter('/context:' + passedArgsArray['context']);
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter('/context:' + passedArgsArray['context']);
+            }
+        });
+    });
+</script>
