@@ -1893,13 +1893,25 @@ class Feed extends AppModel
     private function unzipFirstFile(File $zipFile)
     {
         if (!class_exists('ZipArchive')) {
-            throw new Exception('ZIP archive decompressing is not supported. ZIP support is missing in PHP.');
+            throw new Exception('ZIP archive decompressing is not supported. ZIP extension is missing in PHP.');
         }
 
         $zip = new ZipArchive();
         $result = $zip->open($zipFile->pwd());
         if ($result !== true) {
-            throw new Exception("Remote server returns ZIP file, that cannot be open (error $result)");
+            $errorCodes = [
+                ZipArchive::ER_EXISTS => 'file already exists',
+                ZipArchive::ER_INCONS => 'zip archive inconsistent',
+                ZipArchive::ER_INVAL => 'invalid argument',
+                ZipArchive::ER_MEMORY => 'malloc failure',
+                ZipArchive::ER_NOENT => 'no such file',
+                ZipArchive::ER_NOZIP => 'not a zip archive',
+                ZipArchive::ER_OPEN => 'can\'t open file',
+                ZipArchive::ER_READ => 'read error',
+                ZipArchive::ER_SEEK => 'seek error',
+            ];
+            $message = isset($errorCodes[$result]) ? $errorCodes[$result] : 'error ' . $result;
+            throw new Exception("Remote server returns ZIP file, that cannot be open ($message)");
         }
 
         if ($zip->numFiles !== 1) {
@@ -1916,7 +1928,7 @@ class Feed extends AppModel
         $destinationFile = $this->tempFileName();
         $result = copy("zip://{$zipFile->pwd()}#$filename", $destinationFile);
         if ($result === false) {
-            throw new Exception("Remote server returns ZIP file, that contains '$filename' file, that cannot be extracted.");
+            throw new Exception("Remote server returns ZIP file, that contains '$filename' file, but this file cannot be extracted.");
         }
 
         $unzipped = new File($destinationFile);
