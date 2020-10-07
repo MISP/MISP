@@ -2414,9 +2414,9 @@ class AttributesController extends AppController
             $options = array();
             $found = false;
             foreach ($modules['modules'] as $temp) {
-                if ($temp['name'] == $type) {
+                if ($temp['name'] === $type) {
                     $found = true;
-                    $format = (isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
+                    $format = isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
@@ -2456,7 +2456,7 @@ class AttributesController extends AppController
             if (isset($result['results']['Object'])) {
                 if (!empty($result['results']['Object'])) {
                     $objects = array();
-                    foreach($result['results']['Object'] as $object) {
+                    foreach ($result['results']['Object'] as $object) {
                         if (isset($object['Attribute']) && !empty($object['Attribute'])) {
                             $object_attributes = array();
                             foreach($object['Attribute'] as $object_attribute) {
@@ -2469,9 +2469,7 @@ class AttributesController extends AppController
                             $objects[] = array('name' => $object['name'], 'Attribute' => $object_attributes);
                         }
                     }
-                    if (!empty($objects)) {
-                        $current_result['Object'] = $objects;
-                    }
+                    $current_result['Object'] = $objects;
                 }
                 unset($result['results']['Object']);
             }
