@@ -2503,6 +2503,7 @@ class AttributesController extends AppController
                 }
             }
         }
+        $this->set('persistent', $persistent);
         $this->set('results', $resultArray);
         $this->layout = 'ajax';
         $this->render('ajax/hover_enrichment');

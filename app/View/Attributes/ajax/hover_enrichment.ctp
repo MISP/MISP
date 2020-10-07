@@ -1,4 +1,4 @@
-<div style="overflow-y:auto;max-height:75vh;padding: .3em 1em">
+<div style="overflow-y:auto;<?= $persistent ? 'max-height:98%;padding: .3em 1em' : 'max-height:75vh' ?>">
 <?php
 foreach ($results as $enrichment_type => $enrichment_values):
     echo sprintf('<h5><span class="hover_enrichment_title blue">%s</span>:</h5>', Inflector::humanize(h($enrichment_type)));
