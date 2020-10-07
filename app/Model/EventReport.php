@@ -408,7 +408,7 @@ class EventReport extends AppModel
     }
 
     /**
-     * getProxyMISPElements Extract MISP Elements from an event and make them accessible by their ID
+     * getProxyMISPElements Extract MISP Elements from an event and make them accessible by their UUID
      *
      * @param  array $user
      * @param  int|string $eventid

@@ -64,13 +64,21 @@ class EventReportsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($report, $this->response->type());
         }
-        $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
         $this->set('ajax', $ajax);
-        $this->set('proxyMISPElements', $proxyMISPElements);
         $this->set('id', $reportId);
         $this->set('report', $report);
         $this->injectDistributionLevelToViewContext();
         $this->injectPermissionsToViewContext($this->Auth->user(), $report);
+    }
+
+    public function getProxyMISPElements($reportId)
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This function can only be reached via the API.'));
+        }
+        $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
+        $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
+        return $this->RestResponse->viewData($proxyMISPElements, $this->response->type());
     }
 
     public function viewSummary($reportId)

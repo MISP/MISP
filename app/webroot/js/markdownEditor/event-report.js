@@ -1,11 +1,11 @@
 'use strict';
 
 // Function called to setup custom MarkdownIt rendering and parsing rules
-var markdownItCustomRules = markdownItSetupRules
+var markdownItCustomPostInit = markdownItCustomPostInit
 // Hint option passed to the CodeMirror constructor
 var cmCustomHints = hintMISPElements
 // Setup function called after the CodeMirror initialization
-var cmCustomSetup = buildMISPElementHints
+var cmCustomSetup = null
 // Hook allowing to alter the raw text before returning the GFM version to the user to be downloaded
 var markdownGFMSubstitution = replaceMISPElementByTheirValue
 // Post rendering hook called after the markdown is displayed, allowing to register listener
@@ -42,7 +42,6 @@ var renderingRules = {
 }
 var galaxyMatrixTimer, tagTimers = {};
 var cache_matrix = {}, cache_tag = {};
-proxyMISPElements['tag'] = []
 
 /**
    _____          _      __  __ _                     
@@ -307,6 +306,11 @@ function renderHintElement(scope, element) {
  | |  | | (_| | |  |   < (_| | (_) \ V  V /| | | |_| |_| |_ 
  |_|  |_|\__,_|_|  |_|\_\__,_|\___/ \_/\_/ |_| |_|_____|\__|
  */
+function markdownItCustomPostInit() {
+    markdownItSetupRules()
+    fetchProxyMISPElements()
+}
+
 function markdownItSetupRules() {
     md.renderer.rules.MISPElement = MISPElementRenderer;
     md.renderer.rules.MISPPictureElement = MISPPictureElementRenderer;
@@ -773,6 +777,34 @@ function markdownItToggleCustomRule(rulename, event) {
  | |__| | |_| | \__ \
   \____/ \__|_|_|___/
 */
+function fetchProxyMISPElements() {
+    var url = baseurl + '/eventReports/getProxyMISPElements/' + reportid
+    var errorMessage = 'Could not fetch MISP Elements'
+    $.ajax({
+        dataType: "json",
+        url: url,
+        data: {},
+        beforeSend: function() {
+            toggleMarkdownEditorLoading(true, 'Loading MISP Elements')
+        },
+        success: function(data) {
+            if (data) {
+                proxyMISPElements = data
+                proxyMISPElements['tag'] = []
+                buildMISPElementHints()
+            } else {
+                showMessage('fail', errorMessage);
+            }
+        },
+        error: function (data, textStatus, errorThrown) {
+            showMessage('fail', errorMessage + '. ' + textStatus + ": " + errorThrown);
+        },
+        complete: function() {
+            toggleMarkdownEditorLoading(false)
+        }
+    })
+}
+
 function getElementFromDom(node) {
     var scope = $(node).data('scope')
     var elementID = $(node).data('elementid')

@@ -1,6 +1,6 @@
 <script>
     'use strict';
-    var proxyMISPElements = <?= json_encode(is_array($proxyMISPElements) ? $proxyMISPElements : array($proxyMISPElements), JSON_HEX_TAG); ?>;
+    var proxyMISPElements = null
     var eventid = '<?= !isset($eventid) ? '' : h($eventid) ?>'
     var reportid = '<?= h($reportid) ?>'
     var invalidMessage = '<?= __('invalid scope or id') ?>'

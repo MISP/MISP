@@ -122,8 +122,8 @@ function initMarkdownIt() {
     };
     md.renderer.rules.paragraph_open = injectLineNumbers;
     md.renderer.rules.heading_open = injectLineNumbers;
-    if (typeof markdownItCustomRules === 'function') {
-        markdownItCustomRules()
+    if (typeof markdownItCustomPostInit === 'function') {
+        markdownItCustomPostInit()
     }
 }
 
