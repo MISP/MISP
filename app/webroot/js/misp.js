@@ -3865,13 +3865,19 @@ function showEnrichmentPopover(type, id) {
 $(document).on("click", ".eventViewAttributePopup", function() {
     var type = $(this).attr('data-object-type');
     var id = $(this).attr('data-object-id');
-    if (!(type + "_" + id in ajaxResults["persistent"])) {
+    if (!(type + "_" + id in ajaxResults["persistent"])) { // not in cache
         $.ajax({
+            beforeSend: function() {
+                $(".loading").show();
+            },
             success: function (html) {
-                ajaxResults["persistent"][type + "_" + id] = html;
+                ajaxResults["persistent"][type + "_" + id] = html; // save to cache
                 showEnrichmentPopover(type, id);
             },
             error: xhrFailCallback,
+            complete: function() {
+                $(".loading").hide();
+            },
             cache: false,
             url: baseurl + "/attributes/hoverEnrichment/" + id + "/1",
         });
