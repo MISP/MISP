@@ -3,7 +3,7 @@
 var debounceDelay = 150, slowDebounceDelay = 3000;
 var renderTimer, scrollTimer, attackMatrixTimer, eventgraphTimer;
 var scrollMap;
-var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField, $markdownDropdownRulesMenu, $markdownDropdownGeneralMenu, $toggleFullScreenMode
+var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $fullContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField, $markdownDropdownRulesMenu, $markdownDropdownGeneralMenu, $toggleFullScreenMode, $loadingBackdrop
 var $editor, $viewer, $raw
 var $saveMarkdownButton, $mardownViewerToolbar
 var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
@@ -18,11 +18,13 @@ $(document).ready(function() {
     $editorContainer = $('#editor-container')
     $viewerContainer = $('#viewer-container')
     $rawContainer = $('div.raw-container')
+    $fullContainer = $('.markdownEditor-full-container')
     $resizableHandle = $('#resizable-handle')
     $editor = $('#editor')
     $viewer = $('#viewer')
     $raw = $('#raw')
     $mardownViewerToolbar = $('#mardown-viewer-toolbar')
+    $loadingBackdrop = $('#loadingBackdrop')
     $saveMarkdownButton = $('#saveMarkdownButton')
     $autocompletionCB = $('#autocompletionCB')
     $syncScrollCB = $('#syncScrollCB')
@@ -231,13 +233,34 @@ function toggleLoadingInSaveButton(saving) {
     toggleSaveButton(!saving)
     if (saving) {
         $saveMarkdownButton.append(loadingSpanAnimation);
+        toggleMarkdownEditorLoading(true, 'Saving report')
     } else {
         $saveMarkdownButton.find('#loadingSpan').remove();
+        toggleMarkdownEditorLoading(false)
+    }
+}
+
+function toggleMarkdownEditorLoading(loading, message) {
+    if (loading) {
+        $loadingBackdrop.show()
+        $loadingBackdrop.append(
+            $('<div/>').css({
+                'font-size': '20px',
+                'color': 'white'
+            }).append(
+                $(loadingSpanAnimation).css({
+                    'margin-right': '0.5em'
+                }),
+                $('<span/>').text(message)
+            )
+        )
+    } else {
+        $loadingBackdrop.empty().hide()
     }
 }
 
 function toggleFullscreenMode() {
-    var wholeContainer = $('.markdownEditor-full-container')[0]
+    var wholeContainer = $fullContainer[0]
     if (!document.fullscreenElement) {
         wholeContainer.requestFullscreen();
     } else {

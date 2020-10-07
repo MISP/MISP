@@ -165,6 +165,7 @@
         <div id="viewer"></div>
     </div>
 </div>
+<div id="loadingBackdrop" class="modal-backdrop" style="display: none"></div>
 
 <script>
     'use strict';
