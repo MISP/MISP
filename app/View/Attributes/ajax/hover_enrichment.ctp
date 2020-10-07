@@ -1,5 +1,13 @@
 <div style="overflow-y:auto;<?= $persistent ? 'max-height:98%;padding: .3em 1em' : 'max-height:75vh' ?>">
 <?php
+$formatValue = function (array $attribute) {
+    switch ($attribute['type']) {
+        case 'link':
+            return '<a href="' . h($attribute['value']) . '" rel="noreferrer" target="_blank">' . h($attribute['value']) . '</a>';
+        default:
+            return h($attribute['value']);
+    }
+};
 foreach ($results as $enrichment_type => $enrichment_values):
     echo sprintf('<h5><span class="hover_enrichment_title blue">%s</span>:</h5>', Inflector::humanize(h($enrichment_type)));
     if (empty($enrichment_values)) {
@@ -11,7 +19,7 @@ foreach ($results as $enrichment_type => $enrichment_values):
             echo '<h6><span class="bold blue">' . __('Object: %s', h($object['name'])) . '</span></h6>';
             echo '<table class="table table-striped table-condensed">';
             foreach ($object['Attribute'] as $object_attribute) {
-                echo '<tr><th style="width: 15em">' . h($object_attribute['object_relation']) . '</th><td>' . h($object_attribute['value']) . '</td></tr>';
+                echo '<tr><th style="width: 15em">' . h($object_attribute['object_relation']) . '</th><td>' . $formatValue($object_attribute) . '</td></tr>';
             }
             echo '</table>';
         }
@@ -21,7 +29,7 @@ foreach ($results as $enrichment_type => $enrichment_values):
         echo '<h6><span class="bold blue">Attributes</span></h6>';
         echo '<table class="table table-striped table-condensed">';
         foreach ($enrichment_values['Attribute'] as $attribute) {
-            echo '<tr><th style="width: 15em">' . h($attribute['type']). '</th><td>' . h($attribute['value']) . '</td></tr>';
+            echo '<tr><th style="width: 15em">' . h($attribute['type']). '</th><td>' . $formatValue($attribute) . '</td></tr>';
         }
         echo '</table>';
         unset($enrichment_values['Attribute']);

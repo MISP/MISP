@@ -2462,9 +2462,13 @@ class AttributesController extends AppController
                         if (isset($object['Attribute']) && !empty($object['Attribute'])) {
                             $object_attributes = array();
                             foreach($object['Attribute'] as $object_attribute) {
-                                array_push($object_attributes, array('object_relation' => $object_attribute['object_relation'], 'value' => $object_attribute['value']));
+                                $object_attributes[] = [
+                                    'object_relation' => $object_attribute['object_relation'],
+                                    'value' => $object_attribute['value'],
+                                    'type' => $object_attribute['type'],
+                                ];
                             }
-                            array_push($objects, array('name' => $object['name'], 'Attribute' => $object_attributes));
+                            $objects[] = array('name' => $object['name'], 'Attribute' => $object_attributes);
                         }
                     }
                     if (!empty($objects)) {
