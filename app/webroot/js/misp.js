@@ -3837,14 +3837,20 @@ function showEnrichmentPopover(type, id) {
     $popoverBox.empty();
     var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
     enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
-    $popoverBox.html('<div class="screenshot_content">' + enrichment_popover + '</div>');
+    $popoverBox.html(enrichment_popover);
     $popoverBox.show();
     $("#gray_out").fadeIn();
+
+    let maxWidth = ($(window).width() * 0.9 | 0);
+    if (maxWidth > 1400) { // limit popover width to 1400 px
+        maxWidth = 1400;
+    }
     $popoverBox.css({
         'padding': '5px',
-        'maxWidth': ($(window).width() * 0.9 | 0) + "px",
-        'maxHeight': ($(window).width() - 300 | 0) + "px", // why width?
+        'max-width': maxWidth + "px",
+        'max-height': ($(window).height() - 300 | 0) + "px", // why width?
         'overflow-y': 'auto',
+        'background-color': 'white',
     });
 
     var left = ($(window).width() / 2) - ($popoverBox.width() / 2);
@@ -3856,7 +3862,7 @@ function showEnrichmentPopover(type, id) {
 }
 
 // add the same as below for click popup
-$(document).on( "click", ".eventViewAttributePopup", function() {
+$(document).on("click", ".eventViewAttributePopup", function() {
     var type = $(this).attr('data-object-type');
     var id = $(this).attr('data-object-id');
     if (!(type + "_" + id in ajaxResults["persistent"])) {
