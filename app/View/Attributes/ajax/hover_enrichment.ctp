@@ -11,7 +11,7 @@ $formatValue = function (array $attribute) {
 foreach ($results as $enrichment_type => $enrichment_values):
     echo sprintf('<h5><span class="hover_enrichment_title blue">%s</span>:</h5>', Inflector::humanize(h($enrichment_type)));
     if (empty($enrichment_values)) {
-        echo '<div style="padding: 2px;"><span class="empty_results_text red">Empty results</span></div>';
+        echo '<div style="padding: 2px;" class="red">' . __('Empty results') . '</div>';
         continue;
     }
     if (!empty($enrichment_values['Object'])) {

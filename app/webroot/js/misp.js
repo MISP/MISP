@@ -3848,8 +3848,8 @@ function showEnrichmentPopover(type, id) {
     $popoverBox.css({
         'padding': '5px',
         'max-width': maxWidth + "px",
+        'min-width': '700px',
         'height': ($(window).height() - 300 | 0) + "px",
-   //     'overflow-y': 'auto',
         'background-color': 'white',
     });
 
