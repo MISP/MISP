@@ -197,7 +197,7 @@ class EventReportsController extends AppController
         $aclConditions = $this->EventReport->buildACLConditions($this->Auth->user());
         $eventConditions = [];
         if (!empty($filters['event_id'])) {
-            $extendingEvents = [];
+            $extendingEventIds = [];
             if (!empty($filters['extended_event'])) {
                 $extendingEventIds = $this->EventReport->Event->getExtendingEventIdsFromEvent($this->Auth->user(), $filters['event_id']);
             }
