@@ -1,4 +1,7 @@
 <div id="eventReportQuickIndex">
+    <?php if ($extendedEvent): ?>
+        <div class="alert alert-info"><?= __('Viewing reports in extended event view') ?></div>
+    <?php endif; ?>
     <div style="margin-bottom: 10px;">
         <button class="btn btn-small btn-primary" onclick="openGenericModal(baseurl + '/eventReports/add/<?= h($event_id) ?>')">
             <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add Event Report') ?>
@@ -49,6 +52,15 @@
                         'name' => __('Name'),
                         'class' => 'useCursorPointer',
                         'data_path' => 'EventReport.name',
+                    ),
+                    array(
+                        'name' => __('Event ID'),
+                        'requirement' => $extendedEvent,
+                        'data_path' => 'EventReport.event_id',
+                        'class' => 'short',
+                        'element' => 'links',
+                        'data_path' => 'EventReport.event_id',
+                        'url' => $baseurl . '/events/view/%s'
                     ),
                     array(
                         'name' => __('Last update'),

@@ -421,15 +421,27 @@ class EventReport extends AppModel
             throw new NotFoundException(__('Invalid Event'));
         }
         $event = $event[0];
-        $attributes = Hash::combine($event, 'Attribute.{n}.uuid', 'Attribute.{n}');
+        $parentEventId = $this->Event->fetchSimpleEventIds($user, ['conditions' => [
+            'uuid' => $event['Event']['extends_uuid']
+        ]]);
+        if (!empty($parentEventId)) {
+            $parentEvent = $this->Event->fetchEvent($user, ['eventid' => $parentEventId, 'extended' => true]);
+            if (!empty($parentEvent)) {
+                $parentEvent = $parentEvent[0];
+            } else {
+                $parentEvent = $event;
+            }
+        }
+        $attributes = Hash::combine($parentEvent, 'Attribute.{n}.uuid', 'Attribute.{n}');
         $this->AttributeTag = ClassRegistry::init('AttributeTag');
         $allTagNames = Hash::combine($event['EventTag'], '{n}.Tag.name', '{n}.Tag');
-        $attributeTags = Hash::combine($this->AttributeTag->getAttributesTags($event['Attribute'], true), '{n}.name', '{n}');
-        $allTagNames = array_merge($allTagNames, $attributeTags);
+        $attributeTags = Hash::combine($this->AttributeTag->getAttributesTags($parentEvent['Attribute'], true), '{n}.name', '{n}');
+        $parentEventTags = Hash::combine($parentEvent['EventTag'], '{n}.Tag.name', '{n}.Tag');
+        $allTagNames = array_merge($allTagNames, $attributeTags, $parentEventTags);
         $objects = [];
         $templateConditions = [];
         $recordedConditions = [];
-        foreach ($event['Object'] as $k => $object) {
+        foreach ($parentEvent['Object'] as $k => $object) {
             $objects[$object['uuid']] = $object;
             $objectAttributes = [];
             foreach ($object['Attribute'] as $i => $objectAttribute) {
@@ -448,6 +460,7 @@ class EventReport extends AppModel
                 $recordedConditions[$uniqueCondition] = true;
             }
         }
+        $templateConditions = empty($templateConditions) ? ['ObjectTemplate.id' => 0] : $templateConditions;
         $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
         $templates = $this->ObjectTemplate->find('all', array(
             'conditions' => $templateConditions,

@@ -7369,4 +7369,16 @@ class Event extends AppModel
         // default value if no match found
         return Configure::read('MISP.email_subject_TLP_string') ?: "tlp:amber";
     }
+
+    public function getExtendingEventIdsFromEvent($user, $eventID)
+    {
+        $event = $this->fetchSimpleEvent($user, $eventID);
+        if (!empty($event)) {
+            $extendingEventIds = $this->fetchSimpleEventIds($user, ['conditions' => [
+                'extends_uuid' => $event['Event']['uuid']
+            ]]);
+            return $extendingEventIds;
+        }
+        return [];
+    }
 }

@@ -170,7 +170,7 @@ class EventReportsController extends AppController
 
     public function index()
     {
-        $filters = $this->IndexFilter->harvestParameters(['event_id', 'value', 'context', 'index_for_event']);
+        $filters = $this->IndexFilter->harvestParameters(['event_id', 'value', 'context', 'index_for_event', 'extended_event']);
         $filters['embedded_view']  = $this->request->is('ajax');
         $compiledConditions = $this->generateIndexConditions($filters);
         if ($this->_isRest()) {
@@ -186,6 +186,7 @@ class EventReportsController extends AppController
             $this->set('reports', $reports);
             $this->injectIndexVariablesToViewContext($filters);
             if (!empty($filters['index_for_event'])) {
+                $this->set('extendedEvent', !empty($filters['extended_event']));
                 $this->render('ajax/indexForEvent');
             }
         }
@@ -194,7 +195,15 @@ class EventReportsController extends AppController
     private function generateIndexConditions($filters = [])
     {
         $aclConditions = $this->EventReport->buildACLConditions($this->Auth->user());
-        $eventConditions = !empty($filters['event_id']) ? ['EventReport.event_id' => $filters['event_id']] : [];
+        $eventConditions = [];
+        if (!empty($filters['event_id'])) {
+            $extendingEvents = [];
+            if (!empty($filters['extended_event'])) {
+                $extendingEventIds = $this->EventReport->Event->getExtendingEventIdsFromEvent($this->Auth->user(), $filters['event_id']);
+            }
+            $eventConditions = ['EventReport.event_id' => array_merge([$filters['event_id']], $extendingEventIds)];
+        }
+
         $contextConditions = [];
         if (empty($filters['context'])) {
             $filters['context'] = 'default';
