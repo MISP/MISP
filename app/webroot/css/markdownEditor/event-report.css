@@ -21,6 +21,10 @@ span.misp-element-wrapper {
     cursor: help;
 }
 
+.misp-element-wrapper.invalid {
+    cursor: not-allowed;
+}
+
 .misp-element-wrapper.invalid > span {
     margin: 0 3px;
 }
