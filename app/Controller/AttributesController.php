@@ -2403,15 +2403,12 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             throw new NotFoundException(__('Invalid Attribute'));
         }
-        $this->loadModel('Server');
         $this->loadModel('Module');
         $modules = $this->Module->getEnabledModules($this->Auth->user());
         $validTypes = array();
         if (isset($modules['hover_type'][$attribute[0]['Attribute']['type']])) {
             $validTypes = $modules['hover_type'][$attribute[0]['Attribute']['type']];
         }
-        $url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
-        $port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
         $resultArray = array();
         foreach ($validTypes as $type) {
             $options = array();
@@ -2447,11 +2444,12 @@ class AttributesController extends AppController
             $result = $this->Module->queryModuleServer('/query', $data, true);
             if ($result) {
                 if (!is_array($result)) {
-                    $resultArray[$type][] = array($type => $result);
+                    $resultArray[$type] = ['error' => $result];
+                    continue;
                 }
             } else {
                 // TODO: i18n?
-                $resultArray[$type][] = array($type => 'Enrichment service not reachable.');
+                $resultArray[$type] = ['error' => 'Enrichment service not reachable.'];
                 continue;
             }
             $current_result = array();
