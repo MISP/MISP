@@ -615,6 +615,14 @@ class Event extends AppModel
         }
     }
 
+    public function beforeSave($options = array())
+    {
+        if (!empty($this->data['Event']['published'])) {
+            $this->data['Event']['publish_timestamp'] = time();
+        }
+        return true;
+    }
+
     public function afterSave($created, $options = array())
     {
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
@@ -3800,6 +3808,9 @@ class Event extends AppModel
             ),
             'ObjectRelation' => array()
         );
+        if (!empty($data['Event']['published'])) {
+            $fieldList['Event'][] = 'publish_timestamp';
+        }
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
         if ($saveResult) {
             if ($passAlong) {
@@ -4044,6 +4055,9 @@ class Event extends AppModel
             'disable_correlation',
             'extends_uuid'
         );
+        if (!empty($data['Event']['published'])) {
+            $fieldList[] = 'publish_timestamp';
+        }
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
         $this->Log = ClassRegistry::init('Log');
         if ($saveResult) {
