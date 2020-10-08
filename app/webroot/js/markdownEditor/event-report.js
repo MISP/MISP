@@ -308,7 +308,9 @@ function renderHintElement(scope, element) {
  */
 function markdownItCustomPostInit() {
     markdownItSetupRules()
-    fetchProxyMISPElements()
+    fetchProxyMISPElements(function() {
+        doRender()
+    })
 }
 
 function markdownItSetupRules() {
@@ -433,68 +435,72 @@ function MISPPictureElementRenderer(tokens, idx, options, env, slf) {
 
 function renderMISPElement(scope, elementID) {
     var templateVariables
-    if (scope == 'attribute') {
-        var attribute = proxyMISPElements[scope][elementID]
-        if (attribute !== undefined) {
-            var templateToRender = dotTemplateAttribute
-            var attributeData = {
-                scope: 'attribute',
-                elementid: elementID,
-                type: attribute.type,
-                value: attribute.value
-            }
-            if (isValidObjectAttribute(attribute)) {
-                var mispObject = getObjectFromAttribute(attribute)
-                if (mispObject !== undefined) {
-                    attributeData.type = attribute.object_relation
-                    attributeData.objectname = mispObject.name
-                    templateToRender = dotTemplateObjectAttribute
+    if (proxyMISPElements !== null) {
+        if (scope == 'attribute') {
+            var attribute = proxyMISPElements[scope][elementID]
+            if (attribute !== undefined) {
+                var templateToRender = dotTemplateAttribute
+                var attributeData = {
+                    scope: 'attribute',
+                    elementid: elementID,
+                    type: attribute.type,
+                    value: attribute.value
                 }
+                if (isValidObjectAttribute(attribute)) {
+                    var mispObject = getObjectFromAttribute(attribute)
+                    if (mispObject !== undefined) {
+                        attributeData.type = attribute.object_relation
+                        attributeData.objectname = mispObject.name
+                        templateToRender = dotTemplateObjectAttribute
+                    }
+                }
+                templateVariables = sanitizeObject(attributeData)
+                return renderTemplateBasedOnRenderingOptions(scope, templateToRender, templateVariables);
             }
-            templateVariables = sanitizeObject(attributeData)
-            return renderTemplateBasedOnRenderingOptions(scope, templateToRender, templateVariables);
-        }
-    } else if (scope == 'object') {
-        var mispObject = proxyMISPElements[scope][elementID]
-        if (mispObject !== undefined) {
-            var associatedTemplate = mispObject.template_uuid + '.' + mispObject.template_version
-            var objectTemplate = proxyMISPElements['objectTemplates'][associatedTemplate]
-            var topPriorityValue = mispObject.Attribute.length
-            if (objectTemplate !== undefined) {
-                var temp = getPriorityValue(mispObject, objectTemplate)
-                topPriorityValue = temp !== false ? temp : topPriorityValue
+        } else if (scope == 'object') {
+            var mispObject = proxyMISPElements[scope][elementID]
+            if (mispObject !== undefined) {
+                var associatedTemplate = mispObject.template_uuid + '.' + mispObject.template_version
+                var objectTemplate = proxyMISPElements['objectTemplates'][associatedTemplate]
+                var topPriorityValue = mispObject.Attribute.length
+                if (objectTemplate !== undefined) {
+                    var temp = getPriorityValue(mispObject, objectTemplate)
+                    topPriorityValue = temp !== false ? temp : topPriorityValue
+                }
+                templateVariables = sanitizeObject({
+                    scope: 'object',
+                    elementid: elementID,
+                    type: mispObject.name,
+                    value: topPriorityValue
+                })
+                return renderTemplateBasedOnRenderingOptions(scope, dotTemplateObject, templateVariables);
             }
-            templateVariables = sanitizeObject({
-                scope: 'object',
-                elementid: elementID,
-                type: mispObject.name,
-                value: topPriorityValue
-            })
-            return renderTemplateBasedOnRenderingOptions(scope, dotTemplateObject, templateVariables);
+        } else if (scope == 'tag') {
+            templateVariables = sanitizeObject({scope: 'tag', elementid: elementID, eventid: eventid, value: elementID})
+            return renderTemplateBasedOnRenderingOptions(scope, dotTemplateTag, templateVariables);
+        } else if (scope == 'galaxymatrix') {
+            templateVariables = sanitizeObject({scope: 'galaxymatrix', elementid: elementID, eventid: eventid, value: elementID})
+            return renderTemplateBasedOnRenderingOptions(scope, dotTemplateGalaxyMatrix, templateVariables);
         }
-    } else if (scope == 'tag') {
-        templateVariables = sanitizeObject({scope: 'tag', elementid: elementID, eventid: eventid, value: elementID})
-        return renderTemplateBasedOnRenderingOptions(scope, dotTemplateTag, templateVariables);
-    } else if (scope == 'galaxymatrix') {
-        templateVariables = sanitizeObject({scope: 'galaxymatrix', elementid: elementID, eventid: eventid, value: elementID})
-        return renderTemplateBasedOnRenderingOptions(scope, dotTemplateGalaxyMatrix, templateVariables);
     }
     return renderInvalidMISPElement(scope, elementID)
 }
 
 function renderMISPPictureElement(scope, elementID) {
-    var attribute = proxyMISPElements[scope][elementID]
-    if (attribute !== undefined) {
-        var templateVariables = sanitizeObject({
-            scope: 'attribute',
-            elementid: elementID,
-            type: attribute.type,
-            value: attribute.value,
-            alt: scope + ' ' + elementID,
-            src: baseurl + '/attributes/viewPicture/' + attribute.id,
-            title: attribute.type + ' ' + attribute.value,
-        })
-        return renderTemplateBasedOnRenderingOptions('attribute-picture', dotTemplateAttributePicture, templateVariables);
+    if (proxyMISPElements !== null) {
+        var attribute = proxyMISPElements[scope][elementID]
+        if (attribute !== undefined) {
+            var templateVariables = sanitizeObject({
+                scope: 'attribute',
+                elementid: elementID,
+                type: attribute.type,
+                value: attribute.value,
+                alt: scope + ' ' + elementID,
+                src: baseurl + '/attributes/viewPicture/' + attribute.id,
+                title: attribute.type + ' ' + attribute.value,
+            })
+            return renderTemplateBasedOnRenderingOptions('attribute-picture', dotTemplateAttributePicture, templateVariables);
+        }
     }
     return renderInvalidMISPElement(scope, elementID)
 }
@@ -777,7 +783,7 @@ function markdownItToggleCustomRule(rulename, event) {
  | |__| | |_| | \__ \
   \____/ \__|_|_|___/
 */
-function fetchProxyMISPElements() {
+function fetchProxyMISPElements(callback) {
     var url = baseurl + '/eventReports/getProxyMISPElements/' + reportid
     var errorMessage = 'Could not fetch MISP Elements'
     $.ajax({
@@ -801,6 +807,7 @@ function fetchProxyMISPElements() {
         },
         complete: function() {
             toggleMarkdownEditorLoading(false)
+            callback()
         }
     })
 }
