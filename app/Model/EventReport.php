@@ -424,24 +424,24 @@ class EventReport extends AppModel
         $parentEventId = $this->Event->fetchSimpleEventIds($user, ['conditions' => [
             'uuid' => $event['Event']['extends_uuid']
         ]]);
+        $completeEvent = $event;
         if (!empty($parentEventId)) {
             $parentEvent = $this->Event->fetchEvent($user, ['eventid' => $parentEventId, 'extended' => true]);
             if (!empty($parentEvent)) {
                 $parentEvent = $parentEvent[0];
-            } else {
-                $parentEvent = $event;
+                $completeEvent = $parentEvent;
             }
         }
-        $attributes = Hash::combine($parentEvent, 'Attribute.{n}.uuid', 'Attribute.{n}');
+        $attributes = Hash::combine($completeEvent, 'Attribute.{n}.uuid', 'Attribute.{n}');
         $this->AttributeTag = ClassRegistry::init('AttributeTag');
         $allTagNames = Hash::combine($event['EventTag'], '{n}.Tag.name', '{n}.Tag');
-        $attributeTags = Hash::combine($this->AttributeTag->getAttributesTags($parentEvent['Attribute'], true), '{n}.name', '{n}');
-        $parentEventTags = Hash::combine($parentEvent['EventTag'], '{n}.Tag.name', '{n}.Tag');
+        $attributeTags = Hash::combine($this->AttributeTag->getAttributesTags($completeEvent['Attribute'], true), '{n}.name', '{n}');
+        $parentEventTags = !empty($parentEvent) ? Hash::combine($parentEvent['EventTag'], '{n}.Tag.name', '{n}.Tag') : [];
         $allTagNames = array_merge($allTagNames, $attributeTags, $parentEventTags);
         $objects = [];
         $templateConditions = [];
         $recordedConditions = [];
-        foreach ($parentEvent['Object'] as $k => $object) {
+        foreach ($completeEvent['Object'] as $k => $object) {
             $objects[$object['uuid']] = $object;
             $objectAttributes = [];
             foreach ($object['Attribute'] as $i => $objectAttribute) {
