@@ -53,8 +53,10 @@ $(document).ready(function() {
             maxWidth: window.innerWidth -220 - 300,
             start: function( event, ui ) {
                 ui.helper.detach().appendTo('.markdownEditor-full-container')
+                $fullContainer.css('position', 'inherit') // Need as resizable helper is position absolute
             },
             stop: function() {
+                $fullContainer.css('position', 'relative')
                 cm.refresh()
                 scrollMap = null;
             },
@@ -262,12 +264,26 @@ function toggleMarkdownEditorLoading(loading, message) {
 function toggleFullscreenMode() {
     var wholeContainer = $fullContainer[0]
     if (!document.fullscreenElement) {
+        beforeFullscreen()
         wholeContainer.requestFullscreen();
     } else {
         if (document.exitFullscreen) {
+            afterFullscreen()
             document.exitFullscreen(); 
         }
     }
+}
+
+function beforeFullscreen() {
+    $editorContainer.css({ // reset dimension if resizeable helper was used
+        height: 'inherit',
+        width: 'inherit'
+    })
+    $editorContainer.resizable( "option", { maxWidth: window.innerWidth - 300 } );
+}
+
+function afterFullscreen() {
+    $editorContainer.resizable( "option", { maxWidth: window.innerWidth -220 - 300 } );
 }
 
 function checkIfFullScreenEnabled() {
