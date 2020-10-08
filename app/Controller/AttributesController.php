@@ -1623,6 +1623,7 @@ class AttributesController extends AppController
         $this->Feed = ClassRegistry::init('Feed');
 
         $this->loadModel('Sighting');
+        $this->loadModel('AttachmentScan');
         $user = $this->Auth->user();
         foreach ($attributes as $k => $attribute) {
             $attributeId = $attribute['Attribute']['id'];
@@ -1634,6 +1635,10 @@ class AttributesController extends AppController
                     $attribute['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
                 }
                 $attributes[$k] = $attribute;
+            }
+            if ($attribute['Attribute']['type'] === 'attachment' && $this->AttachmentScan->isEnabled()) {
+                $infected = $this->AttachmentScan->isInfected(AttachmentScan::TYPE_ATTRIBUTE, $attribute['Attribute']['id']);
+                $attributes[$k]['Attribute']['infected'] = $infected;
             }
 
             if ($attribute['Attribute']['distribution'] == 4) {
