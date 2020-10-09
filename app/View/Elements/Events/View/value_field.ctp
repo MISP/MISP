@@ -54,17 +54,17 @@ switch ($object['type']) {
 
     case 'vulnerability':
         $cveUrl = Configure::read('MISP.cveurl') ?: 'https://cve.circl.lu/cve/';
-        echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank', 'class' => $linkClass));
+        echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, ['target' => '_blank', 'class' => $linkClass, 'rel' => 'noreferrer noopener']);
         break;
 
     case 'weakness':
         $cweUrl = Configure::read('MISP.cweurl') ?: 'https://cve.circl.lu/cwe/';
         $link = $cweUrl . explode("-", $sigDisplay)[1];
-        echo $this->Html->link($sigDisplay, $link, array('target' => '_blank', 'class' => $linkClass));
+        echo $this->Html->link($sigDisplay, $link, ['target' => '_blank', 'class' => $linkClass, 'rel' => 'noreferrer noopener']);
         break;
 
     case 'link':
-        echo $this->Html->link($sigDisplay, $sigDisplay, array('class' => $linkClass));
+        echo $this->Html->link($sigDisplay, $sigDisplay, ['class' => $linkClass, 'rel' => 'noreferrer noopener']);
         break;
 
     case 'cortex':
