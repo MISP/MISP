@@ -255,6 +255,9 @@ function renderHintElement(scope, element) {
     var $node;
     if (scope == 'attribute') {
         $node = $('<span/>').addClass('hint-attribute')
+        if (isValidObjectAttribute(element)) {
+            $node.append($('<i/>').addClass('fas fa-cubes').css('margin-right', '3px'))
+        }
         $node.append($('<i/>').addClass('').text('[' + element.category + '] '))
             .append($('<span/>').addClass('bold').text(element.type + ' '))
             .append(
