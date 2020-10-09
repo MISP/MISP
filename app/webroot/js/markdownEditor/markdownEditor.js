@@ -277,7 +277,7 @@ function toggleFullscreenMode() {
 function beforeFullscreen() {
     $editorContainer.css({ // reset dimension if resizeable helper was used
         height: 'inherit',
-        width: 'inherit'
+        width: '50%'
     })
     $editorContainer.resizable( "option", { maxWidth: window.innerWidth - 300 } );
 }
