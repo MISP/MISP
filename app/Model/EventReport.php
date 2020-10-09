@@ -448,12 +448,10 @@ class EventReport extends AppModel
         $templateConditions = [];
         foreach ($completeEvent['Object'] as $k => $object) {
             $objects[$object['uuid']] = $object;
-            $objectAttributes = [];
-            foreach ($object['Attribute'] as $i => $objectAttribute) {
-                $objectAttributes[$objectAttribute['uuid']] = $object['Attribute'][$i];
-                $objectAttributes[$objectAttribute['uuid']]['object_uuid'] = $object['uuid'];
+            foreach ($object['Attribute'] as $objectAttribute) {
+                $objectAttribute['object_uuid'] = $object['uuid'];
+                $attributes[$objectAttribute['uuid']] = $objectAttribute;
             }
-            $attributes = array_merge($attributes, $objectAttributes);
             $objectAttributeTags = Hash::combine($this->AttributeTag->getAttributesTags($object['Attribute'], true), '{n}.name', '{n}');
             $allTagNames = array_merge($allTagNames, $objectAttributeTags);
 
