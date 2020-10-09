@@ -424,12 +424,10 @@ class EventReport extends AppModel
             throw new NotFoundException(__('Invalid Event'));
         }
         $event = $event[0];
-        $parentEventId = $this->Event->fetchSimpleEventIds($user, ['conditions' => [
-            'uuid' => $event['Event']['extends_uuid']
-        ]]);
+
         $completeEvent = $event;
-        if (!empty($parentEventId)) {
-            $parentEvent = $this->Event->fetchEvent($user, ['eventid' => $parentEventId, 'extended' => true, 'noSightings' => true]);
+        if (!empty($event['Event']['extends_uuid'])) {
+            $parentEvent = $this->Event->fetchEvent($user, ['event_uuid' => $event['Event']['extends_uuid'], 'extended' => true, 'noSightings' => true]);
             if (!empty($parentEvent)) {
                 $parentEvent = $parentEvent[0];
                 $completeEvent = $parentEvent;
