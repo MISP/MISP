@@ -5226,9 +5226,8 @@ class Server extends AppModel
         $gpgStatus = 0;
         if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
             $continue = true;
-            $gpgTool = new GpgTool();
             try {
-                $gpg = $gpgTool->initializeGpg();
+                $gpg = GpgTool::initializeGpg();
             } catch (Exception $e) {
                 $this->logException("Error during initializing GPG.", $e, LOG_NOTICE);
                 $gpgStatus = 2;
