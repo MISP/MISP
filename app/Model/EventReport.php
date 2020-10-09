@@ -182,12 +182,12 @@ class EventReport extends AppModel
      * @param  bool $hard
      * @return array Any errors preventing the deletion
      */
-    public function deleteReport(array $user, $id, $hard=false)
+    public function deleteReport(array $user, $report, $hard=false)
     {
-        $report = $this->fetchIfAuthorized($user, $id, 'delete', $throwErrors=true, $full=false);
+        $report = $this->fetchIfAuthorized($user, $report, 'delete', $throwErrors=true, $full=false);
         $errors = [];
         if ($hard) {
-            $deleted = $this->delete($id, true);
+            $deleted = $this->delete($report['EventReport']['id'], true);
             if (!$deleted) {
                 $errors[] = __('Failed to delete report');
             }

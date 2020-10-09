@@ -121,13 +121,13 @@ class EventReportsController extends AppController
 
     public function delete($id, $hard=false)
     {
-        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
+        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
-            $errors = $this->EventReport->deleteReport($this->Auth->user(), $id, $hard=$hard);
+            $errors = $this->EventReport->deleteReport($this->Auth->user(), $report, $hard=$hard);
             $redirectTarget = $this->referer();
             if (empty($errors)) {
                 $successMessage = __('Event Report %s %s deleted', $id, $hard ? __('hard') : __('soft'));
-                $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
+                $report = $hard ? null : $this->EventReport->simpleFetchById($this->Auth->user(), $id);
                 return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'delete', $id, $redirectTarget);
             } else {
                 $errorMessage = __('Event Report %s could not be %s deleted.%sReasons: %s', $id, $hard ? __('hard') : __('soft'), PHP_EOL, json_encode($errors));
