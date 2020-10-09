@@ -35,7 +35,7 @@ class EventReportsController extends AppController
         if ($eventId === false) {
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
-        $event = $this->canModifyEvent($eventId);
+        $event = $this->__canModifyEvent($eventId);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['EventReport'])) {
                 $this->request->data['EventReport'] = $this->request->data;
@@ -44,17 +44,17 @@ class EventReportsController extends AppController
             $errors = $this->EventReport->addReport($this->Auth->user(), $report, $eventId);
             $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
             if (!empty($errors)) {
-                return $this->getFailResponseBasedOnContext($errors, array(), 'add', $this->EventReport->id, $redirectTarget);
+                return $this->__getFailResponseBasedOnContext($errors, array(), 'add', $this->EventReport->id, $redirectTarget);
             } else {
                 $successMessage = __('Report saved.');
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
-                return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'add', false, $redirectTarget);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, $report, 'add', false, $redirectTarget);
             }
         }
         $this->set('event_id', $eventId);
         $this->set('action', 'add');
-        $this->injectDistributionLevelToViewContext();
-        $this->injectSharingGroupsDataToViewContext();
+        $this->__injectDistributionLevelToViewContext();
+        $this->__injectSharingGroupsDataToViewContext();
     }
 
 
@@ -67,8 +67,8 @@ class EventReportsController extends AppController
         $this->set('ajax', $ajax);
         $this->set('id', $reportId);
         $this->set('report', $report);
-        $this->injectDistributionLevelToViewContext();
-        $this->injectPermissionsToViewContext($this->Auth->user(), $report);
+        $this->__injectDistributionLevelToViewContext();
+        $this->__injectPermissionsToViewContext($this->Auth->user(), $report);
     }
 
     public function getProxyMISPElements($reportId)
@@ -88,8 +88,8 @@ class EventReportsController extends AppController
         $this->set('proxyMISPElements', $proxyMISPElements);
         $this->set('id', $reportId);
         $this->set('report', $report);
-        $this->injectDistributionLevelToViewContext();
-        $this->injectPermissionsToViewContext($this->Auth->user(), $report);
+        $this->__injectDistributionLevelToViewContext();
+        $this->__injectPermissionsToViewContext($this->Auth->user(), $report);
     }
 
     public function edit($id)
@@ -97,15 +97,15 @@ class EventReportsController extends AppController
         $savedReport = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=true);
         if ($this->request->is('post') || $this->request->is('put')) {
             $newReport = $this->request->data;
-            $newReport = $this->applyDataFromSavedReport($newReport, $savedReport);
+            $newReport = $this->__applyDataFromSavedReport($newReport, $savedReport);
             $errors = $this->EventReport->editReport($this->Auth->user(), $newReport, $savedReport['EventReport']['event_id']);
             $redirectTarget = array('controller' => 'eventReports', 'action' => 'view', $id);
             if (!empty($errors)) {
-                return $this->getFailResponseBasedOnContext($validationErrors, array(), 'edit', $id, $redirectTarget);
+                return $this->__getFailResponseBasedOnContext($validationErrors, array(), 'edit', $id, $redirectTarget);
             } else {
                 $successMessage = __('Report saved.');
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
-                return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'edit', $id, $redirectTarget);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, $report, 'edit', $id, $redirectTarget);
             }
         } else {
             $this->request->data = $savedReport;
@@ -114,8 +114,8 @@ class EventReportsController extends AppController
         $this->set('id', $savedReport['EventReport']['id']);
         $this->set('event_id', $savedReport['EventReport']['event_id']);
         $this->set('action', 'edit');
-        $this->injectDistributionLevelToViewContext();
-        $this->injectSharingGroupsDataToViewContext();
+        $this->__injectDistributionLevelToViewContext();
+        $this->__injectSharingGroupsDataToViewContext();
         $this->render('add');
     }
 
@@ -128,10 +128,10 @@ class EventReportsController extends AppController
             if (empty($errors)) {
                 $successMessage = __('Event Report %s %s deleted', $id, $hard ? __('hard') : __('soft'));
                 $report = $hard ? null : $this->EventReport->simpleFetchById($this->Auth->user(), $id);
-                return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'delete', $id, $redirectTarget);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, $report, 'delete', $id, $redirectTarget);
             } else {
                 $errorMessage = __('Event Report %s could not be %s deleted.%sReasons: %s', $id, $hard ? __('hard') : __('soft'), PHP_EOL, json_encode($errors));
-                return $this->getFailResponseBasedOnContext($errorMessage, array(), 'edit', $id, $redirectTarget);
+                return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'edit', $id, $redirectTarget);
             }
         } else {
             if (!$this->request->is('ajax')) {
@@ -153,10 +153,10 @@ class EventReportsController extends AppController
             if (empty($errors)) {
                 $successMessage = __('Event Report %s restored', $id);
                 $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
-                return $this->getSuccessResponseBasedOnContext($successMessage, $report, 'restore', $id, $redirectTarget);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, $report, 'restore', $id, $redirectTarget);
             } else {
                 $errorMessage = __('Event Report %s could not be %s restored.%sReasons: %s', $id, PHP_EOL, json_encode($errors));
-                return $this->getFailResponseBasedOnContext($errorMessage, array(), 'restore', $id, $redirectTarget);
+                return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'restore', $id, $redirectTarget);
             }
         } else {
             if (!$this->request->is('ajax')) {
@@ -172,7 +172,7 @@ class EventReportsController extends AppController
     {
         $filters = $this->IndexFilter->harvestParameters(['event_id', 'value', 'context', 'index_for_event', 'extended_event']);
         $filters['embedded_view']  = $this->request->is('ajax');
-        $compiledConditions = $this->generateIndexConditions($filters);
+        $compiledConditions = $this->__generateIndexConditions($filters);
         if ($this->_isRest()) {
             $reports = $this->EventReport->find('all', [
                 'recursive' => -1,
@@ -184,7 +184,7 @@ class EventReportsController extends AppController
             $this->paginate['conditions']['AND'][] = $compiledConditions;
             $reports = $this->paginate();
             $this->set('reports', $reports);
-            $this->injectIndexVariablesToViewContext($filters);
+            $this->__injectIndexVariablesToViewContext($filters);
             if (!empty($filters['index_for_event'])) {
                 $this->set('extendedEvent', !empty($filters['extended_event']));
                 $this->render('ajax/indexForEvent');
@@ -192,7 +192,7 @@ class EventReportsController extends AppController
         }
     }
 
-    private function generateIndexConditions($filters = [])
+    private function __generateIndexConditions($filters = [])
     {
         $aclConditions = $this->EventReport->buildACLConditions($this->Auth->user());
         $eventConditions = [];
@@ -238,7 +238,7 @@ class EventReportsController extends AppController
         return $compiledConditions;
     }
 
-    private function getSuccessResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
+    private function __getSuccessResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
     {
         if ($this->_isRest()) {
             if (!is_null($data)) {
@@ -255,7 +255,7 @@ class EventReportsController extends AppController
         return;
     }
 
-    private function getFailResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
+    private function __getFailResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
     {
         if (is_array($message)) {
             $message = implode(', ', $message);
@@ -275,7 +275,7 @@ class EventReportsController extends AppController
         return;
     }
 
-    private function injectIndexVariablesToViewContext($filters)
+    private function __injectIndexVariablesToViewContext($filters)
     {
         if (!empty($filters['context'])) {
             $this->set('context', $filters['context']);
@@ -295,10 +295,10 @@ class EventReportsController extends AppController
         } else {
             $this->set('searchall', '');
         }
-        $this->injectDistributionLevelToViewContext();
+        $this->__injectDistributionLevelToViewContext();
     }
 
-    private function injectDistributionLevelToViewContext()
+    private function __injectDistributionLevelToViewContext()
     {
         $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
@@ -310,19 +310,19 @@ class EventReportsController extends AppController
         $this->set('initialDistribution', $initialDistribution);
     }
 
-    private function injectSharingGroupsDataToViewContext()
+    private function __injectSharingGroupsDataToViewContext()
     {
         $sgs = $this->EventReport->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $this->set('sharingGroups', $sgs);
     }
 
-    private function injectPermissionsToViewContext($user, $report)
+    private function __injectPermissionsToViewContext($user, $report)
     {
         $canEdit = $this->EventReport->canEditReport($user, $report) === true;
         $this->set('canEdit', $canEdit);
     }
 
-    private function canModifyEvent($eventId)
+    private function __canModifyEvent($eventId)
     {
         $event = $this->EventReport->Event->fetchSimpleEvent($this->Auth->user(), $eventId, array());
         if (empty($event)) {
@@ -334,7 +334,7 @@ class EventReportsController extends AppController
         return $event;
     }
 
-    private function applyDataFromSavedReport($newReport, $savedReport)
+    private function __applyDataFromSavedReport($newReport, $savedReport)
     {
         if (!isset($newReport['EventReport'])) {
             $newReport = array('EventReport' => $newReport);

@@ -157,7 +157,8 @@ class ACLComponent extends Component
                 'edit' => array('perm_add'),
                 'delete' => array('perm_add'),
                 'restore' => array('perm_add'),
-                'index' => array('*')
+                'index' => array('*'),
+                'getProxyMISPElements' => array('*'),
             ),
             'events' => array(
                     'add' => array('perm_add'),
