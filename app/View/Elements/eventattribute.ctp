@@ -229,7 +229,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
     var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : $baseurl . '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
     var currentPopover = "";
     var ajaxResults = {"hover": [], "persistent": []};
-    var timer;
     var lastSelected = false;
     var deleted = <?php echo (!empty($deleted)) ? '1' : '0';?>;
     var includeRelatedTags = <?php echo (!empty($includeRelatedTags)) ? '1' : '0';?>;
@@ -295,34 +294,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
             }
             url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
             genericPopup(url, '#popover_box');
-        });
-        $(".eventViewAttributeHover").mouseenter(function() {
-            if (currentPopover !== undefined && currentPopover !== '') {
-                $('#' + currentPopover).popover('destroy');
-            }
-            var type = $(this).attr('data-object-type');
-            var id = $(this).attr('data-object-id');
-
-            if (type + "_" + id in ajaxResults["hover"]) {
-                var element = $('#' + type + '_' + id + '_container');
-                element.popover({
-                    title: attributeHoverTitle(id, type),
-                    content: ajaxResults["hover"][type + "_" + id],
-                    placement: attributeHoverPlacement(element),
-                    html: true,
-                    trigger: 'manual',
-                    container: 'body'
-                }).popover('show');
-                currentPopover = type + '_' + id + '_container';
-            } else {
-              timer = setTimeout(function () {
-                  runHoverLookup(type, id)
-                },
-                500
-              );
-            }
-        }).mouseout(function() {
-            clearTimeout(timer);
         });
     });
     $('.searchFilterButton, #quickFilterButton').click(function() {

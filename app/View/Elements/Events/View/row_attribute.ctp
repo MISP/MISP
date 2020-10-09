@@ -116,7 +116,7 @@
             $editable = '';
         endif;
     ?>
-    <td id="Attribute_<?= $objectId ?>_container" class="showspaces limitedWidth shortish" <?php echo $editable; ?>>
+    <td id="Attribute_<?= $objectId ?>_container" class="showspaces limitedWidth shortish"<?= $editable ?>>
       <div id="Attribute_<?= $objectId ?>_value_placeholder" class="inline-field-placeholder"></div>
       <div id="Attribute_<?= $objectId ?>_value_solid" class="inline-field-solid">
         <span>
@@ -125,12 +125,12 @@
             $popupButton = '';
             if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
                 $commonDataFields = sprintf(
-                    'data-object-type="%s" data-object-id="%s"',
-                    "Attribute",
+                    'data-object-type="Attribute" data-object-id="%s"',
                     $objectId
                 );
+
                 $spanExtra = sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
-                $popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup" %s></i>', $commonDataFields);
+                $popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup noPrint" title="%s" %s></i>', __('Show hover enrichment'), $commonDataFields);
             }
             echo sprintf(
                 '<span%s style="white-space: pre-wrap;">%s</span> %s',
