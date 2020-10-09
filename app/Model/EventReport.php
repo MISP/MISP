@@ -23,8 +23,8 @@ class EventReport extends AppModel
         ),
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
-                'message' => 'Please provide a valid UUID'
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
             ),
             'unique' => array(
                 'rule' => 'isUnique',
@@ -66,6 +66,8 @@ class EventReport extends AppModel
         // generate UUID if it doesn't exist
         if (empty($this->data['EventReport']['uuid'])) {
             $this->data['EventReport']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['EventReport']['uuid'] = strtolower($this->data['EventReport']['uuid']);
         }
         // generate timestamp if it doesn't exist
         if (empty($this->data['EventReport']['timestamp'])) {
@@ -79,8 +81,8 @@ class EventReport extends AppModel
         // These fields all have sane defaults either based on another field, or due to server settings
         if (!isset($this->data['EventReport']['distribution'])) {
             $this->data['EventReport']['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($report['EventReport']['distribution'] == 'event') {
-                $report['EventReport']['distribution'] = 5;
+            if ($this->data['EventReport']['distribution'] == 'event') {
+                $this->data['EventReport']['distribution'] = 5;
             }
         }
         return true;
