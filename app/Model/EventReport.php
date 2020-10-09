@@ -430,7 +430,6 @@ class EventReport extends AppModel
         }
         $event = $event[0];
 
-        $completeEvent = $event;
         if (!empty($event['Event']['extends_uuid'])) {
             $parentEvent = $this->Event->fetchEvent($user, [
                 'event_uuid' => $event['Event']['extends_uuid'],
@@ -440,26 +439,32 @@ class EventReport extends AppModel
                 'excludeGalaxy' => true,
             ]);
             if (!empty($parentEvent)) {
-                $parentEvent = $parentEvent[0];
-                $completeEvent = $parentEvent;
+                $event = $parentEvent[0];
             }
         }
-        $attributes = Hash::combine($completeEvent, 'Attribute.{n}.uuid', 'Attribute.{n}');
-        $this->AttributeTag = ClassRegistry::init('AttributeTag');
+
         $allTagNames = Hash::combine($event['EventTag'], '{n}.Tag.name', '{n}.Tag');
-        $attributeTags = Hash::combine($this->AttributeTag->getAttributesTags($completeEvent['Attribute'], true), '{n}.name', '{n}');
-        $parentEventTags = !empty($parentEvent) ? Hash::combine($parentEvent['EventTag'], '{n}.Tag.name', '{n}.Tag') : [];
-        $allTagNames = array_merge($allTagNames, $attributeTags, $parentEventTags);
+
+        $attributes = [];
+        foreach ($event['Attribute'] as $attribute) {
+            $attributes[$attribute['uuid']] = $attribute;
+            foreach ($attribute['AttributeTag'] as $at) {
+                $allTagNames[$at['Tag']['name']] = $at['Tag'];
+            }
+        }
+
         $objects = [];
         $templateConditions = [];
-        foreach ($completeEvent['Object'] as $k => $object) {
+        foreach ($event['Object'] as $k => $object) {
             $objects[$object['uuid']] = $object;
             foreach ($object['Attribute'] as $objectAttribute) {
                 $objectAttribute['object_uuid'] = $object['uuid'];
                 $attributes[$objectAttribute['uuid']] = $objectAttribute;
+
+                foreach ($objectAttribute['AttributeTag'] as $at) {
+                    $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                }
             }
-            $objectAttributeTags = Hash::combine($this->AttributeTag->getAttributesTags($object['Attribute'], true), '{n}.name', '{n}');
-            $allTagNames = array_merge($allTagNames, $objectAttributeTags);
 
             $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
             if (!isset($templateConditions[$uniqueCondition])) {
