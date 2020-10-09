@@ -104,7 +104,7 @@ class Organisation extends AppModel
         }
         $this->data['Organisation']['date_modified'] = $date;
         if (!isset($this->data['Organisation']['nationality']) || empty($this->data['Organisation']['nationality'])) {
-            $this->data['Organisation']['nationality'] = 'Not specified';
+            $this->data['Organisation']['nationality'] = '';
         }
         return true;
     }

@@ -159,7 +159,8 @@ class OrganisationsController extends AppController
                 }
             }
         }
-        $this->set('countries', $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
+        $countries = array_merge(['' => __('Not specified')], $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
+        $this->set('countries', $countries);
     }
 
     public function admin_edit($id)
@@ -238,7 +239,7 @@ class OrganisationsController extends AppController
             $this->request->data = $this->Organisation->data;
         }
 
-        $countries = $this->_arrayToValuesIndexArray($this->Organisation->getCountries());
+        $countries = array_merge(['' => __('Not specified')], $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
         if (!empty($this->Organisation->data['Organisation']['nationality'])) {
             $currentCountry = $this->Organisation->data['Organisation']['nationality'];
             if (!isset($countries[$currentCountry])) {
