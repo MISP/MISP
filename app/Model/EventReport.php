@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property Event $Event
+ */
 class EventReport extends AppModel
 {
     public $actsAs = array(
@@ -416,7 +419,7 @@ class EventReport extends AppModel
      */
     public function getProxyMISPElements(array $user, $eventid)
     {
-        $event = $this->Event->fetchEvent($user, ['eventid' => $eventid]);
+        $event = $this->Event->fetchEvent($user, ['eventid' => $eventid, 'noSightings' => true]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
         }
@@ -426,7 +429,7 @@ class EventReport extends AppModel
         ]]);
         $completeEvent = $event;
         if (!empty($parentEventId)) {
-            $parentEvent = $this->Event->fetchEvent($user, ['eventid' => $parentEventId, 'extended' => true]);
+            $parentEvent = $this->Event->fetchEvent($user, ['eventid' => $parentEventId, 'extended' => true, 'noSightings' => true]);
             if (!empty($parentEvent)) {
                 $parentEvent = $parentEvent[0];
                 $completeEvent = $parentEvent;
