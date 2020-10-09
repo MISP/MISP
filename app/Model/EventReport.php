@@ -274,27 +274,18 @@ class EventReport extends AppModel
      */
     public function simpleFetchById(array $user, $reportId, $throwErrors=true, $full=false)
     {
-        if (Validation::uuid($reportId)) {
-            $temp = $this->find('first', array(
-                'recursive' => -1,
-                'fields' => array("EventReport.id", "EventReport.uuid"),
-                'conditions' => array("EventReport.uuid" => $reportId)
-            ));
-            if (empty($temp)) {
-                if ($throwErrors) {
-                    throw new NotFoundException(__('Invalid report'));
-                }
-                return array();
-            }
-            $reportId = $temp['EventReport']['id'];
-        } elseif (!is_numeric($reportId)) {
+        if (is_numeric($reportId)) {
+            $options = array('conditions' => array("EventReport.id" => $reportId));
+        } elseif (Validation::uuid($reportId)) {
+            $options = array('conditions' => array("EventReport.uuid" => $reportId));
+        } else {
             if ($throwErrors) {
                 throw new NotFoundException(__('Invalid report'));
             }
             return array();
         }
-        $options = array('conditions' => array("EventReport.id" => $reportId));
-        $report = $this->fetchReports($user, $options, $full=$full);
+
+        $report = $this->fetchReports($user, $options, $full);
         if (!empty($report)) {
             return $report[0];
         }
@@ -310,7 +301,7 @@ class EventReport extends AppModel
      * @param  array $user
      * @param  array $options
      * @param  bool  $full
-     * @return void
+     * @return array
      */
     public function fetchReports(array $user, array $options = array(), $full=false)
     {
