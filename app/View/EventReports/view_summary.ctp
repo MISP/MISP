@@ -15,7 +15,6 @@
                         'variables' => [
                             'reportid' => $report['EventReport']['id'],
                             'eventid' => $report['EventReport']['event_id'],
-                            'proxyMISPElements' => $proxyMISPElements,
                         ]
                     ],
                     'additionalMarkdownHelpModalElements' => [[
