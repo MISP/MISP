@@ -33,7 +33,7 @@
         if (!empty(trim($org['Organisation']['nationality']))) {
             $html = '';
             if (isset($org['Organisation']['country_code'])) {
-                $html .= '<span class="famfamfam-flag-' . strtolower(h($org['Organisation']['country_code'])) . '" ></span>&nbsp;';
+                $html .= $this->Icon->countryFlag($org['Organisation']['country_code']) . '&nbsp;';
             }
             $html .= trim(h($org['Organisation']['nationality']));
             $table_data[] = array(
