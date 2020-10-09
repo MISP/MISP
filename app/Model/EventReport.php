@@ -419,25 +419,22 @@ class EventReport extends AppModel
      */
     public function getProxyMISPElements(array $user, $eventid)
     {
-        $event = $this->Event->fetchEvent($user, [
-            'eventid' => $eventid,
+        $options = [
             'noSightings' => true,
             'sgReferenceOnly' => true,
             'excludeGalaxy' => true,
-        ]);
+            'noEventReports' => true,
+            'noShadowAttributes' => true,
+        ];
+
+        $event = $this->Event->fetchEvent($user, array_merge(['eventid' => $eventid], $options));
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
         }
         $event = $event[0];
 
         if (!empty($event['Event']['extends_uuid'])) {
-            $parentEvent = $this->Event->fetchEvent($user, [
-                'event_uuid' => $event['Event']['extends_uuid'],
-                'extended' => true,
-                'noSightings' => true,
-                'sgReferenceOnly' => true,
-                'excludeGalaxy' => true,
-            ]);
+            $parentEvent = $this->Event->fetchEvent($user, array_merge(['event_uuid' => $event['Event']['extends_uuid']], $options));
             if (!empty($parentEvent)) {
                 $event = $parentEvent[0];
             }
@@ -447,6 +444,8 @@ class EventReport extends AppModel
 
         $attributes = [];
         foreach ($event['Attribute'] as $attribute) {
+            unset($attribute['Galaxy']);
+            unset($attribute['ShadowAttribute']);
             $attributes[$attribute['uuid']] = $attribute;
             foreach ($attribute['AttributeTag'] as $at) {
                 $allTagNames[$at['Tag']['name']] = $at['Tag'];
@@ -456,8 +455,9 @@ class EventReport extends AppModel
         $objects = [];
         $templateConditions = [];
         foreach ($event['Object'] as $k => $object) {
-            $objects[$object['uuid']] = $object;
-            foreach ($object['Attribute'] as $objectAttribute) {
+            foreach ($object['Attribute'] as &$objectAttribute) {
+                unset($objectAttribute['Galaxy']);
+                unset($objectAttribute['ShadowAttribute']);
                 $objectAttribute['object_uuid'] = $object['uuid'];
                 $attributes[$objectAttribute['uuid']] = $objectAttribute;
 
@@ -465,6 +465,7 @@ class EventReport extends AppModel
                     $allTagNames[$at['Tag']['name']] = $at['Tag'];
                 }
             }
+            $objects[$object['uuid']] = $object;
 
             $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
             if (!isset($templateConditions[$uniqueCondition])) {
