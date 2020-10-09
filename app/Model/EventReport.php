@@ -413,9 +413,10 @@ class EventReport extends AppModel
     /**
      * getProxyMISPElements Extract MISP Elements from an event and make them accessible by their UUID
      *
-     * @param  array $user
-     * @param  int|string $eventid
+     * @param array $user
+     * @param int|string $eventid
      * @return array
+     * @throws Exception
      */
     public function getProxyMISPElements(array $user, $eventid)
     {
@@ -469,7 +470,7 @@ class EventReport extends AppModel
 
             $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
             if (!isset($templateConditions[$uniqueCondition])) {
-                $templateConditions[$uniqueCondition]['OR'] = [
+                $templateConditions[$uniqueCondition]['AND'] = [
                     'ObjectTemplate.uuid' => $object['template_uuid'],
                     'ObjectTemplate.version' => $object['template_version']
                 ];
@@ -478,7 +479,7 @@ class EventReport extends AppModel
         if (!empty($templateConditions)) {
             $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
             $templates = $this->ObjectTemplate->find('all', array(
-                'conditions' => array_values($templateConditions),
+                'conditions' => ['OR' => array_values($templateConditions)],
                 'recursive' => -1,
                 'contain' => array(
                     'ObjectTemplateElement' => [
