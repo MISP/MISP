@@ -2895,17 +2895,16 @@ function objectTemplateViewContent(context, id) {
 
 function organisationViewContent(context, id) {
     organisationViewButtonHighlight(context);
-    var action = "/organisations/landingpage/";
-    if (context == 'members') {
+    var action;
+    if (context === 'members') {
         action = "/admin/users/index/searchorg:";
-    }
-    if (context == 'events') {
+    } else if (context === 'events') {
         action = "/events/index/searchorg:";
     }
     $.ajax({
         url: baseurl + action + id,
         type:'GET',
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         error: function(){

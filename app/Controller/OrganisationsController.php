@@ -361,22 +361,6 @@ class OrganisationsController extends AppController
         }
     }
 
-    public function landingpage($id)
-    {
-        $this->Organisation->id = $id;
-        if (!$this->Organisation->exists()) {
-            throw new NotFoundException(__('Invalid organisation'));
-        }
-        $org = $this->Organisation->find('first', array('conditions' => array('id' => $id), 'fields' => array('landingpage', 'name')));
-        $landingpage = $org['Organisation']['landingpage'];
-        if (empty($landingpage)) {
-            $landingpage = __('No landing page has been created for this organisation.');
-        }
-        $this->set('landingPage', $landingpage);
-        $this->set('org', $org['Organisation']['name']);
-        $this->render('ajax/landingpage');
-    }
-
     public function fetchOrgsForSG($idList = '{}', $type)
     {
         if ($type === 'local') {
