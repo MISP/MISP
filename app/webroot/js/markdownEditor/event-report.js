@@ -555,7 +555,7 @@ function setupMISPElementMarkdownListeners() {
     $('.misp-element-wrapper').filter('.attribute').popover({
         trigger: 'click',
         html: true,
-        container: '#viewer-container',
+        container: isInsideModal() ? 'body' : '#viewer-container',
         placement: 'top',
         title: getTitleFromMISPElementDOM,
         content: getContentFromMISPElementDOM
@@ -563,7 +563,7 @@ function setupMISPElementMarkdownListeners() {
     $('.misp-picture-wrapper > img').popover({
         trigger: 'click',
         html: true,
-        container: '#viewer-container',
+        container: isInsideModal() ? 'body' : '#viewer-container',
         placement: 'top',
         title: getTitleFromMISPElementDOM,
         content: getContentFromMISPElementDOM,
@@ -572,7 +572,7 @@ function setupMISPElementMarkdownListeners() {
     $('.misp-element-wrapper').filter('.object').popover({
         trigger: 'click',
         html: true,
-        container: '#viewer-container',
+        container: isInsideModal() ? 'body' : '#viewer-container',
         placement: 'top',
         title: getTitleFromMISPElementDOM,
         content: getContentFromMISPElementDOM
@@ -580,7 +580,7 @@ function setupMISPElementMarkdownListeners() {
     $('.embeddedTag').popover({
         trigger: 'click',
         html: true,
-        container: '#viewer-container',
+        container: isInsideModal() ? 'body' : '#viewer-container',
         placement: 'top',
         title: getTitleFromMISPElementDOM,
         content: getContentFromMISPElementDOM

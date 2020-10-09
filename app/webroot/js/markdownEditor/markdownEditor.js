@@ -647,6 +647,10 @@ function getRuleStatus(context, rulername, rulename) {
     return false
 }
 
+function isInsideModal() {
+    return $(cm.getWrapperElement()).closest('.modal').length > 0
+}
+
 // Inject line numbers for sync scroll. Notes:
 //
 // - We track only headings and paragraphs on first level. That's enough.
@@ -683,7 +687,7 @@ function buildScrollMap() {
     }).appendTo('body');
     
     offset = $viewerContainer.scrollTop() - $viewerContainer.offset().top;
-    if ($(cm.getWrapperElement()).closest('.modal').length > 0) { // inside a modal
+    if (isInsideModal()) { // inside a modal
         offset -= 20
     }
     _scrollMap = [];
