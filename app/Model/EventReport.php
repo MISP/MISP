@@ -441,7 +441,6 @@ class EventReport extends AppModel
         $allTagNames = array_merge($allTagNames, $attributeTags, $parentEventTags);
         $objects = [];
         $templateConditions = [];
-        $recordedConditions = [];
         foreach ($completeEvent['Object'] as $k => $object) {
             $objects[$object['uuid']] = $object;
             $objectAttributes = [];
@@ -452,30 +451,33 @@ class EventReport extends AppModel
             $attributes = array_merge($attributes, $objectAttributes);
             $objectAttributeTags = Hash::combine($this->AttributeTag->getAttributesTags($object['Attribute'], true), '{n}.name', '{n}');
             $allTagNames = array_merge($allTagNames, $objectAttributeTags);
-            $uniqueCondition = sprintf('%s.%s', $object['template_uuid'], $object['template_version']);
-            if (!isset($recordedConditions[$uniqueCondition])) {
-                $templateConditions['OR'][] = [
+
+            $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
+            if (!isset($templateConditions[$uniqueCondition])) {
+                $templateConditions[$uniqueCondition]['OR'] = [
                     'ObjectTemplate.uuid' => $object['template_uuid'],
                     'ObjectTemplate.version' => $object['template_version']
                 ];
-                $recordedConditions[$uniqueCondition] = true;
             }
         }
-        $templateConditions = empty($templateConditions) ? ['ObjectTemplate.id' => 0] : $templateConditions;
-        $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-        $templates = $this->ObjectTemplate->find('all', array(
-            'conditions' => $templateConditions,
-            'recursive' => -1,
-            'contain' => array(
-                'ObjectTemplateElement' => [
-                    'order' => ['ui-priority' => 'DESC'],
-                    'fields' => ['object_relation', 'type', 'ui-priority']
-                ]
-            )
-        ));
-        $objectTemplates = [];
-        foreach ($templates as $template) {
-            $objectTemplates[sprintf('%s.%s', $template['ObjectTemplate']['uuid'], $template['ObjectTemplate']['version'])] = $template;
+        if (!empty($templateConditions)) {
+            $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+            $templates = $this->ObjectTemplate->find('all', array(
+                'conditions' => array_values($templateConditions),
+                'recursive' => -1,
+                'contain' => array(
+                    'ObjectTemplateElement' => [
+                        'order' => ['ui-priority' => 'DESC'],
+                        'fields' => ['object_relation', 'type', 'ui-priority']
+                    ]
+                )
+            ));
+            $objectTemplates = [];
+            foreach ($templates as $template) {
+                $objectTemplates["{$template['ObjectTemplate']['uuid']}.{$template['ObjectTemplate']['version']}"] = $template;
+            }
+        } else {
+            $objectTemplates = [];
         }
         $this->Galaxy = ClassRegistry::init('Galaxy');
         $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
