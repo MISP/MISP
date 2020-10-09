@@ -845,7 +845,11 @@ function closeThePopover(closeButton) {
     var scope = $(closeButton).data('scope')
     var elementID = $(closeButton).data('elementid')
     var $MISPElement = $('[data-scope="' + scope + '"][data-elementid="' + elementID.replaceAll('\"', '\\\"') + '"]')
-    $MISPElement.popover('hide');
+    if ($MISPElement) {
+        $MISPElement.popover('hide');
+    } else {
+        $(closeButton).closest('.popover').remove()
+    }
 }
 
 function constructAttributeRow(attribute, fromObject)
