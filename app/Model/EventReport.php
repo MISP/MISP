@@ -419,7 +419,7 @@ class EventReport extends AppModel
      */
     public function getProxyMISPElements(array $user, $eventid)
     {
-        $event = $this->Event->fetchEvent($user, ['eventid' => $eventid, 'noSightings' => true]);
+        $event = $this->Event->fetchEvent($user, ['eventid' => $eventid, 'noSightings' => true, 'sgReferenceOnly' => true]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
         }
@@ -427,7 +427,12 @@ class EventReport extends AppModel
 
         $completeEvent = $event;
         if (!empty($event['Event']['extends_uuid'])) {
-            $parentEvent = $this->Event->fetchEvent($user, ['event_uuid' => $event['Event']['extends_uuid'], 'extended' => true, 'noSightings' => true]);
+            $parentEvent = $this->Event->fetchEvent($user, [
+                'event_uuid' => $event['Event']['extends_uuid'],
+                'extended' => true,
+                'noSightings' => true,
+                'sgReferenceOnly' => true,
+            ]);
             if (!empty($parentEvent)) {
                 $parentEvent = $parentEvent[0];
                 $completeEvent = $parentEvent;
