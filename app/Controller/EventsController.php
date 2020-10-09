@@ -627,7 +627,14 @@ class EventsController extends AppController
                         $v = $filterString;
                         break;
                     case 'minimal':
-                        $this->paginate['conditions']['AND'][] = array('NOT' => array('Event.attribute_count' => 0));
+                        $tableName = $this->Event->EventReport->table;
+                        $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+                        $this->paginate['conditions']['AND'][] = [
+                            'OR' => [
+                                ['Event.attribute_count >' => 0],
+                                [$eventReportQuery]
+                            ]
+                        ];
                         break;
                     default:
                         continue 2;

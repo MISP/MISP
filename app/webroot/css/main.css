@@ -939,8 +939,37 @@ a.proposal_link_red:hover {
     float: left;
 }
 
+#eventreport_div {
+    position: relative;
+    margin-top: 20px;
+    padding: 35px 15px 0px 15px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+#eventreport_div > .report-title-section {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    padding: 3px 7px;
+    font-weight: bold;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    color: #6b6b6b;
+    border-radius: 3px 0 3px 0;
+}
+
 .modal-body-long {
     max-height: 600px;
+}
+
+.modal-body-xl {
+    max-height: 70vh;
+}
+
+.modal-body-lg {
+    max-height: 60vh;
 }
 
 .ajax_popover_form {
@@ -953,6 +982,18 @@ a.proposal_link_red:hover {
     border-radius: 11px 11px 10px 10px;
     box-shadow: 4px 4px 4px #333;
     z-index:5;
+}
+
+.modal.modal-lg {
+    width: 60%;
+    left: 20%;
+    margin-left: 0px;
+}
+
+.modal.modal-xl {
+    width: 90%;
+    left: 5%;
+    margin-left: 0px;
 }
 
 .ajax_popover_form_large {

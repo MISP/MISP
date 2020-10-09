@@ -25,6 +25,7 @@
         }
     }
 ?>
+    <br />
     <div class="pagination">
         <ul>
         <?php

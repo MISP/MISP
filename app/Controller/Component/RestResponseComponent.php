@@ -83,6 +83,18 @@ class RestResponseComponent extends Component
                 'optional' => array('network_name')
             )
         ),
+        'EventReport' => array(
+            'add' => array(
+                'description' => "POST a report in JSON format to create a report for the provided event",
+                'mandatory' => array('name'),
+                'optional' => array('distribution', 'content')
+            ),
+            'edit' => array(
+                'description' => "POST a report in JSON format to update the report",
+                'mandatory' => array(),
+                'optional' => array('name', 'distribution', 'content')
+            )
+        ),
         'Feed' => array(
             'add' => array(
                 'description' => "POST a MISP Feed descriptor JSON to this API to add a Feed.",
@@ -383,7 +395,7 @@ class RestResponseComponent extends Component
         return '[]';
     }
 
-    public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false)
+    public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false, $data = null)
     {
         $this->autoRender = false;
         $response = array();
@@ -395,12 +407,15 @@ class RestResponseComponent extends Component
         $response['saved'] = false;
         $response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
         $response['message'] = $response['name'];
+        if (!is_null($data)) {
+            $response['data'] = $data;
+        }
         $response['url'] = $this->__generateURL($action, $controller, $id);
         $response['errors'] = $validationErrors;
         return $this->__sendResponse($response, 403, $format);
     }
 
-    public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false)
+    public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false, $data = null)
     {
         $action = $this->__dissectAdminRouting($action);
         if (!$message) {
@@ -410,6 +425,9 @@ class RestResponseComponent extends Component
         $response['success'] = true;
         $response['name'] = $message;
         $response['message'] = $response['name'];
+        if (!is_null($data)) {
+            $response['data'] = $data;
+        }
         $response['url'] = $this->__generateURL($action, $controller, $id);
         return $this->__sendResponse($response, 200, $format);
     }

@@ -1,0 +1,102 @@
+@media print {
+    .misp-element-wrapper.object .obj-type {
+        color: white !important;
+    }
+
+    .misp-element-wrapper.object .obj-value {
+        color: black !important;
+    }
+}
+
+span.misp-element-wrapper {
+    margin: 3px 3px;
+    border: 1px solid #ddd !important;
+    border-radius: 3px;
+    white-space: nowrap;
+    display: inline-block;
+    padding: 0;
+}
+
+.misp-element-wrapper, .misp-tag-wrapper, .misp-picture-wrapper {
+    cursor: help;
+}
+
+.misp-element-wrapper.invalid {
+    cursor: not-allowed;
+}
+
+.misp-element-wrapper.invalid > span {
+    margin: 0 3px;
+}
+
+.misp-element-wrapper.attribute .attr-type {
+    background-color: #f5f5f5 !important;
+    border-right: 1px solid #ddd !important;
+    display: inline-block;
+}
+
+.misp-element-wrapper.attribute .attr-type > span {
+    margin: 2px 3px;
+}
+
+.misp-element-wrapper.attribute .attr-value {
+    display: inline-table;
+    margin: 0px 3px;
+}
+
+.misp-element-wrapper.attribute .attr-value > span {
+    max-width: 300px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: table-cell;
+}
+
+span.misp-element-wrapper.object {
+    border: 1px solid #3465a4 !important;
+}
+
+.misp-element-wrapper.object .obj-type {
+    display: inline-block;
+    background-color: #3465a4 !important;
+    color: #ffffff !important;
+}
+
+.misp-element-wrapper.object .obj-type .object-attribute-type {
+    margin-left: 0;
+    background-color: #f5f5f5;
+    color: black;
+    padding: 1px 3px;
+    border-radius: 7px;
+}
+
+.misp-element-wrapper.object .obj-type > span {
+    margin: 2px 3px;
+}
+
+.misp-element-wrapper.object .obj-value {
+    display: inline-table;
+    margin: 0px 3px;
+}
+
+.misp-element-wrapper.object .obj-value > span {
+    max-width: 300px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: table-cell;
+}
+
+.attributePicture > img {
+    display: block;
+    margin: 0 auto;
+    max-width: 90%;
+}
+
+.CodeMirror-hint-active .blue {
+    color: white !important;
+}
+
+.popover {
+    z-index: 1060;
+}

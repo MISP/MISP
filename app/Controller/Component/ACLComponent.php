@@ -150,6 +150,16 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'view' => array('*'),
             ),
+            'eventReports' => array(
+                'add' => array('perm_add'),
+                'view' => array('*'),
+                'viewSummary' => array('*'),
+                'edit' => array('perm_add'),
+                'delete' => array('perm_add'),
+                'restore' => array('perm_add'),
+                'index' => array('*'),
+                'getProxyMISPElements' => array('*'),
+            ),
             'events' => array(
                     'add' => array('perm_add'),
                     'addIOC' => array('perm_add'),

@@ -334,7 +334,6 @@
                     <?php echo '</ul>' ?>
                 </div>
             <?php endif; ?>
-
             <?php
                 if (!empty($event['RelatedEvent'])):
             ?>
@@ -490,6 +489,9 @@
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attackmatrix_toggle" data-toggle-type="attackmatrix" onclick="enable_attack_matrix();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>" style="vertical-align:top;"></span><?php echo __('ATT&CK matrix');?>
         </button>
+        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventreport_toggle" data-toggle-type="eventreport">
+            <span class="icon-plus icon-white" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>" style="vertical-align:top;"></span><?php echo __('Event reports');?>
+        </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
             <span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
         </button>
@@ -516,6 +518,10 @@
     </div>
     <div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false" data-mitre-attack-galaxy-id="<?php echo h($mitreAttackGalaxyId)?>">
     </div>
+    <div id="eventreport_div" style="display: none;">
+        <span class="report-title-section"><?php echo __('Event Reports');?></span>
+        <div id="eventreport_index_div"></div>
+    </div>
     <div id="attributes_div">
         <?php echo $this->element('eventattribute'); ?>
     </div>
@@ -538,6 +544,12 @@ $(document).ready(function () {
         $("#discussions_div").html(data);
     });
 
+    $.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?>", function(data) {
+        $("#eventreport_index_div").html(data);
+        if ($('#eventreport_index_div table tbody > tr').length) { // open if contain a report
+            $('#eventreport_toggle').click()
+        }
+    });
 });
 
 function enable_correlation_graph() {
@@ -551,5 +563,6 @@ function enable_attack_matrix() {
         $("#attackmatrix_div").html(data);
     });
 }
+
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />

@@ -153,6 +153,7 @@ function cancelPrompt(isolated) {
     if (isolated == undefined) {
         $("#gray_out").fadeOut();
     }
+    $("#popover_form").fadeOut();
     $("#confirmation_box").fadeOut();
     $("#confirmation_box").empty();
     $('.have-a-popover').popover('destroy');
@@ -1299,6 +1300,11 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 $('#sightingsListAllToggle').removeClass('btn-inverse');
                 $('#sightingsListAllToggle').addClass('btn-primary');
             }
+            if (referer == 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
+                context == 'eventReport'
+                reloadEventReportTable()
+                eventUnpublish()
+            }
             if (
                 (
                     context == 'event' &&
@@ -1739,7 +1745,7 @@ function openPopover(clicked, data, hover, placement, callback) {
         }
 
     } else {
-        // $clicked.popover('show');
+        $clicked.popover('show');
     }
     var popover = $clicked.data('popover');
 
@@ -5219,6 +5225,24 @@ function setHomePage() {
 function changeLocationFromIndexDblclick(row_index) {
     var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
     window.location = href;
+}
+
+function openIdSelection(clicked, scope, action) {
+    var onclick = 'redirectIdSelection(\'' + scope + '\', \'' + action + '\')'
+    var html = '<div class="input-append">'
+                + '<input class="span2" id="eventIdSelectionInput" type="number" min="1" step="1" placeholder="42">'
+                + '<button class="btn btn-primary" type="button" onclick="' + onclick + '">Submit</button>'
+            + '</div>';
+    openPopover(clicked, html, false, 'right')
+}
+
+function redirectIdSelection(scope, action) {
+    var id = $('#eventIdSelectionInput').val()
+    if (id.length > 0) {
+        window.location = baseurl + '/' + scope + '/' + action + '/' + id
+    } else {
+        showMessage('fail', 'Not an valid event id');
+    }
 }
 
 $('body').on('click', '.hex-value-convert', function() {

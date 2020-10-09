@@ -2536,6 +2536,18 @@ class Server extends AppModel
                     }
                 }
             }
+            if (isset($event['Event']['EventReport']) && !empty($event['Event']['EventReport'])) {
+                foreach ($event['Event']['EventReport'] as $key => $r) {
+                    switch ($r['distribution']) {
+                        case '1':
+                            $event['Event']['EventReport'][$key]['distribution'] = '0';
+                            break;
+                        case '2':
+                            $event['Event']['EventReport'][$key]['distribution'] = '1';
+                            break;
+                    }
+                }
+            }
         }
 
         // Distribution, set reporter of the event, being the admin that initiated the pull
@@ -2562,6 +2574,13 @@ class Server extends AppModel
                             return true;
                         }
                     }
+                }
+            }
+        }
+        if (!empty($event['Event']['EventReport'])) {
+            foreach ($event['Event']['EventReport'] as $report) {
+                if (empty($report['deleted'])) {
+                    return true;
                 }
             }
         }
@@ -3002,11 +3021,16 @@ class Server extends AppModel
             if (empty($sgIds)) {
                 $sgIds = array(-1);
             }
+            $tableName = $this->Event->EventReport->table;
+            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
             $findParams = array(
                     'conditions' => array(
                             $eventid_conditions_key => $eventid_conditions_value,
                             'Event.published' => 1,
-                            'Event.attribute_count >' => 0,
+                            'OR' => array(
+                                array('Event.attribute_count >' => 0),
+                                array($eventReportQuery),
+                            ),
                             'OR' => array(
                                 array(
                                     'AND' => array(

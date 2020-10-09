@@ -133,6 +133,11 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Add Attachment')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add',
+                            'url' => '/eventReports/add/' . h($event['Event']['id']),
+                            'text' => __('Add Event Report')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'populateFrom',
                             'onClick' => array(
                                 'function' => 'getPopup',
@@ -406,6 +411,37 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         }
                     }
                 break;
+
+                case 'eventReports':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => '/eventReports/index',
+                        'text' => __('List Event Reports')
+                    ));
+                    if ($isAclAdd) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add',
+                            'text' => __('Add Event Report'),
+                            'title' => __('Add Event Report'),
+                            'onClick' => array(
+                                'function' => 'openIdSelection',
+                                'params' => array('this', 'eventReports', 'add')
+                            ),
+                        ));
+                    }
+                    if ($menuItem === 'view' || $menuItem === 'edit') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => '/eventReports/view/' . h($id),
+                            'text' => __('View Event Report')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'edit',
+                            'url' => '/eventReports/edit/' . h($id),
+                            'text' => __('Edit Event Report')
+                        ));
+                    }
+                    break;
 
                 case 'regexp':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
