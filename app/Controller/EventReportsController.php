@@ -35,7 +35,7 @@ class EventReportsController extends AppController
         if ($eventId === false) {
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
-        $event = $this->__canModifyEvent($eventId);
+        $event = $this->__canModifyReport($eventId);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['EventReport'])) {
                 $this->request->data['EventReport'] = $this->request->data;
@@ -322,7 +322,7 @@ class EventReportsController extends AppController
         $this->set('canEdit', $canEdit);
     }
 
-    private function __canModifyEvent($eventId)
+    private function __canModifyReport($eventId)
     {
         $event = $this->EventReport->Event->fetchSimpleEvent($this->Auth->user(), $eventId, array());
         if (empty($event)) {
