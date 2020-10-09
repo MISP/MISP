@@ -3,7 +3,7 @@
 $formatValue = function (array $attribute) {
     switch ($attribute['type']) {
         case 'link':
-            return '<a href="' . h($attribute['value']) . '" rel="noreferrer" target="_blank">' . h($attribute['value']) . '</a>';
+            return '<a href="' . h($attribute['value']) . '" rel="noreferrer noopener" target="_blank">' . h($attribute['value']) . '</a>';
         default:
             return h($attribute['value']);
     }

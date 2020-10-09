@@ -42,11 +42,11 @@
     if (isset($remote_events) && isset($local_event)) {
         $table_data = array();
         $table_data[] = array('key' => __('UUID'), 'value' => $local_event['Event']['uuid']);
-        $link = '<a href="' . $baseurl . '/events/view/' . $local_event['Event']['id'] . '" target="_blank">' . $local_event['Event']['id'] . '</a>';
+        $link = '<a href="' . $baseurl . '/events/view/' . $local_event['Event']['id'] . '" rel="noreferrer noopener" target="_blank">' . $local_event['Event']['id'] . '</a>';
         $table_data[] = array('key' => __('Local ID'), 'html' => $link);
         foreach ($remote_events as $remote_event) {
             if ($remote_event['remote_id']) {
-                $value = __('Remote ID:') . ' <a href="'.h($remote_event['url']).'" target="_blank">' . $remote_event['remote_id'] . '</a>';
+                $value = __('Remote ID:') . ' <a href="'.h($remote_event['url']).'" rel="noreferrer noopener" target="_blank">' . $remote_event['remote_id'] . '</a>';
                 $table_data[] = array('key' => h($remote_event['server_name']), 'html' => $value);
             } else {
                 $table_data[] = array('key' => h($remote_event['server_name']), 'value' => __('Not found or server unreachable'));
