@@ -90,6 +90,10 @@ class OrganisationsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($orgs, $this->response->type());
         } else {
+            foreach ($orgs as &$org) {
+                $org['Organisation']['country_code'] = $this->Organisation->getCountryCode($org['Organisation']['nationality']);
+            }
+
             $this->set('named', $this->params['named']);
             $this->set('scope', $scope);
             $this->set('orgs', $orgs);
@@ -368,6 +372,7 @@ class OrganisationsController extends AppController
             $org['Organisation']['user_count'] = $this->Organisation->User->getMembersCount($org['Organisation']['id']);
             return $this->RestResponse->viewData($org, $this->response->type());
         } else {
+            $org['Organisation']['country_code'] = $this->Organisation->getCountryCode($org['Organisation']['nationality']);
             $this->set('fullAccess', $fullAccess);
             $this->set('org', $org);
             $this->set('id', $id);

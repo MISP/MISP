@@ -30,7 +30,18 @@
             $table_data[] = array('key' => __('Creation time'), 'value' => $org['Organisation']['date_created']);
             $table_data[] = array('key' => __('Last modified'), 'value' => $org['Organisation']['date_modified']);
         }
-        foreach (array('sector' => __('Sector'), 'nationality' => __('Nationality'), 'type' => __('Organisation type'), 'contacts' => __('Contact information')) as $k => $field) {
+        if (!empty(trim($org['Organisation']['nationality']))) {
+            $html = '';
+            if (isset($org['Organisation']['country_code'])) {
+                $html .= '<span class="famfamfam-flag-' . strtolower(h($org['Organisation']['country_code'])) . '" ></span>&nbsp;';
+            }
+            $html .= trim(h($org['Organisation']['nationality']));
+            $table_data[] = array(
+                'key' => __('Nationality'),
+                'html' => $html,
+            );
+        }
+        foreach (array('sector' => __('Sector'), 'type' => __('Organisation type'), 'contacts' => __('Contact information')) as $k => $field) {
             if (!empty(trim($org['Organisation'][$k]))) {
                 $table_data[] = array('key' => $field, 'html' => nl2br(trim(h($org['Organisation'][$k]))));
             }
