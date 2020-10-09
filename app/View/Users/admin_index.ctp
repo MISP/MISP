@@ -41,7 +41,7 @@
             ),
             'fields' => array(
                 array(
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'id',
                     'class' => 'short',
                     'data_path' => 'User.id'
@@ -65,11 +65,10 @@
                     'data_path' => 'User.email'
                 ),
                 array(
-                    'name' => __('authkey'),
+                    'name' => __('Authkey'),
                     'sort' => 'User.authkey',
-                    'class' => 'bold quickSelect',
+                    'class' => 'bold',
                     'data_path' => 'User.authkey',
-                    'onClick' => 'quickSelect(this);',
                     'privacy' => 1
                 ),
                 array(

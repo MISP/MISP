@@ -4684,7 +4684,7 @@ $(document).ready(function() {
         setHomePage();
     });
 
-    $('.privacy-toggle').on('click', function() {
+    $(document.body).on('click', '.privacy-toggle', function() {
         var $this = $(this);
         var $privacy_target = $this.parent().find('.privacy-value');
         if ($this.hasClass('fa-eye')) {

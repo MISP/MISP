@@ -1,6 +1,6 @@
 <table class="table table-striped table-hover table-condensed">
     <tr>
-        <th><?php echo $this->Paginator->sort('id');?></th>
+        <th><?php echo $this->Paginator->sort('id', __('ID'));?></th>
         <th><?php echo $this->Paginator->sort('org_ci', __('Org'));?></th>
         <th><?php echo $this->Paginator->sort('role_id', __('Role'));?></th>
         <th><?php echo $this->Paginator->sort('email');?></th>
@@ -40,8 +40,8 @@
                 <td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
                     <?php echo h($user['User']['email']); ?>&nbsp;
                 </td>
-                <td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" class="quickSelect <?php echo $user['Role']['perm_auth'] ? 'bold' : 'grey'; ?>">
-                    <?php echo h($user['User']['authkey']); ?>&nbsp;
+                <td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" class="<?php echo $user['Role']['perm_auth'] ? 'bold' : 'grey'; ?>">
+                    <span class="privacy-value quickSelect" data-hidden-value="<?= h($user['User']['authkey']) ?>">****************************************</span> <i class="privacy-toggle fas fa-eye useCursorPointer"></i>
                 </td>
                 <td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
                     <?php echo $user['User']['autoalert']? __('Yes') : __('No'); ?>
