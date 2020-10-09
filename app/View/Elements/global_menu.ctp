@@ -1,5 +1,15 @@
 <?php
     if (!empty($me)) {
+        // New approach how to define menu requirements. It takes ACLs from ACLComponent.
+        // TODO: Use for every menu item
+        $canAccess = function ($controller, $action) use ($me, $aclComponent) {
+            $response = $aclComponent->checkAccess($me, $controller, $action, true);
+            if ($response === 404) {
+                throw new Exception("Invalid controller '$controller' specified for menu requirements.");
+            }
+            return $response === true;
+        };
+
         $menu = array(
             array(
                 'type' => 'root',
@@ -225,7 +235,7 @@
                     ),
                     array(
                         'text' => __('User Guide'),
-                        'url' => $baseurl . 'https://www.circl.lu/doc/misp/'
+                        'url' => 'https://www.circl.lu/doc/misp/'
                     ),
                     array(
                         'text' => __('Categories & Types'),
@@ -265,42 +275,42 @@
                     array(
                         'text' => __('Import Server Settings'),
                         'url' => $baseurl . '/servers/import',
-                        'requirement' => $isSiteAdmin
+                        'requirement' => $canAccess('servers', 'import'),
                     ),
                     array(
                         'text' => __('List Servers'),
                         'url' => $baseurl . '/servers/index',
-                        'requirement' => $isAclSync || $isAdmin
+                        'requirement' => $canAccess('servers', 'index'),
                     ),
                     array(
                         'text' => __('List Feeds'),
                         'url' => $baseurl . '/feeds/index',
-                        'requirement' => $isSiteAdmin || $hostOrgUser
+                        'requirement' => $canAccess('feeds', 'index'),
                     ),
                     array(
                         'text' => __('Search Feed Caches'),
                         'url' => $baseurl . '/feeds/searchCaches',
-                        'requirement' => $isSiteAdmin || $hostOrgUser
+                        'requirement' => $canAccess('feeds', 'searchCaches'),
                     ),
                     array(
                         'text' => __('List SightingDB Connections'),
                         'url' => $baseurl . '/sightingdb/index',
-                        'requirement' => $isSiteAdmin
+                        'requirement' => $canAccess('sightingdb', 'index'),
                     ),
                     array(
                         'text' => __('Add SightingDB Connection'),
                         'url' => $baseurl . '/sightingdb/add',
-                        'requirement' => $isSiteAdmin
+                        'requirement' => $canAccess('sightingdb', 'add'),
                     ),
                     array(
                         'text' => __('List Communities'),
                         'url' => $baseurl . '/communities/index',
-                        'requirement' => $isSiteAdmin
+                        'requirement' => $canAccess('communities', 'index'),
                     ),
                     array(
                         'text' => __('Event ID translator'),
                         'url' => '/servers/idTranslator',
-                        'requirement' => $isSiteAdmin || $hostOrgUser
+                        'requirement' => $canAccess('servers', 'idTranslator')
                     )
                 )
             ),
@@ -332,7 +342,8 @@
                     ),
                     array(
                         'text' => __('User Registrations'),
-                        'url' => $baseurl . '/users/registrations'
+                        'url' => $baseurl . '/users/registrations',
+                        'requirement' => $canAccess('users', 'registrations'),
                     ),
                     array(
                         'type' => 'separator'
@@ -343,7 +354,8 @@
                     ),
                     array(
                         'text' => __('Add Organisations'),
-                        'url' => $baseurl . '/admin/organisations/add'
+                        'url' => $baseurl . '/admin/organisations/add',
+                        'requirement' => $canAccess('organisations', 'admin_add'),
                     ),
                     array(
                         'type' => 'separator'
@@ -359,6 +371,7 @@
                     ),
                     array(
                         'type' => 'separator',
+                        'requirement' => $isSiteAdmin,
                     ),
                     array(
                         'text' => __('Server Settings & Maintenance'),

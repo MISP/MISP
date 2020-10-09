@@ -176,11 +176,6 @@ endforeach; ?>
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter('/scope:<?php echo h($scope); ?>');
         });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter('/scope:<?php echo h($scope); ?>');
-            }
-        });
     });
 </script>
 <?php

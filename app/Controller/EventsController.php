@@ -991,48 +991,41 @@ class EventsController extends AppController
         $this->layout = 'ajax';
     }
 
-    /*
+    /**
      * Search for a value on an attribute level for a specific field.
-     * $attribute : (array) an attribute
-     * $fields : (array) list of keys in attribute to search in
-     * $searchValue : Values to search ( '|' is the separator)
-     * returns true on match
+     *
+     * @param array $attribute An attribute
+     * @param array $fields List of keys in attribute to search in
+     * @param string $searchValue Values to search ( '|' is the separator)
+     * @return bool Returns true on match
      */
     private function __valueInFieldAttribute($attribute, $fields, $searchValue)
     {
-        foreach ($attribute as $k => $v) { // look in attributes line
-            if (is_string($v)) {
-                foreach ($fields as $field) {
-                    if (strpos(".", $field) === false) { // check sub array after
-                        // check for key in attribut
-                        if (isset($attribute[$field])) {
-                            $temp_value = strtolower($attribute[$field]);
-                            $temp_search = strtolower($searchValue);
-                            $temp_searches = explode('|', $temp_search);
-                            foreach ($temp_searches as $s) {
-                                if (strpos($temp_value, $s) !==false) {
-                                    return true;
-                                }
-                            }
+        $searchParts = explode('|', mb_strtolower($searchValue));
+
+        foreach ($fields as $field) {
+            if (strpos($field, 'Tag') === 0) {
+                if (empty($attribute['AttributeTag'])) {
+                    continue;
+                }
+                $fieldValues = Hash::extract($attribute, 'AttributeTag.{n}.' . $field);
+                foreach ($fieldValues as $fieldValue) {
+                    $fieldValue = mb_strtolower($fieldValue);
+                    foreach ($searchParts as $s) {
+                        if (strpos($fieldValue, $s) !== false) {
+                            return true;
                         }
                     }
                 }
             } else {
-                // check for tag in attribut maybe for other thing later
-                if ($k === 'AttributeTag') {
-                    foreach ($v as $tag) {
-                        foreach ($fields as $field) {
-                            if (strpos(strtolower($field), "tag.") !== false) { // check sub array
-                                $tagKey = explode('tag.', strtolower($field))[1];
-                                if (isset($tag['Tag'][$tagKey])) {
-                                    $temp_value = strtolower($tag['Tag'][$tagKey]);
-                                    $temp_search = strtolower($searchValue);
-                                    if (strpos($temp_value, $temp_search) !==false) {
-                                        return true;
-                                    }
-                                }
-                            }
-                        }
+                $fieldValue = isset($attribute[$field]) ? $attribute[$field] : null;
+                if (empty($fieldValue)) {
+                    continue;
+                }
+                $fieldValue = mb_strtolower($fieldValue);
+                foreach ($searchParts as $s) {
+                    if (strpos($fieldValue, $s) !== false) {
+                        return true;
                     }
                 }
             }
@@ -1077,6 +1070,7 @@ class EventsController extends AppController
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
         }
         $conditions['includeFeedCorrelations'] = true;
+        $conditions['includeWarninglistHits'] = true;
         if (!isset($filters['includeServerCorrelations'])) {
             $conditions['includeServerCorrelations'] = 1;
             if ($this->_isRest()) {
@@ -1260,10 +1254,6 @@ class EventsController extends AppController
         $warningTagConflicts = array();
         $filters = $this->_harvestParameters($filterData, $exception);
 
-        $this->loadModel('GalaxyCluster');
-        if (!$this->_isRest()) {
-            //$attack = $this->GalaxyCluster->Galaxy->constructAttackReport($event);
-        }
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
         $this->set('emptyEvent', $emptyEvent);
         $attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
@@ -1574,6 +1564,7 @@ class EventsController extends AppController
             $this->set('extended', 0);
         }
         $conditions['excludeLocalTags'] = false;
+        $conditions['includeWarninglistHits'] = true;
         if (isset($this->params['named']['excludeLocalTags'])) {
             $conditions['excludeLocalTags'] = $this->params['named']['excludeLocalTags'];
         }
@@ -1592,32 +1583,31 @@ class EventsController extends AppController
             $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
         }
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
-        if (!empty($this->params['named']['includeGranularCorrelations'])) {
-            foreach ($results as $k => $event) {
-                if (!empty($event['RelatedAttribute'])) {
-                    foreach ($event['RelatedAttribute'] as $attribute_id => $relation) {
-                        foreach ($event['Attribute'] as $k2 => $attribute) {
-                            if ((int)$attribute['id'] == $attribute_id) {
-                                $results[$k]['Attribute'][$k2]['RelatedAttribute'][] = $relation;
-                                break 2;
-                            }
-                        }
-                        foreach ($event['Object'] as $k2 => $object) {
-                            foreach ($object['Attribute'] as $k3 => $attribute) {
-                                if ((int)$attribute['id'] == $attribute_id) {
-                                    $results[$k]['Object'][$k2]['Attribute'][$k3]['RelatedAttribute'][] = $relation;
-                                    break 3;
-                                }
-                            }
+        if (empty($results)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $event = $results[0];
+
+        // Attach related attributes to proper attribute
+        if (!empty($this->params['named']['includeGranularCorrelations']) && !empty($event['RelatedAttribute'])) {
+            foreach ($event['RelatedAttribute'] as $attribute_id => $relation) {
+                foreach ($event['Attribute'] as $k2 => $attribute) {
+                    if ((int)$attribute['id'] == $attribute_id) {
+                        $event['Attribute'][$k2]['RelatedAttribute'][] = $relation;
+                        break 2;
+                    }
+                }
+                foreach ($event['Object'] as $k2 => $object) {
+                    foreach ($object['Attribute'] as $k3 => $attribute) {
+                        if ((int)$attribute['id'] == $attribute_id) {
+                            $event['Object'][$k2]['Attribute'][$k3]['RelatedAttribute'][] = $relation;
+                            break 3;
                         }
                     }
                 }
             }
         }
-        if (empty($results)) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-        $event = $results[0];
+
         $this->Event->id = $event['Event']['id'];
         if (isset($this->params['named']['searchFor']) && $this->params['named']['searchFor'] !== '') {
             $this->__applyQueryString($event, $this->params['named']['searchFor']);
@@ -1631,11 +1621,11 @@ class EventsController extends AppController
 
         if ($this->_isRest()) {
             $this->set('event', $event);
-        }
-        $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
-        $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
-        $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
-        if (!$this->_isRest()) {
+        } else {
+            $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
+            $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
+            $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
+
             if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
                 $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
             }
@@ -1725,12 +1715,13 @@ class EventsController extends AppController
         $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
     }
 
-    private function __applyQueryString(&$event, $searchFor, $filterColumnsOverwrite=false) {
+    private function __applyQueryString(&$event, $searchFor, $filterColumnsOverwrite=false)
+    {
         // filtering on specific columns is specified
         if ($filterColumnsOverwrite !== false) {
             $filterValue = array_map('trim', explode(",", $filterColumnsOverwrite));
         } else {
-            $filterColumnsOverwrite = empty(Configure::read('MISP.event_view_filter_fields')) ? 'id, uuid, value, comment, type, category, Tag.name' : Configure::read('MISP.event_view_filter_fields');
+            $filterColumnsOverwrite = Configure::read('MISP.event_view_filter_fields') ?: 'id,uuid,value,comment,type,category,Tag.name';
             $filterValue = array_map('trim', explode(",", $filterColumnsOverwrite));
             $validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
             foreach ($filterValue as $k => $v) {
@@ -1763,7 +1754,7 @@ class EventsController extends AppController
                     unset($event['Object'][$k]['Attribute'][$k2]);
                 }
             }
-            if (count($event['Object'][$k]['Attribute']) == 0) {
+            if (empty($event['Object'][$k]['Attribute'])) {
                 // remove object if empty
                 unset($event['Object'][$k]);
             } else {
@@ -1775,7 +1766,7 @@ class EventsController extends AppController
 
     // look in the parameters if we are doing advanced filtering or not
     private function __checkIfAdvancedFiltering($filters) {
-        $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'extended'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'extended' => 0, 'page' => 0));
+        $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'extended' => 0, 'page' => 0));
 
         if (count($advancedFilteringActive) > 0) {
             if (count(array_diff_key($advancedFilteringActive, array('deleted', 'includeRelatedTags', 'includeDecayScore'))) > 0) {
@@ -3639,19 +3630,7 @@ class EventsController extends AppController
             $this->set('importComment', '');
             $this->set('title', 'Freetext Import Results');
             $this->loadModel('Warninglist');
-            $tldLists = $this->Warninglist->getTldLists();
-            $missingTldLists = array();
-            foreach ($tldLists as $tldList) {
-                $temp = $this->Warninglist->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('Warninglist.name' => $tldList),
-                    'fields' => array('Warninglist.id')
-                ));
-                if (empty($temp)) {
-                    $missingTldLists[] = $tldList;
-                }
-            }
-            $this->set('missingTldLists', $missingTldLists);
+            $this->set('missingTldLists', $this->Warninglist->missingTldLists());
             $this->render('resolved_attributes');
         }
     }

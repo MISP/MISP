@@ -1086,9 +1086,10 @@ a.proposal_link_red:hover {
 }
 
 .hover_enrichment_text {
-    border:0px;
-    background-color:transparent;
-    display:inline;
+    border: 0;
+    background-color: transparent;
+    display: inline;
+    padding: 0;
 }
 
 .hover_enrichment_title {
@@ -1779,6 +1780,7 @@ span.success {
     width:100%;
     line-height:30px;
     border-top:1px solid black;
+    cursor: pointer;
 }
 
 .templateChoiceButton:hover {
@@ -2582,4 +2584,33 @@ table tr:hover .down-expand-button {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+}
+
+/* Threat levels */
+.threat-level-high::before, .threat-level-medium::before, .threat-level-low::before {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+    padding-right: .3em;
+}
+
+.threat-level-high::before {
+    content: "\f102";
+    color: rgb(192,0,0);
+}
+
+.threat-level-medium::before {
+    content: "\f068";
+    color: #3465a4;
+}
+
+.threat-level-low::before {
+    content: "\f103";
+    color: rgb(35,120,40);
 }

@@ -86,7 +86,7 @@ class AppModel extends Model
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
-        57 => false, 58 => false,
+        57 => false, 58 => false, 59 => false
     );
 
     public $advanced_updates_description = array(
@@ -1418,6 +1418,9 @@ class AppModel extends Model
                 $sqlArray[] = sprintf("INSERT INTO `admin_settings` (`setting`, `value`) VALUES ('fix_login', %s);", time());
                 break;
             case 58:
+                $sqlArray[] = "ALTER TABLE `warninglists` MODIFY COLUMN `warninglist_entry_count` int(11) unsigned NOT NULL DEFAULT 0;";
+                break;
+            case 59:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS event_reports (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
@@ -1747,14 +1750,6 @@ class AppModel extends Model
         }
     }
 
-    public function checkMISPVersion()
-    {
-        $file = new File(ROOT . DS . 'VERSION.json', true);
-        $version_array = json_decode($file->read(), true);
-        $file->close();
-        return $version_array;
-    }
-
     public function getPythonVersion()
     {
         if (!empty(Configure::read('MISP.python_bin'))) {
@@ -1904,9 +1899,7 @@ class AppModel extends Model
                     $workerType = '';
                     if (isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
                         $workerType = 'update';
-                    } elseif (isset($workerDiagnostic['prio']['ok']) && $workerDiagnostic['prio']['ok']) {
-                        $workerType = 'prio';
-                    } else { // no worker running, doing inline update
+                    } else { // update worker not running, doing the update inline
                         return $this->runUpdates($verbose, false);
                     }
                     $this->Job->create();
@@ -2582,34 +2575,65 @@ class AppModel extends Model
         return $HttpSocket;
     }
 
-    public function setupSyncRequest($server)
+    /**
+     * @param array $server
+     * @return array[]
+     * @throws JsonException
+     */
+    protected function setupSyncRequest(array $server)
     {
+        $version = implode('.', $this->checkMISPVersion());
         $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json'
-                )
+            'header' => array(
+                'Authorization' => $server['Server']['authkey'],
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'MISP-version' => $version,
+            )
         );
-        $request = $this->addHeaders($request);
-        return $request;
-    }
 
-    public function addHeaders($request)
-    {
-        $version = $this->checkMISPVersion();
-        $version = implode('.', $version);
-        try {
-            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
-        } catch (Exception $e) {
-            $commit = false;
-        }
-        $request['header']['MISP-version'] = $version;
+        $commit = $this->checkMIPSCommit();
         if ($commit) {
             $request['header']['commit'] = $commit;
         }
         $request['header']['User-Agent'] = 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit);
         return $request;
+    }
+
+    /**
+     * Returns MISP version from VERSION.json file as array with major, minor and hotfix keys.
+     *
+     * @return array
+     * @throws JsonException
+     */
+    public function checkMISPVersion()
+    {
+        static $versionArray;
+        if ($versionArray === null) {
+            $file = new File(ROOT . DS . 'VERSION.json', true);
+            $versionArray = $this->jsonDecode($file->read());
+            $file->close();
+        }
+        return $versionArray;
+    }
+
+    /**
+     * Returns MISP commit hash.
+     *
+     * @return false|string
+     */
+    protected function checkMIPSCommit()
+    {
+        static $commit;
+        if ($commit === null) {
+            $commit = shell_exec('git log --pretty="%H" -n1 HEAD');
+            if ($commit) {
+                $commit = trim($commit);
+            } else {
+                $commit = false;
+            }
+        }
+        return $commit;
     }
 
     // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions

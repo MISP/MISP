@@ -543,6 +543,14 @@ class Server extends AppModel
                             'test' => 'testBool',
                             'type' => 'boolean',
                         ),
+                        'osuser' => array(
+                                'level' => 0,
+                                'description' => __('The Unix user MISP (php) is running as'),
+                                'value' => 'www-data',
+                                'errorMessage' => '',
+                                'test' => 'testForEmpty',
+                                'type' => 'string',
+                        ),
                         'email' => array(
                                 'level' => 0,
                                 'description' => __('The e-mail address that MISP should use for all notifications'),
@@ -3645,7 +3653,7 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        $regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,5})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
+        $regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
 	if ( !preg_match($regex, $value, $matches)
                 || strtolower($matches['proto']) != strtolower($this->getProto())
                 || strtolower($matches['host']) != strtolower($this->getHost()) ) {
@@ -5338,18 +5346,19 @@ class Server extends AppModel
 
     public function workerDiagnostics(&$workerIssueCount)
     {
+        $worker_array = array(
+            'cache' => array('ok' => false),
+            'default' => array('ok' => false),
+            'email' => array('ok' => false),
+            'prio' => array('ok' => false),
+            'update' => array('ok' => false),
+            'scheduler' => array('ok' => false)
+        );
         try {
             $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         } catch (Exception $e) {
             // redis connection failed
-            return array(
-                    'cache' => array('ok' => false),
-                    'default' => array('ok' => false),
-                    'email' => array('ok' => false),
-                    'prio' => array('ok' => false),
-                    'update' => array('ok' => false),
-                    'scheduler' => array('ok' => false)
-            );
+            return $worker_array;
         }
         $workers = $this->ResqueStatus->getWorkers();
         if (function_exists('posix_getpwuid')) {
@@ -5358,14 +5367,6 @@ class Server extends AppModel
         } else {
             $currentUser = trim(shell_exec('whoami'));
         }
-        $worker_array = array(
-                'cache' => array('ok' => true),
-                'default' => array('ok' => true),
-                'email' => array('ok' => true),
-                'prio' => array('ok' => true),
-                'update' => array('ok' => true),
-                'scheduler' => array('ok' => true)
-        );
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
             $entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
@@ -5383,7 +5384,13 @@ class Server extends AppModel
                 $ok = false;
                 $workerIssueCount++;
             }
-            $worker_array[$entry]['workers'][] = array('pid' => $pid, 'user' => $worker['user'], 'alive' => $alive, 'correct_user' => $correct_user, 'ok' => $ok);
+            $worker_array[$entry]['workers'][] = array(
+                'pid' => $pid,
+                'user' => $worker['user'],
+                'alive' => $alive,
+                'correct_user' => $correct_user,
+                'ok' => $ok
+            );
         }
         foreach ($worker_array as $k => $queue) {
             if (isset($worker_array[$k]['workers'])) {

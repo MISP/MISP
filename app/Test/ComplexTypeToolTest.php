@@ -420,6 +420,15 @@ EOT;
         $this->assertEquals('vulnerability', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextCveLowercase(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('cve-2019-16202');
+        $this->assertCount(1, $results);
+        $this->assertEquals('CVE-2019-16202', $results[0]['value']);
+        $this->assertEquals('vulnerability', $results[0]['default_type']);
+    }
+
     public function testCheckFreeTextAs(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -435,6 +444,15 @@ EOT;
         $results = $complexTypeTool->checkFreeText('9e107d9d372bb6826bd81d3542a419d6');
         $this->assertCount(1, $results);
         $this->assertEquals('9e107d9d372bb6826bd81d3542a419d6', $results[0]['value']);
+        $this->assertEquals('md5', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextMd5Uppercase(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('9E107D9D372BB6826BD81D3542A419D6');
+        $this->assertCount(1, $results);
+        $this->assertEquals('9E107D9D372BB6826BD81D3542A419D6', $results[0]['value']);
         $this->assertEquals('md5', $results[0]['default_type']);
     }
 

@@ -23,9 +23,9 @@
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
         $table_data[] = array(
             'key' => 'UUID',
-            'html' => sprintf('%s %s',
+            'html' => sprintf('<span class="quickSelect">%s</span> %s',
                 $event['Event']['uuid'],
-                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px;" title="%s">+</a>',
+                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px; margin-left: 0.3em" title="%s">+</a>',
                     $baseurl,
                     $event['Event']['id'],
                     __('Extend this event')
@@ -117,7 +117,8 @@
             $table_data[] = array(
                 'key' => __('Threat Level'),
                 'key_title' => $eventDescriptions['threat_level_id']['desc'],
-                'value' => $event['ThreatLevel']['name']
+                'value' => $event['ThreatLevel']['name'],
+                'value_class' => 'threat-level-' . strtolower($event['ThreatLevel']['name']),
             );
         }
         $table_data[] = array(
@@ -454,12 +455,12 @@
                     endif;
                 endif;
             ?>
-            <?php if (!empty($event['Event']['warnings'])): ?>
+            <?php if (!empty($event['warnings'])): ?>
                 <div class="warning_container">
                     <h4 class="red"><?= __('Warning: Potential false positives') ?> <a href="#attributeList" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'warning')"><?= __('(show)') ?></a></h4>
                     <?php
                         $links = [];
-                        foreach ($event['Event']['warnings'] as $id => $name) {
+                        foreach ($event['warnings'] as $id => $name) {
                             $links[] = '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>';
                         }
                         echo implode('<br>', $links);
@@ -525,8 +526,6 @@
         <?php echo $this->element('eventattribute'); ?>
     </div>
     <div id="discussions_div">
-    </div>
-    <div id="attribute_creation_div" style="display:none;">
     </div>
 </div>
 <script type="text/javascript">

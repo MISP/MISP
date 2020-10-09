@@ -1948,7 +1948,7 @@ class Event extends AppModel
             'sharing_group_id',
             'disableSiteAdmin',
             'metadata',
-            'enforceWarninglist',
+            'enforceWarninglist', // return just attributes that contains no warnings
             'sgReferenceOnly',
             'flatten',
             'blockedAttributeTags',
@@ -1961,6 +1961,7 @@ class Event extends AppModel
             'includeSightingdb',
             'includeFeedCorrelations',
             'includeServerCorrelations',
+            'includeWarninglistHits',
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -2173,7 +2174,6 @@ class Event extends AppModel
                 $conditions['AND'][] = $rules;
             }
         }
-
         if (!empty($options['to_ids']) || $options['to_ids'] === 0) {
             $conditionsAttributes['AND'][] = array('Attribute.to_ids' => $options['to_ids']);
         }
@@ -2189,13 +2189,7 @@ class Event extends AppModel
         $fieldsObj = array('*');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
-        $fieldsServer = array('id', 'url', 'name');
         $fieldsEventReport = array('*');
-        if (!$options['includeAllTags']) {
-            $tagConditions = array('exportable' => 1);
-        } else {
-            $tagConditions = array();
-        }
         $sharingGroupData = $this->__cacheSharingGroupData($user, $useCache);
         $params = array(
             'conditions' => $conditions,
@@ -2259,13 +2253,15 @@ class Event extends AppModel
             return array();
         }
 
-        if ($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) {
+        if (($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) && !isset($this->Feed)) {
             $this->Feed = ClassRegistry::init('Feed');
         }
-        // Precache current user email
-        if (!empty($user['id'])) {
-            $userEmails = array($user['id'] => $user['email']);
+        if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->Warninglist)) {
+            $this->Warninglist = ClassRegistry::init('Warninglist');
         }
+        // Precache current user email
+        $userEmails = empty($user['id']) ? [] : [$user['id'] => $user['email']];
+
         // Do some refactoring with the event
         $fields = array(
             'common' => array('distribution', 'sharing_group_id', 'uuid'),
@@ -2295,6 +2291,11 @@ class Event extends AppModel
                 ));
                 unset($results[$eventKey]); // Current user cannot access sharing_group associated to this event
                 continue;
+            }
+            if ($options['includeWarninglistHits'] || $options['enforceWarninglist']) {
+                $eventWarnings = $this->Warninglist->attachWarninglistToAttributes($event['Attribute']);
+                $this->Warninglist->attachWarninglistToAttributes($event['ShadowAttribute']);
+                $event['warnings'] = $eventWarnings;
             }
             $this->__attachReferences($event, $fields);
             $this->__attachTags($event, $justExportableTags);
@@ -2342,10 +2343,6 @@ class Event extends AppModel
                 }
             }
             if (isset($event['Attribute'])) {
-                if (!empty($options['enforceWarninglist']) || !empty($options['includeWarninglistHits'])) {
-                    $this->Warninglist = ClassRegistry::init('Warninglist');
-                    $warninglists = $this->Warninglist->fetchForEventView();
-                }
                 if ($options['includeFeedCorrelations']) {
                     if (!empty($options['overrideLimit'])) {
                         $overrideLimit = true;
@@ -2369,14 +2366,9 @@ class Event extends AppModel
                 // move all object attributes to a temporary container
                 $tempObjectAttributeContainer = array();
                 foreach ($event['Attribute'] as $key => $attribute) {
-                    if ($options['enforceWarninglist']) {
-                        if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute)) {
-                            unset($event['Attribute'][$key]);
-                            continue;
-                        }
-                    } else if (!empty($options['includeWarninglistHits'])) {
-                        $event['Attribute'][$key] = $this->Warninglist->checkForWarning($event['Attribute'][$key], $event['Event']['warnings'], $warninglists, true);
-                        //$event['Attribute'][$key] = $this->Warninglist->simpleCheckForWarning($event['Attribute'][$key], $warninglists);
+                    if ($options['enforceWarninglist'] && !empty($attribute['warnings'])) {
+                        unset($event['Attribute'][$key]);
+                        continue;
                     }
                     $event['Attribute'][$key] = $this->massageTags($event['Attribute'][$key], 'Attribute', $options['excludeGalaxy']);
                     if ($attribute['category'] === 'Financial fraud') {
@@ -2484,7 +2476,7 @@ class Event extends AppModel
         }
         if ($options['extended']) {
             foreach ($results as $k => $result) {
-                $results[$k] = $this->__mergeExtensions($user, $result, $options['includeEventCorrelations']);
+                $results[$k] = $this->__mergeExtensions($user, $result, $options);
             }
         }
         return $results;
@@ -2569,15 +2561,16 @@ class Event extends AppModel
     /**
      * @param array $user
      * @param array $event
-     * @param bool $includeEventCorrelations
+     * @param array $options
      * @return array
      * @throws Exception
      */
-    private function __mergeExtensions(array $user, array $event, $includeEventCorrelations)
+    private function __mergeExtensions(array $user, array $event, array $options)
     {
         $extensions = $this->fetchEvent($user, [
             'eventsExtendingUuid' => $event['Event']['uuid'],
-            'includeEventCorrelations' => $includeEventCorrelations,
+            'includeEventCorrelations' => $options['includeEventCorrelations'],
+            'includeWarninglistHits' => $options['includeWarninglistHits'],
         ]);
         foreach ($extensions as $extensionEvent) {
             $eventMeta = array(
@@ -2603,7 +2596,7 @@ class Event extends AppModel
                 }
                 $event['EventTag'][] = $eventTag;
             }
-            if ($includeEventCorrelations) {
+            if ($options['includeEventCorrelations']) {
                 // Merge just related events that are not already in main event
                 foreach ($extensionEvent['RelatedEvent'] as $relatedEvent) {
                     foreach ($event['RelatedEvent'] as $rE) {
@@ -2612,6 +2605,14 @@ class Event extends AppModel
                         }
                     }
                     $event['RelatedEvent'][] = $relatedEvent;
+                }
+            }
+            if ($options['includeWarninglistHits']) {
+                // Merge just event warninglist that are not already in main event
+                foreach ($extensionEvent['warnings'] as $warninglistId => $warning) {
+                    if (!isset($event['warnings'][$warninglistId])) {
+                        $event['warnings'][$warninglistId] = $warning;
+                    }
                 }
             }
         }
@@ -4982,8 +4983,6 @@ class Event extends AppModel
         $correlatedAttributes,
         $correlatedShadowAttributes,
         $filterType = false,
-        &$eventWarnings,
-        $warningLists,
         $sightingsData
     ) {
         $attribute['objectType'] = 'attribute';
@@ -5042,28 +5041,7 @@ class Event extends AppModel
             ) {
                 $include = false;
             }
-        }
 
-        if (!empty($attribute['ShadowAttribute'])) {
-            $temp = array();
-            foreach ($attribute['ShadowAttribute'] as $k => $proposal) {
-                $result = $this->__prepareProposalForView(
-                    $proposal,
-                    $correlatedShadowAttributes,
-                    $filterType,
-                    $eventWarnings,
-                    $warningLists
-                );
-                if ($result['include']) {
-                    $temp[] = $result['data'];
-                }
-            }
-            $attribute['ShadowAttribute'] = $temp;
-        }
-        $attribute = $this->__prepareGenericForView($attribute, $eventWarnings, $warningLists);
-
-        /* warning */
-        if ($filterType) {
             if ($filterType['warning'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
             } else if (!empty($attribute['warnings']) || !empty($attribute['validationIssue'])) { // `include only`
@@ -5072,16 +5050,26 @@ class Event extends AppModel
                 $include = $include && ($filterType['warning'] == 2);
             }
         }
-        return array('include' => $include, 'data' => $attribute);
+
+        if (!$include) {
+            return null;
+        }
+
+        if (!empty($attribute['ShadowAttribute'])) {
+            $temp = array();
+            foreach ($attribute['ShadowAttribute'] as $k => $proposal) {
+                $result = $this->__prepareProposalForView($proposal, $correlatedShadowAttributes, $filterType);
+                if ($result) {
+                    $temp[] = $result;
+                }
+            }
+            $attribute['ShadowAttribute'] = $temp;
+        }
+        return $this->__prepareGenericForView($attribute);
     }
 
-    private function __prepareProposalForView(
-        $proposal,
-        $correlatedShadowAttributes,
-        $filterType = false,
-        &$eventWarnings,
-        $warningLists
-    ) {
+    private function __prepareProposalForView($proposal, $correlatedShadowAttributes, $filterType = false)
+    {
         if ($proposal['proposal_to_delete']) {
             $proposal['objectType'] = 'proposal_delete';
         } else {
@@ -5127,21 +5115,22 @@ class Event extends AppModel
             ) {
                 $include = false;
             }
-        }
 
-        $proposal = $this->__prepareGenericForView($proposal, $eventWarnings, $warningLists);
-
-        /* warning */
-        if ($filterType) {
+            /* warning */
             if ($filterType['warning'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
             } else if (!empty($proposal['warnings']) || !empty($proposal['validationIssue'])) { // `include only`
-                $include = $include && ($filterType['correlation'] == 1);
+                $include = $include && ($filterType['warning'] == 1);
             } else { // `exclude`
-                $include = $include && ($filterType['correlation'] == 2);
+                $include = $include && ($filterType['warning'] == 2);
             }
         }
-        return array('include' => $include, 'data' => $proposal);
+
+        if (!$include) {
+            return null;
+        }
+
+        return $this->__prepareGenericForView($proposal);
     }
 
     private function __prepareObjectForView(
@@ -5149,13 +5138,15 @@ class Event extends AppModel
         $correlatedAttributes,
         $correlatedShadowAttributes,
         $filterType = false,
-        &$eventWarnings,
-        $warningLists,
         $sightingsData
     ) {
         $object['category'] = $object['meta-category'];
 
         $include = empty($filterType['attributeFilter']) || $filterType['attributeFilter'] == 'object' || $filterType['attributeFilter'] == 'all' || $object['meta-category'] === $filterType['attributeFilter'];
+
+        if (!$include) {
+            return null;
+        }
 
         if (!empty($object['Attribute'])) {
             $temp = array();
@@ -5165,12 +5156,10 @@ class Event extends AppModel
                     $correlatedAttributes,
                     $correlatedShadowAttributes,
                     false,
-                    $eventWarnings,
-                    $warningLists,
                     $sightingsData
                 );
-                if ($result['include']) {
-                    $temp[] = $result['data'];
+                if ($result) {
+                    $temp[] = $result;
                 }
             }
             $object['Attribute'] = $temp;
@@ -5186,18 +5175,18 @@ class Event extends AppModel
             || $filterType['server'] != 0
         ) {
             $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData);
+            if (!$include) {
+                return null;
+            }
         }
 
-        return array('include' => $include, 'data' => $object);
+        return $object;
     }
 
     private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData)
     {
-        $include = true;
-
         if (empty($object['Attribute'])) { // reject empty object
-            $include = false;
-            return $include;
+            return false;
         }
 
         /* proposal */
@@ -5212,8 +5201,7 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
 
@@ -5241,8 +5229,7 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
 
@@ -5270,8 +5257,7 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
 
@@ -5299,8 +5285,7 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
 
@@ -5328,8 +5313,7 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
 
@@ -5357,18 +5341,14 @@ class Event extends AppModel
                 }
             }
             if (!$flagKeep) {
-                $include = false;
-                return $include;
+                return false;
             }
         }
-        return $include;
+        return true;
     }
 
-    private function __prepareGenericForView(
-        $object,
-        &$eventWarnings,
-        $warningLists
-    ) {
+    private function __prepareGenericForView($object)
+    {
         if ($this->Attribute->isImage($object)) {
             if (!empty($object['data'])) {
                 $object['image'] = $object['data'];
@@ -5385,14 +5365,11 @@ class Event extends AppModel
                 }
             }
         }
-        $object = $this->Warninglist->checkForWarning($object, $eventWarnings, $warningLists);
         return $object;
     }
 
     public function rearrangeEventForView(&$event, $passedArgs = array(), $all = false, $sightingsData=array())
     {
-        $this->Warninglist = ClassRegistry::init('Warninglist');
-        $warningLists = $this->Warninglist->fetchForEventView();
         foreach ($event['Event'] as $k => $v) {
             if (is_array($v)) {
                 $event[$k] = $v;
@@ -5415,38 +5392,40 @@ class Event extends AppModel
             $filterType[$filterType['attributeFilter']] = 1;
         }
 
-        $eventWarnings = array();
         $correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
         $correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
-        $event['objects'] = array();
-        foreach ($event['Attribute'] as $attribute) {
-            $result = $this->__prepareAttributeForView(
-                $attribute,
-                $correlatedAttributes,
-                $correlatedShadowAttributes,
-                $filterType,
-                $eventWarnings,
-                $warningLists,
-                $sightingsData
-            );
-            if ($result['include']) {
-                $event['objects'][] = $result['data'];
+        $objects = array();
+
+        if (isset($event['Attribute'])) {
+            foreach ($event['Attribute'] as $attribute) {
+                $result = $this->__prepareAttributeForView(
+                    $attribute,
+                    $correlatedAttributes,
+                    $correlatedShadowAttributes,
+                    $filterType,
+                    $sightingsData
+                );
+                if ($result) {
+                    $objects[] = $result;
+                }
             }
+            unset($event['Attribute']);
         }
-        unset($event['Attribute']);
-        if (!empty($event['ShadowAttribute'])) {
+
+        if (isset($event['ShadowAttribute'])) {
             foreach ($event['ShadowAttribute'] as $proposal) {
                 $result = $this->__prepareProposalForView(
                     $proposal,
                     $correlatedShadowAttributes,
-                    $filterType,
-                    $eventWarnings,
-                    $warningLists
+                    $filterType
                 );
-                $event['objects'][] = $result['data'];
+                if ($result) {
+                    $objects[] = $result;
+                }
             }
+            unset($event['ShadowAttribute']);
         }
-        if (!empty($event['Object'])) {
+        if (isset($event['Object'])) {
             foreach ($event['Object'] as $object) {
                 $object['objectType'] = 'object';
                 $result = $this->__prepareObjectForView(
@@ -5454,17 +5433,17 @@ class Event extends AppModel
                     $correlatedAttributes,
                     $correlatedShadowAttributes,
                     $filterType,
-                    $eventWarnings,
-                    $warningLists,
                     $sightingsData
                 );
-                if ($result['include']) {
-                    $event['objects'][] = $result['data'];
+                if ($result) {
+                    $objects[] = $result;
                 }
             }
+            unset($event['Object']);
         }
-        unset($event['Object']);
-        unset($event['ShadowAttribute']);
+
+        $event['objects'] = $objects;
+
         $referencedByArray = array();
         foreach ($event['objects'] as $object) {
             if (!in_array($object['objectType'], array('attribute', 'object'))) {
@@ -5499,7 +5478,6 @@ class Event extends AppModel
             }
         }
         $params['total_elements'] = count($event['objects']);
-        $event['Event']['warnings'] = $eventWarnings;
         return $params;
     }
 
@@ -5777,84 +5755,84 @@ class Event extends AppModel
 
     public function getSightingData(array $event)
     {
-        $this->Sighting = ClassRegistry::init('Sighting');
-        if (!empty($event['Sighting'])) {
-            $sightingsData = array();
-            $sparklineData = array();
-            $startDates = array();
-            $range = $this->Sighting->getMaximumRange();
-            foreach ($event['Sighting'] as $sighting) {
-                $type = $this->Sighting->type[$sighting['type']];
-                if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
-                    $sightingsData[$sighting['attribute_id']][$type] = array('count' => 0);
-                }
-                $sightingsData[$sighting['attribute_id']][$type]['count']++;
-                $orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : 'Others';
-                if ($sighting['type'] == '0' && (!isset($startDates[$sighting['attribute_id']]) || $startDates[$sighting['attribute_id']] > $sighting['date_sighting'])) {
-                    if ($sighting['date_sighting'] >= $range) {
-                        $startDates[$sighting['attribute_id']] = $sighting['date_sighting'];
-                    }
-                }
-                if ($sighting['type'] == '0' && (!isset($startDates['event']) || $startDates['event'] > $sighting['date_sighting'])) {
-                    if ($sighting['date_sighting'] >= $range) {
-                        $startDates['event'] = $sighting['date_sighting'];
-                    }
-                }
-                if (!isset($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName])) {
-                    $sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName] = array('count' => 1, 'date' => $sighting['date_sighting']);
-                } else {
-                    $sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['count']++;
-                    if ($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] < $sighting['date_sighting']) {
-                        $sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] = $sighting['date_sighting'];
-                    }
-                }
-                if ($sighting['type'] !== '0') {
-                    continue;
-                }
-                $date = date("Y-m-d", $sighting['date_sighting']);
-                if (!isset($sparklineData[$sighting['attribute_id']][$date])) {
-                    $sparklineData[$sighting['attribute_id']][$date] = 1;
-                } else {
-                    $sparklineData[$sighting['attribute_id']][$date]++;
-                }
-                if (!isset($sparklineData['event'][$date])) {
-                    $sparklineData['event'][$date] = 1;
-                } else {
-                    $sparklineData['event'][$date]++;
-                }
-            }
-            $csv = array();
-            $today = strtotime(date('Y-m-d', time()));
-            foreach ($startDates as $k => $v) {
-                $startDates[$k] = date('Y-m-d', $v);
-            }
-            foreach ($sparklineData as $aid => $data) {
-                if (!isset($startDates[$aid])) {
-                    continue;
-                }
-                $startDate = $startDates[$aid];
-                if (strtotime($startDate) < $range) {
-                    $startDate = date('Y-m-d');
-                }
-                $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
-                $sighting = $data;
-                for ($date = $startDate; strtotime($date) <= $today; $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
-                    if (!isset($csv[$aid])) {
-                        $csv[$aid] = 'Date,Close\n';
-                    }
-                    if (isset($sighting[$date])) {
-                        $csv[$aid] .= $date . ',' . $sighting[$date] . '\n';
-                    } else {
-                        $csv[$aid] .= $date . ',0\n';
-                    }
-                }
-            }
-            return array(
-                    'data' => $sightingsData,
-                    'csv' => $csv
-            );
+        if (empty($event['Sighting'])) {
+            return ['data' => [], 'csv' => []];
         }
-        return array('data' => array(), 'csv' => array());
+
+        $this->Sighting = ClassRegistry::init('Sighting');
+
+        $sightingsData = array();
+        $sparklineData = array();
+        $startDates = array();
+        $range = $this->Sighting->getMaximumRange();
+        foreach ($event['Sighting'] as $sighting) {
+            $type = $this->Sighting->type[$sighting['type']];
+            if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
+                $sightingsData[$sighting['attribute_id']][$type] = array('count' => 0);
+            }
+            $sightingsData[$sighting['attribute_id']][$type]['count']++;
+            $orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : 'Others';
+            if (!isset($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName])) {
+                $sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName] = array('count' => 1, 'date' => $sighting['date_sighting']);
+            } else {
+                $sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['count']++;
+                if ($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] < $sighting['date_sighting']) {
+                    $sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] = $sighting['date_sighting'];
+                }
+            }
+            if ($sighting['type'] !== '0') {
+                continue;
+            }
+            if (!isset($startDates[$sighting['attribute_id']]) || $startDates[$sighting['attribute_id']] > $sighting['date_sighting']) {
+                if ($sighting['date_sighting'] >= $range) {
+                    $startDates[$sighting['attribute_id']] = $sighting['date_sighting'];
+                }
+            }
+            if (!isset($startDates['event']) || $startDates['event'] > $sighting['date_sighting']) {
+                if ($sighting['date_sighting'] >= $range) {
+                    $startDates['event'] = $sighting['date_sighting'];
+                }
+            }
+            $date = date("Y-m-d", $sighting['date_sighting']);
+            if (!isset($sparklineData[$sighting['attribute_id']][$date])) {
+                $sparklineData[$sighting['attribute_id']][$date] = 1;
+            } else {
+                $sparklineData[$sighting['attribute_id']][$date]++;
+            }
+            if (!isset($sparklineData['event'][$date])) {
+                $sparklineData['event'][$date] = 1;
+            } else {
+                $sparklineData['event'][$date]++;
+            }
+        }
+        $csv = array();
+        $today = strtotime(date('Y-m-d', time()));
+        foreach ($startDates as $k => $v) {
+            $startDates[$k] = date('Y-m-d', $v);
+        }
+        foreach ($sparklineData as $aid => $data) {
+            if (!isset($startDates[$aid])) {
+                continue;
+            }
+            $startDate = $startDates[$aid];
+            if (strtotime($startDate) < $range) {
+                $startDate = date('Y-m-d');
+            }
+            $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
+            $sighting = $data;
+            $csv[$aid] = 'Date,Close\n';
+            for ($date = $startDate; strtotime($date) <= $today; $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
+                if (isset($sighting[$date])) {
+                    $csv[$aid] .= $date . ',' . $sighting[$date] . '\n';
+                } else {
+                    $csv[$aid] .= $date . ',0\n';
+                }
+            }
+        }
+        return array(
+            'data' => $sightingsData,
+            'csv' => $csv
+        );
     }
 
     public function cacheSgids($user, $useCache = false)
@@ -5934,16 +5912,11 @@ class Event extends AppModel
             $tag = ClassRegistry::init('Tag');
             $args = $this->Attribute->dissectArgs($tagRules);
             $tagArray = $this->EventTag->Tag->fetchEventTagIds($args[0], $args[1]);
-            $temp = array();
-            foreach ($tagArray[0] as $accepted) {
-                $temp['OR'][] = array('Event.id' => $accepted);
+            if (!empty($tagArray[0])) {
+                $filters[] = ['OR' => ['Event.id' => $tagArray[0]]];
+            } else {
+                $filters[] = ['AND' => ['Event.id NOT IN' => $tagArray[1]]];
             }
-            $filters[] = $temp;
-            $temp = array();
-            foreach ($tagArray[1] as $rejected) {
-                $temp['AND'][] = array('Event.id !=' => $rejected);
-            }
-            $filters[] = $temp;
             if ($useCache) {
                 $this->assetCache['tagFilters'] = $filters;
             }
@@ -6283,7 +6256,6 @@ class Event extends AppModel
 
         if ($adhereToWarninglists) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            $warninglists = $this->Warninglist->fetchForEventView();
         }
         $saved = 0;
         $failed = 0;
@@ -6338,7 +6310,7 @@ class Event extends AppModel
                     }
                     // adhere to the warninglist
                     if ($adhereToWarninglists) {
-                        if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute)) {
+                        if (!$this->Warninglist->filterWarninglistAttribute($attribute)) {
                             if ($adhereToWarninglists === 'soft') {
                                 $attribute['to_ids'] = 0;
                             } else {
@@ -7033,11 +7005,9 @@ class Event extends AppModel
         if (isset($filters['tag']) and !isset($filters['tags'])) {
             $filters['tags'] = $filters['tag'];
         }
-
         $subqueryElements = $this->harvestSubqueryElements($filters);
         $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements);
         $filters = $this->addFiltersFromUserSettings($user, $filters);
-
         if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
             $eventid = $this->filterEventIds($user, $filters, $elementCounter);
@@ -7076,6 +7046,7 @@ class Event extends AppModel
             $filters['eventid'] = $chunk;
             if (!empty($filters['tags']['NOT'])) {
                 $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
+                unset($filters['tags']['NOT']);
             }
             $result = $this->fetchEvent(
                 $user,

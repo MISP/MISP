@@ -644,10 +644,12 @@
                 var reTag = /^(?<namespace>[^:="]+):(?<predicate>[^:="]+)(="(?<value>[^:="]+)")?$/
                 var result = tag.match(reTag);
                 var tagBaseName = '';
-                if (result.groups.value !== undefined) {
+                if (result !== null && result.groups.value !== undefined) {
                     tagBaseName = result.groups.namespace + ':' + result.groups.predicate;
-                } else {
+                } else if (result !== null) {
                     tagBaseName = result.groups.namespace;
+                } else {
+                    tagBaseName = tag
                 }
                 return tagBaseName;
             }

@@ -248,12 +248,23 @@ class ComplexTypeTool
         128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
     );
 
-    // algorithms to run through in order
-    private $__checks = array('Hashes', 'Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS', 'BTC');
+    // algorithms to run through in order, without Hashes that are checked separately
+    private $__checks = array('Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS', 'BTC');
 
+    /**
+     * @param string $raw_input Trimmed value
+     * @return array|false
+     */
     private function __resolveType($raw_input)
     {
-        $input = array('raw' => trim($raw_input));
+        $input = array('raw' => $raw_input);
+
+        // Check hashes before refang and port extracting, it is not necessary for hashes. This speedups parsing
+        // freetexts or CSVs with a lot of hashes.
+        $hashes = $this->__checkForHashes($input);
+        if ($hashes) {
+            return $hashes;
+        }
 
         $input = $this->__refangInput($input);
         $input = $this->__extractPort($input);
@@ -320,7 +331,7 @@ class ComplexTypeTool
             if ($this->__checkForBTC($input)) {
                 $types[] = 'btc';
             }
-            return array('types' => $types, 'to_ids' => true, 'default_type' => $hash['single'][0], 'value' => $input['raw']);
+            return array('types' => $types, 'to_ids' => true, 'default_type' => $types[0], 'value' => $input['raw']);
         }
         // ssdeep has a different pattern
         if ($this->__resolveSsdeep($input['raw'])) {
@@ -365,7 +376,13 @@ class ComplexTypeTool
     {
         // CVE numbers
         if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input['raw'])) {
-            return array('types' => array('vulnerability'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'vulnerability', 'value' => $input['raw']);
+            return [
+                'types' => ['vulnerability'],
+                'categories' => ['External analysis'],
+                'to_ids' => false,
+                'default_type' => 'vulnerability',
+                'value' => strtoupper($input['raw']), // 'CVE' must be uppercase
+            ];
         }
         // Phone numbers - for automatic recognition, needs to start with + or include dashes
         if ($input['raw'][0] === '+' || strpos($input['raw'], '-')) {
@@ -496,7 +513,7 @@ class ComplexTypeTool
     private function __resolveHash($value)
     {
         $strlen = strlen($value);
-        if (isset($this->__hexHashTypes[$strlen]) && preg_match("#[0-9a-f]{" . $strlen . "}$#i", $value)) {
+        if (isset($this->__hexHashTypes[$strlen]) && ctype_xdigit($value)) {
             return $this->__hexHashTypes[$strlen];
         }
         return false;

@@ -930,7 +930,7 @@ class TagsController extends AppController
             if (is_numeric($tag)) {
                 $conditions = array('Tag.id' => $tag);
             } else {
-                $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
+                $conditions = array('Tag.name LIKE' => trim($tag));
             }
             if (empty($local)) {
                 if (!empty($this->request->data['local'])) {

@@ -74,10 +74,5 @@
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
         });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter();
-            }
-        });
     });
 </script>

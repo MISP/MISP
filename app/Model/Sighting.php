@@ -5,6 +5,7 @@ App::uses('TmpFileTool', 'Tools');
 
 /**
  * @property Attribute $Attribute
+ * @property Event $Event
  */
 class Sighting extends AppModel
 {
@@ -21,6 +22,7 @@ class Sighting extends AppModel
         'attribute_id' => 'numeric',
         'org_id' => 'numeric',
         'date_sighting' => 'numeric',
+        'uuid' => 'uuid',
         'type' => array(
             'rule' => array('inList', array(0, 1, 2)),
             'message' => 'Invalid type. Valid options are: 0 (Sighting), 1 (False-positive), 2 (Expiration).'
@@ -51,12 +53,13 @@ class Sighting extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
-        $date = date('Y-m-d H:i:s');
         if (empty($this->data['Sighting']['id']) && empty($this->data['Sighting']['date_sighting'])) {
-            $this->data['Sighting']['date_sighting'] = $date;
+            $this->data['Sighting']['date_sighting'] = date('Y-m-d H:i:s');
         }
         if (empty($this->data['Sighting']['uuid'])) {
             $this->data['Sighting']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['Sighting']['uuid'] = strtolower($this->data['Sighting']['uuid']);
         }
         return true;
     }
@@ -209,14 +212,12 @@ class Sighting extends AppModel
      * @param array $user
      * @param array|int|null $attribute Attribute model or attribute ID
      * @param bool $extraConditions
+     * @param bool $forSync
      * @return array|int
      */
     public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
     {
-        $ownEvent = false;
-        if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) {
-            $ownEvent = true;
-        }
+        $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
 
         $contain = [];
         $conditions = array('Sighting.event_id' => $event['Event']['id']);
@@ -247,16 +248,22 @@ class Sighting extends AppModel
         // If the event has any sightings for the user's org, then the user is a sighting reporter for the event too.
         // This means that he /she has access to the sightings data contained within
         if (!$ownEvent && Configure::read('Plugin.Sightings_policy') == 1) {
-            $temp = $this->find('first', array('recursive' => -1, 'conditions' => array('Sighting.event_id' => $event['Event']['id'], 'Sighting.org_id' => $user['org_id'])));
+            $temp = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array(
+                    'Sighting.event_id' => $event['Event']['id'],
+                    'Sighting.org_id' => $user['org_id'],
+                )
+            ));
             if (empty($temp)) {
                 return array();
             }
         }
 
         $sightings = $this->find('all', array(
-                'conditions' => $conditions,
-                'recursive' => -1,
-                'contain' => $contain,
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'contain' => $contain,
         ));
         if (empty($sightings)) {
             return array();
@@ -279,93 +286,28 @@ class Sighting extends AppModel
             ) {
                 if ($sighting['Sighting']['org_id'] != $user['org_id']) {
                     if (empty($anonOrg)) {
-                        unset($sightings[$k]['Sighting']['org_id']);
-                        unset($sightings[$k]['Organisation']);
+                        unset($sighting['Sighting']['org_id']);
+                        unset($sighting['Organisation']);
                     } else {
-                        $sightings[$k]['Sighting']['org_id'] = $anonOrg['Organisation']['id'];
-                        $sightings[$k]['Organisation'] = $anonOrg['Organisation'];
+                        $sighting['Sighting']['org_id'] = $anonOrg['Organisation']['id'];
+                        $sighting['Organisation'] = $anonOrg['Organisation'];
                     }
                 }
             }
             // rearrange it to match the event format of fetchevent
-            if (isset($sightings[$k]['Organisation'])) {
-                $sightings[$k]['Sighting']['Organisation'] = $sightings[$k]['Organisation'];
+            if (isset($sighting['Organisation'])) {
+                $sighting['Sighting']['Organisation'] = $sighting['Organisation'];
             }
             // zeroq: add attribute UUID to sighting to make synchronization easier
             if (isset($sighting['Attribute']['uuid'])) {
-                $sightings[$k]['Sighting']['attribute_uuid'] = $sighting['Attribute']['uuid'];
+                $sighting['Sighting']['attribute_uuid'] = $sighting['Attribute']['uuid'];
             } else {
-                $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
+                $sighting['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
             }
 
-            $sightings[$k] = $sightings[$k]['Sighting'] ;
+            $sightings[$k] = $sighting['Sighting'] ;
         }
         return $sightings;
-    }
-
-    /*
-     * Loop through all attributes of an event, including those in objects
-     * and pass each value to SightingDB. If there's a hit, append the data
-     * directly to the attributes
-     */
-    public function attachSightingDB($event, $user)
-    {
-        if (!empty(Configure::read('Plugin.Sightings_sighting_db_enable'))) {
-            $host = empty(Configure::read('Plugin.Sightings_sighting_db_host')) ? 'localhost' : Configure::read('Plugin.Sightings_sighting_db_host');
-            $port = empty(Configure::read('Plugin.Sightings_sighting_db_port')) ? 9999 : Configure::read('Plugin.Sightings_sighting_db_port');
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $params = array(
-                'ssl_verify_peer' => false,
-                'ssl_verify_peer_name' => false,
-                'ssl_verify_host' => false
-            );
-            $HttpSocket = $syncTool->createHttpSocket($params);
-            if (!empty($event['Attribute'])) {
-                $event['Attribute'] = $this->__attachSightingDBToAttribute($event['Attribute'], $user, $host, $port, $HttpSocket);
-            }
-            if (!empty($event['Object'])) {
-                foreach ($event['Object'] as &$object) {
-                    if (!empty($object['Attribute'])) {
-                        $object['Attribute'] = $this->__attachSightingDBToAttribute($object['Attribute'], $user, $host, $port, $HttpSocket);
-                    }
-                }
-            }
-        }
-        return $event;
-    }
-
-    private function __attachSightingDBToAttribute($attributes, $user, $host, $port, $HttpSocket = false)
-    {
-        if (empty($HttpSocket)) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $params = array(
-                'ssl_allow_self_signed' => true,
-                'ssl_verify_peer' => false
-            );
-            $HttpSocket = $syncTool->createHttpSocket($params);
-        }
-        foreach($attributes as &$attribute) {
-            $response = $HttpSocket->get(
-                sprintf(
-                    '%s:%s/r/all/%s?val=%s',
-                    $host,
-                    $port,
-                    $attribute['type'],
-                    rtrim(str_replace('/', '_', str_replace('+', '-', base64_encode($attribute['value']))), '=')
-                )
-            );
-            if ($response->code == 200) {
-                $responseData = json_decode($response->body, true);
-                if ($responseData !== false) {
-                    if (!isset($responseData['error'])) {
-                        $attribute['SightingDB'] = $responseData;
-                    }
-                }
-            }
-        }
-        return $attributes;
     }
 
     public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false, $publish = false, $saveOnBehalfOf = false)
@@ -471,11 +413,6 @@ class Sighting extends AppModel
         return $result;
     }
 
-    public function generateRandomFileName()
-    {
-        return (new RandomTool())->random_str(false, 12);
-    }
-
     public function addUuids()
     {
         $sightings = $this->find('all', array(
@@ -538,19 +475,18 @@ class Sighting extends AppModel
         return $sightingsRearranged;
     }
 
-    public function getSightingsForObjectIds($user, $tagList, $context = 'event', $type = '0')
+    /**
+     * @param $user - not used
+     * @param array $tagIds
+     * @param string $context 'event' or 'attribute'
+     * @param string|false $type
+     * @return array
+     */
+    public function getSightingsForObjectIds($user, array $tagIds, $context = 'event', $type = '0')
     {
         $conditions = array(
             'Sighting.date_sighting >' => $this->getMaximumRange(),
-            ucfirst($context) . 'Tag.tag_id' => $tagList
-
-        );
-        $contain = array(
-            ucfirst($context) => array(
-                ucfirst($context) . 'Tag' => array(
-                    'Tag'
-                )
-            )
+            ucfirst($context) . 'Tag.tag_id' => $tagIds
         );
         if ($type !== false) {
             $conditions['Sighting.type'] = $type;
@@ -560,15 +496,16 @@ class Sighting extends AppModel
             'recursive' => -1,
             'contain' => array(ucfirst($context) . 'Tag'),
             'conditions' => $conditions,
-            'fields' => array('Sighting.id', 'Sighting.' . $context . '_id', 'Sighting.date_sighting', ucfirst($context) . 'Tag.tag_id')
+            'fields' => array('Sighting.' . $context . '_id', 'Sighting.date_sighting')
         ));
         $sightingsRearranged = array();
         foreach ($sightings as $sighting) {
             $date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
-            if (isset($sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date])) {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date]++;
+            $contextId = $sighting['Sighting'][$context . '_id'];
+            if (isset($sightingsRearranged[$contextId][$date])) {
+                $sightingsRearranged[$contextId][$date]++;
             } else {
-                $sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date] = 1;
+                $sightingsRearranged[$contextId][$date] = 1;
             }
         }
         return $sightingsRearranged;
