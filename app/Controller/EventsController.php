@@ -1082,6 +1082,7 @@ class EventsController extends AppController
         $conditions['includeAllTags'] = true;
         $conditions['includeGranularCorrelations'] = 1;
         $conditions['includeEventCorrelations'] = false;
+        $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
         if (!empty($filters['includeRelatedTags'])) {
             $this->set('includeRelatedTags', 1);
             $conditions['includeRelatedTags'] = 1;
@@ -1524,6 +1525,7 @@ class EventsController extends AppController
             $conditions['includeAttachments'] = true;
         } else {
             $conditions['includeAllTags'] = true;
+            $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
         }
         $deleted = 0;
         if (isset($this->params['named']['deleted'])) {
