@@ -1383,8 +1383,8 @@ class Attribute extends AppModel
             case 'filename':
             case 'pdb':
             case 'windows-scheduled-task':
-      case 'whois-registrant-name':
-      case 'whois-registrant-org':
+            case 'whois-registrant-name':
+            case 'whois-registrant-org':
             case 'whois-registrar':
             case 'whois-creation-date':
             case 'date-of-birth':
@@ -1572,8 +1572,9 @@ class Attribute extends AppModel
                 $value = $pieces[0] . '|' . strtolower($pieces[1]);
                 break;
             case 'http-method':
-                $value = strtoupper($value);
-                break;
+            case 'hex':
+            case 'vulnerability':
+                return strtoupper($value);
             case 'cc-number':
             case 'bin':
                 $value = preg_replace('/[^0-9]+/', '', $value);
@@ -1596,8 +1597,8 @@ class Attribute extends AppModel
                 $value = preg_replace('/^hxxp/i', 'http', $value);
                 $value = preg_replace('/\[\.\]/', '.', $value);
                 break;
-      case 'x509-fingerprint-md5':
-      case 'x509-fingerprint-sha256':
+            case 'x509-fingerprint-md5':
+            case 'x509-fingerprint-sha256':
             case 'x509-fingerprint-sha1':
                 $value = str_replace(':', '', $value);
                 $value = strtolower($value);
@@ -1642,7 +1643,6 @@ class Attribute extends AppModel
                         $parts[0] = inet_ntop(inet_pton($parts[0]));
                     }
                     return $parts[0] . '|' . $parts[1];
-                break;
             case 'mac-address':
             case 'mac-eui-64':
                 $value = str_replace(array('.', ':', '-', ' '), '', $value);
@@ -1651,9 +1651,6 @@ class Attribute extends AppModel
             case 'hostname|port':
                 $value = strtolower($value);
                 str_replace(':', '|', $value);
-                break;
-            case 'hex':
-                $value = strtoupper($value);
                 break;
             case 'boolean':
                 if ('true' == trim(strtolower($value))) {
