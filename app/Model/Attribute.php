@@ -919,10 +919,6 @@ class Attribute extends AppModel
             $this->data['Attribute']['sharing_group_id'] = 0;
         }
         // return true, otherwise the object cannot be saved
-
-        if ($this->data['Attribute']['type'] == 'float' && $this->data['Attribute']['value'] == 0) {
-            $this->data['Attribute']['value'] = '0.0';
-        }
         return true;
     }
 
@@ -1481,11 +1477,7 @@ class Attribute extends AppModel
                 $returnValue = (json_last_error() == JSON_ERROR_NONE);
                 break;
             case 'float':
-                $value = floatval($value);
-                if (is_float($value)) {
-                    $returnValue = true;
-                }
-                break;
+                return is_numeric($value);
             case 'boolean':
                 if ($value == 1 || $value == 0) {
                     $returnValue = true;
