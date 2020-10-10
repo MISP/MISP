@@ -4690,6 +4690,10 @@ $(document).ready(function() {
             $privacy_target.text($privacy_target.data('hidden-value'));
             $this.removeClass('fa-eye');
             $this.addClass('fa-eye-slash');
+
+            if ($privacy_target.hasClass('quickSelect')) {
+                $privacy_target.click();
+            }
         } else {
             $privacy_target.text('****************************************');
             $this.removeClass('fa-eye-slash');
