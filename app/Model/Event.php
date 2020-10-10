@@ -2597,6 +2597,10 @@ class Event extends AppModel
             foreach ($thingsToMerge as $thingToMerge) {
                 $event[$thingToMerge] = array_merge($event[$thingToMerge], $extensionEvent[$thingToMerge]);
             }
+            // Merge event reports if requested
+            if (!$options['noEventReports']) {
+                $event['EventReport'] = array_merge($event['EventReport'], $extensionEvent['EventReport']);
+            }
             // Merge just tags that are not already in main event
             foreach ($extensionEvent['EventTag'] as $eventTag) {
                 foreach ($event['EventTag'] as $eT) {
