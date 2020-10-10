@@ -7,6 +7,7 @@ App::uses('FinancialTool', 'Tools');
 App::uses('RandomTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
+App::uses('ComplexTypeTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -3128,7 +3129,6 @@ class Attribute extends AppModel
                 'value' => $value,
         );
         if ($element['complex']) {
-            App::uses('ComplexTypeTool', 'Tools');
             $complexTypeTool = new ComplexTypeTool();
             $result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
             if (isset($result['multi'])) {
@@ -3693,7 +3693,12 @@ class Attribute extends AppModel
         return $validTypes;
     }
 
-    public function validateAttribute($attribute, $context = true)
+    /**
+     * @param $attribute
+     * @param bool $context
+     * @return array|true
+     */
+    public function validateAttribute(array $attribute, $context = true)
     {
         $this->set($attribute);
         if (!$context) {
