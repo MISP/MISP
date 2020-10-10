@@ -1504,7 +1504,8 @@ class EventsController extends AppController
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('defaultFilteringRules', $this->defaultFilteringRules);
-        $this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
+        $this->loadModel('Galaxy');
+        $this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
         $this->set('modificationMapCSV', $modificationMapCSV);
         $this->set('title_for_layout', __('Event #%s', $event['Event']['id']));
     }
