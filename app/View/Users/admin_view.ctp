@@ -30,8 +30,9 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         __('Request API access')
     );
     $authkey_data = sprintf(
-        '<span class="privacy-value quickSelect authkey" data-hidden-value="%s">****************************************</span> <i class="privacy-toggle fas fa-eye useCursorPointer"></i>%s',
+        '<span class="privacy-value quickSelect authkey" data-hidden-value="%s">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="%s"></i>%s',
         h($user['User']['authkey']),
+        __('Reveal hidden value'),
         sprintf(
             ' (%s)',
             $this->Form->postLink(__('reset'), array('action' => 'resetauthkey', $user['User']['id']))

@@ -41,7 +41,7 @@
                     <?php echo h($user['User']['email']); ?>&nbsp;
                 </td>
                 <td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" class="<?php echo $user['Role']['perm_auth'] ? 'bold' : 'grey'; ?>">
-                    <span class="privacy-value quickSelect" data-hidden-value="<?= h($user['User']['authkey']) ?>">****************************************</span> <i class="privacy-toggle fas fa-eye useCursorPointer"></i>
+                    <span class="privacy-value quickSelect" data-hidden-value="<?= h($user['User']['authkey']) ?>">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="<?= __('Reveal hidden value') ?>"></i>
                 </td>
                 <td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
                     <?php echo $user['User']['autoalert']? __('Yes') : __('No'); ?>

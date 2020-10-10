@@ -12,8 +12,9 @@
     );
     if ($user['Role']['perm_auth']) {
         $authkey_data = sprintf(
-            '<span class="privacy-value quickSelect authkey" data-hidden-value="%s">****************************************</span> <i class="privacy-toggle fas fa-eye useCursorPointer"></i>%s',
+            '<span class="privacy-value quickSelect authkey" data-hidden-value="%s">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="%s"></i>%s',
             h($user['User']['authkey']),
+            __('Reveal hidden value'),
             (Configure::read('MISP.disableUserSelfManagement') && !$isAdmin) ? '' :
                 sprintf(
                     ' (%s)',
