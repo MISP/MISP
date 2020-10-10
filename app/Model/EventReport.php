@@ -416,7 +416,6 @@ class EventReport extends AppModel
         $options = [
             'noSightings' => true,
             'sgReferenceOnly' => true,
-            'excludeGalaxy' => true,
             'noEventReports' => true,
             'noShadowAttributes' => true,
         ];
@@ -438,19 +437,18 @@ class EventReport extends AppModel
 
         $attributes = [];
         foreach ($event['Attribute'] as $attribute) {
-            unset($attribute['Galaxy']);
             unset($attribute['ShadowAttribute']);
-            $attributes[$attribute['uuid']] = $attribute;
             foreach ($attribute['AttributeTag'] as $at) {
                 $allTagNames[$at['Tag']['name']] = $at['Tag'];
             }
+            $this->Event->Attribute->removeGalaxyClusterTags($attribute);
+            $attributes[$attribute['uuid']] = $attribute;
         }
 
         $objects = [];
         $templateConditions = [];
         foreach ($event['Object'] as $k => $object) {
             foreach ($object['Attribute'] as &$objectAttribute) {
-                unset($objectAttribute['Galaxy']);
                 unset($objectAttribute['ShadowAttribute']);
                 $objectAttribute['object_uuid'] = $object['uuid'];
                 $attributes[$objectAttribute['uuid']] = $objectAttribute;
@@ -458,6 +456,7 @@ class EventReport extends AppModel
                 foreach ($objectAttribute['AttributeTag'] as $at) {
                     $allTagNames[$at['Tag']['name']] = $at['Tag'];
                 }
+                $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
             }
             $objects[$object['uuid']] = $object;
 
