@@ -13,9 +13,9 @@
     $all = false;
     if (isset($this->params->params['paging']['Event']['page'])) {
         if ($this->params->params['paging']['Event']['page'] == 0) $all = true;
-        $page = $this->params->params['paging']['Event']['page'];
+        $page = $this->params->params['paging']['Event']['page']; // $page is probably unused
     } else {
-        $page = 0;
+        $page = 0; // $page is probably unused
     }
     $fieldCount = 11;
     $filtered = false;
@@ -170,7 +170,6 @@
                     'k' => $k,
                     'mayModify' => $mayModify,
                     'mayChangeCorrelation' => $mayChangeCorrelation,
-                    'page' => $page,
                     'fieldCount' => $fieldCount,
                     'includeRelatedTags' => !empty($includeRelatedTags) ? 1 : 0,
                     'includeDecayingScore' => !empty($includeDecayingScore) ? 1 : 0,

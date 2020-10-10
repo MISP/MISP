@@ -1,5 +1,4 @@
 <?php
-  $tr_class = '';
   $linkClass = 'white';
   $currentType = 'Object';
   $tr_class = 'tableHighlightBorderTop borderBlue';
@@ -154,7 +153,6 @@
         'object' => $attribute,
         'mayModify' => $mayModify,
         'mayChangeCorrelation' => $mayChangeCorrelation,
-        'page' => $page,
         'fieldCount' => $fieldCount,
         'child' => $attrKey == $lastElement ? 'last' : true
       ));

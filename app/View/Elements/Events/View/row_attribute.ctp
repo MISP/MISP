@@ -343,14 +343,10 @@
     <?php
         echo $this->element('/Events/View/sighting_field', array(
           'object' => $object,
-          'tr_class' => $tr_class,
-          'page' => $page
         ));
         if (!empty($includeSightingdb)) {
             echo $this->element('/Events/View/sightingdb_field', array(
               'object' => $object,
-              'tr_class' => $tr_class,
-              'page' => $page
             ));
         }
         if (!empty($includeDecayScore)): ?>
@@ -429,7 +425,6 @@
         'object' => $proposal,
         'mayModify' => $mayModify,
         'mayChangeCorrelation' => $mayChangeCorrelation,
-        'page' => $page,
         'fieldCount' => $fieldCount,
         'child' => $propKey == $lastElement ? 'last' : true,
         'objectContainer' => $child
