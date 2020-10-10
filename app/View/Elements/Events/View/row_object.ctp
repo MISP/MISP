@@ -18,15 +18,7 @@
   <?php
     if ($mayModify || $extended):
   ?>
-    <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-      <?php
-        if ($mayModify):
-      ?>
-        <input id="select_object_<?php echo $object['id']; ?>" class="select_object row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
-      <?php
-        endif;
-      ?>
-    </td>
+    <td style="width:10px;"></td>
   <?php
     endif;
   ?>
