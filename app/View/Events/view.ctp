@@ -75,11 +75,11 @@
         }
         if (!empty($contributors)) {
             $contributorsContent = '';
-            foreach ($contributors as $k => $entry) {
+            foreach ($contributors as $organisationId => $name) {
                 $contributorsContent .= sprintf(
-                    '<a href="%s" style="margin-right:2px;text-decoration: none;">%s</a>',
-                    $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($entry['Organisation']['name']),
-                    $this->OrgImg->getOrgImg(array('name' => $entry['Organisation']['name'], 'id' => $entry['Organisation']['id'], 'size' => 24), true, true)
+                    '<a href="%s">%s</a>',
+                    $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($name),
+                    $this->OrgImg->getOrgImg(array('name' => $name, 'id' => $organisationId, 'size' => 24), true, true)
                 );
             }
             $table_data[] = array(
