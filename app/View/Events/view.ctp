@@ -206,15 +206,16 @@
                 'html' => sprintf(
                     '%s %s %s',
                     $extended_by,
-                    sprintf(
+                    __(
                         'Currently in %s view.',
                         $extended ? __('extended') : __('atomic')
                     ),
                     sprintf(
-                        '<a href="%s/events/view/%s%s"><span class="fa fa-sync"></span></a>',
+                        '<a href="%s/events/view/%s%s"><span class="fa fa-sync" title="%s"></span></a>',
                         $baseurl,
                         $event['Event']['id'],
-                        ($extended ? '' : '/extended:1')
+                        ($extended ? '' : '/extended:1'),
+                        $extended ? __('Switch to atomic view') : __('Switch to extended view')
                     )
                 )
             );
