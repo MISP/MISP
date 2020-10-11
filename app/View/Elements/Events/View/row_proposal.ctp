@@ -46,7 +46,7 @@
       echo $object['objectType'] == 0 ? h($object['id']) : '&nbsp;';
     ?>
   </td>
-  <td class="short context hidden uuid"><?= $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?></td>
+  <td class="short context hidden uuid quickSelect"><?= $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?></td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
