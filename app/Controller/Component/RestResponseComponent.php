@@ -434,7 +434,8 @@ class RestResponseComponent extends Component
 
     private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
-        if (strtolower($format) === 'application/xml' || strtolower($format) === 'xml') {
+        $format = strtolower($format);
+        if ($format === 'application/xml' || $format === 'xml') {
             if (!$raw) {
                 if (isset($response[0])) {
                     if (count(array_keys($response[0])) == 1) {
@@ -451,9 +452,9 @@ class RestResponseComponent extends Component
                 $response = $response->asXML();
             }
             $type = 'xml';
-        } elseif (strtolower($format) == 'openioc') {
+        } elseif ($format === 'openioc') {
             $type = 'xml';
-        } elseif (strtolower($format) == 'csv') {
+        } elseif ($format === 'csv') {
             $type = 'csv';
         } else {
             if (empty($format)) {
@@ -489,7 +490,7 @@ class RestResponseComponent extends Component
                 }
             }
         }
-        $cakeResponse = new CakeResponse(array('body'=> $response, 'status' => $code, 'type' => $type));
+        $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
 
         if (Configure::read('Security.allow_cors')) {
             $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";

@@ -8,6 +8,7 @@ App::uses('TmpFileTool', 'Tools');
 /**
  * @property User $User
  * @property Attribute $Attribute
+ * @property ShadowAttribute $ShadowAttribute
  * @property EventTag $EventTag
  */
 class Event extends AppModel
@@ -6241,12 +6242,12 @@ class Event extends AppModel
         return false;
     }
 
-    public function processFreeTextData($user, $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $jobId = false, $returnRawResults = false)
+    public function processFreeTextData(array $user, $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $jobId = false, $returnRawResults = false)
     {
         $event = $this->find('first', array(
             'conditions' => array('id' => $id),
             'recursive' => -1,
-            'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
+            'fields' => array('orgc_id', 'id', 'uuid'),
         ));
         if (empty($event)) {
             return false;
@@ -6262,9 +6263,9 @@ class Event extends AppModel
         $attributeSources = array('attributes', 'ontheflyattributes');
         $ontheflyattributes = array();
         $i = 0;
-        $total = count($attributeSources);
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
+            $total = count($attributeSources);
         }
         foreach ($attributeSources as $sourceKey => $source) {
             foreach (${$source} as $k => $attribute) {
@@ -6325,10 +6326,11 @@ class Event extends AppModel
                         // If Tags, attach each tags to attribute
                         if (!empty($attribute['tags'])) {
                             foreach (explode(",", $attribute['tags']) as $tagName) {
-                                $this->Tag = ClassRegistry::init('Tag');
-                                $TagId = $this->Tag->captureTag(array('name' => $tagName), array('Role' => $user['Role']));
-                                $this->AttributeTag = ClassRegistry::init('AttributeTag');
-                                if (!$this->AttributeTag->attachTagToAttribute($saved_attribute['Attribute']['id'], $id, $TagId)) {
+                                $tagId = $this->Attribute->AttributeTag->Tag->captureTag(array('name' => trim($tagName)), array('Role' => $user['Role']));
+                                if ($tagId === false) {
+                                    continue;  // user don't have permission to use that tag
+                                }
+                                if (!$this->Attribute->AttributeTag->attachTagToAttribute($saved_attribute['Attribute']['id'], $id, $tagId)) {
                                     throw new MethodNotAllowedException(__('Could not add tags.'));
                                 }
                             }
@@ -6350,16 +6352,7 @@ class Event extends AppModel
         $messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
         if ($saved > 0) {
             if ($objectType != 'ShadowAttribute') {
-                $event = $this->find('first', array(
-                        'conditions' => array('Event.id' => $id),
-                        'recursive' => -1
-                ));
-                if ($event['Event']['published'] == 1) {
-                    $event['Event']['published'] = 0;
-                }
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->save($event);
+                $this->unpublishEvent($id);
             } else {
                 if (!$this->ShadowAttribute->sendProposalAlertEmail($id)) {
                     $emailResult = " but sending out the alert e-mails has failed for at least one recipient";
@@ -6743,7 +6736,7 @@ class Event extends AppModel
 
     public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $returnRawResults = false)
     {
-        if (Configure::read('MISP.background_jobs')) {
+        if (Configure::read('MISP.background_jobs') && count($attributes) > 5) { // on background process just big attributes batch
             list($job, $randomFileName, $tempFile) = $this->__initiateProcessJob($user, $id);
             $tempData = array(
                 'user' => $user,

@@ -3679,20 +3679,25 @@ class EventsController extends AppController
         if (!$this->userRole['perm_add']) {
             throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
         }
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
         $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (!$event) {
             throw new NotFoundException(__('Invalid event.'));
         }
-        if ($this->request->is('post')) {
-            $this->Event->insertLock($this->Auth->user(), $id);
-            $attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
-            $default_comment = $this->request->data['Attribute']['default_comment'];
-            $proposals = !$this->__canModifyEvent($event) || (isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']);
-            $flashMessage = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, $default_comment, $proposals);
-            $this->Flash->info($flashMessage);
-            $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+
+        $this->Event->insertLock($this->Auth->user(), $id);
+        $attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
+        $default_comment = $this->request->data['Attribute']['default_comment'];
+        $proposals = !$this->__canModifyEvent($event) || (isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']);
+        $flashMessage = $this->Event->processFreeTextDataRouter($this->Auth->user(), $attributes, $id, $default_comment, $proposals);
+        $this->Flash->info($flashMessage);
+
+        if ($this->request->is('ajax')) {
+            return $this->RestResponse->viewData($flashMessage, $this->response->type());
         } else {
-            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+            $this->redirect(array('controller' => 'events', 'action' => 'view', $id));
         }
     }
 
