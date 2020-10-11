@@ -550,12 +550,6 @@ function postActivationScripts(name, type, id, field, event) {
     $(name + '_form').bind("focusin", function(){
         inputFieldButtonActive(name + '_field');
     });
-
-    $(name + '_form').bind("keydown", function(e) {
-        if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
-            submitForm(type, id, field, event);
-        }
-    });
     $(name + '_field').closest('.inline-input-container').children('.inline-input-accept').bind('click', function() {
         submitForm(type, id, field, event);
     });
@@ -4752,7 +4746,7 @@ $(document.body).on('keyup', '#quickFilterField', function(e) {
 $(document.body).on('keydown', 'textarea', function(e) {
     if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) { // CMD+ENTER or CTRL+ENTER key
         if (e.target.form) {
-            e.target.form.submit();
+            $(e.target.form).submit();
         }
     }
 });
