@@ -91,6 +91,7 @@
             echo $this->Form->input('Attribute.' . $k . '.to_ids', array(
                 'type' => 'checkbox',
                 'checked' => $element['to_ids'],
+                'label' => __('For Intrusion Detection System'),
             ));
         ?>
 
@@ -107,7 +108,8 @@
                 'required' => false,
                 'allowEmpty' => true,
                 'div' => 'input clear',
-                'class' => 'input-xxlarge'
+                'style' => 'height:20px;width:400px;',
+                'label' => __('Contextual Comment'),
             ));
         ?>
 
@@ -141,7 +143,7 @@
     }
 ?>
 
-$(document).ready(function() {
+$(function() {
     initPopoverContent('Attribute0');
     $('#Attribute0Distribution').change(function() {
         initPopoverContent('Attribute0');
