@@ -1314,7 +1314,9 @@ span.success {
 
 .inline-input-button span {
     display:block;
-    margin: 0 auto;
+    margin-top: 2px;
+    text-align: center;
+    font-size: 13px;
 }
 
 .inline-input-accept {
