@@ -112,7 +112,9 @@ foreach ($orgs as $org): ?>
         </td>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['name']); ?></td>
         <?php if ($isSiteAdmin): ?>
-            <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['uuid']); ?></td>
+        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'">
+            <span class="quickSelect"><?php echo h($org['Organisation']['uuid']); ?></span>
+        </td>
         <?php endif; ?>
         <td ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['description']); ?></td>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['nationality']); ?></td>

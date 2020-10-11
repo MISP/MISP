@@ -2895,17 +2895,16 @@ function objectTemplateViewContent(context, id) {
 
 function organisationViewContent(context, id) {
     organisationViewButtonHighlight(context);
-    var action = "/organisations/landingpage/";
-    if (context == 'members') {
+    var action;
+    if (context === 'members') {
         action = "/admin/users/index/searchorg:";
-    }
-    if (context == 'events') {
+    } else if (context === 'events') {
         action = "/events/index/searchorg:";
     }
     $.ajax({
         url: baseurl + action + id,
         type:'GET',
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         error: function(){
@@ -4684,13 +4683,17 @@ $(document).ready(function() {
         setHomePage();
     });
 
-    $('.privacy-toggle').on('click', function() {
+    $(document.body).on('click', '.privacy-toggle', function() {
         var $this = $(this);
         var $privacy_target = $this.parent().find('.privacy-value');
         if ($this.hasClass('fa-eye')) {
             $privacy_target.text($privacy_target.data('hidden-value'));
             $this.removeClass('fa-eye');
             $this.addClass('fa-eye-slash');
+
+            if ($privacy_target.hasClass('quickSelect')) {
+                $privacy_target.click();
+            }
         } else {
             $privacy_target.text('****************************************');
             $this.removeClass('fa-eye-slash');

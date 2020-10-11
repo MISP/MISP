@@ -2620,3 +2620,8 @@ table tr:hover .down-expand-button {
     font-size: 100%;
     width: 45em;
 }
+
+.authkey {
+    font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+    font-size: 11px;
+}

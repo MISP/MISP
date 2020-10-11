@@ -383,7 +383,6 @@ class ACLComponent extends Component
                     'fetchSGOrgRow' => array('*'),
                     'getUUIDs' => array('perm_sync'),
                     'index' => array('*'),
-                    'landingpage' => array('*'),
                     'view' => array('*'),
             ),
             'pages' => array(

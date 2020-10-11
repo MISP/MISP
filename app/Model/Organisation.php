@@ -199,7 +199,7 @@ class Organisation extends AppModel
                 $changed = true;
             }
             if ($force) {
-                $fields = array('type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts', 'landingpage');
+                $fields = array('type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts');
                 foreach ($fields as $field) {
                     if (isset($org[$field])) {
                         if ($existingOrg['Organisation'][$field] != $org[$field]) {
