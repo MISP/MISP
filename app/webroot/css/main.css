@@ -2335,6 +2335,17 @@ tr.redRow td, .redElement {
     border-top:0px !important;
 }
 
+tr.redRow td a, tr.redRow td a:hover,
+tr.darkOrangeRow td a, tr.darkOrangeRow td a:hover,
+tr.blueRow td a, tr.blueRow td a:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+a.fa:hover, a.fas:hover {
+    text-decoration: none !important;
+}
+
 .blank_table_row {
     height: 10px;
 }
