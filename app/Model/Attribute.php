@@ -1650,8 +1650,7 @@ class Attribute extends AppModel
                 break;
             case 'hostname|port':
                 $value = strtolower($value);
-                str_replace(':', '|', $value);
-                break;
+                return str_replace(':', '|', $value);
             case 'boolean':
                 if ('true' == trim(strtolower($value))) {
                     $value = 1;
