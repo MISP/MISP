@@ -1593,10 +1593,6 @@ class Attribute extends AppModel
                 $value = preg_replace('/\(0\)/', '', $value);
                 $value = preg_replace('/[^\+0-9]+/', '', $value);
                 break;
-            case 'url':
-                $value = preg_replace('/^hxxp/i', 'http', $value);
-                $value = preg_replace('/\[\.\]/', '.', $value);
-                break;
             case 'x509-fingerprint-md5':
             case 'x509-fingerprint-sha256':
             case 'x509-fingerprint-sha1':
