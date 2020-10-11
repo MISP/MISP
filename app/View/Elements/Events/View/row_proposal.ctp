@@ -43,10 +43,10 @@
   <?php endif; ?>
   <td class="short context hidden">
     <?php
-      echo $object['objectType'] == 0 ? h($object['id']) : '&nbsp;';
+      echo h($object['id']);
     ?>
   </td>
-  <td class="short context hidden uuid quickSelect"><?= $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?></td>
+  <td class="short context hidden uuid quickSelect"><?= h($object['uuid']) ?></td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
