@@ -30,16 +30,12 @@
   }
   $identifier = (empty($k)) ? '' : ' id="row_' . h($k) . '" tabindex="0"';
 ?>
-<tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>" class="<?php echo $tr_class; ?>" <?php echo $identifier; ?>>
+<tr id="<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>" class="<?php echo $tr_class; ?>" <?php echo $identifier; ?>>
   <?php
     if ($mayModify):
   ?>
       <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-        <?php if ($object['objectType'] == 0): ?>
-          <input id = "select_<?php echo $object['id']; ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
-        <?php else: ?>
-          <input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
-        <?php endif; ?>
+          <input id="select_proposal_<?php echo $object['id']; ?>" class="select_proposal row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
       </td>
   <?php
     endif;
@@ -53,7 +49,7 @@
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
-  <td style="font-weight:bold;text-align:left;">DELETE</td>
+  <td style="font-weight:bold;text-align:left;"><?= __('DELETE') ?></td>
   <?php
     if ($extended):
   ?>
