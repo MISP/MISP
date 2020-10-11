@@ -316,6 +316,7 @@ td.highlight3 {
 table.table-striped > tbody > tr.objectAddFieldTr > td {
     position: absolute;
     background-color: #ffffff00;
+    height: 0;
 }
 
 table.table-striped > tbody > tr > td > span.objectAddField {
