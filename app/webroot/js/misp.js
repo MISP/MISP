@@ -4748,6 +4748,15 @@ $(document.body).on('keyup', '#quickFilterField', function(e) {
     }
 });
 
+// Send textarea form on CMD+ENTER or CTRL+ENTER
+$(document.body).on('keydown', 'textarea', function(e) {
+    if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) { // CMD+ENTER or CTRL+ENTER key
+        if (e.target.form) {
+            e.target.form.submit();
+        }
+    }
+});
+
 function queryEventLock(event_id, user_org_id) {
     if (tabIsActive) {
         $.ajax({
