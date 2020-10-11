@@ -93,11 +93,9 @@
       else $editable = '';
     ?>
     <div id = "<?php echo $currentType; ?>_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
-      <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="' . h($currentType) . '" data-object-id="' . h($object['id']) . '"'?>>
     <?php
         echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
     ?>
-      </span>
       <?php
         if (isset($object['warnings'])) {
           $temp = '';
