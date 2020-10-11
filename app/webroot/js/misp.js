@@ -2656,7 +2656,7 @@ function importChoiceSelect(url, elementId, ajax) {
 function freetextImportResultsSubmit(id, count) {
     var attributeArray = [];
     var temp;
-    for (i = 0; i < count; i++) {
+    for (var i = 0; i < count; i++) {
         if ($('#Attribute' + i + 'Save').val() == 1) {
             temp = {
                 value:$('#Attribute' + i + 'Value').val(),
@@ -2673,7 +2673,7 @@ function freetextImportResultsSubmit(id, count) {
             }
             attributeArray[attributeArray.length] = temp;
         }
-    };
+    }
     $("#AttributeJsonObject").val(JSON.stringify(attributeArray));
     var formData = $(".mainForm").serialize();
     $.ajax({
@@ -2681,15 +2681,16 @@ function freetextImportResultsSubmit(id, count) {
         cache: false,
         url: baseurl + "/events/saveFreeText/" + id,
         data: formData,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
-        success:function (data, textStatus) {
+        success: function () {
             window.location = baseurl + '/events/view/' + id;
         },
-        complete:function() {
+        complete: function() {
             $(".loading").hide();
         },
+        error: xhrFailCallback,
     });
 }
 

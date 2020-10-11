@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property Tag $Tag
+ */
 class AttributeTag extends AppModel
 {
     public $actsAs = array('Containable');

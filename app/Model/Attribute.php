@@ -10,6 +10,7 @@ App::uses('TmpFileTool', 'Tools');
 
 /**
  * @property Event $Event
+ * @property AttributeTag $AttributeTag
  */
 class Attribute extends AppModel
 {
