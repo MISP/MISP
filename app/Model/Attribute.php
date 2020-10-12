@@ -849,8 +849,7 @@ class Attribute extends AppModel
             return false;
         }
         App::uses('ComplexTypeTool', 'Tools');
-        $this->complexTypeTool = new ComplexTypeTool();
-        $this->data['Attribute']['value'] = $this->complexTypeTool->refangValue($this->data['Attribute']['value'], $this->data['Attribute']['type']);
+        $this->data['Attribute']['value'] = ComplexTypeTool::refangValue($this->data['Attribute']['value'], $this->data['Attribute']['type']);
 
         if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
             $this->validationErrors['type'] = ['Object attribute sent, but no object_relation set.'];
