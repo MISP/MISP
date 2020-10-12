@@ -59,8 +59,6 @@ class Event extends AppModel
         0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group'
     );
 
-    private $__fTool = false;
-
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 
     public $export_types = array(
@@ -1963,20 +1961,16 @@ class Event extends AppModel
             'includeFeedCorrelations',
             'includeServerCorrelations',
             'includeWarninglistHits',
+            'noEventReports', // do not include event report in event data
+            'noShadowAttributes', // do not fetch proposals
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
         }
-        if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
-            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        }
-        if (!empty($options['includeDecayScore'])) {
-            $this->DecayingModel = ClassRegistry::init('DecayingModel');
-        }
         if (!isset($options['includeEventCorrelations'])) {
             $options['includeEventCorrelations'] = true;
         }
-        foreach ($possibleOptions as &$opt) {
+        foreach ($possibleOptions as $opt) {
             if (!isset($options[$opt])) {
                 $options[$opt] = false;
             }
@@ -2021,10 +2015,9 @@ class Event extends AppModel
         }
         $conditionsAttributes = array();
         $conditionsObjects = array();
-        $conditionsObjectReferences = array();
         $conditionsEventReport = array();
 
-        if (isset($options['flatten']) && $options['flatten']) {
+        if ($options['flatten']) {
             $flatten = true;
         } else {
             $flatten = false;
@@ -2191,7 +2184,6 @@ class Event extends AppModel
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
         $fieldsEventReport = array('*');
-        $sharingGroupData = $this->__cacheSharingGroupData($user, $useCache);
         $params = array(
             'conditions' => $conditions,
             'recursive' => 0,
@@ -2243,6 +2235,12 @@ class Event extends AppModel
         if ($flatten) {
             unset($params['contain']['Object']);
         }
+        if ($options['noEventReports']) {
+            unset($params['contain']['EventReport']);
+        }
+        if ($options['noShadowAttributes']) {
+            unset($params['contain']['ShadowAttribute']);
+        }
         if ($options['metadata']) {
             unset($params['contain']['Attribute']);
             unset($params['contain']['ShadowAttribute']);
@@ -2254,6 +2252,15 @@ class Event extends AppModel
             return array();
         }
 
+        $sharingGroupData = $this->__cacheSharingGroupData($user, $useCache);
+
+        // Initialize classes that will be necessary during event fetching
+        if ((empty($options['metadata']) && empty($options['noSightings'])) && !isset($this->Sighting)) {
+            $this->Sighting = ClassRegistry::init('Sighting');
+        }
+        if (!empty($options['includeDecayScore']) && !isset($this->DecayingModel)) {
+            $this->DecayingModel = ClassRegistry::init('DecayingModel');
+        }
         if (($options['includeFeedCorrelations'] || $options['includeServerCorrelations']) && !isset($this->Feed)) {
             $this->Feed = ClassRegistry::init('Feed');
         }
@@ -2457,7 +2464,6 @@ class Event extends AppModel
                 }
             }
             if (empty($options['metadata']) && empty($options['noSightings'])) {
-                $this->Sighting = ClassRegistry::init('Sighting');
                 $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
             }
             if ($options['includeSightingdb']) {
@@ -2572,6 +2578,10 @@ class Event extends AppModel
             'eventsExtendingUuid' => $event['Event']['uuid'],
             'includeEventCorrelations' => $options['includeEventCorrelations'],
             'includeWarninglistHits' => $options['includeWarninglistHits'],
+            'noShadowAttributes' => $options['noShadowAttributes'],
+            'noEventReports' => $options['noEventReports'],
+            'noSightings' => isset($options['noSightings']) ? $options['noSightings'] : null,
+            'sgReferenceOnly' => $options['sgReferenceOnly'],
         ]);
         foreach ($extensions as $extensionEvent) {
             $eventMeta = array(
@@ -2587,6 +2597,10 @@ class Event extends AppModel
             $thingsToMerge = array('Attribute', 'Object', 'ShadowAttribute', 'Galaxy');
             foreach ($thingsToMerge as $thingToMerge) {
                 $event[$thingToMerge] = array_merge($event[$thingToMerge], $extensionEvent[$thingToMerge]);
+            }
+            // Merge event reports if requested
+            if (!$options['noEventReports']) {
+                $event['EventReport'] = array_merge($event['EventReport'], $extensionEvent['EventReport']);
             }
             // Merge just tags that are not already in main event
             foreach ($extensionEvent['EventTag'] as $eventTag) {
@@ -6175,11 +6189,12 @@ class Event extends AppModel
     public function massageTags($data, $dataType = 'Event', $excludeGalaxy = false, $cullGalaxyTags = false)
     {
         $data['Galaxy'] = array();
-        if (empty($this->GalaxyCluster)) {
-            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        }
+
         // unset empty event tags that got added because the tag wasn't exportable
         if (!empty($data[$dataType . 'Tag'])) {
+            if (!isset($this->GalaxyCluster)) {
+                $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            }
             foreach ($data[$dataType . 'Tag'] as $k => &$dataTag) {
                 if (empty($dataTag['Tag'])) {
                     unset($data[$dataType . 'Tag'][$k]);
