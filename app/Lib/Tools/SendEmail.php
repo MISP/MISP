@@ -481,8 +481,7 @@ class SendEmail
             throw new Exception('Could not parse certificate');
         }
 
-        // Purpose '5' should be 'smimeencrypt'
-        if (!($parsed['purposes'][5][0] === 1 && $parsed['purposes'][5][2] === 'smimeencrypt')) {
+        if ($parsed['purposes'][X509_PURPOSE_SMIME_ENCRYPT][0] !== true) {
             throw new Exception('This certificate cannot be used to encrypt email.');
         }
 
