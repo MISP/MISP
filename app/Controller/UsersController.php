@@ -751,7 +751,9 @@ class UsersController extends AppController
                             $password = isset($this->request->data['User']['password']) ? $this->request->data['User']['password'] : false;
                             $result = $this->User->initiatePasswordReset($user, true, true, $password);
                             if ($result && empty(Configure::read('MISP.disable_emailing'))) {
-                                $notification_message .= ' User notified of new credentials.';
+                                $notification_message .= ' ' . __('User notified of new credentials.');
+                            } else {
+                                $notification_message .= ' ' . __('User notification of new credentials could not be send.');
                             }
                         }
                         if ($this->_isRest()) {
@@ -762,7 +764,7 @@ class UsersController extends AppController
                             $user['User']['password'] = '******';
                             return $this->RestResponse->viewData($user, $this->response->type());
                         } else {
-                            $this->Flash->success(__('The user has been saved.' . $notification_message));
+                            $this->Flash->success(__('The user has been saved.') . $notification_message);
                             $this->redirect(array('action' => 'index'));
                         }
                     } else {
