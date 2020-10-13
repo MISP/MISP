@@ -282,10 +282,11 @@ class WarninglistsController extends AppController
 
             $hits = array();
             $warninglists = $this->Warninglist->getEnabled();
+            $wildlist = $this->Warninglist->getWildList($warninglists);
             foreach ($data as $dataPoint) {
                 foreach ($warninglists as $warninglist) {
                     $values = $this->Warninglist->getFilteredEntries($warninglist);
-                    $result = $this->Warninglist->quickCheckValue($values, $dataPoint, $warninglist['Warninglist']['type']);
+                    $result = $this->Warninglist->quickCheckValue($values, $dataPoint, $warninglist['Warninglist']['type'], $wildlist);
                     if ($result !== false) {
                         $hits[$dataPoint][] = array('id' => $warninglist['Warninglist']['id'], 'name' => $warninglist['Warninglist']['name']);
                     }
