@@ -930,8 +930,7 @@ class Attribute extends AppModel
     {
         $compositeTypes = $this->getCompositeTypes();
         if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
-            $pieces = explode('|', $fields['value']);
-            if (2 != count($pieces)) {
+            if (substr_count($fields['value'], '|') !== 1) {
                 return false;
             }
         }
@@ -1339,14 +1338,6 @@ class Attribute extends AppModel
             case 'cookie':
             case 'attachment':
             case 'malware-sample':
-                $returnValue = true;
-                break;
-            case 'link':
-                // Moved to a native function whilst still enforcing the scheme as a requirement
-                if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
-                    $returnValue = true;
-                }
-                break;
             case 'comment':
             case 'text':
             case 'other':
@@ -1357,6 +1348,12 @@ class Attribute extends AppModel
             case 'middle-name':
             case 'last-name':
                 $returnValue = true;
+                break;
+            case 'link':
+                // Moved to a native function whilst still enforcing the scheme as a requirement
+                if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
+                    $returnValue = true;
+                }
                 break;
             case 'hex':
                 return ctype_xdigit($value);
