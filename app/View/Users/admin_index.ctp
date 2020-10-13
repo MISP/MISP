@@ -93,7 +93,7 @@
                     'data_path' => 'User.gpgkey'
                 ),
                 array(
-                    'name' => __('SMIME'),
+                    'name' => __('S/MIME'),
                     'element' => 'boolean',
                     'sort' => 'User.certif_public',
                     'class' => 'short',
