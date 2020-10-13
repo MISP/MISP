@@ -7,6 +7,7 @@ App::uses('FinancialTool', 'Tools');
 App::uses('RandomTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
+App::uses('ComplexTypeTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -919,10 +920,6 @@ class Attribute extends AppModel
             $this->data['Attribute']['sharing_group_id'] = 0;
         }
         // return true, otherwise the object cannot be saved
-
-        if ($this->data['Attribute']['type'] == 'float' && $this->data['Attribute']['value'] == 0) {
-            $this->data['Attribute']['value'] = '0.0';
-        }
         return true;
     }
 
@@ -1085,13 +1082,11 @@ class Attribute extends AppModel
             case 'x509-fingerprint-sha256':
             case 'x509-fingerprint-sha1':
             case 'git-commit-id':
-                $length = $this->__hexHashLengths[$type];
-                if (preg_match("#^[0-9a-f]{" . $length . "}$#", $value)) {
-                    $returnValue = true;
+                if ($this->isHashValid($type, $value)) {
+                    return true;
                 } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
+                    return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
                 }
-                break;
             case 'tlsh':
                 if (preg_match("#^[0-9a-f]{35,}$#", $value)) {
                     $returnValue = true;
@@ -1100,7 +1095,7 @@ class Attribute extends AppModel
                 }
                 break;
             case 'pehash':
-                if (preg_match("#^[0-9a-f]{40}$#", $value)) {
+                if ($this->isHashValid('pehash', $value)) {
                     $returnValue = true;
                 } else {
                     $returnValue = __('The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
@@ -1110,13 +1105,10 @@ class Attribute extends AppModel
                 if (substr_count($value, ':') == 2) {
                     $parts = explode(':', $value);
                     if (is_numeric($parts[0])) {
-                        $returnValue = true;
+                        return true;
                     }
                 }
-                if (!$returnValue) {
-                    $returnValue = __('Invalid SSDeep hash. The format has to be blocksize:hash:hash');
-                }
-                break;
+                return __('Invalid SSDeep hash. The format has to be blocksize:hash:hash');
             case 'impfuzzy':
                 if (substr_count($value, ':') == 2) {
                     $parts = explode(':', $value);
@@ -1139,7 +1131,7 @@ class Attribute extends AppModel
                 if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
                     $returnValue = true;
                 } else {
-                    $returnValue = 'Unknown HTTP method.';
+                    $returnValue = __('Unknown HTTP method.');
                 }
                 break;
             case 'filename|pehash':
@@ -1256,7 +1248,7 @@ class Attribute extends AppModel
                 if ($this->isDomainValid($value)) {
                     $returnValue = true;
                 } else {
-                    $returnValue = ucfirst($type) . __(' name has an invalid format. Please double check the value or select type "other".');
+                    $returnValue = __('%s name has an invalid format. Please double check the value or select type "other".', ucfirst($type));
                 }
                 break;
             case 'hostname|port':
@@ -1293,7 +1285,6 @@ class Attribute extends AppModel
                 }
                 break;
             case 'vulnerability':
-                $value = str_replace('–', '-', $value);
                 if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,}$#", $value)) {
                     $returnValue = true;
                 } else {
@@ -1301,7 +1292,6 @@ class Attribute extends AppModel
                 }
                 break;
             case 'weakness':
-                $value = str_replace('–', '-', $value);
                 if (preg_match("#^(CWE-)[0-9]{1,}$#", $value)) {
                     $returnValue = true;
                 } else {
@@ -1357,16 +1347,14 @@ class Attribute extends AppModel
             case 'other':
             case 'email-attachment':
             case 'email-body':
+            case 'email-header':
             case 'first-name':
             case 'middle-name':
             case 'last-name':
                 $returnValue = true;
                 break;
             case 'hex':
-                if (preg_match("/^[0-9a-f]*$/i", $value)) {
-                    $returnValue = true;
-                }
-                break;
+                return ctype_xdigit($value);
             case 'target-user':
             case 'campaign-name':
             case 'campaign-id':
@@ -1386,8 +1374,8 @@ class Attribute extends AppModel
             case 'filename':
             case 'pdb':
             case 'windows-scheduled-task':
-      case 'whois-registrant-name':
-      case 'whois-registrant-org':
+            case 'whois-registrant-name':
+            case 'whois-registrant-org':
             case 'whois-registrar':
             case 'whois-creation-date':
             case 'date-of-birth':
@@ -1424,14 +1412,10 @@ class Attribute extends AppModel
             case 'twitter-id':
             case 'chrome-extension-id':
             case 'mobile-application-id':
-                // no newline
-                if (!preg_match("#\n#", $value)) {
-                    $returnValue = true;
+                if (strpos($value, "\n") !== false) {
+                    return __('Value must not contain new line character.');
                 }
-                break;
-            case 'email-header':
-                $returnValue = true;
-                break;
+                return true;
             case 'datetime':
                 try {
                     new DateTime($value);
@@ -1442,12 +1426,10 @@ class Attribute extends AppModel
                 break;
             case 'size-in-bytes':
             case 'counter':
-                if (!is_numeric($value) || $value < 0) {
-                    $returnValue = __('The value has to be a number greater or equal 0.');
-                } else {
-                    $returnValue = true;
+                if ((is_int($value) || ctype_digit($value)) && $value >= 0) {
+                    return true;
                 }
-                break;
+                return __('The value has to be a whole number greater or equal 0.');
             case 'targeted-threat-index':
                 if (!is_numeric($value) || $value < 0 || $value > 10) {
                     $returnValue = __('The value has to be a number between 0 and 10.');
@@ -1481,11 +1463,7 @@ class Attribute extends AppModel
                 $returnValue = (json_last_error() == JSON_ERROR_NONE);
                 break;
             case 'float':
-                $value = floatval($value);
-                if (is_float($value)) {
-                    $returnValue = true;
-                }
-                break;
+                return is_numeric($value);
             case 'boolean':
                 if ($value == 1 || $value == 0) {
                     $returnValue = true;
@@ -1579,8 +1557,12 @@ class Attribute extends AppModel
                 $value = $pieces[0] . '|' . strtolower($pieces[1]);
                 break;
             case 'http-method':
-                $value = strtoupper($value);
-                break;
+            case 'hex':
+                return strtoupper($value);
+            case 'vulnerability':
+            case 'weakness':
+                $value = str_replace('–', '-', $value);
+                return strtoupper($value);
             case 'cc-number':
             case 'bin':
                 $value = preg_replace('/[^0-9]+/', '', $value);
@@ -1599,12 +1581,8 @@ class Attribute extends AppModel
                 $value = preg_replace('/\(0\)/', '', $value);
                 $value = preg_replace('/[^\+0-9]+/', '', $value);
                 break;
-            case 'url':
-                $value = preg_replace('/^hxxp/i', 'http', $value);
-                $value = preg_replace('/\[\.\]/', '.', $value);
-                break;
-      case 'x509-fingerprint-md5':
-      case 'x509-fingerprint-sha256':
+            case 'x509-fingerprint-md5':
+            case 'x509-fingerprint-sha256':
             case 'x509-fingerprint-sha1':
                 $value = str_replace(':', '', $value);
                 $value = strtolower($value);
@@ -1649,7 +1627,6 @@ class Attribute extends AppModel
                         $parts[0] = inet_ntop(inet_pton($parts[0]));
                     }
                     return $parts[0] . '|' . $parts[1];
-                break;
             case 'mac-address':
             case 'mac-eui-64':
                 $value = str_replace(array('.', ':', '-', ' '), '', $value);
@@ -1657,11 +1634,7 @@ class Attribute extends AppModel
                 break;
             case 'hostname|port':
                 $value = strtolower($value);
-                str_replace(':', '|', $value);
-                break;
-            case 'hex':
-                $value = strtoupper($value);
-                break;
+                return str_replace(':', '|', $value);
             case 'boolean':
                 if ('true' == trim(strtolower($value))) {
                     $value = 1;
@@ -3136,7 +3109,6 @@ class Attribute extends AppModel
                 'value' => $value,
         );
         if ($element['complex']) {
-            App::uses('ComplexTypeTool', 'Tools');
             $complexTypeTool = new ComplexTypeTool();
             $result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
             if (isset($result['multi'])) {
@@ -3701,7 +3673,12 @@ class Attribute extends AppModel
         return $validTypes;
     }
 
-    public function validateAttribute($attribute, $context = true)
+    /**
+     * @param $attribute
+     * @param bool $context
+     * @return array|true
+     */
+    public function validateAttribute(array $attribute, $context = true)
     {
         $this->set($attribute);
         if (!$context) {
@@ -4742,6 +4719,20 @@ class Attribute extends AppModel
      */
     private function isPortValid($value)
     {
-        return is_numeric($value) && $value >= 1 && $value <= 65535;
+        return (is_int($value) || ctype_digit($value)) && $value >= 1 && $value <= 65535;
+    }
+
+    /**
+     * @param string $type
+     * @param string $value
+     * @return bool
+     */
+    private function isHashValid($type, $value)
+    {
+        if (!isset($this->__hexHashLengths[$type])) {
+            throw new InvalidArgumentException("Invalid hash type '$type'.");
+        }
+        $length = $this->__hexHashLengths[$type];
+        return strlen($value) === $length && ctype_xdigit($value);
     }
 }

@@ -55,7 +55,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     }
     $table_data[] = array(
         'key' => __('Invited By'),
-        'html' => empty($user2['User']['email']) ? 'N/A' : sprintf('<a href="%s/admin/users/view/%s">%s</a>', h($user2['User']['id']), h($user2['User']['email'])),
+        'html' => empty($user2['User']['email']) ? 'N/A' : sprintf('<a href="%s/admin/users/view/%s">%s</a>', $baseurl, h($user2['User']['id']), h($user2['User']['email'])),
     );
     $org_admin_data = array();
     foreach ($user['User']['orgAdmins'] as $orgAdminId => $orgAdminEmail) {
