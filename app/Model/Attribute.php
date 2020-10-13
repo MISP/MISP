@@ -1447,6 +1447,10 @@ class Attribute extends AppModel
             case 'btc':
             case 'dash':
             case 'xmr':
+                if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
+                    $returnValue = true;
+                }
+                break;
             case 'vhash':
                 if (preg_match('/^[a-zA-Z0-9&!="]+$/', $value)) {
                     $returnValue = true;
