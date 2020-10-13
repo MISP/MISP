@@ -1233,10 +1233,13 @@ class Attribute extends AppModel
             case 'ip-dst|port':
             case 'ip-src|port':
                 $parts = explode('|', $value);
-                if (filter_var($parts[0], FILTER_VALIDATE_IP) && $this->isPortValid($parts[1])) {
-                    $returnValue = true;
+                if (!filter_var($parts[0], FILTER_VALIDATE_IP)) {
+                    return __('IP address has an invalid format.');
                 }
-                break;
+                if (!$this->isPortValid($parts[1])) {
+                    return __('Port numbers have to be integers between 1 and 65535.');
+                }
+                return true;
             case 'mac-address':
                 if (preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value)) {
                     $returnValue = true;
@@ -1252,15 +1255,18 @@ class Attribute extends AppModel
                 if ($this->isDomainValid($value)) {
                     $returnValue = true;
                 } else {
-                    $returnValue = __('%s name has an invalid format. Please double check the value or select type "other".', ucfirst($type));
+                    $returnValue = __('%s has an invalid format. Please double check the value or select type "other".', ucfirst($type));
                 }
                 break;
             case 'hostname|port':
                 $parts = explode('|', $value);
-                if ($this->isDomainValid($parts[0]) && $this->isPortValid($parts[1])) {
-                    $returnValue = true;
+                if (!$this->isDomainValid($parts[0])) {
+                    return __('Hostname has an invalid format.');
                 }
-                break;
+                if (!$this->isPortValid($parts[1])) {
+                    return __('Port numbers have to be integers between 1 and 65535.');
+                }
+                return true;
             case 'domain|ip':
                 if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}\|.*$#i", $value)) {
                     $parts = explode('|', $value);
