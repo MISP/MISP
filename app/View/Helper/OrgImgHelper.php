@@ -15,11 +15,12 @@ App::uses('AppHelper', 'View/Helper');
                     break;
                 }
             }
+            $baseurl = $this->_View->viewVars['baseurl'];
             if (!empty($imgOptions)) {
                 foreach ($imgOptions as $field => $imgOption) {
                     $result = sprintf(
                         '<img src="%s/img/orgs/%s" title="%s" width="%s" height="%s">',
-                        $this->baseurl,
+                        $baseurl,
                         $imgOption,
                         isset($options['name']) ? h($options['name']) : h($options['id']),
                         (int)$size,
@@ -29,8 +30,8 @@ App::uses('AppHelper', 'View/Helper');
                     if (!$raw) {
                         $result = sprintf(
                             '<a href="%s/organisations/view/%s">%s</a>',
-                            $this->baseurl,
-                            (empty($options['id']) ? h($options['name']) : h($options['id'])),
+                            $baseurl,
+                            empty($options['id']) ? h($options['name']) : h($options['id']),
                             $result
                         );
                     }
@@ -45,8 +46,8 @@ App::uses('AppHelper', 'View/Helper');
                 } else {
                     $result = sprintf(
                         '<a href="%s/organisations/view/%s"><span class="welcome">%s</span></a>',
-                        $this->baseurl,
-                        (empty($options['id']) ? h($options['name']) : h($options['id'])),
+                        $baseurl,
+                        empty($options['id']) ? h($options['name']) : h($options['id']),
                         h($options['name'])
                     );
                 }

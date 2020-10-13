@@ -316,6 +316,7 @@ td.highlight3 {
 table.table-striped > tbody > tr.objectAddFieldTr > td {
     position: absolute;
     background-color: #ffffff00;
+    height: 0;
 }
 
 table.table-striped > tbody > tr > td > span.objectAddField {
@@ -1313,7 +1314,9 @@ span.success {
 
 .inline-input-button span {
     display:block;
-    margin: 0 auto;
+    margin-top: 2px;
+    text-align: center;
+    font-size: 13px;
 }
 
 .inline-input-accept {
@@ -2333,6 +2336,17 @@ tr.redRow td, .redElement {
     background-color: #cc0000 !important;
     color: #ffffff;
     border-top:0px !important;
+}
+
+tr.redRow td a, tr.redRow td a:hover,
+tr.darkOrangeRow td a, tr.darkOrangeRow td a:hover,
+tr.blueRow td a, tr.blueRow td a:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+a.fa:hover, a.fas:hover {
+    text-decoration: none !important;
 }
 
 .blank_table_row {
