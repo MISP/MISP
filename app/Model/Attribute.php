@@ -1239,12 +1239,12 @@ class Attribute extends AppModel
                 }
                 break;
             case 'mac-address':
-                if (preg_match('/^([a-fA-F0-9]{2}[:|\-| |\.]?){6}$/', $value) == 1) {
+                if (preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value)) {
                     $returnValue = true;
                 }
                 break;
             case 'mac-eui-64':
-                if (preg_match('/^([a-fA-F0-9]{2}[:|\-| |\.]?){8}$/', $value) == 1) {
+                if (preg_match('/^([a-fA-F0-9]{2}[:]?){8}$/', $value)) {
                     $returnValue = true;
                 }
                 break;
@@ -1635,7 +1635,7 @@ class Attribute extends AppModel
                     return $parts[0] . '|' . $parts[1];
             case 'mac-address':
             case 'mac-eui-64':
-                $value = str_replace(array('.', ':', '-', ' '), '', $value);
+                $value = str_replace(array('.', ':', '-', ' '), '', strtolower($value));
                 $value = wordwrap($value, 2, ':', true);
                 break;
             case 'hostname|port':
