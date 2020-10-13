@@ -1107,17 +1107,17 @@ class Attribute extends AppModel
                 }
                 break;
             case 'ssdeep':
-                if (substr_count($value, ':') == 2) {
+                if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
-                    if (is_numeric($parts[0])) {
+                    if ($this->isPositiveInteger($parts[0])) {
                         return true;
                     }
                 }
                 return __('Invalid SSDeep hash. The format has to be blocksize:hash:hash');
             case 'impfuzzy':
-                if (substr_count($value, ':') == 2) {
+                if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
-                    if (is_numeric($parts[0])) {
+                    if ($this->isPositiveInteger($parts[0])) {
                         $returnValue = true;
                     }
                 }
@@ -1177,7 +1177,7 @@ class Attribute extends AppModel
                     $value = $composite[1];
                     if (substr_count($value, ':') == 2) {
                         $parts = explode(':', $value);
-                        if (is_numeric($parts[0])) {
+                        if ($this->isPositiveInteger($parts[0])) {
                             $returnValue = true;
                         }
                     }
@@ -1204,17 +1204,17 @@ class Attribute extends AppModel
             case 'ip-dst':
                 if (strpos($value, '/') !== false) {
                     $parts = explode("/", $value);
-                    if (count($parts) !== 2 || intval($parts[1]) != $parts[1] || $parts[1] < 0) {
+                    if (count($parts) !== 2 || !$this->isPositiveInteger($parts[1])) {
                         return __('Invalid CIDR notation value found.');
                     }
 
                     if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                         if ($parts[1] > 32) {
-                            return __('Invalid CIDR notation value found.');
+                            return __('Invalid CIDR notation value found, for IPv4 must be lower or equal 32.');
                         }
                     } else if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                         if ($parts[1] > 128) {
-                            return __('Invalid CIDR notation value found.');
+                            return __('Invalid CIDR notation value found, for IPv6 must be lower or equal 128.');
                         }
                     } else {
                         return __('IP address has an invalid format.');
@@ -1226,7 +1226,7 @@ class Attribute extends AppModel
 
             case 'port':
                 if (!$this->isPortValid($value)) {
-                    $returnValue = __('Port numbers have to be positive integers between 1 and 65535.');
+                    $returnValue = __('Port numbers have to be integers between 1 and 65535.');
                 } else {
                     $returnValue = true;
                 }
@@ -1431,7 +1431,7 @@ class Attribute extends AppModel
                 break;
             case 'size-in-bytes':
             case 'counter':
-                if ((is_int($value) || ctype_digit($value)) && $value >= 0) {
+                if ($this->isPositiveInteger($value)) {
                     return true;
                 }
                 return __('The value has to be a whole number greater or equal 0.');
@@ -4725,7 +4725,7 @@ class Attribute extends AppModel
      */
     private function isPortValid($value)
     {
-        return (is_int($value) || ctype_digit($value)) && $value >= 1 && $value <= 65535;
+        return $this->isPositiveInteger($value) && $value >= 1 && $value <= 65535;
     }
 
     /**
@@ -4740,5 +4740,15 @@ class Attribute extends AppModel
         }
         $length = $this->__hexHashLengths[$type];
         return strlen($value) === $length && ctype_xdigit($value);
+    }
+
+    /**
+     * Returns true if input value is positive integer or zero.
+     * @param int|string $value
+     * @return bool
+     */
+    private function isPositiveInteger($value)
+    {
+        return (is_int($value) && $value >= 0) || ctype_digit($value);
     }
 }
