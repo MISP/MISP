@@ -222,7 +222,7 @@ class User extends AppModel
         'Containable'
     );
 
-    /** @var Crypt_GPG|null|false */
+    /** @var CryptGpgExtended|null|false */
     private $gpg;
 
     public function beforeValidate($options = array())
@@ -302,9 +302,11 @@ class User extends AppModel
         return true;
     }
 
-    // Checks if the GnuPG key is a valid key, but also import it in the keychain.
-    // this will NOT fail on keys that can only be used for signing but not encryption!
-    // the method in verifyUsers will fail in that case.
+    /**
+     * Checks if the GnuPG key is a valid key.
+     * @param array $check
+     * @return bool
+     */
     public function validateGpgkey($check)
     {
         // LATER first remove the old gpgkey from the keychain
@@ -319,12 +321,11 @@ class User extends AppModel
             return true;
         }
         try {
-            $keyImportOutput = $gpg->importKey($check['gpgkey']);
-            if (!empty($keyImportOutput['fingerprint'])) {
-                return true;
-            }
+            $gpgTool = new GpgTool($gpg);
+            $gpgTool->validateGpgKey($check['gpgkey']);
+            return true;
         } catch (Exception $e) {
-            $this->logException("Exception during importing GPG key", $e);
+            $this->logException("Exception during validating GPG key", $e, LOG_NOTICE);
             return false;
         }
     }
@@ -452,25 +453,40 @@ class User extends AppModel
                 )));
     }
 
-    public function verifySingleGPG($user, $gpg = null)
+    /**
+     * 0 - true if key is valid
+     * 1 - User e-mail
+     * 2 - Error message
+     * 3 - Not used
+     * 4 - Key fingerprint
+     * 5 - Key fingerprint
+     * @param array $user
+     * @return array
+     */
+    public function verifySingleGPG(array $user)
     {
-        if ($gpg === null) {
-            $gpg = $this->initializeGpg();
-            if (!$gpg) {
-                $result[2] = 'GnuPG is not configured on this system.';
-                $result[0] = true;
-                return $result;
-            }
+        $result = [0 => false, 1 => $user['User']['email']];
+
+        $gpg = $this->initializeGpg();
+        if (!$gpg) {
+            $result[2] = 'GnuPG is not configured on this system.';
+            return $result;
         }
-        $result = array();
+
         try {
             $currentTimestamp = time();
-            $temp = $gpg->importKey($user['User']['gpgkey']);
-            $key = $gpg->getKeys($temp['fingerprint']);
-            $result[5] = $temp['fingerprint'];
-            $subKeys = $key[0]->getSubKeys();
-            $sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
-            foreach ($subKeys as $subKey) {
+            $keys = $gpg->keyInfo($user['User']['gpgkey']);
+            if (count($keys) !== 1) {
+                $result[2] = 'Multiple or no key found';
+                return $result;
+            }
+
+            $key = $keys[0];
+            $result[4] = $key->getPrimaryKey()->getFingerprint();
+            $result[5] = $result[4];
+
+            $sortedKeys = ['valid' => 0, 'expired' => 0, 'noEncrypt' => 0];
+            foreach ($key->getSubKeys() as $subKey) {
                 $expiration = $subKey->getExpirationDate();
                 if ($expiration != 0 && $currentTimestamp > $expiration) {
                     $sortedKeys['expired']++;
@@ -490,14 +506,12 @@ class User extends AppModel
                 if ($sortedKeys['noEncrypt']) {
                     $result[2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
                 }
+            } else {
                 $result[0] = true;
             }
         } catch (Exception $e) {
             $result[2] = $e->getMessage();
-            $result[0] = true;
         }
-        $result[1] = $user['User']['email'];
-        $result[4] = $temp['fingerprint'];
         return $result;
     }
 
@@ -521,7 +535,7 @@ class User extends AppModel
         }
         $results = [];
         foreach ($users as $k => $user) {
-            $results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
+            $results[$user['User']['id']] = $this->verifySingleGPG($user);
         }
         return $results;
     }
@@ -558,56 +572,64 @@ class User extends AppModel
         return $results;
     }
 
-    public function getPGP($id)
+    /**
+     * If you want to check if user has GPG or X.509 or send encrypted emails to that user, you need user keys. But by
+     * default, keys are part of default user model. This method add that keys to user model.
+     *
+     * @param array $user
+     * @return array
+     * @throws Exception
+     */
+    public function fillKeysToUser(array $user)
     {
+        if (empty($user['id'])) {
+            throw new InvalidArgumentException("Invalid user model provided, not ID found.");
+        }
         $result = $this->find('first', array(
             'recursive' => -1,
-            'fields' => array('id', 'gpgkey'),
-            'conditions' => array('id' => $id),
+            'fields' => array('certif_public', 'gpgkey'),
+            'conditions' => array('id' => $user['id']),
         ));
-        return $result['User']['gpgkey'];
+        if (!$result) {
+            throw new Exception("User with ID {$user['id']} not found.");
+        }
+        $user['gpgkey'] = $result['User']['gpgkey'];
+        $user['certif_public'] = $result['User']['certif_public'];
+        return $user;
     }
 
-    public function getCertificate($id)
-    {
-        $result = $this->find('first', array(
-            'recursive' => -1,
-            'fields' => array('id', 'certif_public'),
-            'conditions' => array('id' => $id),
-        ));
-        return $result['User']['certif_public'];
-    }
-
-    // get the current user and rearrange it to be in the same format as in the auth component
-    public function getAuthUser($id)
+    /**
+     * @param int $id
+     * @return array|null
+     */
+    public function getUserById($id)
     {
         if (empty($id)) {
             throw new NotFoundException('Invalid user ID.');
         }
-        $conditions = array('User.id' => $id);
-        $user = $this->find(
+        return $this->find(
             'first',
             array(
-                'conditions' => $conditions,
+                'conditions' => array('User.id' => $id),
                 'recursive' => -1,
                 'contain' => array(
                     'Organisation',
                     'Role',
                     'Server',
-                    'UserSetting'
+                    'UserSetting',
                 )
             )
         );
+    }
+
+    // get the current user and rearrange it to be in the same format as in the auth component
+    public function getAuthUser($id)
+    {
+        $user = $this->getUserById($id);
         if (empty($user)) {
             return $user;
         }
-        // Rearrange it a bit to match the Auth object created during the login
-        $user['User']['Role'] = $user['Role'];
-        $user['User']['Organisation'] = $user['Organisation'];
-        $user['User']['Server'] = $user['Server'];
-        $user['User']['UserSetting'] = $user['UserSetting'];
-        unset($user['Organisation'], $user['Role'], $user['Server']);
-        return $user['User'];
+        return $this->rearrangeToAuthForm($user);
     }
 
     // get the current user and rearrange it to be in the same format as in the auth component
@@ -618,11 +640,7 @@ class User extends AppModel
         if (empty($user)) {
             return $user;
         }
-        // Rearrange it a bit to match the Auth object created during the login
-        $user['User']['Role'] = $user['Role'];
-        $user['User']['Organisation'] = $user['Organisation'];
-        $user['User']['Server'] = $user['Server'];
-        return $user['User'];
+        return $this->rearrangeToAuthForm($user);
     }
 
     public function getAuthUserByExternalAuth($auth_key)
@@ -643,11 +661,28 @@ class User extends AppModel
         if (empty($user)) {
             return $user;
         }
-        // Rearrange it a bit to match the Auth object created during the login
+        return $this->rearrangeToAuthForm($user);
+    }
+
+    /**
+     * User model is a mess. Sometimes it is necessary to convert User model to form that is created during the login
+     * process. This method do that work for you.
+     *
+     * @param array $user
+     * @return array
+     */
+    public function rearrangeToAuthForm(array $user)
+    {
+        if (!isset($user['User'])) {
+            throw new InvalidArgumentException('Invalid user model provided.');
+        }
+
         $user['User']['Role'] = $user['Role'];
         $user['User']['Organisation'] = $user['Organisation'];
         $user['User']['Server'] = $user['Server'];
-        unset($user['Organisation'], $user['Role'], $user['Server']);
+        if (isset($user['UserSetting'])) {
+            $user['User']['UserSetting'] = $user['UserSetting'];
+        }
         return $user['User'];
     }
 
@@ -696,7 +731,7 @@ class User extends AppModel
             'conditions' => $conditions,
             'recursive' => -1,
             'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id', 'disabled'),
-            'contain' => ['Role' => ['fields' => ['perm_site_admin']], 'Organisation' => ['fields' => ['id']]],
+            'contain' => ['Role' => ['fields' => ['perm_site_admin', 'perm_audit']], 'Organisation' => ['fields' => ['id']]],
         ));
         foreach ($users as $k => $user) {
             $user = $user['User'];
@@ -719,10 +754,21 @@ class User extends AppModel
         $sendEmail->sendExternal($params);
     }
 
-    // all e-mail sending is now handled by this method
-    // Just pass the user ID in an array that is the target of the e-mail along with the message body and the alternate message body if the message cannot be encrypted
-    // the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
-    public function sendEmail($user, $body, $bodyNoEnc = false, $subject, $replyToUser = false)
+    /**
+     * All e-mail sending is now handled by this method
+     * Just pass the user array that is the target of the e-mail along with the message body and the alternate message body if the message cannot be encrypted
+     * the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
+     *
+     * @param array $user
+     * @param string $body
+     * @param string|false $bodyNoEnc
+     * @param string $subject
+     * @param array|false $replyToUser
+     * @return bool
+     * @throws Crypt_GPG_BadPassphraseException
+     * @throws Crypt_GPG_Exception
+     */
+    public function sendEmail(array $user, $body, $bodyNoEnc = false, $subject, $replyToUser = false)
     {
         if ($user['User']['disabled']) {
             return true;
@@ -785,7 +831,7 @@ class User extends AppModel
      */
     public function searchGpgKey($email)
     {
-        $gpgTool = new GpgTool();
+        $gpgTool = new GpgTool(null);
         return $gpgTool->searchGpgKey($email);
     }
 
@@ -796,7 +842,7 @@ class User extends AppModel
      */
     public function fetchGpgKey($fingerprint)
     {
-        $gpgTool = new GpgTool();
+        $gpgTool = new GpgTool($this->initializeGpg());
         return $gpgTool->fetchGpgKey($fingerprint);
     }
 
@@ -1281,7 +1327,7 @@ class User extends AppModel
     /**
      * Initialize GPG. Returns `null` if initialization failed.
      *
-     * @return null|Crypt_GPG
+     * @return null|CryptGpgExtended
      */
     private function initializeGpg()
     {
@@ -1294,8 +1340,7 @@ class User extends AppModel
         }
 
         try {
-            $gpgTool = new GpgTool();
-            $this->gpg = $gpgTool->initializeGpg();
+            $this->gpg = GpgTool::initializeGpg();
             return $this->gpg;
         } catch (Exception $e) {
             $this->logException("GPG couldn't be initialized, GPG encryption and signing will be not available.", $e, LOG_NOTICE);

@@ -27,6 +27,12 @@ class TagsController extends AppController
 
     public $helpers = array('TextColour');
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        $this->Security->unlockedActions[] = 'search';
+    }
+
     public function index($favouritesOnly = false)
     {
         $this->loadModel('Attribute');
@@ -924,7 +930,7 @@ class TagsController extends AppController
             if (is_numeric($tag)) {
                 $conditions = array('Tag.id' => $tag);
             } else {
-                $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
+                $conditions = array('Tag.name LIKE' => trim($tag));
             }
             if (empty($local)) {
                 if (!empty($this->request->data['local'])) {
@@ -1106,7 +1112,7 @@ class TagsController extends AppController
         $this->render('/Events/view_graph');
     }
 
-    public function search($tag = false)
+    public function search($tag = false, $strictTagNameOnly = false, $searchIfTagExists = true)
     {
         if (isset($this->request->data['Tag'])) {
             $this->request->data = $this->request->data['Tag'];
@@ -1119,40 +1125,58 @@ class TagsController extends AppController
         if (!is_array($tag)) {
             $tag = array($tag);
         }
-        $conditions = array();
-        foreach ($tag as $k => $t) {
-            $tag[$k] = strtolower($t);
-            $conditions['OR'][] = array('LOWER(GalaxyCluster.value)' => $tag[$k]);
-        }
-        foreach ($tag as $k => $t) {
-            $conditions['OR'][] = array('AND' => array('GalaxyElement.key' => 'synonyms', 'LOWER(GalaxyElement.value) LIKE' => $t));
-        }
         $this->loadModel('GalaxyCluster');
-        $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'contain' => array('GalaxyCluster.tag_name')
-        ));
-        foreach ($elements as $element) {
-            $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
-        }
         $conditions = array();
-        foreach ($tag as $k => $t) {
-            $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
+        if (!$strictTagNameOnly) {
+            foreach ($tag as $k => $t) {
+                $tag[$k] = strtolower($t);
+                $conditions['OR'][] = array('LOWER(GalaxyCluster.value)' => $tag[$k]);
+            }
+            foreach ($tag as $k => $t) {
+                $conditions['OR'][] = array('AND' => array('GalaxyElement.key' => 'synonyms', 'LOWER(GalaxyElement.value) LIKE' => $t));
+            }
+            $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'contain' => array('GalaxyCluster.tag_name')
+            ));
+            foreach ($elements as $element) {
+                $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
+            }
+            foreach ($tag as $k => $t) {
+                $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
+            }
+        } else {
+                foreach ($tag as $k => $t) {
+                    $conditions['OR'][] = array('Tag.name' => $t);
+                }
         }
         $tags = $this->Tag->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1
         ));
+        if (!$searchIfTagExists && empty($tags)) {
+            $tags = [];
+            foreach ($tag as $i => $tagName) {
+                $tags[] = ['Tag' => ['name' => $tagName], 'simulatedTag' => true];
+            }
+        }
         $this->loadModel('Taxonomy');
         foreach ($tags as $k => $t) {
-            $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name'], true);
-            if (!empty($taxonomy)) {
+            $dataFound = false;
+            $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name'], false);
+            if (!empty($taxonomy) && !empty($taxonomy['TaxonomyPredicate'][0])) {
+                $dataFound = true;
                 $tags[$k]['Taxonomy'] = $taxonomy['Taxonomy'];
+                $tags[$k]['TaxonomyPredicate'] = $taxonomy['TaxonomyPredicate'][0];
             }
             $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name']);
             if (!empty($cluster)) {
+                $dataFound = true;
                 $tags[$k]['GalaxyCluster'] = $cluster['GalaxyCluster'];
+            }
+            if (!$searchIfTagExists && !$dataFound && !empty($t['simulatedTag'])) {
+                unset($tags[$k]);
             }
         }
         return $this->RestResponse->viewData($tags, $this->response->type());

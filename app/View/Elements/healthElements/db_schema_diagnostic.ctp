@@ -57,7 +57,14 @@
             break;
         }
     }
-    if (count($dbSchemaDiagnostics) > 0) {
+    if ($expectedDbVersion > $actualDbVersion && $updateLocked) {
+        echo sprintf(
+            '<div class="alert alert-warning"><strong>%s</strong> %s <br/>%s</div>',
+            __('Notice'),
+            __('An update is currently in progress.'),
+            __('You can check the current progress %s.', sprintf('<a href="%s">%s</a>', $baseurl . '/servers/updateProgress', __('here')))
+        );
+    } elseif (count($dbSchemaDiagnostics) > 0) {
         echo sprintf('<span  style="margin-bottom: 5px;" class="label label-important" title="%s">%s<i style="font-size: larger;" class="fas fa-times"></i></span>',
             __('The current database schema does not match the expected format.'),
             __('Database schema diagnostic: ')
@@ -80,7 +87,7 @@
 
         $table = sprintf('%s%s%s', 
             '<table id="dbSchemaDiagnosticTable" class="table table-bordered table-condensed">',
-            sprintf('<thead><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th></th></thead>', __('Table name'),  __('Description'), __('Expected schema'), __('Actual schema')),
+            sprintf('<thead><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th></th></thead>', __('Table name'), __('Description'), __('Expected schema'), __('Actual schema')),
             '<tbody>'
         );
         $rows = '';
@@ -170,11 +177,13 @@
         __('DataSource: ') . h($dataSource),
         $dataSource != 'Database/Mysql' ? 'times' : 'check'
     );
-    echo $this->element('/healthElements/db_indexes_diagnostic', array(
-        'columnPerTable' => $columnPerTable,
-        'diagnostic' => $dbIndexDiagnostics,
-        'indexes' => $indexes
-    ));
+    if ($expectedDbVersion == $actualDbVersion) {
+        echo $this->element('/healthElements/db_indexes_diagnostic', array(
+            'columnPerTable' => $columnPerTable,
+            'diagnostic' => $dbIndexDiagnostics,
+            'indexes' => $indexes
+        ));
+    }
 ?>
 <script>
 var dbSchemaDiagnostics = <?php echo json_encode($dbSchemaDiagnostics); ?>;

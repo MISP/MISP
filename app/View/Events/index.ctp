@@ -121,17 +121,12 @@
 </div>
 <script type="text/javascript">
     var passedArgsArray = <?php echo $passedArgs; ?>;
-    $(document).ready(function() {
+    $(function() {
         $('.searchFilterButton').click(function() {
             runIndexFilter(this);
         });
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
-        });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter();
-            }
         });
     });
 

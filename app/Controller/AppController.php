@@ -37,6 +37,8 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @link http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  *
  * @throws ForbiddenException // TODO Exception
+ * @property ACLComponent $ACL
+ * @property RestResponseComponent $RestResponse
  */
 class AppController extends Controller
 {
@@ -46,8 +48,8 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '108';
-    public $pyMispVersion = '2.4.130';
+    private $__queryVersion = '113';
+    public $pyMispVersion = '2.4.131';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $pythonmin = '3.6';
@@ -461,6 +463,7 @@ class AppController extends Controller
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
+            $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 
             $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
@@ -966,9 +969,9 @@ class AppController extends Controller
         ));
         $counter = 0;
 
-        // load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
-        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-            $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+        // load this so we can remove the blocklist item that will be created, this is the one case when we do not want it.
+        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
         }
 
         foreach ($duplicates as $duplicate) {
@@ -981,10 +984,10 @@ class AppController extends Controller
                     $uuid = $event['Event']['uuid'];
                     $this->Event->delete($event['Event']['id']);
                     $counter++;
-                    // remove the blacklist entry that we just created with the event deletion, if the feature is enabled
+                    // remove the blocklist entry that we just created with the event deletion, if the feature is enabled
                     // We do not want to block the UUID, since we just deleted a copy
-                    if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-                        $this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
+                    if (Configure::read('MISP.enableEventBlocklisting') !== false) {
+                        $this->EventBlocklist->deleteAll(array('EventBlocklist.event_uuid' => $uuid));
                     }
                 }
             }
@@ -1242,6 +1245,9 @@ class AppController extends Controller
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
+        if (empty($filters) && $this->request->is('get')) {
+            throw new InvalidArgumentException(__('Restsearch queries using GET and no parameters are not allowed. If you have passed parameters via a JSON body, make sure you use POST requests.'));
+        }
         if (empty($filters['returnFormat'])) {
             $filters['returnFormat'] = 'json';
         }

@@ -36,7 +36,7 @@ class DeprecationComponent extends Component
                 'add' => false,
                 'populateEventFromTemplate' => false
             ),
-            'whitelists' => array(
+            'allowedlists' => array(
                 'admin_add' => false
             )
         );

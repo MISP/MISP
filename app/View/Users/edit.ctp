@@ -7,8 +7,8 @@
     ?>
         <div class="input clear"></div>
     <?php
-        $passwordPopover = '<span class=\"blue bold\">' . __('Length') .'</span>: ' . h($length) . '<br />';
-        $passwordPopover .= '<span class=\"blue bold\">' . __('Complexity') .'</span>: ' . h($complexity);
+        $passwordPopover = '<span class="blue bold">' . __('Minimal length') . '</span>: ' . h($length) . '<br>';
+        $passwordPopover .= '<span class="blue bold">' . __('Complexity') . '</span>: ' . h($complexity);
         echo $this->Form->input('password', array(
             'label' => __('Password') . ' <span id="PasswordPopover" class="fas fa-info-circle"></span>'
         ));
@@ -47,12 +47,12 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'edit', 'user' => $user));
 ?>
 <script type="text/javascript">
-    $(document).ready(function() {
+    $(function() {
         $('#PasswordPopover').popover("destroy").popover({
             placement: 'right',
             html: 'true',
             trigger: 'hover',
-            content: '<?php echo $passwordPopover; ?>'
+            content: <?= json_encode($passwordPopover) ?>
         });
     });
 </script>

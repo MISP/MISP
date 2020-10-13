@@ -229,7 +229,7 @@
                 'type' => 'search',
                 'fa-icon' => 'search',
                 'placeholder' => __('Enter value to search'),
-                'data' => '',
+                'value' => isset($this->passedArgs['searchFor']) ? $this->passedArgs['searchFor'] : null,
                 'cancel' => array(
                     'fa-icon' => 'times',
                     'title' => __('Remove filters'),
@@ -241,4 +241,3 @@
     );
     echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
     echo $this->element('/Events/View/eventFilteringQueryBuilder');
-?>

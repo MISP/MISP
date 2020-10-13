@@ -366,6 +366,10 @@ class SendEmail
             throw new SendEmailException('Emailing is currently disabled on this instance.');
         }
 
+        if (!isset($user['User'])) {
+            throw new InvalidArgumentException("Invalid user model provided.");
+        }
+
         // Check if the e-mail can be encrypted
         $canEncryptGpg = isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']);
         $canEncryptSmime = isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
@@ -477,8 +481,7 @@ class SendEmail
             throw new Exception('Could not parse certificate');
         }
 
-        // Purpose '5' should be 'smimeencrypt'
-        if (!($parsed['purposes'][5][0] === 1 && $parsed['purposes'][5][2] === 'smimeencrypt')) {
+        if ($parsed['purposes'][X509_PURPOSE_SMIME_ENCRYPT][0] !== true) {
             throw new Exception('This certificate cannot be used to encrypt email.');
         }
 
@@ -512,6 +515,9 @@ class SendEmail
         // If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender.
         // For this reason we should also attach the public key of the sender along with the message (if applicable).
         if ($replyToUser) {
+            if (!isset($replyToUser['User']['email'])) {
+                throw new InvalidArgumentException("Invalid replyToUser model provided.");
+            }
             $email->replyTo($replyToUser['User']['email']);
             if (!empty($replyToUser['User']['gpgkey'])) {
                 $attachments['gpgkey.asc'] = $replyToUser['User']['gpgkey'];

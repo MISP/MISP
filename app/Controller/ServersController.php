@@ -3,6 +3,9 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 
+/**
+ * @property Server $Server
+ */
 class ServersController extends AppController
 {
     public $components = array('Security' ,'RequestHandler');   // XXX ACL component
@@ -150,17 +153,29 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
-        $server = $this->Server->find('first', array('conditions' => array('Server.id' => $serverId), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url', 'Server.name')));
+        $server = $this->Server->find('first', array(
+            'conditions' => array('Server.id' => $serverId),
+            'recursive' => -1,
+            'fields' => array('Server.id', 'Server.url', 'Server.name'))
+        );
         if (empty($server)) {
             throw new NotFoundException('Invalid server ID.');
         }
         try {
             $event = $this->Server->previewEvent($serverId, $eventId);
         } catch (NotFoundException $e) {
-            throw new NotFoundException(__("Event '$eventId' not found."));
+            throw new NotFoundException(__("Event '%s' not found.", $eventId));
         } catch (Exception $e) {
-            $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
+            $this->Flash->error(__('Download failed. %s', $e->getMessage()));
             $this->redirect(array('action' => 'previewIndex', $serverId));
+        }
+
+        $this->loadModel('Warninglist');
+        if (isset($event['Event']['Attribute'])) {
+            $this->Warninglist->attachWarninglistToAttributes($event['Event']['Attribute']);
+        }
+        if (isset($event['Event']['ShadowAttribute'])) {
+            $this->Warninglist->attachWarninglistToAttributes($event['Event']['ShadowAttribute']);
         }
 
         $this->loadModel('Event');
@@ -168,7 +183,6 @@ class ServersController extends AppController
         $this->params->params['paging'] = array('Server' => $params);
         $this->set('event', $event);
         $this->set('server', $server);
-        $this->loadModel('Event');
         $dataForView = array(
                 'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
                 'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels'),
@@ -788,7 +802,7 @@ class ServersController extends AppController
                 }
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', array(sprintf(__('Push complete. %s events pushed, %s events could not be pushed.', $result[0], $result[1]))), $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])), $this->response->type());
             } else {
                 $this->set('successes', $result[0]);
                 $this->set('fails', $result[1]);
@@ -1232,8 +1246,12 @@ class ServersController extends AppController
 
     public function getWorkers()
     {
-        $issues = 0;
-        $worker_array = $this->Server->workerDiagnostics($issues);
+        if (Configure::read('MISP.background_jobs')) {
+            $workerIssueCount = 0;
+            $worker_array = $this->Server->workerDiagnostics($workerIssueCount);
+        } else {
+            $worker_array = [__('Background jobs not enabled')];
+        }
         return $this->RestResponse->viewData($worker_array);
     }
 
@@ -1263,6 +1281,90 @@ class ServersController extends AppController
             return $this->Server->checkVersion($json_decoded_tags[$i]->name);
         } else {
             return false;
+        }
+    }
+
+    public function idTranslator() {
+
+        // The id translation feature is limited to people from the host org
+        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
+            throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
+        }
+
+        //We retrieve the list of remote servers that we can query
+        $options = array();
+        $options['conditions'] = array("pull" => true);
+        $servers = $this->Server->find('all', $options);
+
+        // We generate the list of servers for the dropdown
+        $displayServers = array();
+        foreach($servers as $s) {
+            $displayServers[] = array('name' => $s['Server']['name'],
+                                      'value' => $s['Server']['id']);
+        }
+        $this->set('servers', $displayServers);
+
+        if ($this->request->is('post')) {
+            $remote_events = array();
+            if(!empty($this->request->data['Event']['uuid']) &&  $this->request->data['Event']['local'] == "local") {
+                $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $this->request->data['Event']['uuid']);
+            } else if (!empty($this->request->data['Event']['uuid']) && $this->request->data['Event']['local'] == "remote" && !empty($this->request->data['Server']['id'])) {
+                //We check on the remote server for any event with this id and try to find a match locally
+                $conditions = array('AND' => array('Server.id' => $this->request->data['Server']['id'], 'Server.pull' => true));
+                $remote_server = $this->Server->find('first', array('conditions' => $conditions));
+                if(!empty($remote_server)) {
+                    try {
+                        $remote_event = $this->Event->downloadEventFromServer($this->request->data['Event']['uuid'], $remote_server, null, true);
+                    } catch (Exception $e) {
+                        $error_msg = __("Issue while contacting the remote server to retrieve event information");
+                        $this->logException($error_msg, $e);
+                        $this->Flash->error($error_msg);
+                        return;
+                    }
+
+                    $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event[0]['uuid']);
+                    //we record it to avoid re-querying the same server in the 2nd phase
+                    if(!empty($local_event)) {
+                        $remote_events[] = array(
+                            "server_id" => $remote_server['Server']['id'],
+                            "server_name" => $remote_server['Server']['name'],
+                            "url" => $remote_server['Server']['url']."/events/view/".$remote_event[0]['id'],
+                            "remote_id" => $remote_event[0]['id']
+                        );
+                    }
+                }
+            }
+            if(empty($local_event)) {
+                $this->Flash->error( __("This event could not be found or you don't have permissions to see it."));
+                return;
+            } else {
+                $this->Flash->success(__('The event has been found.'));
+            }
+
+            // In the second phase, we query all configured sync servers to get their info on the event
+            foreach($servers as $s) {
+                // We check if the server was not already contacted in phase 1
+                if(count($remote_events) > 0 && $remote_events[0]['server_id'] == $s['Server']['id']) {
+                    continue;
+                }
+
+                try {
+                    $remote_event = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $s, null, true);
+                    $remote_event_id = $remote_event[0]['id'];
+                } catch (Exception $e) {
+                    $this->logException("Couldn't download event from server", $e);
+                    $remote_event_id = null;
+                }
+                $remote_events[] = array(
+                    "server_id" => $s['Server']['id'],
+                    "server_name" => $s['Server']['name'],
+                    "url" => isset($remote_event_id) ? $s['Server']['url']."/events/view/".$remote_event_id : $s['Server']['url'],
+                    "remote_id" => isset($remote_event_id) ? $remote_event_id : false
+                );
+            }
+
+            $this->set('local_event', $local_event);
+            $this->set('remote_events', $remote_events);
         }
     }
 
@@ -1385,6 +1487,18 @@ class ServersController extends AppController
                 }
             }
         }
+    }
+
+    public function killAllWorkers($force = false)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        $this->Server->killAllWorkers($this->Auth->user(), $force);
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'killAllWorkers', false, $this->response->type(), __('Killing workers.'));
+        }
+        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }
 
     public function restartWorkers()

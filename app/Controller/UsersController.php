@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property User $User
+ */
 class UsersController extends AppController
 {
     public $newkey;
@@ -1101,7 +1104,7 @@ class UsersController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
             if (!empty($this->request->data['User']['email'])) {
-                if ($this->Bruteforce->isBlacklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
+                if ($this->Bruteforce->isBlocklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
                     $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . Configure::read('SecureAuth.expire') . ' seconds and try again.');
                 }
@@ -1678,71 +1681,73 @@ class UsersController extends AppController
 
     public function email_otp()
     {
-      $user = $this->Session->read('email_otp_user');
-      if(empty($user)) {
-        $this->redirect('login');
-      }
-      $redis = $this->User->setupRedis();
-      $user_id = $user['id'];
-
-      if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
-        $stored_otp = $redis->get('misp:otp:'.$user_id);
-        if (!empty($stored_otp) && $this->request->data['User']['otp'] == $stored_otp) {
-            // we invalidate the previously generated OTP
-            $redis->delete('misp:otp:'.$user_id);
-            // We login the user with CakePHP
-            $this->Auth->login($user);
-            $this->_postlogin();
-        } else {
-            $this->Flash->error(__("The OTP is incorrect or has expired"));
+        $user = $this->Session->read('email_otp_user');
+        if (empty($user)) {
+            $this->redirect('login');
         }
-      } else {
-        // GET Request
+        $redis = $this->User->setupRedisWithException();
+        $user_id = $user['id'];
 
-        // We check for exceptions
-        $exception_list = Configure::read('Security.email_otp_exceptions');
-        if (!empty($exception_list)) {
-          $exceptions = explode(",", $exception_list);
-          foreach ($exceptions as &$exception) {
-            if ($user['email'] == trim($exception)) {
-              // We login the user with CakePHP
-              $this->Auth->login($user);
-              $this->_postlogin();
+        if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
+            $stored_otp = $redis->get('misp:otp:' . $user_id);
+            if (!empty($stored_otp) && $this->request->data['User']['otp'] == $stored_otp) {
+                // we invalidate the previously generated OTP
+                $redis->del('misp:otp:' . $user_id);
+                // We login the user with CakePHP
+                $this->Auth->login($user);
+                $this->_postlogin();
+            } else {
+                $this->Flash->error(__("The OTP is incorrect or has expired"));
             }
-          }
-        }
-        $this->loadModel('Server');
-
-        // Generating the OTP
-        $digits = !empty(Configure::read('Security.email_otp_length')) ? Configure::read('Security.email_otp_length') : $this->Server->serverSettings['Security']['email_otp_length']['value'];
-        $otp = "";
-        for ($i=0; $i<$digits; $i++) {
-          $otp.= random_int(0,9);
-        }
-        // We use Redis to cache the OTP
-        $redis->set('misp:otp:'.$user_id, $otp);
-        $validity = !empty(Configure::read('Security.email_otp_validity')) ? Configure::read('Security.email_otp_validity') : $this->Server->serverSettings['Security']['email_otp_validity']['value'];
-        $redis->expire('misp:otp:'.$user_id, (int) $validity * 60);
-
-        // Email construction
-        $body = !empty(Configure::read('Security.email_otp_text')) ? Configure::read('Security.email_otp_text') : $this->Server->serverSettings['Security']['email_otp_text']['value'];
-        $body = str_replace('$misp', Configure::read('MISP.baseurl'), $body);
-        $body = str_replace('$org', Configure::read('MISP.org'), $body);
-        $body = str_replace('$contact', Configure::read('MISP.contact'), $body);
-        $body = str_replace('$validity', $validity, $body);
-        $body = str_replace('$otp', $otp, $body);
-        $body = str_replace('$ip', $this->__getClientIP(), $body);
-        $body = str_replace('$username', $user['email'], $body);
-        $result = $this->User->sendEmail(array('User' => $user), $body, false, "[MISP] Email OTP");
-
-        if ( $result ) {
-          $this->Flash->success(__("An email containing a OTP has been sent."));
         } else {
-          $this->Flash->error(__("The email couldn't be sent, please reach out to your administrator."));
-        }
-      }
-    }
+            // GET Request
 
+            // We check for exceptions
+            $exception_list = Configure::read('Security.email_otp_exceptions');
+            if (!empty($exception_list)) {
+                $exceptions = explode(",", $exception_list);
+                foreach ($exceptions as $exception) {
+                    if ($user['email'] === trim($exception)) {
+                        // We login the user with CakePHP
+                        $this->Auth->login($user);
+                        $this->_postlogin();
+                    }
+                }
+            }
+            $this->loadModel('Server');
+
+            // Generating the OTP
+            $digits = Configure::read('Security.email_otp_length') ?: $this->Server->serverSettings['Security']['email_otp_length']['value'];
+            $otp = "";
+            for ($i = 0; $i < $digits; $i++) {
+                $otp .= random_int(0, 9);
+            }
+            // We use Redis to cache the OTP
+            $redis->set('misp:otp:' . $user_id, $otp);
+            $validity = Configure::read('Security.email_otp_validity') ?: $this->Server->serverSettings['Security']['email_otp_validity']['value'];
+            $redis->expire('misp:otp:' . $user_id, (int)$validity * 60);
+
+            // Email construction
+            $body = Configure::read('Security.email_otp_text') ?: $this->Server->serverSettings['Security']['email_otp_text']['value'];
+            $body = str_replace('$misp', Configure::read('MISP.baseurl'), $body);
+            $body = str_replace('$org', Configure::read('MISP.org'), $body);
+            $body = str_replace('$contact', Configure::read('MISP.contact'), $body);
+            $body = str_replace('$validity', $validity, $body);
+            $body = str_replace('$otp', $otp, $body);
+            $body = str_replace('$ip', $this->__getClientIP(), $body);
+            $body = str_replace('$username', $user['email'], $body);
+
+            // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
+            $userForSendMail = $this->User->getUserById($user_id);
+            $result = $this->User->sendEmail($userForSendMail, $body, false, "[MISP] Email OTP");
+
+            if ($result) {
+                $this->Flash->success(__("An email containing a OTP has been sent."));
+            } else {
+                $this->Flash->error(__("The email couldn't be sent, please reach out to your administrator."));
+            }
+        }
+    }
 
     /**
     * Helper function to determine the IP of a client (proxy aware)

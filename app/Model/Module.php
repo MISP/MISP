@@ -145,12 +145,18 @@ class Module extends AppModel
         return $modules;
     }
 
+    /**
+     * @param string $name
+     * @param string $type
+     * @return array|string
+     */
     public function getEnabledModule($name, $type)
     {
+        if (!isset($this->__typeToFamily[$type])) {
+            throw new InvalidArgumentException("Invalid type '$type'.");
+        }
         $moduleFamily = $this->__typeToFamily[$type];
-        $url = $this->__getModuleServer($moduleFamily);
         $modules = $this->getModules($type, $moduleFamily);
-        $module = false;
         if (!Configure::read('Plugin.' . $moduleFamily . '_' . $name . '_enabled')) {
             return 'The requested module is not enabled.';
         }
@@ -175,10 +181,22 @@ class Module extends AppModel
         if (!Configure::read('Plugin.' . $moduleFamily . '_services_enable')) {
             return false;
         }
-        $this->Server = ClassRegistry::init('Server');
-        $url = Configure::read('Plugin.' . $moduleFamily . '_services_url') ? Configure::read('Plugin.' . $moduleFamily . '_services_url') : $this->Server->serverSettings['Plugin'][$moduleFamily . '_services_url']['value'];
-        $port = Configure::read('Plugin.' . $moduleFamily . '_services_port') ? Configure::read('Plugin.' . $moduleFamily . '_services_port') : $this->Server->serverSettings['Plugin'][$moduleFamily . '_services_port']['value'];
-        return $url . ':' . $port;
+
+        $url = Configure::read('Plugin.' . $moduleFamily . '_services_url');
+        $port = Configure::read('Plugin.' . $moduleFamily . '_services_port');
+
+        if (empty($url) || empty($port)) {
+            // Load default values
+            $this->Server = ClassRegistry::init('Server');
+            if (empty($url)) {
+                $url = $this->Server->serverSettings['Plugin'][$moduleFamily . '_services_url']['value'];
+            }
+            if (empty($port)) {
+                $port = $this->Server->serverSettings['Plugin'][$moduleFamily . '_services_port']['value'];
+            }
+        }
+
+        return "$url:$port";
     }
 
     public function queryModuleServer($uri, $post = false, $hover = false, $moduleFamily = 'Enrichment', &$exception = false)
@@ -190,11 +208,11 @@ class Module extends AppModel
         App::uses('HttpSocket', 'Network/Http');
         if ($hover) {
             $settings = array(
-                'timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') : 5
+                'timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ?: 5
             );
         } else {
             $settings = array(
-                'timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_timeout') : 10
+                'timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ?: 10
             );
         }
         $sslSettings = array('ssl_verify_peer', 'ssl_verify_host', 'ssl_allow_self_signed', 'ssl_verify_peer', 'ssl_cafile');

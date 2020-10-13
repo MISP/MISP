@@ -1,37 +1,7 @@
 <?php
     $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
     $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-    $csv = array();
-    $sightingPopover = '';
-    if (isset($event['Sighting']) && !empty($event['Sighting'])) {
-        $ownSightings = array();
-        $orgSightings = array();
-        $sparklineData = array();
-        foreach ($event['Sighting'] as $sighting) {
-            if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
-            if (isset($sighting['org_id'])) {
-                if (isset($orgSightings[$sighting['Organisation']['name']])) {
-                    $orgSightings[$sighting['Organisation']['name']]['count']++;
-                    if (!isset($orgSightings[$sighting['Organisation']['name']]['date']) || $orgSightings[$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
-                        $orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
-                    }
-                } else {
-                    $orgSightings[$sighting['Organisation']['name']]['count'] = 1;
-                    $orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
-                }
-            } else {
-                if (isset($orgSightings['Other organisations']['count'])) {
-                    $orgSightings['Other organisations']['count']++;
-                    if (!isset($orgSightings['Other organisations']['date']) || $orgSightings['Other organisations']['date'] < $sighting['date_sighting']) {
-                        $orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
-                    }
-                } else {
-                    $orgSightings['Other organisations']['count'] = 1;
-                    $orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
-                }
-            }
-        }
-    }
+
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
     echo $this->Html->script('doT');
     echo $this->Html->script('extendext');
@@ -53,9 +23,9 @@
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
         $table_data[] = array(
             'key' => 'UUID',
-            'html' => sprintf('%s %s',
+            'html' => sprintf('<span class="quickSelect">%s</span> %s',
                 $event['Event']['uuid'],
-                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px;" title="%s">+</a>',
+                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px; margin-left: 0.3em" title="%s">+</a>',
                     $baseurl,
                     $event['Event']['id'],
                     __('Extend this event')
@@ -117,10 +87,10 @@
                 'html' => $contributorsContent
             );
         }
-        if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))) {
+        if (isset($event['User']['email'])) {
             $table_data[] = array(
-                'key' => __('Email'),
-                'value' => h($event['User']['email'])
+                'key' => __('Creator user'),
+                'value' => h($event['User']['email']),
             );
         }
         $table_data[] = array(
@@ -147,7 +117,8 @@
             $table_data[] = array(
                 'key' => __('Threat Level'),
                 'key_title' => $eventDescriptions['threat_level_id']['desc'],
-                'value' => $event['ThreatLevel']['name']
+                'value' => $event['ThreatLevel']['name'],
+                'value_class' => 'threat-level-' . strtolower($event['ThreatLevel']['name']),
             );
         }
         $table_data[] = array(
@@ -191,7 +162,7 @@
             'html' => ($event['Event']['published'] == 0) ? __('No') : sprintf('<span class="green bold">%s</span>', __('Yes')) . ((empty($event['Event']['publish_timestamp'])) ? __('N/A') :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
         );
         $attribute_text = $attribute_count;
-        $attribute_text .= $object_count > 1 ? sprintf(__(' (%s Objects)'), h($object_count)) : sprintf(__(' (%s Object)'), h($object_count));
+        $attribute_text .= __n(' (%s Object)', ' (%s Objects)', $object_count, h($object_count));
         $table_data[] = array(
             'key' => __('#Attributes'),
             'value' => $attribute_text
@@ -252,9 +223,7 @@
             'key' => __('Sightings'),
             'element' => '/Events/View/eventSightingValue',
             'element_params' => array(
-                'sightingPopover' => $sightingPopover,
                 'event' => $event,
-                'ownSightings' => empty($ownSightings) ? array() : $ownSightings
             )
         );
         if (!empty($sightingsData['csv']['event'])) {
@@ -333,7 +302,7 @@
         <div class="related span4">
 
             <?php if (!empty($warningTagConflicts)): ?>
-                <div class="warning_container" style="width:80%;">
+                <div class="warning_container">
                     <h4 class="red"><?php echo __('Warning: Taxonomy inconsistencies');?></h4>
                     <?php echo '<ul>'; ?>
                     <?php
@@ -365,7 +334,6 @@
                     <?php echo '</ul>' ?>
                 </div>
             <?php endif; ?>
-
             <?php
                 if (!empty($event['RelatedEvent'])):
             ?>
@@ -412,15 +380,20 @@
             <div class="correlation-container">
                 <?php
                         foreach ($event['Feed'] as $relatedFeed):
-                            $relatedData = array('Name' => $relatedFeed['name'], 'URL' => $relatedFeed['url'], 'Provider' => $relatedFeed['provider'], 'Source Format' => $relatedFeed['source_format'] == 'misp' ? 'MISP' : $relatedFeed['source_format']);
+                            $relatedData = array(
+                                'Name' => $relatedFeed['name'],
+                                'URL' => $relatedFeed['url'],
+                                'Provider' => $relatedFeed['provider'],
+                                'Source Format' => $relatedFeed['source_format'] === 'misp' ? 'MISP' : $relatedFeed['source_format'],
+                            );
                             $popover = '';
                             foreach ($relatedData as $k => $v) {
-                                $popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+                                $popover .= '<span class="bold">' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br>';
                             }
                 ?>
                                 <span style="white-space: nowrap;">
                                     <?php
-                                        if ($relatedFeed ['source_format'] == 'misp'):
+                                        if ($relatedFeed ['source_format'] === 'misp'):
                                     ?>
                                             <form action="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" method="post" style="margin:0px;">
                                                 <input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'], true)); ?>">
@@ -482,16 +455,15 @@
                     endif;
                 endif;
             ?>
-            <?php if (!empty($event['Event']['warnings'])): ?>
-                <div class="warning_container" style="width:80%;">
-                    <h4 class="red"><?php echo __('Warning: Potential false positives');?></h4>
+            <?php if (!empty($event['warnings'])): ?>
+                <div class="warning_container">
+                    <h4 class="red"><?= __('Warning: Potential false positives') ?> <a href="#attributeList" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'warning')"><?= __('(show)') ?></a></h4>
                     <?php
-                        $total = count($event['Event']['warnings']);
-                        $current = 1;
-                        foreach ($event['Event']['warnings'] as $id => $name) {
-                            echo '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>' . ($current == $total ? '' : '<br />');
-                            $current++;
+                        $links = [];
+                        foreach ($event['warnings'] as $id => $name) {
+                            $links[] = '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>';
                         }
+                        echo implode('<br>', $links);
                     ?>
                 </div>
             <?php endif; ?>
@@ -516,6 +488,9 @@
         </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attackmatrix_toggle" data-toggle-type="attackmatrix" onclick="enable_attack_matrix();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>" style="vertical-align:top;"></span><?php echo __('ATT&CK matrix');?>
+        </button>
+        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventreport_toggle" data-toggle-type="eventreport">
+            <span class="icon-plus icon-white" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>" style="vertical-align:top;"></span><?php echo __('Event reports');?>
         </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
             <span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
@@ -543,12 +518,14 @@
     </div>
     <div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false" data-mitre-attack-galaxy-id="<?php echo h($mitreAttackGalaxyId)?>">
     </div>
+    <div id="eventreport_div" style="display: none;">
+        <span class="report-title-section"><?php echo __('Event Reports');?></span>
+        <div id="eventreport_index_div"></div>
+    </div>
     <div id="attributes_div">
         <?php echo $this->element('eventattribute'); ?>
     </div>
     <div id="discussions_div">
-    </div>
-    <div id="attribute_creation_div" style="display:none;">
     </div>
 </div>
 <script type="text/javascript">
@@ -567,6 +544,12 @@ $(document).ready(function () {
         $("#discussions_div").html(data);
     });
 
+    $.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?>", function(data) {
+        $("#eventreport_index_div").html(data);
+        if ($('#eventreport_index_div table tbody > tr').length) { // open if contain a report
+            $('#eventreport_toggle').click()
+        }
+    });
 });
 
 function enable_correlation_graph() {
@@ -580,5 +563,6 @@ function enable_attack_matrix() {
         $("#attackmatrix_div").html(data);
     });
 }
+
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />

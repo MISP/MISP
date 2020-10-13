@@ -1,6 +1,25 @@
 <?php
 $sigDisplay = $object['value'];
 
+$truncateLongText = function ($text, $maxLength = 500, $maxLines = 10) {
+    $truncated = false;
+    if (mb_strlen($text) > $maxLength) {
+        $text = mb_substr($text, 0, 500);
+        $truncated = true;
+    }
+
+    if (substr_count($text, "\n") > $maxLines) {
+        $lines = explode("\n", $text);
+        $text = implode("\n", array_slice($lines, 0, $maxLines));
+        $truncated = true;
+    }
+
+    if ($truncated) {
+        return $text;
+    }
+    return null;
+};
+
 switch ($object['type']) {
     case 'attachment':
     case 'malware-sample':
@@ -35,17 +54,17 @@ switch ($object['type']) {
 
     case 'vulnerability':
         $cveUrl = Configure::read('MISP.cveurl') ?: 'https://cve.circl.lu/cve/';
-        echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank', 'class' => $linkClass));
+        echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, ['target' => '_blank', 'class' => $linkClass, 'rel' => 'noreferrer noopener']);
         break;
 
     case 'weakness':
         $cweUrl = Configure::read('MISP.cweurl') ?: 'https://cve.circl.lu/cwe/';
         $link = $cweUrl . explode("-", $sigDisplay)[1];
-        echo $this->Html->link($sigDisplay, $link, array('target' => '_blank', 'class' => $linkClass));
+        echo $this->Html->link($sigDisplay, $link, ['target' => '_blank', 'class' => $linkClass, 'rel' => 'noreferrer noopener']);
         break;
 
     case 'link':
-        echo $this->Html->link($sigDisplay, $sigDisplay, array('class' => $linkClass));
+        echo $this->Html->link($sigDisplay, $sigDisplay, ['class' => $linkClass, 'rel' => 'noreferrer noopener']);
         break;
 
     case 'cortex':
@@ -57,16 +76,21 @@ switch ($object['type']) {
             $url = array('controller' => 'events', 'action' => 'view', $object['value']);
             echo $this->Html->link($object['value'], $url, array('class' => $linkClass));
         } else {
-            $sigDisplay = str_replace("\r", '', h($sigDisplay));
-            $sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
-            echo $sigDisplay;
+            $sigDisplay = str_replace("\r", '', $sigDisplay);
+            $truncated = $truncateLongText($sigDisplay);
+            if ($truncated) {
+                echo '<span data-full="' . h($sigDisplay) .'" data-full-type="text">' .
+                    str_replace(" ", '&nbsp;', h($truncated));
+                echo ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
+            } else {
+                echo str_replace(" ", '&nbsp;', h($sigDisplay));
+            }
         }
         break;
 
     case 'hex':
-        $sigDisplay = str_replace("\r", '', $sigDisplay);
-        echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . nl2br(h($sigDisplay)) . '</span>&nbsp;';
-        echo '<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="icon-repeat hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
+        echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . h($sigDisplay) . '</span>&nbsp;';
+        echo '<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="fas fa-redo hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
         break;
 
     /** @noinspection PhpMissingBreakStatementInspection */
@@ -95,7 +119,15 @@ switch ($object['type']) {
             echo implode($separator, $valuePieces);
         } else {
             $sigDisplay = str_replace("\r", '', $sigDisplay);
-            echo h($sigDisplay);
+            $truncated = $truncateLongText($sigDisplay);
+            if ($truncated) {
+                $rawTypes = ['email-header', 'yara', 'pgp-private-key', 'pgp-public-key', 'url'];
+                $dataFullType = in_array($object['type'], $rawTypes) ? 'raw' : 'text';
+                echo '<span data-full="' . h($sigDisplay) .'" data-full-type="' . $dataFullType .'">' . h($truncated) .
+                    ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
+            } else {
+                echo h($sigDisplay);
+            }
         }
 }
 

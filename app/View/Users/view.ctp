@@ -1,19 +1,20 @@
 <?php
     $table_data = array();
-    $table_data[] = array('key' => __('Id'), 'value' => $user['User']['id']);
+    $table_data[] = array('key' => __('ID'), 'value' => $user['User']['id']);
     $table_data[] = array('key' => __('Email'), 'value' => $user['User']['email']);
     $table_data[] = array('key' => __('Organisation'), 'value' => $user['Organisation']['name']);
     $table_data[] = array('key' => __('Role'), 'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])));
     $table_data[] = array('key' => __('Autoalert'), 'boolean' => $user['User']['autoalert']);
     $table_data[] = array('key' => __('Contactalert'), 'boolean' => $user['User']['contactalert']);
     $authkey_data = sprintf(
-        '<a onclick="requestAPIAccess();" style="cursor:pointer;"></a>',
+        '<a onclick="requestAPIAccess();" style="cursor:pointer;">%s</a>',
         __('Request API access')
     );
     if ($user['Role']['perm_auth']) {
         $authkey_data = sprintf(
-            '<span class="quickSelect">%s</span>%s',
+            '<span class="privacy-value quickSelect authkey" data-hidden-value="%s">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="%s"></i>%s',
             h($user['User']['authkey']),
+            __('Reveal hidden value'),
             (Configure::read('MISP.disableUserSelfManagement') && !$isAdmin) ? '' :
                 sprintf(
                     ' (%s)',
@@ -56,7 +57,7 @@
         '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s</div>%s',
         sprintf(
             '<h2>%s</h2>%s',
-            __('User'),
+            __('User %s', h($user['User']['email'])),
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
         sprintf(
@@ -66,4 +67,4 @@
         ),
         $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'))
     );
-?>
+

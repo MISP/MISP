@@ -200,11 +200,6 @@
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter('<?php echo '/' . h($server['Server']['id']);?>');
         });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter('<?php echo '/' . h($server['Server']['id']);?>');
-            }
-        });
     });
 </script>
 <?php

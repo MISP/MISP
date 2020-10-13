@@ -699,7 +699,7 @@ class StixParser():
 
     # The value returned by the indicators or observables parser is a list of dictionaries
     # These dictionaries are the attributes we add in an object, itself added in the MISP event
-    def handle_object_case(self, name, attribute_value, compl_data, to_ids=False, object_uuid=None):
+    def handle_object_case(self, name, attribute_value, compl_data, to_ids=False, object_uuid=None, test_mechanisms=[]):
         misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
         if object_uuid:
             misp_object.uuid = object_uuid
@@ -714,6 +714,9 @@ class StixParser():
             if "process_uuid" in compl_data:
                 for uuid in compl_data["process_uuid"]:
                     misp_object.add_reference(uuid, 'connected-to')
+        if test_mechanisms:
+            for test_mechanism in test_mechanisms:
+                misp_object.add_reference(test_mechanism, 'detected-with')
         self.misp_event.add_object(misp_object)
 
     ################################################################################
@@ -1223,60 +1226,76 @@ class ExternalStixParser(StixParser):
     # Parse indicators of an external STIX document
     def parse_external_indicators(self, indicators):
         for indicator in indicators:
-            self.parse_external_single_indicator(indicator)
+            if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
+                for related_indicator in indicator.related_indicators:
+                    self.parse_external_single_indicator(related_indicator)
+            else:
+                self.parse_external_single_indicator(indicator)
 
     def parse_external_single_indicator(self, indicator):
+        test_mechanisms = []
+        if hasattr(indicator, 'test_mechanisms') and indicator.test_mechanisms:
+            for test_mechanism in indicator.test_mechanisms:
+                try:
+                    attribute_type = stix2misp_mapping.test_mechanisms_mapping[test_mechanism._XSI_TYPE]
+                except KeyError:
+                    print(f'Unknown Test Mechanism type: {test_mechanism._XSI_TYPE}', file=sys.stderr)
+                    continue
+                attribute = MISPAttribute()
+                attribute.from_dict(**{
+                    'type': attribute_type,
+                    'value': test_mechanism.rule.value
+                })
+                self.misp_event.add_attribute(**attribute)
+                test_mechanisms.append(attribute.uuid)
         if hasattr(indicator, 'observable') and indicator.observable:
             observable = indicator.observable
-            if hasattr(observable, 'object_') and observable.object_:
+            if self._has_properties(observable):
+                properties = observable.object_.properties
                 uuid = self.fetch_uuid(observable.object_.id_)
-                try:
-                    properties = observable.object_.properties
-                    if properties:
-                        attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
-                        if isinstance(attribute_value, (str, int)):
-                            # if the returned value is a simple value, we build an attribute
-                            attribute = {'to_ids': True, 'uuid': uuid}
-                            if indicator.timestamp:
-                                attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
-                            if hasattr(observable, 'handling') and observable.handling:
-                                attribute['Tag'] = []
-                                for handling in observable.handling:
-                                    attribute['Tag'].extend(self.parse_marking(handling))
-                            parsed = self.special_parsing(observable.object_, attribute_type, attribute_value, attribute, uuid)
-                            if parsed is not None:
-                                return
-                            self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
+                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
+                if isinstance(attribute_value, (str, int)):
+                    # if the returned value is a simple value, we build an attribute
+                    attribute = {'to_ids': True, 'uuid': uuid}
+                    if indicator.timestamp:
+                        attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
+                    if hasattr(observable, 'handling') and observable.handling:
+                        attribute['Tag'] = []
+                        for handling in observable.handling:
+                            attribute['Tag'].extend(self.parse_marking(handling))
+                    parsed = self.special_parsing(observable.object_, attribute_type, attribute_value, attribute, uuid)
+                    if parsed is not None:
+                        return
+                    self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
+                else:
+                    if attribute_value:
+                        if all(isinstance(value, dict) for value in attribute_value):
+                            # it is a list of attributes, so we build an object
+                            self.handle_object_case(
+                                attribute_type,
+                                attribute_value,
+                                compl_data,
+                                to_ids=True,
+                                object_uuid=uuid,
+                                test_mechanisms=test_mechanisms
+                            )
                         else:
-                            if attribute_value:
-                                if all(isinstance(value, dict) for value in attribute_value):
-                                    # it is a list of attributes, so we build an object
-                                    self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True, object_uuid=object_uuid)
-                                else:
-                                    # it is a list of attribute values, so we add single attributes
-                                    for value in attribute_value:
-                                        self.misp_event.add_attribute(**{'type': attribute_type, 'value': value, 'to_ids': True})
-                except AttributeError:
-                    self.parse_description(indicator)
+                            # it is a list of attribute values, so we add single attributes
+                            for value in attribute_value:
+                                self.misp_event.add_attribute(**{'type': attribute_type, 'value': value, 'to_ids': True})
             elif hasattr(observable, 'observable_composition') and observable.observable_composition:
                 self.parse_external_observable(observable.observable_composition.observables, to_ids=True)
-        if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
-            for related_indicator in indicator.related_indicators:
-                self.parse_external_single_indicator(related_indicator.item)
+            else:
+                self.parse_description(indicator)
 
     # Parse observables of an external STIX document
     def parse_external_observable(self, observables, to_ids=False):
         for observable in observables:
-            title = observable.title
-            observable_object = observable.object_
-            try:
+            if self._has_properties(observable):
+                observable_object = observable.object_
                 properties = observable_object.properties
-            except AttributeError:
-                self.parse_description(observable)
-                continue
-            if properties:
                 try:
-                    attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
+                    attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=observable.title)
                 except Exception:
                     print(f'Error with the following {properties._XSI_TYPE} object:\n{observable.to_json()}', file=sys.stderr)
                     continue
@@ -1306,6 +1325,8 @@ class ExternalStixParser(StixParser):
                             relationship = related_object.relationship.value.lower().replace('_', '-')
                             self.references[object_uuid].append({"idref": self.fetch_uuid(related_object.idref),
                                                                  "relationship": relationship})
+            else:
+                self.parse_description(observable)
 
     def parse_galaxy(self, galaxy, feature, default_value):
         names = self._get_galaxy_name(galaxy, feature)
@@ -1361,8 +1382,8 @@ class ExternalStixParser(StixParser):
             observables = ttp.resources.infrastructure.observable_characterization
             if observables.observables:
                 for observable in observables.observables:
-                    properties = observable.object_.properties
-                    if properties:
+                    if self._has_properties(observable):
+                        properties = observable.object_.properties
                         try:
                             attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
                         except Exception as e:
@@ -1400,11 +1421,17 @@ class ExternalStixParser(StixParser):
                         print(f'No valuable data to parse in the following attack-pattern: {attack_pattern.to_json()}', file=sys.stderr)
             if ttp.behavior.malware_instances:
                 for malware_instance in ttp.behavior.malware_instances:
-                    galaxies.update(self.parse_galaxy(malware_instance, 'title', 'ransomware'))
+                    try:
+                        galaxies.update(self.parse_galaxy(malware_instance, 'title', 'ransomware'))
+                    except TypeError:
+                        print(f'No valuable data to parse in the following malware instance: {malware_instance.to_json()}', file=sys.stderr)
         if ttp.resources:
             if ttp.resources.tools:
                 for tool in ttp.resources.tools:
-                    galaxies.update(self.parse_galaxy(tool, 'name', 'tool'))
+                    try:
+                        galaxies.update(self.parse_galaxy(tool, 'name', 'tool'))
+                    except TypeError:
+                        print(f'No valuable data to parse in the following tool: {tool.to_json()}', file=sys.stderr)
         return galaxies
 
     # Parse a DNS object
@@ -1444,6 +1471,14 @@ class ExternalStixParser(StixParser):
             attribute['value'] = attribute_value
             self.dns_objects['ip'][uuid] = attribute
             return 2
+
+    @staticmethod
+    def _has_properties(observable):
+        if not hasattr(observable, 'object_') or not observable.object_:
+            return False
+        if hasattr(observable.object_, 'properties') and observable.object_.properties:
+            return True
+        return False
 
     @staticmethod
     def _has_vulnerability(exploit_targets):

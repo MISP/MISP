@@ -61,4 +61,91 @@ class CryptGpgExtended extends Crypt_GPG
 
         return $keyData;
     }
+
+    /**
+     * Return key info without importing it.
+     *
+     * @param string $key
+     * @return Crypt_GPG_Key[]
+     * @throws Crypt_GPG_Exception
+     * @throws Crypt_GPG_InvalidOperationException
+     */
+    public function keyInfo($key)
+    {
+        $input = $this->_prepareInput($key, false, false);
+
+        $output = '';
+        $this->engine->reset();
+        $this->engine->setInput($input);
+        $this->engine->setOutput($output);
+        $this->engine->setOperation('--import', ['--import-options', 'show-only', '--with-colons']);
+        $this->engine->run();
+
+        $keys   = array();
+        $key    = null; // current key
+        $subKey = null; // current sub-key
+
+        foreach (explode(PHP_EOL, $output) as $line) {
+            $lineExp = explode(':', $line);
+
+            if ($lineExp[0] === 'pub') {
+                // new primary key means last key should be added to the array
+                if ($key !== null) {
+                    $keys[] = $key;
+                }
+
+                $key = new Crypt_GPG_Key();
+
+                $subKey = Crypt_GPG_SubKey::parse($line);
+                $key->addSubKey($subKey);
+
+            } elseif ($lineExp[0] === 'sub') {
+                $subKey = Crypt_GPG_SubKey::parse($line);
+                $key->addSubKey($subKey);
+
+            } elseif ($lineExp[0] === 'fpr') {
+                $fingerprint = $lineExp[9];
+
+                // set current sub-key fingerprint
+                $subKey->setFingerprint($fingerprint);
+
+            } elseif ($lineExp[0] === 'uid') {
+                $string = stripcslashes($lineExp[9]); // as per documentation
+                $userId = new Crypt_GPG_UserId($string);
+
+                if ($lineExp[1] === 'r') {
+                    $userId->setRevoked(true);
+                }
+
+                $key->addUserId($userId);
+            }
+        }
+
+        // add last key
+        if ($key !== null) {
+            $keys[] = $key;
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @param string $key
+     * @return string
+     * @throws Crypt_GPG_Exception
+     * @throws Crypt_GPG_InvalidOperationException
+     */
+    public function enarmor($key)
+    {
+        $input = $this->_prepareInput($key, false, false);
+
+        $armored = '';
+        $this->engine->reset();
+        $this->engine->setInput($input);
+        $this->engine->setOutput($armored);
+        $this->engine->setOperation('--enarmor');
+        $this->engine->run();
+
+        return $armored;
+    }
 }

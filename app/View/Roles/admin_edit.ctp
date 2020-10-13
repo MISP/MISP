@@ -9,7 +9,7 @@
                 'label' => __('Restrict to site admins')
             ));
         ?>
-        <div class = 'input clear'></div>
+        <div class="input clear"></div>
     <?php
         echo $this->Form->input('name');?>
         <?php echo $this->Form->input('permission', array('label' => __('Permissions'), 'type' => 'select', 'options' => $options), array('value' => '3'));?>
@@ -18,7 +18,7 @@
             echo $this->Form->input('memory_limit', array('label' => __('Memory limit') .  ' (' . h($default_memory_limit) . ')'));
             echo $this->Form->input('max_execution_time', array('label' => __('Maximum execution time') . ' (' . h($default_max_execution_time) . ')'));
         ?>
-        <div class = 'input clear'></div>
+        <div class="input clear"></div>
         <?php
             echo $this->Form->input('enforce_rate_limit', array(
                 'type' => 'checkbox',
@@ -26,13 +26,13 @@
                 'label' => __('Enforce search rate limit')
             ));
         ?>
-        <div class = 'input clear'></div>
+        <div class="input clear"></div>
         <div id="rateLimitCountContainer">
             <?php
                 echo $this->Form->input('rate_limit_count', array('label' => __('# of searches / 15 min')));
             ?>
         </div>
-        <div class = 'input clear'></div>
+        <div class="input clear"></div>
         <?php
             $counter = 1;
             foreach ($permFlags as $k => $flag):
@@ -46,9 +46,9 @@
                             ($flag['readonlyenabled'] ? 'readonlyenabled' : 'readonlydisabled'),
                             empty($flag['site_admin_optional']) ? 'site_admin_enforced' : 'site_admin_optional'
                         ),
-                        'label' => Inflector::humanize(substr($k, 5))
+                        'label' => $flag['text'],
                     ));
-                    if ($counter%3 == 0) echo "<div class = 'input clear'></div>";
+                    if ($counter%3 == 0) echo "<div class='input clear'></div>";
                     $counter++;
         ?>
                 </div>
@@ -66,7 +66,7 @@
 ?>
 
 <script type="text/javascript">
-    $(document).ready(function() {
+    $(function() {
         checkRolePerms();
         checkRoleEnforceRateLimit();
         $(".checkbox, #RolePermission").change(function() {
