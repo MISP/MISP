@@ -381,7 +381,8 @@ class Attribute extends AppModel
 
     public $primaryOnlyCorrelatingTypes = array(
         'ip-src|port',
-        'ip-dst|port'
+        'ip-dst|port',
+        'hostname|port',
     );
 
     public $captureFields = array(
