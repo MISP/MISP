@@ -3884,14 +3884,6 @@ $(document.body).on('mouseenter', '.eventViewAttributeHover', function () {
     clearTimeout(hoverEnrichmentPopoverTimer);
 });
 
-$(".cortex-json").click(function() {
-    var cortex_data = $(this).data('cortex-json');
-    cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-    var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-    popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-
-});
-
 function showEnrichmentPopover(type, id) {
     var $popoverBox = $('#popover_box');
     $popoverBox.empty();
@@ -4657,23 +4649,6 @@ $(document).ready(function() {
     $('.quickSelect').click(function() {
         quickSelect(this);
     });
-    $(".cortex-json").click(function() {
-        var cortex_data = $(this).data('cortex-json');
-        cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-        var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-        popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-        $('#popover_box').html(popupHtml);
-        $('#popover_box').show();
-        $('#popover_box').css({'padding': '5px'});
-        left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
-        if (($('#popover_box').height() + 250) > $(window).height()) {
-            $('#popover_box').height($(window).height() - 250);
-            $('#popover_box').css("overflow-y", "scroll");
-            $('#popover_box').css("overflow-x", "hidden");
-        }
-        $('#popover_box').css({'left': left + 'px'});
-        $("#gray_out").fadeIn();
-    });
     $('.add_object_attribute_row').click(function() {
         var template_id = $(this).data('template-id');
         var object_relation = $(this).data('object-relation');
@@ -4733,7 +4708,11 @@ $(document.body).on('click', 'span[data-full] a', function(e) {
     var data = $parent.attr('data-full');
     var type = $parent.attr('data-full-type');
     var $box;
-    if (type === 'raw') {
+    if (type === 'raw' || type === 'cortex') {
+        if (type === 'cortex') {
+            data = JSON.stringify(JSON.parse(data), null, 2); // make JSON nicer
+        }
+
         $box = $('<pre>').css({
             'background': 'white',
             'border': '0',

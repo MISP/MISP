@@ -68,7 +68,7 @@ switch ($object['type']) {
         break;
 
     case 'cortex':
-        echo '<div class="cortex-json" data-cortex-json="' . h($object['value']) . '">' . __('Cortex object') . '</div>';
+        echo '<span data-full="' . h($object['value']) . '" data-full-type="cortex"><a href="#">' . __('Cortex object') . '</a></span>';
         break;
 
     case 'text':
