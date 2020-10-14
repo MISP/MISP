@@ -4032,10 +4032,24 @@ function formCategoryChanged(id) {
     var alreadySelected = $type.val();
     var options = $type.prop('options');
     $('option', $type).remove();
-    $.each(category_type_mapping[$('#' + id + 'Category').val()], function(val, text) {
+
+    var selectedCategory = $('#' + id + 'Category').val();
+    var optionsToPush;
+    if (selectedCategory === "") { // if no category is selected, insert all attribute types
+        optionsToPush = {};
+        for (var category in category_type_mapping) {
+            for (var type in category_type_mapping[category]) {
+                optionsToPush[type] = category_type_mapping[category][type];
+            }
+        }
+    } else {
+        optionsToPush = category_type_mapping[selectedCategory];
+    }
+
+    $.each(optionsToPush, function (val, text) {
         options[options.length] = new Option(text, val);
         if (val === alreadySelected) {
-            options[options.length-1].selected = true;
+            options[options.length - 1].selected = true;
         }
     });
     // enable the form element
