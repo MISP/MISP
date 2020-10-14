@@ -108,11 +108,12 @@ function delegatePopup(id) {
 }
 
 function genericPopup(url, popupTarget, callback) {
+    var $popupTarget = $(popupTarget);
     $.get(url, function(data) {
-        $(popupTarget).html(data);
-        $(popupTarget).fadeIn();
-        left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
-        $(popupTarget).css({'left': left + 'px'});
+        $popupTarget.html(data);
+        $popupTarget.fadeIn();
+        var left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
+        $popupTarget.css({'left': left + 'px'});
         $("#gray_out").fadeIn();
         if (callback !== undefined) {
             callback();
@@ -1469,7 +1470,10 @@ function cancelPopoverForm(id) {
     $("#gray_out").fadeOut();
     $("#popover_form_large").fadeOut();
     $("#screenshot_box").fadeOut();
-    $("#popover_box").fadeOut();
+    $("#popover_box")
+        .fadeOut()
+        .removeAttr('style') // remove all inline styles
+        .empty(); // remove all child elements
     $("#confirmation_box").fadeOut();
     $('#popover_form').fadeOut();
     if (id !== undefined && id !== '') {
