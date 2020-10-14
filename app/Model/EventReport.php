@@ -427,13 +427,22 @@ class EventReport extends AppModel
         $event = $event[0];
 
         if (!empty($event['Event']['extends_uuid'])) {
-            $parentEvent = $this->Event->fetchEvent($user, array_merge(['event_uuid' => $event['Event']['extends_uuid']], $options));
-            if (!empty($parentEvent)) {
-                $event = $parentEvent[0];
+            $extendedParentEvent = $this->Event->fetchEvent($user, array_merge([
+                'event_uuid' => $event['Event']['extends_uuid'],
+                'extended' => true,
+            ], $options));
+            if (!empty($extendedParentEvent)) {
+                $event = $extendedParentEvent[0];
             }
         }
 
-        $allTagNames = Hash::combine($event['EventTag'], '{n}.Tag.name', '{n}.Tag');
+        $allTagNames = [];
+        foreach ($event['EventTag'] as $eventTag) {
+            // include just tags that belongs to requested event or its parent, not to other child
+            if ($eventTag['event_id'] == $eventid || $eventTag['event_id'] == $event['Event']['id']) {
+                $allTagNames[$eventTag['Tag']['name']] = $eventTag['Tag'];
+            }
+        }
 
         $attributes = [];
         foreach ($event['Attribute'] as $attribute) {
@@ -469,6 +478,7 @@ class EventReport extends AppModel
             }
         }
         if (!empty($templateConditions)) {
+            // Fetch object templates for event objects
             $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
             $templates = $this->ObjectTemplate->find('all', array(
                 'conditions' => ['OR' => array_values($templateConditions)],
@@ -490,14 +500,13 @@ class EventReport extends AppModel
         $this->Galaxy = ClassRegistry::init('Galaxy');
         $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
         $allowedGalaxies = Hash::combine($allowedGalaxies, '{n}.Galaxy.uuid', '{n}.Galaxy');
-        $proxyMISPElements = [
+        return [
             'attribute' => $attributes,
             'object' => $objects,
             'objectTemplates' => $objectTemplates,
             'galaxymatrix' => $allowedGalaxies,
             'tagname' => $allTagNames
         ];
-        return $proxyMISPElements;
     }
 
     private function saveAndReturnErrors($data, $saveOptions = [], $errors = [])
