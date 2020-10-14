@@ -98,16 +98,16 @@ class Attribute extends AppModel
             'Payload delivery' => array(
                     'desc' => __('Information about how the malware is delivered'),
                     'formdesc' => __('Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
                     ),
             'Artifacts dropped' => array(
                     'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'filename-pattern', 'pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised', 'pgp-public-key', 'pgp-private-key')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'filename-pattern', 'pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised', 'pgp-public-key', 'pgp-private-key')
                     ),
             'Payload installation' => array(
                     'desc' => __('Info on where the malware gets installed in the system'),
                     'formdesc' => __('Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
                     ),
             'Persistence mechanism' => array(
                     'desc' => __('Mechanisms used by the malware to start at boot'),
@@ -246,6 +246,7 @@ class Attribute extends AppModel
             'vhash' => array('desc' => __('A VirusTotal checksum'), 'formdesc' => __("You are encouraged to use filename|vhash instead. A checksum from VirusTotal, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'ssdeep' => array('desc' => __('A checksum in ssdeep format'), 'formdesc' => __("You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'imphash' => array('desc' => __('Import hash - a hash created based on the imports in the sample.'), 'formdesc' => __("You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'telfhash' => array('desc' => __('telfhash is symbol hash for ELF files, just like imphash is imports hash for PE files.'), 'formdesc' => __("You are encouraged to use a file object with telfash"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'pehash' => array('desc' => __('PEhash - a hash calculated based of certain pieces of a PE executable file'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'impfuzzy' => array('desc' => __('A fuzzy hash of import table of Portable Executable format'), 'formdesc' => __("You are encouraged to use filename|impfuzzy instead. A fuzzy hash created based on the imports in the sample, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'sha224' => array('desc' => __('A checksum in sha-224 format'), 'formdesc' => __("You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -381,7 +382,8 @@ class Attribute extends AppModel
 
     public $primaryOnlyCorrelatingTypes = array(
         'ip-src|port',
-        'ip-dst|port'
+        'ip-dst|port',
+        'hostname|port',
     );
 
     public $captureFields = array(
@@ -459,6 +461,7 @@ class Attribute extends AppModel
             'authentihash' => 'Payload delivery',
             'vhash' => 'Payload delivery',
             'imphash' => 'Payload delivery',
+            'telfhash' => 'Payload delivery',
             'impfuzzy'=> 'Payload delivery',
             'pehash' => 'Payload delivery',
             'cdhash' => 'Payload delivery',
@@ -498,7 +501,7 @@ class Attribute extends AppModel
     // whilst filenames and hashes are file related attribute types
     // This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
     public $typeGroupings = array(
-        'file' => array('attachment', 'pattern-in-file', 'filename-pattern', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'),
+        'file' => array('attachment', 'pattern-in-file', 'filename-pattern', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'),
         'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'bro', 'zeek',  'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256','ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'community-id'),
         'financial' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
     );
@@ -927,8 +930,7 @@ class Attribute extends AppModel
     {
         $compositeTypes = $this->getCompositeTypes();
         if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
-            $pieces = explode('|', $fields['value']);
-            if (2 != count($pieces)) {
+            if (substr_count($fields['value'], '|') !== 1) {
                 return false;
             }
         }
@@ -1035,6 +1037,7 @@ class Attribute extends AppModel
         'authentihash' => 64,
         'md5' => 32,
         'imphash' => 32,
+        'telfhash' => 70,
         'sha1' => 40,
         'git-commit-id' => 40,
         'x509-fingerprint-md5' => 32,
@@ -1063,6 +1066,7 @@ class Attribute extends AppModel
         switch ($type) {
             case 'md5':
             case 'imphash':
+            case 'telfhash':
             case 'sha1':
             case 'sha224':
             case 'sha256':
@@ -1102,17 +1106,17 @@ class Attribute extends AppModel
                 }
                 break;
             case 'ssdeep':
-                if (substr_count($value, ':') == 2) {
+                if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
-                    if (is_numeric($parts[0])) {
+                    if ($this->isPositiveInteger($parts[0])) {
                         return true;
                     }
                 }
                 return __('Invalid SSDeep hash. The format has to be blocksize:hash:hash');
             case 'impfuzzy':
-                if (substr_count($value, ':') == 2) {
+                if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
-                    if (is_numeric($parts[0])) {
+                    if ($this->isPositiveInteger($parts[0])) {
                         $returnValue = true;
                     }
                 }
@@ -1172,7 +1176,7 @@ class Attribute extends AppModel
                     $value = $composite[1];
                     if (substr_count($value, ':') == 2) {
                         $parts = explode(':', $value);
-                        if (is_numeric($parts[0])) {
+                        if ($this->isPositiveInteger($parts[0])) {
                             $returnValue = true;
                         }
                     }
@@ -1199,17 +1203,17 @@ class Attribute extends AppModel
             case 'ip-dst':
                 if (strpos($value, '/') !== false) {
                     $parts = explode("/", $value);
-                    if (count($parts) !== 2 || intval($parts[1]) != $parts[1] || $parts[1] < 0) {
+                    if (count($parts) !== 2 || !$this->isPositiveInteger($parts[1])) {
                         return __('Invalid CIDR notation value found.');
                     }
 
                     if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                         if ($parts[1] > 32) {
-                            return __('Invalid CIDR notation value found.');
+                            return __('Invalid CIDR notation value found, for IPv4 must be lower or equal 32.');
                         }
                     } else if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                         if ($parts[1] > 128) {
-                            return __('Invalid CIDR notation value found.');
+                            return __('Invalid CIDR notation value found, for IPv6 must be lower or equal 128.');
                         }
                     } else {
                         return __('IP address has an invalid format.');
@@ -1221,7 +1225,7 @@ class Attribute extends AppModel
 
             case 'port':
                 if (!$this->isPortValid($value)) {
-                    $returnValue = __('Port numbers have to be positive integers between 1 and 65535.');
+                    $returnValue = __('Port numbers have to be integers between 1 and 65535.');
                 } else {
                     $returnValue = true;
                 }
@@ -1229,17 +1233,20 @@ class Attribute extends AppModel
             case 'ip-dst|port':
             case 'ip-src|port':
                 $parts = explode('|', $value);
-                if (filter_var($parts[0], FILTER_VALIDATE_IP) && $this->isPortValid($parts[1])) {
-                    $returnValue = true;
+                if (!filter_var($parts[0], FILTER_VALIDATE_IP)) {
+                    return __('IP address has an invalid format.');
                 }
-                break;
+                if (!$this->isPortValid($parts[1])) {
+                    return __('Port numbers have to be integers between 1 and 65535.');
+                }
+                return true;
             case 'mac-address':
-                if (preg_match('/^([a-fA-F0-9]{2}[:|\-| |\.]?){6}$/', $value) == 1) {
+                if (preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value)) {
                     $returnValue = true;
                 }
                 break;
             case 'mac-eui-64':
-                if (preg_match('/^([a-fA-F0-9]{2}[:|\-| |\.]?){8}$/', $value) == 1) {
+                if (preg_match('/^([a-fA-F0-9]{2}[:]?){8}$/', $value)) {
                     $returnValue = true;
                 }
                 break;
@@ -1248,15 +1255,18 @@ class Attribute extends AppModel
                 if ($this->isDomainValid($value)) {
                     $returnValue = true;
                 } else {
-                    $returnValue = __('%s name has an invalid format. Please double check the value or select type "other".', ucfirst($type));
+                    $returnValue = __('%s has an invalid format. Please double check the value or select type "other".', ucfirst($type));
                 }
                 break;
             case 'hostname|port':
                 $parts = explode('|', $value);
-                if ($this->isDomainValid($parts[0]) && $this->isPortValid($parts[1])) {
-                    $returnValue = true;
+                if (!$this->isDomainValid($parts[0])) {
+                    return __('Hostname has an invalid format.');
                 }
-                break;
+                if (!$this->isPortValid($parts[1])) {
+                    return __('Port numbers have to be integers between 1 and 65535.');
+                }
+                return true;
             case 'domain|ip':
                 if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}\|.*$#i", $value)) {
                     $parts = explode('|', $value);
@@ -1334,14 +1344,6 @@ class Attribute extends AppModel
             case 'cookie':
             case 'attachment':
             case 'malware-sample':
-                $returnValue = true;
-                break;
-            case 'link':
-                // Moved to a native function whilst still enforcing the scheme as a requirement
-                if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
-                    $returnValue = true;
-                }
-                break;
             case 'comment':
             case 'text':
             case 'other':
@@ -1352,6 +1354,12 @@ class Attribute extends AppModel
             case 'middle-name':
             case 'last-name':
                 $returnValue = true;
+                break;
+            case 'link':
+                // Moved to a native function whilst still enforcing the scheme as a requirement
+                if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
+                    $returnValue = true;
+                }
                 break;
             case 'hex':
                 return ctype_xdigit($value);
@@ -1426,7 +1434,7 @@ class Attribute extends AppModel
                 break;
             case 'size-in-bytes':
             case 'counter':
-                if ((is_int($value) || ctype_digit($value)) && $value >= 0) {
+                if ($this->isPositiveInteger($value)) {
                     return true;
                 }
                 return __('The value has to be a whole number greater or equal 0.');
@@ -1442,6 +1450,10 @@ class Attribute extends AppModel
             case 'btc':
             case 'dash':
             case 'xmr':
+                if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
+                    $returnValue = true;
+                }
+                break;
             case 'vhash':
                 if (preg_match('/^[a-zA-Z0-9&!="]+$/', $value)) {
                     $returnValue = true;
@@ -1498,6 +1510,7 @@ class Attribute extends AppModel
             case 'authentihash':
             case 'vhash':
             case 'imphash':
+            case 'telfhash':
             case 'tlsh':
             case 'anonymised':
             case 'cdhash':
@@ -1629,7 +1642,7 @@ class Attribute extends AppModel
                     return $parts[0] . '|' . $parts[1];
             case 'mac-address':
             case 'mac-eui-64':
-                $value = str_replace(array('.', ':', '-', ' '), '', $value);
+                $value = str_replace(array('.', ':', '-', ' '), '', strtolower($value));
                 $value = wordwrap($value, 2, ':', true);
                 break;
             case 'hostname|port':
@@ -4719,7 +4732,7 @@ class Attribute extends AppModel
      */
     private function isPortValid($value)
     {
-        return (is_int($value) || ctype_digit($value)) && $value >= 1 && $value <= 65535;
+        return $this->isPositiveInteger($value) && $value >= 1 && $value <= 65535;
     }
 
     /**
@@ -4734,5 +4747,15 @@ class Attribute extends AppModel
         }
         $length = $this->__hexHashLengths[$type];
         return strlen($value) === $length && ctype_xdigit($value);
+    }
+
+    /**
+     * Returns true if input value is positive integer or zero.
+     * @param int|string $value
+     * @return bool
+     */
+    private function isPositiveInteger($value)
+    {
+        return (is_int($value) && $value >= 0) || ctype_digit($value);
     }
 }
