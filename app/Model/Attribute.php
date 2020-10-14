@@ -1089,6 +1089,7 @@ class Attribute extends AppModel
                 if ($this->isHashValid($type, $value)) {
                     return true;
                 } else {
+                    $length = $this->__hexHashLengths[$type];
                     return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
                 }
             case 'tlsh':

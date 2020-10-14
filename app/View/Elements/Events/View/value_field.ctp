@@ -47,7 +47,7 @@ switch ($object['type']) {
             $url = array('controller' => $controller, 'action' => 'download', $object['id']);
             echo $this->Html->link($filename, $url, array('class' => $linkClass));
             if (isset($filenameHash[1])) {
-                echo '<br />' . $filenameHash[1];
+                echo '<br>' . $filenameHash[1];
             }
         }
         break;
@@ -68,7 +68,7 @@ switch ($object['type']) {
         break;
 
     case 'cortex':
-        echo '<div class="cortex-json" data-cortex-json="' . h($object['value']) . '">' . __('Cortex object') . '</div>';
+        echo '<span data-full="' . h($object['value']) . '" data-full-type="cortex"><a href="#">' . __('Cortex object') . '</a></span>';
         break;
 
     case 'text':
@@ -93,6 +93,17 @@ switch ($object['type']) {
         echo '<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="fas fa-redo hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
         break;
 
+    case 'ip-dst|port':
+    case 'ip-src|port':
+    case 'hostname|port':
+        $valuePieces = explode('|', $object['value']);
+        if (substr_count($valuePieces[0], ':') >= 2) {
+            echo '[' . h($valuePieces[0]) . ']:' . h($valuePieces[1]); // IPv6 style
+        } else {
+            echo h($valuePieces[0]) . ':' . h($valuePieces[1]);
+        }
+        break;
+
     /** @noinspection PhpMissingBreakStatementInspection */
     case 'domain':
         if (strpos($sigDisplay, 'xn--') !== false && function_exists('idn_to_utf8')) {
@@ -102,21 +113,11 @@ switch ($object['type']) {
 
     default:
         if (strpos($object['type'], '|') !== false) {
-            if (in_array($object['type'], array('ip-dst|port', 'ip-src|port'))) {
-                if (substr_count($object['value'], ':') >= 2) {
-                    $object['value'] = '[' . $object['value']; // prepend `[` for a nicer display
-                    $separator = ']:';
-                } else {
-                    $separator = ':';
-                }
-            } else {
-                $separator = '<br />';
-            }
             $valuePieces = explode('|', $object['value']);
             foreach ($valuePieces as $k => $v) {
                 $valuePieces[$k] = h($v);
             }
-            echo implode($separator, $valuePieces);
+            echo implode('<br>', $valuePieces);
         } else {
             $sigDisplay = str_replace("\r", '', $sigDisplay);
             $truncated = $truncateLongText($sigDisplay);

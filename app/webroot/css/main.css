@@ -2345,7 +2345,7 @@ tr.blueRow td a, tr.blueRow td a:hover {
     text-decoration: underline;
 }
 
-a.fa:hover, a.fas:hover {
+a.fa, a.fas, a.fa:hover, a.fas:hover {
     text-decoration: none !important;
 }
 

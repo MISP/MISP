@@ -108,11 +108,12 @@ function delegatePopup(id) {
 }
 
 function genericPopup(url, popupTarget, callback) {
+    var $popupTarget = $(popupTarget);
     $.get(url, function(data) {
-        $(popupTarget).html(data);
-        $(popupTarget).fadeIn();
-        left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
-        $(popupTarget).css({'left': left + 'px'});
+        $popupTarget.html(data);
+        $popupTarget.fadeIn();
+        var left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
+        $popupTarget.css({'left': left + 'px'});
         $("#gray_out").fadeIn();
         if (callback !== undefined) {
             callback();
@@ -1469,7 +1470,10 @@ function cancelPopoverForm(id) {
     $("#gray_out").fadeOut();
     $("#popover_form_large").fadeOut();
     $("#screenshot_box").fadeOut();
-    $("#popover_box").fadeOut();
+    $("#popover_box")
+        .fadeOut()
+        .removeAttr('style') // remove all inline styles
+        .empty(); // remove all child elements
     $("#confirmation_box").fadeOut();
     $('#popover_form').fadeOut();
     if (id !== undefined && id !== '') {
@@ -3880,14 +3884,6 @@ $(document.body).on('mouseenter', '.eventViewAttributeHover', function () {
     clearTimeout(hoverEnrichmentPopoverTimer);
 });
 
-$(".cortex-json").click(function() {
-    var cortex_data = $(this).data('cortex-json');
-    cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-    var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-    popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-
-});
-
 function showEnrichmentPopover(type, id) {
     var $popoverBox = $('#popover_box');
     $popoverBox.empty();
@@ -4028,10 +4024,24 @@ function formCategoryChanged(id) {
     var alreadySelected = $type.val();
     var options = $type.prop('options');
     $('option', $type).remove();
-    $.each(category_type_mapping[$('#' + id + 'Category').val()], function(val, text) {
+
+    var selectedCategory = $('#' + id + 'Category').val();
+    var optionsToPush;
+    if (selectedCategory === "") { // if no category is selected, insert all attribute types
+        optionsToPush = {};
+        for (var category in category_type_mapping) {
+            for (var type in category_type_mapping[category]) {
+                optionsToPush[type] = category_type_mapping[category][type];
+            }
+        }
+    } else {
+        optionsToPush = category_type_mapping[selectedCategory];
+    }
+
+    $.each(optionsToPush, function (val, text) {
         options[options.length] = new Option(text, val);
         if (val === alreadySelected) {
-            options[options.length-1].selected = true;
+            options[options.length - 1].selected = true;
         }
     });
     // enable the form element
@@ -4639,23 +4649,6 @@ $(document).ready(function() {
     $('.quickSelect').click(function() {
         quickSelect(this);
     });
-    $(".cortex-json").click(function() {
-        var cortex_data = $(this).data('cortex-json');
-        cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-        var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-        popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-        $('#popover_box').html(popupHtml);
-        $('#popover_box').show();
-        $('#popover_box').css({'padding': '5px'});
-        left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
-        if (($('#popover_box').height() + 250) > $(window).height()) {
-            $('#popover_box').height($(window).height() - 250);
-            $('#popover_box').css("overflow-y", "scroll");
-            $('#popover_box').css("overflow-x", "hidden");
-        }
-        $('#popover_box').css({'left': left + 'px'});
-        $("#gray_out").fadeIn();
-    });
     $('.add_object_attribute_row').click(function() {
         var template_id = $(this).data('template-id');
         var object_relation = $(this).data('object-relation');
@@ -4715,7 +4708,11 @@ $(document.body).on('click', 'span[data-full] a', function(e) {
     var data = $parent.attr('data-full');
     var type = $parent.attr('data-full-type');
     var $box;
-    if (type === 'raw') {
+    if (type === 'raw' || type === 'cortex') {
+        if (type === 'cortex') {
+            data = JSON.stringify(JSON.parse(data), null, 2); // make JSON nicer
+        }
+
         $box = $('<pre>').css({
             'background': 'white',
             'border': '0',
