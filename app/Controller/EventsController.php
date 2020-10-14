@@ -4357,16 +4357,17 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    private function genDistributionGraph($id, $type = 'event', $extended = 0) {
+    private function genDistributionGraph($id, $type = 'event', $extended = 0)
+    {
         $validTools = array('event');
         if (!in_array($type, $validTools)) {
             throw new MethodNotAllowedException(__('Invalid type.'));
         }
-        $this->loadModel('Server');
-        $this->loadModel('Organisation');
+
         App::uses('DistributionGraphTool', 'Tools');
         $grapher = new DistributionGraphTool();
 
+        $this->loadModel('Server');
         $servers = $this->Server->find('list', array(
             'fields' => array('name'),
         ));
