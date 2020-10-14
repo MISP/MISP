@@ -930,8 +930,7 @@ class Attribute extends AppModel
     {
         $compositeTypes = $this->getCompositeTypes();
         if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
-            $pieces = explode('|', $fields['value']);
-            if (2 != count($pieces)) {
+            if (substr_count($fields['value'], '|') !== 1) {
                 return false;
             }
         }
@@ -1107,17 +1106,17 @@ class Attribute extends AppModel
                 }
                 break;
             case 'ssdeep':
-                if (substr_count($value, ':') == 2) {
+                if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
-                    if (is_numeric($parts[0])) {
+                    if ($this->isPositiveInteger($parts[0])) {
                         return true;
                     }
                 }
                 return __('Invalid SSDeep hash. The format has to be blocksize:hash:hash');
             case 'impfuzzy':
-                if (substr_count($value, ':') == 2) {
+                if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
-                    if (is_numeric($parts[0])) {
+                    if ($this->isPositiveInteger($parts[0])) {
                         $returnValue = true;
                     }
                 }
@@ -1177,7 +1176,7 @@ class Attribute extends AppModel
                     $value = $composite[1];
                     if (substr_count($value, ':') == 2) {
                         $parts = explode(':', $value);
-                        if (is_numeric($parts[0])) {
+                        if ($this->isPositiveInteger($parts[0])) {
                             $returnValue = true;
                         }
                     }
@@ -1204,17 +1203,17 @@ class Attribute extends AppModel
             case 'ip-dst':
                 if (strpos($value, '/') !== false) {
                     $parts = explode("/", $value);
-                    if (count($parts) !== 2 || intval($parts[1]) != $parts[1] || $parts[1] < 0) {
+                    if (count($parts) !== 2 || !$this->isPositiveInteger($parts[1])) {
                         return __('Invalid CIDR notation value found.');
                     }
 
                     if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                         if ($parts[1] > 32) {
-                            return __('Invalid CIDR notation value found.');
+                            return __('Invalid CIDR notation value found, for IPv4 must be lower or equal 32.');
                         }
                     } else if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                         if ($parts[1] > 128) {
-                            return __('Invalid CIDR notation value found.');
+                            return __('Invalid CIDR notation value found, for IPv6 must be lower or equal 128.');
                         }
                     } else {
                         return __('IP address has an invalid format.');
@@ -1226,7 +1225,7 @@ class Attribute extends AppModel
 
             case 'port':
                 if (!$this->isPortValid($value)) {
-                    $returnValue = __('Port numbers have to be positive integers between 1 and 65535.');
+                    $returnValue = __('Port numbers have to be integers between 1 and 65535.');
                 } else {
                     $returnValue = true;
                 }
@@ -1234,17 +1233,20 @@ class Attribute extends AppModel
             case 'ip-dst|port':
             case 'ip-src|port':
                 $parts = explode('|', $value);
-                if (filter_var($parts[0], FILTER_VALIDATE_IP) && $this->isPortValid($parts[1])) {
-                    $returnValue = true;
+                if (!filter_var($parts[0], FILTER_VALIDATE_IP)) {
+                    return __('IP address has an invalid format.');
                 }
-                break;
+                if (!$this->isPortValid($parts[1])) {
+                    return __('Port numbers have to be integers between 1 and 65535.');
+                }
+                return true;
             case 'mac-address':
-                if (preg_match('/^([a-fA-F0-9]{2}[:|\-| |\.]?){6}$/', $value) == 1) {
+                if (preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value)) {
                     $returnValue = true;
                 }
                 break;
             case 'mac-eui-64':
-                if (preg_match('/^([a-fA-F0-9]{2}[:|\-| |\.]?){8}$/', $value) == 1) {
+                if (preg_match('/^([a-fA-F0-9]{2}[:]?){8}$/', $value)) {
                     $returnValue = true;
                 }
                 break;
@@ -1253,15 +1255,18 @@ class Attribute extends AppModel
                 if ($this->isDomainValid($value)) {
                     $returnValue = true;
                 } else {
-                    $returnValue = __('%s name has an invalid format. Please double check the value or select type "other".', ucfirst($type));
+                    $returnValue = __('%s has an invalid format. Please double check the value or select type "other".', ucfirst($type));
                 }
                 break;
             case 'hostname|port':
                 $parts = explode('|', $value);
-                if ($this->isDomainValid($parts[0]) && $this->isPortValid($parts[1])) {
-                    $returnValue = true;
+                if (!$this->isDomainValid($parts[0])) {
+                    return __('Hostname has an invalid format.');
                 }
-                break;
+                if (!$this->isPortValid($parts[1])) {
+                    return __('Port numbers have to be integers between 1 and 65535.');
+                }
+                return true;
             case 'domain|ip':
                 if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}\|.*$#i", $value)) {
                     $parts = explode('|', $value);
@@ -1339,14 +1344,6 @@ class Attribute extends AppModel
             case 'cookie':
             case 'attachment':
             case 'malware-sample':
-                $returnValue = true;
-                break;
-            case 'link':
-                // Moved to a native function whilst still enforcing the scheme as a requirement
-                if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
-                    $returnValue = true;
-                }
-                break;
             case 'comment':
             case 'text':
             case 'other':
@@ -1357,6 +1354,12 @@ class Attribute extends AppModel
             case 'middle-name':
             case 'last-name':
                 $returnValue = true;
+                break;
+            case 'link':
+                // Moved to a native function whilst still enforcing the scheme as a requirement
+                if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
+                    $returnValue = true;
+                }
                 break;
             case 'hex':
                 return ctype_xdigit($value);
@@ -1431,7 +1434,7 @@ class Attribute extends AppModel
                 break;
             case 'size-in-bytes':
             case 'counter':
-                if ((is_int($value) || ctype_digit($value)) && $value >= 0) {
+                if ($this->isPositiveInteger($value)) {
                     return true;
                 }
                 return __('The value has to be a whole number greater or equal 0.');
@@ -1447,6 +1450,10 @@ class Attribute extends AppModel
             case 'btc':
             case 'dash':
             case 'xmr':
+                if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
+                    $returnValue = true;
+                }
+                break;
             case 'vhash':
                 if (preg_match('/^[a-zA-Z0-9&!="]+$/', $value)) {
                     $returnValue = true;
@@ -1635,7 +1642,7 @@ class Attribute extends AppModel
                     return $parts[0] . '|' . $parts[1];
             case 'mac-address':
             case 'mac-eui-64':
-                $value = str_replace(array('.', ':', '-', ' '), '', $value);
+                $value = str_replace(array('.', ':', '-', ' '), '', strtolower($value));
                 $value = wordwrap($value, 2, ':', true);
                 break;
             case 'hostname|port':
@@ -4725,7 +4732,7 @@ class Attribute extends AppModel
      */
     private function isPortValid($value)
     {
-        return (is_int($value) || ctype_digit($value)) && $value >= 1 && $value <= 65535;
+        return $this->isPositiveInteger($value) && $value >= 1 && $value <= 65535;
     }
 
     /**
@@ -4740,5 +4747,15 @@ class Attribute extends AppModel
         }
         $length = $this->__hexHashLengths[$type];
         return strlen($value) === $length && ctype_xdigit($value);
+    }
+
+    /**
+     * Returns true if input value is positive integer or zero.
+     * @param int|string $value
+     * @return bool
+     */
+    private function isPositiveInteger($value)
+    {
+        return (is_int($value) && $value >= 0) || ctype_digit($value);
     }
 }
