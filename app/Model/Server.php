@@ -2597,6 +2597,10 @@ class Server extends AppModel
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
             if ($result) {
                 $successes[] = $eventId;
+                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'add_from_connected_server');
+                }
             } else {
                 $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
             }
@@ -2607,6 +2611,10 @@ class Server extends AppModel
                 $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
                     $successes[] = $eventId;
+                    if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                        $pubSubTool = $this->getPubSubTool();
+                        $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'edit_from_connected_server');
+                    }
                 } elseif (isset($result['error'])) {
                     $fails[$eventId] = $result['error'];
                 } else {
