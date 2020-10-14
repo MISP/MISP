@@ -158,7 +158,6 @@ class AttributesController extends AppController
             if (!isset($attributes[0])) {
                 $attributes = array(0 => $attributes);
             }
-            $this->Warninglist = ClassRegistry::init('Warninglist');
             $fails = array();
             $successes = 0;
             $attributeCount = count($attributes);
