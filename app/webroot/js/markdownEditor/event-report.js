@@ -48,8 +48,9 @@ var contentBeforeSuggestions
 var typeToCategoryMapping
 var entitiesFromComplexTool
 var $suggestionContainer
+var unreferenceValues;
 var suggestions = {}
-var pickedSuggestion = { tr: null, entity: null, index: null }
+var pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
 
 /**
    _____          _      __  __ _                     
@@ -497,7 +498,7 @@ function renderMISPElement(scope, elementID, indexes) {
                     scope: 'suggestion',
                     elementid: elementID,
                     eventid: eventid,
-                    type: suggestion.complexTypeToolResult.default_type,
+                    type: suggestion.complexTypeToolResult.picked_type,
                     origValue: elementID,
                     value: suggestion.complexTypeToolResult.value,
                     'indexStart': indexes.start,
@@ -898,36 +899,47 @@ function automaticEntitiesExtraction() {
 
 function manualEntitiesExtraction() {
     contentBeforeSuggestions = getEditorData()
-    // contentBeforeSuggestions = originalRaw
     getEntitiesFromReport(function(data) {
         typeToCategoryMapping = data.typeToCategoryMapping
         prepareSuggestionInterface(data.complexTypeOutput)
         enableSuggestionInterface()
-        pickSuggestionColumn(0)
     })
 }
 
 function prepareSuggestionInterface(complexTypeOutput) {
+    toggleMarkdownEditorLoading(true, 'Processing document')
     entitiesFromComplexTool = complexTypeOutput
     entitiesFromComplexTool = injectNumberOfOccurencesInReport(entitiesFromComplexTool)
     setupSuggestionMarkdownListeners()
     constructSuggestionTable(entitiesFromComplexTool)
+    toggleMarkdownEditorLoading(false)
 }
 
-function highlightPickedInReport() {
+function highlightPickedSuggestionInReport() {
     setEditorData(contentBeforeSuggestions)
     for (var i = 0; i < entitiesFromComplexTool.length; i++) {
         var entity = entitiesFromComplexTool[i];
         if (pickedSuggestion.entity.value == entity.value) {
-            var content = getEditorData()
-            // var content = originalRaw
-            var converted = convertEntityIntoSuggestion(content, entity)
+            // var content = getEditorData()
+            var converted = convertEntityIntoSuggestion(contentBeforeSuggestions, entity)
             setEditorData(converted)
             var indicesInCM = getAllSuggestionIndicesOf(converted, entity.value, false)
             constructSuggestionMapping(entity, indicesInCM)
             break
         }
     }
+}
+
+function highlightPickedReplacementInReport() {
+    var entity = pickedSuggestion.entity
+    setEditorData(contentBeforeSuggestions)
+    // var content = getEditorData()
+    var content = contentBeforeSuggestions
+    // var converted = convertEntityIntoReplacement(content, entity)
+    var converted = convertEntityIntoSuggestion(content, entity)
+    setEditorData(converted)
+    var indicesInCM = getAllSuggestionIndicesOf(converted, entity.value, false)
+    constructSuggestionMapping(entity, indicesInCM)
 }
 
 function convertEntityIntoSuggestion(content, entity) {
@@ -937,6 +949,18 @@ function convertEntityIntoSuggestion(content, entity) {
         converted += text
         if (i < splittedContent.length-1) {
             converted += '@[suggestion](' + entity.value + ')'
+        }
+    })
+    return converted
+}
+
+function convertEntityIntoReplacement(content, entity) {
+    var converted = ''
+    var splittedContent = content.split(entity.value)
+    splittedContent.forEach(function(text, i) {
+        converted += text
+        if (i < splittedContent.length-1) {
+            converted += '@[attribute](' + entity.replacement + ')'
         }
     })
     return converted
@@ -972,7 +996,6 @@ function constructSuggestionMapping(entity, indicesInCM) {
 
 function injectNumberOfOccurencesInReport(entities) {
     var content = getEditorData()
-    // var content = originalRaw
     entities.forEach(function(entity, i) {
         entities[i].occurrences = getAllIndicesOf(content, entity.value, false, false).length
     })
@@ -1339,14 +1362,85 @@ function getContentFromMISPElementDOM() {
     return invalidMessage
 }
 
+function searchForUnreferenceValues() {
+    unreferenceValues = {}
+    var content = getEditorData()
+    Object.keys(proxyMISPElements['attribute']).forEach(function(uuid) {
+        var attribute = proxyMISPElements['attribute'][uuid]
+        var indices = []
+        if (unreferenceValues[attribute.value] === undefined || unreferenceValues[attribute.value].indices === undefined) {
+            indices = getAllIndicesOf(content, attribute.value, true, true)
+        } else {
+            indices = unreferenceValues[attribute.value].indices
+        }
+        if (indices.length > 0) {
+            if (unreferenceValues[attribute.value] === undefined) {
+                unreferenceValues[attribute.value] = {
+                    attributes: [],
+                    indices: null
+                }
+            }
+            unreferenceValues[attribute.value].indices = indices
+            unreferenceValues[attribute.value].attributes.push(attribute)
+        }
+    })
+}
+
 function constructSuggestionTable(entities) {
+    searchForUnreferenceValues()
+    var $extractionTable = constructExtractionTable(entities)
+    var $replacementTable = constructReplacementTable(unreferenceValues)
+    var $collapsibleControl = $('<ul class="nav nav-tabs" id="suggestionTableTabs" />').append(
+        $('<li/>').append(
+            $('<a/>').attr('href', '#replacement-table').append(
+                $('<span/>').text('Replacement table'),
+                $('<span class="badge badge-important"/>').css({'padding': '2px 6px', 'margin-left': '3px'}).text(Object.keys(unreferenceValues).length)
+            ).attr('title', 'Replace raw text into attribute reference')
+        ),
+        $('<li/>').append(
+            $('<a/>').attr('href', '#extraction-table').append(
+                $('<span/>').text('Extraction table'),
+                $('<span class="badge badge-warning"/>').css({'padding': '2px 6px', 'margin-left': '3px'}).text(entities.length)
+            ).attr('title', 'Convert raw text into attribute and reference it')
+        )
+    )
+    var $collapsibleContent = $('<div class="tab-content"/>').append(
+        $('<div class="tab-pane" id="extraction-table" />').append($extractionTable),
+        $('<div class="tab-pane" id="replacement-table" />').append($replacementTable),
+        $('<div class="tab-pane active" />').text('Pick a table to view available actions').css({
+            'text-align': 'center',
+            'opacity': '80%'
+        }),
+    )
+    var $topBar = $('<div/>').append(
+        $('<button/>').addClass('btn btn-mini btn-inverse').css({
+            'float': 'right',
+            'margin-top': '8px'
+        }).append(
+            $('<i/>').addClass('fas fa-expand-arrows-alt').css('margin-right', '5px'),
+            $('<span/>').text('Toggle fullscreen')
+        ).click(toggleFullscreenMode),
+        $collapsibleControl
+    )
+    var $div = $('<div/>').css({
+        'overflow-y': 'auto',
+    }).append($topBar, $collapsibleContent)
+    $suggestionContainer.empty().append($div)
+    addCloseSuggestionButtonToToolbar()
+    $('#suggestionTableTabs a').click(function (e) {
+        e.preventDefault();
+        $(this).tab('show');
+    })
+}
+
+function constructExtractionTable(entities) {
     var $table = $('<table/>').attr('id', 'suggestionTable').addClass('table table-striped table-condensed').css('flex-grow', '1')
     var $thead = $('<thead/>').append($('<tr/>').append(
         $('<th/>').text('Value'),
         $('<th/>').text('Types'),
         $('<th/>').text('Category'),
         $('<th/>').text('Occurrences'),
-        $('<th/>').text('')
+        $('<th/>').text('Action')
     ))
     var $tbody = $('<tbody/>')
     entities.forEach(function(entity, index) {
@@ -1360,6 +1454,7 @@ function constructSuggestionTable(entities) {
                 currentOptions.forEach(function(category) {
                     $selectCategory.append($('<option/>').text(category).val(category));
                 })
+                pickSuggestionColumn(index, 'suggestionTable', true)
             })
             entity.types.forEach(function(type) {
                 $option = $('<option/>').text(type).val(type).prop('selected', type == entity.default_type)
@@ -1375,10 +1470,6 @@ function constructSuggestionTable(entities) {
             $option = $('<option/>').text(category).val(category)
             $selectCategory.append($option)
         })
-        var $submitButton = $('<button type="button"/>').addClass('btn')
-            .prop('disabled', true)
-            .text('Extract & Save')
-            .click(submitExtractionSuggestion)
         var $tr = $('<tr/>').attr('data-entityindex', index)
             .data('entity', entity)
             .addClass('useCursorPointer')
@@ -1388,14 +1479,14 @@ function constructSuggestionTable(entities) {
                 $('<td/>').append($selectCategory),
                 $('<td/>').append($('<span/>').addClass('input-prepend input-append').append(
                     $('<button type="button"/>').attr('title', 'Jump to previous occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
-                        $('<a/>').addClass('fas fa-caret-left')//.css('font-size', 'larger')
+                        $('<a/>').addClass('fas fa-caret-left')
                     ).click(function(e) {
                         e.stopPropagation()
                         jumpToPreviousOccurrence()
                     }),
                     $('<input type="text" disabled />').css('max-width', '2em').val(entity.occurrences),
                     $('<button type="button"/>').attr('title', 'Jump to next occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
-                        $('<a/>').addClass('fas fa-caret-right')//.css('font-size', 'larger')
+                        $('<a/>').addClass('fas fa-caret-right')
                     ).click(function(e) {
                         e.stopPropagation()
                         jumpToNextOccurrence()
@@ -1403,28 +1494,92 @@ function constructSuggestionTable(entities) {
                 )),
                 $('<td/>').append(
                     $('<span/>').css('white-space', 'nowrap').append(
-                        $submitButton
+                        $('<button type="button"/>').addClass('btn')
+                            .prop('disabled', true)
+                            .text('Extract & Save')
+                            .click(submitExtractionSuggestion)
                     )
                 )
             )
         $tr.click(function() {
             var index = $(this).data('entityindex')
-            pickSuggestionColumn(index)
+            pickSuggestionColumn(index, 'suggestionTable')
         })
         $tbody.append($tr)
     })
     $table.append($thead, $tbody)
-    var $topBar = $('<div/>').append(
-        $('<button/>').addClass('btn btn-mini btn-inverse').css('float', 'right').append(
-            $('<i/>').addClass('fas fa-expand-arrows-alt').css('margin-right', '5px'),
-            $('<span/>').text('Toggle fullscreen')
-        ).click(toggleFullscreenMode)
-    )
-    var $div = $('<div/>').css({
-        'overflow-y': 'auto',
-    }).append($topBar, $table)
-    $suggestionContainer.empty().append($div)
-    addCloseSuggestionButtonToToolbar()
+    return $table
+}
+
+function constructReplacementTable(unreferenceValues) {
+    var $table = $('<table/>').attr('id', 'replacementTable').addClass('table table-striped table-condensed').css('flex-grow', '1')
+    var $thead = $('<thead/>').append($('<tr/>').append(
+        $('<th/>').text('Value'),
+        $('<th/>').text('Existing attribute'),
+        $('<th/>').text('Occurrences'),
+        $('<th/>').text('Action')
+    ))
+    var $tbody = $('<tbody/>')
+    Object.keys(unreferenceValues).forEach(function(value, index) {
+        var $select, $option
+        var unreferenceValue = unreferenceValues[value]
+        if(unreferenceValue.attributes.length > 1) {
+            $select = $('<select/>').addClass('attribute-replacement').css({
+                'width': 'auto',
+                'max-width': '300px'
+            }).change(function() {
+                pickSuggestionColumn(index, 'replacementTable', true)
+            })
+            unreferenceValue.attributes.forEach(function(attribute) {
+                var attributeToRender = jQuery.extend(true, { }, attribute)
+                attributeToRender.value = attribute.id
+                $option = $('<option/>').val(attribute.uuid).append(renderHintElement('attribute', attributeToRender))
+                $select.append($option)
+            })
+        } else {
+            var attributeToRender = jQuery.extend(true, { }, unreferenceValue.attributes[0])
+            attributeToRender.value = unreferenceValue.attributes[0].id
+            $select = $('<span/>').append(renderHintElement('attribute', attributeToRender))
+                .append($('<select/>').addClass('attribute-replacement hidden').append($('<option/>').text(unreferenceValue.attributes[0].uuid).val(unreferenceValue.attributes[0].uuid)))
+        }
+        var $tr = $('<tr/>').attr('data-entityindex', index)
+            .data('attributeValue', value)
+            .addClass('useCursorPointer')
+            .append(
+                $('<td/>').addClass('bold blue').text(value).css('word-wrap', 'anywhere'),
+                $('<td/>').append($select),
+                $('<td/>').append($('<span/>').addClass('input-prepend input-append').append(
+                    $('<button type="button"/>').attr('title', 'Jump to previous occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
+                        $('<a/>').addClass('fas fa-caret-left')
+                    ).click(function(e) {
+                        e.stopPropagation()
+                        jumpToPreviousOccurrence()
+                    }),
+                    $('<input type="text" disabled />').css('max-width', '2em').val(unreferenceValue.indices.length),
+                    $('<button type="button"/>').attr('title', 'Jump to next occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
+                        $('<a/>').addClass('fas fa-caret-right')
+                    ).click(function(e) {
+                        e.stopPropagation()
+                        jumpToNextOccurrence()
+                    }),
+                )),
+                $('<td/>').append(
+                    $('<span/>').css('white-space', 'nowrap').append(
+                        $('<button type="button"/>').addClass('btn')
+                            .prop('disabled', true)
+                            .text('Replace & Save')
+                            .click(submitReplacement)
+                    )
+                )
+            )
+        $tr.click(function() {
+            var index = $(this).data('entityindex')
+            pickSuggestionColumn(index, 'replacementTable')
+        })
+        $tbody.append($tr)
+    })
+    $table.append($thead, $tbody)
+    return $table
 }
 
 function addCloseSuggestionButtonToToolbar() {
@@ -1446,18 +1601,36 @@ function addCloseSuggestionButtonToToolbar() {
     }
 }
 
-function pickSuggestionColumn(index) {
-    if (pickedSuggestion.index != index) {
-        var $trs = $('#suggestionTable tr')
+function pickSuggestionColumn(index, tableID, force) {
+    tableID = tableID === undefined ? 'replacementTable' : tableID
+    force = force === undefined ? false : force;
+    if (pickedSuggestion.tableID != tableID || pickedSuggestion.index != index || force) {
+        var $trs = $('#' + tableID + ' tr')
         $trs.removeClass('info').find('button').prop('disabled', true)
         $trs.find('select').prop('disabled', true)
-        var $tr = $('#suggestionTable tr[data-entityindex="' + index + '"]')
-        $tr.addClass('info').find('button').prop('disabled', false)
-        $tr.find('select').prop('disabled', false)
-        pickedSuggestion.index = index
-        pickedSuggestion.tr = $tr
-        pickedSuggestion.entity = $tr.data('entity')
-        highlightPickedInReport()
+        var $tr = $('#' + tableID + ' tr[data-entityindex="' + index + '"]')
+        if ($tr.length > 0) {
+            $tr.addClass('info').find('button').prop('disabled', false)
+            $tr.find('select').prop('disabled', false)
+            pickedSuggestion = {
+                tableID: tableID,
+                tr: $tr,
+                index: index
+            }
+            if (tableID == 'replacementTable') {
+                var uuid = $tr.find('select.attribute-replacement').val()
+                pickedSuggestion['entity'] = {
+                    value: $tr.data('attributeValue'),
+                    picked_type: proxyMISPElements['attribute'][uuid].type,
+                    replacement: uuid
+                }
+                highlightPickedReplacementInReport()
+            } else {
+                pickedSuggestion['entity'] = $tr.data('entity')
+                pickedSuggestion['entity']['picked_type'] = $tr.find('select.type').val()
+                highlightPickedSuggestionInReport()
+            }
+        }
     }
 }
 
@@ -1469,17 +1642,35 @@ function filterCheckedSuggestion() {
     var suggestionLength = '@[suggestion]()'.length + pickedSuggestion.entity.value.length
     Object.keys(suggestions[value]).forEach(function(suggestionKey, i) {
         var suggestion = suggestions[value][suggestionKey]
-        if (i == 0) {
-            contentWithPickedSuggestions += content.substr(0, suggestion.startIndex.index)
-            nextIndex = suggestion.startIndex.index
-        }
+        contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
+        nextIndex = suggestion.startIndex.index
         if (suggestion.checked) {
             contentWithPickedSuggestions += content.substr(nextIndex, suggestionLength)
-            nextIndex += suggestionLength
         } else {
             contentWithPickedSuggestions += value
-            nextIndex += suggestionLength
         }
+        nextIndex += suggestionLength
+    })
+    contentWithPickedSuggestions += content.substr(nextIndex)
+    return contentWithPickedSuggestions
+}
+
+function filterCheckedReplacement() {
+    var value = pickedSuggestion.entity.value
+    var content = getEditorData()
+    var contentWithPickedSuggestions = ''
+    var nextIndex = 0
+    var suggestionLength = '@[suggestion]()'.length + pickedSuggestion.entity.value.length
+    Object.keys(suggestions[value]).forEach(function(suggestionKey, i) {
+        var suggestion = suggestions[value][suggestionKey]
+        contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
+        nextIndex = suggestion.startIndex.index
+        if (suggestion.checked) {
+            contentWithPickedSuggestions += '@[attribute](' + suggestion.complexTypeToolResult.replacement + ')'
+        } else {
+            contentWithPickedSuggestions += value
+        }
+        nextIndex += suggestionLength
     })
     contentWithPickedSuggestions += content.substr(nextIndex)
     return contentWithPickedSuggestions
@@ -1495,6 +1686,17 @@ function getSuggestionMapping() {
         'to_ids': entity.to_ids
     }
     return getSuggestionMapping
+}
+
+function submitReplacement() {
+    var contentWithPickedReplacements = filterCheckedReplacement()
+    setEditorData(contentWithPickedReplacements);
+    saveMarkdown(false, function() {
+        setEditorData(originalRaw)
+        contentBeforeSuggestions = originalRaw
+        pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
+        pickSuggestionColumn(-1)
+    })
 }
 
 function submitExtractionSuggestion() {
@@ -1530,7 +1732,7 @@ function submitExtractionSuggestion() {
                         fetchProxyMISPElements(function() {
                             setEditorData(originalRaw)
                             contentBeforeSuggestions = originalRaw
-                            pickedSuggestion = { tr: null, entity: null, index: null }
+                            pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
                             pickSuggestionColumn(-1)
                             prepareSuggestionInterface(complexTypeToolResult)
                         })
@@ -1552,34 +1754,38 @@ function submitExtractionSuggestion() {
 
 function jumpToPreviousOccurrence() {
     var $suggestionsInReport = $('span.misp-element-wrapper.suggestion')
-    var suggestionToScrollInto = $suggestionsInReport[0]
-    var $temp = $suggestionsInReport.filter('.picked')
-    if ($temp.length > 0) {
-        var index = $suggestionsInReport.index($temp)
-        if (index > 0) {
-            suggestionToScrollInto = $suggestionsInReport[index-1]
-        } else{
-            suggestionToScrollInto = $suggestionsInReport[index]
+    if ($suggestionsInReport.length > 0) {
+        var suggestionToScrollInto = $suggestionsInReport[0]
+        var $temp = $suggestionsInReport.filter('.picked')
+        if ($temp.length > 0) {
+            var index = $suggestionsInReport.index($temp)
+            if (index > 0) {
+                suggestionToScrollInto = $suggestionsInReport[index-1]
+            } else{
+                suggestionToScrollInto = $suggestionsInReport[index]
+            }
         }
+        suggestionToScrollInto.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        pickOccurrence($(suggestionToScrollInto))
     }
-    suggestionToScrollInto.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    pickOccurrence($(suggestionToScrollInto))
 }
 
 function jumpToNextOccurrence() {
     var $suggestionsInReport = $('span.misp-element-wrapper.suggestion')
-    var suggestionToScrollInto = $suggestionsInReport[0]
-    var $temp = $suggestionsInReport.filter('.picked')
-    if ($temp.length > 0) {
-        var index = $suggestionsInReport.index($temp)
-        if ($suggestionsInReport.length-1 > index) {
-            suggestionToScrollInto = $suggestionsInReport[index+1]
-        } else{
-            suggestionToScrollInto = $suggestionsInReport[index]
+    if ($suggestionsInReport.length > 0) {
+        var suggestionToScrollInto = $suggestionsInReport[0]
+        var $temp = $suggestionsInReport.filter('.picked')
+        if ($temp.length > 0) {
+            var index = $suggestionsInReport.index($temp)
+            if ($suggestionsInReport.length-1 > index) {
+                suggestionToScrollInto = $suggestionsInReport[index+1]
+            } else{
+                suggestionToScrollInto = $suggestionsInReport[index]
+            }
         }
+        suggestionToScrollInto.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        pickOccurrence($(suggestionToScrollInto))
     }
-    suggestionToScrollInto.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    pickOccurrence($(suggestionToScrollInto))
 }
 
 function pickOccurrence($wrapper) {

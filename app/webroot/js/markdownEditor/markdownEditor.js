@@ -365,12 +365,13 @@ function setEditorData(data) {
     cm.setValue(data)
 }
 
-function saveMarkdown() {
+function saveMarkdown(confirmSave, callback) {
+    confirmSave = confirmSave === undefined ? true : confirmSave
     if (modelNameForSave === undefined || markdownModelFieldNameForSave === undefined) {
         console.log('Model or field not defined. Save not possible')
         return
     }
-    if (!confirm(saveConfirmMessage)) {
+    if (confirmSave && !confirm(saveConfirmMessage)) {
         return
     }
     var url = baseurl + "/eventReports/edit/" + reportid
@@ -404,6 +405,9 @@ function saveMarkdown() {
                 $('#temp').remove();
                 toggleLoadingInSaveButton(false)
                 $editor.prop('disabled', false);
+                if (callback !== undefined) {
+                    callback()
+                }
             },
             type:"post",
             url: formUrl
