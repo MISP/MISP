@@ -498,30 +498,36 @@ function updateObjectFieldOnSuccess(name, type, id, field, event) {
 
 function activateField(type, id, field, event) {
     resetForms();
-    if (type == 'denyForm') return;
-    var objectType = 'attributes';
-    var containerName = 'Attribute';
-    if (type == 'Object') {
+    if (type === 'denyForm') {
+        return;
+    }
+    var objectType, containerName;
+    if (type === 'Object') {
         objectType = 'objects';
         containerName = 'Object';
+    } else {
+        objectType = 'attributes';
+        containerName = 'Attribute';
     }
     var name = '#' + type + '_' + id + '_' + field;
     var container_name = '#' + containerName + '_' + id + '_' + field;
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function() {
             $(".loading").show();
         },
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+        success: function (data) {
             $(container_name + '_placeholder').html(data);
             postActivationScripts(name, type, id, field, event);
         },
         url: baseurl + "/" + objectType + "/fetchEditForm/" + id + "/" + field,
+        complete: function() {
+            $(".loading").hide();
+        },
+        error: xhrFailCallback
     });
 }
-
 
 function submitQuickTag(form) {
     $('#' + form).submit();
