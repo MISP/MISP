@@ -363,7 +363,7 @@
         if ($object['deleted']):
           if ($isSiteAdmin || $mayModify):
       ?>
-          <span class="icon-repeat useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onClick="deleteObject('attributes', 'restore', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+          <span class="fas fa-redo useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onClick="deleteObject('attributes', 'restore', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
           <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="i<?php echo __('Permanently delete attribute');?>" onClick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
       <?php
           endif;
