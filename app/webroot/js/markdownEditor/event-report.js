@@ -5,7 +5,7 @@ var markdownItCustomPostInit = markdownItCustomPostInit
 // Hint option passed to the CodeMirror constructor
 var cmCustomHints = hintMISPElements
 // Setup function called after the CodeMirror initialization
-var cmCustomSetup = null
+var cmCustomSetup = cmCustomSetup
 // Hook allowing to alter the raw text before returning the GFM version to the user to be downloaded
 var markdownGFMSubstitution = replaceMISPElementByTheirValue
 // Post rendering hook called after the markdown is displayed, allowing to register listener
@@ -31,6 +31,7 @@ var dotTemplateObjectAttribute = doT.template("<span class=\"misp-element-wrappe
 var dotTemplateInvalid = doT.template("<span class=\"misp-element-wrapper invalid\"><span class=\"bold red\">{{=it.scope}}<span class=\"blue\"> ({{=it.id}})</span></span></span>");
 var dotCloseButtonTemplate = doT.template('<button type="button" class="close" style="margin-left: 5px;" data-scope=\"{{=it.scope}}\" data-elementid=\"{{!it.elementID}}\" onclick="closeThePopover(this)">×</button>');
 var dotTemplateRenderingDisabled = doT.template("<span class=\"misp-element-wrapper attribute\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{!it.elementid}}\" data-eventid=\"{{=it.eventid}}\">{{=it.value}}</span>");
+var dotTemplateSuggestionAttribute = doT.template("<span class=\"misp-element-wrapper suggestion attribute\" data-scope=\"{{=it.scope}}\" data-indexstart=\"{{=it.indexStart}}\" data-elementid=\"{{=it.elementid}}\" data-suggestionkey=\"{{=it.suggestionkey}}\"><span class=\"bold\"><span class=\"attr-type\"><input type=\"checkbox\" {{? it.checked }}checked=\"checked\"{{?}}></input><span>{{=it.type}}</span></span><span class=\"blue\"><span class=\"attr-value\"><span>{{=it.value}}</span></span></span></span></span>");
 
 var renderingRules = {
     'attribute': true,
@@ -39,9 +40,16 @@ var renderingRules = {
     'object-attribute': true,
     'tag': true,
     'galaxymatrix': true,
+    'suggestion': true,
 }
 var galaxyMatrixTimer, tagTimers = {};
 var cache_matrix = {}, cache_tag = {};
+var contentBeforeSuggestions
+var typeToCategoryMapping
+var entitiesFromComplexTool
+var $suggestionContainer
+var suggestions = {}
+var pickedSuggestion = { tr: null, entity: null, index: null }
 
 /**
    _____          _      __  __ _                     
@@ -51,6 +59,11 @@ var cache_matrix = {}, cache_tag = {};
  | |___| (_) | (_| |  __/ |  | | | |  | | | (_) | |   
   \_____\___/ \__,_|\___|_|  |_|_|_|  |_|  \___/|_| 
 */
+
+function cmCustomSetup() {
+    $suggestionContainer = $('<div/>').attr('id', 'suggestion-container').addClass('hidden')
+    $suggestionContainer.insertAfter('#editor-subcontainer')
+}
 
 /* Replacement actions and Toolbar addition */
 function MISPElementReplacementActions(action) {
@@ -320,10 +333,41 @@ function markdownItSetupRules() {
     md.renderer.rules.MISPElement = MISPElementRenderer;
     md.renderer.rules.MISPPictureElement = MISPPictureElementRenderer;
     md.inline.ruler.push('MISP_element_rule', MISPElementRule);
+    md.core.ruler.push('MISP_element_suggestion_rule', MISPElementSuggestionRule);
 }
 
+function MISPElementSuggestionRule(state) {
+    var blockTokens = state.tokens
+    var tokens, blockToken, currentToken
+    var indexOfAllLines, lineOffset, absoluteLine, relativeIndex
+    var i, j, l
+    for (i = 0, l = blockTokens.length; i < l; i++) {
+        blockToken = blockTokens[i]
+        if (blockToken.type !== 'inline') {
+            continue
+        }
+
+        tokens = blockToken.children;
+        for (j = 0; j < tokens.length; j++) {
+            currentToken = tokens[j];
+            if (currentToken.type !== 'MISPElement' && !currentToken.isSuggestion) {
+                continue
+            }
+            if (blockToken.indexOfAllLines === undefined) {
+                indexOfAllLines = new md.block.State(blockToken.content, md, {}, [])
+                blockToken.indexOfAllLines = indexOfAllLines
+            }
+            lineOffset = getLineNumInArrayList(currentToken.content.indexes.start, blockToken.indexOfAllLines.bMarks)
+            var absoluteLine = blockToken.map[0] + lineOffset
+            var relativeIndex = currentToken.content.indexes.start - blockToken.indexOfAllLines.bMarks[lineOffset]
+            state.tokens[i].children[j].content.indexes.lineStart = absoluteLine
+            state.tokens[i].children[j].content.indexes.start = relativeIndex
+        }
+    }
+}
 /* Parsing Rules */
 function MISPElementRule(state, startLine, endLine, silent) {
+    // debugger;
     var pos, start, labelStart, labelEnd, res, elementID, code, content, token, tokens, attrs, scope
     var oldPos = state.pos,
         max = state.posMax
@@ -352,8 +396,8 @@ function MISPElementRule(state, startLine, endLine, silent) {
     pos = labelEnd + 1;
     if (pos < max && state.src.charCodeAt(pos) === 0x28/* ( */) {
         start = pos;
-        if (scope == 'tag') { // tags may contain spaces
-            res = parseTag(state.src, pos, state.posMax);
+        if (scope == 'tag' || scope == 'suggestion') { // tags may contain spaces
+            res = parseDestinationValue(state.src, pos, state.posMax);
         } else {
             res = state.md.helpers.parseLinkDestination(state.src, pos, state.posMax);
         }
@@ -381,7 +425,7 @@ function MISPElementRule(state, startLine, endLine, silent) {
     }
     pos++;
 
-    if (scope == 'tag') {
+    if (scope == 'tag' || scope == 'suggestion') {
         var reTagName = /^[^\n)]+$/
         if (!reTagName.test(elementID)) {
             return false;
@@ -395,16 +439,21 @@ function MISPElementRule(state, startLine, endLine, silent) {
 
     // We found the end of the link, and know for a fact it's a valid link;
     // so all that's left to do is to call tokenizer.
+    // debugger;
     content = {
         scope: scope,
         elementID: elementID,
+        indexes: {
+            start: oldPos,
+        }
     }
-
     if (isPicture) {
         token      = state.push('MISPPictureElement', 'div', 0);
     } else {
         token      = state.push('MISPElement', 'div', 0);
+        token.isSuggestion = (scope == 'suggestion')
     }
+
     token.children = tokens;
     token.content  = content;
 
@@ -415,14 +464,15 @@ function MISPElementRule(state, startLine, endLine, silent) {
 
 /* Rendering rules */
 function MISPElementRenderer(tokens, idx, options, env, slf) {
-    var allowedScope = ['attribute', 'object', 'galaxymatrix', 'tag']
+    var allowedScope = ['attribute', 'object', 'galaxymatrix', 'tag', 'suggestion']
     var token = tokens[idx];
     var scope = token.content.scope
     var elementID = token.content.elementID
+    var indexes = token.content.indexes
     if (allowedScope.indexOf(scope) == -1) {
         return renderInvalidMISPElement(scope, elementID);
     }
-    return renderMISPElement(scope, elementID)
+    return renderMISPElement(scope, elementID, indexes)
 }
 
 function MISPPictureElementRenderer(tokens, idx, options, env, slf) {
@@ -436,8 +486,28 @@ function MISPPictureElementRenderer(tokens, idx, options, env, slf) {
     return renderMISPPictureElement(scope, elementID)
 }
 
-function renderMISPElement(scope, elementID) {
+function renderMISPElement(scope, elementID, indexes) {
     var templateVariables
+    if (scope == 'suggestion') {
+        var suggestionKey = 'suggestion-' + String(indexes.lineStart) + '-' + String(indexes.start)
+        if (suggestions[elementID] !== undefined) {
+            var suggestion = suggestions[elementID][suggestionKey]
+            if (suggestion !== undefined) {
+                templateVariables = sanitizeObject({
+                    scope: 'suggestion',
+                    elementid: elementID,
+                    eventid: eventid,
+                    type: suggestion.complexTypeToolResult.default_type,
+                    origValue: elementID,
+                    value: suggestion.complexTypeToolResult.value,
+                    'indexStart': indexes.start,
+                    suggestionkey: suggestionKey,
+                    checked: suggestion.checked
+                })
+                return renderTemplateBasedOnRenderingOptions(scope, dotTemplateSuggestionAttribute, templateVariables);
+            }
+        }
+    }
     if (proxyMISPElements !== null) {
         if (scope == 'attribute') {
             var attribute = proxyMISPElements[scope][elementID]
@@ -524,35 +594,8 @@ function renderTemplateBasedOnRenderingOptions(scope, templateToRender, template
     }
 }
 
-
-function markdownItToggleRenderingRule(rulename, event) {
-    if (event !== undefined) {
-        event.stopPropagation()
-    }
-    if (renderingRules[rulename] === undefined) {
-        console.log('Rule does not exists')
-        return
-    }
-    renderingRules[rulename] = !renderingRules[rulename]
-    doRender()
-    reloadRenderingRuleEnabledUI()
-}
-
-function reloadRenderingRuleEnabledUI() {
-    Object.keys(renderingRules).forEach(function(rulename) {
-        var enabled = renderingRules[rulename]
-        if (enabled) {
-            $('#markdownrendering-' + rulename + '-rendering-enabled').show()
-            $('#markdownrendering-' + rulename + '-rendering-disabled').hide()
-        } else {
-            $('#markdownrendering-' + rulename + '-rendering-enabled').hide()
-            $('#markdownrendering-' + rulename + '-rendering-disabled').show()
-        }
-    })
-}
-
 function setupMISPElementMarkdownListeners() {
-    $('.misp-element-wrapper').filter('.attribute').popover({
+    $('.misp-element-wrapper').filter('.attribute:not(\'.suggestion\')').popover({
         trigger: 'click',
         html: true,
         container: isInsideModal() ? 'body' : '#viewer-container',
@@ -585,6 +628,26 @@ function setupMISPElementMarkdownListeners() {
         title: getTitleFromMISPElementDOM,
         content: getContentFromMISPElementDOM
     })
+    setupSuggestionMarkdownListeners()
+}
+
+function setupSuggestionMarkdownListeners() {
+    $('.misp-element-wrapper').filter('.suggestion').click(function(e) {
+        var $checkbox = $(this).find('input[type="checkbox"]')
+        $checkbox.prop('checked', !$checkbox.prop('checked'))
+        updateSuggestionCheckedState($(this), $checkbox)
+    }).find('input[type="checkbox"]')
+        .click(function(e) {
+            e.stopPropagation()
+        })
+        .change(function() {
+            updateSuggestionCheckedState($(this).closest('.suggestion'), $(this))
+        })
+}
+function updateSuggestionCheckedState($wrapper, $checkbox) {
+    var elementID = $wrapper.data('elementid')
+    var suggestionKey = $wrapper.data('suggestionkey')
+    suggestions[elementID][suggestionKey].checked = $checkbox.prop('checked')
 }
 
 function attachRemoteMISPElements() {
@@ -752,12 +815,21 @@ function injectCustomRulesMenu() {
         name: 'Markdown rendering rules',
         icon: 'fab fa-markdown',
         items: [
-            {name: 'Attribute', icon: 'fas fa-cube', ruleScope: 'render', ruleName: 'attribute', isToggleableRule: true },
-            {name: 'Attribute picture', icon: 'fas fa-image', ruleScope: 'render', ruleName: 'attribute-picture', isToggleableRule: true },
-            {name: 'Object', icon: 'fas fa-cubes', ruleScope: 'render', ruleName: 'object', isToggleableRule: true },
-            {name: 'Object Attribute', icon: 'fas fa-cube', ruleScope: 'render', ruleName: 'object-attribute', isToggleableRule: true },
-            {name: 'Tag', icon: 'fas fa-tag', ruleScope: 'render', ruleName: 'tag', isToggleableRule: true },
-            {name: 'Galaxy matrix', icon: 'fas fa-atlas', ruleScope: 'render', ruleName: 'galaxymatrix', isToggleableRule: true },
+            { name: 'Attribute', icon: 'fas fa-cube', ruleScope: 'render', ruleName: 'attribute', isToggleableRule: true },
+            { name: 'Attribute picture', icon: 'fas fa-image', ruleScope: 'render', ruleName: 'attribute-picture', isToggleableRule: true },
+            { name: 'Object', icon: 'fas fa-cubes', ruleScope: 'render', ruleName: 'object', isToggleableRule: true },
+            { name: 'Object Attribute', icon: 'fas fa-cube', ruleScope: 'render', ruleName: 'object-attribute', isToggleableRule: true },
+            { name: 'Tag', icon: 'fas fa-tag', ruleScope: 'render', ruleName: 'tag', isToggleableRule: true },
+            { name: 'Galaxy matrix', icon: 'fas fa-atlas', ruleScope: 'render', ruleName: 'galaxymatrix', isToggleableRule: true },
+            { name: 'Suggestion', icon: 'fas fa-magic', ruleScope: 'render', ruleName: 'suggestion', isToggleableRule: true },
+        ]
+    })
+    createSubMenu({
+        name: 'Extract entities',
+        icon: 'fas fa-cogs',
+        items: [
+            { name: 'Manual extraction', icon: 'fas fa-highlighter', clickHandler: manualEntitiesExtraction},
+            { name: 'Automatic extraction', icon: 'fas fa-magic', clickHandler: automaticEntitiesExtraction},
         ]
     })
     reloadRenderingRuleEnabledUI()
@@ -777,6 +849,157 @@ function markdownItToggleCustomRule(rulename, event) {
     }
 }
 
+
+function markdownItToggleRenderingRule(rulename, event) {
+    if (event !== undefined) {
+        event.stopPropagation()
+    }
+    if (renderingRules[rulename] === undefined) {
+        console.log('Rule does not exists')
+        return
+    }
+    renderingRules[rulename] = !renderingRules[rulename]
+    doRender()
+    reloadRenderingRuleEnabledUI()
+}
+
+function reloadRenderingRuleEnabledUI() {
+    Object.keys(renderingRules).forEach(function(rulename) {
+        var enabled = renderingRules[rulename]
+        if (enabled) {
+            $('#markdownrendering-' + rulename + '-rendering-enabled').show()
+            $('#markdownrendering-' + rulename + '-rendering-disabled').hide()
+        } else {
+            $('#markdownrendering-' + rulename + '-rendering-enabled').hide()
+            $('#markdownrendering-' + rulename + '-rendering-disabled').show()
+        }
+    })
+}
+
+
+/**
+   _____                             _   _             
+  / ____|                           | | (_)            
+ | (___  _   _  __ _  __ _  ___  ___| |_ _  ___  _ __  
+  \___ \| | | |/ _` |/ _` |/ _ \/ __| __| |/ _ \| '_ \ 
+  ____) | |_| | (_| | (_| |  __/\__ \ |_| | (_) | | | |
+ |_____/ \__,_|\__, |\__, |\___||___/\__|_|\___/|_| |_|
+                __/ | __/ |                            
+               |___/ |___/                             
+ */
+
+function automaticEntitiesExtraction() {
+    // send request to server to
+    //     - extract IoCs
+    //     - add them as attributes
+    //     - replace them in report
+    //     - display success to user
+}
+
+function manualEntitiesExtraction() {
+    contentBeforeSuggestions = getEditorData()
+    // contentBeforeSuggestions = originalRaw
+    getEntitiesFromReport(function(data) {
+        typeToCategoryMapping = data.typeToCategoryMapping
+        prepareSuggestionInterface(data.complexTypeOutput)
+        enableSuggestionInterface()
+        pickSuggestionColumn(0)
+    })
+}
+
+function prepareSuggestionInterface(complexTypeOutput) {
+    entitiesFromComplexTool = complexTypeOutput
+    entitiesFromComplexTool = injectNumberOfOccurencesInReport(entitiesFromComplexTool)
+    setupSuggestionMarkdownListeners()
+    constructSuggestionTable(entitiesFromComplexTool)
+}
+
+function highlightPickedInReport() {
+    setEditorData(contentBeforeSuggestions)
+    for (var i = 0; i < entitiesFromComplexTool.length; i++) {
+        var entity = entitiesFromComplexTool[i];
+        if (pickedSuggestion.entity.value == entity.value) {
+            var content = getEditorData()
+            // var content = originalRaw
+            var converted = convertEntityIntoSuggestion(content, entity)
+            setEditorData(converted)
+            var indicesInCM = getAllSuggestionIndicesOf(converted, entity.value, false)
+            constructSuggestionMapping(entity, indicesInCM)
+            break
+        }
+    }
+}
+
+function convertEntityIntoSuggestion(content, entity) {
+    var converted = ''
+    var splittedContent = content.split(entity.value)
+    splittedContent.forEach(function(text, i) {
+        converted += text
+        if (i < splittedContent.length-1) {
+            converted += '@[suggestion](' + entity.value + ')'
+        }
+    })
+    return converted
+}
+
+function getEntitiesFromReport(callback) {
+    $.ajax({
+        dataType: "json",
+        success:function(data, textStatus) {
+            callback(data);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            showMessage('error', 'Could not extract entities from report')
+        },
+        type:'get',
+        url: baseurl + '/eventReports/extractFromReport/' + reportid
+    })
+}
+
+function constructSuggestionMapping(entity, indicesInCM) {
+    var suggestionBaseKey = 'suggestion-', suggestionKey
+    suggestions[entity.value] = {}
+    indicesInCM.forEach(function(index) {
+        suggestionKey = suggestionBaseKey + index.editorPosition.line + '-' + index.editorPosition.ch
+        suggestions[entity.value][suggestionKey] = {
+            startIndex: index,
+            endIndex: {index: index.index + entity.value.length},
+            complexTypeToolResult: entity,
+            checked: true
+        }
+    });
+}
+
+function injectNumberOfOccurencesInReport(entities) {
+    var content = getEditorData()
+    // var content = originalRaw
+    entities.forEach(function(entity, i) {
+        entities[i].occurrences = getAllIndicesOf(content, entity.value, false, false).length
+    })
+    return entities
+}
+
+function getAllSuggestionIndicesOf(content, entity, caseSensitive) {
+    var toSearch = '@[suggestion](' + entity + ')'
+    return getAllIndicesOf(content, toSearch, caseSensitive, true)
+}
+
+function enableSuggestionInterface() {
+    setCMReadOnly(true)
+    setMode('splitscreen')
+    $('#editor-subcontainer').hide()
+    $suggestionContainer.show()
+}
+
+function disableSuggestionInterface() {
+    setCMReadOnly(false)
+    setEditorData(originalRaw)
+    $('#editor-subcontainer').show()
+    $suggestionContainer.hide()
+    $mardownViewerToolbar.find('.btn-group:first button').css('visibility', 'visible')
+    $('#suggestionCloseButton').remove()
+    cm.refresh()
+}
 
 /**
   _    _ _   _ _     
@@ -1116,6 +1339,254 @@ function getContentFromMISPElementDOM() {
     return invalidMessage
 }
 
+function constructSuggestionTable(entities) {
+    var $table = $('<table/>').attr('id', 'suggestionTable').addClass('table table-striped table-condensed').css('flex-grow', '1')
+    var $thead = $('<thead/>').append($('<tr/>').append(
+        $('<th/>').text('Value'),
+        $('<th/>').text('Types'),
+        $('<th/>').text('Category'),
+        $('<th/>').text('Occurrences'),
+        $('<th/>').text('')
+    ))
+    var $tbody = $('<tbody/>')
+    entities.forEach(function(entity, index) {
+        var $selectType, $selectCategory, $option
+        if (entity.types.length > 1) {
+            $selectType = $('<select/>').addClass('type').css('width', 'auto').change(function() {
+                var $selectCategory = $(this).closest('tr').find('select.category')
+                var selected = $(this).val()
+                var currentOptions = typeToCategoryMapping[selected];
+                $selectCategory.empty()
+                currentOptions.forEach(function(category) {
+                    $selectCategory.append($('<option/>').text(category).val(category));
+                })
+            })
+            entity.types.forEach(function(type) {
+                $option = $('<option/>').text(type).val(type).prop('selected', type == entity.default_type)
+                $selectType.append($option)
+            })
+        } else {
+            $selectType = $('<span/>').text(entity.default_type)
+                .append($('<select/>').addClass('type hidden').append($('<option/>').text(entity.default_type).val(entity.default_type)))
+        }
+
+        $selectCategory = $('<select/>').addClass('category').css('width', 'auto')
+        typeToCategoryMapping[entity.default_type].forEach(function(category) {
+            $option = $('<option/>').text(category).val(category)
+            $selectCategory.append($option)
+        })
+        var $submitButton = $('<button type="button"/>').addClass('btn')
+            .prop('disabled', true)
+            .text('Extract & Save')
+            .click(submitExtractionSuggestion)
+        var $tr = $('<tr/>').attr('data-entityindex', index)
+            .data('entity', entity)
+            .addClass('useCursorPointer')
+            .append(
+                $('<td/>').addClass('bold blue').text(entity.value).css('word-wrap', 'anywhere'),
+                $('<td/>').append($selectType),
+                $('<td/>').append($selectCategory),
+                $('<td/>').append($('<span/>').addClass('input-prepend input-append').append(
+                    $('<button type="button"/>').attr('title', 'Jump to previous occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
+                        $('<a/>').addClass('fas fa-caret-left')//.css('font-size', 'larger')
+                    ).click(function(e) {
+                        e.stopPropagation()
+                        jumpToPreviousOccurrence()
+                    }),
+                    $('<input type="text" disabled />').css('max-width', '2em').val(entity.occurrences),
+                    $('<button type="button"/>').attr('title', 'Jump to next occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
+                        $('<a/>').addClass('fas fa-caret-right')//.css('font-size', 'larger')
+                    ).click(function(e) {
+                        e.stopPropagation()
+                        jumpToNextOccurrence()
+                    }),
+                )),
+                $('<td/>').append(
+                    $('<span/>').css('white-space', 'nowrap').append(
+                        $submitButton
+                    )
+                )
+            )
+        $tr.click(function() {
+            var index = $(this).data('entityindex')
+            pickSuggestionColumn(index)
+        })
+        $tbody.append($tr)
+    })
+    $table.append($thead, $tbody)
+    var $topBar = $('<div/>').append(
+        $('<button/>').addClass('btn btn-mini btn-inverse').css('float', 'right').append(
+            $('<i/>').addClass('fas fa-expand-arrows-alt').css('margin-right', '5px'),
+            $('<span/>').text('Toggle fullscreen')
+        ).click(toggleFullscreenMode)
+    )
+    var $div = $('<div/>').css({
+        'overflow-y': 'auto',
+    }).append($topBar, $table)
+    $suggestionContainer.empty().append($div)
+    addCloseSuggestionButtonToToolbar()
+}
+
+function addCloseSuggestionButtonToToolbar() {
+    var $toolbarMode = $mardownViewerToolbar.find('.btn-group:first')
+    if ($toolbarMode.find('#suggestionCloseButton').length == 0) {
+        $toolbarMode.find('button').css('visibility', 'hidden')
+        var $closeButton = $('<button id="suggestionCloseButton" type="button"/>').addClass('btn btn-danger').css({
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: '100%',
+            height: '100%',
+            'border-top-left-radius': '4px',
+            'border-bottom-left-radius': '4px',
+        }).attr('title', 'Close manual extraction view').text('Close extraction view').click(disableSuggestionInterface)
+        $toolbarMode.append($closeButton)
+    }
+}
+
+function pickSuggestionColumn(index) {
+    if (pickedSuggestion.index != index) {
+        var $trs = $('#suggestionTable tr')
+        $trs.removeClass('info').find('button').prop('disabled', true)
+        $trs.find('select').prop('disabled', true)
+        var $tr = $('#suggestionTable tr[data-entityindex="' + index + '"]')
+        $tr.addClass('info').find('button').prop('disabled', false)
+        $tr.find('select').prop('disabled', false)
+        pickedSuggestion.index = index
+        pickedSuggestion.tr = $tr
+        pickedSuggestion.entity = $tr.data('entity')
+        highlightPickedInReport()
+    }
+}
+
+function filterCheckedSuggestion() {
+    var value = pickedSuggestion.entity.value
+    var content = getEditorData()
+    var contentWithPickedSuggestions = ''
+    var nextIndex = 0
+    var suggestionLength = '@[suggestion]()'.length + pickedSuggestion.entity.value.length
+    Object.keys(suggestions[value]).forEach(function(suggestionKey, i) {
+        var suggestion = suggestions[value][suggestionKey]
+        if (i == 0) {
+            contentWithPickedSuggestions += content.substr(0, suggestion.startIndex.index)
+            nextIndex = suggestion.startIndex.index
+        }
+        if (suggestion.checked) {
+            contentWithPickedSuggestions += content.substr(nextIndex, suggestionLength)
+            nextIndex += suggestionLength
+        } else {
+            contentWithPickedSuggestions += value
+            nextIndex += suggestionLength
+        }
+    })
+    contentWithPickedSuggestions += content.substr(nextIndex)
+    return contentWithPickedSuggestions
+}
+
+function getSuggestionMapping() {
+    var getSuggestionMapping = {}
+    var $select = pickedSuggestion.tr.find('select')
+    var entity = pickedSuggestion.entity
+    getSuggestionMapping[entity.value] = {
+        'type': $select.filter('.type').val(),
+        'category': $select.filter('.category').val(),
+        'to_ids': entity.to_ids
+    }
+    return getSuggestionMapping
+}
+
+function submitExtractionSuggestion() {
+    var url = baseurl + '/eventReports/replaceSuggestionInReport/' + reportid
+    var contentWithPickedSuggestions = filterCheckedSuggestion()
+    var suggestionsMapping = getSuggestionMapping()
+
+    fetchFormDataAjax(url, function(formHTML) {
+        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
+        var $tmpForm = $('#temp form')
+        var formUrl = $tmpForm.attr('action')
+        $tmpForm.find('[name="data[EventReport][suggestions]"]').val(JSON.stringify({
+            'content': contentWithPickedSuggestions,
+            'mapping': suggestionsMapping
+        }))
+
+
+        $.ajax({
+            data: $tmpForm.serialize(),
+            beforeSend: function() {
+                toggleMarkdownEditorLoading(true, 'Applying suggestions in report')
+            },
+            success:function(postResult, textStatus) {
+                if (postResult) {
+                    showMessage('success', postResult.message);
+                    if (postResult.data !== undefined) {
+                        var report = postResult.data.report.EventReport
+                        var complexTypeToolResult = postResult.data.complexTypeToolResult
+                        lastModified = report.timestamp + '000'
+                        refreshLastUpdatedField()
+                        originalRaw = report.content
+                        revalidateContentCache()
+                        fetchProxyMISPElements(function() {
+                            setEditorData(originalRaw)
+                            contentBeforeSuggestions = originalRaw
+                            pickedSuggestion = { tr: null, entity: null, index: null }
+                            pickSuggestionColumn(-1)
+                            prepareSuggestionInterface(complexTypeToolResult)
+                        })
+                    }
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                showMessage('fail', saveFailedMessage + ': ' + errorThrown);
+            },
+            complete:function() {
+                $('#temp').remove();
+                toggleMarkdownEditorLoading(false)
+            },
+            type:"post",
+            url: formUrl
+        })
+    })
+}
+
+function jumpToPreviousOccurrence() {
+    var $suggestionsInReport = $('span.misp-element-wrapper.suggestion')
+    var suggestionToScrollInto = $suggestionsInReport[0]
+    var $temp = $suggestionsInReport.filter('.picked')
+    if ($temp.length > 0) {
+        var index = $suggestionsInReport.index($temp)
+        if (index > 0) {
+            suggestionToScrollInto = $suggestionsInReport[index-1]
+        } else{
+            suggestionToScrollInto = $suggestionsInReport[index]
+        }
+    }
+    suggestionToScrollInto.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    pickOccurrence($(suggestionToScrollInto))
+}
+
+function jumpToNextOccurrence() {
+    var $suggestionsInReport = $('span.misp-element-wrapper.suggestion')
+    var suggestionToScrollInto = $suggestionsInReport[0]
+    var $temp = $suggestionsInReport.filter('.picked')
+    if ($temp.length > 0) {
+        var index = $suggestionsInReport.index($temp)
+        if ($suggestionsInReport.length-1 > index) {
+            suggestionToScrollInto = $suggestionsInReport[index+1]
+        } else{
+            suggestionToScrollInto = $suggestionsInReport[index]
+        }
+    }
+    suggestionToScrollInto.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    pickOccurrence($(suggestionToScrollInto))
+}
+
+function pickOccurrence($wrapper) {
+    $('span.misp-element-wrapper.suggestion').removeClass('picked').find('.attr-type')
+    $wrapper.addClass('picked')
+}
+
 function isValidObjectAttribute(attribute) {
     var mispObject = getObjectFromAttribute(attribute)
     return attribute.object_relation !== null && mispObject !== undefined
@@ -1125,7 +1596,48 @@ function getObjectFromAttribute(attribute) {
     return proxyMISPElements['object'][attribute.object_uuid]
 }
 
-function parseTag(str, pos, max) {
+function getAllIndicesOf(haystack, needle, caseSensitive, requestLineNum) {
+    var indices = []
+    if (needle.length == 0) {
+        return indices
+    }
+    var startIndex = 0, index, indices = [];
+    if (!caseSensitive) {
+        needle = needle.toLowerCase();
+        haystack = haystack.toLowerCase();
+    }
+    var startIndex = 0
+    var index = 0
+    while (true) {
+        index = haystack.indexOf(needle, startIndex)
+        if (index === -1) {
+            break;
+        }
+        if (requestLineNum) {
+            var position = cm.posFromIndex(index)
+            indices.push({
+                index: index,
+                editorPosition: position
+            });
+        } else {
+            indices.push(index)
+        }
+        startIndex = index + needle.length;
+    }
+    return indices;
+}
+
+function getLineNumInArrayList(index, arrayToSearchInto) {
+    for (var lineNum = 0; lineNum < arrayToSearchInto.length; lineNum++) {
+        var newLineIndex = arrayToSearchInto[lineNum];
+        if (index < newLineIndex) {
+            return lineNum - 1
+        }
+    }
+    return 0
+}
+
+function parseDestinationValue(str, pos, max) {
     var level = 0
     var lines = 0
     var code

@@ -575,6 +575,10 @@ function baseReplacementAction(action) {
     cm.focus()
 }
 
+function setCMReadOnly(readonly) {
+    cm.setOption('readOnly', readonly)
+}
+
 function insertTopToolbarSection() {
     $topBar.append($('<i />').addClass('top-bar-separator'))
 }

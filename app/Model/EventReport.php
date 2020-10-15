@@ -499,4 +499,74 @@ class EventReport extends AppModel
         }
         return $errors;
     }
+
+    public function applySuggestions($user, $report, $contentWithSuggestions, $suggestionsMapping) {
+        $errors = [];
+        $attribute = ['Attribute' => ['uuid' => '406e146d-23c2-49e2-956e-5ec784adccec']];
+        $replacedContent = $contentWithSuggestions;
+        $success = 0;
+        foreach ($suggestionsMapping as $value => $suggestedAttribute) {
+            $suggestedAttribute['value'] = $value;
+            $savedAttribute = $this->createAttributeFromSuggestion($user, $report, $suggestedAttribute);
+            if (empty($savedAttribute['errors'])) {
+                $success++;
+                $replacedContent = $this->applySuggestionsInText($contentWithSuggestions, $savedAttribute['attribute'], $value);
+            } else {
+                $replacedContent = $this->revertToOriginalInText($contentWithSuggestions, $value);
+                $errors[] = $savedAttribute['errors'];
+            }
+        }
+        if ($success > 0) {
+            $report['EventReport']['content'] = $replacedContent;
+            $editErrors = $this->editReport($user, $report, $report['EventReport']['event_id']);
+            if (!empty($editErrors)) {
+                $errors[] = $editErrors;
+            }
+        }
+        return $errors;
+    }
+    
+    public function applySuggestionsInText($contentWithSuggestions, $attribute, $value)
+    {
+        $textToBeReplaced = sprintf('@[suggestion](%s)', $value);
+        $textToInject = sprintf('@[attribute](%s)', $attribute['Attribute']['uuid']);
+        $replacedContent = str_replace($textToBeReplaced, $textToInject, $contentWithSuggestions);
+        return $replacedContent;
+    }
+
+    public function revertToOriginalInText($contentWithSuggestions, $value)
+    {
+        $textToBeReplaced = sprintf('@[suggestion](%s)', $value);
+        $textToInject = $value;
+        $replacedContent = str_replace($textToBeReplaced, $textToInject, $contentWithSuggestions);
+        return $replacedContent;
+    }
+
+    private function createAttributeFromSuggestion($user, $report, $suggestedAttribute)
+    {
+        $errors = [];
+        $attribute = [
+            'event_id' => $report['EventReport']['event_id'],
+            'distribution' => 5,
+            'category' => $suggestedAttribute['category'],
+            'type' => $suggestedAttribute['type'],
+            'value' => $suggestedAttribute['value'],
+            'to_ids' => $suggestedAttribute['to_ids'],
+        ];
+        $validationErrors = array();
+        $this->Event->Attribute->captureAttribute($attribute, $report['EventReport']['event_id'], $user, false, false, false, $validationErrors);
+        $savedAttribute = false;
+        if (!empty($validationErrors)) {
+            $errors = $validationErrors;
+        } else {
+            $savedAttribute = $this->Event->Attribute->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Attribute.id' => $this->Event->Attribute->id),
+            ));
+        }
+        return [
+            'errors' => $errors,
+            'attribute' => $savedAttribute
+        ];
+    }
 }

@@ -21,6 +21,21 @@ span.misp-element-wrapper {
     cursor: help;
 }
 
+.misp-element-wrapper.suggestion {
+    cursor: pointer;
+    user-select: none;
+    border-color: #333 !important;
+}
+
+.misp-element-wrapper.suggestion input[type="checkbox"] {
+    margin: 0 3px;
+}
+
+.misp-element-wrapper.attribute.suggestion.picked .attr-type {
+    background-color: #2f96b4 !important;
+    color: white;
+}
+
 .misp-element-wrapper.invalid {
     cursor: not-allowed;
 }
@@ -33,6 +48,12 @@ span.misp-element-wrapper {
     background-color: #f5f5f5 !important;
     border-right: 1px solid #ddd !important;
     display: inline-block;
+}
+
+.misp-element-wrapper.attribute.suggestion .attr-type {
+    color: white;
+    background-color: #333 !important;
+    border-right: 1px solid #333 !important;
 }
 
 .misp-element-wrapper.attribute .attr-type > span {
@@ -91,6 +112,15 @@ span.misp-element-wrapper.object {
     display: block;
     margin: 0 auto;
     max-width: 90%;
+}
+
+#suggestion-container {
+    height: calc(100vh - 120px) !important;
+    overflow-y: auto;
+}
+
+.markdownEditor-full-container:fullscreen #suggestion-container {
+    height: calc(100vh - 50px) !important;
 }
 
 .CodeMirror-hint-active .blue {
