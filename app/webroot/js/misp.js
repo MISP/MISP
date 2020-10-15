@@ -427,7 +427,7 @@ function updateIndex(id, context, newPage) {
         div = "#templateElements";
     }
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         dataType:"html",
@@ -947,27 +947,27 @@ function multiSelectDeleteEventBlocklist(on, cache) {
 
 function multiSelectAction(event, context) {
     var settings = {
-            deleteAttributes: {
-                confirmation: "Are you sure you want to delete all selected attributes?",
-                controller: "attributes",
-                camelCase: "Attribute",
-                alias: "attribute",
-                action: "delete"
-            },
-            acceptProposals: {
-                confirmation: "Are you sure you want to accept all selected proposals?",
-                controller: "shadow_attributes",
-                camelCase: "ShadowAttribute",
-                alias: "proposal",
-                action: "accept"
-            },
-            discardProposals: {
-                confirmation: "Are you sure you want to discard all selected proposals?",
-                controller: "shadow_attributes",
-                camelCase: "ShadowAttribute",
-                alias: "proposal",
-                action: "discard"
-            },
+        deleteAttributes: {
+            confirmation: "Are you sure you want to delete all selected attributes?",
+            controller: "attributes",
+            camelCase: "Attribute",
+            alias: "attribute",
+            action: "delete"
+        },
+        acceptProposals: {
+            confirmation: "Are you sure you want to accept all selected proposals?",
+            controller: "shadow_attributes",
+            camelCase: "ShadowAttribute",
+            alias: "proposal",
+            action: "accept"
+        },
+        discardProposals: {
+            confirmation: "Are you sure you want to discard all selected proposals?",
+            controller: "shadow_attributes",
+            camelCase: "ShadowAttribute",
+            alias: "proposal",
+            action: "discard"
+        },
     };
     var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
     if (answer) {
@@ -982,7 +982,6 @@ function multiSelectAction(event, context) {
         var formData = $('#' + settings[context]["action"] + '_selected').serialize();
         if (context == 'deleteAttributes') {
             var url = $('#delete_selected').attr('action');
-            console.log(url);
         } else {
             var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
         }
@@ -991,11 +990,20 @@ function multiSelectAction(event, context) {
             cache: false,
             type:"POST",
             url: url,
-            success:function (data, textStatus) {
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
                 updateIndex(event, 'event');
                 var result = handleGenericAjaxResponse(data);
-                if (settings[context]["action"] != "discard" && result == true) eventUnpublish();
+                if (settings[context]["action"] != "discard" && result == true) {
+                    eventUnpublish();
+                }
             },
+            complete: function () {
+                $(".loading").hide();
+            },
+            error: xhrFailCallback,
         });
     }
     return false;
