@@ -4,6 +4,4 @@
         <i style="display: block; text-align: center;" class="fas fa-arrow-down"></i>
         <div><?php echo $object['last_seen'] != null ? h($object['last_seen']) : '<span style="display: block; text-align:center;">_</span>'; ?></div>
     </div>
-<?php else: ?>
-    <div></div>
-<?php endif; ?>
+<?php endif ?>
