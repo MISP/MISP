@@ -2805,7 +2805,7 @@ function moduleResultsSubmit(id) {
     }
     if ($('.MISPAttribute').length) {
         var attributes = [];
-        $('.MISPAttribute').each(function(a) {
+        $('.MISPAttribute').each(function() {
             var category_value;
             var type_value;
             if ($(this).find('.AttributeCategorySelect').length) {
@@ -2865,32 +2865,33 @@ function moduleResultsSubmit(id) {
         cache: false,
         url: baseurl + "/events/handleModuleResults/" + id,
         data: formData,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
-        success:function (data, textStatus) {
+        success: function () {
             window.location = baseurl + '/events/view/' + id;
         },
-        complete:function() {
+        complete: function() {
             $(".loading").hide();
-        }
+        },
+        error: xhrFailCallback,
     });
 }
 
 function objectTemplateViewContent(context, id) {
     var url = baseurl + "/objectTemplateElements/viewElements/" + id + "/" + context;
     $.ajax({
-            url: url,
-            type:'GET',
+        url: url,
+        type:'GET',
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
-            error: function(){
-                $('#ajaxContent').html('An error has occured, please reload the page.');
-            },
-            success: function(response){
-                $('#ajaxContent').html(response);
-            },
+        error: function(){
+            $('#ajaxContent').html('An error has occured, please reload the page.');
+        },
+        success: function(response){
+            $('#ajaxContent').html(response);
+        },
         complete: function() {
             $(".loading").hide();
         },
