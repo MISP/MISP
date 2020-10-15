@@ -452,15 +452,15 @@ function updateIndex(id, context, newPage) {
 
 function updateAttributeFieldOnSuccess(name, type, id, field, event) {
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            if (field != 'timestamp') {
+        beforeSend: function () {
+            if (field !== 'timestamp') {
                 $(".loading").show();
             }
         },
         dataType:"html",
         cache: false,
         success:function (data, textStatus) {
-            if (field != 'timestamp') {
+            if (field !== 'timestamp') {
                 $(".loading").hide();
                 $(name + '_solid').html(data);
                 $(name + '_placeholder').empty();
@@ -468,6 +468,7 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
             } else {
                 $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
             }
+            popoverStartup(); // reactive popovers
         },
         url: baseurl + "/attributes/fetchViewValue/" + id + "/" + field,
     });
