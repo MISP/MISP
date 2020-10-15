@@ -4909,8 +4909,8 @@ class EventsController extends AppController
             throw new ForbiddenException(__('You don\'t have permission to do that.'));
         }
 
-        $resolved_data = json_decode($this->request->data['Event']['JsonObject'], true);
-        $data = json_decode($this->request->data['Event']['data'], true);
+        $resolved_data = $this->Event->jsonDecode($this->request->data['Event']['JsonObject']);
+        $data = $this->Event->jsonDecode($this->request->data['Event']['data']);
         if (!empty($data['initialObject'])) {
             $resolved_data['initialObject'] = $data['initialObject'];
         }
@@ -4918,7 +4918,12 @@ class EventsController extends AppController
         $default_comment = $this->request->data['Event']['default_comment'];
         $flashMessage = $this->Event->processModuleResultsDataRouter($this->Auth->user(), $resolved_data, $event['Event']['id'], $default_comment);
         $this->Flash->info($flashMessage);
-        $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+
+        if ($this->request->is('ajax')) {
+            return $this->RestResponse->viewData($flashMessage, $this->response->type());
+        } else {
+            $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+        }
     }
 
     public function importModule($module, $eventId)
