@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Organisation $Organisation
+ */
 class OrganisationsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -87,6 +90,10 @@ class OrganisationsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($orgs, $this->response->type());
         } else {
+            foreach ($orgs as &$org) {
+                $org['Organisation']['country_code'] = $this->Organisation->getCountryCode($org['Organisation']['nationality']);
+            }
+
             $this->set('named', $this->params['named']);
             $this->set('scope', $scope);
             $this->set('orgs', $orgs);
@@ -152,7 +159,8 @@ class OrganisationsController extends AppController
                 }
             }
         }
-        $this->set('countries', $this->_arrayToValuesIndexArray($this->Organisation->countries));
+        $countries = array_merge(['' => __('Not specified')], $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
+        $this->set('countries', $countries);
     }
 
     public function admin_edit($id)
@@ -230,7 +238,17 @@ class OrganisationsController extends AppController
             $this->Organisation->read(null, $id);
             $this->request->data = $this->Organisation->data;
         }
-        $this->set('countries', $this->_arrayToValuesIndexArray($this->Organisation->countries));
+
+        $countries = array_merge(['' => __('Not specified')], $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
+        if (!empty($this->Organisation->data['Organisation']['nationality'])) {
+            $currentCountry = $this->Organisation->data['Organisation']['nationality'];
+            if (!isset($countries[$currentCountry])) {
+                // Append old country name to list to keep backward compatibility
+                $countries[$currentCountry] = $currentCountry;
+            }
+        }
+
+        $this->set('countries', $countries);
         $this->set('orgId', $id);
         if (is_array($this->request->data['Organisation']['restricted_to_domain'])) {
             $this->request->data['Organisation']['restricted_to_domain'] = implode("\n", $this->request->data['Organisation']['restricted_to_domain']);
@@ -355,6 +373,7 @@ class OrganisationsController extends AppController
             $org['Organisation']['user_count'] = $this->Organisation->User->getMembersCount($org['Organisation']['id']);
             return $this->RestResponse->viewData($org, $this->response->type());
         } else {
+            $org['Organisation']['country_code'] = $this->Organisation->getCountryCode($org['Organisation']['nationality']);
             $this->set('fullAccess', $fullAccess);
             $this->set('org', $org);
             $this->set('id', $id);

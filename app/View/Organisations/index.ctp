@@ -117,7 +117,14 @@ foreach ($orgs as $org): ?>
         </td>
         <?php endif; ?>
         <td ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['description']); ?></td>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['nationality']); ?></td>
+        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php
+            if (isset($org['Organisation']['country_code'])) {
+                echo $this->Icon->countryFlag($org['Organisation']['country_code']) . '&nbsp;';
+            }
+            if ($org['Organisation']['nationality'] !== 'Not specified') {
+                echo h($org['Organisation']['nationality']);
+            }
+        ?></td>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['sector']); ?></td>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['type']); ?></td>
         <td><?php echo h($org['Organisation']['contacts']); ?></td>
