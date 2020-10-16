@@ -1323,7 +1323,6 @@ class Attribute extends AppModel
                 }
                 break;
             case 'mutex':
-            case 'AS':
             case 'snort':
             case 'bro':
             case 'zeek':
@@ -1482,6 +1481,11 @@ class Attribute extends AppModel
                     $returnValue = true;
                 }
                 break;
+            case 'AS':
+                if ($this->isPositiveInteger($value) && $value <= 4294967295) {
+                    return true;
+                }
+                return __('AS number have to be integers between 1 and 4294967295');
         }
         return $returnValue;
     }
@@ -1663,6 +1667,17 @@ class Attribute extends AppModel
                     $value = (new DateTime($value))->setTimezone(new DateTimeZone('GMT'))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
                 } catch (Exception $e) {
                     // silently skip. Rejection will be done in runValidation()
+                }
+                break;
+            case 'AS':
+                if (strtoupper(substr($value, 0, 2)) === 'AS') {
+                    $value = substr($value, 2); // remove 'AS'
+                }
+                if (strpos($value, '.') !== false) { // maybe value is in asdot notation
+                    $parts = explode('.', $value);
+                    if ($this->isPositiveInteger($parts[0]) && $this->isPositiveInteger($parts[1])) {
+                        return $parts[0] * 65536 + $parts[1];
+                    }
                 }
                 break;
         }
