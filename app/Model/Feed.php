@@ -440,7 +440,7 @@ class Feed extends AppModel
             }
             // Append also exact MISP feed event UUID
             // TODO: This can be optimised in future to do that in one pass
-            if ($sourceHasHit && $source[$scope]['source_format'] === 'misp') {
+            if ($sourceHasHit && ($scope === 'Server' || $source[$scope]['source_format'] === 'misp')) {
                 $pipe = $redis->multi(Redis::PIPELINE);
                 $eventUuidHitPosition = [];
                 foreach ($hitIds as $sourceHitPos => $k) {
