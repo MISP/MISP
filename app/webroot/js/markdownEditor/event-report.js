@@ -1073,6 +1073,10 @@ function getElementFromDom(node) {
 
 function getTitleFromMISPElementDOM() {
     var data = getElementFromDom(this)
+    return buildTitleForMISPElement(data)
+}
+
+function buildTitleForMISPElement(data) {
     var title = invalidMessage
     var dismissButton = ''
     if (data !== false) {
@@ -1333,6 +1337,10 @@ function constructGalaxyInfo(tagData) {
 
 function getContentFromMISPElementDOM() {
     var data = getElementFromDom(this)
+    return buildBodyForMISPElement(data)
+}
+
+function buildBodyForMISPElement(data) {
     if (data !== false) {
         if (data.scope == 'attribute' && isValidObjectAttribute(data.element)) {
             data.scope = 'object'
@@ -1430,7 +1438,7 @@ function constructSuggestionTables(entities) {
 function constructExtractionTable(entities) {
     var $table = $('<table/>').attr('id', 'suggestionTable').addClass('table table-striped table-condensed').css('flex-grow', '1')
     var $thead = $('<thead/>').append($('<tr/>').append(
-        $('<th/>').text('Value'),
+        $('<th/>').text('Value').css('min-width', '10rem'),
         $('<th/>').text('Types'),
         $('<th/>').text('Category'),
         $('<th/>').text('Occurrences'),
@@ -1508,7 +1516,7 @@ function constructExtractionTable(entities) {
 function constructReplacementTable(unreferenceValues) {
     var $table = $('<table/>').attr('id', 'replacementTable').addClass('table table-striped table-condensed').css('flex-grow', '1')
     var $thead = $('<thead/>').append($('<tr/>').append(
-        $('<th/>').text('Value'),
+        $('<th/>').text('Value').css('min-width', '10rem'),
         $('<th/>').text('Existing attribute'),
         $('<th/>').text('Occurrences'),
         $('<th/>').text('Action')
