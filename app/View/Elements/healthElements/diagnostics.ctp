@@ -455,7 +455,9 @@
         <?php echo __('Non existing attachments referenced in Database');?>…<span id="orphanedFileCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
     </div><br>
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check bad link on attachments');?>" title="<?php echo __('Check bad link on attachments');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();"><?php echo __('Check bad link on attachments');?></span>
-
+    <h3><?php echo __('Recover deleted events'); ?></h3>
+    <p><?php echo __('Due to a bug introduced after 2.4.129, users could occasionally accidentally and unknowingly trigger event deletions. Use the tool below to display any events deleted during the timeframe when the bug was active and optionally recover individual events if you believe they were removed in error.')?></p>
+    <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Recover deleted events');?>" title="<?php echo __('Recover deleted events');?>" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/events/restoreDeletedEvents';"><?php echo __('Recover deleted events');?></span>
 </div>
 
 <script>

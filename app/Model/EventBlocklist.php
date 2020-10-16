@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+
 class EventBlocklist extends AppModel
 {
     public $useTable = 'event_blocklists';
@@ -25,8 +26,8 @@ class EventBlocklist extends AppModel
                             'message' => 'Event already blocklisted.'
                     ),
                     'uuid' => array(
-                            'rule' => array('uuid'),
-                            'message' => 'Please provide a valid UUID'
+                            'rule' => 'uuid',
+                            'message' => 'Please provide a valid RFC 4122 UUID'
                     ),
             )
     );
@@ -38,13 +39,25 @@ class EventBlocklist extends AppModel
         if (!isset($schema['event_info'])) {
             $this->updateDatabase('addEventBlocklistsContext');
         }
-        $date = date('Y-m-d H:i:s');
         if (empty($this->data['EventBlocklist']['id'])) {
-            $this->data['EventBlocklist']['date_created'] = $date;
+            $this->data['EventBlocklist']['date_created'] = date('Y-m-d H:i:s');
         }
         if (empty($this->data['EventBlocklist']['comment'])) {
             $this->data['EventBlocklist']['comment'] = '';
         }
         return true;
+    }
+
+    /**
+     * @param string $eventUuid
+     * @return bool
+     */
+    public function isBlocked($eventUuid)
+    {
+        $result = $this->find('first', [
+            'conditions' => ['event_uuid' => $eventUuid],
+            'fields' => ['id']
+        ]);
+        return !empty($result);
     }
 }

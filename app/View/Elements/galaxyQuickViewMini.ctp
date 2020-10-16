@@ -45,7 +45,7 @@
                     } else if($cluster_field['key'] == 'country') {
                         $value = array();
                         foreach ($cluster_field['value'] as $k => $v) {
-                            $value[] = '<span class="famfamfam-flag-' . strtolower(h($v)) . '" ></span>&nbsp;' . h($v);
+                            $value[] = $this->Icon->countryFlag($v) . '&nbsp;' . h($v);
                         }
                         $value_contents = nl2br(implode("\n", $value));
                     } else {

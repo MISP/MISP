@@ -279,7 +279,7 @@ class GalaxyCluster extends AppModel
             foreach ($tmpResults as $tmpResult) {
                 $matchingClusters = array_intersect($matchingClusters, $tmpResult);
             }
-    
+
             $clusterTags = $this->find('list', array(
                 'conditions' => array('id' => $matchingClusters),
                 'fields' => array('GalaxyCluster.tag_name'),
@@ -287,5 +287,15 @@ class GalaxyCluster extends AppModel
             ));
         }
         return array_values($clusterTags);
+    }
+
+    public function getTagIdByClusterId($cluster_id)
+    {
+        $cluster = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['GalaxyCluster.id' => $cluster_id],
+            'contain' => ['Tag']
+        ]);
+        return empty($cluster['Tag']['id']) ? false : $cluster['Tag']['id'];
     }
 }

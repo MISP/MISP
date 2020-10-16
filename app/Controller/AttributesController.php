@@ -158,7 +158,6 @@ class AttributesController extends AppController
             if (!isset($attributes[0])) {
                 $attributes = array(0 => $attributes);
             }
-            $this->Warninglist = ClassRegistry::init('Warninglist');
             $fails = array();
             $successes = 0;
             $attributeCount = count($attributes);
@@ -1448,7 +1447,6 @@ class AttributesController extends AppController
                 $event['Event']['timestamp'] = $timestamp;
                 $event['Event']['published'] = 0;
                 $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'id')));
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
             } else {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
             }
@@ -1951,14 +1949,10 @@ class AttributesController extends AppController
             throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
         }
         $params = array(
-                'conditions' => array('Attribute.id' => $id),
-                'fields' => array('id', 'distribution', 'event_id', $field),
-                'contain' => array(
-                        'Event' => array(
-                                'fields' => array('distribution', 'id', 'org_id'),
-                        )
-                ),
-                'flatten' => 1
+            'conditions' => array('Attribute.id' => $id),
+            'fields' => array('id', 'category', 'type', $field),
+            'contain' => ['Event'],
+            'flatten' => 1,
         );
         $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
         if (empty($attribute)) {
@@ -1978,6 +1972,8 @@ class AttributesController extends AppController
             }
         }
         $this->set('value', $result);
+        $this->set('object', $attribute);
+        $this->set('field', $field);
         $this->layout = 'ajax';
         $this->render('ajax/attributeViewFieldForm');
     }
@@ -2406,23 +2402,20 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             throw new NotFoundException(__('Invalid Attribute'));
         }
-        $this->loadModel('Server');
         $this->loadModel('Module');
         $modules = $this->Module->getEnabledModules($this->Auth->user());
         $validTypes = array();
         if (isset($modules['hover_type'][$attribute[0]['Attribute']['type']])) {
             $validTypes = $modules['hover_type'][$attribute[0]['Attribute']['type']];
         }
-        $url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
-        $port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
         $resultArray = array();
         foreach ($validTypes as $type) {
             $options = array();
             $found = false;
             foreach ($modules['modules'] as $temp) {
-                if ($temp['name'] == $type) {
+                if ($temp['name'] === $type) {
                     $found = true;
-                    $format = (isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
+                    $format = isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
@@ -2450,29 +2443,32 @@ class AttributesController extends AppController
             $result = $this->Module->queryModuleServer('/query', $data, true);
             if ($result) {
                 if (!is_array($result)) {
-                    $resultArray[$type][] = array($type => $result);
+                    $resultArray[$type] = ['error' => $result];
+                    continue;
                 }
             } else {
                 // TODO: i18n?
-                $resultArray[$type][] = array($type => 'Enrichment service not reachable.');
+                $resultArray[$type] = ['error' => 'Enrichment service not reachable.'];
                 continue;
             }
             $current_result = array();
             if (isset($result['results']['Object'])) {
                 if (!empty($result['results']['Object'])) {
                     $objects = array();
-                    foreach($result['results']['Object'] as $object) {
+                    foreach ($result['results']['Object'] as $object) {
                         if (isset($object['Attribute']) && !empty($object['Attribute'])) {
                             $object_attributes = array();
                             foreach($object['Attribute'] as $object_attribute) {
-                                array_push($object_attributes, array('object_relation' => $object_attribute['object_relation'], 'value' => $object_attribute['value']));
+                                $object_attributes[] = [
+                                    'object_relation' => $object_attribute['object_relation'],
+                                    'value' => $object_attribute['value'],
+                                    'type' => $object_attribute['type'],
+                                ];
                             }
-                            array_push($objects, array('name' => $object['name'], 'Attribute' => $object_attributes));
+                            $objects[] = array('name' => $object['name'], 'Attribute' => $object_attributes);
                         }
                     }
-                    if (!empty($objects)) {
-                        $current_result['Object'] = $objects;
-                    }
+                    $current_result['Object'] = $objects;
                 }
                 unset($result['results']['Object']);
             }
@@ -2506,6 +2502,7 @@ class AttributesController extends AppController
                 }
             }
         }
+        $this->set('persistent', $persistent);
         $this->set('results', $resultArray);
         $this->layout = 'ajax';
         $this->render('ajax/hover_enrichment');
@@ -2938,17 +2935,37 @@ class AttributesController extends AppController
                 'all',
                 array(
                     'conditions' => array('Attribute.type' => array('attachment', 'malware-sample')),
-                    'recursive' => -1)
+                    'contain' => ['Event.orgc_id', 'Event.org_id'],
+                    'recursive' => -1
+                )
             );
         $counter = 0;
         $attachmentTool = new AttachmentTool();
+        $results = [];
         foreach ($attributes as $attribute) {
             $exists = $attachmentTool->exists($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
             if (!$exists) {
+                $results['affectedEvents'][$attribute['Attribute']['event_id']] = $attribute['Attribute']['event_id'];
+                $results['affectedAttributes'][] = $attribute['Attribute']['id'];
+                foreach (['orgc', 'org'] as $type) {
+                    if (empty($results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']])) {
+                        $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] = 0;
+                    } else {
+                        $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] += 1;
+                    }
+                }
                 $counter++;
             }
         }
-
+        if (!empty($results)) {
+            $results['affectedEvents'] = array_values($results['affectedEvents']);
+            rsort($results['affectedEvents']);
+            rsort($results['affectedAttributes']);
+            foreach (['orgc', 'org'] as $type) {
+                arsort($results['affectedOrgs'][$type]);
+            }
+        }
+        file_put_contents(APP . '/tmp/logs/missing_attachments.log', json_encode($results, JSON_PRETTY_PRINT));
         return new CakeResponse(array('body' => $counter, 'status' => 200));
     }
 
