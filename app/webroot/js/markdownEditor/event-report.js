@@ -1091,8 +1091,8 @@ function buildTitleForMISPElement(data) {
 function closeThePopover(closeButton) {
     var scope = $(closeButton).data('scope')
     var elementID = $(closeButton).data('elementid')
-    var $MISPElement = $('[data-scope="' + scope + '"][data-elementid="' + elementID.replaceAll('\"', '\\\"') + '"]')
-    if ($MISPElement) {
+    var $MISPElement = $('#viewer [data-scope="' + scope + '"][data-elementid="' + elementID.replaceAll('\"', '\\\"') + '"]')
+    if ($MISPElement.length > 0) {
         $MISPElement.popover('hide');
     } else {
         $(closeButton).closest('.popover').remove()
@@ -1419,7 +1419,8 @@ function constructSuggestionTables(entities) {
     var $topBar = $('<div/>').append(
         $('<button/>').addClass('btn btn-mini btn-inverse').css({
             'float': 'right',
-            'margin-top': '8px'
+            'margin-top': '8px',
+            'margin-right': '3px'
         }).append(
             $('<i/>').addClass('fas fa-expand-arrows-alt').css('margin-right', '5px'),
             $('<span/>').text('Toggle fullscreen')
@@ -1523,13 +1524,16 @@ function constructReplacementTable(unreferenceValues) {
     ))
     var $tbody = $('<tbody/>')
     Object.keys(unreferenceValues).forEach(function(value, index) {
-        var $select, $option
+        var $selectContainer, $select, $option
         var unreferenceValue = unreferenceValues[value]
         if(unreferenceValue.attributes.length > 1) {
             $select = $('<select/>').addClass('attribute-replacement').css({
                 'width': 'auto',
                 'max-width': '300px'
             }).change(function() {
+                if ($('#viewer-container .popover.in').length > 0) {
+                    $(this).parent().find('.helpicon').popover('show')
+                }
                 pickSuggestionColumn(index, 'replacementTable', true)
             })
             unreferenceValue.attributes.forEach(function(attribute) {
@@ -1538,10 +1542,59 @@ function constructReplacementTable(unreferenceValues) {
                 $option = $('<option/>').val(attribute.uuid).append(renderHintElement('attribute', attributeToRender))
                 $select.append($option)
             })
+            var $helpIcon = $('<a/>').css({
+                'cursor': 'help',
+                'margin-left': '3px',
+                'margin-top': '10px',
+                'vertical-align': 'top'
+            }).addClass('helpicon fas fa-question-circle')
+                .popover({
+                    trigger: 'click',
+                    html: true,
+                    container: '#viewer-container',
+                    placement: 'right',
+                    title: function() {
+                        var uuid = $(this).parent().find('select').val()
+                        var attribute = proxyMISPElements['attribute'][uuid]
+                        var popoverData = {
+                            element: attribute,
+                            scope: 'attribute',
+                            elementID: attribute.value
+                        }
+                        return buildTitleForMISPElement(popoverData)
+                    },
+                    content: function() {
+                        var uuid = $(this).parent().find('select').val()
+                        var attribute = proxyMISPElements['attribute'][uuid]
+                        var popoverData = {
+                            element: attribute,
+                            scope: 'attribute',
+                            elementID: attribute.value
+                        }
+                        return buildBodyForMISPElement(popoverData)
+                    }
+                })
+            $selectContainer = $('<span/>').css({
+                'white-space': 'nowrap'
+            }).append($select, $helpIcon)
         } else {
             var attributeToRender = jQuery.extend(true, { }, unreferenceValue.attributes[0])
             attributeToRender.value = unreferenceValue.attributes[0].id
-            $select = $('<span/>').append(renderHintElement('attribute', attributeToRender))
+            var popoverData = {
+                element: unreferenceValue.attributes[0],
+                scope: 'attribute',
+                elementID: unreferenceValue.attributes[0].value
+            }
+            $selectContainer = $('<a/>').css({'color': 'unset', 'cursor': 'help'})
+                .popover({
+                    trigger: 'click',
+                    html: true,
+                    container: '#viewer-container',
+                    placement: 'right',
+                    title: buildTitleForMISPElement(popoverData),
+                    content: buildBodyForMISPElement(popoverData)
+                })
+                .append(renderHintElement('attribute', attributeToRender))
                 .append($('<select/>').addClass('attribute-replacement hidden').append($('<option/>').text(unreferenceValue.attributes[0].uuid).val(unreferenceValue.attributes[0].uuid)))
         }
         var $tr = $('<tr/>').attr('data-entityindex', index)
@@ -1549,7 +1602,7 @@ function constructReplacementTable(unreferenceValues) {
             .addClass('useCursorPointer')
             .append(
                 $('<td/>').addClass('bold blue').text(value).css('word-wrap', 'anywhere'),
-                $('<td/>').append($select),
+                $('<td/>').append($selectContainer),
                 $('<td/>').append($('<span/>').addClass('input-prepend input-append').append(
                     $('<button type="button"/>').attr('title', 'Jump to previous occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
                         $('<a/>').addClass('fas fa-caret-left')
