@@ -211,7 +211,7 @@ class Sighting extends AppModel
      * @param array $event
      * @param array $user
      * @param array|int|null $attribute Attribute model or attribute ID
-     * @param bool $extraConditions
+     * @param array|bool $extraConditions
      * @param bool $forSync
      * @return array|int
      */
@@ -359,16 +359,20 @@ class Sighting extends AppModel
         foreach ($attributes as $attribute) {
             if ($type === '2') {
                 // remove existing expiration by the same org if it exists
-                $this->deleteAll(array('Sighting.org_id' => $user['org_id'], 'Sighting.type' => $type, 'Sighting.attribute_id' => $attribute['Attribute']['id']));
+                $this->deleteAll(array(
+                    'Sighting.org_id' => $user['org_id'],
+                    'Sighting.type' => $type,
+                    'Sighting.attribute_id' => $attribute['Attribute']['id'],
+                ));
             }
             $this->create();
             $sighting = array(
-                    'attribute_id' => $attribute['Attribute']['id'],
-                    'event_id' => $attribute['Attribute']['event_id'],
-                    'org_id' => ($saveOnBehalfOf === false) ? $user['org_id'] : $saveOnBehalfOf,
-                    'date_sighting' => $timestamp,
-                    'type' => $type,
-                    'source' => $source
+                'attribute_id' => $attribute['Attribute']['id'],
+                'event_id' => $attribute['Attribute']['event_id'],
+                'org_id' => ($saveOnBehalfOf === false) ? $user['org_id'] : $saveOnBehalfOf,
+                'date_sighting' => $timestamp,
+                'type' => $type,
+                'source' => $source,
             );
             // zeroq: allow setting a specific uuid
             if ($sighting_uuid) {
@@ -743,10 +747,7 @@ class Sighting extends AppModel
      */
     public function bulkSaveSightings($eventId, $sightings, $user, $passAlong = null)
     {
-        $event = $this->Event->fetchEvent($user, array_merge(array(
-             'metadata' => 1,
-             'flatten' => true,
-        ), is_string($eventId) ? array('event_uuid' => $eventId) : array('eventid' => $eventId)));
+        $event = $this->Event->fetchSimpleEvent($user, $eventId);
         if (empty($event)) {
             return 'Event not found or not accessible by this user.';
         }
@@ -768,7 +769,7 @@ class Sighting extends AppModel
             }
         }
         if ($saved > 0) {
-            $this->Event->publishRouter($eventId, $passAlong, $user, 'sightings');
+            $this->Event->publishRouter($event['Event']['id'], $passAlong, $user, 'sightings');
         }
         return $saved;
     }

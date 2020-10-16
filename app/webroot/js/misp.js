@@ -498,30 +498,36 @@ function updateObjectFieldOnSuccess(name, type, id, field, event) {
 
 function activateField(type, id, field, event) {
     resetForms();
-    if (type == 'denyForm') return;
-    var objectType = 'attributes';
-    var containerName = 'Attribute';
-    if (type == 'Object') {
+    if (type === 'denyForm') {
+        return;
+    }
+    var objectType, containerName;
+    if (type === 'Object') {
         objectType = 'objects';
         containerName = 'Object';
+    } else {
+        objectType = 'attributes';
+        containerName = 'Attribute';
     }
     var name = '#' + type + '_' + id + '_' + field;
     var container_name = '#' + containerName + '_' + id + '_' + field;
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function() {
             $(".loading").show();
         },
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+        success: function (data) {
             $(container_name + '_placeholder').html(data);
             postActivationScripts(name, type, id, field, event);
         },
         url: baseurl + "/" + objectType + "/fetchEditForm/" + id + "/" + field,
+        complete: function() {
+            $(".loading").hide();
+        },
+        error: xhrFailCallback
     });
 }
-
 
 function submitQuickTag(form) {
     $('#' + form).submit();
@@ -2799,7 +2805,7 @@ function moduleResultsSubmit(id) {
     }
     if ($('.MISPAttribute').length) {
         var attributes = [];
-        $('.MISPAttribute').each(function(a) {
+        $('.MISPAttribute').each(function() {
             var category_value;
             var type_value;
             if ($(this).find('.AttributeCategorySelect').length) {
@@ -2859,32 +2865,33 @@ function moduleResultsSubmit(id) {
         cache: false,
         url: baseurl + "/events/handleModuleResults/" + id,
         data: formData,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
-        success:function (data, textStatus) {
+        success: function () {
             window.location = baseurl + '/events/view/' + id;
         },
-        complete:function() {
+        complete: function() {
             $(".loading").hide();
-        }
+        },
+        error: xhrFailCallback,
     });
 }
 
 function objectTemplateViewContent(context, id) {
     var url = baseurl + "/objectTemplateElements/viewElements/" + id + "/" + context;
     $.ajax({
-            url: url,
-            type:'GET',
+        url: url,
+        type:'GET',
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
-            error: function(){
-                $('#ajaxContent').html('An error has occured, please reload the page.');
-            },
-            success: function(response){
-                $('#ajaxContent').html(response);
-            },
+        error: function(){
+            $('#ajaxContent').html('An error has occured, please reload the page.');
+        },
+        success: function(response){
+            $('#ajaxContent').html(response);
+        },
         complete: function() {
             $(".loading").hide();
         },
