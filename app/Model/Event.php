@@ -2268,15 +2268,6 @@ class Event extends AppModel
                             unset($event['Attribute'][$key]['EventTag']);
                         }
                     }
-                    // unset empty attribute tags that got added because the tag wasn't exportable
-                    if (!empty($attribute['AttributeTag'])) {
-                        foreach ($attribute['AttributeTag'] as $atk => $attributeTag) {
-                            if (empty($attributeTag['Tag'])) {
-                                unset($event['Attribute'][$key]['AttributeTag'][$atk]);
-                            }
-                        }
-                        $event['Attribute'][$key]['AttributeTag'] = array_values($event['Attribute'][$key]['AttributeTag']);
-                    }
                     $event['Attribute'][$key]['ShadowAttribute'] = array();
                     // If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
                     // This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
@@ -6008,8 +5999,8 @@ class Event extends AppModel
                     }
                 }
             }
-            $data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
         }
+        $data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
         return $data;
     }
 
