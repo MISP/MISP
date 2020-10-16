@@ -1021,6 +1021,181 @@ function disableSuggestionInterface() {
     cm.refresh()
 }
 
+function searchForUnreferenceValues() {
+    unreferenceValues = {}
+    var content = getEditorData()
+    Object.keys(proxyMISPElements['attribute']).forEach(function(uuid) {
+        var attribute = proxyMISPElements['attribute'][uuid]
+        var indices = []
+        if (unreferenceValues[attribute.value] === undefined || unreferenceValues[attribute.value].indices === undefined) {
+            indices = getAllIndicesOf(content, attribute.value, true, true)
+        } else {
+            indices = unreferenceValues[attribute.value].indices
+        }
+        if (indices.length > 0) {
+            if (unreferenceValues[attribute.value] === undefined) {
+                unreferenceValues[attribute.value] = {
+                    attributes: [],
+                    indices: null
+                }
+            }
+            unreferenceValues[attribute.value].indices = indices
+            unreferenceValues[attribute.value].attributes.push(attribute)
+        }
+    })
+}
+
+function pickSuggestionColumn(index, tableID, force) {
+    tableID = tableID === undefined ? 'replacementTable' : tableID
+    force = force === undefined ? false : force;
+    if (pickedSuggestion.tableID != tableID || pickedSuggestion.index != index || force) {
+        var $trs = $('#' + tableID + ' tr')
+        $trs.removeClass('info').find('button').prop('disabled', true)
+        $trs.find('select').prop('disabled', true)
+        var $tr = $('#' + tableID + ' tr[data-entityindex="' + index + '"]')
+        if ($tr.length > 0) {
+            $tr.addClass('info').find('button').prop('disabled', false)
+            $tr.find('select').prop('disabled', false)
+            pickedSuggestion = {
+                tableID: tableID,
+                tr: $tr,
+                index: index
+            }
+            if (tableID == 'replacementTable') {
+                var uuid = $tr.find('select.attribute-replacement').val()
+                pickedSuggestion['entity'] = {
+                    value: $tr.data('attributeValue'),
+                    picked_type: proxyMISPElements['attribute'][uuid].type,
+                    replacement: uuid
+                }
+                highlightPickedReplacementInReport()
+            } else {
+                pickedSuggestion['entity'] = $tr.data('entity')
+                pickedSuggestion['entity']['picked_type'] = $tr.find('select.type').val()
+                highlightPickedSuggestionInReport()
+            }
+        }
+    }
+}
+
+function filterCheckedSuggestion() {
+    var value = pickedSuggestion.entity.value
+    var content = getEditorData()
+    var contentWithPickedSuggestions = ''
+    var nextIndex = 0
+    var suggestionLength = '@[suggestion]()'.length + pickedSuggestion.entity.value.length
+    Object.keys(suggestions[value]).forEach(function(suggestionKey, i) {
+        var suggestion = suggestions[value][suggestionKey]
+        contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
+        nextIndex = suggestion.startIndex.index
+        if (suggestion.checked) {
+            contentWithPickedSuggestions += content.substr(nextIndex, suggestionLength)
+        } else {
+            contentWithPickedSuggestions += value
+        }
+        nextIndex += suggestionLength
+    })
+    contentWithPickedSuggestions += content.substr(nextIndex)
+    return contentWithPickedSuggestions
+}
+
+function filterCheckedReplacement() {
+    var value = pickedSuggestion.entity.value
+    var content = getEditorData()
+    var contentWithPickedSuggestions = ''
+    var nextIndex = 0
+    var suggestionLength = '@[suggestion]()'.length + pickedSuggestion.entity.value.length
+    Object.keys(suggestions[value]).forEach(function(suggestionKey, i) {
+        var suggestion = suggestions[value][suggestionKey]
+        contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
+        nextIndex = suggestion.startIndex.index
+        if (suggestion.checked) {
+            contentWithPickedSuggestions += '@[attribute](' + suggestion.complexTypeToolResult.replacement + ')'
+        } else {
+            contentWithPickedSuggestions += value
+        }
+        nextIndex += suggestionLength
+    })
+    contentWithPickedSuggestions += content.substr(nextIndex)
+    return contentWithPickedSuggestions
+}
+
+function getSuggestionMapping() {
+    var getSuggestionMapping = {}
+    var $select = pickedSuggestion.tr.find('select')
+    var entity = pickedSuggestion.entity
+    getSuggestionMapping[entity.value] = {
+        'type': $select.filter('.type').val(),
+        'category': $select.filter('.category').val(),
+        'to_ids': entity.to_ids
+    }
+    return getSuggestionMapping
+}
+
+function submitReplacement() {
+    var contentWithPickedReplacements = filterCheckedReplacement()
+    setEditorData(contentWithPickedReplacements);
+    saveMarkdown(false, function() {
+        setEditorData(originalRaw)
+        contentBeforeSuggestions = originalRaw
+        pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
+        pickSuggestionColumn(-1)
+    })
+}
+
+function submitExtractionSuggestion() {
+    var url = baseurl + '/eventReports/replaceSuggestionInReport/' + reportid
+    var contentWithPickedSuggestions = filterCheckedSuggestion()
+    var suggestionsMapping = getSuggestionMapping()
+
+    fetchFormDataAjax(url, function(formHTML) {
+        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
+        var $tmpForm = $('#temp form')
+        var formUrl = $tmpForm.attr('action')
+        $tmpForm.find('[name="data[EventReport][suggestions]"]').val(JSON.stringify({
+            'content': contentWithPickedSuggestions,
+            'mapping': suggestionsMapping
+        }))
+
+
+        $.ajax({
+            data: $tmpForm.serialize(),
+            beforeSend: function() {
+                toggleMarkdownEditorLoading(true, 'Applying suggestions in report')
+            },
+            success:function(postResult, textStatus) {
+                if (postResult) {
+                    showMessage('success', postResult.message);
+                    if (postResult.data !== undefined) {
+                        var report = postResult.data.report.EventReport
+                        var complexTypeToolResult = postResult.data.complexTypeToolResult
+                        lastModified = report.timestamp + '000'
+                        refreshLastUpdatedField()
+                        originalRaw = report.content
+                        revalidateContentCache()
+                        fetchProxyMISPElements(function() {
+                            setEditorData(originalRaw)
+                            contentBeforeSuggestions = originalRaw
+                            pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
+                            pickSuggestionColumn(-1)
+                            prepareSuggestionInterface(complexTypeToolResult)
+                        })
+                    }
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                showMessage('fail', saveFailedMessage + ': ' + errorThrown);
+            },
+            complete:function() {
+                $('#temp').remove();
+                toggleMarkdownEditorLoading(false)
+            },
+            type:"post",
+            url: formUrl
+        })
+    })
+}
+
 /**
   _    _ _   _ _     
  | |  | | | (_) |    
@@ -1367,30 +1542,6 @@ function buildBodyForMISPElement(data) {
     return invalidMessage
 }
 
-function searchForUnreferenceValues() {
-    unreferenceValues = {}
-    var content = getEditorData()
-    Object.keys(proxyMISPElements['attribute']).forEach(function(uuid) {
-        var attribute = proxyMISPElements['attribute'][uuid]
-        var indices = []
-        if (unreferenceValues[attribute.value] === undefined || unreferenceValues[attribute.value].indices === undefined) {
-            indices = getAllIndicesOf(content, attribute.value, true, true)
-        } else {
-            indices = unreferenceValues[attribute.value].indices
-        }
-        if (indices.length > 0) {
-            if (unreferenceValues[attribute.value] === undefined) {
-                unreferenceValues[attribute.value] = {
-                    attributes: [],
-                    indices: null
-                }
-            }
-            unreferenceValues[attribute.value].indices = indices
-            unreferenceValues[attribute.value].attributes.push(attribute)
-        }
-    })
-}
-
 function constructSuggestionTables(entities) {
     var $extractionTable = constructExtractionTable(entities)
     var $replacementTable = constructReplacementTable(unreferenceValues)
@@ -1654,157 +1805,6 @@ function addCloseSuggestionButtonToToolbar() {
         }).attr('title', 'Close manual extraction view').text('Close extraction view').click(disableSuggestionInterface)
         $toolbarMode.append($closeButton)
     }
-}
-
-function pickSuggestionColumn(index, tableID, force) {
-    tableID = tableID === undefined ? 'replacementTable' : tableID
-    force = force === undefined ? false : force;
-    if (pickedSuggestion.tableID != tableID || pickedSuggestion.index != index || force) {
-        var $trs = $('#' + tableID + ' tr')
-        $trs.removeClass('info').find('button').prop('disabled', true)
-        $trs.find('select').prop('disabled', true)
-        var $tr = $('#' + tableID + ' tr[data-entityindex="' + index + '"]')
-        if ($tr.length > 0) {
-            $tr.addClass('info').find('button').prop('disabled', false)
-            $tr.find('select').prop('disabled', false)
-            pickedSuggestion = {
-                tableID: tableID,
-                tr: $tr,
-                index: index
-            }
-            if (tableID == 'replacementTable') {
-                var uuid = $tr.find('select.attribute-replacement').val()
-                pickedSuggestion['entity'] = {
-                    value: $tr.data('attributeValue'),
-                    picked_type: proxyMISPElements['attribute'][uuid].type,
-                    replacement: uuid
-                }
-                highlightPickedReplacementInReport()
-            } else {
-                pickedSuggestion['entity'] = $tr.data('entity')
-                pickedSuggestion['entity']['picked_type'] = $tr.find('select.type').val()
-                highlightPickedSuggestionInReport()
-            }
-        }
-    }
-}
-
-function filterCheckedSuggestion() {
-    var value = pickedSuggestion.entity.value
-    var content = getEditorData()
-    var contentWithPickedSuggestions = ''
-    var nextIndex = 0
-    var suggestionLength = '@[suggestion]()'.length + pickedSuggestion.entity.value.length
-    Object.keys(suggestions[value]).forEach(function(suggestionKey, i) {
-        var suggestion = suggestions[value][suggestionKey]
-        contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
-        nextIndex = suggestion.startIndex.index
-        if (suggestion.checked) {
-            contentWithPickedSuggestions += content.substr(nextIndex, suggestionLength)
-        } else {
-            contentWithPickedSuggestions += value
-        }
-        nextIndex += suggestionLength
-    })
-    contentWithPickedSuggestions += content.substr(nextIndex)
-    return contentWithPickedSuggestions
-}
-
-function filterCheckedReplacement() {
-    var value = pickedSuggestion.entity.value
-    var content = getEditorData()
-    var contentWithPickedSuggestions = ''
-    var nextIndex = 0
-    var suggestionLength = '@[suggestion]()'.length + pickedSuggestion.entity.value.length
-    Object.keys(suggestions[value]).forEach(function(suggestionKey, i) {
-        var suggestion = suggestions[value][suggestionKey]
-        contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
-        nextIndex = suggestion.startIndex.index
-        if (suggestion.checked) {
-            contentWithPickedSuggestions += '@[attribute](' + suggestion.complexTypeToolResult.replacement + ')'
-        } else {
-            contentWithPickedSuggestions += value
-        }
-        nextIndex += suggestionLength
-    })
-    contentWithPickedSuggestions += content.substr(nextIndex)
-    return contentWithPickedSuggestions
-}
-
-function getSuggestionMapping() {
-    var getSuggestionMapping = {}
-    var $select = pickedSuggestion.tr.find('select')
-    var entity = pickedSuggestion.entity
-    getSuggestionMapping[entity.value] = {
-        'type': $select.filter('.type').val(),
-        'category': $select.filter('.category').val(),
-        'to_ids': entity.to_ids
-    }
-    return getSuggestionMapping
-}
-
-function submitReplacement() {
-    var contentWithPickedReplacements = filterCheckedReplacement()
-    setEditorData(contentWithPickedReplacements);
-    saveMarkdown(false, function() {
-        setEditorData(originalRaw)
-        contentBeforeSuggestions = originalRaw
-        pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
-        pickSuggestionColumn(-1)
-    })
-}
-
-function submitExtractionSuggestion() {
-    var url = baseurl + '/eventReports/replaceSuggestionInReport/' + reportid
-    var contentWithPickedSuggestions = filterCheckedSuggestion()
-    var suggestionsMapping = getSuggestionMapping()
-
-    fetchFormDataAjax(url, function(formHTML) {
-        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
-        var $tmpForm = $('#temp form')
-        var formUrl = $tmpForm.attr('action')
-        $tmpForm.find('[name="data[EventReport][suggestions]"]').val(JSON.stringify({
-            'content': contentWithPickedSuggestions,
-            'mapping': suggestionsMapping
-        }))
-
-
-        $.ajax({
-            data: $tmpForm.serialize(),
-            beforeSend: function() {
-                toggleMarkdownEditorLoading(true, 'Applying suggestions in report')
-            },
-            success:function(postResult, textStatus) {
-                if (postResult) {
-                    showMessage('success', postResult.message);
-                    if (postResult.data !== undefined) {
-                        var report = postResult.data.report.EventReport
-                        var complexTypeToolResult = postResult.data.complexTypeToolResult
-                        lastModified = report.timestamp + '000'
-                        refreshLastUpdatedField()
-                        originalRaw = report.content
-                        revalidateContentCache()
-                        fetchProxyMISPElements(function() {
-                            setEditorData(originalRaw)
-                            contentBeforeSuggestions = originalRaw
-                            pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
-                            pickSuggestionColumn(-1)
-                            prepareSuggestionInterface(complexTypeToolResult)
-                        })
-                    }
-                }
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                showMessage('fail', saveFailedMessage + ': ' + errorThrown);
-            },
-            complete:function() {
-                $('#temp').remove();
-                toggleMarkdownEditorLoading(false)
-            },
-            type:"post",
-            url: formUrl
-        })
-    })
 }
 
 function jumpToPreviousOccurrence() {
