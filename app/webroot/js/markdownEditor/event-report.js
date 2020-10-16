@@ -1418,9 +1418,7 @@ function constructSuggestionTables(entities) {
         ).click(toggleFullscreenMode),
         $collapsibleControl
     )
-    var $div = $('<div/>').css({
-        'overflow-y': 'auto',
-    }).append($topBar, $collapsibleContent)
+    var $div = $('<div/>').append($topBar, $collapsibleContent)
     $suggestionContainer.empty().append($div)
     addCloseSuggestionButtonToToolbar()
     $('#suggestionTableTabs a').click(function (e) {

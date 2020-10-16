@@ -118,13 +118,16 @@ span.misp-element-wrapper.object {
     max-width: 90%;
 }
 
-#suggestion-container {
-    height: calc(100vh - 120px) !important;
-    overflow-y: auto;
+#suggestion-container ul.nav-tabs {
+    margin-bottom: 0;
 }
 
-.markdownEditor-full-container:fullscreen #suggestion-container {
-    height: calc(100vh - 50px) !important;
+#suggestion-container div.tab-content {
+    height: calc(100vh - 120px - 38px) !important;
+}
+
+.markdownEditor-full-container:fullscreen #suggestion-container div.tab-content {
+    height: calc(100vh - 50px - 38px) !important;
 }
 
 .CodeMirror-hint-active .blue {
