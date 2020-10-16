@@ -9,14 +9,6 @@
                     'field' => 'suggestions',
                     'class' => 'textarea'
                 ),
-                // array(
-                //     'field' => 'contentWithSuggestions',
-                //     'class' => 'textarea'
-                // ),
-                // array(
-                //     'field' => 'suggestionsMapping',
-                //     'class' => 'textarea'
-                // ),
             ),
             'submit' => array(
                 'action' => $this->request->params['action'],

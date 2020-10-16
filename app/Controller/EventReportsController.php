@@ -192,6 +192,39 @@ class EventReportsController extends AppController
         }
     }
 
+    public function automaticallyExtractFromReport($reportId)
+    {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+        } else {
+            if ($this->request->is('post')) {
+                $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'view', $throwErrors=true, $full=false);
+                $content = $report['EventReport']['content'];
+                App::uses('ComplexTypeTool', 'Tools');
+                $complexTypeTool = new ComplexTypeTool();
+                $this->loadModel('Warninglist');
+                $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+                $complexTypeToolResult = $complexTypeTool->checkComplexRouter($content, 'freetext');
+                $result = $this->EventReport->transformFreeTextIntoReplacement($this->Auth->user(), $report);
+                $complexTypeToolResult = $this->EventReport->removeReplacedComplexTypeToolEntries($complexTypeToolResult, $result['replacedValues']);
+                $result = $this->EventReport->transformFreeTextIntoSuggestion($result['contentWithReplacements'], $complexTypeToolResult);
+                $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $result['contentWithSuggestions'], $result['suggestionsMapping']);
+                if (empty($errors)) {
+                    $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
+                    $data = [ 'report' => $report ];
+                    $successMessage = __('Automatic extraction applied to Event Report %s', $reportId);
+                    return $this->__getSuccessResponseBasedOnContext($successMessage, $data, 'applySuggestions', $reportId);
+                } else {
+                    $errorMessage = __('Automatic extraction could not be applied to Event Report %s.%sReasons: %s', $reportId, PHP_EOL, json_encode($errors));
+                    return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'applySuggestions', $reportId);
+                }
+            }
+            $this->layout = 'ajax';
+            $this->set('reportId', $reportId);
+            $this->render('ajax/replaceSuggestionInReport');
+        }
+    }
+
     public function extractFromReport($reportId)
     {
         if (!$this->request->is('ajax')) {
@@ -203,10 +236,11 @@ class EventReportsController extends AppController
             $complexTypeTool = new ComplexTypeTool();
             $this->loadModel('Warninglist');
             $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-            $resultArray = $complexTypeTool->checkComplexRouter($content, 'freetext');
+            $complexTypeOutput = $complexTypeTool->checkComplexRouter($content, 'freetext');
+            $complexTypeOutput = $this->EventReport->injectcImportRegexOnComplexTypeToolResult($complexTypeOutput);
             $typeToCategoryMapping = $this->EventReport->Event->Attribute->typeToCategoryMapping();
             $data = [
-                'complexTypeOutput' => $resultArray,
+                'complexTypeOutput' => $complexTypeOutput,
                 'typeToCategoryMapping' => $typeToCategoryMapping
             ];
             return $this->RestResponse->viewData($data, $this->response->type());
@@ -218,8 +252,6 @@ class EventReportsController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
         } else {
-            $this->layout = 'ajax';
-            $this->render('ajax/replaceSuggestionInReport');
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', $throwErrors=true, $full=false);
             if ($this->request->is('post')) {
                 $errors = [];
@@ -240,7 +272,7 @@ class EventReportsController extends AppController
                     $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
                     $resultArray = $complexTypeTool->checkComplexRouter($report['EventReport']['content'], 'freetext');
                     $data = ['report' => $report, 'complexTypeToolResult' => $resultArray];
-
+                    
                     $successMessage = __('Suggestions applied to Event Report %s', $reportId);
                     return $this->__getSuccessResponseBasedOnContext($successMessage, $data, 'applySuggestions', $reportId);
                 } else {
@@ -248,6 +280,8 @@ class EventReportsController extends AppController
                     return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'applySuggestions', $reportId);
                 }
             }
+            $this->layout = 'ajax';
+            $this->render('ajax/replaceSuggestionInReport');
         }
     }
 

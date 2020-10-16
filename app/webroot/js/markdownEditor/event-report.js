@@ -890,6 +890,49 @@ function reloadRenderingRuleEnabledUI() {
  */
 
 function automaticEntitiesExtraction() {
+    var url = baseurl + '/eventReports/automaticallyExtractFromReport/' + reportid
+    fetchFormDataAjax(url, function(formHTML) {
+        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
+        var $tmpForm = $('#temp form')
+        var formUrl = $tmpForm.attr('action')
+        $.ajax({
+            data: $tmpForm.serialize(),
+            beforeSend: function() {
+                toggleMarkdownEditorLoading(true, 'Exctracting all entities')
+            },
+            success: function(postResult, textStatus) {
+                if (postResult) {
+                    showMessage('success', postResult.message);
+                    if (postResult.data !== undefined) {
+                        location.reload()
+                        // full reload?
+                        // var report = postResult.data.report.EventReport
+                        // var complexTypeToolResult = postResult.data.complexTypeToolResult
+                        // lastModified = report.timestamp + '000'
+                        // refreshLastUpdatedField()
+                        // originalRaw = report.content
+                        // revalidateContentCache()
+                        // fetchProxyMISPElements(function() {
+                        //     setEditorData(originalRaw)
+                        //     contentBeforeSuggestions = originalRaw
+                        //     pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
+                        //     pickSuggestionColumn(-1)
+                        //     prepareSuggestionInterface(complexTypeToolResult)
+                        // })
+                    }
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                showMessage('fail', saveFailedMessage + ': ' + errorThrown);
+            },
+            complete:function() {
+                $('#temp').remove();
+                toggleMarkdownEditorLoading(false)
+            },
+            type:"post",
+            url: formUrl
+        })
+    })
     // send request to server to
     //     - extract IoCs
     //     - add them as attributes
@@ -902,14 +945,14 @@ function manualEntitiesExtraction() {
     getEntitiesFromReport(function(data) {
         typeToCategoryMapping = data.typeToCategoryMapping
         prepareSuggestionInterface(data.complexTypeOutput)
-        enableSuggestionInterface()
+        toggleSuggestionInterface(true)
     })
 }
 
 function prepareSuggestionInterface(complexTypeOutput) {
     toggleMarkdownEditorLoading(true, 'Processing document')
-    searchForUnreferenceValues()
     entitiesFromComplexTool = complexTypeOutput
+    searchForUnreferenceValues()
     entitiesFromComplexTool = pruneReplacementEntriesFromComplexToolSuggestion()
     entitiesFromComplexTool = injectNumberOfOccurencesInReport(entitiesFromComplexTool)
     setupSuggestionMarkdownListeners()
@@ -943,7 +986,8 @@ function highlightPickedReplacementInReport() {
 
 function convertEntityIntoSuggestion(content, entity) {
     var converted = ''
-    var splittedContent = content.split(entity.value)
+    var entityValue = entity.importRegexMatch ? entity.importRegexMatch : entity.value
+    var splittedContent = content.split(entityValue)
     splittedContent.forEach(function(text, i) {
         converted += text
         if (i < splittedContent.length-1) {
@@ -960,7 +1004,7 @@ function getEntitiesFromReport(callback) {
             callback(data);
         },
         error: function(jqXHR, textStatus, errorThrown) {
-            showMessage('error', 'Could not extract entities from report')
+            showMessage('fail', 'Could not extract entities from report. ' + textStatus)
         },
         type:'get',
         url: baseurl + '/eventReports/extractFromReport/' + reportid
@@ -984,7 +1028,7 @@ function constructSuggestionMapping(entity, indicesInCM) {
 function pruneReplacementEntriesFromComplexToolSuggestion() {
     var filteredEntitiesFromComplexTool = []
     entitiesFromComplexTool.forEach(function(entity) {
-        if (unreferenceValues[entity.value] === undefined) {
+        if (unreferenceValues[entity.value] === undefined && unreferenceValues[entity.valueWithImportRegex] === undefined) {
             filteredEntitiesFromComplexTool.push(entity)
         }
     })
@@ -1004,21 +1048,21 @@ function getAllSuggestionIndicesOf(content, entity, caseSensitive) {
     return getAllIndicesOf(content, toSearch, caseSensitive, true)
 }
 
-function enableSuggestionInterface() {
-    setCMReadOnly(true)
-    setMode('splitscreen')
-    $('#editor-subcontainer').hide()
-    $suggestionContainer.show()
-}
-
-function disableSuggestionInterface() {
-    setCMReadOnly(false)
-    setEditorData(originalRaw)
-    $('#editor-subcontainer').show()
-    $suggestionContainer.hide()
-    $mardownViewerToolbar.find('.btn-group:first button').css('visibility', 'visible')
-    $('#suggestionCloseButton').remove()
-    cm.refresh()
+function toggleSuggestionInterface(enabled) {
+    if (enabled) {
+        setCMReadOnly(true)
+        setMode('splitscreen')
+        $('#editor-subcontainer').hide()
+        $suggestionContainer.show()
+    } else {
+        setCMReadOnly(false)
+        setEditorData(originalRaw)
+        $('#editor-subcontainer').show()
+        $suggestionContainer.hide()
+        $mardownViewerToolbar.find('.btn-group:first button').css('visibility', 'visible')
+        $('#suggestionCloseButton').remove()
+        cm.refresh()
+    }
 }
 
 function searchForUnreferenceValues() {
@@ -1026,11 +1070,21 @@ function searchForUnreferenceValues() {
     var content = getEditorData()
     Object.keys(proxyMISPElements['attribute']).forEach(function(uuid) {
         var attribute = proxyMISPElements['attribute'][uuid]
+        var matchingEntity = null, importRegexMatch = false
         var indices = []
         if (unreferenceValues[attribute.value] === undefined || unreferenceValues[attribute.value].indices === undefined) {
             indices = getAllIndicesOf(content, attribute.value, true, true)
         } else {
             indices = unreferenceValues[attribute.value].indices
+        }
+        if (indices.length == 0) { // Search with replacement regex
+            matchingEntity = entitiesFromComplexTool.filter(function(entity) { return entity.valueWithImportRegex == attribute.value })
+            if (matchingEntity.length > 0) {
+                importRegexMatch = true
+                matchingEntity = matchingEntity[0]
+                proxyMISPElements['attribute'][uuid].importRegexValue = matchingEntity.value
+                indices = getAllIndicesOf(content, matchingEntity.value, true, true)
+            }
         }
         if (indices.length > 0) {
             if (unreferenceValues[attribute.value] === undefined) {
@@ -1041,6 +1095,9 @@ function searchForUnreferenceValues() {
             }
             unreferenceValues[attribute.value].indices = indices
             unreferenceValues[attribute.value].attributes.push(attribute)
+            if (importRegexMatch) {
+                unreferenceValues[attribute.value].importRegexMatch = matchingEntity.value
+            }
         }
     })
 }
@@ -1067,6 +1124,9 @@ function pickSuggestionColumn(index, tableID, force) {
                     value: $tr.data('attributeValue'),
                     picked_type: proxyMISPElements['attribute'][uuid].type,
                     replacement: uuid
+                }
+                if (proxyMISPElements['attribute'][uuid].importRegexValue) {
+                    pickedSuggestion['entity']['importRegexMatch'] = proxyMISPElements['attribute'][uuid].importRegexValue
                 }
                 highlightPickedReplacementInReport()
             } else {
@@ -1802,7 +1862,7 @@ function addCloseSuggestionButtonToToolbar() {
             height: '100%',
             'border-top-left-radius': '4px',
             'border-bottom-left-radius': '4px',
-        }).attr('title', 'Close manual extraction view').text('Close extraction view').click(disableSuggestionInterface)
+        }).attr('title', 'Close manual extraction view').text('Close extraction view').click(function() { toggleSuggestionInterface(false) })
         $toolbarMode.append($closeButton)
     }
 }

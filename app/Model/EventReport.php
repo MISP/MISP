@@ -10,6 +10,7 @@ class EventReport extends AppModel
             'userKey' => 'user_id',
             'change' => 'full'
         ),
+        'Regexp' => array('fields' => array('value')),
     );
 
     public $validate = array(
@@ -502,7 +503,6 @@ class EventReport extends AppModel
 
     public function applySuggestions($user, $report, $contentWithSuggestions, $suggestionsMapping) {
         $errors = [];
-        $attribute = ['Attribute' => ['uuid' => '406e146d-23c2-49e2-956e-5ec784adccec']];
         $replacedContent = $contentWithSuggestions;
         $success = 0;
         foreach ($suggestionsMapping as $value => $suggestedAttribute) {
@@ -510,9 +510,9 @@ class EventReport extends AppModel
             $savedAttribute = $this->createAttributeFromSuggestion($user, $report, $suggestedAttribute);
             if (empty($savedAttribute['errors'])) {
                 $success++;
-                $replacedContent = $this->applySuggestionsInText($contentWithSuggestions, $savedAttribute['attribute'], $value);
+                $replacedContent = $this->applySuggestionsInText($replacedContent, $savedAttribute['attribute'], $value);
             } else {
-                $replacedContent = $this->revertToOriginalInText($contentWithSuggestions, $value);
+                $replacedContent = $this->revertToOriginalInText($replacedContent, $value);
                 $errors[] = $savedAttribute['errors'];
             }
         }
@@ -568,5 +568,71 @@ class EventReport extends AppModel
             'errors' => $errors,
             'attribute' => $savedAttribute
         ];
+    }
+
+    public function transformFreeTextIntoReplacement($user, $report, $complexTypeToolResult)
+    {
+        $complexTypeToolResultWithImportRegex = $this->injectcImportRegexOnComplexTypeToolResult($complexTypeToolResult);
+        $proxyElements = $this->getProxyMISPElements($user, $report['EventReport']['event_id']);
+        $content = $report['EventReport']['content'];
+        $replacedValues = [];
+        foreach ($proxyElements['attribute'] as $uuid => $attribute) {
+            $count = 0;
+            $textToInject = sprintf('@[attribute](%s)', $uuid);
+            // if (isset($complexTypeToolResultWithImportRegex[$attribute['value']])) {
+            //     $content = str_replace($complexTypeToolResultWithImportRegex[$attribute['value']], $textToInject, $content, $count);
+            // } else {
+            // }
+            $content = str_replace($attribute['value'], $textToInject, $content, $count);
+            if ($count > 0) {
+                $replacedValues[$attribute['value']] = $attribute['value'];
+            }
+        }
+        return [
+            'contentWithReplacements' => $content,
+            'replacedValues' => $replacedValues
+        ];
+    }
+
+    public function transformFreeTextIntoSuggestion($content, $complexTypeToolResult)
+    {
+        $replacedContent = $content;
+        $suggestionsMapping = [];
+        $typeToCategoryMapping = $this->Event->Attribute->typeToCategoryMapping();
+        foreach ($complexTypeToolResult as $i => $complexTypeToolEntry) {
+            $textToBeReplaced = $complexTypeToolEntry['value'];
+            $textToInject = sprintf('@[suggestion](%s)', $textToBeReplaced);
+            $suggestionsMapping[$textToBeReplaced] = [
+                'category' => $typeToCategoryMapping[$complexTypeToolEntry['default_type']][0],
+                'type' => $complexTypeToolEntry['default_type'],
+                'value' => $textToBeReplaced,
+                'to_ids' => $complexTypeToolEntry['to_ids'],
+            ];
+            $replacedContent = str_replace($textToBeReplaced, $textToInject, $replacedContent);
+        }
+        return [
+            'contentWithSuggestions' => $replacedContent,
+            'suggestionsMapping' => $suggestionsMapping
+        ];
+    }
+
+    public function removeReplacedComplexTypeToolEntries($complexTypeToolResult, $replacedValues)
+    {
+        foreach ($complexTypeToolResult as $i => $entry) {
+            if (isset($replacedValues[$entry['value']])) {
+                unset($complexTypeToolResult[$i]);
+            }
+        }
+        return $complexTypeToolResult;
+    }
+
+    public function injectcImportRegexOnComplexTypeToolResult($complexTypeToolResult) {
+        foreach ($complexTypeToolResult as $i => $complexTypeToolEntry) {
+            $transformedValue = $this->runRegexp($complexTypeToolEntry['default_type'], $complexTypeToolEntry['value']);
+            if ($transformedValue !== false) {
+                $complexTypeToolResult[$i]['valueWithImportRegex'] = $transformedValue;
+            }
+        }
+        return $complexTypeToolResult;
     }
 }
