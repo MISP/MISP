@@ -1877,7 +1877,7 @@ function parseDestinationValue(str, pos, max) {
     if (start === pos) { return result; }
     if (level !== 0) { return result; }
 
-    result.str = md.utils.unescapeAll(str.slice(start, pos));
+    result.str = str.slice(start, pos);
     result.lines = lines;
     result.pos = pos;
     result.ok = true;
