@@ -153,6 +153,7 @@ class Server extends AppModel
             ),
             'console_automation_tasks' => array(
                 'data' => array(
+                    'PullAll' => 'MISP/app/Console/cake Server pullAll [user_id] [full|update]',
                     'Pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
@@ -541,6 +542,14 @@ class Server extends AppModel
                             'errorMessage' => '',
                             'test' => 'testBool',
                             'type' => 'boolean',
+                        ),
+                        'osuser' => array(
+                                'level' => 0,
+                                'description' => __('The Unix user MISP (php) is running as'),
+                                'value' => 'www-data',
+                                'errorMessage' => '',
+                                'test' => 'testForEmpty',
+                                'type' => 'string',
                         ),
                         'email' => array(
                                 'level' => 0,
@@ -2057,6 +2066,15 @@ class Server extends AppModel
                             'test' => 'testBool',
                             'type' => 'boolean',
                         ),
+                        'Sightings_anonymise_as' => array(
+                                'level' => 1,
+                                'description' => __('When pushing sightings to another server, report all sightings from this instance as this orignisation. This effectively hides all sightings from this instance behind a single organisation to the outside world. Sightings pulled from this instance follow the Sightings_policy above.'),
+                                'value' => '0',
+                                'errorMessage' => '',
+                                'test' => 'testLocalOrg',
+                                'type' => 'numeric',
+                                'optionsSource' => 'LocalOrgs',
+                        ),
                         'Sightings_range' => array(
                             'level' => 1,
                             'description' => __('Set the range in which sightings will be taken into account when generating graphs. For example a sighting with a sighted_date of 7 years ago might not be relevant anymore. Setting given in number of days, default is 365 days'),
@@ -2455,8 +2473,7 @@ class Server extends AppModel
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false) {
             $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            $r = $this->EventBlocklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
-            if (!empty($r)) {
+            if ($this->EventBlocklist->isBlocked($event['Event']['uuid'])) {
                 return true;
             }
         }
@@ -2495,7 +2512,44 @@ class Server extends AppModel
                     }
                 }
             }
+            if (isset($event['Event']['Object']) && !empty($event['Event']['Object'])) {
+                foreach ($event['Event']['Object'] as $i => $o) {
+                    switch ($o['distribution']) {
+                        case '1':
+                            $event['Event']['Object'][$i]['distribution'] = '0';
+                            break;
+                        case '2':
+                            $event['Event']['Object'][$i]['distribution'] = '1';
+                            break;
+                    }
+                    if (isset($event['Event']['Object'][$i]['Attribute']) && !empty($event['Event']['Object'][$i]['Attribute'])) {
+                        foreach ($event['Event']['Object'][$i]['Attribute'] as $j => $a) {
+                            switch ($a['distribution']) {
+                                case '1':
+                                    $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '0';
+                                    break;
+                                case '2':
+                                    $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '1';
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (isset($event['Event']['EventReport']) && !empty($event['Event']['EventReport'])) {
+                foreach ($event['Event']['EventReport'] as $key => $r) {
+                    switch ($r['distribution']) {
+                        case '1':
+                            $event['Event']['EventReport'][$key]['distribution'] = '0';
+                            break;
+                        case '2':
+                            $event['Event']['EventReport'][$key]['distribution'] = '1';
+                            break;
+                    }
+                }
+            }
         }
+
         // Distribution, set reporter of the event, being the admin that initiated the pull
         $event['Event']['user_id'] = $user['id'];
         return $event;
@@ -2523,6 +2577,13 @@ class Server extends AppModel
                 }
             }
         }
+        if (!empty($event['Event']['EventReport'])) {
+            foreach ($event['Event']['EventReport'] as $report) {
+                if (empty($report['deleted'])) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -2536,6 +2597,10 @@ class Server extends AppModel
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
             if ($result) {
                 $successes[] = $eventId;
+                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'add_from_connected_server');
+                }
             } else {
                 $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
             }
@@ -2546,6 +2611,10 @@ class Server extends AppModel
                 $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
                     $successes[] = $eventId;
+                    if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                        $pubSubTool = $this->getPubSubTool();
+                        $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'edit_from_connected_server');
+                    }
                 } elseif (isset($result['error'])) {
                     $fails[$eventId] = $result['error'];
                 } else {
@@ -2889,21 +2958,32 @@ class Server extends AppModel
         return $eventUuids;
     }
 
-    public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $user)
+    /**
+     * @param int $id Server ID
+     * @param string|int $technique Can be 'full', 'incremental' or event ID
+     * @param int|false $jobId
+     * @param HttpSocket $HttpSocket
+     * @param array $user
+     * @return array|bool
+     * @throws Exception
+     */
+    public function push($id, $technique, $jobId = false, $HttpSocket, array $user)
     {
         if ($jobId) {
             $job = ClassRegistry::init('Job');
-            $job->read(null, $jobId);
+        }
+        $server = $this->find('first', ['conditions' => ['Server.id' => $id]]);
+        if (!$server) {
+            throw new NotFoundException('Server not found');
         }
         $this->Event = ClassRegistry::init('Event');
-        $this->read(null, $id);
-        $url = $this->data['Server']['url'];
+        $url = $server['Server']['url'];
         $push = $this->checkVersionCompatibility($id, $user);
         if (is_array($push) && !$push['canPush'] && !$push['canSight']) {
             $push = 'Remote instance is outdated or no permission to push.';
         }
         if (!is_array($push)) {
-            $message = sprintf('Push to server %s failed. Reason: %s', $id, $push);
+            $message = __('Push to server %s failed. Reason: %s', $id, $push);
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
@@ -2922,14 +3002,14 @@ class Server extends AppModel
             return $push;
         }
 
-        // sync events if user is capable
-        if ($push['canPush']) {
+        // sync events if user is capable and server is configured for push
+        if ($push['canPush'] && $server['Server']['push']) {
             if ("full" == $technique) {
                 $eventid_conditions_key = 'Event.id >';
                 $eventid_conditions_value = 0;
             } elseif ("incremental" == $technique) {
                 $eventid_conditions_key = 'Event.id >';
-                $eventid_conditions_value = $this->data['Server']['lastpushedid'];
+                $eventid_conditions_value = $server['Server']['lastpushedid'];
             } elseif (intval($technique) !== 0) {
                 $eventid_conditions_key = 'Event.id';
                 $eventid_conditions_value = intval($technique);
@@ -2941,19 +3021,24 @@ class Server extends AppModel
                 'contain' => array('Organisation', 'SharingGroupOrg' => array('Organisation'), 'SharingGroupServer')
             ));
             $sgIds = array();
-            foreach ($sgs as $k => $sg) {
-                if ($this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
+            foreach ($sgs as $sg) {
+                if ($this->Event->SharingGroup->checkIfServerInSG($sg, $server)) {
                     $sgIds[] = $sg['SharingGroup']['id'];
                 }
             }
             if (empty($sgIds)) {
                 $sgIds = array(-1);
             }
+            $tableName = $this->Event->EventReport->table;
+            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
             $findParams = array(
                     'conditions' => array(
                             $eventid_conditions_key => $eventid_conditions_value,
                             'Event.published' => 1,
-                            'Event.attribute_count >' => 0,
+                            'OR' => array(
+                                array('Event.attribute_count >' => 0),
+                                array($eventReportQuery),
+                            ),
                             'OR' => array(
                                 array(
                                     'AND' => array(
@@ -2975,62 +3060,61 @@ class Server extends AppModel
             );
             $eventIds = $this->Event->find('all', $findParams);
             $eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
-            if ($eventUUIDsFiltered === false || empty($eventUUIDsFiltered)) {
-                $pushFailed = true;
-            }
             if (!empty($eventUUIDsFiltered)) {
                 $eventCount = count($eventUUIDsFiltered);
                 // now process the $eventIds to push each of the events sequentially
-                if (!empty($eventUUIDsFiltered)) {
-                    $successes = array();
-                    $fails = array();
-                    $lowestfailedid = null;
-                    foreach ($eventUUIDsFiltered as $k => $eventUuid) {
-                        $params = array();
-                        if (!empty($this->data['Server']['push_rules'])) {
-                            $push_rules = json_decode($this->data['Server']['push_rules'], true);
-                            if (!empty($push_rules['tags']['NOT'])) {
-                                $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
-                            }
+                $successes = array();
+                $fails = array();
+                foreach ($eventUUIDsFiltered as $k => $eventUuid) {
+                    $params = array();
+                    if (!empty($server['Server']['push_rules'])) {
+                        $push_rules = json_decode($server['Server']['push_rules'], true);
+                        if (!empty($push_rules['tags']['NOT'])) {
+                            $params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
                         }
+                    }
+                    $params = array_merge($params, array(
+                        'event_uuid' => $eventUuid,
+                        'includeAttachments' => true,
+                        'includeAllTags' => true,
+                        'deleted' => array(0,1),
+                        'excludeGalaxy' => 1
+                    ));
+                    if (empty($server['Server']['push_sightings'])) {
                         $params = array_merge($params, array(
-                            'event_uuid' => $eventUuid,
-                            'includeAttachments' => true,
-                            'includeAllTags' => true,
-                            'deleted' => array(0,1),
-                            'excludeGalaxy' => 1
+                            'noSightings' => 1
                         ));
-                        $event = $this->Event->fetchEvent($user, $params);
-                        $event = $event[0];
-                        $event['Event']['locked'] = 1;
-                        $result = $this->Event->uploadEventToServer($event, $this->data, $HttpSocket);
-                        if ('Success' === $result) {
-                            $successes[] = $event['Event']['id'];
-                        } else {
-                            $fails[$event['Event']['id']] = $result;
-                        }
-                        if ($jobId && $k%10 == 0) {
-                            $job->saveField('progress', 100 * $k / $eventCount);
-                        }
                     }
-                    if (count($fails) > 0) {
-                        // there are fails, take the lowest fail
-                        $lastpushedid = min(array_keys($fails));
+                    $event = $this->Event->fetchEvent($user, $params);
+                    $event = $event[0];
+                    $event['Event']['locked'] = 1;
+                    $result = $this->Event->uploadEventToServer($event, $server, $HttpSocket);
+                    if ('Success' === $result) {
+                        $successes[] = $event['Event']['id'];
                     } else {
-                        // no fails, take the highest success
-                        $lastpushedid = max($successes);
+                        $fails[$event['Event']['id']] = $result;
                     }
-                    // increment lastid based on the highest ID seen
-                    // Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
-                    $this->data['Server']['lastpushedid'] = $lastpushedid;
-                    $this->save($this->data);
+                    if ($jobId && $k % 10 == 0) {
+                        $job->saveProgress($jobId, null, 100 * $k / $eventCount);
+                    }
                 }
+                if (count($fails) > 0) {
+                    // there are fails, take the lowest fail
+                    $lastpushedid = min(array_keys($fails));
+                } else {
+                    // no fails, take the highest success
+                    $lastpushedid = max($successes);
+                }
+                // increment lastid based on the highest ID seen
+                // Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
+                $server['Server']['lastpushedid'] = $lastpushedid;
+                $this->save($server);
             }
-            $this->syncProposals($HttpSocket, $this->data, null, null, $this->Event);
+            $this->syncProposals($HttpSocket, $server, null, null, $this->Event);
         }
 
         if ($push['canPush'] || $push['canSight']) {
-            $sightingSuccesses = $this->syncSightings($HttpSocket, $this->data, $user, $this->Event);
+            $sightingSuccesses = $this->syncSightings($HttpSocket, $server, $user, $this->Event);
         } else {
             $sightingSuccesses = array();
         }
@@ -3108,7 +3192,7 @@ class Server extends AppModel
             $event = $eventModel->fetchEvent($user, $options = array('event_uuid' => $eventId, 'metadata' => true));
             if (!empty($event)) {
                 $event = $event[0];
-                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user, null, false, true);
                 $result = $eventModel->uploadEventToServer($event, $server, $HttpSocket, 'sightings');
                 if ($result === 'Success') {
                     $successes[] = 'Sightings for event ' .  $event['Event']['id'];
@@ -3118,7 +3202,7 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel)
+    public function syncProposals($HttpSocket, array $server, $sa_id = null, $event_id = null, $eventModel)
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
@@ -3577,7 +3661,7 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        $regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,5})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
+        $regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
 	if ( !preg_match($regex, $value, $matches)
                 || strtolower($matches['proto']) != strtolower($this->getProto())
                 || strtolower($matches['host']) != strtolower($this->getHost()) ) {
@@ -5150,9 +5234,8 @@ class Server extends AppModel
         $gpgStatus = 0;
         if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
             $continue = true;
-            $gpgTool = new GpgTool();
             try {
-                $gpg = $gpgTool->initializeGpg();
+                $gpg = GpgTool::initializeGpg();
             } catch (Exception $e) {
                 $this->logException("Error during initializing GPG.", $e, LOG_NOTICE);
                 $gpgStatus = 2;
@@ -5270,18 +5353,19 @@ class Server extends AppModel
 
     public function workerDiagnostics(&$workerIssueCount)
     {
+        $worker_array = array(
+            'cache' => array('ok' => false),
+            'default' => array('ok' => false),
+            'email' => array('ok' => false),
+            'prio' => array('ok' => false),
+            'update' => array('ok' => false),
+            'scheduler' => array('ok' => false)
+        );
         try {
             $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         } catch (Exception $e) {
             // redis connection failed
-            return array(
-                    'cache' => array('ok' => false),
-                    'default' => array('ok' => false),
-                    'email' => array('ok' => false),
-                    'prio' => array('ok' => false),
-                    'update' => array('ok' => false),
-                    'scheduler' => array('ok' => false)
-            );
+            return $worker_array;
         }
         $workers = $this->ResqueStatus->getWorkers();
         if (function_exists('posix_getpwuid')) {
@@ -5290,14 +5374,6 @@ class Server extends AppModel
         } else {
             $currentUser = trim(shell_exec('whoami'));
         }
-        $worker_array = array(
-                'cache' => array('ok' => true),
-                'default' => array('ok' => true),
-                'email' => array('ok' => true),
-                'prio' => array('ok' => true),
-                'update' => array('ok' => true),
-                'scheduler' => array('ok' => true)
-        );
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
             $entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
@@ -5315,7 +5391,13 @@ class Server extends AppModel
                 $ok = false;
                 $workerIssueCount++;
             }
-            $worker_array[$entry]['workers'][] = array('pid' => $pid, 'user' => $worker['user'], 'alive' => $alive, 'correct_user' => $correct_user, 'ok' => $ok);
+            $worker_array[$entry]['workers'][] = array(
+                'pid' => $pid,
+                'user' => $worker['user'],
+                'alive' => $alive,
+                'correct_user' => $correct_user,
+                'ok' => $ok
+            );
         }
         foreach ($worker_array as $k => $queue) {
             if (isset($worker_array[$k]['workers'])) {
@@ -5377,6 +5459,27 @@ class Server extends AppModel
             }
             $this->ResqueStatus->removeWorker($pid);
         }
+    }
+
+    public function killAllWorkers($user = false, $force = false)
+    {
+        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+        $workers = $this->ResqueStatus->getWorkers();
+        $killed = array();
+        foreach ($workers as $pid => $worker) {
+            if (!is_numeric($pid)) {
+                continue;
+            }
+            if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0) {
+                shell_exec('kill ' . ($force ? ' -9 ' : '') . $pid . ' > /dev/null 2>&1 &');
+                $this->ResqueStatus->removeWorker($pid);
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], false);
+            } else {
+                $this->ResqueStatus->removeWorker($pid);
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
+            }
+        }
+        return $killed;
     }
 
     public function workerRemoveDead($user = false)

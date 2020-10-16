@@ -5,6 +5,7 @@ App::uses('TmpFileTool', 'Tools');
 /**
  * @property Event $Event
  * @property SharingGroup $SharingGroup
+ * @property Attribute $Attribute
  */
 class MispObject extends AppModel
 {
@@ -59,8 +60,8 @@ class MispObject extends AppModel
     public $validate = array(
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
-                'message' => 'Please provide a valid UUID'
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
             ),
             'unique' => array(
                 'rule' => 'isUnique',
@@ -80,9 +81,9 @@ class MispObject extends AppModel
         )
     );
 
-    public function buildFilterConditions($user, &$params)
+    public function buildFilterConditions(&$params)
     {
-        $conditions = $this->buildConditions($user);
+        $conditions = [];
         if (isset($params['wildcard'])) {
             $temp = array();
             $options = array(
@@ -93,8 +94,6 @@ class MispObject extends AppModel
             );
             $conditions['AND'][] = array('OR' => $this->Event->set_filter_wildcard_attributes($params, $temp, $options));
         } else {
-            $attribute_conditions = array();
-            $object_conditions = array();
             if (isset($params['ignore'])) {
                 $params['to_ids'] = array(0, 1);
                 $params['published'] = array(0, 1);
@@ -392,90 +391,54 @@ class MispObject extends AppModel
         return $result;
     }
 
-    public function buildEventConditions($user, $sgids = false)
+    public function buildConditions(array $user)
     {
         if ($user['Role']['perm_site_admin']) {
-            return array();
+            return [];
         }
-        if ($sgids == false) {
-            $sgsids = $this->SharingGroup->fetchAllAuthorised($user);
-        }
-        return array(
-            'OR' => array(
-                array(
-                    'AND' => array(
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published' => 1) : array(),
-                    ),
-                ),
-                array(
-                    'AND' => array(
-                        'Event.sharing_group_id' => $sgids,
-                        'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published' => 1) : array(),
-                    )
-                )
-            )
-        );
-    }
 
-    public function buildConditions($user, $sgids = false)
-    {
-        $conditions = array();
-        if (!$user['Role']['perm_site_admin']) {
-            if ($sgids === false) {
-                $sgsids = $this->SharingGroup->fetchAllAuthorised($user);
-            }
-            $conditions = array(
-                'AND' => array(
-                    'OR' => array(
-                        array(
-                            'AND' => array(
-                                'Event.org_id' => $user['org_id'],
-                            )
-                        ),
-                        array(
-                            'AND' => array(
-                                $this->buildEventConditions($user, $sgids),
-                                'OR' => array(
-                                    'Object.distribution' => array('1', '2', '3', '5'),
-                                    'AND '=> array(
-                                        'Object.distribution' => 4,
-                                        'Object.sharing_group_id' => $sgsids,
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            );
-        }
-        return $conditions;
+        $sgids = $this->Event->cacheSgids($user, true);
+        return [
+            'AND' => [
+                'OR' => [
+                    'Event.org_id' => $user['org_id'], // if event is owned by current user org, allow access to all objects
+                    'AND' => [
+                        $this->Event->createEventConditions($user),
+                        'OR' => [
+                            'Object.distribution' => array(1, 2, 3, 5),
+                            'AND' => [
+                                'Object.distribution' => 4,
+                                'Object.sharing_group_id' => $sgids,
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
     }
 
     public function fetchObjectSimple($user, $options = array())
-        {
-            $params = array(
-                'conditions' => $this->buildConditions($user),
-                'fields' => array(),
-                'recursive' => -1
-            );
-            if (isset($options['conditions'])) {
-                $params['conditions']['AND'][] = $options['conditions'];
-            }
-            if (isset($options['fields'])) {
-                $params['fields'] = $options['fields'];
-            }
-            $results = $this->find('all', array(
-                'conditions' => $params['conditions'],
-                'recursive' => -1,
-                'fields' => $params['fields'],
-                'contain' => array('Event' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id')),
-                'sort' => false
-            ));
-            return $results;
+    {
+        $params = array(
+            'conditions' => $this->buildConditions($user),
+            'fields' => array(),
+            'recursive' => -1
+        );
+        if (isset($options['conditions'])) {
+            $params['conditions']['AND'][] = $options['conditions'];
         }
+        if (isset($options['fields'])) {
+            $params['fields'] = $options['fields'];
+        }
+        $results = $this->find('all', array(
+            'conditions' => $params['conditions'],
+            'recursive' => -1,
+            'fields' => $params['fields'],
+            'contain' => array('Event' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id')),
+            'sort' => false
+        ));
+        return $results;
+    }
 
     // Method that fetches all objects
     // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
@@ -487,9 +450,9 @@ class MispObject extends AppModel
     //     group
     public function fetchObjects($user, $options = array())
     {
-        $sgsids = $this->SharingGroup->fetchAllAuthorised($user);
         $attributeConditions = array();
         if (!$user['Role']['perm_site_admin']) {
+            $sgids = $this->Event->cacheSgids($user, true);
             $attributeConditions = array(
                 'OR' => array(
                     array(
@@ -500,7 +463,7 @@ class MispObject extends AppModel
                             'Attribute.distribution' => array(1, 2, 3, 5),
                             array(
                                 'Attribute.distribution' => 4,
-                                'Attribute.sharing_group_id' => $sgsids
+                                'Attribute.sharing_group_id' => $sgids,
                             )
                         )
                     )
@@ -581,20 +544,16 @@ class MispObject extends AppModel
                 $params['page'] = $options['page'];
             }
         }
-        if (Configure::read('MISP.unpublishedprivate') && !$user['Role']['perm_site_admin']) {
-            $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
-        }
         $results = $this->find('all', $params);
-        if ($options['enforceWarninglist']) {
+        if ($options['enforceWarninglist'] && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            $warninglists = $this->Warninglist->fetchForEventView();
         }
         $results = array_values($results);
         $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {
-            foreach ($results as $key => $objects) {
-                foreach ($objects as $key2 => $attribute) {
-                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
+            foreach ($results as $key => $object) {
+                foreach ($object['Attribute'] as $key2 => $attribute) {
+                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
                         unset($results[$key][$key2]);
                         continue;
                     }
@@ -606,9 +565,9 @@ class MispObject extends AppModel
                         }
                     }
                     if ($options['withAttachments']) {
-                        if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
-                            $encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-                            $results[$key][$key2]['Attribute']['data'] = $encodedFile;
+                        if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+                            $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+                            $results[$key]['Attribute'][$key2]['data'] = $encodedFile;
                         }
                     }
                 }
@@ -1411,25 +1370,25 @@ class MispObject extends AppModel
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
-        $conditions = $this->buildFilterConditions($user, $filters);
+        $conditions = $this->buildFilterConditions($filters);
         $params = array(
-                'conditions' => $conditions,
-                'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Object.*'),
-                'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
-                'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
-                'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
-                'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
-                'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
-                'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
-                'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
-                'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
-                'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
-                'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
-                'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
-                'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
-                'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
-                'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0,
-                'metadata' => !empty($filters['metadata']) ? $filters['metadata'] : 0,
+            'conditions' => $conditions,
+            'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Object.*'),
+            'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
+            'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
+            'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
+            'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
+            'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
+            'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
+            'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
+            'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
+            'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
+            'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
+            'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
+            'includeDecayScore' => !empty($filters['includeDecayScore']) ? $filters['includeDecayScore'] : 0,
+            'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
+            'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0,
+            'metadata' => !empty($filters['metadata']) ? $filters['metadata'] : 0,
         );
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];

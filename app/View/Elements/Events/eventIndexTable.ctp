@@ -31,7 +31,7 @@
             $date = time();
             $day = 86400;
         ?>
-        <th><?php echo $this->Paginator->sort('id', null, array('direction' => 'desc'));?></th>
+        <th><?php echo $this->Paginator->sort('id', __('ID'), array('direction' => 'desc'));?></th>
         <th><?php echo __('Clusters');?></th>
         <?php if (Configure::read('MISP.tagging')): ?>
             <th class="filter"><?php echo __('Tags');?></th>
@@ -50,7 +50,7 @@
             <th title="<?php echo __('Post Count');?>"><?php echo __('#Posts');?></th>
         <?php endif; ?>
         <?php if ($isSiteAdmin): ?>
-        <th><?php echo $this->Paginator->sort('user_id', __('Email'));?></th>
+        <th><?php echo $this->Paginator->sort('user_id', __('Creator user'));?></th>
         <?php endif; ?>
         <th class="filter"><?php echo $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
         <th class="filter"><?php echo $this->Paginator->sort('info');?></th>
@@ -61,7 +61,7 @@
 
     </tr>
     <?php foreach ($events as $event): ?>
-    <tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?> id="event_<?php echo h($event['Event']['id']);?>">
+    <tr <?php if ($event['Event']['distribution'] == 0) echo 'class="privateRed"'?> id="event_<?php echo h($event['Event']['id']);?>">
             <?php
                 if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):
             ?>
@@ -76,16 +76,9 @@
                 endif;
             ?>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-            <?php
-            if ($event['Event']['published'] == 1) {
-            ?>
-                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"><i class="black fa fa-check"></i></a>
-            <?php
-            } else {
-            ?>
-                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"><i class="black fa fa-times"></i></a>
-            <?php
-            }?>&nbsp;
+            <a href="<?= "$baseurl/events/view/{$event['Event']['id']}" ?>" title="<?= __('View') ?>" aria-label="<?= __('View') ?>">
+                <i class="black fa <?= $event['Event']['published'] == 1 ? 'fa-check' : 'fa-times' ?>"></i>
+            </a>
         </td>
         <?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
             <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Orgc']['id'];?>'">
@@ -152,7 +145,7 @@
             <?php echo $event['Event']['attribute_count']; ?>&nbsp;
         </td>
         <?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-            <td class = "bold" style="width:30px;">
+            <td class="bold" style="width:30px;">
                 <?php if (!empty($event['Event']['correlation_count'])): ?>
                     <a href="<?php echo $baseurl."/events/view/" . h($event['Event']['id']) . '/correlation:1';?>" title="<?php echo h($event['Event']['correlation_count']) . __(' correlation(s). Show filtered event with correlation only.');?>">
                         <?php echo h($event['Event']['correlation_count']); ?>&nbsp;
@@ -161,23 +154,21 @@
             </td>
         <?php endif; ?>
         <?php if (Configure::read('MISP.showSightingsCountOnIndex')):?>
-            <td class = "bold" style="width:30px;">
+            <td class="bold" style="width:30px;">
                 <?php if (!empty($event['Event']['sightings_count'])): ?>
                     <a href="<?php echo $baseurl."/events/view/" . h($event['Event']['id']) . '/sighting:1';?>" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s). Show filtered event with sighting(s) only.';?>">
                         <?php echo h($event['Event']['sightings_count']); ?>&nbsp;
                     </a>
                 <?php endif; ?>
             </td>
-
-
         <?php endif; ?>
         <?php if (Configure::read('MISP.showProposalsOnIndex')): ?>
-            <td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . __(' proposal(s)');?>">
+            <td class="bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . __(' proposal(s)');?>">
                 <?php echo !empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : ''; ?>&nbsp;
             </td>
         <?php endif;?>
         <?php if (Configure::read('MISP.showDiscussionsCountOnIndex')): ?>
-            <td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . __(' proposal(s)');?>">
+            <td class="bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . __(' proposal(s)');?>">
                 <?php
                     if (!empty($event['Event']['post_count'])) {
                         $post_count = h($event['Event']['post_count']);
@@ -202,7 +193,7 @@
         <td ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
             <?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
         </td>
-        <td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="location.href ='<?php echo $baseurl; ?>/events/view/<?php echo $event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : __('All');?>">
+        <td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="location.href ='<?php echo $baseurl; ?>/events/view/<?php echo $event['Event']['id'];?>'" title="<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : __('All');?>">
             <?php if ($event['Event']['distribution'] == 4):?>
                 <a href="<?php echo $baseurl;?>/sharingGroups/view/<?php echo h($event['SharingGroup']['id']); ?>"><?php echo h($event['SharingGroup']['name']);?></a>
             <?php else:
@@ -228,24 +219,23 @@
 
                 if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
             ?>
-                    <a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' title = "<?php echo __('Edit');?>" aria-label = "<?php echo __('Edit');?>"><i class="black fa fa-edit"></i></a>
+                    <a href="<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>" title="<?php echo __('Edit');?>" aria-label="<?php echo __('Edit');?>"><i class="black fa fa-edit"></i></a>
             <?php
 
-                    echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
+                    echo sprintf('<a class="useCursorPointer fa fa-trash" title="%s" aria-label="%s" onclick="deleteEvent(%s)"></a>', __('Delete'), __('Delete'), h($event['Event']['id']));
                 endif;
             ?>
-            <a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"><i class="fa black fa-eye"></i></a>
+            <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'];?>" title="<?php echo __('View');?>" aria-label="<?php echo __('View');?>"><i class="fa black fa-eye"></i></a>
         </td>
     </tr>
     <?php endforeach; ?>
 </table>
 <script type="text/javascript">
     var lastSelected = false;
-    $(document).ready(function() {
+    $(function() {
         $('.select').on('change', function() {
             listCheckboxesChecked();
-        });
-        $('.select').click(function(e) {
+        }).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
                     selectAllInbetween(lastSelected, this.id);
@@ -261,4 +251,15 @@
             });
         });
     });
+
+    function deleteEvent(id) {
+        var message = "<?= __('Are you sure you want to delete #') ?>" + id + "?"
+        var url = '<?= $baseurl ?>/events/delete/' + id
+        if (confirm(message)) {
+            fetchFormDataAjax(url, function(formData) {
+                $('body').append($('<div id="temp" class="hidden"/>').html(formData));
+                $('#temp form').submit()
+            })
+        }
+    }
 </script>

@@ -24,8 +24,8 @@ class OrgBlocklist extends AppModel
                             'message' => 'Organisation already blocklisted.'
                     ),
                     'uuid' => array(
-                        'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
-                        'message' => 'Please provide a valid UUID'
+                        'rule' => 'uuid',
+                        'message' => 'Please provide a valid RFC 4122 UUID'
                     ),
             )
     );

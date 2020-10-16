@@ -32,7 +32,7 @@
 <div id="Object_<?php echo $object['id']; ?>_references_collapsible" class="collapse">
 <?php
   foreach ($object['ObjectReference'] as $reference):
-    if (!empty($reference['Object'])) {
+    if (isset($reference['Object'])) {
       $uuid = $reference['Object']['uuid'];
       $output = ' (' . $reference['Object']['name'] . ': ' . $reference['Object']['name'] . ')';
       $objectType = 'Object';
@@ -43,13 +43,12 @@
     }
     $uuid = empty($reference['Object']) ? $reference['Attribute']['uuid'] : $reference['Object']['uuid'];
     $idref = $reference['deleted'] ? $reference['id'] . '/1' : $reference['id'];
+    $linkText = h($reference['relationship_type']) . ' ' . $objectType . ' ' . $reference['referenced_id'] . h($output);
 ?>
     &nbsp;&nbsp;
-    <a class="bold white useCursorPointer <?php echo $reference['deleted'] ? 'strikethrough' : ''; ?>" onClick="pivotObjectReferences('<?php echo h($currentUri); ?>', '<?php echo $uuid; ?>')">
-      <?php echo h($reference['relationship_type']) . ' ' . $objectType . ' ' . $reference['referenced_id'] . h($output);?>
-    </a>
+    <a class="bold white useCursorPointer<?= $reference['deleted'] ? ' strikethrough' : ''; ?>" onclick="pivotObjectReferences('<?= h($currentUri) ?>', '<?= $uuid ?>')"><?= $linkText ?></a>
     <span class="fa fa-trash icon-white useCursorPointer" title="<?php echo __('Delete object reference');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete object reference');?>" onClick="deleteObject('object_references', 'delete', '<?php echo h($idref); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-    <br />
+    <br>
 <?php
   endforeach;
 ?>

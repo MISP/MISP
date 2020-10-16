@@ -3,11 +3,11 @@ $buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
 $mayModify = ($isSiteAdmin || ($isAdmin && ($user['User']['org_id'] == $me['org_id'])));
 $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     $table_data = array();
-    $table_data[] = array('key' => __('Id'), 'value' => $user['User']['id']);
+    $table_data[] = array('key' => __('ID'), 'value' => $user['User']['id']);
     $table_data[] = array(
         'key' => __('Email'),
         'html' => sprintf(
-            '%s <a class="icon-envelope" href="%s/admin/users/quickEmail/%s"></a>',
+            '%s <a class="fas fa-envelope" style="color: black" href="%s/admin/users/quickEmail/%s"></a>',
             h($user['User']['email']),
             $baseurl,
             h($user['User']['id'])
@@ -26,12 +26,13 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     $table_data[] = array('key' => __('Autoalert'), 'boolean' => $user['User']['autoalert']);
     $table_data[] = array('key' => __('Contactalert'), 'boolean' => $user['User']['contactalert']);
     $authkey_data = sprintf(
-        '<a onclick="requestAPIAccess();" style="cursor:pointer;"></a>',
+        '<a onclick="requestAPIAccess();" style="cursor:pointer;">%s</a>',
         __('Request API access')
     );
     $authkey_data = sprintf(
-        '<span class="quickSelect">%s</span>%s',
+        '<span class="privacy-value quickSelect authkey" data-hidden-value="%s">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="%s"></i>%s',
         h($user['User']['authkey']),
+        __('Reveal hidden value'),
         sprintf(
             ' (%s)',
             $this->Form->postLink(__('reset'), array('action' => 'resetauthkey', $user['User']['id']))
@@ -52,11 +53,14 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
             )
         );
     }
-    $table_data[] = array('key' => __('Invited By'), 'value' => empty($user2['User']['email']) ? 'N/A' : $user2['User']['email']);
+    $table_data[] = array(
+        'key' => __('Invited By'),
+        'html' => empty($user2['User']['email']) ? 'N/A' : sprintf('<a href="%s/admin/users/view/%s">%s</a>', $baseurl, h($user2['User']['id']), h($user2['User']['email'])),
+    );
     $org_admin_data = array();
     foreach ($user['User']['orgAdmins'] as $orgAdminId => $orgAdminEmail) {
         $org_admin_data[] = sprintf(
-            '<a href="%s/admin/users/view/%s">%s</a><a class="icon-envelope" href="%s/admin/users/quickEmail/%s"></a><br />',
+            '<a href="%s/admin/users/view/%s">%s</a> <a class="fas fa-envelope" style="color: black" href="%s/admin/users/quickEmail/%s"></a>',
             $baseurl,
             h($orgAdminId),
             h($orgAdminEmail),
@@ -64,10 +68,10 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
             h($orgAdminId)
         );
     }
-    $table_data[] = array('key' => __('Org_admin'), 'html' => implode('<br />', $org_admin_data));
+    $table_data[] = array('key' => __('Org admin'), 'html' => implode('<br>', $org_admin_data));
     $table_data[] = array('key' => __('NIDS Start SID'), 'value' => $user['User']['nids_sid']);
     $table_data[] = array('key' => __('Terms accepted'), 'boolean' => $user['User']['termsaccepted']);
-    $table_data[] = array('key' => __('Password change'), 'boolean' => $user['User']['change_pw']);
+    $table_data[] = array('key' => __('Must change password'), 'boolean' => $user['User']['change_pw']);
     $table_data[] = array(
         'key' => __('GnuPG key'),
         'element' => 'genericElements/key',
@@ -92,7 +96,10 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
             'element_params' => array('key' => $user['User']['certif_public']),
         );
     }
-    $table_data[] = array('key' => __('Newsread'), 'html' => $user['User']['newsread'] ? date('Y/m/d H:i:s', h($user['User']['newsread'])) : __('N/A'));
+    $table_data[] = array(
+        'key' => __('News read at'),
+        'value' => $user['User']['newsread'] ? date('Y-m-d H:i:s', $user['User']['newsread']) : __('N/A')
+    );
     $table_data[] = array(
         'key' => __('Disabled'),
         'class' => empty($user['User']['disabled']) ? '' : 'background-red',
@@ -106,7 +113,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         '<div class="users view row-fluid"><div class="span8" style="margin:0px;">%s%s</div>%s</div>%s',
         sprintf(
             '<h2>%s</h2>%s',
-            __('User'),
+            __('User %s', h($user['User']['email'])),
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
         sprintf(
@@ -123,15 +130,15 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     );
 ?>
 <script type="text/javascript">
-    $(document).ready(function () {
+    $(function () {
         $.ajax({
             url: '<?php echo $baseurl . "/events/index/searchemail:" . urlencode(h($user['User']['email'])); ?>',
             type:'GET',
-            beforeSend: function (XMLHttpRequest) {
+            beforeSend: function () {
                 $(".loading").show();
             },
             error: function(){
-                $('#userEvents').html(__('An error has occurred, please reload the page.'));
+                $('#userEvents').html('An error has occurred, please reload the page.');
             },
             success: function(response){
                 $('#userEvents').html(response);

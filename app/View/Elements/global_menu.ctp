@@ -1,10 +1,20 @@
 <?php
     if (!empty($me)) {
+        // New approach how to define menu requirements. It takes ACLs from ACLComponent.
+        // TODO: Use for every menu item
+        $canAccess = function ($controller, $action) use ($me, $aclComponent) {
+            $response = $aclComponent->checkAccess($me, $controller, $action, true);
+            if ($response === 404) {
+                throw new Exception("Invalid controller '$controller' specified for menu requirements.");
+            }
+            return $response === true;
+        };
+
         $menu = array(
             array(
                 'type' => 'root',
-                'url' =>empty($homepage['path']) ? $baseurl .'/' : $baseurl . h($homepage['path']),
-                'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : __('Home'))
+                'url' => empty($homepage['path']) ? $baseurl .'/' : $baseurl . h($homepage['path']),
+                'html' => Configure::read('MISP.home_logo') ? '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;" alt="' . __('Home') . '">' : __('Home'),
             ),
             array(
                 'type' => 'root',
@@ -92,23 +102,21 @@
                         'requirement' =>
                             Configure::read('MISP.enableEventBlocklisting') !== false &&
                             !$isSiteAdmin &&
-                            (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
+                            $hostOrgUser
                     ),
                     array(
                         'text' => __('Blocklist Event'),
                         'url' => $baseurl . '/eventBlocklists/add',
                         'requirement' =>
                             Configure::read('MISP.enableEventBlocklisting') !== false &&
-                            !$isSiteAdmin &&
-                            (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
+                            !$isSiteAdmin && $hostOrgUser
                     ),
                     array(
                         'text' => __('Manage Event Blocklists'),
                         'url' => $baseurl . '/eventBlocklists',
                         'requirement' =>
                             Configure::read('MISP.enableEventBlocklisting') !== false &&
-                            !$isSiteAdmin &&
-                            (int)$me['org_id'] === (int)Configure::read('MISP.host_org_id')
+                            !$isSiteAdmin && $hostOrgUser
                     ),
                 )
             ),
@@ -227,7 +235,7 @@
                     ),
                     array(
                         'text' => __('User Guide'),
-                        'url' => $baseurl . 'https://www.circl.lu/doc/misp/'
+                        'url' => 'https://www.circl.lu/doc/misp/'
                     ),
                     array(
                         'text' => __('Categories & Types'),
@@ -257,52 +265,52 @@
             array(
                 'type' => 'root',
                 'text' => __('Sync Actions'),
-                'requirement' =>  ($isAclSync || $isAdmin || $hostOrgUser),
+                'requirement' =>  $isAclSync || $isAdmin || $hostOrgUser,
                 'children' => array(
                     array(
                         'text' => __('Create Sync Config'),
                         'url' => $baseurl . '/servers/createSync',
-                        'requirement' => ($isAclSync && !$isSiteAdmin)
+                        'requirement' => $isAclSync && !$isSiteAdmin
                     ),
                     array(
                         'text' => __('Import Server Settings'),
                         'url' => $baseurl . '/servers/import',
-                        'requirement' => ($isSiteAdmin)
+                        'requirement' => $canAccess('servers', 'import'),
                     ),
                     array(
                         'text' => __('List Servers'),
                         'url' => $baseurl . '/servers/index',
-                        'requirement' => ($isAclSync || $isAdmin)
+                        'requirement' => $canAccess('servers', 'index'),
                     ),
                     array(
                         'text' => __('List Feeds'),
                         'url' => $baseurl . '/feeds/index',
-                        'requirement' => ($isSiteAdmin || $hostOrgUser)
+                        'requirement' => $canAccess('feeds', 'index'),
                     ),
                     array(
                         'text' => __('Search Feed Caches'),
                         'url' => $baseurl . '/feeds/searchCaches',
-                        'requirement' => ($isSiteAdmin || $hostOrgUser)
+                        'requirement' => $canAccess('feeds', 'searchCaches'),
                     ),
                     array(
                         'text' => __('List SightingDB Connections'),
                         'url' => $baseurl . '/sightingdb/index',
-                        'requirement' => ($isSiteAdmin)
+                        'requirement' => $canAccess('sightingdb', 'index'),
                     ),
                     array(
                         'text' => __('Add SightingDB Connection'),
                         'url' => $baseurl . '/sightingdb/add',
-                        'requirement' => ($isSiteAdmin)
+                        'requirement' => $canAccess('sightingdb', 'add'),
                     ),
                     array(
                         'text' => __('List Communities'),
                         'url' => $baseurl . '/communities/index',
-                        'requirement' => ($isSiteAdmin)
+                        'requirement' => $canAccess('communities', 'index'),
                     ),
                     array(
                         'text' => __('Event ID translator'),
                         'url' => '/servers/idTranslator',
-                        'requirement' => ($isSiteAdmin || $hostOrgUser)
+                        'requirement' => $canAccess('servers', 'idTranslator')
                     )
                 )
             ),
@@ -310,7 +318,7 @@
                 'type' => 'root',
                 'text' => __('Administration'),
                 'url' => $baseurl . '/servers/serverSettings',
-                'requirement' =>  ($isAdmin),
+                'requirement' => $isAdmin,
                 'children' => array(
                     array(
                         'text' => __('List Users'),
@@ -334,7 +342,8 @@
                     ),
                     array(
                         'text' => __('User Registrations'),
-                        'url' => $baseurl . '/users/registrations'
+                        'url' => $baseurl . '/users/registrations',
+                        'requirement' => $canAccess('users', 'registrations'),
                     ),
                     array(
                         'type' => 'separator'
@@ -345,7 +354,8 @@
                     ),
                     array(
                         'text' => __('Add Organisations'),
-                        'url' => $baseurl . '/admin/organisations/add'
+                        'url' => $baseurl . '/admin/organisations/add',
+                        'requirement' => $canAccess('organisations', 'admin_add'),
                     ),
                     array(
                         'type' => 'separator'
@@ -361,6 +371,7 @@
                     ),
                     array(
                         'type' => 'separator',
+                        'requirement' => $isSiteAdmin,
                     ),
                     array(
                         'text' => __('Server Settings & Maintenance'),
@@ -423,7 +434,7 @@
             array(
                 'type' => 'root',
                 'text' => __('Audit'),
-                'requirement' =>  ($isAclAudit),
+                'requirement' => $isAclAudit,
                 'children' => array(
                     array(
                         'text' => __('List Logs'),
@@ -450,7 +461,7 @@
             ),
             array(
                 'type' => 'root',
-                'url' =>empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
+                'url' => empty($homepage['path']) ? $baseurl : $baseurl . h($homepage['path']),
                 'html' => '<span class="logoBlueStatic bold" id="smallLogo">MISP</span>'
             ),
             array(
@@ -476,20 +487,20 @@
         );
     }
 ?>
-<div id="topBar" class="navbar navbar-inverse <?php echo $debugMode;?>" style="z-index: 20;">
+<div id="topBar" class="navbar navbar-inverse <?php echo $debugMode;?>">
   <div class="navbar-inner">
     <ul class="nav">
         <?php
-            if (!empty($menu)) {
-                foreach ($menu as $root_element) {
-                    echo $this->element('/genericElements/GlobalMenu/global_menu_root', array('data' => $root_element));
-                }
+        if (isset($menu)) {
+            foreach ($menu as $root_element) {
+                echo $this->element('/genericElements/GlobalMenu/global_menu_root', array('data' => $root_element));
             }
+        }
         ?>
     </ul>
     <ul class="nav pull-right">
         <?php
-            if (!empty($menu_right)) {
+            if (isset($menu_right)) {
                 foreach ($menu_right as $root_element) {
                     echo $this->element('/genericElements/GlobalMenu/global_menu_root', array('data' => $root_element));
                 }
@@ -499,11 +510,4 @@
   </div>
 </div>
 <input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('#setHomePage').click(function(event) {
-            event.preventDefault();
-            setHomePage();
-        })
-    });
-</script>
+

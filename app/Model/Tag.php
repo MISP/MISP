@@ -1,10 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
 
-/**
- * @property EventTag $EventTag
- * @property AttributeTag $AttributeTag
- */
 class Tag extends AppModel
 {
     public $useTable = 'tags';

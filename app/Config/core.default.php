@@ -181,8 +181,15 @@ Configure::write('Session', array(
 	'cookie_timeout' => 10080 ,  // Cookie timeout, default is 1 week
 	'defaults'       => 'php',
 	'autoRegenerate' => false,
-	'checkAgent' => false
+	'checkAgent' => false,
 ));
+
+// Set session cookie SameSite parameter to Lax if this param is supported and no default value is set
+if (PHP_VERSION_ID >= 70300 && empty(ini_get('session.cookie_samesite'))) {
+    Configure::write('Session.ini', [
+        'session.cookie_samesite' => 'Lax'
+    ]);
+}
 
 /**
  * The level of CakePHP security.

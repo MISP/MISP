@@ -63,11 +63,12 @@
             __('Actions')
         );
         foreach ($headers as $k => &$header) {
-            $header = sprintf('<th>%s</th>', $header);
+            $header = "<th>$header</th>";
         }
-        $rows = array(
-            sprintf('<tr>%s</tr>', implode('', $headers))
-        );
+        ?>
+    <table class="table table-striped table-hover table-condensed">
+        <tr><?= implode('', $headers) ?></tr>
+        <?php
         $currentCount = 0;
         if ($isSearch == 1) {
             // sanitize data
@@ -94,11 +95,10 @@
             $mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $attribute['Event']['orgc_id'] == $me['org_id']) || ($isAclModifyOrg && $attribute['Event']['orgc_id'] == $me['org_id']));
             $mayPublish = ($isAclPublish && $attribute['Event']['orgc_id'] == $me['org_id']);
             $mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
-            $mayModify = $attribute['Event']['orgc_id'] === $me['org_id'] ? true : false;
             if (!empty($attribute['Attribute']['RelatedAttribute'])) {
                 $event['RelatedAttribute'] = array($attribute['Attribute']['id'] => $attribute['Attribute']['RelatedAttribute']);
             }
-            $rows[] =  $this->element('/Events/View/row_attribute', array(
+            echo $this->element('/Events/View/row_attribute', array(
                 'object' => $attribute['Attribute'],
                 'k' => $k,
                 'mayModify' => $mayModify,
@@ -113,8 +113,8 @@
                 'context' => 'list'
             ));
         }
-        echo sprintf('<table class="table table-striped table-hover table-condensed">%s</table>', implode('', $rows));
     ?>
+    </table>
     <p>
     <?php
     echo $this->Paginator->counter(array(
@@ -144,7 +144,7 @@ if ($isSearch == 1){
 ?>
 <script type="text/javascript">
 // tooltips
-$(document).ready(function () {
+$(function () {
     $("td, div").tooltip({
         'placement': 'top',
         'container' : 'body',

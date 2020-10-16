@@ -41,7 +41,7 @@
             ),
             'fields' => array(
                 array(
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'id',
                     'class' => 'short',
                     'data_path' => 'User.id'
@@ -65,11 +65,10 @@
                     'data_path' => 'User.email'
                 ),
                 array(
-                    'name' => __('authkey'),
+                    'name' => __('Authkey'),
                     'sort' => 'User.authkey',
-                    'class' => 'bold quickSelect',
+                    'class' => 'bold',
                     'data_path' => 'User.authkey',
-                    'onClick' => 'quickSelect(this);',
                     'privacy' => 1
                 ),
                 array(
@@ -94,7 +93,7 @@
                     'data_path' => 'User.gpgkey'
                 ),
                 array(
-                    'name' => __('SMIME'),
+                    'name' => __('S/MIME'),
                     'element' => 'boolean',
                     'sort' => 'User.certif_public',
                     'class' => 'short',
@@ -225,11 +224,6 @@
     $(document).ready(function() {
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter('/context:' + passedArgsArray['context']);
-        });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter('/context:' + passedArgsArray['context']);
-            }
         });
     });
 </script>

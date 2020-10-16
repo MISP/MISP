@@ -24,8 +24,8 @@ class SharingGroup extends AppModel
         ),
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
-                'message' => 'Please provide a valid UUID'
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
             ),
         )
     );
@@ -65,6 +65,8 @@ class SharingGroup extends AppModel
         parent::beforeValidate();
         if (empty($this->data['SharingGroup']['uuid'])) {
             $this->data['SharingGroup']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['SharingGroup']['uuid'] = strtolower($this->data['SharingGroup']['uuid']);
         }
         $date = date('Y-m-d H:i:s');
         if (empty($this->data['SharingGroup']['created'])) {

@@ -13,9 +13,9 @@
      */
     if (!isset($data['requirement']) || $data['requirement']) {
         $button = empty($data['button']) && empty($data['fa-icon']) ? '' : sprintf(
-            '<button class=" btn btn-small btn-inverse" %s id="quickFilterButton">%s%s</button>',
+            '<button class="btn btn-small btn-inverse" %s id="quickFilterButton">%s%s</button>',
             empty($data['data']) ? '' : h($data['data']),
-            empty($data['fa-icon']) ? '' : sprintf('<i class="fa fa-%s"></i>', h($data['fa-icon'])),
+            empty($data['fa-icon']) ? '' : sprintf('<i class="fa fa-%s" title="%s"></i>', h($data['fa-icon']), __('Search')),
             empty($data['button']) ? '' : h($data['button'])
         );
         if (!empty($data['cancel'])) {

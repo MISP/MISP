@@ -117,32 +117,6 @@
             screenshotPopup($(this).attr('src'), $(this).attr('title'));
         });
     });
-    $('.hex-value-convert').click(function() {
-        var val = $(this).parent().children(':first-child').text();
-        if ($(this).parent().children(':first-child').attr('data-original-title') == 'Hexadecimal representation') {
-            var bin = [];
-            var temp;
-            val.split('').forEach(function(entry) {
-                temp = parseInt(entry, 16).toString(2);
-                bin.push(Array(5 - (temp.length)).join('0') + temp);
-            });
-            bin = bin.join(' ');
-            $(this).parent().children(':first-child').text(bin);
-            $(this).parent().children(':first-child').attr('data-original-title', __('Binary representation'));
-            $(this).parent().children(':nth-child(2)').attr('data-original-title', __('Switch to hexadecimal representation'));
-            $(this).parent().children(':nth-child(2)').attr('aria-label', __('Switch to hexadecimal representation'));
-        } else {
-            val = val.split(' ');
-            hex = '';
-            val.forEach(function(entry) {
-                hex += parseInt(entry , 2).toString(16).toUpperCase();
-            });
-            $(this).parent().children(':first-child').text(hex);
-            $(this).parent().children(':first-child').attr('data-original-title', __('Hexadecimal representation'));
-            $(this).parent().children(':nth-child(2)').attr('data-original-title', __('Switch to binary representation'));
-            $(this).parent().children(':nth-child(2)').attr('aria-label', __('Switch to binary representation'));
-        }
-    });
 </script>
 <?php
     echo $this->Js->writeBuffer();
