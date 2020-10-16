@@ -908,10 +908,12 @@ function manualEntitiesExtraction() {
 
 function prepareSuggestionInterface(complexTypeOutput) {
     toggleMarkdownEditorLoading(true, 'Processing document')
+    searchForUnreferenceValues()
     entitiesFromComplexTool = complexTypeOutput
+    entitiesFromComplexTool = pruneReplacementEntriesFromComplexToolSuggestion()
     entitiesFromComplexTool = injectNumberOfOccurencesInReport(entitiesFromComplexTool)
     setupSuggestionMarkdownListeners()
-    constructSuggestionTable(entitiesFromComplexTool)
+    constructSuggestionTables(entitiesFromComplexTool)
     toggleMarkdownEditorLoading(false)
 }
 
@@ -920,7 +922,6 @@ function highlightPickedSuggestionInReport() {
     for (var i = 0; i < entitiesFromComplexTool.length; i++) {
         var entity = entitiesFromComplexTool[i];
         if (pickedSuggestion.entity.value == entity.value) {
-            // var content = getEditorData()
             var converted = convertEntityIntoSuggestion(contentBeforeSuggestions, entity)
             setEditorData(converted)
             var indicesInCM = getAllSuggestionIndicesOf(converted, entity.value, false)
@@ -933,9 +934,7 @@ function highlightPickedSuggestionInReport() {
 function highlightPickedReplacementInReport() {
     var entity = pickedSuggestion.entity
     setEditorData(contentBeforeSuggestions)
-    // var content = getEditorData()
     var content = contentBeforeSuggestions
-    // var converted = convertEntityIntoReplacement(content, entity)
     var converted = convertEntityIntoSuggestion(content, entity)
     setEditorData(converted)
     var indicesInCM = getAllSuggestionIndicesOf(converted, entity.value, false)
@@ -949,18 +948,6 @@ function convertEntityIntoSuggestion(content, entity) {
         converted += text
         if (i < splittedContent.length-1) {
             converted += '@[suggestion](' + entity.value + ')'
-        }
-    })
-    return converted
-}
-
-function convertEntityIntoReplacement(content, entity) {
-    var converted = ''
-    var splittedContent = content.split(entity.value)
-    splittedContent.forEach(function(text, i) {
-        converted += text
-        if (i < splittedContent.length-1) {
-            converted += '@[attribute](' + entity.replacement + ')'
         }
     })
     return converted
@@ -992,6 +979,16 @@ function constructSuggestionMapping(entity, indicesInCM) {
             checked: true
         }
     });
+}
+
+function pruneReplacementEntriesFromComplexToolSuggestion() {
+    var filteredEntitiesFromComplexTool = []
+    entitiesFromComplexTool.forEach(function(entity) {
+        if (unreferenceValues[entity.value] === undefined) {
+            filteredEntitiesFromComplexTool.push(entity)
+        }
+    })
+    return filteredEntitiesFromComplexTool
 }
 
 function injectNumberOfOccurencesInReport(entities) {
@@ -1386,8 +1383,7 @@ function searchForUnreferenceValues() {
     })
 }
 
-function constructSuggestionTable(entities) {
-    searchForUnreferenceValues()
+function constructSuggestionTables(entities) {
     var $extractionTable = constructExtractionTable(entities)
     var $replacementTable = constructReplacementTable(unreferenceValues)
     var $collapsibleControl = $('<ul class="nav nav-tabs" id="suggestionTableTabs" />').append(

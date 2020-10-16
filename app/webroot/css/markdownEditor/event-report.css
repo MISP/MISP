@@ -31,6 +31,10 @@ span.misp-element-wrapper {
     margin: 0 3px;
 }
 
+.misp-element-wrapper.attribute.suggestion.picked {
+    box-shadow: #2f96b4 0px 0px 5px 0px;
+}
+
 .misp-element-wrapper.attribute.suggestion.picked .attr-type {
     background-color: #2f96b4 !important;
     color: white;
