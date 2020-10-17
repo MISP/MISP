@@ -16,15 +16,45 @@ class AttachmentScan extends AppModel
     /** @var mixed|null  */
     private $attachmentScanModuleName;
 
+    /**
+     * List of supported object templates
+     * @var string[]
+     */
     private $signatureTemplates = [
         '4dbb56ef-4763-4c97-8696-a2bfc305cf8e', // av-signature
         '984c5c39-be7f-4e1e-b034-d3213bac51cb', // sb-signature
+    ];
+
+    /**
+     * List of supported ways how to send data to module. From the most reliable to worst.
+     * @var string[]
+     */
+    private $possibleTypes = [
+        'attachment',
+        'sha3-512',
+        'sha3-384',
+        'sha3-256',
+        'sha3-224',
+        'sha512',
+        'sha512/224',
+        'sha512/256',
+        'sha384',
+        'sha256',
+        'sha224',
+        'sha1',
+        'md5',
     ];
 
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
         $this->attachmentScanModuleName = Configure::read('MISP.attachment_scan_module');
+
+        // This can be useful, if you use third party service (like VirusTotal) and you don't want leak uploaded
+        // files payload. Then just file hash will be send.
+        if (Configure::read('MISP.attachment_scan_hash_only')) {
+            array_shift($this->possibleTypes); // remove 'attachment' type
+        }
     }
 
     /**
@@ -105,6 +135,7 @@ class AttachmentScan extends AppModel
      * @param int $attributeId Attribute or ShadowAttribute ID
      * @param null $jobId
      * @return bool|string
+     * @throws Exception
      */
     public function scan($type, $attributeId = null, $jobId = null)
     {
@@ -157,10 +188,10 @@ class AttachmentScan extends AppModel
         }
 
         try {
-            $moduleOptions = $this->loadModuleOptions($this->attachmentScanModuleName);
+            $moduleOptions = $this->loadModuleInfo($this->attachmentScanModuleName);
         } catch (Exception $e) {
-            $job->saveStatus($jobId, false, 'Could not connect to malware protection module.');
-            $this->logException('Could not connect to malware protection module.', $e);
+            $job->saveStatus($jobId, false, 'Could not connect to attachment scan module.');
+            $this->logException('Could not connect to attachment scan module.', $e);
             return false;
         }
 
@@ -241,11 +272,11 @@ class AttachmentScan extends AppModel
     /**
      * @param string $type
      * @param array $attribute
-     * @param array $moduleOptions
+     * @param array $moduleInfo
      * @return bool|null Return true if attachment is infected.
      * @throws Exception
      */
-    private function scanAttachment($type, array $attribute, array $moduleOptions)
+    private function scanAttachment($type, array $attribute, array $moduleInfo)
     {
         if (!isset($attribute['type'])) {
             throw new InvalidArgumentException("Invalid attribute provided.");
@@ -261,18 +292,34 @@ class AttachmentScan extends AppModel
             $file = $this->attachmentTool()->getShadowFile($attribute['event_id'], $attribute['id']);
         }
 
-        /* if ($file->size() > 50 * 1024 * 1024) {
+        if (in_array('attachment', $moduleInfo['types'])) {
+            /* if ($file->size() > 50 * 1024 * 1024) {
              $this->log("File '$file->path' is bigger than 50 MB, will be not scanned.", LOG_NOTICE);
              return false;
          }*/
 
-        $fileContent = $file->read();
-        if ($fileContent === false) {
-            throw new Exception("Could not open file '$file->path' for reading.");
-        }
-        $attribute['data'] = base64_encode($fileContent);
+            $fileContent = $file->read();
+            if ($fileContent === false) {
+                throw new Exception("Could not open file '$file->path' for reading.");
+            }
+            $attribute['data'] = base64_encode($fileContent);
+        } else {
+            // Instead of sending whole file to module, just generate file hash and send that hash as fake attribute.
+            $hashAlgo = $moduleInfo['types'][0];
+            $hash = hash_file($moduleInfo['types'][0], $file->pwd());
+            if (!$hash) {
+                throw new Exception("Could not generate $hashAlgo hash for file '$file->path'.");
+            }
 
-        $results = $this->sendToModule($attribute, $moduleOptions);
+            $attribute = [
+                'uuid' => CakeText::uuid(),
+                'event_id' => $attribute['event_id'],
+                'type' => $hashAlgo,
+                'value' => $hash,
+            ];
+        }
+
+        $results = $this->sendToModule($attribute, $moduleInfo['config']);
 
         if (!empty($results)) {
             $signatures = [];
@@ -290,17 +337,17 @@ class AttachmentScan extends AppModel
 
     /**
      * @param array $attribute
-     * @param array $moduleOptions
+     * @param array $moduleConfig
      * @return array
      * @throws Exception
      */
-    private function sendToModule(array $attribute, array $moduleOptions)
+    private function sendToModule(array $attribute, array $moduleConfig)
     {
         $data = json_encode([
             'module' => $this->attachmentScanModuleName,
             'attribute' => $attribute,
             'event_id' => $attribute['event_id'],
-            'config' => $moduleOptions,
+            'config' => $moduleConfig,
         ]);
 
         $exception = null;
@@ -360,7 +407,7 @@ class AttachmentScan extends AppModel
      * @return array
      * @throws Exception
      */
-    private function loadModuleOptions($moduleName)
+    private function loadModuleInfo($moduleName)
     {
         $exception = null;
         $modules = $this->moduleModel()->getModules(false, 'Enrichment', $exception);
@@ -384,21 +431,22 @@ class AttachmentScan extends AppModel
             throw new Exception("Module $moduleName must be expansion type.");
         }
 
-        if (!in_array('attachment', $module['mispattributes']['input'])) {
-            throw new Exception("Module $moduleName doesn't support 'attachment' input type.");
+        $types = array_intersect($this->possibleTypes, $module['mispattributes']['input']);
+        if (empty($types)) {
+            throw new Exception("Module $moduleName doesn't support at least one required type: " . implode(", ", $this->possibleTypes) . ".");
         }
 
         if (!isset($module['mispattributes']['format']) || $module['mispattributes']['format'] !== 'misp_standard') {
             throw new Exception("Module $moduleName doesn't support misp_standard output format.");
         }
 
-        $options = [];
+        $config = [];
         if (isset($module['meta']['config'])) {
             foreach ($module['meta']['config'] as $conf) {
-                $options[$conf] = Configure::read("Plugin.Enrichment_{$moduleName}_$conf");
+                $config[$conf] = Configure::read("Plugin.Enrichment_{$moduleName}_$conf");
             }
         }
-        return $options;
+        return ['config' => $config, 'types' => $types];
     }
 
     /**
