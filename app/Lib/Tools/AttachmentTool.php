@@ -297,6 +297,9 @@ class AttachmentTool
     }
 
     /**
+     * It is not possible to use PHP extensions for compressing. The reason is, that extensions support just AES encrypted
+     * files, but these files are not supported in Windows and in Python. So the only solution is to use 'zip' command.
+     *
      * @param string $originalFilename
      * @param string $content
      * @param string $md5
@@ -304,23 +307,6 @@ class AttachmentTool
      * @throws Exception
      */
     public function encrypt($originalFilename, $content, $md5)
-    {
-        if (method_exists("ZipArchive", "setEncryptionName")) {
-            // When PHP zip extension is installed and supports creating encrypted archives.
-            return $this->encryptByExtension($originalFilename, $content, $md5);
-        } else {
-            return $this->encryptByCommand($originalFilename, $content, $md5);
-        }
-    }
-
-    /**
-     * @param string $originalFilename
-     * @param string $content
-     * @param string $md5
-     * @return string Content of zipped file
-     * @throws Exception
-     */
-    private function encryptByCommand($originalFilename, $content, $md5)
     {
         $tempDir = $this->tempDir();
 
@@ -365,43 +351,6 @@ class AttachmentTool
             $contentsFile->delete();
             $zipFile->delete();
         }
-    }
-
-    /**
-     * @param string $originalFilename
-     * @param string $content
-     * @param string $md5
-     * @return string Content of zipped file
-     * @throws Exception
-     */
-    private function encryptByExtension($originalFilename, $content, $md5)
-    {
-        $zipFilePath = $this->tempFileName();
-
-        $zip = new ZipArchive();
-        $result = $zip->open($zipFilePath, ZipArchive::CREATE);
-        if ($result === true) {
-            $zip->setPassword(self::ZIP_PASSWORD);
-
-            $zip->addFromString($md5, $content);
-            $zip->setEncryptionName($md5, ZipArchive::EM_AES_128);
-
-            $zip->addFromString("$md5.filename.txt", $originalFilename);
-            $zip->setEncryptionName("$md5.filename.txt", ZipArchive::EM_AES_128);
-
-            $zip->close();
-        } else {
-            throw new Exception("Could not create encrypted ZIP file '$zipFilePath'. Error code: $result");
-        }
-
-        $zipFile = new File($zipFilePath);
-        $zipContent = $zipFile->read();
-        if ($zipContent === false) {
-            throw new Exception("Could not read content of newly created ZIP file.");
-        }
-        $zipFile->delete();
-
-        return $zipContent;
     }
 
     /**
