@@ -10,13 +10,21 @@ class AttachmentScan extends AppModel
     /** @var AttachmentTool */
     private $attachmentTool;
 
+    /** @var Module */
+    private $moduleModel;
+
     /** @var mixed|null  */
-    private $clamAvConfig;
+    private $attachmentScanModuleName;
+
+    private $signatureTemplates = [
+        '4dbb56ef-4763-4c97-8696-a2bfc305cf8e', // av-signature
+        '984c5c39-be7f-4e1e-b034-d3213bac51cb', // sb-signature
+    ];
 
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->clamAvConfig = Configure::read('MISP.clam_av');
+        $this->attachmentScanModuleName = Configure::read('MISP.attachment_scan_module');
     }
 
     /**
@@ -24,7 +32,7 @@ class AttachmentScan extends AppModel
      */
     public function isEnabled()
     {
-        return !empty($this->clamAvConfig);
+        return !empty($this->attachmentScanModuleName);
     }
 
     /**
@@ -64,7 +72,8 @@ class AttachmentScan extends AppModel
                 'type' => $type,
                 'attribute_id' => $attributeId,
             ),
-            'order_by' => 'timestamp DESC', // newest first
+            'fields' => ['infected', 'malware_name'],
+            'order' => 'timestamp DESC', // newest first
         ));
     }
 
@@ -93,60 +102,6 @@ class AttachmentScan extends AppModel
 
     /**
      * @param string $type
-     * @param array $attribute
-     * @return bool|null Return true if attachment is infected.
-     * @throws Exception
-     */
-    public function scanAttachment($type, array $attribute)
-    {
-        $this->checkType($type);
-
-        if (!isset($attribute['type'])) {
-            throw new InvalidArgumentException("Invalid attribute provided.");
-        }
-
-        if ($attribute['type'] !== 'attachment') {
-            throw new InvalidArgumentException("Just attachment attributes can be scanned, attribute with type '{$attribute['type']}' provided.");
-        }
-
-        if (!$this->isEnabled()) {
-            throw new Exception("ClamAV is not configured.");
-        }
-
-        if ($this->attachmentTool()->attachmentDirIsS3()) {
-            throw new Exception("S3 attachment storage is not supported now for AV scanning.");
-        }
-
-        if ($type === self::TYPE_ATTRIBUTE) {
-            $file = $this->attachmentTool()->getFile($attribute['event_id'], $attribute['id']);
-        } else {
-            $file = $this->attachmentTool()->getShadowFile($attribute['event_id'], $attribute['id']);
-        }
-
-        /* if ($file->size() > 50 * 1024 * 1024) {
-             $this->log("File '$file->path' is bigger than 50 MB, will be not scanned.", LOG_NOTICE);
-             return false;
-         }*/
-
-        if (!$file->open()) {
-            throw new Exception("Could not open file '$file->path' for reading.");
-        }
-
-        $clamAv = new ClamAvTool($this->clamAvConfig);
-        $output = $clamAv->scanResource($file->handle);
-
-        if ($output['found']) {
-            $this->insertScan($type, $attribute['id'], true, $output['name']);
-            return true;
-
-        } else {
-            $this->insertScan($type, $attribute['id'], false);
-            return false;
-        }
-    }
-
-    /**
-     * @param string $type
      * @param int $attributeId Attribute or ShadowAttribute ID
      * @param null $jobId
      * @return bool|string
@@ -157,6 +112,14 @@ class AttachmentScan extends AppModel
         $job = ClassRegistry::init('Job');
         if ($jobId && !$job->exists($jobId)) {
             $jobId = null;
+        }
+
+        if (!$this->isEnabled()) {
+            throw new Exception("Malware scanning module is not configured.");
+        }
+
+        if ($this->attachmentTool()->attachmentDirIsS3()) {
+            throw new Exception("S3 attachment storage is not supported now for AV scanning.");
         }
 
         if ($type === 'all') {
@@ -194,13 +157,10 @@ class AttachmentScan extends AppModel
         }
 
         try {
-            // Try to connect to ClamAV before we will scan all files
-            $clamAv = new ClamAvTool($this->clamAvConfig);
-            $clamAvVersion = $clamAv->version();
-            $clamAvVersion = "{$clamAvVersion['version']}/{$clamAvVersion['databaseVersion']}";
+            $moduleOptions = $this->loadModuleOptions($this->attachmentScanModuleName);
         } catch (Exception $e) {
-            $job->saveStatus($jobId, false, 'Could not get ClamAV version');
-            $this->logException('Could not get ClamAV version', $e);
+            $job->saveStatus($jobId, false, 'Could not connect to malware protection module.');
+            $this->logException('Could not connect to malware protection module.', $e);
             return false;
         }
 
@@ -210,7 +170,7 @@ class AttachmentScan extends AppModel
         foreach ($attributes as $attribute) {
             $type = isset($attribute['Attribute']) ? self::TYPE_ATTRIBUTE : self::TYPE_SHADOW_ATTRIBUTE;
             try {
-                $infected = $this->scanAttachment($type, $attribute[$type]);
+                $infected = $this->scanAttachment($type, $attribute[$type], $moduleOptions);
                 if ($infected === true) {
                     $virusFound++;
                 }
@@ -222,7 +182,7 @@ class AttachmentScan extends AppModel
                 $fails++;
             }
 
-            $message = "$scanned files scanned, $virusFound malware files found (by ClamAV $clamAvVersion).";
+            $message = "$scanned files scanned, $virusFound malware files found.";
             $job->saveProgress($jobId, $message, ($scanned + $fails) / count($attributes) * 100);
         }
 
@@ -230,7 +190,7 @@ class AttachmentScan extends AppModel
             $job->saveStatus($jobId, false);
             return false;
         } else {
-            $message = "$scanned files scanned, $virusFound malware files found (by ClamAV $clamAvVersion).";
+            $message = "$scanned files scanned, $virusFound malware files found.";
             if ($fails) {
                 $message .= " $fails files failed to scan (see error log for more details).";
             }
@@ -279,6 +239,169 @@ class AttachmentScan extends AppModel
     }
 
     /**
+     * @param string $type
+     * @param array $attribute
+     * @param array $moduleOptions
+     * @return bool|null Return true if attachment is infected.
+     * @throws Exception
+     */
+    private function scanAttachment($type, array $attribute, array $moduleOptions)
+    {
+        if (!isset($attribute['type'])) {
+            throw new InvalidArgumentException("Invalid attribute provided.");
+        }
+
+        if ($attribute['type'] !== 'attachment') {
+            throw new InvalidArgumentException("Just attachment attributes can be scanned, attribute with type '{$attribute['type']}' provided.");
+        }
+
+        if ($type === self::TYPE_ATTRIBUTE) {
+            $file = $this->attachmentTool()->getFile($attribute['event_id'], $attribute['id']);
+        } else {
+            $file = $this->attachmentTool()->getShadowFile($attribute['event_id'], $attribute['id']);
+        }
+
+        /* if ($file->size() > 50 * 1024 * 1024) {
+             $this->log("File '$file->path' is bigger than 50 MB, will be not scanned.", LOG_NOTICE);
+             return false;
+         }*/
+
+        $fileContent = $file->read();
+        if ($fileContent === false) {
+            throw new Exception("Could not open file '$file->path' for reading.");
+        }
+        $attribute['data'] = base64_encode($fileContent);
+
+        $results = $this->sendToModule($attribute, $moduleOptions);
+
+        if (!empty($results)) {
+            $signatures = [];
+            foreach ($results as $result) {
+                $signatures = array_merge($signatures, $result['signatures']);
+            }
+            $this->insertScan($type, $attribute['id'], true, implode(', ', $signatures));
+            return true;
+
+        } else {
+            $this->insertScan($type, $attribute['id'], false);
+            return false;
+        }
+    }
+
+    /**
+     * @param array $attribute
+     * @param array $moduleOptions
+     * @return array
+     * @throws Exception
+     */
+    private function sendToModule(array $attribute, array $moduleOptions)
+    {
+        $data = json_encode([
+            'module' => $this->attachmentScanModuleName,
+            'attribute' => $attribute,
+            'event_id' => $attribute['event_id'],
+            'config' => $moduleOptions,
+        ]);
+
+        $exception = null;
+        $results = $this->moduleModel()->queryModuleServer('/query', $data, false, 'Enrichment', $exception);
+        if (!is_array($results)) {
+            throw new Exception($results, 0, $exception);
+        }
+        if (isset($results['error'])) {
+            throw new Exception("{$this->attachmentScanModuleName} module returns error: " . $results['error']);
+        }
+        if (!isset($results['results'])) {
+            throw new Exception("Invalid data received from {$this->attachmentScanModuleName} module.");
+        }
+        return $this->extractInfoFromModuleResult($results['results']);
+    }
+
+    /**
+     * Extracts data from scan results.
+     * @param array $results
+     * @return array
+     * @throws Exception
+     */
+    private function extractInfoFromModuleResult(array $results)
+    {
+        if (!isset($results['Object']) || !is_array($results['Object'])) {
+            return [];
+        }
+
+        $output = [];
+        foreach ($results['Object'] as $object) {
+            if (!isset($object['template_uuid'])) {
+                continue;
+            }
+            if (in_array($object['template_uuid'], $this->signatureTemplates)) {
+                $software = null;
+                $signatures = array();
+                foreach ($object['Attribute'] as $attribute) {
+                    if (!isset($attribute['object_relation']) || !isset($attribute['value'])) {
+                        continue;
+                    }
+                    if ($attribute['object_relation'] === 'signature') {
+                        $signatures[] = $attribute['value'];
+                    } else if ($attribute['object_relation'] === 'software') {
+                        $software = $attribute['value'];
+                    }
+                }
+                if (!empty($signatures) && $software) {
+                    $output[] = ['signatures' => $signatures, 'software' => $software];
+                }
+            }
+        }
+        return $output;
+    }
+
+    /**
+     * @param string $moduleName
+     * @return array
+     * @throws Exception
+     */
+    private function loadModuleOptions($moduleName)
+    {
+        $exception = null;
+        $modules = $this->moduleModel()->getModules(false, 'Enrichment', $exception);
+        if (!is_array($modules)) {
+            throw new Exception($modules, 0, $exception);
+        }
+
+        $module = null;
+        foreach ($modules['modules'] as $temp) {
+            if ($temp['name'] === $moduleName) {
+                $module = $temp;
+                break;
+            }
+        }
+
+        if (!$module) {
+            throw new Exception("Module $moduleName doesn't exists.");
+        }
+
+        if (!in_array('expansion', $module['meta']['module-type'])) {
+            throw new Exception("Module $moduleName must be expansion type.");
+        }
+
+        if (!in_array('attachment', $module['mispattributes']['input'])) {
+            throw new Exception("Module $moduleName doesn't support 'attachment' input type.");
+        }
+
+        if (!isset($module['mispattributes']['format']) || $module['mispattributes']['format'] !== 'misp_standard') {
+            throw new Exception("Module $moduleName doesn't support misp_standard output format.");
+        }
+
+        $options = [];
+        if (isset($module['meta']['config'])) {
+            foreach ($module['meta']['config'] as $conf) {
+                $options[$conf] = Configure::read("Plugin.Enrichment_{$moduleName}_$conf");
+            }
+        }
+        return $options;
+    }
+
+    /**
      * @return AttachmentTool
      */
     private function attachmentTool()
@@ -288,6 +411,18 @@ class AttachmentScan extends AppModel
         }
 
         return $this->attachmentTool;
+    }
+
+    /**
+     * @return Module
+     */
+    private function moduleModel()
+    {
+        if (!$this->moduleModel) {
+            $this->moduleModel = ClassRegistry::init('Module');
+        }
+
+        return $this->moduleModel;
     }
 
     /**
