@@ -165,7 +165,6 @@ script:
     - python3 tools/misp-feed/validate.py
 
 after_failure:
-    - ls -aRl `pwd`
     - curl http://misp.local
     - cat /etc/apache2/sites-available/misp.local.conf
     - sudo tail -n +1 `pwd`/app/tmp/logs/*
