@@ -1297,7 +1297,8 @@ span.success {
     bottom:-17px;
     background-color: #fff;
     position:absolute;
-    z-index:100;
+    z-index:10;
+    color: #333;
 }
 
 .inline-input-active {
