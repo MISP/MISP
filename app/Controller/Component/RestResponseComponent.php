@@ -15,7 +15,10 @@ class RestResponseComponent extends Component
         )
     );
 
-    private $___setup = false;
+    private $__setup = false;
+
+    /** @var array */
+    private $__fieldsConstraint;
 
     private $__descriptions = array(
         'Attribute' => array(
@@ -288,8 +291,11 @@ class RestResponseComponent extends Component
 
     private $__scopedFieldsConstraint = array();
 
-    public function initialize(Controller $controller) {
-        $this->__configureFieldConstraints();
+    /** @var Controller */
+    private $Controller;
+
+    public function initialize(Controller $controller)
+    {
         $this->Controller = $controller;
     }
 
@@ -432,6 +438,15 @@ class RestResponseComponent extends Component
         return $this->__sendResponse($response, 200, $format);
     }
 
+    /**
+     * @param mixed $response
+     * @param int $code
+     * @param string|false $format
+     * @param bool $raw
+     * @param bool $download
+     * @param array $headers
+     * @return CakeResponse
+     */
     private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
         $format = strtolower($format);
@@ -499,14 +514,10 @@ class RestResponseComponent extends Component
             $headers["Access-Control-Expose-Headers"] = ["X-Result-Count"];
         }
         if (!empty($this->headers)) {
-            foreach ($this->headers as $key => $value) {
-                $cakeResponse->header($key, $value);
-            }
+            $cakeResponse->header($this->headers);
         }
         if (!empty($headers)) {
-            foreach ($headers as $key => $value) {
-                $cakeResponse->header($key, $value);
-            }
+            $cakeResponse->header($headers);
         }
         if (!empty($deprecationWarnings)) {
             $cakeResponse->header('X-Deprecation-Warning', $deprecationWarnings);
@@ -514,7 +525,6 @@ class RestResponseComponent extends Component
         if ($download) {
             $cakeResponse->download($download);
         }
-
         return $cakeResponse;
     }
 
@@ -603,12 +613,12 @@ class RestResponseComponent extends Component
                     'params' => $this->__descriptions[$scope]['restSearch']['params']
                 );
             }
+            $this->__configureFieldConstraints();
             $this->__setupFieldsConstraint();
+            $this->__setup = true;
         }
         return true;
     }
-
-    private $__fieldConstraint = array();
 
     // default value and input for API field
     private function __configureFieldConstraints()
@@ -625,7 +635,7 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Is the sharing group selectable (active) when chosing distribution')
+                'help' => __('Is the sharing group selectable (active) when choosing distribution')
             ),
             'all' => array(
                 'input' => 'text',
@@ -855,7 +865,7 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('When uploading malicious samples, set this flag to tell MISP to encrpyt the sample and extract the file hashes. This will create a MISP object with the appropriate attributes.')
+                'help' => __('When uploading malicious samples, set this flag to tell MISP to encrypt the sample and extract the file hashes. This will create a MISP object with the appropriate attributes.')
             ),
             //'enforceWarningList' => array(
             //    'input' => 'radio',
@@ -1794,5 +1804,4 @@ class RestResponseComponent extends Component
             $field['help'] = __('Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)');
         }
     }
-
 }
