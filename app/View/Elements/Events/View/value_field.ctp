@@ -1,6 +1,4 @@
 <?php
-$sigDisplay = $object['value'];
-
 $truncateLongText = function ($text, $maxLength = 500, $maxLines = 10) {
     $truncated = false;
     if (mb_strlen($text) > $maxLength) {
@@ -19,6 +17,10 @@ $truncateLongText = function ($text, $maxLength = 500, $maxLines = 10) {
     }
     return null;
 };
+
+if (!isset($linkClass)) {
+    $linkClass = null;
+}
 
 switch ($object['type']) {
     case 'attachment':
@@ -43,9 +45,13 @@ switch ($object['type']) {
                 $filename = $filenameHash[0];
             }
 
-            $controller = isset($object['objectType']) && $object['objectType'] === 'proposal' ? 'shadow_attributes' : 'attributes';
-            $url = array('controller' => $controller, 'action' => 'download', $object['id']);
-            echo $this->Html->link($filename, $url, array('class' => $linkClass));
+            if (isset($object['objectType'])) {
+                $controller = $object['objectType'] === 'proposal' ? 'shadow_attributes' : 'attributes';
+                $url = array('controller' => $controller, 'action' => 'download', $object['id']);
+                echo $this->Html->link($filename, $url, array('class' => $linkClass));
+            } else {
+                echo $filename;
+            }
             if (isset($filenameHash[1])) {
                 echo '<br>' . $filenameHash[1];
             }
@@ -54,17 +60,27 @@ switch ($object['type']) {
 
     case 'vulnerability':
         $cveUrl = Configure::read('MISP.cveurl') ?: 'https://cve.circl.lu/cve/';
-        echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, ['target' => '_blank', 'class' => $linkClass, 'rel' => 'noreferrer noopener']);
+        echo $this->Html->link($object['value'], $cveUrl . $object['value'], [
+            'target' => '_blank',
+            'class' => $linkClass,
+            'rel' => 'noreferrer noopener',
+            'title' => __('Show more information about this vulnerability in external tool'),
+        ]);
         break;
 
     case 'weakness':
         $cweUrl = Configure::read('MISP.cweurl') ?: 'https://cve.circl.lu/cwe/';
-        $link = $cweUrl . explode("-", $sigDisplay)[1];
-        echo $this->Html->link($sigDisplay, $link, ['target' => '_blank', 'class' => $linkClass, 'rel' => 'noreferrer noopener']);
+        $link = $cweUrl . explode("-", $object['value'])[1];
+        echo $this->Html->link($object['value'], $link, [
+            'target' => '_blank',
+            'class' => $linkClass,
+            'rel' => 'noreferrer noopener',
+            'title' => __('Show more information about this weakness in external tool'),
+        ]);
         break;
 
     case 'link':
-        echo $this->Html->link($sigDisplay, $sigDisplay, ['class' => $linkClass, 'rel' => 'noreferrer noopener']);
+        echo $this->Html->link($object['value'], $object['value'], ['class' => $linkClass, 'rel' => 'noreferrer noopener']);
         break;
 
     case 'cortex':
@@ -76,20 +92,20 @@ switch ($object['type']) {
             $url = array('controller' => 'events', 'action' => 'view', $object['value']);
             echo $this->Html->link($object['value'], $url, array('class' => $linkClass));
         } else {
-            $sigDisplay = str_replace("\r", '', $sigDisplay);
-            $truncated = $truncateLongText($sigDisplay);
+            $value = str_replace("\r", '', $object['value']);
+            $truncated = $truncateLongText($value);
             if ($truncated) {
-                echo '<span data-full="' . h($sigDisplay) .'" data-full-type="text">' .
-                    str_replace(" ", '&nbsp;', h($truncated));
+                echo '<span data-full="' . h($object['value']) .'" data-full-type="text">' .
+                    str_replace(" ", '&nbsp;', h(rtrim($truncated)));
                 echo ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
             } else {
-                echo str_replace(" ", '&nbsp;', h($sigDisplay));
+                echo str_replace(" ", '&nbsp;', h($value));
             }
         }
         break;
 
     case 'hex':
-        echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . h($sigDisplay) . '</span>&nbsp;';
+        echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . h($object['value']) . '</span>&nbsp;';
         echo '<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="fas fa-redo hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
         break;
 
@@ -106,8 +122,8 @@ switch ($object['type']) {
 
     /** @noinspection PhpMissingBreakStatementInspection */
     case 'domain':
-        if (strpos($sigDisplay, 'xn--') !== false && function_exists('idn_to_utf8')) {
-            echo '<span title="' . h(idn_to_utf8($sigDisplay)) . '">' . h($sigDisplay) . '</span>';
+        if (strpos($object['value'], 'xn--') !== false && function_exists('idn_to_utf8')) {
+            echo '<span title="' . h(idn_to_utf8($object['value'])) . '">' . h($object['value']) . '</span>';
             break;
         }
 
@@ -119,15 +135,15 @@ switch ($object['type']) {
             }
             echo implode('<br>', $valuePieces);
         } else {
-            $sigDisplay = str_replace("\r", '', $sigDisplay);
-            $truncated = $truncateLongText($sigDisplay);
+            $value = str_replace("\r", '', $object['value']);
+            $truncated = $truncateLongText($value);
             if ($truncated) {
                 $rawTypes = ['email-header', 'yara', 'pgp-private-key', 'pgp-public-key', 'url'];
                 $dataFullType = in_array($object['type'], $rawTypes) ? 'raw' : 'text';
-                echo '<span data-full="' . h($sigDisplay) .'" data-full-type="' . $dataFullType .'">' . h($truncated) .
+                echo '<span data-full="' . h($value) .'" data-full-type="' . $dataFullType .'">' . h(rtrim($truncated)) .
                     ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
             } else {
-                echo h($sigDisplay);
+                echo h($value);
             }
         }
 }
