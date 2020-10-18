@@ -154,7 +154,7 @@ script:
     - pushd PyMISP
     - git submodule init
     - git submodule update
-    - poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport
+    - travis_retry poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport
     - poetry run python tests/testlive_comprehensive.py
     - poetry run python tests/test_mispevent.py
     - popd
@@ -165,7 +165,6 @@ script:
     - python3 tools/misp-feed/validate.py
 
 after_failure:
-    - ls -aRl `pwd`
     - curl http://misp.local
     - cat /etc/apache2/sites-available/misp.local.conf
     - sudo tail -n +1 `pwd`/app/tmp/logs/*
