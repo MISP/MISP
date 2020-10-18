@@ -44,6 +44,7 @@ var renderingRules = {
 }
 var galaxyMatrixTimer, tagTimers = {};
 var cache_matrix = {}, cache_tag = {};
+var firstCustomPostRenderCall = true;
 var contentBeforeSuggestions
 var typeToCategoryMapping
 var entitiesFromComplexTool
@@ -645,7 +646,7 @@ function attachRemoteMISPElements() {
         if (cache_matrix[cacheKey] === undefined) {
             galaxyMatrixTimer = setTimeout(function() {
                 attachGalaxyMatrix($div, eventID, elementID)
-            }, slowDebounceDelay);
+            }, firstCustomPostRenderCall ? 0 : slowDebounceDelay);
         } else {
             $div.html(cache_matrix[cacheKey])
         }
@@ -662,11 +663,17 @@ function attachRemoteMISPElements() {
                 fetchTagInfo(eventID, elementID, function() {
                     attachTagInfo($div, eventID, elementID, true)
                 })
-            }, slowDebounceDelay);
+            }, firstCustomPostRenderCall ? 0 : slowDebounceDelay);
         } else {
             $div.html(cache_tag[cacheKey])
         }
     })
+    if (firstCustomPostRenderCall) {
+        // Wait, because .each calls are asynchronous
+        setTimeout(function() {
+            firstCustomPostRenderCall = false;
+        }, 1000)
+    }
 }
 
 function attachGalaxyMatrix($elem, eventid, elementID) {
