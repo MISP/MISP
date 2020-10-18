@@ -82,27 +82,28 @@ class Module extends AppModel
         return true;
     }
 
-    public function getModules($moduleFamily = 'Enrichment', &$exception = false)
+    /**
+     * @param string $moduleFamily
+     * @param bool $throwException
+     * @return array[]|string
+     * @throws JsonException
+     */
+    public function getModules($moduleFamily = 'Enrichment', $throwException = false)
     {
-        $modules = $this->queryModuleServer('/modules', false, false, $moduleFamily, $exception);
-        if (!$modules) {
+        $modules = $this->queryModuleServer('/modules', false, false, $moduleFamily, $throwException);
+        if ($modules === false) { // not possible when $throwException is true
             return 'Module service not reachable.';
         }
-        if (!empty($modules)) {
-            $result = array('modules' => $modules);
-            return $result;
-        } else {
-            return 'The module service reports that it found no modules.';
-        }
+        return $modules;
     }
 
     public function getEnabledModules($user, $type = false, $moduleFamily = 'Enrichment')
     {
         $modules = $this->getModules($moduleFamily);
         if (is_array($modules)) {
-            foreach ($modules['modules'] as $k => $module) {
+            foreach ($modules as $k => $module) {
                 if (!Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_enabled') || ($type && !in_array(strtolower($type), $module['meta']['module-type']))) {
-                    unset($modules['modules'][$k]);
+                    unset($modules[$k]);
                     continue;
                 }
                 if (
@@ -110,38 +111,33 @@ class Module extends AppModel
                     Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_restrict') &&
                     Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_restrict') != $user['org_id']
                 ) {
-                    unset($modules['modules'][$k]);
+                    unset($modules[$k]);
                 }
             }
         } else {
             return 'The modules system reports that it found no suitable modules.';
         }
-        if (!isset($modules) || empty($modules)) {
-            $modules = array();
+        if (empty($modules)) {
+            return [];
         }
-        if (isset($modules['modules']) && !empty($modules['modules'])) {
-            $modules['modules'] = array_values($modules['modules']);
-        }
-        if (!is_array($modules)) {
-            return array();
-        }
-        foreach ($modules['modules'] as $temp) {
+        $output = ['modules' => array_values($modules)];
+        foreach ($modules as $temp) {
             if (isset($temp['meta']['module-type']) && in_array('import', $temp['meta']['module-type'])) {
-                $modules['Import'] = $temp['name'];
+                $output['Import'] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('export', $temp['meta']['module-type'])) {
-                $modules['Export'] = $temp['name'];
+                $output['Export'] = $temp['name'];
             } else {
                 foreach ($temp['mispattributes']['input'] as $input) {
                     if (!isset($temp['meta']['module-type']) || (in_array('expansion', $temp['meta']['module-type']) || in_array('cortex', $temp['meta']['module-type']))) {
-                        $modules['types'][$input][] = $temp['name'];
+                        $output['types'][$input][] = $temp['name'];
                     }
                     if (isset($temp['meta']['module-type']) && in_array('hover', $temp['meta']['module-type'])) {
-                        $modules['hover_type'][$input][] = $temp['name'];
+                        $output['hover_type'][$input][] = $temp['name'];
                     }
                 }
             }
         }
-        return $modules;
+        return $output;
     }
 
     /**
@@ -203,13 +199,17 @@ class Module extends AppModel
      * @param array|false $post
      * @param bool $hover
      * @param string $moduleFamily
-     * @param Exception|false $exception
+     * @param bool $throwException
      * @return array|false
+     * @throws JsonException
      */
-    public function queryModuleServer($uri, $post = false, $hover = false, $moduleFamily = 'Enrichment', &$exception = false)
+    public function queryModuleServer($uri, $post = false, $hover = false, $moduleFamily = 'Enrichment', $throwException = false)
     {
         $url = $this->__getModuleServer($moduleFamily);
         if (!$url) {
+            if ($throwException) {
+                throw new Exception("Module type $moduleFamily is not enabled.");
+            }
             return false;
         }
         App::uses('HttpSocket', 'Network/Http');
@@ -264,8 +264,10 @@ class Module extends AppModel
             }
             return $this->jsonDecode($response->body);
         } catch (Exception $e) {
+            if ($throwException) {
+                throw $e;
+            }
             $this->logException('Failed to query module ' . $moduleFamily, $e);
-            $exception = $e;
             return false;
         }
     }
@@ -278,8 +280,8 @@ class Module extends AppModel
     {
         $modules = $this->getModules($moduleFamily);
         $result = array();
-        if (!empty($modules['modules'])) {
-            foreach ($modules['modules'] as $module) {
+        if (!empty($modules)) {
+            foreach ($modules as $module) {
                 if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
                     $moduleSettings = [
                         array('name' => 'enabled', 'type' => 'boolean'),

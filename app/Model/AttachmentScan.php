@@ -350,11 +350,7 @@ class AttachmentScan extends AppModel
             'config' => $moduleConfig,
         ];
 
-        $exception = null;
-        $results = $this->moduleModel()->queryModuleServer('/query', $data, false, 'Enrichment', $exception);
-        if (!is_array($results)) {
-            throw new Exception($results, 0, $exception);
-        }
+        $results = $this->moduleModel()->queryModuleServer('/query', $data, false, 'Enrichment', true);
         if (isset($results['error'])) {
             throw new Exception("{$this->attachmentScanModuleName} module returns error: " . $results['error']);
         }
@@ -409,22 +405,18 @@ class AttachmentScan extends AppModel
      */
     private function loadModuleInfo($moduleName)
     {
-        $exception = null;
-        $modules = $this->moduleModel()->getModules(false, 'Enrichment', $exception);
-        if (!is_array($modules)) {
-            throw new Exception($modules, 0, $exception);
-        }
+        $modules = $this->moduleModel()->getModules('Enrichment', true);
 
         $module = null;
-        foreach ($modules['modules'] as $temp) {
-            if ($temp['name'] === $moduleName) {
+        foreach ($modules as $temp) {
+            if (strtolower($temp['name']) === strtolower($moduleName)) {
                 $module = $temp;
                 break;
             }
         }
 
         if (!$module) {
-            throw new Exception("Module $moduleName doesn't exists.");
+            throw new Exception("Module $moduleName not found.");
         }
 
         if (!in_array('expansion', $module['meta']['module-type'])) {
