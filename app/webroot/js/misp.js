@@ -793,7 +793,7 @@ function refreshTagCollectionRow(tag_collection_id) {
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
     responseArray = data;
-    if (type == 'Attribute') {
+    if (type === 'Attribute') {
         if (responseArray.saved) {
             var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
             showMessage('success', msg);
@@ -804,13 +804,11 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
             updateAttributeFieldOnSuccess(name, type, id, field, event);
         }
-    }
-    if (type == 'ShadowAttribute') {
+    } else if (type === 'ShadowAttribute') {
         updateIndex(event, 'event');
-    } else if (type == 'Object') {
+    } else if (type === 'Object') {
         if (responseArray.saved) {
-            var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
-            showMessage('success', msg);
+            showMessage('success', responseArray.message);
             updateObjectFieldOnSuccess(name, type, id, field, event);
             updateObjectFieldOnSuccess(name, type, id, 'timestamp', event);
             eventUnpublish();
