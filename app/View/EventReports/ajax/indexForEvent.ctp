@@ -148,10 +148,10 @@
 
 <script>
     var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
-    $(document).ready(function() {
+    $(function() {
         $('#eventReportQuickIndex td[data-path="EventReport.name"]').click(function() {
             var reportId = $(this).closest('tr').data('primary-id')
-            openGenericModal('/eventReports/viewSummary/' + reportId)
+            openGenericModal(baseurl + '/eventReports/viewSummary/' + reportId)
         })
 
         $('#eventReportSelectors a.btn').click(function(e) {
