@@ -603,32 +603,8 @@ function renderTemplateBasedOnRenderingOptions(scope, templateToRender, template
 }
 
 function setupMISPElementMarkdownListeners() {
-    $('.misp-element-wrapper').filter('.attribute:not(\'.suggestion\')').popover({
-        trigger: 'click',
-        html: true,
-        container: isInsideModal() ? 'body' : '#viewer-container',
-        placement: 'top',
-        title: getTitleFromMISPElementDOM,
-        content: getContentFromMISPElementDOM
-    })
-    $('.misp-picture-wrapper > img').popover({
-        trigger: 'click',
-        html: true,
-        container: isInsideModal() ? 'body' : '#viewer-container',
-        placement: 'top',
-        title: getTitleFromMISPElementDOM,
-        content: getContentFromMISPElementDOM,
-        placement: 'top'
-    })
-    $('.misp-element-wrapper').filter('.object').popover({
-        trigger: 'click',
-        html: true,
-        container: isInsideModal() ? 'body' : '#viewer-container',
-        placement: 'top',
-        title: getTitleFromMISPElementDOM,
-        content: getContentFromMISPElementDOM
-    })
-    $('.embeddedTag').popover({
+    var $elements = $('.misp-element-wrapper.attribute:not(".suggestion"), .misp-element-wrapper.object, .misp-picture-wrapper > img, .embeddedTag');
+    $elements.popover({
         trigger: 'click',
         html: true,
         container: isInsideModal() ? 'body' : '#viewer-container',
@@ -900,14 +876,14 @@ function reloadRenderingRuleEnabledUI() {
 
 
 /**
-   _____                             _   _             
-  / ____|                           | | (_)            
- | (___  _   _  __ _  __ _  ___  ___| |_ _  ___  _ __  
-  \___ \| | | |/ _` |/ _` |/ _ \/ __| __| |/ _ \| '_ \ 
+   _____                             _   _
+  / ____|                           | | (_)
+ | (___  _   _  __ _  __ _  ___  ___| |_ _  ___  _ __
+  \___ \| | | |/ _` |/ _` |/ _ \/ __| __| |/ _ \| '_ \
   ____) | |_| | (_| | (_| |  __/\__ \ |_| | (_) | | | |
  |_____/ \__,_|\__, |\__, |\___||___/\__|_|\___/|_| |_|
-                __/ | __/ |                            
-               |___/ |___/                             
+                __/ | __/ |
+               |___/ |___/
  */
 
 function automaticEntitiesExtraction() {
@@ -1299,8 +1275,8 @@ function buildTitleForMISPElement(data) {
     var title = invalidMessage
     var dismissButton = ''
     if (data !== false) {
-        var templateVariables =  sanitizeObject(data)
-        var dismissButton = dotCloseButtonTemplate(templateVariables)
+        var templateVariables = sanitizeObject(data)
+        dismissButton = dotCloseButtonTemplate(templateVariables)
         title = data.scope.charAt(0).toUpperCase() + templateVariables.scope.slice(1) + ' ' + templateVariables.elementID
     }
     return title + dismissButton
@@ -1318,8 +1294,7 @@ function closeThePopover(closeButton) {
     }
 }
 
-function constructAttributeRow(attribute, fromObject)
-{
+function constructAttributeRow(attribute, fromObject) {
     fromObject = fromObject !== undefined ? fromObject : false
     var attributeFieldsToRender = ['id', 'category', 'type'].concat(fromObject ? ['object_relation'] : [], ['value', 'comment'])
     var $tr = $('<tr/>')

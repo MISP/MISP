@@ -69,6 +69,7 @@ class EventReportsController extends AppController
         $this->set('ajax', $ajax);
         $this->set('id', $reportId);
         $this->set('report', $report);
+        $this->set('title_for_layout', __('Event report %s', $report['EventReport']['name']));
         $this->__injectDistributionLevelToViewContext();
         $this->__injectPermissionsToViewContext($this->Auth->user(), $report);
     }

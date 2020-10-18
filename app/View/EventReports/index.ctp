@@ -41,7 +41,7 @@
             'primary_id_path' => 'EventReport.id',
             'fields' => array(
                 array(
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'id',
                     'class' => 'short',
                     'data_path' => 'EventReport.id',
