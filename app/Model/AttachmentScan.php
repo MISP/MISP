@@ -87,6 +87,7 @@ class AttachmentScan extends AppModel
         if (!$result) {
             throw new Exception("Could not save scan result for attribute $attributeId: " . json_encode($this->validationErrors));
         }
+        return true;
     }
 
     /**
@@ -133,7 +134,7 @@ class AttachmentScan extends AppModel
     /**
      * @param string $type
      * @param int $attributeId Attribute or ShadowAttribute ID
-     * @param null $jobId
+     * @param int|null $jobId
      * @return bool|string
      * @throws Exception
      */
@@ -257,12 +258,11 @@ class AttachmentScan extends AppModel
                 'org' => 'SYSTEM',
                 'message' => 'Scanning...',
             ));
-            $jobId = $job->id;
 
             $processId = CakeResque::enqueue(
                 'default',
                 'AdminShell',
-                array('scanAttachment', $type, $attribute['id'], $jobId),
+                array('scanAttachment', $type, $attribute['id'], $job->id),
                 true
             );
             $job->saveField('process_id', $processId);
@@ -300,7 +300,7 @@ class AttachmentScan extends AppModel
 
             $fileContent = $file->read();
             if ($fileContent === false) {
-                throw new Exception("Could not open file '$file->path' for reading.");
+                throw new Exception("Could not read content of  file '$file->path'.");
             }
             $attribute['data'] = base64_encode($fileContent);
         } else {
@@ -343,12 +343,12 @@ class AttachmentScan extends AppModel
      */
     private function sendToModule(array $attribute, array $moduleConfig)
     {
-        $data = json_encode([
+        $data = [
             'module' => $this->attachmentScanModuleName,
             'attribute' => $attribute,
             'event_id' => $attribute['event_id'],
             'config' => $moduleConfig,
-        ]);
+        ];
 
         $exception = null;
         $results = $this->moduleModel()->queryModuleServer('/query', $data, false, 'Enrichment', $exception);

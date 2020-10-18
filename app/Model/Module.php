@@ -265,7 +265,7 @@ class Module extends AppModel
             return $this->jsonDecode($response->body);
         } catch (Exception $e) {
             $this->logException('Failed to query module ' . $moduleFamily, $e);
-            $exception = $e->getMessage();
+            $exception = $e;
             return false;
         }
     }

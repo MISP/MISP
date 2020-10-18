@@ -5233,7 +5233,7 @@ class Server extends AppModel
             $exception = false;
             $result = $this->Module->getModules($type, $exception);
             if ($exception) {
-                return $exception;
+                return $exception->getMessage();
             }
             if (empty($result)) {
                 return 2;
