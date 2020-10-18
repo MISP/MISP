@@ -3703,7 +3703,7 @@ class Attribute extends AppModel
     }
 
     /**
-     * @param $attribute
+     * @param array $attribute
      * @param bool $context
      * @return array|true
      */
@@ -3713,6 +3713,7 @@ class Attribute extends AppModel
         if (!$context) {
             unset($this->validate['event_id']);
             unset($this->validate['value']['uniqueValue']);
+            unset($this->validate['uuid']['unique']);
         }
         if ($this->validates()) {
             return true;
