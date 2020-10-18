@@ -2651,62 +2651,6 @@ class Server extends AppModel
         return true;
     }
 
-    private function __handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user)
-    {
-        $pulledProposals = array();
-        if (!empty($proposals)) {
-            $shadowAttribute = ClassRegistry::init('ShadowAttribute');
-            $shadowAttribute->recursive = -1;
-            $uuidEvents = array_flip($events);
-            foreach ($proposals as $k => &$proposal) {
-                $proposal = $proposal['ShadowAttribute'];
-                $oldsa = $shadowAttribute->findOldProposal($proposal);
-                $proposal['event_id'] = $uuidEvents[$proposal['event_uuid']];
-                if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
-                    if ($oldsa) {
-                        $shadowAttribute->delete($oldsa['id']);
-                    }
-                    if (!isset($pulledProposals[$proposal['event_id']])) {
-                        $pulledProposals[$proposal['event_id']] = 0;
-                    }
-                    $pulledProposals[$proposal['event_id']]++;
-                    if (isset($proposal['old_id'])) {
-                        $oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
-                        if ($oldAttribute) {
-                            $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-                        } else {
-                            $proposal['old_id'] = 0;
-                        }
-                    }
-                    // check if this is a proposal from an old MISP instance
-                    if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
-                        $proposal['Org'] = $proposal['org'];
-                        $proposal['EventOrg'] = $proposal['event_org'];
-                    } elseif (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
-                        continue;
-                    }
-                    $proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
-                    $proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
-                    unset($proposal['Org']);
-                    unset($proposal['EventOrg']);
-                    $shadowAttribute->create();
-                    if (!isset($proposal['deleted']) || !$proposal['deleted']) {
-                        if ($shadowAttribute->save($proposal)) {
-                            $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
-                        }
-                    }
-                }
-                if ($jobId) {
-                    if ($k % 50 == 0) {
-                        $job->id =  $jobId;
-                        $job->saveField('progress', 50 * (($k + 1) / count($proposals)) + 50);
-                    }
-                }
-            }
-        }
-        return $pulledProposals;
-    }
-
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
     {
         $this->Job = ClassRegistry::init('Job');
