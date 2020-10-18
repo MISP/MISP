@@ -2,18 +2,6 @@
     <?php if ($extendedEvent): ?>
         <div class="alert alert-info"><?= __('Viewing reports in extended event view') ?></div>
     <?php endif; ?>
-    <?php if ($canModify): ?>
-    <div style="margin-bottom: 10px;">
-        <button class="btn btn-small btn-primary" onclick="openGenericModal(baseurl + '/eventReports/add/<?= h($event_id) ?>')">
-            <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add Event Report') ?>
-        </button>
-        <?php if ($importModuleEnabled): ?>
-            <button class="btn btn-small btn-primary" onclick="openGenericModal(baseurl + '/eventReports/importReportFromUrl/<?= h($event_id) ?>')" title="<?= __('Content for this URL will be downloaded and converted to Mardown') ?>">
-                <i class="<?= $this->FontAwesome->getClass('link') ?>"></i> <?= __('Import from URL') ?>
-            </button>
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
     <?php
         echo $this->element('/genericElements/IndexTable/index_table', array(
             'paginatorOptions' => array(
@@ -25,6 +13,29 @@
                     'children' => array(
                         array(
                             'type' => 'simple',
+                            'children' => array(
+                                array(
+                                    'onClick' => 'openGenericModal',
+                                    'onClickParams' => [$baseurl . '/eventReports/add/' . h($event_id)],
+                                    'active' => true,
+                                    'text' => __('Add Event Report'),
+                                    'fa-icon' => 'plus',
+                                    'requirement' => $canModify,
+                                ),
+                                array(
+                                    'onClick' => 'openGenericModal',
+                                    'onClickParams' => [$baseurl . '/eventReports/importReportFromUrl/' . h($event_id)],
+                                    'active' => true,
+                                    'text' => __('Import from URL'),
+                                    'title' => __('Content for this URL will be downloaded and converted to Mardown'),
+                                    'fa-icon' => 'link',
+                                    'requirement' => $canModify && $importModuleEnabled,
+                                ),
+                            )
+                        ),
+                        array(
+                            'type' => 'simple',
+                            'id' => 'eventReportSelectors',
                             'children' => array(
                                 array(
                                     'active' => $context === 'all',
@@ -50,7 +61,7 @@
                 'skip_pagination' => count($reports) < 10,
                 'fields' => array(
                     array(
-                        'name' => __('Id'),
+                        'name' => __('ID'),
                         'sort' => 'id',
                         'class' => 'short',
                         'data_path' => 'EventReport.id',
@@ -63,7 +74,6 @@
                     array(
                         'name' => __('Event ID'),
                         'requirement' => $extendedEvent,
-                        'data_path' => 'EventReport.event_id',
                         'class' => 'short',
                         'element' => 'links',
                         'data_path' => 'EventReport.event_id',
@@ -142,10 +152,9 @@
         $('#eventReportQuickIndex td[data-path="EventReport.name"]').click(function() {
             var reportId = $(this).closest('tr').data('primary-id')
             openGenericModal('/eventReports/viewSummary/' + reportId)
-
         })
 
-        $('#eventReportQuickIndex .btn-toolbar a.btn').click(function(e) {
+        $('#eventReportSelectors a.btn').click(function(e) {
             e.preventDefault()
             $("#eventreport_index_div").empty()
                 .append(
@@ -161,9 +170,9 @@
     })
 
     function reloadEventReportTable() {
-        var url = $("#eventReportQuickIndex a.defaultContext").attr('href')
+        var url = $("#eventReportSelectors a.defaultContext").attr('href')
         $.ajax({
-            dataType:"html",
+            dataType: "html",
             beforeSend: function() {
                 $("#eventreport_index_div").empty()
                 .append(
