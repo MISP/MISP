@@ -2379,7 +2379,7 @@ table tr:hover .down-expand-button {
 }
 
 .strikethrough {
-    text-decoration: line-through;
+    text-decoration: line-through !important;
 }
 
 .highlighted_node {
