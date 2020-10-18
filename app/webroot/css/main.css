@@ -2601,7 +2601,7 @@ table tr:hover .down-expand-button {
 }
 
 /* Threat levels */
-.threat-level-high::before, .threat-level-medium::before, .threat-level-low::before {
+.threat-level-high::before, .threat-level-medium::before, .threat-level-low::before, .threat-level-undefined::before {
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     -moz-osx-font-smoothing: grayscale;
@@ -2627,6 +2627,11 @@ table tr:hover .down-expand-button {
 .threat-level-low::before {
     content: "\f103";
     color: rgb(35,120,40);
+}
+
+.threat-level-undefined::before {
+    content: "\f128";
+    color: gray;
 }
 
 #UserGpgkey, #UserCertifPublic {
