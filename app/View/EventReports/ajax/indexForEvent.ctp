@@ -2,6 +2,7 @@
     <?php if ($extendedEvent): ?>
         <div class="alert alert-info"><?= __('Viewing reports in extended event view') ?></div>
     <?php endif; ?>
+    <?php if ($canModify): ?>
     <div style="margin-bottom: 10px;">
         <button class="btn btn-small btn-primary" onclick="openGenericModal(baseurl + '/eventReports/add/<?= h($event_id) ?>')">
             <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add Event Report') ?>
@@ -12,6 +13,7 @@
             </button>
         <?php endif; ?>
     </div>
+    <?php endif; ?>
     <?php
         echo $this->element('/genericElements/IndexTable/index_table', array(
             'paginatorOptions' => array(

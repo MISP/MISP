@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property EventReport $EventReport
+ */
 class EventReportsController extends AppController
 {
     public $components = array(
@@ -184,6 +186,10 @@ class EventReportsController extends AppController
             $this->set('reports', $reports);
             $this->__injectIndexVariablesToViewContext($filters);
             if (!empty($filters['index_for_event'])) {
+                if (empty($filters['event_id'])) {
+                    throw new MethodNotAllowedException("When requesting index for event, event ID must be provided.");
+                }
+                $this->set('canModify', $this->__canModifyReport($filters['event_id']));
                 $this->set('extendedEvent', !empty($filters['extended_event']));
                 $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
                 $this->set('importModuleEnabled', is_array($fetcherModule));
