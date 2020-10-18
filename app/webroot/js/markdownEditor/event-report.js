@@ -1511,6 +1511,9 @@ function constructGalaxyInfo(tagData) {
     if (tagData.GalaxyCluster.meta !== undefined) {
         Object.keys(tagData.GalaxyCluster.meta).forEach(function(metaKey) {
             var metaValue = tagData.GalaxyCluster.meta[metaKey]
+            if (Array.isArray(metaValue)) {
+                metaValue = metaValue.join(', ')
+            }
             $clusterMeta.append(
                 $('<div/>').append(
                     $('<strong/>').addClass('blue').text(metaKey + ': '),
