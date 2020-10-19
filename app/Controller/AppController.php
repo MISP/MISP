@@ -1180,16 +1180,25 @@ class AppController extends Controller
         $this->redirect($targetRoute);
     }
 
-    protected function _loadAuthenticationPlugins() {
-        // load authentication plugins from Configure::read('Security.auth')
+    /**
+     * Authenticate user by authentication plugin defined in 'Security.auth' config.
+     * @throws Exception
+     */
+    protected function _loadAuthenticationPlugins()
+    {
         $auth = Configure::read('Security.auth');
-
-        if (!$auth) return;
+        if (!$auth) {
+            return;
+        }
 
         $this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
         if ($this->Auth->startup($this)) {
             $user = $this->Auth->user();
             if ($user) {
+                if (!$this->Session->started()) {
+                    throw new Exception("Could not start sessions.");
+                }
+
                 $this->User->updateLoginTimes($user);
                 // User found in the db, add the user info to the session
                 $this->Session->renew();
