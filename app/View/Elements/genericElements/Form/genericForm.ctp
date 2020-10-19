@@ -20,7 +20,7 @@
         'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required'
     );
     $fieldsArrayForPersistence = array();
-    $formCreate = $this->Form->create($modelForForm);
+    $formCreate = $this->Form->create($modelForForm, ['class' => 'genericForm']);
     if (!empty($data['fields'])) {
         foreach ($data['fields'] as $fieldData) {
             if (isset($fieldData['requirements']) && !$fieldData['requirements']) {
@@ -50,10 +50,14 @@
                 } else {
                     $params['class'] = '';
                 }
+                $params['class'] .= ' span6';
                 foreach ($simpleFieldWhitelist as $f) {
                     if (!empty($fieldData[$f])) {
                         $params[$f] = $fieldData[$f];
                     }
+                }
+                if (!empty($params['type']) && $params['type'] === 'dropdown') {
+                    $params['type'] = 'select';
                 }
                 $temp = $this->Form->input($fieldData['field'], $params);
                 $fieldsArrayForPersistence []= $modelForForm . Inflector::camelize($fieldData['field']);
