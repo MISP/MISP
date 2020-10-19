@@ -208,7 +208,8 @@ class User extends AppModel
             'counterQuery' => ''
         ),
         'Post',
-        'UserSetting'
+        'UserSetting',
+        'AuthKey'
     );
 
     public $actsAs = array(
