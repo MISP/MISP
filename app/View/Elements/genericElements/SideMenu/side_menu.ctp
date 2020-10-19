@@ -711,7 +711,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     break;
 
                 case 'admin':
-                    if ($menuItem === 'editUser' || $menuItem === 'viewUser') {
+                    if ($menuItem === 'editUser' || $menuItem === 'viewUser' || $menuItem === 'authKeyIndex') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewUser',
                             'url' => $baseurl . '/admin/users/view/' . h($id),
