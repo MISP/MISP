@@ -1270,6 +1270,14 @@ class Server extends AppModel
                                 'editable' => false,
                                 'redacted' => true
                         ),
+                        'advanced_authkeys' => array(
+                                'level' => 1,
+                                'description' => __('Advanced authkeys will allow each user to create and manage a set of authkeys for themselves, each with individual expirations and comments. API keys are stored in a hashed state and can no longer be recovered from MISP. Users will be prompted to note down their key when creating a new authkey.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                        ),
                         'syslog' => array(
                             'level' => 0,
                             'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
