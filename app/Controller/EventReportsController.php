@@ -192,7 +192,7 @@ class EventReportsController extends AppController
         }
     }
 
-    public function automaticallyExtractFromReport($reportId)
+    public function extractAllFromReport($reportId)
     {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));

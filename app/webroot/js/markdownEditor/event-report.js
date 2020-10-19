@@ -890,7 +890,7 @@ function reloadRenderingRuleEnabledUI() {
  */
 
 function automaticEntitiesExtraction() {
-    var url = baseurl + '/eventReports/automaticallyExtractFromReport/' + reportid
+    var url = baseurl + '/eventReports/extractAllFromReport/' + reportid
     fetchFormDataAjax(url, function(formHTML) {
         $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
         var $tmpForm = $('#temp form')
@@ -933,16 +933,11 @@ function automaticEntitiesExtraction() {
             url: formUrl
         })
     })
-    // send request to server to
-    //     - extract IoCs
-    //     - add them as attributes
-    //     - replace them in report
-    //     - display success to user
 }
 
 function manualEntitiesExtraction() {
     contentBeforeSuggestions = getEditorData()
-    getEntitiesFromReport(function(data) {
+    extractFromReport(function(data) {
         typeToCategoryMapping = data.typeToCategoryMapping
         prepareSuggestionInterface(data.complexTypeOutput)
         toggleSuggestionInterface(true)
@@ -997,7 +992,7 @@ function convertEntityIntoSuggestion(content, entity) {
     return converted
 }
 
-function getEntitiesFromReport(callback) {
+function extractFromReport(callback) {
     $.ajax({
         dataType: "json",
         success:function(data, textStatus) {
@@ -1138,7 +1133,7 @@ function pickSuggestionColumn(index, tableID, force) {
     }
 }
 
-function filterCheckedSuggestion() {
+function getContentWithCheckedElements(isReplacement) {
     var value = pickedSuggestion.entity.value
     var content = getEditorData()
     var contentWithPickedSuggestions = ''
@@ -1149,28 +1144,11 @@ function filterCheckedSuggestion() {
         contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
         nextIndex = suggestion.startIndex.index
         if (suggestion.checked) {
-            contentWithPickedSuggestions += content.substr(nextIndex, suggestionLength)
-        } else {
-            contentWithPickedSuggestions += value
-        }
-        nextIndex += suggestionLength
-    })
-    contentWithPickedSuggestions += content.substr(nextIndex)
-    return contentWithPickedSuggestions
-}
-
-function filterCheckedReplacement() {
-    var value = pickedSuggestion.entity.value
-    var content = getEditorData()
-    var contentWithPickedSuggestions = ''
-    var nextIndex = 0
-    var suggestionLength = '@[suggestion]()'.length + pickedSuggestion.entity.value.length
-    Object.keys(suggestions[value]).forEach(function(suggestionKey, i) {
-        var suggestion = suggestions[value][suggestionKey]
-        contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
-        nextIndex = suggestion.startIndex.index
-        if (suggestion.checked) {
-            contentWithPickedSuggestions += '@[attribute](' + suggestion.complexTypeToolResult.replacement + ')'
+            if (isReplacement) {
+                contentWithPickedSuggestions += '@[attribute](' + suggestion.complexTypeToolResult.replacement + ')'
+            } else {
+                contentWithPickedSuggestions += content.substr(nextIndex, suggestionLength)
+            }
         } else {
             contentWithPickedSuggestions += value
         }
@@ -1193,7 +1171,7 @@ function getSuggestionMapping() {
 }
 
 function submitReplacement() {
-    var contentWithPickedReplacements = filterCheckedReplacement()
+    var contentWithPickedReplacements = getContentWithCheckedElements(true)
     setEditorData(contentWithPickedReplacements);
     saveMarkdown(false, function() {
         setEditorData(originalRaw)
@@ -1205,7 +1183,7 @@ function submitReplacement() {
 
 function submitExtractionSuggestion() {
     var url = baseurl + '/eventReports/replaceSuggestionInReport/' + reportid
-    var contentWithPickedSuggestions = filterCheckedSuggestion()
+    var contentWithPickedSuggestions = getContentWithCheckedElements(false)
     var suggestionsMapping = getSuggestionMapping()
 
     fetchFormDataAjax(url, function(formHTML) {
