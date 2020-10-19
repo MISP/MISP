@@ -199,16 +199,9 @@ class EventReportsController extends AppController
         } else {
             if ($this->request->is('post')) {
                 $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'view', $throwErrors=true, $full=false);
-                $content = $report['EventReport']['content'];
-                App::uses('ComplexTypeTool', 'Tools');
-                $complexTypeTool = new ComplexTypeTool();
-                $this->loadModel('Warninglist');
-                $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-                $complexTypeToolResult = $complexTypeTool->checkComplexRouter($content, 'freetext');
-                $result = $this->EventReport->transformFreeTextIntoReplacement($this->Auth->user(), $report);
-                $complexTypeToolResult = $this->EventReport->removeReplacedComplexTypeToolEntries($complexTypeToolResult, $result['replacedValues']);
-                $result = $this->EventReport->transformFreeTextIntoSuggestion($result['contentWithReplacements'], $complexTypeToolResult);
-                $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $result['contentWithSuggestions'], $result['suggestionsMapping']);
+                $results = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
+                $suggestionResult = $this->EventReport->transformFreeTextIntoSuggestion($results['replacementResult']['contentWithReplacements'], $results['complexTypeToolResult']);
+                $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestionResult['contentWithSuggestions'], $suggestionResult['suggestionsMapping']);
                 if (empty($errors)) {
                     $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
                     $data = [ 'report' => $report ];
@@ -231,17 +224,12 @@ class EventReportsController extends AppController
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
         } else {
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'view', $throwErrors=true, $full=false);
-            $content = $report['EventReport']['content'];
-            App::uses('ComplexTypeTool', 'Tools');
-            $complexTypeTool = new ComplexTypeTool();
-            $this->loadModel('Warninglist');
-            $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-            $complexTypeOutput = $complexTypeTool->checkComplexRouter($content, 'freetext');
-            $complexTypeOutput = $this->EventReport->injectcImportRegexOnComplexTypeToolResult($complexTypeOutput);
+            $results = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
             $typeToCategoryMapping = $this->EventReport->Event->Attribute->typeToCategoryMapping();
             $data = [
-                'complexTypeOutput' => $complexTypeOutput,
-                'typeToCategoryMapping' => $typeToCategoryMapping
+                'complexTypeToolResult' => $results['complexTypeToolResult'],
+                'typeToCategoryMapping' => $typeToCategoryMapping,
+                'replacementValues' => $results['replacementResult']['replacedValues']
             ];
             return $this->RestResponse->viewData($data, $this->response->type());
         }
@@ -255,24 +243,20 @@ class EventReportsController extends AppController
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', $throwErrors=true, $full=false);
             if ($this->request->is('post')) {
                 $errors = [];
-                $suggestions = $this->data['EventReport']['suggestions'];
-                $suggestions = $this->EventReport->jsonDecode($suggestions);
+                $suggestions = $this->EventReport->jsonDecode($this->data['EventReport']['suggestions']);
                 if (!empty($suggestions['content']) && !empty($suggestions['mapping'])) {
-                    $contentWithSuggestions = $suggestions['content'];
-                    $suggestionsMapping = $suggestions['mapping'];
-                    $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $contentWithSuggestions, $suggestionsMapping);
+                    $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestions['content'], $suggestions['mapping']);
                 } else {
                     $errors[] = __('`content` and `mapping` key cannot be empty');
                 }
                 if (empty($errors)) {
                     $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
-                    App::uses('ComplexTypeTool', 'Tools');
-                    $complexTypeTool = new ComplexTypeTool();
-                    $this->loadModel('Warninglist');
-                    $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-                    $resultArray = $complexTypeTool->checkComplexRouter($report['EventReport']['content'], 'freetext');
-                    $data = ['report' => $report, 'complexTypeToolResult' => $resultArray];
-                    
+                    $results = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
+                    $data = [
+                        'report' => $report,
+                        'complexTypeToolResult' => $results['complexTypeToolResult'],
+                        'replacementValues' => $results['replacementResult']['replacedValues']
+                    ];
                     $successMessage = __('Suggestions applied to Event Report %s', $reportId);
                     return $this->__getSuccessResponseBasedOnContext($successMessage, $data, 'applySuggestions', $reportId);
                 } else {

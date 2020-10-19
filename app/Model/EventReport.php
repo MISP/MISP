@@ -569,23 +569,51 @@ class EventReport extends AppModel
             'attribute' => $savedAttribute
         ];
     }
-
-    public function transformFreeTextIntoReplacement($user, $report, $complexTypeToolResult)
+    
+    /**
+     * transformFreeTextIntoReplacement
+     *
+     * @param  array $user
+     * @param  array $report
+     * @param  array $complexTypeToolResult Uses the complex type tool output to support import regex replacements.
+     *                                      Another solution would be to run the regex replacement on each token of the report which is too heavy
+     * @return array
+     */
+    public function transformFreeTextIntoReplacement(array $user, array $report, array $complexTypeToolResult)
     {
-        $complexTypeToolResultWithImportRegex = $this->injectcImportRegexOnComplexTypeToolResult($complexTypeToolResult);
+        $complexTypeToolResultWithImportRegex = $this->injectImportRegexOnComplexTypeToolResult($complexTypeToolResult);
+        $valueToValueWithRegex = Hash::combine($complexTypeToolResultWithImportRegex, '{n}.valueWithImportRegex', '{n}.value');
         $proxyElements = $this->getProxyMISPElements($user, $report['EventReport']['event_id']);
-        $content = $report['EventReport']['content'];
+        $originalContent = $report['EventReport']['content'];
+        $content = $originalContent;
         $replacedValues = [];
         foreach ($proxyElements['attribute'] as $uuid => $attribute) {
             $count = 0;
             $textToInject = sprintf('@[attribute](%s)', $uuid);
-            // if (isset($complexTypeToolResultWithImportRegex[$attribute['value']])) {
-            //     $content = str_replace($complexTypeToolResultWithImportRegex[$attribute['value']], $textToInject, $content, $count);
-            // } else {
-            // }
             $content = str_replace($attribute['value'], $textToInject, $content, $count);
-            if ($count > 0) {
-                $replacedValues[$attribute['value']] = $attribute['value'];
+            if ($count > 0 || strpos($originalContent, $attribute['value'])) { // Check if the value has been replaced by the first match
+                if (!isset($replacedValues[$attribute['value']])) {
+                    $replacedValues[$attribute['value']] = [
+                        'attributeUUIDs' => [$uuid],
+                        'valueInReport' => $attribute['value'],
+                    ];
+                } else {
+                    $replacedValues[$attribute['value']]['attributeUUIDs'][] = $uuid;
+                }
+                $count = 0;
+            }
+            if (isset($valueToValueWithRegex[$attribute['value']]) && $valueToValueWithRegex[$attribute['value']] != $attribute['value']) {
+                $content = str_replace($valueToValueWithRegex[$attribute['value']], $textToInject, $content, $count);
+                if ($count > 0 || strpos($originalContent, $valueToValueWithRegex[$attribute['value']])) {
+                    if (!isset($replacedValues[$attribute['value']])) {
+                        $replacedValues[$attribute['value']] = [
+                            'attributeUUIDs' => [$uuid],
+                            'valueInReport' => $valueToValueWithRegex[$attribute['value']],
+                        ];
+                    } else {
+                        $replacedValues[$attribute['value']]['attributeUUIDs'][] = $uuid;
+                    }
+                }
             }
         }
         return [
@@ -616,17 +644,7 @@ class EventReport extends AppModel
         ];
     }
 
-    public function removeReplacedComplexTypeToolEntries($complexTypeToolResult, $replacedValues)
-    {
-        foreach ($complexTypeToolResult as $i => $entry) {
-            if (isset($replacedValues[$entry['value']])) {
-                unset($complexTypeToolResult[$i]);
-            }
-        }
-        return $complexTypeToolResult;
-    }
-
-    public function injectcImportRegexOnComplexTypeToolResult($complexTypeToolResult) {
+    public function injectImportRegexOnComplexTypeToolResult($complexTypeToolResult) {
         foreach ($complexTypeToolResult as $i => $complexTypeToolEntry) {
             $transformedValue = $this->runRegexp($complexTypeToolEntry['default_type'], $complexTypeToolEntry['value']);
             if ($transformedValue !== false) {
@@ -634,5 +652,26 @@ class EventReport extends AppModel
             }
         }
         return $complexTypeToolResult;
+    }
+
+    public function getComplexTypeToolResultFromReport($content)
+    {
+        App::uses('ComplexTypeTool', 'Tools');
+        $complexTypeTool = new ComplexTypeTool();
+        $this->Warninglist = ClassRegistry::init('Warninglist');
+        $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+        $complexTypeToolResult = $complexTypeTool->checkComplexRouter($content, 'freetext');
+        return $complexTypeToolResult;
+    }
+
+    public function getComplexTypeToolResultWithReplacementsFromReport($user, $report)
+    {
+        $complexTypeToolResult = $this->getComplexTypeToolResultFromReport($report['EventReport']['content']);
+        $replacementResult = $this->transformFreeTextIntoReplacement($user, $report, $complexTypeToolResult);
+        $complexTypeToolResult = $this->getComplexTypeToolResultFromReport($replacementResult['contentWithReplacements']);
+        return [
+            'complexTypeToolResult' => $complexTypeToolResult,
+            'replacementResult' => $replacementResult,
+        ];
     }
 }

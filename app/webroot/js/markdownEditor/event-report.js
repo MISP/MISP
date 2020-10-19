@@ -937,18 +937,18 @@ function automaticEntitiesExtraction() {
 
 function manualEntitiesExtraction() {
     contentBeforeSuggestions = getEditorData()
+    pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
     extractFromReport(function(data) {
         typeToCategoryMapping = data.typeToCategoryMapping
-        prepareSuggestionInterface(data.complexTypeOutput)
+        prepareSuggestionInterface(data.complexTypeToolResult, data.replacementValues)
         toggleSuggestionInterface(true)
     })
 }
 
-function prepareSuggestionInterface(complexTypeOutput) {
+function prepareSuggestionInterface(complexTypeToolResult, replacementValues) {
     toggleMarkdownEditorLoading(true, 'Processing document')
-    entitiesFromComplexTool = complexTypeOutput
-    searchForUnreferenceValues()
-    entitiesFromComplexTool = pruneReplacementEntriesFromComplexToolSuggestion()
+    entitiesFromComplexTool = complexTypeToolResult
+    searchForUnreferenceValues(replacementValues)
     entitiesFromComplexTool = injectNumberOfOccurencesInReport(entitiesFromComplexTool)
     setupSuggestionMarkdownListeners()
     constructSuggestionTables(entitiesFromComplexTool)
@@ -1020,16 +1020,6 @@ function constructSuggestionMapping(entity, indicesInCM) {
     });
 }
 
-function pruneReplacementEntriesFromComplexToolSuggestion() {
-    var filteredEntitiesFromComplexTool = []
-    entitiesFromComplexTool.forEach(function(entity) {
-        if (unreferenceValues[entity.value] === undefined && unreferenceValues[entity.valueWithImportRegex] === undefined) {
-            filteredEntitiesFromComplexTool.push(entity)
-        }
-    })
-    return filteredEntitiesFromComplexTool
-}
-
 function injectNumberOfOccurencesInReport(entities) {
     var content = getEditorData()
     entities.forEach(function(entity, i) {
@@ -1060,38 +1050,25 @@ function toggleSuggestionInterface(enabled) {
     }
 }
 
-function searchForUnreferenceValues() {
+function searchForUnreferenceValues(replacementValues) {
     unreferenceValues = {}
     var content = getEditorData()
-    Object.keys(proxyMISPElements['attribute']).forEach(function(uuid) {
-        var attribute = proxyMISPElements['attribute'][uuid]
-        var matchingEntity = null, importRegexMatch = false
-        var indices = []
-        if (unreferenceValues[attribute.value] === undefined || unreferenceValues[attribute.value].indices === undefined) {
-            indices = getAllIndicesOf(content, attribute.value, true, true)
-        } else {
-            indices = unreferenceValues[attribute.value].indices
-        }
-        if (indices.length == 0) { // Search with replacement regex
-            matchingEntity = entitiesFromComplexTool.filter(function(entity) { return entity.valueWithImportRegex == attribute.value })
-            if (matchingEntity.length > 0) {
-                importRegexMatch = true
-                matchingEntity = matchingEntity[0]
-                proxyMISPElements['attribute'][uuid].importRegexValue = matchingEntity.value
-                indices = getAllIndicesOf(content, matchingEntity.value, true, true)
-            }
-        }
+    Object.keys(replacementValues).forEach(function(attributeValue) {
+        var replacementValue = replacementValues[attributeValue]
+        var indices = getAllIndicesOf(content, replacementValue.valueInReport, true, true)
         if (indices.length > 0) {
-            if (unreferenceValues[attribute.value] === undefined) {
-                unreferenceValues[attribute.value] = {
-                    attributes: [],
-                    indices: null
+            var attributes = [];
+            Object.keys(proxyMISPElements['attribute']).forEach(function(uuid) {
+                if (replacementValue.attributeUUIDs.indexOf(uuid) > -1) {
+                    attributes.push(proxyMISPElements['attribute'][uuid])
                 }
+            });
+            unreferenceValues[replacementValue.valueInReport] = {
+                attributes: attributes,
+                indices: indices
             }
-            unreferenceValues[attribute.value].indices = indices
-            unreferenceValues[attribute.value].attributes.push(attribute)
-            if (importRegexMatch) {
-                unreferenceValues[attribute.value].importRegexMatch = matchingEntity.value
+            if (attributeValue != replacementValue.valueInReport) {
+                unreferenceValues[replacementValue.valueInReport].importRegexMatch = attributeValue
             }
         }
     })
@@ -1175,9 +1152,7 @@ function submitReplacement() {
     setEditorData(contentWithPickedReplacements);
     saveMarkdown(false, function() {
         setEditorData(originalRaw)
-        contentBeforeSuggestions = originalRaw
-        pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
-        pickSuggestionColumn(-1)
+        manualEntitiesExtraction()
     })
 }
 
@@ -1207,6 +1182,7 @@ function submitExtractionSuggestion() {
                     if (postResult.data !== undefined) {
                         var report = postResult.data.report.EventReport
                         var complexTypeToolResult = postResult.data.complexTypeToolResult
+                        var replacementValues = postResult.data.replacementValues
                         lastModified = report.timestamp + '000'
                         refreshLastUpdatedField()
                         originalRaw = report.content
@@ -1216,7 +1192,7 @@ function submitExtractionSuggestion() {
                             contentBeforeSuggestions = originalRaw
                             pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
                             pickSuggestionColumn(-1)
-                            prepareSuggestionInterface(complexTypeToolResult)
+                            prepareSuggestionInterface(complexTypeToolResult, replacementValues)
                         })
                     }
                 }
