@@ -231,7 +231,6 @@ class ACLComponent extends Component
                     'upload_stix' => array('perm_add'),
                     'view' => array('*'),
                     'viewEventAttributes' => array('*'),
-                    'viewEventGraph' => array('*'),
                     'viewGraph' => array('*'),
                     'viewGalaxyMatrix' => array('*'),
                     'xml' => array('*')

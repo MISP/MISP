@@ -1,16 +1,14 @@
 <?php
-$buttonAddStatus = $isAclAdd ? 'button_on':'button_off';
-$mayModify = ($isSiteAdmin || ($isAdmin && ($user['User']['org_id'] == $me['org_id'])));
-$buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     $table_data = array();
     $table_data[] = array('key' => __('ID'), 'value' => $user['User']['id']);
     $table_data[] = array(
         'key' => __('Email'),
         'html' => sprintf(
-            '%s <a class="fas fa-envelope" style="color: black" href="%s/admin/users/quickEmail/%s"></a>',
+            '%s <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s"></a>',
             h($user['User']['email']),
             $baseurl,
-            h($user['User']['id'])
+            h($user['User']['id']),
+            __('Send email to user')
         )
     );
     $table_data[] = array(
@@ -26,10 +24,6 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     $table_data[] = array('key' => __('Autoalert'), 'boolean' => $user['User']['autoalert']);
     $table_data[] = array('key' => __('Contactalert'), 'boolean' => $user['User']['contactalert']);
     $authkey_data = sprintf(
-        '<a onclick="requestAPIAccess();" style="cursor:pointer;">%s</a>',
-        __('Request API access')
-    );
-    $authkey_data = sprintf(
         '<span class="privacy-value quickSelect authkey" data-hidden-value="%s">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="%s"></i>%s',
         h($user['User']['authkey']),
         __('Reveal hidden value'),
@@ -43,7 +37,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         'html' => $authkey_data
     );
     if (Configure::read('Plugin.CustomAuth_enable') && !empty($user['User']['external_auth_key'])) {
-        $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
+        $header = Configure::read('Plugin.CustomAuth_header') ?: 'Authorization';
         $table_data[] = array(
             'key' => __('Customauth header'),
             'html' => sprintf(
@@ -60,12 +54,13 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     $org_admin_data = array();
     foreach ($user['User']['orgAdmins'] as $orgAdminId => $orgAdminEmail) {
         $org_admin_data[] = sprintf(
-            '<a href="%s/admin/users/view/%s">%s</a> <a class="fas fa-envelope" style="color: black" href="%s/admin/users/quickEmail/%s"></a>',
+            '<a href="%s/admin/users/view/%s">%s</a> <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s"></a>',
             $baseurl,
             h($orgAdminId),
             h($orgAdminEmail),
             $baseurl,
-            h($orgAdminId)
+            h($orgAdminId),
+            __('Send email to user')
         );
     }
     $table_data[] = array('key' => __('Org admin'), 'html' => implode('<br>', $org_admin_data));
@@ -73,7 +68,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
     $table_data[] = array('key' => __('Terms accepted'), 'boolean' => $user['User']['termsaccepted']);
     $table_data[] = array('key' => __('Must change password'), 'boolean' => $user['User']['change_pw']);
     $table_data[] = array(
-        'key' => __('GnuPG key'),
+        'key' => __('PGP key'),
         'element' => 'genericElements/key',
         'element_params' => array('key' => $user['User']['gpgkey']),
     );
@@ -81,12 +76,12 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         $table_data[] = array(
             'key' => __('GnuPG fingerprint'),
             'class_value' => "quickSelect bold " . $user['User']['gpgkey'] ? 'green' : 'bold red',
-            'html' => $user['User']['fingerprint'] ? chunk_split(h($user['User']['fingerprint']), 4, ' ') : 'N/A'
+            'value' => $user['User']['fingerprint'] ? chunk_split($user['User']['fingerprint'], 4, ' ') : 'N/A'
         );
         $table_data[] = array(
             'key' => __('GnuPG status'),
             'class_value' => "bold" . (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] != 'OK') ? 'red': 'green',
-            'html' => !empty($user['User']['pgp_status']) ? h($user['User']['pgp_status']) : 'N/A'
+            'value' => !empty($user['User']['pgp_status']) ? $user['User']['pgp_status'] : 'N/A'
         );
     }
     if (Configure::read('SMIME.enabled')) {
@@ -110,14 +105,14 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         'js' => array('vis', 'network-distribution-graph')
     ));
     echo sprintf(
-        '<div class="users view row-fluid"><div class="span8" style="margin:0px;">%s%s</div>%s</div>%s',
+        '<div class="users view row-fluid"><div class="span8" style="margin:0;">%s%s</div>%s</div>',
         sprintf(
             '<h2>%s</h2>%s',
             __('User %s', h($user['User']['email'])),
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
         sprintf(
-            '<br /><a href="%s" class="btn btn-inverse" download>%s</a>',
+            '<br><a href="%s" class="btn btn-inverse" download>%s</a>',
             sprintf(
                 '%s/users/view/%s.json',
                 $baseurl,
@@ -125,9 +120,9 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
             ),
             __('Download user profile for data portability')
         ),
-        '<div id="userEvents"></div>',
-        $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'viewUser'))
+        '<div id="userEvents"></div>'
     );
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'viewUser'));
 ?>
 <script type="text/javascript">
     $(function () {

@@ -16,6 +16,11 @@
         "php-parallel-lint/php-parallel-lint": "^1.2"
     },
     "suggest": {
+        "ext-openssl": "Enabling the openssl extension allows you to access https URLs",
+        "ext-redis": "For working background jobs and feed and warninglist chaches",
+        "ext-zip": "Enabling processing feeds that are ZIP compressed",
+        "ext-zlib": "Allow gzip compression of HTTP requests",
+        "ext-intl": "For handling IDN domain names",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3"
     },

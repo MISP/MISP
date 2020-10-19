@@ -5915,7 +5915,6 @@ class Event extends AppModel
             return $this->assetCache['tagFilters'];
         } else {
             $filters = array();
-            $tag = ClassRegistry::init('Tag');
             $args = $this->Attribute->dissectArgs($tagRules);
             $tagArray = $this->EventTag->Tag->fetchEventTagIds($args[0], $args[1]);
             if (!empty($tagArray[0])) {
