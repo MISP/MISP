@@ -61,4 +61,5 @@ There are a few reasons why the data you want to ingest may be truncated or ther
 - The most obvious reason is the impossibility to map 100\% of the STIX objects and fields into MISP format.
 - The import of STIX data into MISP is made to keep the uuids when possible. If you import an indicator with an uuid already existing in MISP, it will be skipped.
 - If one file raises an error and is not imported at all, there might be an issue in the import script.
+
 Once the ingestion is completed, each ingested file is also saved within the corresponding MISP event, so the initial data is available if needed.
