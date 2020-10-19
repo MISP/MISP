@@ -224,12 +224,14 @@ class EventReportsController extends AppController
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
         } else {
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'view', $throwErrors=true, $full=false);
-            $results = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
+            $dataResults = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
+            $contextResults = $this->EventReport->extractWithReplacementsFromReport($this->Auth->user(), $report);
             $typeToCategoryMapping = $this->EventReport->Event->Attribute->typeToCategoryMapping();
             $data = [
-                'complexTypeToolResult' => $results['complexTypeToolResult'],
+                'complexTypeToolResult' => $dataResults['complexTypeToolResult'],
                 'typeToCategoryMapping' => $typeToCategoryMapping,
-                'replacementValues' => $results['replacementResult']['replacedValues']
+                'replacementValues' => $dataResults['replacementResult']['replacedValues'],
+                'replacementContext' => $contextResults['replacedContext']
             ];
             return $this->RestResponse->viewData($data, $this->response->type());
         }

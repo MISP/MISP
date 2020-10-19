@@ -48,9 +48,12 @@ var contentBeforeSuggestions
 var typeToCategoryMapping
 var entitiesFromComplexTool
 var $suggestionContainer
-var unreferenceValues;
+var unreferencedElements = {
+    values: null,
+    context: null
+};
 var suggestions = {}
-var pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
+var pickedSuggestion = { tableID: null, tr: null, entity: null, index: null, isContext: null }
 
 /**
    _____          _      __  __ _                     
@@ -676,7 +679,9 @@ function attachRemoteMISPElements() {
         clearTimeout(tagTimers[cacheKey]);
         if (cache_tag[cacheKey] === undefined) {
             tagTimers[cacheKey] = setTimeout(function() {
-                attachTagInfo($div, eventID, elementID)
+                fetchTagInfo(eventID, elementID, function() {
+                    attachTagInfo($div, eventID, elementID, true)
+                })
             }, slowDebounceDelay);
         } else {
             $div.html(cache_tag[cacheKey])
@@ -728,10 +733,20 @@ function attachGalaxyMatrix($elem, eventid, elementID) {
     })
 }
 
-function attachTagInfo($elem, eventid, elementID) {
+function attachTagInfo($elem, eventid, elementID, all) {
+    var cacheKey = eventid + '-' + elementID
+    $elem.html(cache_tag[cacheKey])
+    if (all === true) {
+        $('.embeddedTag[data-scope="tag"]').filter(function() {
+            return $(this).data('eventid') == eventid && $(this).data('elementid') == elementID
+        }).html(cache_tag[cacheKey])
+    }
+}
+
+function fetchTagInfo(eventid, tagName, callback) {
     $.ajax({
         data: {
-            "tag": elementID,
+            "tag": tagName,
         },
         success:function(data, textStatus) {
             var $tag
@@ -739,31 +754,33 @@ function attachTagInfo($elem, eventid, elementID) {
             var tagData;
             for (var i = 0; i < data.length; i++) {
                 var tag = data[i];
-                if (tag.Tag.name == elementID) {
+                if (tag.Tag.name == tagName) {
                     tagData = data[i]
                     break
                 }
             }
             if (tagData === undefined) {
                 tagData = {}
-                $tag = constructTagHtml(elementID, '#ffffff', {'border': '1px solid #000'})
+                $tag = constructTagHtml(tagName, '#ffffff', {'border': '1px solid #000'})
             } else {
                 $tag = getTagReprensentation(tagData)
-                proxyMISPElements['tag'][elementID] = tagData
+                proxyMISPElements['tag'][tagName] = tagData
             }
-            $elem.empty().append($tag)
-            var cacheKey = eventid + '-' + elementID
+            var cacheKey = eventid + '-' + tagName
             cache_tag[cacheKey] = $tag[0].outerHTML;
         },
         error: function(jqXHR, textStatus, errorThrown) {
             var templateVariables = sanitizeObject({
                 scope: 'Error while fetching tag',
-                id: elementID
+                id: tagName
             })
             var placeholder = dotTemplateInvalid(templateVariables)
-            $elem.empty()
-                .css({'text-align': 'center'})
-                .append($(placeholder))
+            cache_tag[cacheKey] = placeholder;
+        },
+        complete: function() {
+            if (callback !== undefined) {
+                callback()
+            }
         },
         type:"post",
         url: baseurl + "/tags/search/0/1/0"
@@ -937,18 +954,19 @@ function automaticEntitiesExtraction() {
 
 function manualEntitiesExtraction() {
     contentBeforeSuggestions = getEditorData()
-    pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
+    pickedSuggestion = { tableID: null, tr: null, entity: null, index: null, isContext: null }
     extractFromReport(function(data) {
         typeToCategoryMapping = data.typeToCategoryMapping
-        prepareSuggestionInterface(data.complexTypeToolResult, data.replacementValues)
+        prepareSuggestionInterface(data.complexTypeToolResult, data.replacementValues, data.replacementContext)
         toggleSuggestionInterface(true)
     })
 }
 
-function prepareSuggestionInterface(complexTypeToolResult, replacementValues) {
+function prepareSuggestionInterface(complexTypeToolResult, replacementValues, replacementContext) {
     toggleMarkdownEditorLoading(true, 'Processing document')
     entitiesFromComplexTool = complexTypeToolResult
-    searchForUnreferenceValues(replacementValues)
+    searchForUnreferencedValues(replacementValues)
+    searchForUnreferencedContext(replacementContext)
     entitiesFromComplexTool = injectNumberOfOccurencesInReport(entitiesFromComplexTool)
     setupSuggestionMarkdownListeners()
     constructSuggestionTables(entitiesFromComplexTool)
@@ -1050,8 +1068,8 @@ function toggleSuggestionInterface(enabled) {
     }
 }
 
-function searchForUnreferenceValues(replacementValues) {
-    unreferenceValues = {}
+function searchForUnreferencedValues(replacementValues) {
+    unreferencedElements.values = {}
     var content = getEditorData()
     Object.keys(replacementValues).forEach(function(attributeValue) {
         var replacementValue = replacementValues[attributeValue]
@@ -1063,15 +1081,27 @@ function searchForUnreferenceValues(replacementValues) {
                     attributes.push(proxyMISPElements['attribute'][uuid])
                 }
             });
-            unreferenceValues[replacementValue.valueInReport] = {
+            unreferencedElements.values[replacementValue.valueInReport] = {
                 attributes: attributes,
                 indices: indices
             }
             if (attributeValue != replacementValue.valueInReport) {
-                unreferenceValues[replacementValue.valueInReport].importRegexMatch = attributeValue
+                unreferencedElements.values[replacementValue.valueInReport].importRegexMatch = attributeValue
             }
         }
     })
+}
+
+function searchForUnreferencedContext(replacementContext) {
+    unreferencedElements.context = {}
+    var content = getEditorData()
+    Object.keys(replacementContext).forEach(function(rawText) {
+        var indices = getAllIndicesOf(content, rawText, true, true)
+        if (indices.length > 0) {
+            replacementContext[rawText].indices = indices
+        }
+    })
+    unreferencedElements.context = replacementContext;
 }
 
 function pickSuggestionColumn(index, tableID, force) {
@@ -1101,6 +1131,14 @@ function pickSuggestionColumn(index, tableID, force) {
                     pickedSuggestion['entity']['importRegexMatch'] = proxyMISPElements['attribute'][uuid].importRegexValue
                 }
                 highlightPickedReplacementInReport()
+            } else if (tableID == 'contextReplacementTable') {
+                pickedSuggestion['entity'] = {
+                    value: $tr.data('contextValue'),
+                    picked_type: 'tag',
+                    replacement: $tr.find('select.context-replacement').val()
+                }
+                pickedSuggestion['isContext'] = true
+                highlightPickedReplacementInReport()
             } else {
                 pickedSuggestion['entity'] = $tr.data('entity')
                 pickedSuggestion['entity']['picked_type'] = $tr.find('select.type').val()
@@ -1122,7 +1160,11 @@ function getContentWithCheckedElements(isReplacement) {
         nextIndex = suggestion.startIndex.index
         if (suggestion.checked) {
             if (isReplacement) {
-                contentWithPickedSuggestions += '@[attribute](' + suggestion.complexTypeToolResult.replacement + ')'
+                if (suggestion.isContext === true) {
+                    contentWithPickedSuggestions += '@[attribute](' + suggestion.complexTypeToolResult.replacement + ')'
+                } else {
+                    contentWithPickedSuggestions += '@[tag](' + suggestion.complexTypeToolResult.replacement + ')'
+                }
             } else {
                 contentWithPickedSuggestions += content.substr(nextIndex, suggestionLength)
             }
@@ -1190,7 +1232,7 @@ function submitExtractionSuggestion() {
                         fetchProxyMISPElements(function() {
                             setEditorData(originalRaw)
                             contentBeforeSuggestions = originalRaw
-                            pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
+                            pickedSuggestion = { tableID: null, tr: null, entity: null, index: null, isContext: null }
                             pickSuggestionColumn(-1)
                             prepareSuggestionInterface(complexTypeToolResult, replacementValues)
                         })
@@ -1558,24 +1600,34 @@ function buildBodyForMISPElement(data) {
 
 function constructSuggestionTables(entities) {
     var $extractionTable = constructExtractionTable(entities)
-    var $replacementTable = constructReplacementTable(unreferenceValues)
+    var $replacementTable = constructReplacementTable(unreferencedElements.values)
+    var $contextReplacementTable = constructContextReplacementTable(unreferencedElements.context)
     var $collapsibleControl = $('<ul class="nav nav-tabs" id="suggestionTableTabs" />').append(
         $('<li/>').append(
             $('<a/>').attr('href', '#replacement-table').append(
-                $('<span/>').text('Replacement table'),
-                $('<span class="badge badge-important"/>').css({'padding': '2px 6px', 'margin-left': '3px'}).text(Object.keys(unreferenceValues).length)
-            ).attr('title', 'Replace raw text into attribute reference')
+                $('<i/>').addClass('fas fa-cube'),
+                $('<span/>').text(' Data Replacement'),
+                $('<span class="badge badge-important"/>').css({'padding': '2px 6px', 'margin-left': '3px'}).text(Object.keys(unreferencedElements.values).length)
+            ).attr('title', 'Replace raw text into attribute reference').css('padding', '8px 8px')
+        ),
+        $('<li/>').append(
+            $('<a/>').attr('href', '#replacement-context-table').append(
+                $('<i/>').addClass('fas fa-atlas'),
+                $('<span/>').text(' Context replacement'),
+                $('<span class="badge badge-important"/>').css({'padding': '2px 6px', 'margin-left': '3px'}).text(Object.keys(unreferencedElements.context).length)
+            ).attr('title', 'Replace raw text into context reference').css('padding', '8px 8px')
         ),
         $('<li/>').append(
             $('<a/>').attr('href', '#extraction-table').append(
-                $('<span/>').text('Extraction table'),
+                $('<span/>').text('Data extraction'),
                 $('<span class="badge badge-warning"/>').css({'padding': '2px 6px', 'margin-left': '3px'}).text(entities.length)
             ).attr('title', 'Convert raw text into attribute and reference it')
         )
     )
     var $collapsibleContent = $('<div class="tab-content"/>').append(
-        $('<div class="tab-pane" id="extraction-table" />').append($extractionTable),
         $('<div class="tab-pane" id="replacement-table" />').append($replacementTable),
+        $('<div class="tab-pane" id="replacement-context-table" />').append($contextReplacementTable),
+        $('<div class="tab-pane" id="extraction-table" />').append($extractionTable),
         $('<div class="tab-pane active" />').text('Pick a table to view available actions').css({
             'text-align': 'center',
             'opacity': '80%'
@@ -1588,7 +1640,7 @@ function constructSuggestionTables(entities) {
             'margin-right': '3px'
         }).append(
             $('<i/>').addClass('fas fa-expand-arrows-alt').css('margin-right', '5px'),
-            $('<span/>').text('Toggle fullscreen')
+            $('<span/>').text('Fullscreen')
         ).click(toggleFullscreenMode),
         $collapsibleControl
     )
@@ -1679,7 +1731,7 @@ function constructExtractionTable(entities) {
     return $table
 }
 
-function constructReplacementTable(unreferenceValues) {
+function constructReplacementTable(unreferencedValues) {
     var $table = $('<table/>').attr('id', 'replacementTable').addClass('table table-striped table-condensed').css('flex-grow', '1')
     var $thead = $('<thead/>').append($('<tr/>').append(
         $('<th/>').text('Value').css('min-width', '10rem'),
@@ -1688,9 +1740,9 @@ function constructReplacementTable(unreferenceValues) {
         $('<th/>').text('Action')
     ))
     var $tbody = $('<tbody/>')
-    Object.keys(unreferenceValues).forEach(function(value, index) {
+    Object.keys(unreferencedValues).forEach(function(value, index) {
         var $selectContainer, $select, $option
-        var unreferenceValue = unreferenceValues[value]
+        var unreferenceValue = unreferencedValues[value]
         if(unreferenceValue.attributes.length > 1) {
             $select = $('<select/>').addClass('attribute-replacement').css({
                 'width': 'auto',
@@ -1795,6 +1847,96 @@ function constructReplacementTable(unreferenceValues) {
         $tr.click(function() {
             var index = $(this).data('entityindex')
             pickSuggestionColumn(index, 'replacementTable')
+        })
+        $tbody.append($tr)
+    })
+    $table.append($thead, $tbody)
+    return $table
+}
+
+function constructContextReplacementTable(unreferencedContext) {
+    var $table = $('<table/>').attr('id', 'contextReplacementTable').addClass('table table-striped table-condensed').css('flex-grow', '1')
+    var $thead = $('<thead/>').append($('<tr/>').append(
+        $('<th/>').text('Value').css('min-width', '10rem'),
+        $('<th/>').text('Existing context'),
+        $('<th/>').text('Occurrences'),
+        $('<th/>').text('Action')
+    ))
+    var $tbody = $('<tbody/>')
+    Object.keys(unreferencedContext).forEach(function(rawText, index) {
+        var contexts = unreferencedContext[rawText]
+        var $selectContainer, $select, $option
+        if(Object.keys(contexts).length > 2) {
+            $select = $('<select/>').addClass('context-replacement').css({
+                'width': 'auto',
+                'max-width': '300px'
+            }).change(function() {
+                if ($('#viewer-container .popover.in').length > 0) {
+                    $(this).parent().find('.helpicon').popover('show')
+                }
+                pickSuggestionColumn(index, 'contextReplacementTable', true)
+            })
+            Object.keys(contexts).forEach(function(tagName, index) {
+                if (tagName == 'indices') {
+                    return
+                }
+                var context = contexts[tagName]
+                var contextToRender = jQuery.extend(true, { }, context)
+                contextToRender.value = tagName
+                contextToRender.name = tagName
+                $option = $('<option/>').val(tagName).append(renderHintElement('tag', contextToRender))
+                $option = $('<option/>').val(tagName).text(tagName)
+                $select.append($option)
+            })
+            $selectContainer = $('<span/>').css({
+                'white-space': 'nowrap'
+            }).append($select)
+        } else {
+            var context = jQuery.extend(true, { }, contexts)
+            delete context.indices
+            var tagName = Object.keys(context)[0]
+            context = context[tagName]
+            var contextToRender = jQuery.extend(true, { }, context)
+            contextToRender.value = tagName
+            contextToRender.name = tagName
+            $selectContainer = $('<span/>')
+                .append(renderHintElement('tag', contextToRender))
+                .append($('<select/>').addClass('context-replacement hidden').append($('<option/>').text(tagName).val(tagName)))
+        }
+
+        var $tr = $('<tr/>').attr('data-entityindex', index)
+            .data('contextValue', rawText)
+            .addClass('useCursorPointer')
+            .append(
+                $('<td/>').addClass('bold blue').text(rawText).css('word-wrap', 'anywhere'),
+                $('<td/>').append($selectContainer),
+                $('<td/>').append($('<span/>').addClass('input-prepend input-append').append(
+                    $('<button type="button"/>').attr('title', 'Jump to previous occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
+                        $('<a/>').addClass('fas fa-caret-left')
+                    ).click(function(e) {
+                        e.stopPropagation()
+                        jumpToPreviousOccurrence()
+                    }),
+                    $('<input type="text" disabled />').css('max-width', '2em').val(contexts.indices.length),
+                    $('<button type="button"/>').attr('title', 'Jump to next occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
+                        $('<a/>').addClass('fas fa-caret-right')
+                    ).click(function(e) {
+                        e.stopPropagation()
+                        jumpToNextOccurrence()
+                    }),
+                )),
+                $('<td/>').append(
+                    $('<span/>').css('white-space', 'nowrap').append(
+                        $('<button type="button"/>').addClass('btn')
+                            .prop('disabled', true)
+                            .text('Replace & Save')
+                            .click(submitReplacement)
+                    )
+                )
+            )
+        $tr.click(function() {
+            var index = $(this).data('entityindex')
+            pickSuggestionColumn(index, 'contextReplacementTable')
         })
         $tbody.append($tr)
     })

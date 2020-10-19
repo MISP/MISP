@@ -674,4 +674,161 @@ class EventReport extends AppModel
             'replacementResult' => $replacementResult,
         ];
     }
+    
+    /**
+     * extractWithReplacementsFromReport Extract context information from report with special care for ATT&CK
+     *
+     * @param  array $user
+     * @param  array $report
+     * @return array
+     */
+    public function extractWithReplacementsFromReport(array $user, array $report, $options = [])
+    {
+        $baseOptions = [
+            'replace' => false,
+            'tags' => true,
+            'synonyms' => true,
+            'synonyms_min_characters' => 4,
+            'prune_deprecated' => true,
+            'attack' => true,
+        ];
+        $options = array_merge($baseOptions, $options);
+        $originalContent = $report['EventReport']['content'];
+        $replacedContext = [];
+        $content = $originalContent;
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $mitreAttackGalaxyId = $this->GalaxyCluster->Galaxy->getMitreAttackGalaxyId();
+        $clusterContain = ['Tag'];
+
+        if ($options['prune_deprecated']) {
+            $clusterContain['Galaxy'] = ['conditions' => ['Galaxy.namespace !=' => 'deprecated']];
+        }
+        if ($options['synonyms']) {
+            $clusterContain['GalaxyElement'] = ['conditions' => ['GalaxyElement.key' => 'synonyms']];
+        }
+        $clusterConditions = [];
+        if ($options['attack']) {
+            $clusterConditions = ['GalaxyCluster.galaxy_id !=' => $mitreAttackGalaxyId];
+        }
+        $clusters = $this->GalaxyCluster->find('all', [
+            'conditions' => $clusterConditions,
+            'contain' => $clusterContain
+        ]);
+
+        if ($options['tags']) {
+            $this->Tag = ClassRegistry::init('Tag');
+            $tags = $this->Tag->fetchUsableTags($user);
+            foreach ($tags as $i => $tag) {
+                $tagName = $tag['Tag']['name'];
+                $textToInject = sprintf('@[tag](%s)', $tagName);
+                $count = 0;
+                if ($options['replace']) {
+                    $count = 0;
+                    $content = str_replace($tagName, $textToInject, $content, $count);
+                } else {
+                    $count = strpos($originalContent, $tagName) === false ? -1 : 1;
+                }
+                if ($count > 0) {
+                    $replacedContext[$tagName][$tagName] = $tag['Tag'];
+                } else {
+                    $tagNameUpper = strtoupper($tagName);
+                    if ($options['replace']) {
+                        $count = 0;
+                        $content = str_replace($tagNameUpper, $textToInject, $content, $count);
+                    } else {
+                        $count = strpos($originalContent, $tagNameUpper) === false ? -1 : 1;
+                    }
+                    if ($count > 0) {
+                        $replacedContext[$tagNameUpper][$tagName] = $tag['Tag'];
+                    }
+                }
+            }
+        }
+
+        foreach ($clusters as $i => $cluster) {
+            $cluster['GalaxyCluster']['colour'] = '#0088cc';
+            $tagName = $cluster['GalaxyCluster']['tag_name'];
+            $textToInject = sprintf('@[tag](%s)', $tagName);
+            if ($options['replace']) {
+                $count = 0;
+                $content = str_replace($tagName, $textToInject, $content, $count);
+            } else {
+                $count = strpos($originalContent, $tagName) === false ? -1 : 1;
+            }
+            if ($count > 0) {
+                $replacedContext[$tagName][$tagName] = $cluster['GalaxyCluster'];
+            }
+            if ($options['replace']) {
+                $count = 0;
+                $content = str_replace($cluster['GalaxyCluster']['value'], $textToInject, $content, $count);
+            } else {
+                $count = strpos($originalContent, $cluster['GalaxyCluster']['value']) === false ? -1 : 1;
+            }
+            if ($count > 0) {
+                $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
+            }
+            if ($options['synonyms']) {
+                foreach ($cluster['GalaxyElement'] as $j => $element) {
+                    if (strlen($element['value']) >= $options['synonyms_min_characters']) {
+                        if ($options['replace']) {
+                            $count = 0;
+                            $content = str_replace($element['value'], $textToInject, $content, $count);
+                        } else {
+                            $count = strpos($originalContent, $element['value']) === false ? -1 : 1;
+                        }
+                        if ($count > 0) {
+                            $replacedContext[$element['value']][$tagName] = $cluster['GalaxyCluster'];
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($options['attack']) {
+            unset($clusterContain['Galaxy']);
+            $attackClusters = $this->GalaxyCluster->find('all', [
+                'conditions' => ['GalaxyCluster.galaxy_id' => $mitreAttackGalaxyId],
+                'contain' => $clusterContain
+            ]);
+            foreach ($attackClusters as $i => $cluster) {
+                $cluster['GalaxyCluster']['colour'] = '#0088cc';
+                $tagName = $cluster['GalaxyCluster']['tag_name'];
+                $textToInject = sprintf('@[tag](%s)', $tagName);
+                if ($options['replace']) {
+                    $count = 0;
+                    $content = str_replace($cluster['GalaxyCluster']['value'], $textToInject, $content, $count);
+                } else {
+                    $count = strpos($originalContent, $cluster['GalaxyCluster']['value']) === false ? -1 : 1;
+                }
+                if ($count > 0) {
+                    $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
+                } else {
+                    $clusterParts = explode(' - ', $cluster['GalaxyCluster']['value']);
+                    if ($options['replace']) {
+                        $count = 0;
+                        $content = str_replace($clusterParts[0], $textToInject, $content, $count);
+                    } else {
+                        $count = strpos($originalContent, $clusterParts[0]) === false ? -1 : 1;
+                    }
+                    if ($count > 0) {
+                        $replacedContext[$clusterParts[0]][$tagName] = $cluster['GalaxyCluster'];
+                    } else {
+                        if ($options['replace']) {
+                            $count = 0;
+                            $content = str_replace($clusterParts[1], $textToInject, $content, $count);
+                        } else {
+                            $count = strpos($originalContent, $clusterParts[1]) === false ? -1 : 1;
+                        }
+                        if ($count > 0) {
+                            $replacedContext[$clusterParts[1]][$tagName] = $cluster['GalaxyCluster'];
+                        }
+                    }
+                }
+            }
+        }
+        return [
+            'replacedContext' => $replacedContext,
+            'contentWithReplacements' => $content
+        ];
+    }
 }
