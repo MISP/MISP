@@ -70,7 +70,8 @@
                     'class' => 'bold quickSelect',
                     'data_path' => 'User.authkey',
                     'onClick' => 'quickSelect(this);',
-                    'privacy' => 1
+                    'privacy' => 1,
+                    'requirement' => empty(Configure::read('Security.advanced_authkeys'))
                 ),
                 array(
                     'name' => __('Autoalert'),
