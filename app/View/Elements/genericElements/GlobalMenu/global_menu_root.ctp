@@ -28,7 +28,7 @@
             }
         }
 
-        if ($data['url'] === '#' && empty($child_data)) {
+        if ($data['url'] === '#' && !empty($data['children']) && empty($child_data)) {
             return;
         }
 
