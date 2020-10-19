@@ -10,8 +10,8 @@ def ingest_to_misp(path, version, url, key, verifycert):
         return f'Unable to connect to MISP ({url}). Please make sure the API key and the URL are correct.'
 
     errors = []
-    for filename in args.path:
-        response = misp.upload_stix(filename, version=args.version)
+    for filename in path:
+        response = misp.upload_stix(filename, version=version)
         if response.status_code != 200:
             errors.append(filename)
 
@@ -19,7 +19,7 @@ def ingest_to_misp(path, version, url, key, verifycert):
         file = "file: " if len(errors) == 1 else "files:\n- "
         print_errors = '\n- '.join(errors)
         return f'Error with the ingestion of the following {file}{print_errors}'
-    return f'Successfully ingested {len(args.path)} STIX {args.version} files.'
+    return f'Successfully ingested {len(path)} STIX {version} files.'
 
 
 if __name__ == '__main__':
