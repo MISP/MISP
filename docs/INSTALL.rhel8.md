@@ -208,14 +208,17 @@ installCoreRHEL () {
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW git config core.filemode false
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
   cd $PATH_TO_MISP/app/files/scripts/python-stix
+  $SUDO_WWW git config core.filemode false
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
   # install mixbox to accommodate the new STIX dependencies:
   cd $PATH_TO_MISP/app/files/scripts/mixbox
+  $SUDO_WWW git config core.filemode false
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
   # install STIX2.0 library to support STIX 2.0 export:
@@ -236,6 +239,7 @@ installCoreRHEL () {
   sudo yum install cmake3 -y
 
   cd $PATH_TO_MISP/app/files/scripts/lief
+  $SUDO_WWW git config core.filemode false
   $SUDO_WWW mkdir build
   cd build
   $SUDO_WWW cmake3 \
