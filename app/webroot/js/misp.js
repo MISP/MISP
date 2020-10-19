@@ -5084,3 +5084,17 @@ function changeLocationFromIndexDblclick(row_index) {
     var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
     window.location = href;
 }
+
+function submitGenericFormInPlace() {
+    $.ajax({
+        type: "POST",
+        url: $('.genericForm').attr('action'),
+        data: $('.genericForm').serialize(), // serializes the form's elements.
+        success: function(data)
+        {
+            $('#genericModal').remove();
+            $('body').append(data);
+            $('#genericModal').modal();
+        }
+    });
+}
