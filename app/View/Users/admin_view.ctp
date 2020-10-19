@@ -29,18 +29,21 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         '<a onclick="requestAPIAccess();" style="cursor:pointer;"></a>',
         __('Request API access')
     );
-    $authkey_data = sprintf(
-        '<span class="quickSelect">%s</span>%s',
-        h($user['User']['authkey']),
-        sprintf(
-            ' (%s)',
-            $this->Form->postLink(__('reset'), array('action' => 'resetauthkey', $user['User']['id']))
-        )
-    );
-    $table_data[] = array(
-        'key' => __('Authkey'),
-        'html' => $authkey_data
-    );
+    if (empty(Configure::read('Security.advanced_authkeys'))) {
+        $authkey_data = sprintf(
+            '<span class="quickSelect">%s</span>%s',
+            h($user['User']['authkey']),
+            sprintf(
+                ' (%s)',
+                $this->Form->postLink(__('reset'), array('action' => 'resetauthkey', $user['User']['id']))
+            )
+        );
+        $table_data[] = array(
+            'key' => __('Authkey'),
+            'html' => $authkey_data
+        );
+    }
+
     if (Configure::read('Plugin.CustomAuth_enable') && !empty($user['User']['external_auth_key'])) {
         $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
         $table_data[] = array(
@@ -103,7 +106,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         'js' => array('vis', 'network-distribution-graph')
     ));
     echo sprintf(
-        '<div class="users view row-fluid"><div class="span8" style="margin:0px;">%s%s</div>%s</div>%s',
+        '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s<div style="margin-top:20px;">%s%s</div></div>%s',
         sprintf(
             '<h2>%s</h2>%s',
             __('User'),
@@ -118,7 +121,9 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
             ),
             __('Download user profile for data portability')
         ),
-        '<div id="userEvents"></div>',
+        //'<div id="userEvents"></div>',
+        $this->element('/genericElements/accordion', array('title' => 'Authkeys', 'url' => '/auth_keys/index/' . h($user['User']['id']))),
+        $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => '/events/index/searchemail:' . urlencode(h($user['User']['email'])))),
         $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'viewUser'))
     );
 ?>
