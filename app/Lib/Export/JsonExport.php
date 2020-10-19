@@ -42,9 +42,8 @@ class JsonExport
 			unset($attribute['Object']);
 		}
 		$tagTypes = array('AttributeTag', 'EventTag');
-		foreach($tagTypes as $tagType) {
+		foreach ($tagTypes as $tagType) {
 			if (isset($attribute[$tagType])) {
-				$attributeTags = array();
 				foreach ($attribute[$tagType] as $tk => $tag) {
 					if ($tagType === 'EventTag') {
 						$attribute[$tagType][$tk]['Tag']['inherited'] = 1;

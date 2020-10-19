@@ -4655,21 +4655,25 @@ class Attribute extends AppModel
         $continue = true;
         while ($continue) {
             $results = $this->fetchAttributes($user, $params, $continue);
+            if (empty($results)) {
+                return true;
+            }
             if ($params['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
             $params['page'] += 1;
             $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
+            $resultsCount = count($results);
             $i = 0;
             $temp = '';
+            $elementCounter += $resultsCount;
             foreach ($results as $attribute) {
-                $elementCounter++;
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
                 $temp .= $handlerResult;
                 if ($handlerResult !== '') {
-                    if ($i != count($results) -1) {
-                        $temp .= $exportTool->separator($exportToolParams);
+                    if ($i != ($resultsCount - 1)) {
+                        $temp .= $exportTool->separator();
                     }
                 }
                 $i++;
@@ -4678,7 +4682,7 @@ class Attribute extends AppModel
                 $continue = false;
             }
             if ($continue) {
-                $temp .= $exportTool->separator($exportToolParams);
+                $temp .= $exportTool->separator();
             }
             $tmpfile->write($temp);
         }
