@@ -560,14 +560,25 @@ class UsersController extends AppController
 
     public function admin_view($id = null)
     {
+        $contain = [
+            'UserSetting',
+            'Role',
+            'Organisation'
+        ];
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            $contain['AuthKey'] = [
+                'conditions' => [
+                    'OR' => [
+                        'AuthKey.expiration' => 0,
+                        'AuthKey.expiration <' => time()
+                    ]
+                ]
+            ];
+        }
         $user = $this->User->find('first', array(
             'recursive' => -1,
             'conditions' => array('User.id' => $id),
-            'contain' => array(
-                'UserSetting',
-                'Role',
-                'Organisation'
-            )
+            'contain' => $contain
         ));
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
