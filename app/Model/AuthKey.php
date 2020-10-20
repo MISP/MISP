@@ -41,13 +41,15 @@ class AuthKey extends AppModel
             }
             if (empty($this->data['AuthKey']['authkey'])) {
                 $authkey = (new RandomTool())->random_str(true, 40);
-                $passwordHasher = new BlowfishPasswordHasher();
-                $this->data['AuthKey']['authkey'] = $passwordHasher->hash($authkey);
-                $this->data['AuthKey']['authkey_start'] = substr($authkey, 0, 4);
-                $this->data['AuthKey']['authkey_end'] = substr($authkey, -4);
-                $this->data['AuthKey']['authkey_raw'] = $authkey;
-                $this->authkey_raw = $authkey;
+            } else {
+                $authkey = $this->data['AuthKey']['authkey'];
             }
+            $passwordHasher = new BlowfishPasswordHasher();
+            $this->data['AuthKey']['authkey'] = $passwordHasher->hash($authkey);
+            $this->data['AuthKey']['authkey_start'] = substr($authkey, 0, 4);
+            $this->data['AuthKey']['authkey_end'] = substr($authkey, -4);
+            $this->data['AuthKey']['authkey_raw'] = $authkey;
+            $this->authkey_raw = $authkey;
             if (empty($this->data['AuthKey']['expiration'])) {
                 $this->data['AuthKey']['expiration'] = 0;
             } else {

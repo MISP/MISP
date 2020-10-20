@@ -1281,7 +1281,7 @@ class Server extends AppModel
                         ),
                         'advanced_authkeys' => array(
                                 'level' => 1,
-                                'description' => __('Advanced authkeys will allow each user to create and manage a set of authkeys for themselves, each with individual expirations and comments. API keys are stored in a hashed state and can no longer be recovered from MISP. Users will be prompted to note down their key when creating a new authkey.'),
+                                'description' => __('Advanced authkeys will allow each user to create and manage a set of authkeys for themselves, each with individual expirations and comments. API keys are stored in a hashed state and can no longer be recovered from MISP. Users will be prompted to note down their key when creating a new authkey. You can generate a new set of API keys for all users on demand in the diagnostics page, or by triggering /admin/users/updateToAdvancedAuthKeys.'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',
