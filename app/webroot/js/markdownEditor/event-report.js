@@ -1623,7 +1623,8 @@ function constructSuggestionTables(entities) {
         ),
         $('<li/>').append(
             $('<a/>').attr('href', '#extraction-table').append(
-                $('<span/>').text('Data extraction'),
+                $('<i/>').addClass('fas fa-cogs'),
+                $('<span/>').text(' Data extraction'),
                 $('<span class="badge badge-warning"/>').css({'padding': '2px 6px', 'margin-left': '3px'}).text(entities.length)
             ).attr('title', 'Convert raw text into attribute and reference it')
         )
@@ -1670,7 +1671,7 @@ function constructExtractionTable(entities) {
     entities.forEach(function(entity, index) {
         var $selectType, $selectCategory, $option
         if (entity.types.length > 1) {
-            $selectType = $('<select/>').addClass('type').css('width', 'auto').change(function() {
+            $selectType = $('<select/>').addClass('type').css('width', 'auto').prop('disabled', true).change(function() {
                 var $selectCategory = $(this).closest('tr').find('select.category')
                 var selected = $(this).val()
                 var currentOptions = typeToCategoryMapping[selected];
@@ -1748,7 +1749,7 @@ function constructReplacementTable(unreferencedValues) {
         var $selectContainer, $select, $option
         var unreferenceValue = unreferencedValues[value]
         if(unreferenceValue.attributes.length > 1) {
-            $select = $('<select/>').addClass('attribute-replacement').css({
+            $select = $('<select/>').prop('disabled', true).addClass('attribute-replacement').css({
                 'width': 'auto',
                 'max-width': '300px'
             }).change(function() {
@@ -1871,7 +1872,7 @@ function constructContextReplacementTable(unreferencedContext) {
         var contexts = unreferencedContext[rawText]
         var $selectContainer, $select, $option
         if(Object.keys(contexts).length > 2) {
-            $select = $('<select/>').addClass('context-replacement').css({
+            $select = $('<select/>').prop('disabled', true).addClass('context-replacement').css({
                 'width': 'auto',
                 'max-width': '300px'
             }).change(function() {
@@ -1888,7 +1889,6 @@ function constructContextReplacementTable(unreferencedContext) {
                 var contextToRender = jQuery.extend(true, { }, context)
                 contextToRender.value = tagName
                 contextToRender.name = tagName
-                $option = $('<option/>').val(tagName).append(renderHintElement('tag', contextToRender))
                 $option = $('<option/>').val(tagName).text(tagName)
                 $select.append($option)
             })
@@ -1904,7 +1904,7 @@ function constructContextReplacementTable(unreferencedContext) {
             contextToRender.value = tagName
             contextToRender.name = tagName
             $selectContainer = $('<span/>')
-                .append(renderHintElement('tag', contextToRender))
+                .append($('<span/>').append(constructTagHtml(tagName, contextToRender.colour)))
                 .append($('<select/>').addClass('context-replacement hidden').append($('<option/>').text(tagName).val(tagName)))
         }
 
