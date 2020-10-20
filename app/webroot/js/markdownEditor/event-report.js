@@ -1004,7 +1004,11 @@ function convertEntityIntoSuggestion(content, entity) {
     splittedContent.forEach(function(text, i) {
         converted += text
         if (i < splittedContent.length-1) {
-            converted += '@[suggestion](' + entity.value + ')'
+            if (isDoubleExtraction(converted)) {
+                converted += entity.value
+            } else {
+                converted += '@[suggestion](' + entity.value + ')'
+            }
         }
     })
     return converted
@@ -2013,6 +2017,15 @@ function getObjectFromAttribute(attribute) {
     return proxyMISPElements['object'][attribute.object_uuid]
 }
 
+function isDoubleExtraction(content) {
+    var wrapperAttribute = '@[attribute]('
+    var wrapperTag = '@[tag]('
+    var a = content.slice(-wrapperAttribute.length)
+    a = content.slice(-wrapperTag.length)
+
+    return content.slice(-wrapperAttribute.length) == wrapperAttribute || content.slice(-wrapperTag.length) == wrapperTag
+}
+
 function getAllIndicesOf(haystack, needle, caseSensitive, requestLineNum) {
     var indices = []
     if (needle.length == 0) {
@@ -2029,6 +2042,10 @@ function getAllIndicesOf(haystack, needle, caseSensitive, requestLineNum) {
         index = haystack.indexOf(needle, startIndex)
         if (index === -1) {
             break;
+        }
+        if (isDoubleExtraction(haystack.slice(index-10, index))) {
+            startIndex = index + needle.length + 1; // +1 for closing parenthesis
+            continue;
         }
         if (requestLineNum) {
             var position = cm.posFromIndex(index)

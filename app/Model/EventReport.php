@@ -694,8 +694,6 @@ class EventReport extends AppModel
         ];
         $options = array_merge($baseOptions, $options);
         $originalContent = $report['EventReport']['content'];
-        $replacedContext = [];
-        $content = $originalContent;
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $mitreAttackGalaxyId = $this->GalaxyCluster->Galaxy->getMitreAttackGalaxyId();
         $clusterContain = ['Tag'];
@@ -720,25 +718,13 @@ class EventReport extends AppModel
             $tags = $this->Tag->fetchUsableTags($user);
             foreach ($tags as $i => $tag) {
                 $tagName = $tag['Tag']['name'];
-                $textToInject = sprintf('@[tag](%s)', $tagName);
-                $count = 0;
-                if ($options['replace']) {
-                    $count = 0;
-                    $content = str_replace($tagName, $textToInject, $content, $count);
-                } else {
-                    $count = strpos($originalContent, $tagName) === false ? -1 : 1;
-                }
-                if ($count > 0) {
+                $found = $this->isValidReplacementTag($originalContent, $tagName);
+                if ($found) {
                     $replacedContext[$tagName][$tagName] = $tag['Tag'];
                 } else {
                     $tagNameUpper = strtoupper($tagName);
-                    if ($options['replace']) {
-                        $count = 0;
-                        $content = str_replace($tagNameUpper, $textToInject, $content, $count);
-                    } else {
-                        $count = strpos($originalContent, $tagNameUpper) === false ? -1 : 1;
-                    }
-                    if ($count > 0) {
+                    $found = $this->isValidReplacementTag($originalContent, $tagNameUpper);
+                    if ($found) {
                         $replacedContext[$tagNameUpper][$tagName] = $tag['Tag'];
                     }
                 }
@@ -748,35 +734,19 @@ class EventReport extends AppModel
         foreach ($clusters as $i => $cluster) {
             $cluster['GalaxyCluster']['colour'] = '#0088cc';
             $tagName = $cluster['GalaxyCluster']['tag_name'];
-            $textToInject = sprintf('@[tag](%s)', $tagName);
-            if ($options['replace']) {
-                $count = 0;
-                $content = str_replace($tagName, $textToInject, $content, $count);
-            } else {
-                $count = strpos($originalContent, $tagName) === false ? -1 : 1;
-            }
-            if ($count > 0) {
+            $found = $this->isValidReplacementTag($originalContent, $tagName);
+            if ($found) {
                 $replacedContext[$tagName][$tagName] = $cluster['GalaxyCluster'];
             }
-            if ($options['replace']) {
-                $count = 0;
-                $content = str_replace($cluster['GalaxyCluster']['value'], $textToInject, $content, $count);
-            } else {
-                $count = strpos($originalContent, $cluster['GalaxyCluster']['value']) === false ? -1 : 1;
-            }
-            if ($count > 0) {
+            $found = strpos($originalContent, $cluster['GalaxyCluster']['value']) !== false;
+            if ($found) {
                 $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
             }
             if ($options['synonyms']) {
                 foreach ($cluster['GalaxyElement'] as $j => $element) {
                     if (strlen($element['value']) >= $options['synonyms_min_characters']) {
-                        if ($options['replace']) {
-                            $count = 0;
-                            $content = str_replace($element['value'], $textToInject, $content, $count);
-                        } else {
-                            $count = strpos($originalContent, $element['value']) === false ? -1 : 1;
-                        }
-                        if ($count > 0) {
+                        $found = strpos($originalContent, $element['value']) !== false;
+                        if ($found) {
                             $replacedContext[$element['value']][$tagName] = $cluster['GalaxyCluster'];
                         }
                     }
@@ -793,42 +763,66 @@ class EventReport extends AppModel
             foreach ($attackClusters as $i => $cluster) {
                 $cluster['GalaxyCluster']['colour'] = '#0088cc';
                 $tagName = $cluster['GalaxyCluster']['tag_name'];
-                $textToInject = sprintf('@[tag](%s)', $tagName);
-                if ($options['replace']) {
-                    $count = 0;
-                    $content = str_replace($cluster['GalaxyCluster']['value'], $textToInject, $content, $count);
-                } else {
-                    $count = strpos($originalContent, $cluster['GalaxyCluster']['value']) === false ? -1 : 1;
-                }
-                if ($count > 0) {
+                $found = strpos($originalContent, $cluster['GalaxyCluster']['value']) !== false;
+                if ($found) {
                     $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
                 } else {
                     $clusterParts = explode(' - ', $cluster['GalaxyCluster']['value']);
-                    if ($options['replace']) {
-                        $count = 0;
-                        $content = str_replace($clusterParts[0], $textToInject, $content, $count);
-                    } else {
-                        $count = strpos($originalContent, $clusterParts[0]) === false ? -1 : 1;
-                    }
-                    if ($count > 0) {
+                    $found = strpos($originalContent, $clusterParts[0]) !== false;
+                    if ($found) {
                         $replacedContext[$clusterParts[0]][$tagName] = $cluster['GalaxyCluster'];
                     } else {
-                        if ($options['replace']) {
-                            $count = 0;
-                            $content = str_replace($clusterParts[1], $textToInject, $content, $count);
-                        } else {
-                            $count = strpos($originalContent, $clusterParts[1]) === false ? -1 : 1;
-                        }
-                        if ($count > 0) {
+                        $found = strpos($originalContent, $clusterParts[1]) !== false;
+                        if ($found) {
                             $replacedContext[$clusterParts[1]][$tagName] = $cluster['GalaxyCluster'];
                         }
                     }
                 }
             }
         }
-        return [
-            'replacedContext' => $replacedContext,
-            'contentWithReplacements' => $content
+        $toReturn = [
+            'replacedContext' => $replacedContext
         ];
+        if (!$options['replace']) {
+            $content = $originalContent;
+            foreach ($replacedContext as $rawText => $replacements) {
+                // Replace with first one until a better strategy is found
+                reset($replacements);
+                $replacement = key($replacements);
+                $textToInject = sprintf('@[tag](%s)', $replacement);
+                $content = str_replace($replacement, $textToInject, $content);
+            }
+            $toReturn['contentWithReplacements'] = $content;
+        }
+        return $toReturn;
+    }
+    
+    /**
+     * findValidReplacementTag Search if tagName is in content and is not wrapped in a tag reference
+     *
+     * @param  string $content
+     * @param  string $tagName
+     * @return bool
+     */
+    private function isValidReplacementTag($content, $tagName)
+    {
+        $lastIndex = 0;
+        $allIndices = [];
+        while (($lastIndex = strpos($content, $tagName, $lastIndex)) !== false) {
+            $allIndices[] = $lastIndex;
+            $lastIndex = $lastIndex + strlen($tagName);
+        }
+        if (empty($allIndices)) {
+            return false;
+        } else {
+            $wrapper = '@[tag](';
+            foreach ($allIndices as $i => $index) {
+                $stringBeforeTag = substr($content, $index - strlen($wrapper), strlen($wrapper));
+                if ($stringBeforeTag != $wrapper) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
