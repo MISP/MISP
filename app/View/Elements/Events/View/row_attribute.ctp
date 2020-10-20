@@ -206,17 +206,17 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       >
     </td>
     <td class="shortish">
-      <ul class="inline" style="margin:0">
         <?php
           if (!empty($event['RelatedAttribute'][$object['id']])) {
-            echo $this->element('Events/View/attribute_correlations', array(
-              'scope' => 'Attribute',
-              'object' => $object,
-              'event' => $event,
-            ));
+              echo '<ul class="inline" style="margin:0">';
+              echo $this->element('Events/View/attribute_correlations', array(
+                  'scope' => 'Attribute',
+                  'object' => $object,
+                  'event' => $event,
+              ));
+              echo '</ul>';
           }
         ?>
-      </ul>
     </td>
     <td class="shortish">
       <ul class="inline" style="margin:0">
