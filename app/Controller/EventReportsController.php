@@ -200,7 +200,10 @@ class EventReportsController extends AppController
             if ($this->request->is('post')) {
                 $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'view', $throwErrors=true, $full=false);
                 $results = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
-                $suggestionResult = $this->EventReport->transformFreeTextIntoSuggestion($results['replacementResult']['contentWithReplacements'], $results['complexTypeToolResult']);
+                $contextResults = $this->EventReport->extractWithReplacementsFromReport($this->Auth->user(), $results['replacementResult']['contentWithReplacements']);
+                $suggestionResult = $this->EventReport->transformFreeTextIntoSuggestion($contextResults['contentWithReplacements'], $results['complexTypeToolResult']);
+                // need to test that context get replaced
+                // $suggestionResult = $this->EventReport->transformFreeTextIntoSuggestion($results['replacementResult']['contentWithReplacements'], $results['complexTypeToolResult']);
                 $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestionResult['contentWithSuggestions'], $suggestionResult['suggestionsMapping']);
                 if (empty($errors)) {
                     $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
