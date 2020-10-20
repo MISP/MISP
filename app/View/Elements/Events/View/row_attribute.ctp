@@ -129,12 +129,8 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
             $spanExtra = '';
             $popupButton = '';
             if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
-                $commonDataFields = sprintf(
-                    'data-object-type="Attribute" data-object-id="%s"',
-                    $objectId
-                );
-
-                $spanExtra = sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
+                $commonDataFields = sprintf('data-object-type="Attribute" data-object-id="%s"', $objectId);
+                $spanExtra = Configure::read('Plugin.Enrichment_hover_popover_only') ? '' : sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
                 $popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup noPrint" title="%s" %s></i>', __('Show hover enrichment'), $commonDataFields);
             }
             echo sprintf(
