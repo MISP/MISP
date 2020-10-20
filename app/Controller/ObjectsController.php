@@ -87,6 +87,15 @@ class ObjectsController extends AppController
             $similar_object_similarity_amount[$obj['Attribute']['object_id']] = $obj[0]['similarity_amount'];
         }
 
+        if (isset($this->request->data['Attribute'])) {
+            foreach ($this->request->data['Attribute'] as &$attribute) {
+                $validation = $this->MispObject->Attribute->validateAttribute($attribute);
+                if ($validation !== true) {
+                    $attribute['validation'] = $validation;
+                }
+            }
+        }
+
         $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
         $this->set('action', $action);
         $this->set('template', $template);

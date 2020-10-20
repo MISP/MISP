@@ -85,7 +85,8 @@ class AppModel extends Model
         33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
-        51 => false, 52 => false, 53 => false, 54 => false, 55 => false,
+        51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
+        57 => false, 58 => false, 59 => false
     );
 
     public $advanced_updates_description = array(
@@ -196,16 +197,16 @@ class AppModel extends Model
                 $this->Sighting->deleteAll(array('NOT' => array('Sighting.type' => array(0, 1, 2))));
                 break;
             case '2.4.71':
-                $this->OrgBlacklist = Classregistry::init('OrgBlacklist');
+                $this->OrgBlocklist = Classregistry::init('OrgBlocklist');
                 $values = array(
                     array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astrononomy', 'comment' => 'default example'),
                     array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
                 );
                 foreach ($values as $value) {
-                    $found = $this->OrgBlacklist->find('first', array('conditions' => array('org_uuid' => $value['org_uuid']), 'recursive' => -1));
+                    $found = $this->OrgBlocklist->find('first', array('conditions' => array('org_uuid' => $value['org_uuid']), 'recursive' => -1));
                     if (empty($found)) {
-                        $this->OrgBlacklist->create();
-                        $this->OrgBlacklist->save($value);
+                        $this->OrgBlocklist->create();
+                        $this->OrgBlocklist->save($value);
                     }
                 }
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -1382,18 +1383,18 @@ class AppModel extends Model
                 break;
             case 51:
                 $sqlArray[] = "ALTER TABLE `feeds` ADD `orgc_id` int(11) NOT NULL DEFAULT 0";
-                $this->__addIndex('feeds', 'orgc_id');
+                $indexArray[] = array('feeds', 'orgc_id');
                 break;
             case 52:
                 if (!empty($this->query("SHOW COLUMNS FROM `admin_settings` LIKE 'key';"))) {
                     $sqlArray[] = "ALTER TABLE admin_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
-                    $this->__addIndex('admin_settings', 'setting');
+                    $indexArray[] = array('admin_settings', 'setting');
                 }
                 break;
             case 53:
                 if (!empty($this->query("SHOW COLUMNS FROM `user_settings` LIKE 'key';"))) {
                     $sqlArray[] = "ALTER TABLE user_settings CHANGE `key` `setting` varchar(255) COLLATE utf8_bin NOT NULL;";
-                    $this->__addIndex('user_settings', 'setting');
+                    $indexArray[] = array('user_settings', 'setting');
                 }
                 break;
             case 54:
@@ -1406,6 +1407,34 @@ class AppModel extends Model
                 $this->__dropIndex('correlations', 'org_id');
                 $this->__dropIndex('correlations', 'sharing_group_id');
                 $this->__dropIndex('correlations', 'a_sharing_group_id');
+                break;
+            case 56:
+                //rename tables
+                $sqlArray[] = "RENAME TABLE `org_blacklists` TO `org_blocklists`;";
+                $sqlArray[] = "RENAME TABLE `event_blacklists` TO `event_blocklists`;";
+                $sqlArray[] = "RENAME TABLE `whitelist` TO `allowedlist`;";
+                break;
+            case 57:
+                $sqlArray[] = sprintf("INSERT INTO `admin_settings` (`setting`, `value`) VALUES ('fix_login', %s);", time());
+                break;
+            case 58:
+                $sqlArray[] = "ALTER TABLE `warninglists` MODIFY COLUMN `warninglist_entry_count` int(11) unsigned NOT NULL DEFAULT 0;";
+                break;
+            case 59:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS event_reports (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin NOT NULL ,
+                    `event_id` int(11) NOT NULL,
+                    `name` varchar(255) NOT NULL,
+                    `content` text,
+                    `distribution` tinyint(4) NOT NULL DEFAULT 0,
+                    `sharing_group_id` int(11),
+                    `timestamp` int(11) NOT NULL,
+                    `deleted` tinyint(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (id),
+                    CONSTRAINT u_uuid UNIQUE (uuid),
+                    INDEX `name` (`name`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1555,7 +1584,7 @@ class AppModel extends Model
                             break;
                         }
                     } else {
-                        $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is whitelisted, the update went through.');
+                        $logMessage['change'] = $logMessage['change'] . PHP_EOL . __('However, as this error is allowed, the update went through.');
                     }
                     $this->Log->save($logMessage);
                 }
@@ -1721,14 +1750,6 @@ class AppModel extends Model
         }
     }
 
-    public function checkMISPVersion()
-    {
-        $file = new File(ROOT . DS . 'VERSION.json', true);
-        $version_array = json_decode($file->read(), true);
-        $file->close();
-        return $version_array;
-    }
-
     public function getPythonVersion()
     {
         if (!empty(Configure::read('MISP.python_bin'))) {
@@ -1878,9 +1899,7 @@ class AppModel extends Model
                     $workerType = '';
                     if (isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
                         $workerType = 'update';
-                    } elseif (isset($workerDiagnostic['prio']['ok']) && $workerDiagnostic['prio']['ok']) {
-                        $workerType = 'prio';
-                    } else { // no worker running, doing inline update
+                    } else { // update worker not running, doing the update inline
                         return $this->runUpdates($verbose, false);
                     }
                     $this->Job->create();
@@ -2406,19 +2425,6 @@ class AppModel extends Model
         $this->elasticSearchClient = $client;
     }
 
-    public function checkVersionRequirements($versionString, $minVersion)
-    {
-        $version = explode('.', $versionString);
-        $minVersion = explode('.', $minVersion);
-        if (count($version) > $minVersion) {
-            return true;
-        }
-        if (count($version) == 1) {
-            return $minVersion <= $version;
-        }
-        return ($version[0] >= $minVersion[0] && $version[1] >= $minVersion[1] && $version[2] >= $minVersion[2]);
-    }
-
     // generate a generic subquery - options needs to include conditions
     public function subQueryGenerator($model, $options, $lookupKey, $negation = false)
     {
@@ -2556,33 +2562,65 @@ class AppModel extends Model
         return $HttpSocket;
     }
 
-    public function setupSyncRequest($server)
+    /**
+     * @param array $server
+     * @return array[]
+     * @throws JsonException
+     */
+    protected function setupSyncRequest(array $server)
     {
+        $version = implode('.', $this->checkMISPVersion());
         $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json'
-                )
+            'header' => array(
+                'Authorization' => $server['Server']['authkey'],
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'MISP-version' => $version,
+            )
         );
-        $request = $this->addHeaders($request);
-        return $request;
-    }
 
-    public function addHeaders($request)
-    {
-        $version = $this->checkMISPVersion();
-        $version = implode('.', $version);
-        try {
-            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
-        } catch (Exception $e) {
-            $commit = false;
-        }
-        $request['header']['MISP-version'] = $version;
+        $commit = $this->checkMIPSCommit();
         if ($commit) {
             $request['header']['commit'] = $commit;
         }
+        $request['header']['User-Agent'] = 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit);
         return $request;
+    }
+
+    /**
+     * Returns MISP version from VERSION.json file as array with major, minor and hotfix keys.
+     *
+     * @return array
+     * @throws JsonException
+     */
+    public function checkMISPVersion()
+    {
+        static $versionArray;
+        if ($versionArray === null) {
+            $file = new File(ROOT . DS . 'VERSION.json', true);
+            $versionArray = $this->jsonDecode($file->read());
+            $file->close();
+        }
+        return $versionArray;
+    }
+
+    /**
+     * Returns MISP commit hash.
+     *
+     * @return false|string
+     */
+    protected function checkMIPSCommit()
+    {
+        static $commit;
+        if ($commit === null) {
+            $commit = shell_exec('git log --pretty="%H" -n1 HEAD');
+            if ($commit) {
+                $commit = trim($commit);
+            } else {
+                $commit = false;
+            }
+        }
+        return $commit;
     }
 
     // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions

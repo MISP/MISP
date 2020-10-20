@@ -3,6 +3,9 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 
+/**
+ * @property Server $Server
+ */
 class ServersController extends AppController
 {
     public $components = array('Security' ,'RequestHandler');   // XXX ACL component
@@ -150,17 +153,29 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
-        $server = $this->Server->find('first', array('conditions' => array('Server.id' => $serverId), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url', 'Server.name')));
+        $server = $this->Server->find('first', array(
+            'conditions' => array('Server.id' => $serverId),
+            'recursive' => -1,
+            'fields' => array('Server.id', 'Server.url', 'Server.name'))
+        );
         if (empty($server)) {
             throw new NotFoundException('Invalid server ID.');
         }
         try {
             $event = $this->Server->previewEvent($serverId, $eventId);
         } catch (NotFoundException $e) {
-            throw new NotFoundException(__("Event '$eventId' not found."));
+            throw new NotFoundException(__("Event '%s' not found.", $eventId));
         } catch (Exception $e) {
-            $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
+            $this->Flash->error(__('Download failed. %s', $e->getMessage()));
             $this->redirect(array('action' => 'previewIndex', $serverId));
+        }
+
+        $this->loadModel('Warninglist');
+        if (isset($event['Event']['Attribute'])) {
+            $this->Warninglist->attachWarninglistToAttributes($event['Event']['Attribute']);
+        }
+        if (isset($event['Event']['ShadowAttribute'])) {
+            $this->Warninglist->attachWarninglistToAttributes($event['Event']['ShadowAttribute']);
         }
 
         $this->loadModel('Event');
@@ -168,7 +183,6 @@ class ServersController extends AppController
         $this->params->params['paging'] = array('Server' => $params);
         $this->set('event', $event);
         $this->set('server', $server);
-        $this->loadModel('Event');
         $dataForView = array(
                 'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
                 'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels'),
@@ -788,7 +802,7 @@ class ServersController extends AppController
                 }
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', array(sprintf(__('Push complete. %s events pushed, %s events could not be pushed.', $result[0], $result[1]))), $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])), $this->response->type());
             } else {
                 $this->set('successes', $result[0]);
                 $this->set('fails', $result[1]);
@@ -1232,8 +1246,12 @@ class ServersController extends AppController
 
     public function getWorkers()
     {
-        $issues = 0;
-        $worker_array = $this->Server->workerDiagnostics($issues);
+        if (Configure::read('MISP.background_jobs')) {
+            $workerIssueCount = 0;
+            $worker_array = $this->Server->workerDiagnostics($workerIssueCount);
+        } else {
+            $worker_array = [__('Background jobs not enabled')];
+        }
         return $this->RestResponse->viewData($worker_array);
     }
 
@@ -1469,6 +1487,18 @@ class ServersController extends AppController
                 }
             }
         }
+    }
+
+    public function killAllWorkers($force = false)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException();
+        }
+        $this->Server->killAllWorkers($this->Auth->user(), $force);
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'killAllWorkers', false, $this->response->type(), __('Killing workers.'));
+        }
+        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }
 
     public function restartWorkers()

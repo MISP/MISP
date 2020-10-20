@@ -16,7 +16,7 @@
         h(Inflector::singularize(Inflector::classify($this->request->params['controller']))) :
         h($data['model']);
     $fieldsString = '';
-    $simpleFieldWhitelist = array(
+    $simpleFieldAllowedlist = array(
         'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required'
     );
     $fieldsArrayForPersistence = array();

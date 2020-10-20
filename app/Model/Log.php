@@ -26,7 +26,7 @@ class Log extends AppModel
                     'admin_email',
                     'auth',
                     'auth_fail',
-                    'blacklisted',
+                    'blocklisted',
                     'change_pw',
                     'delete',
                     'disable',
@@ -114,7 +114,7 @@ class Log extends AppModel
                 $this->data['Log']['ip'] = $_SERVER[$ip_header];
             }
         }
-        $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '');
+        $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '', 'ip' => '');
         foreach ($setEmpty as $field => $empty) {
             if (!isset($this->data['Log'][$field]) || empty($this->data['Log'][$field])) {
                 $this->data['Log'][$field] = $empty;
@@ -383,5 +383,716 @@ class Log extends AppModel
             }
         }
         return $list;
+    }
+
+    public function changeParser($change)
+    {
+        $change = explode(',', $change);
+        $data = [];
+        foreach ($change as $entry) {
+            $entry = trim($entry);
+            $fieldName = explode(' ', $entry)[0];
+            $entry = substr($entry, strlen($fieldName));
+            $entry = trim($entry);
+            if (strpos($entry, ') => (')) {
+                list($before, $after) = explode(') => (', $entry);
+                $before = substr($before, 1);
+                $after = substr($after, 0, -1);
+                $data[$fieldName] = $after;
+            }
+        }
+        return $data;
+    }
+
+    public function findDeletedEvents($conditions)
+    {
+        $conditions['model'] = 'Event';
+        $conditions['action'] = 'delete';
+        $this->Event = ClassRegistry::init('Event');
+        $deletions = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'order' => ['Log.id']
+        ]);
+        $deleted_events = [];
+        $users = [];
+        $orgs = [];
+        $deleted_event_ids = [];
+        foreach ($deletions as $deletion_entry) {
+            if (!empty($deleted_event_ids[$deletion_entry['Log']['model_id']])) {
+                continue;
+            } else {
+                $deleted_event_ids[$deletion_entry['Log']['model_id']] = true;
+            }
+            $event = $this->Event->find('first', [
+                'conditions' => ['Event.id' => $deletion_entry['Log']['model_id']],
+                'recursive' => -1,
+                'fields' => ['Event.id']
+            ]);
+            if (!empty($event)) {
+                // event is already restored / not deleted
+                continue;
+            }
+            $temp = [
+                'event_id' => $deletion_entry['Log']['model_id'],
+                'user_id' => $deletion_entry['Log']['user_id'],
+                'created' => $deletion_entry['Log']['created']
+            ];
+            $event_creation_entry = $this->find('first', [
+                'recursive' => -1,
+                'conditions' => [
+                    'model_id' => $temp['event_id'],
+                    'model' => 'Event',
+                    'action' => 'add'
+                ]
+            ]);
+            $event = $this->changeParser($event_creation_entry['Log']['change']);
+            $temp['event_info'] = $event['info'];
+            $temp['event_org_id'] = $event['org_id'];
+            $temp['event_orgc_id'] = $event['orgc_id'];
+            $temp['event_user_id'] = $event['user_id'];
+            $temp['event_info'] = $event['info'];
+            $temp['event_created'] = $event_creation_entry['Log']['created'];
+            foreach (['org', 'orgc'] as $scope) {
+                if (empty($orgs[$temp['event_' . $scope . '_id']])) {
+                    $orgs[$temp['event_' . $scope . '_id']] = array_values($this->Event->Orgc->find('list', [
+                        'recursive' => -1,
+                        'conditions' => array('id' => $temp['event_' . $scope . '_id']),
+                        'fields' => array('id', 'name')
+                    ]))[0];
+                }
+                $temp['event_' . $scope . '_name'] = $orgs[$temp['event_' . $scope . '_id']];
+            }
+            $users[$temp['user_id']] = array_values($this->Event->User->find('list', [
+                'recursive' => -1,
+                'conditions' => array('id' => $temp['user_id']),
+                'fields' => array('id', 'email')
+            ]))[0];
+            $temp['user_name'] = $users[$temp['user_id']];
+            $users[$temp['event_user_id']] = array_values($this->Event->User->find('list', [
+                'recursive' => -1,
+                'conditions' => array('id' => $temp['event_user_id']),
+                'fields' => array('id', 'email')
+            ]))[0];
+            $temp['event_user_name'] = $users[$temp['event_user_id']];
+            $deleted_events[] = $temp;
+        }
+        return $deleted_events;
+    }
+
+    public function recoverDeletedEvent($id, $mock = false)
+    {
+        if ($mock) {
+            $this->mockRecovery = true;
+            $this->mockLog = [];
+        }
+        $objectMap = [];
+        $logEntries = [];
+        $this->__recoverDeletedEventContainer($id, $objectMap, $logEntries);
+        $this->__recoverDeletedObjects($id, $objectMap, $logEntries);
+        $this->__recoverDeletedAttributes($id, $objectMap, $logEntries);
+        $this->__recoverDeletedObjectReferences($id, $objectMap, $logEntries);
+        $this->__recoverDeletedTagConnectors($id, $objectMap, $logEntries, 'Event');
+        $this->__recoverDeletedTagConnectors($id, $objectMap, $logEntries, 'Attribute');
+        $this->__recoverDeletedProposals($id, $objectMap, $logEntries);
+        ksort($logEntries);
+        foreach ($logEntries as $logEntry) {
+            $this->{'__executeRecovery' . $logEntry['model']}($logEntry, $id);
+        }
+        return count($logEntries);
+        // order: event -> object -> attribute -> object reference -> tag -> galaxy -> shadow_attribute -> sighting
+    }
+
+    private function __recoverDeletedEventContainer($id, &$objectMap, &$logEntries)
+    {
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'Event',
+                'model_id' => $id,
+                'action' => ['add', 'edit', 'publish', 'alert']
+            ]
+        ]);
+        if (empty($logs)) {
+            return;
+        }
+        foreach ($logs as $log) {
+            $logEntries[$log['Log']['id']] = [
+                'model_id' => $log['Log']['model_id'],
+                'model' => $log['Log']['model'],
+                'action' => $log['Log']['action'],
+                'data' => array_merge(
+                    $this->changeParser($log['Log']['change']),
+                    [
+                        'timestamp' => strtotime($log['Log']['created']),
+                        'id' => $log['Log']['model_id']
+                    ]
+                )
+            ];
+            $objectMap['Event'][$log['Log']['model_id']] = true;
+        }
+    }
+
+    private function __recoverDeletedObjects($id, &$objectMap, &$logEntries)
+    {
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'MispObject',
+                'change LIKE ' => '%event_id () => (' . $id . ')%',
+                'action' => ['add']
+            ]
+        ]);
+        if (empty($logs)) {
+            return;
+        }
+        foreach ($logs as $log) {
+            $objectMap['MispObject'][$log['Log']['model_id']] = true;
+        }
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'MispObject',
+                'model_id' => array_keys($objectMap['MispObject']),
+                'action' => ['add', 'edit', 'delete']
+            ]
+        ]);
+        foreach ($logs as $log) {
+            $logEntries[$log['Log']['id']] = [
+                'model_id' => $log['Log']['model_id'],
+                'model' => $log['Log']['model'],
+                'action' => $log['Log']['action'],
+                'data' => array_merge(
+                    $this->changeParser($log['Log']['change']),
+                    [
+                        'timestamp' => strtotime($log['Log']['created']),
+                        'id' => $log['Log']['model_id']
+                    ]
+                )
+            ];
+        }
+    }
+
+    private function __recoverDeletedObjectReferences($id, &$objectMap, &$logEntries)
+    {
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'ObjectReference',
+                'change LIKE ' => '%event_id () => (' . $id . ')%',
+                'action' => ['add']
+            ]
+        ]);
+        if (empty($logs)) {
+            return;
+        }
+        foreach ($logs as $log) {
+            $objectMap['ObjectReference'][$log['Log']['model_id']] = true;
+        }
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'ObjectReference',
+                'model_id' => array_keys($objectMap['ObjectReference']),
+                'action' => ['add', 'edit']
+            ]
+        ]);
+        foreach ($logs as $log) {
+            $logEntries[$log['Log']['id']] = [
+                'model_id' => $log['Log']['model_id'],
+                'model' => $log['Log']['model'],
+                'action' => $log['Log']['action'],
+                'data' => array_merge(
+                    $this->changeParser($log['Log']['change']),
+                    [
+                        'timestamp' => strtotime($log['Log']['created']),
+                        'id' => $log['Log']['model_id']
+                    ]
+                )
+            ];
+        }
+    }
+
+    private function __recoverDeletedTagConnectors($id, &$objectMap, &$logEntries, $scope)
+    {
+        if (empty($objectMap[$scope])) {
+            // example: we have no attributes, so we return
+            return;
+        }
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => $scope,
+                'action' => ['tag', 'galaxy'],
+                'model_id' => array_keys($objectMap[$scope])
+            ]
+        ]);
+        if (empty($logs)) {
+            return;
+        }
+        foreach ($logs as $log) {
+            if ($log['Log']['action'] === 'tag') {
+                $temp = explode(' ', $log['Log']['title']);
+                $local = ($temp[1] === 'local' ? true : false);
+                $tag_id = ($local ? $temp[3] : $temp[2]);
+                $tag_id = substr($tag_id, 1, -1);
+            } else {
+                $matches = [];
+                preg_match('/\(([0-9]*)\)\s(from|to)/', $log['Log']['title'], $matches);
+                if (!isset($matches[1])) {
+                    continue;
+                }
+                $local = false;
+                $tag_id = $matches[1];
+            }
+            $logEntries[$log['Log']['id']] = [
+                'model_id' => $log['Log']['model_id'],
+                'model' => $log['Log']['model'],
+                'action' => (strpos($log['Log']['title'], 'Attached')) === false ? 'remove_tag' : 'add_tag',
+                'data' => [
+                    'tag_id' => $tag_id,
+                    'id' => $log['Log']['model_id'],
+                    'target_type' => $log['Log']['model'],
+                    'tag_type' => $log['Log']['action'],
+                    'local' => $local
+                ]
+            ];
+        }
+    }
+
+    private function __recoverDeletedAttributes($id, &$objectMap, &$logEntries)
+    {
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'Attribute',
+                'title LIKE ' => '%from Event (' . $id . ')%',
+                'action' => ['add']
+            ]
+        ]);
+        if (empty($logs)) {
+            return;
+        }
+        foreach ($logs as $log) {
+            $objectMap['Attribute'][$log['Log']['model_id']] = true;
+        }
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'Attribute',
+                'model_id' => array_keys($objectMap['Attribute']),
+                'action' => ['add', 'edit', 'delete']
+            ]
+        ]);
+        foreach ($logs as $log) {
+            $logEntries[$log['Log']['id']] = [
+                'model_id' => $log['Log']['model_id'],
+                'model' => $log['Log']['model'],
+                'action' => $log['Log']['action'],
+                'data' => array_merge(
+                    $this->changeParser($log['Log']['change']),
+                    [
+                        'timestamp' => strtotime($log['Log']['created']),
+                        'id' => $log['Log']['model_id']
+                    ]
+                )
+            ];
+            $objectMap['Attribute'][$log['Log']['model_id']] = true;
+        }
+    }
+
+    private function __recoverDeletedProposals($id, &$objectMap, &$logEntries)
+    {
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'ShadowAttribute',
+                'title LIKE ' => '%: to Event (' . $id . '): %',
+                'action' => ['add']
+            ]
+        ]);
+        if (empty($logs)) {
+            return;
+        }
+        foreach ($logs as $log) {
+            $objectMap['ShadowAttribute'][$log['Log']['model_id']] = true;
+        }
+        $logs = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'model' => 'ShadowAttribute',
+                'model_id' => array_keys($objectMap['ShadowAttribute']),
+                'action' => ['add', 'accept', 'delete']
+            ]
+        ]);
+        foreach ($logs as $log) {
+            $logEntries[$log['Log']['id']] = [
+                'model_id' => $log['Log']['model_id'],
+                'model' => $log['Log']['model'],
+                'action' => $log['Log']['action'],
+                'data' => array_merge(
+                    $this->changeParser($log['Log']['change']),
+                    [
+                        'timestamp' => strtotime($log['Log']['created']),
+                        'id' => $log['Log']['model_id']
+                    ]
+                )
+            ];
+            $objectMap['ShadowAttribute'][$log['Log']['model_id']] = true;
+        }
+    }
+
+
+    private function __executeRecoveryEvent($logEntry, $id)
+    {
+        if (empty($this->Event)) {
+            $this->Event = ClassRegistry::init('Event');
+        }
+        if (empty($this->GalaxyCluster)) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        }
+        if (empty($this->EventBlocklist)) {
+            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
+        }
+        switch($logEntry['action']) {
+            case 'add':
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'Event', 'action' => 'add', 'data' => $logEntry['data']];
+                } else {
+                    $this->Event->create();
+                    $this->Event->save($logEntry['data']);
+                    $blockListEntry = $this->EventBlocklist->find('first', array(
+                        'conditions' => array('event_uuid' => $logEntry['data']['uuid']),
+                        'fields' => 'id'
+                    ));
+                    if (!empty($blockListEntry)) {
+                        $this->EventBlocklist->delete($blockListEntry['EventBlocklist']['id']);
+                    }
+                }
+                break;
+            case 'edit':
+            case 'publish':
+                $event = $this->Event->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['Event.id' => $logEntry['model_id']]
+                ]);
+                if (!empty($event)) {
+                    if ($logEntry['action'] === 'publish' || $logEntry['action'] === 'alert') {
+                        $event['Event']['published'] = 1;
+                        $event['Event']['publish_timestamp'] = strtotime($logEntry['data']['timestamp']);
+                    } else {
+                        foreach ($logEntry['data'] as $field => $value) {
+                            $event['Event'][$field] = $value;
+                        }
+                    }
+                    $this->Event->create();
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'Event', 'action' => 'edit', 'data' => $event];
+                    } else {
+                        $this->Event->save($event);
+                    }
+                }
+                break;
+            case 'add_tag':
+                $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
+                $this->Event->EventTag->create();
+                $this->Event->create();
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'EventTag', 'action' => 'add', 'data' => [
+                        'tag_id' => $tag_id,
+                        'event_id' => $logEntry['data']['id'],
+                        'local' => !empty($logEntry['data']['local'])
+                    ]];
+                } else {
+                    $this->Event->EventTag->save([
+                        'tag_id' => $tag_id,
+                        'event_id' => $logEntry['data']['id'],
+                        'local' => !empty($logEntry['data']['local'])
+                    ]);
+                }
+                break;
+            case 'remove_tag':
+                $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
+                $et = $this->Event->EventTag->find('first', [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'tag_id' => $tag_id,
+                        'event_id' => $logEntry['data']['id']
+                    ]
+                ]);
+                if (!empty($et)) {
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'EventTag', 'action' => 'delete', 'data' => $et['EventTag']['id']];
+                    } else {
+                        $this->Event->EventTag->delete($et['EventTag']['id']);
+                    }
+                }
+                break;
+        }
+    }
+
+    private function __executeRecoveryAttribute($logEntry, $id)
+    {
+        if (empty($this->Attribute)) {
+            $this->Attribute = ClassRegistry::init('Attribute');
+        }
+        if (empty($this->GalaxyCluster)) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        }
+        if (!empty($logEntry['data']['value1'])) {
+            $logEntry['data']['value'] = $logEntry['data']['value1'];
+            if (!empty($logEntry['data']['value2'])) {
+                $logEntry .= '|' . $logEntry['data']['value2'];
+            }
+        }
+        switch($logEntry['action']) {
+            case 'add':
+                $logEntry['data'] = $this->Attribute->UTCToISODatetime(['Attribute' => $logEntry['data']], 'Attribute');
+                $logEntry['data'] = $logEntry['data']['Attribute'];
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'Attribute', 'action' => 'add', 'data' => $logEntry['data']];
+                } else {
+                    $this->Attribute->create();
+                    if (!isset($logEntry['data']['to_ids'])) {
+                        $logEntry['data']['to_ids'] = 0;
+                    }
+                    $this->Attribute->save($logEntry['data']);
+                }
+                break;
+            case 'edit':
+                $attribute = $this->Attribute->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['Attribute.id' => $logEntry['model_id']]
+                ]);
+                if (!empty($attribute)) {
+                    $logEntry['data'] = $this->Attribute->UTCToISODatetime(['Attribute' => $logEntry['data']], 'Attribute');
+                    $logEntry['data'] = $logEntry['data']['Attribute'];
+                    foreach ($logEntry['data'] as $field => $value) {
+                        $attribute['Attribute'][$field] = $value;
+                    }
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'Attribute', 'action' => 'edit', 'data' => $attribute];
+                    } else {
+                        $this->Attribute->save($attribute);
+                    }
+                }
+                break;
+            case 'delete':
+                $attribute = $this->Attribute->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['Attribute.id' => $logEntry['model_id']]
+                ]);
+                if (!empty($attribute)) {
+                    $attribute['Attribute']['deleted'] = 1;
+                    $attribute['Attribute']['timestamp'] = $logEntry['data']['timestamp'];
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'Attribute', 'action' => 'delete', 'data' => $attribute];
+                    } else {
+                        $this->Attribute->save($attribute);
+                    }
+                }
+                break;
+            case 'add_tag':
+                $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'AttributeTag', 'action' => 'add', 'data' => [
+                        'tag_id' => $tag_id,
+                        'attribute_id' => $logEntry['data']['id'],
+                        'event_id' => $id,
+                        'local' => !empty($logEntry['data']['local'])
+                    ]];
+                } else {
+                    $this->Attribute->AttributeTag->create();
+                    $this->Attribute->AttributeTag->save([
+                        'tag_id' => $tag_id,
+                        'attribute_id' => $logEntry['data']['id'],
+                        'event_id' => $id,
+                        'local' => !empty($logEntry['data']['local'])
+                    ]);
+                }
+                break;
+            case 'remove_tag':
+                $tag_id = $logEntry['data']['tag_type'] === 'galaxy' ? $this->GalaxyCluster->getTagIdByClusterId($logEntry['data']['tag_id']) : $logEntry['data']['tag_id'];
+                $at = $this->Attribute->AttributeTag->find('first', [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'tag_id' => $tag_id,
+                        'attribute_id' => $logEntry['data']['id'],
+                        'event_id' => $id
+                    ]
+                ]);
+                if (!empty($at)) {
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'AttributeTag', 'action' => 'delete', 'data' => $at['AttributeTag']['id']];
+                    } else {
+                        $this->Attribute->AttributeTag->delete($at['AttributeTag']['id']);
+                    }
+                }
+                break;
+        }
+    }
+
+    private function __executeRecoveryShadowAttribute($logEntry, $id)
+    {
+        if (empty($this->Attribute)) {
+            $this->Attribute = ClassRegistry::init('Attribute');
+        }
+        if (empty($this->ShadowAttribute)) {
+            $this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
+        }
+        if (!empty($logEntry['data']['value1'])) {
+            $logEntry['data']['value'] = $logEntry['data']['value1'];
+            if (!empty($logEntry['data']['value2'])) {
+                $logEntry .= '|' . $logEntry['data']['value2'];
+            }
+        }
+        switch($logEntry['action']) {
+            case 'add':
+                $logEntry['data']['value'] = $logEntry['data']['value1'];
+                if (!empty($logEntry['data']['value2'])) {
+                    $logEntry['data']['value'] .= '|' . $logEntry['data']['value2'];
+                }
+                $logEntry['data'] = $this->Attribute->UTCToISODatetime(['ShadowAttribute' => $logEntry['data']], 'ShadowAttribute');
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'ShadowAttribute', 'action' => 'add', 'data' => $logEntry['data']];
+                } else {
+                    $this->ShadowAttribute->create();
+                    $this->ShadowAttribute->save($logEntry['data']);
+                }
+                break;
+            case 'delete':
+                $shadow_attribute = $this->ShadowAttribute->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['ShadowAttribute.id' => $logEntry['model_id']]
+                ]);
+                if (!empty($shadow_attribute)) {
+                    $shadow_attribute['ShadowAttribute']['deleted'] = 1;
+                    $shadow_attribute['ShadowAttribute']['timestamp'] = $logEntry['data']['timestamp'];
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'ShadowAttribute', 'action' => 'delete', 'data' => $attribute];
+                    } else {
+                        $this->ShadowAttribute->save($attribute);
+                    }
+                }
+                break;
+            case 'accept':
+                $shadow_attribute = $this->ShadowAttribute->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['ShadowAttribute.id' => $logEntry['model_id']]
+                ]);
+                if (!empty($shadow_attribute['ShadowAttribute']['old_id'])) {
+                    $attribute = $this->Attribute->find('first', [
+                        'conditions' => ['Attribute.id' => $shadow_attribute['ShadowAttribute']['old_id']],
+                        'recursive' => -1
+                    ]);
+                    if (!empty($shadow_attribute['ShadowAttribute']['proposal_to_delete'])) {
+                        $attribute['Attribute']['deleted'] = 1;
+                    } else {
+                        foreach(['category', 'type', 'value', 'to_ids', 'comment', 'first_seen', 'last_seen'] as $field) {
+                            if (isset($shadow_attribute['ShadowAttribute'][$field])) {
+                                $attribute['Attribute'][$field] = $shadow_attribute['ShadowAttribute'][$field];
+                            }
+                        }
+                    }
+                    $attribute['Attribute']['timestamp'] = $logEntry['data']['timestamp'];
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'Attribute', 'action' => 'edit', 'data' => $attribute];
+                    } else {
+                        $this->Attribute->save($attribute);
+                    }
+                } else {
+                    $this->Attribute->create();
+                    $attribute = $shadow_attribute['ShadowAttribute'];
+                    if (isset($attribute['id'])) {
+                        unset($attribute['id']);
+                    }
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'Attribute', 'action' => 'add', 'data' => $attribute];
+                    } else {
+                        $this->Attribute->save($attribute);
+                    }
+                }
+                $shadow_attribute['ShadowAttribute']['deleted'] = 1;
+                $shadow_attribute['ShadowAttribute']['timestamp'] = $logEntry['data']['timestamp'];
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'ShadowAttribute', 'action' => 'delete', 'data' => $shadow_attribute];
+                } else {
+                    $this->ShadowAttribute->save($shadow_attribute);
+                }
+                break;
+        }
+    }
+
+    private function __executeRecoveryObjectReference($logEntry, $id)
+    {
+        if (empty($this->ObjectReference)) {
+            $this->ObjectReference = ClassRegistry::init('ObjectReference');
+        }
+        switch($logEntry['action']) {
+            case 'add':
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'ObjectReference', 'action' => 'add', 'data' => $logEntry['data']];
+                } else {
+                    $this->ObjectReference->create();
+                    $this->ObjectReference->save($logEntry['data']);
+                }
+                break;
+            case 'edit':
+                $objectRef = $this->ObjectReference->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['ObjectReference.id' => $logEntry['model_id']]
+                ]);
+                if (!empty($object)) {
+                    foreach ($logEntry['data'] as $field => $value) {
+                        $object['ObjectReference'][$field] = $value;
+                    }
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'ObjectReference', 'action' => 'edit', 'data' => $object];
+                    } else {
+                        $this->ObjectReference->save($object);
+                    }
+                }
+                break;
+        }
+    }
+
+    private function __executeRecoveryMispObject($logEntry)
+    {
+        if (empty($this->Attribute)) {
+            $this->Attribute = ClassRegistry::init('Attribute');
+        }
+        if (empty($this->MispObject)) {
+            $this->MispObject = ClassRegistry::init('MispObject');
+        }
+        switch($logEntry['action']) {
+            case 'add':
+                $logEntry['data'] = $this->MispObject->Attribute->UTCToISODatetime(['Object' => $logEntry['data']], 'Object');
+                $logEntry['data'] = $logEntry['data']['Object'];
+                if (!empty($this->mockRecovery)) {
+                    $this->mockLog[] = ['model' => 'MispObject', 'action' => 'add', 'data' => $logEntry['data']];
+                } else {
+                    $this->MispObject->create();
+                    $this->MispObject->save($logEntry['data']);
+                }
+                break;
+            case 'edit':
+                $logEntry['data'] = $this->MispObject->Attribute->UTCToISODatetime(['Object' => $logEntry['data']], 'Object');
+                $logEntry['data'] = $logEntry['data']['Object'];
+                $object = $this->MispObject->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['Object.id' => $logEntry['model_id']]
+                ]);
+                if (!empty($object)) {
+                    foreach ($logEntry['data'] as $field => $value) {
+                        $object['Object'][$field] = $value;
+                    }
+                    if (!empty($this->mockRecovery)) {
+                        $this->mockLog[] = ['model' => 'MispObject', 'action' => 'add', 'data' => $object];
+                    } else {
+                        $this->MispObject->save($object);
+                    }
+                }
+                break;
+        }
     }
 }

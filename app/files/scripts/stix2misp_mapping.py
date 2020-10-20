@@ -120,6 +120,10 @@ cybox_to_misp_object = {
     "Whois": "whois"
 }
 
+test_mechanisms_mapping = {
+    'yaraTM:YaraTestMechanismType': 'yara'
+}
+
 marking_mapping = {
     'AIS:AISMarkingStructure': 'parse_AIS_marking',
     'tlpMarking:TLPMarkingStructureType': 'parse_TLP_marking'

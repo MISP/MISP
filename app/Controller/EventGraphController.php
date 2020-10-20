@@ -13,7 +13,7 @@ class EventGraphController extends AppController
         parent::beforeFilter();
     }
 
-    public function view($event_id = false)
+    public function view($event_id = false, $graph_id = null)
     {
         if ($event_id === false) {
             throw new MethodNotAllowedException(__('No event ID set.'));
@@ -40,12 +40,16 @@ class EventGraphController extends AppController
         }
 
         // fetch eventGraphs
+        $conditions = [
+            'EventGraph.event_id' => $event_id,
+            'EventGraph.org_id' => $org_id
+        ];
+        if (!is_null($graph_id)) {
+            $conditions['EventGraph.id'] = $graph_id;
+        }
         $eventGraphs = $this->EventGraph->find('all', array(
             'order' => 'EventGraph.timestamp DESC',
-            'conditions' => array(
-                'EventGraph.event_id' => $event_id,
-                'EventGraph.org_id' => $org_id
-            ),
+            'conditions' => $conditions,
             'contain' => array(
                 'User' => array(
                     'fields' => array(

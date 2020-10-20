@@ -7,9 +7,11 @@ App::uses('FinancialTool', 'Tools');
 App::uses('RandomTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
+App::uses('ComplexTypeTool', 'Tools');
 
 /**
  * @property Event $Event
+ * @property AttributeTag $AttributeTag
  */
 class Attribute extends AppModel
 {
@@ -96,16 +98,16 @@ class Attribute extends AppModel
             'Payload delivery' => array(
                     'desc' => __('Information about how the malware is delivered'),
                     'formdesc' => __('Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
                     ),
             'Artifacts dropped' => array(
                     'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'filename-pattern', 'pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised', 'pgp-public-key', 'pgp-private-key')
                     ),
             'Payload installation' => array(
                     'desc' => __('Info on where the malware gets installed in the system'),
                     'formdesc' => __('Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.'),
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe','weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
                     ),
             'Persistence mechanism' => array(
                     'desc' => __('Mechanisms used by the malware to start at boot'),
@@ -114,7 +116,7 @@ class Attribute extends AppModel
                     ),
             'Network activity' => array(
                     'desc' => __('Information about network traffic generated by the malware'),
-                    'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email-dst', 'email-src', 'eppn', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised', 'community-id', 'email-subject')
+                    'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email', 'email-dst', 'email-src', 'eppn', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'filename-pattern','stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised', 'community-id', 'email-subject')
                     ),
             'Payload type' => array(
                     'desc' => __('Information about the final payload(s)'),
@@ -123,12 +125,12 @@ class Attribute extends AppModel
                     ),
             'Attribution' => array(
                     'desc' => __('Identification of the group, organisation, or country behind the attack'),
-                    'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrant-org', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1','x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'dns-soa-email', 'anonymised')
+                    'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrant-org', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1','x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'dns-soa-email', 'anonymised', 'email')
                     ),
             'External analysis' => array(
                     'desc' => __('Any other result from additional analysis of the malware like tools output'),
                     'formdesc' => __('Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.'),
-                    'types' => array('md5', 'sha1', 'sha256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'mac-address', 'mac-eui-64', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'bro', 'zeek', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'weakness', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'github-repository', 'other', 'cortex', 'anonymised', 'community-id')
+                    'types' => array('md5', 'sha1', 'sha256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'mac-address', 'mac-eui-64', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'bro', 'zeek', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern','vulnerability', 'cpe', 'weakness', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'github-repository', 'other', 'cortex', 'anonymised', 'community-id')
                     ),
             'Financial fraud' => array(
                     'desc' => __('Financial Fraud indicators'),
@@ -142,15 +144,15 @@ class Attribute extends AppModel
             'Social network' => array(
                     'desc' => __('Social networks and platforms'),
                     // email-src and email-dst or should we go with a new email type that is neither / both?
-                    'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'twitter-id', 'email-src', 'email-dst', 'eppn','comment', 'text', 'other', 'whois-registrant-email', 'anonymised')
+                    'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'twitter-id', 'email', 'email-src', 'email-dst', 'eppn','comment', 'text', 'other', 'whois-registrant-email', 'anonymised', 'pgp-public-key', 'pgp-private-key')
             ),
             'Person' => array(
                     'desc' => __('A human being - natural person'),
-                    'types' => array('first-name', 'middle-name', 'last-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other', 'phone-number', 'identity-card-number', 'anonymised')
+                    'types' => array('first-name', 'middle-name', 'last-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other', 'phone-number', 'identity-card-number', 'anonymised', 'email', 'pgp-public-key', 'pgp-private-key')
             ),
             'Other' => array(
                     'desc' => __('Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future'),
-                    'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number', 'boolean', 'anonymised')
+                    'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number', 'boolean', 'anonymised', 'pgp-public-key', 'pgp-private-key')
                     )
         );
 
@@ -171,9 +173,10 @@ class Attribute extends AppModel
             'hostname' => array('desc' => __('A full host/dnsname of an attacker'), 'formdesc' => __("A full host/dnsname of an attacker. Also set the IDS flag on when this hostname is hardcoded in malware"), 'default_category' => 'Network activity', 'to_ids' => 1),
             'domain' => array('desc' => __('A domain name used in the malware'), 'formdesc' => __("A domain name used in the malware. Use this instead of hostname when the upper domain is important or can be used to create links between events."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'domain|ip' => array('desc' => __('A domain name and its IP address (as found in DNS lookup) separated by a |'),'formdesc' => __("A domain name and its IP address (as found in DNS lookup) separated by a | (no spaces)"), 'default_category' => 'Network activity', 'to_ids' => 1),
-            'email-src' => array('desc' => __("The email address used to send the malware."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'email' => array('desc' => ('An e-mail address'), 'default_category' => 'Social network', 'to_ids' => 1),
+            'email-src' => array('desc' => __("The source email address. Used to describe the sender when describing an e-mail."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'eppn' => array('desc' => __("eduPersonPrincipalName - eppn - the NetId of the person for the purposes of inter-institutional authentication. Should be stored in the form of user@univ.edu, where univ.edu is the name of the local security domain."), 'default_category' => 'Network activity', 'to_ids' => 1),
-            'email-dst' => array('desc' => __("A recipient email address"), 'formdesc' => __("A recipient email address that is not related to your constituency."), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'email-dst' => array('desc' => __("The destination email address. Used to describe the recipient when describing an e-mail."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'email-subject' => array('desc' => __("The subject of the email"), 'default_category' => 'Payload delivery', 'to_ids' => 0),
             'email-attachment' => array('desc' => __("File name of the email attachment."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'email-body' => array('desc' => __('Email body'), 'default_category' => 'Payload delivery', 'to_ids' => 0),
@@ -195,6 +198,9 @@ class Attribute extends AppModel
             'pattern-in-file' => array('desc' => __('Pattern in file that identifies the malware'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'pattern-in-traffic' => array('desc' => __('Pattern in network traffic that identifies the malware'), 'default_category' => 'Network activity', 'to_ids' => 1),
             'pattern-in-memory' => array('desc' => __('Pattern in memory dump that identifies the malware'), 'default_category' => 'Payload installation', 'to_ids' => 1),
+            'pattern-filename' => array('desc' => __('A pattern in the name of a file'), 'default_category' => 'Payload installation', 'to_ids' => 1),
+            'pgp-public-key' => array('desc' => __('A PGP public key'), 'default_category' => 'Person', 'to_ids' => 0),
+            'pgp-private-key' => array('desc' => __('A PGP private key'), 'default_category' => 'Person', 'to_ids' => 0),
             'yara' => array('desc' => __('Yara signature'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'stix2-pattern' => array('desc' => __('STIX 2 pattern'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'sigma' => array('desc' => __('Sigma - Generic Signature Format for SIEM Systems'), 'default_category' => 'Payload installation', 'to_ids' => 1),
@@ -204,6 +210,7 @@ class Attribute extends AppModel
             'identity-card-number' => array('desc' => __('Identity card number'), 'default_category' => 'Person', 'to_ids' => 0),
             'cookie' => array('desc' => __('HTTP cookie as often stored on the user web client. This can include authentication cookie or session cookie.'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'vulnerability' => array('desc' => __('A reference to the vulnerability used in the exploit'), 'default_category' => 'External analysis', 'to_ids' => 0),
+            'cpe' => array('desc' => __('Common Platform Enumeration - structured naming scheme for information technology systems, software, and packages.'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'weakness' => array('desc'=> __('A reference to the weakness used in the exploit'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'attachment' => array('desc' => __('Attachment with external information'), 'formdesc' => __("Please upload files using the <em>Upload Attachment</em> button."), 'default_category' => 'External analysis', 'to_ids' => 0),
             'malware-sample' => array('desc' => __('Attachment containing encrypted malware sample'), 'formdesc' => __("Please upload files using the <em>Upload Attachment</em> button."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -240,6 +247,7 @@ class Attribute extends AppModel
             'vhash' => array('desc' => __('A VirusTotal checksum'), 'formdesc' => __("You are encouraged to use filename|vhash instead. A checksum from VirusTotal, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'ssdeep' => array('desc' => __('A checksum in ssdeep format'), 'formdesc' => __("You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'imphash' => array('desc' => __('Import hash - a hash created based on the imports in the sample.'), 'formdesc' => __("You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'telfhash' => array('desc' => __('telfhash is symbol hash for ELF files, just like imphash is imports hash for PE files.'), 'formdesc' => __("You are encouraged to use a file object with telfash"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'pehash' => array('desc' => __('PEhash - a hash calculated based of certain pieces of a PE executable file'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'impfuzzy' => array('desc' => __('A fuzzy hash of import table of Portable Executable format'), 'formdesc' => __("You are encouraged to use filename|impfuzzy instead. A fuzzy hash created based on the imports in the sample, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'sha224' => array('desc' => __('A checksum in sha-224 format'), 'formdesc' => __("You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -289,7 +297,6 @@ class Attribute extends AppModel
             'size-in-bytes' => array('desc' => __('Size expressed in bytes'), 'default_category' => 'Other', 'to_ids' => 0),
             'counter' => array('desc' => __('An integer counter, generally to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
             'datetime' => array('desc' => __('Datetime in the ISO 8601 format'), 'default_category' => 'Other', 'to_ids' => 0),
-            'cpe' => array('desc' => __('Common platform enumeration'), 'default_category' => 'Other', 'to_ids' => 0),
             'port' => array('desc' => __('Port number'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'ip-dst|port' => array('desc' => __('IP destination and port number separated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
             'ip-src|port' => array('desc' => __('IP source and port number separated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
@@ -375,7 +382,8 @@ class Attribute extends AppModel
 
     public $primaryOnlyCorrelatingTypes = array(
         'ip-src|port',
-        'ip-dst|port'
+        'ip-dst|port',
+        'hostname|port',
     );
 
     public $captureFields = array(
@@ -420,6 +428,7 @@ class Attribute extends AppModel
     public $validFormats = array(
         'attack-sightings' => array('json', 'AttackSightingsExport', 'json'),
         'cache' => array('txt', 'CacheExport', 'cache'),
+        'count' => array('txt', 'CountExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'hashes' => array('txt', 'HashesExport', 'txt'),
         'json' => array('json', 'JsonExport', 'json'),
@@ -452,6 +461,7 @@ class Attribute extends AppModel
             'authentihash' => 'Payload delivery',
             'vhash' => 'Payload delivery',
             'imphash' => 'Payload delivery',
+            'telfhash' => 'Payload delivery',
             'impfuzzy'=> 'Payload delivery',
             'pehash' => 'Payload delivery',
             'cdhash' => 'Payload delivery',
@@ -474,6 +484,7 @@ class Attribute extends AppModel
             'hassh-md5' => 'Network activity',
             'hasshserver-md5' => 'Network activity',
             'link' => 'External analysis',
+            'email' => 'Social network',
             'email-src' => 'Payload delivery',
             'email-dst' => 'Payload delivery',
             'text' => 'Other',
@@ -490,7 +501,7 @@ class Attribute extends AppModel
     // whilst filenames and hashes are file related attribute types
     // This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
     public $typeGroupings = array(
-        'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'),
+        'file' => array('attachment', 'pattern-in-file', 'filename-pattern', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'),
         'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'bro', 'zeek',  'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256','ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'community-id'),
         'financial' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
     );
@@ -542,8 +553,8 @@ class Attribute extends AppModel
         ),
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
-                'message' => 'Please provide a valid UUID'
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
             ),
             'unique' => array(
                 'rule' => 'isUnique',
@@ -842,8 +853,7 @@ class Attribute extends AppModel
             return false;
         }
         App::uses('ComplexTypeTool', 'Tools');
-        $this->complexTypeTool = new ComplexTypeTool();
-        $this->data['Attribute']['value'] = $this->complexTypeTool->refangValue($this->data['Attribute']['value'], $this->data['Attribute']['type']);
+        $this->data['Attribute']['value'] = ComplexTypeTool::refangValue($this->data['Attribute']['value'], $this->data['Attribute']['type']);
 
         if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
             $this->validationErrors['type'] = ['Object attribute sent, but no object_relation set.'];
@@ -865,6 +875,8 @@ class Attribute extends AppModel
         // generate UUID if it doesn't exist
         if (empty($this->data['Attribute']['uuid'])) {
             $this->data['Attribute']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['Attribute']['uuid'] = strtolower($this->data['Attribute']['uuid']);
         }
         // generate timestamp if it doesn't exist
         if (empty($this->data['Attribute']['timestamp'])) {
@@ -911,10 +923,6 @@ class Attribute extends AppModel
             $this->data['Attribute']['sharing_group_id'] = 0;
         }
         // return true, otherwise the object cannot be saved
-
-        if ($this->data['Attribute']['type'] == 'float' && $this->data['Attribute']['value'] == 0) {
-            $this->data['Attribute']['value'] = '0.0';
-        }
         return true;
     }
 
@@ -922,8 +930,7 @@ class Attribute extends AppModel
     {
         $compositeTypes = $this->getCompositeTypes();
         if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
-            $pieces = explode('|', $fields['value']);
-            if (2 != count($pieces)) {
+            if (substr_count($fields['value'], '|') !== 1) {
                 return false;
             }
         }
@@ -1030,6 +1037,7 @@ class Attribute extends AppModel
         'authentihash' => 64,
         'md5' => 32,
         'imphash' => 32,
+        'telfhash' => 70,
         'sha1' => 40,
         'git-commit-id' => 40,
         'x509-fingerprint-md5' => 32,
@@ -1058,6 +1066,7 @@ class Attribute extends AppModel
         switch ($type) {
             case 'md5':
             case 'imphash':
+            case 'telfhash':
             case 'sha1':
             case 'sha224':
             case 'sha256':
@@ -1077,13 +1086,12 @@ class Attribute extends AppModel
             case 'x509-fingerprint-sha256':
             case 'x509-fingerprint-sha1':
             case 'git-commit-id':
-                $length = $this->__hexHashLengths[$type];
-                if (preg_match("#^[0-9a-f]{" . $length . "}$#", $value)) {
-                    $returnValue = true;
+                if ($this->isHashValid($type, $value)) {
+                    return true;
                 } else {
-                    $returnValue = __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
+                    $length = $this->__hexHashLengths[$type];
+                    return __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
                 }
-                break;
             case 'tlsh':
                 if (preg_match("#^[0-9a-f]{35,}$#", $value)) {
                     $returnValue = true;
@@ -1092,27 +1100,24 @@ class Attribute extends AppModel
                 }
                 break;
             case 'pehash':
-                if (preg_match("#^[0-9a-f]{40}$#", $value)) {
+                if ($this->isHashValid('pehash', $value)) {
                     $returnValue = true;
                 } else {
                     $returnValue = __('The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
                 }
                 break;
             case 'ssdeep':
-                if (substr_count($value, ':') == 2) {
+                if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
-                    if (is_numeric($parts[0])) {
-                        $returnValue = true;
+                    if ($this->isPositiveInteger($parts[0])) {
+                        return true;
                     }
                 }
-                if (!$returnValue) {
-                    $returnValue = __('Invalid SSDeep hash. The format has to be blocksize:hash:hash');
-                }
-                break;
+                return __('Invalid SSDeep hash. The format has to be blocksize:hash:hash');
             case 'impfuzzy':
-                if (substr_count($value, ':') == 2) {
+                if (substr_count($value, ':') === 2) {
                     $parts = explode(':', $value);
-                    if (is_numeric($parts[0])) {
+                    if ($this->isPositiveInteger($parts[0])) {
                         $returnValue = true;
                     }
                 }
@@ -1131,7 +1136,7 @@ class Attribute extends AppModel
                 if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
                     $returnValue = true;
                 } else {
-                    $returnValue = 'Unknown HTTP method.';
+                    $returnValue = __('Unknown HTTP method.');
                 }
                 break;
             case 'filename|pehash':
@@ -1172,7 +1177,7 @@ class Attribute extends AppModel
                     $value = $composite[1];
                     if (substr_count($value, ':') == 2) {
                         $parts = explode(':', $value);
-                        if (is_numeric($parts[0])) {
+                        if ($this->isPositiveInteger($parts[0])) {
                             $returnValue = true;
                         }
                     }
@@ -1189,7 +1194,7 @@ class Attribute extends AppModel
                 }
                 break;
             case 'filename|vhash':
-                if (preg_match("#^.+\|[a-zA-Z0-9]+$#", $value)) {
+                if (preg_match('#^.+\|[a-zA-Z0-9&!="]+$#', $value)) {
                     $returnValue = true;
                 } else {
                     $returnValue = __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
@@ -1199,17 +1204,17 @@ class Attribute extends AppModel
             case 'ip-dst':
                 if (strpos($value, '/') !== false) {
                     $parts = explode("/", $value);
-                    if (count($parts) !== 2 || intval($parts[1]) != $parts[1] || $parts[1] < 0) {
+                    if (count($parts) !== 2 || !$this->isPositiveInteger($parts[1])) {
                         return __('Invalid CIDR notation value found.');
                     }
 
                     if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                         if ($parts[1] > 32) {
-                            return __('Invalid CIDR notation value found.');
+                            return __('Invalid CIDR notation value found, for IPv4 must be lower or equal 32.');
                         }
                     } else if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                         if ($parts[1] > 128) {
-                            return __('Invalid CIDR notation value found.');
+                            return __('Invalid CIDR notation value found, for IPv6 must be lower or equal 128.');
                         }
                     } else {
                         return __('IP address has an invalid format.');
@@ -1221,7 +1226,7 @@ class Attribute extends AppModel
 
             case 'port':
                 if (!$this->isPortValid($value)) {
-                    $returnValue = __('Port numbers have to be positive integers between 1 and 65535.');
+                    $returnValue = __('Port numbers have to be integers between 1 and 65535.');
                 } else {
                     $returnValue = true;
                 }
@@ -1229,17 +1234,20 @@ class Attribute extends AppModel
             case 'ip-dst|port':
             case 'ip-src|port':
                 $parts = explode('|', $value);
-                if (filter_var($parts[0], FILTER_VALIDATE_IP) && $this->isPortValid($parts[1])) {
-                    $returnValue = true;
+                if (!filter_var($parts[0], FILTER_VALIDATE_IP)) {
+                    return __('IP address has an invalid format.');
                 }
-                break;
+                if (!$this->isPortValid($parts[1])) {
+                    return __('Port numbers have to be integers between 1 and 65535.');
+                }
+                return true;
             case 'mac-address':
-                if (preg_match('/^([a-fA-F0-9]{2}[:|\-| |\.]?){6}$/', $value) == 1) {
+                if (preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value)) {
                     $returnValue = true;
                 }
                 break;
             case 'mac-eui-64':
-                if (preg_match('/^([a-fA-F0-9]{2}[:|\-| |\.]?){8}$/', $value) == 1) {
+                if (preg_match('/^([a-fA-F0-9]{2}[:]?){8}$/', $value)) {
                     $returnValue = true;
                 }
                 break;
@@ -1248,15 +1256,18 @@ class Attribute extends AppModel
                 if ($this->isDomainValid($value)) {
                     $returnValue = true;
                 } else {
-                    $returnValue = ucfirst($type) . __(' name has an invalid format. Please double check the value or select type "other".');
+                    $returnValue = __('%s has an invalid format. Please double check the value or select type "other".', ucfirst($type));
                 }
                 break;
             case 'hostname|port':
                 $parts = explode('|', $value);
-                if ($this->isDomainValid($parts[0]) && $this->isPortValid($parts[1])) {
-                    $returnValue = true;
+                if (!$this->isDomainValid($parts[0])) {
+                    return __('Hostname has an invalid format.');
                 }
-                break;
+                if (!$this->isPortValid($parts[1])) {
+                    return __('Port numbers have to be integers between 1 and 65535.');
+                }
+                return true;
             case 'domain|ip':
                 if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}\|.*$#i", $value)) {
                     $parts = explode('|', $value);
@@ -1269,6 +1280,7 @@ class Attribute extends AppModel
                     $returnValue = __('Domain name has an invalid format.');
                 }
                 break;
+            case 'email':
             case 'email-src':
             case 'eppn':
             case 'email-dst':
@@ -1284,7 +1296,6 @@ class Attribute extends AppModel
                 }
                 break;
             case 'vulnerability':
-                $value = str_replace('–', '-', $value);
                 if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,}$#", $value)) {
                     $returnValue = true;
                 } else {
@@ -1292,7 +1303,6 @@ class Attribute extends AppModel
                 }
                 break;
             case 'weakness':
-                $value = str_replace('–', '-', $value);
                 if (preg_match("#^(CWE-)[0-9]{1,}$#", $value)) {
                     $returnValue = true;
                 } else {
@@ -1313,7 +1323,6 @@ class Attribute extends AppModel
                 }
                 break;
             case 'mutex':
-            case 'AS':
             case 'snort':
             case 'bro':
             case 'zeek':
@@ -1322,6 +1331,9 @@ class Attribute extends AppModel
             case 'pattern-in-file':
             case 'pattern-in-traffic':
             case 'pattern-in-memory':
+            case 'filename-pattern':
+            case 'pgp-public-key':
+            case 'pgp-private-key':
             case 'yara':
             case 'stix2-pattern':
             case 'sigma':
@@ -1332,6 +1344,16 @@ class Attribute extends AppModel
             case 'cookie':
             case 'attachment':
             case 'malware-sample':
+            case 'comment':
+            case 'text':
+            case 'other':
+            case 'cpe':
+            case 'email-attachment':
+            case 'email-body':
+            case 'email-header':
+            case 'first-name':
+            case 'middle-name':
+            case 'last-name':
                 $returnValue = true;
                 break;
             case 'link':
@@ -1340,18 +1362,8 @@ class Attribute extends AppModel
                     $returnValue = true;
                 }
                 break;
-            case 'comment':
-            case 'text':
-            case 'other':
-            case 'email-attachment':
-            case 'email-body':
-                $returnValue = true;
-                break;
             case 'hex':
-                if (preg_match("/^[0-9a-f]*$/i", $value)) {
-                    $returnValue = true;
-                }
-                break;
+                return ctype_xdigit($value);
             case 'target-user':
             case 'campaign-name':
             case 'campaign-id':
@@ -1371,13 +1383,10 @@ class Attribute extends AppModel
             case 'filename':
             case 'pdb':
             case 'windows-scheduled-task':
-      case 'whois-registrant-name':
-      case 'whois-registrant-org':
+            case 'whois-registrant-name':
+            case 'whois-registrant-org':
             case 'whois-registrar':
             case 'whois-creation-date':
-            case 'first-name':
-            case 'middle-name':
-            case 'last-name':
             case 'date-of-birth':
             case 'place-of-birth':
             case 'gender':
@@ -1408,18 +1417,13 @@ class Attribute extends AppModel
             case 'github-username':
             case 'github-repository':
             case 'github-organisation':
-            case 'cpe':
             case 'twitter-id':
             case 'chrome-extension-id':
             case 'mobile-application-id':
-                // no newline
-                if (!preg_match("#\n#", $value)) {
-                    $returnValue = true;
+                if (strpos($value, "\n") !== false) {
+                    return __('Value must not contain new line character.');
                 }
-                break;
-            case 'email-header':
-                $returnValue = true;
-                break;
+                return true;
             case 'datetime':
                 try {
                     new DateTime($value);
@@ -1430,12 +1434,10 @@ class Attribute extends AppModel
                 break;
             case 'size-in-bytes':
             case 'counter':
-                if (!is_numeric($value) || $value < 0) {
-                    $returnValue = __('The value has to be a number greater or equal 0.');
-                } else {
-                    $returnValue = true;
+                if ($this->isPositiveInteger($value)) {
+                    return true;
                 }
-                break;
+                return __('The value has to be a whole number greater or equal 0.');
             case 'targeted-threat-index':
                 if (!is_numeric($value) || $value < 0 || $value > 10) {
                     $returnValue = __('The value has to be a number between 0 and 10.');
@@ -1448,8 +1450,12 @@ class Attribute extends AppModel
             case 'btc':
             case 'dash':
             case 'xmr':
-            case 'vhash':
                 if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
+                    $returnValue = true;
+                }
+                break;
+            case 'vhash':
+                if (preg_match('/^[a-zA-Z0-9&!="]+$/', $value)) {
                     $returnValue = true;
                 }
                 break;
@@ -1469,15 +1475,17 @@ class Attribute extends AppModel
                 $returnValue = (json_last_error() == JSON_ERROR_NONE);
                 break;
             case 'float':
-                $value = floatval($value);
-                if (is_float($value)) {
-                    $returnValue = true;
-                }
-                break;
+                return is_numeric($value);
             case 'boolean':
                 if ($value == 1 || $value == 0) {
                     $returnValue = true;
                 }
+                break;
+            case 'AS':
+                if ($this->isPositiveInteger($value) && $value <= 4294967295) {
+                    return true;
+                }
+                return __('AS number have to be integers between 1 and 4294967295');
         }
         return $returnValue;
     }
@@ -1507,9 +1515,11 @@ class Attribute extends AppModel
             case 'authentihash':
             case 'vhash':
             case 'imphash':
+            case 'telfhash':
             case 'tlsh':
             case 'anonymised':
             case 'cdhash':
+            case 'email':
             case 'email-src':
             case 'email-dst':
             case 'target-email':
@@ -1565,8 +1575,12 @@ class Attribute extends AppModel
                 $value = $pieces[0] . '|' . strtolower($pieces[1]);
                 break;
             case 'http-method':
-                $value = strtoupper($value);
-                break;
+            case 'hex':
+                return strtoupper($value);
+            case 'vulnerability':
+            case 'weakness':
+                $value = str_replace('–', '-', $value);
+                return strtoupper($value);
             case 'cc-number':
             case 'bin':
                 $value = preg_replace('/[^0-9]+/', '', $value);
@@ -1585,12 +1599,8 @@ class Attribute extends AppModel
                 $value = preg_replace('/\(0\)/', '', $value);
                 $value = preg_replace('/[^\+0-9]+/', '', $value);
                 break;
-            case 'url':
-                $value = preg_replace('/^hxxp/i', 'http', $value);
-                $value = preg_replace('/\[\.\]/', '.', $value);
-                break;
-      case 'x509-fingerprint-md5':
-      case 'x509-fingerprint-sha256':
+            case 'x509-fingerprint-md5':
+            case 'x509-fingerprint-sha256':
             case 'x509-fingerprint-sha1':
                 $value = str_replace(':', '', $value);
                 $value = strtolower($value);
@@ -1635,19 +1645,14 @@ class Attribute extends AppModel
                         $parts[0] = inet_ntop(inet_pton($parts[0]));
                     }
                     return $parts[0] . '|' . $parts[1];
-                break;
             case 'mac-address':
             case 'mac-eui-64':
-                $value = str_replace(array('.', ':', '-', ' '), '', $value);
+                $value = str_replace(array('.', ':', '-', ' '), '', strtolower($value));
                 $value = wordwrap($value, 2, ':', true);
                 break;
             case 'hostname|port':
                 $value = strtolower($value);
-                str_replace(':', '|', $value);
-                break;
-            case 'hex':
-                $value = strtoupper($value);
-                break;
+                return str_replace(':', '|', $value);
             case 'boolean':
                 if ('true' == trim(strtolower($value))) {
                     $value = 1;
@@ -1662,6 +1667,17 @@ class Attribute extends AppModel
                     $value = (new DateTime($value))->setTimezone(new DateTimeZone('GMT'))->format('Y-m-d\TH:i:s.uO'); // ISO8601 formating with microseconds
                 } catch (Exception $e) {
                     // silently skip. Rejection will be done in runValidation()
+                }
+                break;
+            case 'AS':
+                if (strtoupper(substr($value, 0, 2)) === 'AS') {
+                    $value = substr($value, 2); // remove 'AS'
+                }
+                if (strpos($value, '.') !== false) { // maybe value is in asdot notation
+                    $parts = explode('.', $value);
+                    if ($this->isPositiveInteger($parts[0]) && $this->isPositiveInteger($parts[1])) {
+                        return $parts[0] * 65536 + $parts[1];
+                    }
                 }
                 break;
         }
@@ -2443,7 +2459,7 @@ class Attribute extends AppModel
         $rules = array();
         foreach ($eventIds as $event) {
             $conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
-            $valid_types = array('ip-dst', 'ip-src', 'ip-dst|port', 'ip-src|port', 'eppn', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
+            $valid_types = array('ip-dst', 'ip-src', 'ip-dst|port', 'ip-src|port', 'eppn', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
             $conditions['AND']['Attribute.type'] = $valid_types;
             if (!empty($type)) {
                 $conditions['AND'][] = array('Attribute.type' => $type);
@@ -2770,8 +2786,8 @@ class Attribute extends AppModel
                 }
                 $conditions['AND'][] = $temp;
             }
-            $this->Whitelist = ClassRegistry::init('Whitelist');
-            $this->whitelist = $this->Whitelist->getBlockedValues();
+            $this->Allowedlist = ClassRegistry::init('Allowedlist');
+            $this->allowedlist = $this->Allowedlist->getBlockedValues();
             $instanceString = 'MISP';
             if (Configure::read('MISP.host_org_id') && Configure::read('MISP.host_org_id') > 0) {
                 $this->Event->Orgc->id = Configure::read('MISP.host_org_id');
@@ -2782,7 +2798,7 @@ class Attribute extends AppModel
             $mispTypes = $export->getMispTypes($type);
             foreach ($mispTypes as $mispType) {
                 $conditions['AND']['Attribute.type'] = $mispType[0];
-                $intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString, $enforceWarninglist));
+                $intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->allowedlist, $instanceString, $enforceWarninglist));
             }
         }
         natsort($intel);
@@ -2793,7 +2809,7 @@ class Attribute extends AppModel
         return $intel;
     }
 
-    private function __bro($user, $conditions, $valueField, $export, $whitelist, $instanceString, $enforceWarninglist)
+    private function __bro($user, $conditions, $valueField, $export, $allowedlist, $instanceString, $enforceWarninglist)
     {
         $attributes = $this->fetchAttributes(
             $user,
@@ -2811,7 +2827,7 @@ class Attribute extends AppModel
         $orgs = $this->Event->Orgc->find('list', array(
                 'fields' => array('Orgc.id', 'Orgc.name')
         ));
-        return $export->export($attributes, $orgs, $valueField, $whitelist, $instanceString);
+        return $export->export($attributes, $orgs, $valueField, $allowedlist, $instanceString);
     }
 
     public function generateCorrelation($jobId = false, $startPercentage = 0, $eventId = false, $attributeId = false)
@@ -3122,7 +3138,6 @@ class Attribute extends AppModel
                 'value' => $value,
         );
         if ($element['complex']) {
-            App::uses('ComplexTypeTool', 'Tools');
             $complexTypeTool = new ComplexTypeTool();
             $result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
             if (isset($result['multi'])) {
@@ -3359,8 +3374,8 @@ class Attribute extends AppModel
             $params['limit'] = $options['limit'];
         }
         if (
-            Configure::read('MISP.proposals_block_attributes') &&
-            !empty($options['allow_proposal_blocking'])
+            !empty($options['allow_proposal_blocking']) &&
+            Configure::read('MISP.proposals_block_attributes')
         ) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
@@ -3454,9 +3469,8 @@ class Attribute extends AppModel
             return $results;
         }
 
-        if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->warninglists)) {
+        if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            $this->warninglists = $this->Warninglist->fetchForEventView();
         }
         if (empty($params['limit'])) {
             $loopLimit = 50000;
@@ -3526,14 +3540,15 @@ class Attribute extends AppModel
             $results = array_values($results);
             $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
             foreach ($results as $key => $attribute) {
+                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
+                    unset($results[$key]); // Remove attribute that match any enabled warninglists
+                    continue;
+                }
                 if (!empty($options['includeEventTags'])) {
                     $results = $this->__attachEventTagsToAttributes($eventTags, $results, $key, $options);
                 }
-                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($this->warninglists, $attribute['Attribute'])) {
-                    continue;
-                }
                 if ($options['includeWarninglistHits']) {
-                    $results[$key]['Attribute'] = $this->Warninglist->simpleCheckForWarning($results[$key]['Attribute'], $this->warninglists, true);
+                    $results[$key]['Attribute'] = $this->Warninglist->checkForWarning($results[$key]['Attribute']);
                 }
                 if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
                     $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
@@ -3687,7 +3702,12 @@ class Attribute extends AppModel
         return $validTypes;
     }
 
-    public function validateAttribute($attribute, $context = true)
+    /**
+     * @param $attribute
+     * @param bool $context
+     * @return array|true
+     */
+    public function validateAttribute(array $attribute, $context = true)
     {
         $this->set($attribute);
         if (!$context) {
@@ -4106,10 +4126,7 @@ class Attribute extends AppModel
         }
         if (!empty($attribute['enforceWarninglist']) || !empty($params['enforceWarninglist'])) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            if (empty($this->warninglists)) {
-                $this->warninglists = $this->Warninglist->fetchForEventView();
-            }
-            if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attributes[$k])) {
+            if (!$this->Warninglist->filterWarninglistAttribute($attribute)) {
                 $this->validationErrors['warninglist'] = 'Attribute could not be saved as it trips over a warninglist and enforceWarninglist is enforced.';
                 $validationErrors = $this->validationErrors['warninglist'];
                 $log->create();
@@ -4120,7 +4137,7 @@ class Attribute extends AppModel
                         'email' => $user['email'],
                         'action' => 'add',
                         'user_id' => $user['id'],
-                        'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
+                        'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed',
                         'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
                 ));
                 return $attribute;
@@ -4453,7 +4470,7 @@ class Attribute extends AppModel
                 'Attribute' => array(
                     'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
-                    'type' => array('function' => 'set_filter_simple_attribute'),
+                    'type' => array('function' => 'set_filter_type'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid'),
@@ -4634,7 +4651,7 @@ class Attribute extends AppModel
 
     private function __iteratedFetch($user, &$params, &$loop, TmpFileTool $tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
     {
-        $this->Whitelist = ClassRegistry::init('Whitelist');
+        $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $continue = true;
         while ($continue) {
             $results = $this->fetchAttributes($user, $params, $continue);
@@ -4643,7 +4660,7 @@ class Attribute extends AppModel
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
             $params['page'] += 1;
-            $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+            $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
             $i = 0;
             $temp = '';
             foreach ($results as $attribute) {
@@ -4731,6 +4748,30 @@ class Attribute extends AppModel
      */
     private function isPortValid($value)
     {
-        return is_numeric($value) && $value >= 1 && $value <= 65535;
+        return $this->isPositiveInteger($value) && $value >= 1 && $value <= 65535;
+    }
+
+    /**
+     * @param string $type
+     * @param string $value
+     * @return bool
+     */
+    private function isHashValid($type, $value)
+    {
+        if (!isset($this->__hexHashLengths[$type])) {
+            throw new InvalidArgumentException("Invalid hash type '$type'.");
+        }
+        $length = $this->__hexHashLengths[$type];
+        return strlen($value) === $length && ctype_xdigit($value);
+    }
+
+    /**
+     * Returns true if input value is positive integer or zero.
+     * @param int|string $value
+     * @return bool
+     */
+    private function isPositiveInteger($value)
+    {
+        return (is_int($value) && $value >= 0) || ctype_digit($value);
     }
 }

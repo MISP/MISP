@@ -113,16 +113,15 @@
                 )
             );
         }
-        $tagData .= '<span class="tag-container nowrap  ">' . $span_scope . $span_tag . $span_delete . '</span> ';
+        $tagData .= '<span class="tag-container nowrap">' . $span_scope . $span_tag . $span_delete . '</span> ';
     }
     $buttonData = array();
     if ($full) {
         $buttonData[] = sprintf(
-            '<button id="%s" title="%s" role ="button" tabindex="0" aria-label="%s" class="%s" style="%s" onClick="%s">%s</button>',
-            'addTagButton',
+            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" style="%s" onClick="%s">%s</button>',
             __('Add a tag'),
             __('Add a tag'),
-            'btn btn-inverse noPrint',
+            'addTagButton btn btn-inverse noPrint',
             'line-height:10px; padding: 2px;',
             sprintf(
                 "popoverPopup(this, '%s%s', '%s', '%s');",
@@ -136,11 +135,10 @@
     }
     if ($host_org_editor || $full) {
         $buttonData[] = sprintf(
-            '<button id="%s" title="%s" role ="button" tabindex="0" aria-label="%s" class="%s" style="%s" onClick="%s">%s</button>',
-            'addLocalTagButton',
+            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" style="%s" onClick="%s">%s</button>',
             __('Add a local tag'),
             __('Add a local tag'),
-            'btn btn-inverse noPrint',
+            'addLocalTagButton btn btn-inverse noPrint',
             'line-height:10px; padding: 2px;',
             sprintf(
                 "popoverPopup(this, '%s%s', '%s', '%s')",

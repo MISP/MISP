@@ -8,9 +8,9 @@
             <li class="active"><?php echo $this->Html->link(__('Administration'), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration')); ?>
             <ul class="nav nav-list">
                 <li><a href="#diagnostics"><?php echo __('Settings and Diagnostics');?></a></li>
-                <li><a href="#blacklist"><?php echo __('Blacklist');?></a></li>
+                <li><a href="#blocklist"><?php echo __('Blocklist');?></a></li>
                 <li><a href="#regexp"><?php echo __('Import Regexp');?></a></li>
-                <li><a href="#whitelist"><?php echo __('Signature Whitelist');?></a></li>
+                <li><a href="#allowedlist"><?php echo __('Signature Allowedlist');?></a></li>
                 <li><a href="#user"><?php echo __('User Management');?></a></li>
                 <li><a href="#roles"><?php echo __('Role Management');?></a></li>
                 <li><a href="#logs"><?php echo __('Logging');?></a></li>
@@ -56,10 +56,10 @@
         <li><b><?php echo __('Status');?></b>: <?php echo __('Displays OK if the worker is running. If the _schdlr_ worker is the only one not running make sure that you copy the config file into the cakeresque directory as described in the INSTALL.txt documentation.');?></li>
     </ul>
     <hr />
-    <h2><a id="blacklist"></a><?php echo __('Import Blacklist');?></h2>
-    <?php echo __('It is possible to ban certain values from ever being entered into the system via an event info field or an attribute value. This is done by blacklisting the value in this section.');?><br />
+    <h2><a id="blocklist"></a><?php echo __('Import Blocklist');?></h2>
+    <?php echo __('It is possible to ban certain values from ever being entered into the system via an event info field or an attribute value. This is done by blocklisting the value in this section.');?><br />
     <h3><?php echo __('Adding and modifying entries');?></h3>
-    <?php echo __('Administrators can add, edit or delete blacklisted items by using the appropriate functions in the list\'s action menu and the menu on the left.');?><br />
+    <?php echo __('Administrators can add, edit or delete blocklisted items by using the appropriate functions in the list\'s action menu and the menu on the left.');?><br />
     <hr />
     <h2><a id="regexp"></a><?php echo __('Import Regexp');?></h2>
     <?php echo __('The system allows administrators to set up rules for regular expressions that will automatically alter newly entered or imported events.');?><br />
@@ -70,13 +70,13 @@
     <?php echo __('Administrators can add, edit or delete regular expression rules, which are made up of a regex pattern that the system searches for and a replacement for the detected pattern.');?><br />
     <p><img src="<?php echo $baseurl;?>/img/doc/regexp.png" alt = "" title = "<?php echo __('Add, edit or remove Regexp entries that will affect all newly created attributes here.');?>"/></p><br />
     <hr />
-    <h2><a id="whitelist"></a><?php echo __('Managing the Signature whitelist');?></h2>
-    <?php echo __('The signature whitelist view, accessible through the administration menu on the left, allows administrators to create and maintain a list of addresses that are whitelisted from ever being added to the NIDS signatures. Addresses listed here will be commented out when exporting the NIDS list.');?><br />
-    <h3><?php echo __('Whitelisting an address');?>:</h3>
-        <?php echo __('While in the whitelist view, click on New Whitelist on the left to bring up the add whitelist view to add a new address.');?> <br />
+    <h2><a id="allowedlist"></a><?php echo __('Managing the Signature allowedlist');?></h2>
+    <?php echo __('The signature allowedlist view, accessible through the administration menu on the left, allows administrators to create and maintain a list of addresses that are allowedlisted from ever being added to the NIDS signatures. Addresses listed here will be commented out when exporting the NIDS list.');?><br />
+    <h3><?php echo __('Allowedlisting an address');?>:</h3>
+        <?php echo __('While in the allowedlist view, click on New Allowedlist on the left to bring up the add allowedlist view to add a new address.');?> <br />
     <h3><?php echo __('Managing the list');?>:</h3>
-        <?php echo __('When viewing the list of whitelisted addresses, the following pieces of information are shown: The ID of the whitelist entry (assigned automatically when a new address is added), the address itself that is being whitelisted and a set of controls allowing you to delete the entry or edit the address.');?><br />
-    <img src="<?php echo $baseurl;?>/img/doc/whitelist.png" alt = "Whitelist" title = "<?php echo __('You can edit or delete currently white-listed addresses using the action buttons on this list.');?>"/><br />
+        <?php echo __('When viewing the list of allowedlisted addresses, the following pieces of information are shown: The ID of the allowedlist entry (assigned automatically when a new address is added), the address itself that is being allowedlisted and a set of controls allowing you to delete the entry or edit the address.');?><br />
+    <img src="<?php echo $baseurl;?>/img/doc/whitelist.png" alt = "Allowedlist" title = "<?php echo __('You can edit or delete currently white-listed addresses using the action buttons on this list.');?>"/><br />
     <hr />
     <h2><a id="user"></a><?php echo __('Managing the users');?>:</h2>
     <?php echo __('As an admin, you can set up new accounts for users, edit the profiles of users, delete them, or just have a look at all the viewers\' profiles. Organisation admins are restricted to executing the same actions on their organisation\'s users only.');?><br />
@@ -168,8 +168,8 @@
         <li><b><?php echo __('Attribute');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
         <li><b><?php echo __('ShadowAttribute');?>:</b> <?php echo __('Creation, deletion, Accept, Discard');?><br /></li>
         <li><b><?php echo __('Roles');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
-        <li><b><?php echo __('Blacklist');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
-        <li><b><?php echo __('Whitelist');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
+        <li><b><?php echo __('Blocklist');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
+        <li><b><?php echo __('Allowedlist');?>:</b> <?php echo __('Creation, deletion, modification');?><br /></li>
         <li><b><?php echo __('Regexp');?>:</b> <?php echo __('Creation, deletion, modification');?></li>
     </ul>
     <br />

@@ -111,7 +111,7 @@ class ACLComponent extends Component
                     'requestAccess' => array(),
                     'view' => array()
             ),
-            'eventBlacklists' => array(
+            'eventBlocklists' => array(
                     'add' => [
                         'AND' => [
                             'host_org_user',
@@ -149,6 +149,16 @@ class ACLComponent extends Component
                     'deleteDelegation' => array('perm_add'),
                     'index' => array('*'),
                     'view' => array('*'),
+            ),
+            'eventReports' => array(
+                'add' => array('perm_add'),
+                'view' => array('*'),
+                'viewSummary' => array('*'),
+                'edit' => array('perm_add'),
+                'delete' => array('perm_add'),
+                'restore' => array('perm_add'),
+                'index' => array('*'),
+                'getProxyMISPElements' => array('*'),
             ),
             'events' => array(
                     'add' => array('perm_add'),
@@ -203,9 +213,11 @@ class ACLComponent extends Component
                     'pushEventToKafka' => array('perm_publish_kafka'),
                     'pushProposals' => array('perm_sync'),
                     'queryEnrichment' => array('perm_add'),
+                    'recoverEvent' => array('perm_site_admin'),
                     'removePivot' => array('*'),
                     'removeTag' => array('perm_tagger'),
                     'reportValidationIssuesEvents' => array(),
+                    'restoreDeletedEvents' => array('perm_site_admin'),
                     'restSearch' => array('*'),
                     'saveFreeText' => array('perm_add'),
                     'stix' => array('*'),
@@ -219,7 +231,6 @@ class ACLComponent extends Component
                     'upload_stix' => array('perm_add'),
                     'view' => array('*'),
                     'viewEventAttributes' => array('*'),
-                    'viewEventGraph' => array('*'),
                     'viewGraph' => array('*'),
                     'viewGalaxyMatrix' => array('*'),
                     'xml' => array('*')
@@ -242,11 +253,17 @@ class ACLComponent extends Component
                     'fetchSelectedFromFreetextIndex' => array(),
                     'getEvent' => array(),
                     'importFeeds' => array(),
-                    'index' => array('*'),
+                    'index' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
                     'loadDefaultFeeds' => array('perm_site_admin'),
                     'previewEvent' => array('*'),
                     'previewIndex' => array('*'),
-                    'searchCaches' => array('*'),
+                    'searchCaches' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
                     'toggleSelected' => array('perm_site_admin'),
                     'view' => array('*'),
             ),
@@ -349,7 +366,7 @@ class ACLComponent extends Component
             'objectTemplateElements' => array(
                 'viewElements' => array('*')
             ),
-            'orgBlacklists' => array(
+            'orgBlocklists' => array(
                     'add' => array(),
                     'delete' => array(),
                     'edit' => array(),
@@ -365,7 +382,6 @@ class ACLComponent extends Component
                     'fetchSGOrgRow' => array('*'),
                     'getUUIDs' => array('perm_sync'),
                     'index' => array('*'),
-                    'landingpage' => array('*'),
                     'view' => array('*'),
             ),
             'pages' => array(
@@ -423,7 +439,10 @@ class ACLComponent extends Component
                     'getSubmoduleQuickUpdateForm' => array(),
                     'getWorkers' => array(),
                     'getVersion' => array('*'),
-                    'idTranslator' => array('*'),
+                    'idTranslator' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
                     'import' => array(),
                     'index' => array(),
                     'ondemandAction' => array(),
@@ -452,7 +471,8 @@ class ACLComponent extends Component
                     'updateProgress' => array(),
                     'updateSubmodule' => array(),
                     'uploadFile' => array(),
-                    'viewDeprecatedFunctionUse' => array()
+                    'viewDeprecatedFunctionUse' => array(),
+                    'killAllWorkers' => ['perm_site_admin'],
             ),
             'shadowAttributes' => array(
                     'accept' => array('perm_add'),
@@ -633,7 +653,7 @@ class ACLComponent extends Component
                     'update' => array(),
                     'view' => array('*')
             ),
-            'whitelists' => array(
+            'allowedlists' => array(
                     'admin_add' => array('perm_regexp_access'),
                     'admin_delete' => array('perm_regexp_access'),
                     'admin_edit' => array('perm_regexp_access'),
@@ -745,7 +765,9 @@ class ACLComponent extends Component
         foreach ($aclList as $k => $v) {
             $aclList[$k] = array_change_key_case($v);
         }
-        $this->__checkLoggedActions($user, $controller, $action);
+        if (!$soft) {
+            $this->__checkLoggedActions($user, $controller, $action);
+        }
         if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
@@ -801,7 +823,6 @@ class ACLComponent extends Component
         switch ($code) {
             case 404:
                 throw new NotFoundException($message);
-                break;
             case 403:
                 throw new MethodNotAllowedException($message);
             default:

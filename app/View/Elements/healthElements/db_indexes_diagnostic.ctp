@@ -1,12 +1,12 @@
 <div>
     <label for="toggleTableDBIndexes" style="display: inline-block;">
-        <input type="checkbox" id="toggleTableDBIndexes" class="form-input" checked></input>
+        <input type="checkbox" id="toggleTableDBIndexes" class="form-input" checked>
         <?php echo __('Show database indexes') ?>
     </label>
 </div>
 <div id="containerDBIndexes" class="" style="max-height: 800px; overflow-y: auto; padding: 5px;">
     <?php if(empty($diagnostic)): ?>
-        <span class="label label-success"><?php echo __('Index diagnostic:'); ?><i class="fa fa-check"></i></span>
+        <span class="label label-success"><?php echo __('Index diagnostic:'); ?> <i class="fa fa-check"></i></span>
     <?php else: ?>
         <div class="alert alert-warning">
             <strong><?php echo __('Notice'); ?></strong>
@@ -30,7 +30,7 @@
                     ?>
                     <?php foreach($columnArray as $columnName): ?>
                         <?php 
-                            $columnIndexed = !empty($indexes[$tableName]) && in_array($columnName, $indexes[$tableName]);
+                            $columnIndexed = isset($indexes[$tableName][$columnName]);
                             $warningArray = isset($diagnostic[$tableName][$columnName]);
                             if ($warningArray) {
                                 $columnCount++;
