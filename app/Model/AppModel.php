@@ -2979,4 +2979,15 @@ class AppModel extends Model
 
         return $this->attachmentTool;
     }
+
+    /**
+     * @return Log
+     */
+    protected function loadLog()
+    {
+        if (!isset($this->Log)) {
+            $this->Log = ClassRegistry::init('Log');
+        }
+        return $this->Log;
+    }
 }

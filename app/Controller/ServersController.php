@@ -1659,34 +1659,33 @@ class ServersController extends AppController
         if (!$this->Auth->user('Role')['perm_sync'] && !$this->Auth->user('Role')['perm_site_admin']) {
             throw new MethodNotAllowedException('You don\'t have permission to do that.');
         }
-        $this->Server->id = $id;
-        if (!$this->Server->exists()) {
+
+        $server = $this->Server->find('first', ['Server.id' => $id]);
+        if (!$server) {
             throw new NotFoundException(__('Invalid server'));
         }
-        $result = $this->Server->runConnectionTest($id);
+        $result = $this->Server->runConnectionTest($server);
         if ($result['status'] == 1) {
-            $version = json_decode($result['message'], true);
-            if (isset($version['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $version['version'])) {
+            if (isset($result['info']['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $result['info']['version'])) {
                 $perm_sync = false;
-                if (isset($version['perm_sync'])) {
-                    $perm_sync = $version['perm_sync'];
+                if (isset($result['info']['perm_sync'])) {
+                    $perm_sync = $result['info']['perm_sync'];
                 }
                 $perm_sighting = false;
-                if (isset($version['perm_sighting'])) {
-                    $perm_sighting = $version['perm_sighting'];
+                if (isset($result['info']['perm_sighting'])) {
+                    $perm_sighting = $result['info']['perm_sighting'];
                 }
                 App::uses('Folder', 'Utility');
                 $file = new File(ROOT . DS . 'VERSION.json', true);
                 $local_version = json_decode($file->read(), true);
                 $file->close();
-                $version = explode('.', $version['version']);
+                $version = explode('.', $result['info']['version']);
                 $mismatch = false;
                 $newer = false;
                 $parts = array('major', 'minor', 'hotfix');
                 if ($version[0] == 2 && $version[1] == 4 && $version[2] > 68) {
-                    $post = $this->Server->runPOSTTest($id);
+                    $post = $this->Server->runPOSTTest($server);
                 }
-                $testPost = false;
                 foreach ($parts as $k => $v) {
                     if (!$mismatch) {
                         if ($version[$k] > $local_version[$v]) {
@@ -1718,7 +1717,8 @@ class ServersController extends AppController
                                 'version' => implode('.', $version),
                                 'mismatch' => $mismatch,
                                 'newer' => $newer,
-                                'post' => isset($post) ? $post : 'too old'
+                                'post' => isset($post) ? $post : 'too old',
+                                'client_certificate' => $result['client_certificate'],
                                 )
                             ),
                             'type' => 'json'
