@@ -42,7 +42,7 @@
             'html' => $authkey_data
         );
     }
-    
+
     if (Configure::read('Plugin.CustomAuth_enable') && !empty($user['User']['external_auth_key'])) {
         $header = Configure::read('Plugin.CustomAuth_header') ?: 'Authorization';
         $table_data[] = array(
@@ -131,7 +131,6 @@
         $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => '/events/index/searchemail:' . urlencode(h($user['User']['email'])))),
         $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'viewUser'))
     );
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'viewUser'));
 ?>
 <script type="text/javascript">
     $(function () {
