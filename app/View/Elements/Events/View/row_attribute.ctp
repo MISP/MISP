@@ -202,17 +202,17 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       >
     </td>
     <td class="shortish">
-      <ul class="inline" style="margin:0">
         <?php
           if (!empty($event['RelatedAttribute'][$object['id']])) {
-            echo $this->element('Events/View/attribute_correlations', array(
-              'scope' => 'Attribute',
-              'object' => $object,
-              'event' => $event,
-            ));
+              echo '<ul class="inline" style="margin:0">';
+              echo $this->element('Events/View/attribute_correlations', array(
+                  'scope' => 'Attribute',
+                  'object' => $object,
+                  'event' => $event,
+              ));
+              echo '</ul>';
           }
         ?>
-      </ul>
     </td>
     <td class="shortish">
       <ul class="inline" style="margin:0">
@@ -226,15 +226,15 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
                             foreach ($v as $k2 => $v2) {
                                 $v[$k2] = h($v2);
                             }
-                            $v = implode('<br />', $v);
+                            $v = implode('<br>', $v);
                         } else {
                             $v = h($v);
                         }
-                        $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
+                        $popover .= '<span class="bold black">' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br>';
                     }
                     $liContents = '';
                     if ($isSiteAdmin || $hostOrgUser) {
-                        if ($feed['source_format'] == 'misp') {
+                        if ($feed['source_format'] === 'misp') {
                             $liContents .= sprintf(
                                 '<form action="%s/feeds/previewIndex/%s" method="post" style="margin:0;line-height:auto;">%s%s</form>',
                                 $baseurl,
@@ -251,14 +251,11 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
                             );
                         } else {
                             $liContents .= sprintf(
-                                '<form>%s</form>',
-                                sprintf(
-                                    '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
-                                    $baseurl,
-                                    h($feed['id']),
-                                    h($popover),
-                                    h($feed['id'])
-                                )
+                                '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
+                                $baseurl,
+                                h($feed['id']),
+                                h($popover),
+                                h($feed['id'])
                             );
                         }
                     } else {
