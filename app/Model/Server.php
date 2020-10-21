@@ -2251,6 +2251,14 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean'
                         ),
+                        'Enrichment_hover_popover_only' => array(
+                            'level' => 0,
+                            'description' => __('When enabled, user have to click on magnifier icon to show enrichment'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
                         'Enrichment_hover_timeout' => array(
                                 'level' => 1,
                                 'description' => __('Set a timeout for the hover services'),
