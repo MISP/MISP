@@ -738,14 +738,16 @@ class EventReport extends AppModel
             if ($found) {
                 $replacedContext[$tagName][$tagName] = $cluster['GalaxyCluster'];
             }
-            $found = strpos($originalContent, $cluster['GalaxyCluster']['value']) !== false;
+            $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
+            $found = strpos($originalContent, $toSearch) !== false;
             if ($found) {
                 $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
             }
             if ($options['synonyms']) {
                 foreach ($cluster['GalaxyElement'] as $j => $element) {
                     if (strlen($element['value']) >= $options['synonyms_min_characters']) {
-                        $found = strpos($originalContent, $element['value']) !== false;
+                        $toSearch = ' ' . $element['value'] . ' ';
+                        $found = strpos($originalContent, $toSearch) !== false;
                         if ($found) {
                             $replacedContext[$element['value']][$tagName] = $cluster['GalaxyCluster'];
                         }
@@ -763,16 +765,19 @@ class EventReport extends AppModel
             foreach ($attackClusters as $i => $cluster) {
                 $cluster['GalaxyCluster']['colour'] = '#0088cc';
                 $tagName = $cluster['GalaxyCluster']['tag_name'];
-                $found = strpos($originalContent, $cluster['GalaxyCluster']['value']) !== false;
+                $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
+                $found = strpos($originalContent, $toSearch) !== false;
                 if ($found) {
                     $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
                 } else {
-                    $clusterParts = explode(' - ', $cluster['GalaxyCluster']['value']);
-                    $found = strpos($originalContent, $clusterParts[0]) !== false;
+                    $clusterParts = explode(' - ', $cluster['GalaxyCluster']['value'], 2);
+                    $toSearch = ' ' . $clusterParts[0] . ' ';
+                    $found = strpos($originalContent, $toSearch) !== false;
                     if ($found) {
                         $replacedContext[$clusterParts[0]][$tagName] = $cluster['GalaxyCluster'];
                     } else {
-                        $found = strpos($originalContent, $clusterParts[1]) !== false;
+                        $toSearch = ' ' . $clusterParts[1] . ' ';
+                        $found = strpos($originalContent, $toSearch) !== false;
                         if ($found) {
                             $replacedContext[$clusterParts[1]][$tagName] = $cluster['GalaxyCluster'];
                         }
@@ -808,9 +813,10 @@ class EventReport extends AppModel
     {
         $lastIndex = 0;
         $allIndices = [];
-        while (($lastIndex = strpos($content, $tagName, $lastIndex)) !== false) {
+        $toSearch = ' ' . $tagName . ' ';
+        while (($lastIndex = strpos($content, $toSearch, $lastIndex)) !== false) {
             $allIndices[] = $lastIndex;
-            $lastIndex = $lastIndex + strlen($tagName);
+            $lastIndex = $lastIndex + strlen($toSearch);
         }
         if (empty($allIndices)) {
             return false;

@@ -52,6 +52,7 @@ var unreferencedElements = {
     values: null,
     context: null
 };
+var suggestionIDs = []
 var suggestions = {}
 var pickedSuggestion = { tableID: null, tr: null, entity: null, index: null, isContext: null }
 
@@ -371,7 +372,6 @@ function MISPElementSuggestionRule(state) {
 }
 /* Parsing Rules */
 function MISPElementRule(state, startLine, endLine, silent) {
-    // debugger;
     var pos, start, labelStart, labelEnd, res, elementID, code, content, token, tokens, attrs, scope
     var oldPos = state.pos,
         max = state.posMax
@@ -443,7 +443,6 @@ function MISPElementRule(state, startLine, endLine, silent) {
 
     // We found the end of the link, and know for a fact it's a valid link;
     // so all that's left to do is to call tokenizer.
-    // debugger;
     content = {
         scope: scope,
         elementID: elementID,
@@ -455,7 +454,12 @@ function MISPElementRule(state, startLine, endLine, silent) {
         token      = state.push('MISPPictureElement', 'div', 0);
     } else {
         token      = state.push('MISPElement', 'div', 0);
-        token.isSuggestion = (scope == 'suggestion')
+        if (scope == 'suggestion') {
+            token.isSuggestion = true
+            content.indexes.suggestionID = consumeSuggestionID()
+        } else {
+            token.isSuggestion = false
+        }
     }
 
     token.children = tokens;
@@ -493,7 +497,7 @@ function MISPPictureElementRenderer(tokens, idx, options, env, slf) {
 function renderMISPElement(scope, elementID, indexes) {
     var templateVariables
     if (scope == 'suggestion') {
-        var suggestionKey = 'suggestion-' + String(indexes.lineStart) + '-' + String(indexes.start)
+        var suggestionKey = 'suggestion-' + String(indexes.lineStart) + '-' + String(indexes.suggestionID)
         if (suggestions[elementID] !== undefined) {
             var suggestion = suggestions[elementID][suggestionKey]
             if (suggestion !== undefined) {
@@ -975,6 +979,7 @@ function prepareSuggestionInterface(complexTypeToolResult, replacementValues, re
 
 function highlightPickedSuggestionInReport() {
     setEditorData(contentBeforeSuggestions)
+    resetSuggestionIDs()
     for (var i = 0; i < entitiesFromComplexTool.length; i++) {
         var entity = entitiesFromComplexTool[i];
         if (pickedSuggestion.entity.value == entity.value) {
@@ -991,6 +996,7 @@ function highlightPickedReplacementInReport() {
     var entity = pickedSuggestion.entity
     setEditorData(contentBeforeSuggestions)
     var content = contentBeforeSuggestions
+    resetSuggestionIDs()
     var converted = convertEntityIntoSuggestion(content, entity)
     setEditorData(converted)
     var indicesInCM = getAllSuggestionIndicesOf(converted, entity.value, false)
@@ -1032,7 +1038,7 @@ function constructSuggestionMapping(entity, indicesInCM) {
     var suggestionBaseKey = 'suggestion-', suggestionKey
     suggestions[entity.value] = {}
     indicesInCM.forEach(function(index) {
-        suggestionKey = suggestionBaseKey + index.editorPosition.line + '-' + index.editorPosition.ch
+        suggestionKey = suggestionBaseKey + index.editorPosition.line + '-' + getNewSuggestionID()
         suggestions[entity.value][suggestionKey] = {
             startIndex: index,
             endIndex: {index: index.index + entity.value.length},
@@ -1162,7 +1168,8 @@ function getContentWithCheckedElements(isReplacement) {
         var suggestion = suggestions[value][suggestionKey]
         contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
         nextIndex = suggestion.startIndex.index
-        if (suggestion.checked) {
+        renderedInMardown = $('.misp-element-wrapper.suggestion[data-suggestionkey="' + suggestionKey + '"]').length > 0;
+        if (suggestion.checked && renderedInMardown) { // If the suggestion is not rendered, ignore it (could happen if parent block is escaped)
             if (isReplacement) {
                 if (suggestion.isContext === true) {
                     contentWithPickedSuggestions += '@[attribute](' + suggestion.complexTypeToolResult.replacement + ')'
@@ -2000,6 +2007,17 @@ function jumpToNextOccurrence() {
         }
         suggestionToScrollInto.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
         pickOccurrence($(suggestionToScrollInto))
+    } else {
+        var toSearch = '@[suggestion](' + pickedSuggestion.entity.value + ')'
+        var match = $('#viewer').find('*').filter(function() {
+            return $(this).text().includes(toSearch)
+        })
+        if (match.length > 0) {
+            showMessage('success', 'Suggestion element not rendered. Please check manually')
+            match[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        } else {
+            showMessage('fail', 'Could not find element')
+        }
     }
 }
 
@@ -2059,6 +2077,21 @@ function getAllIndicesOf(haystack, needle, caseSensitive, requestLineNum) {
         startIndex = index + needle.length;
     }
     return indices;
+}
+
+function getNewSuggestionID() {
+    var randomID = getRandomID()
+    suggestionIDs.push(randomID)
+    return randomID
+}
+function consumeSuggestionID() {
+    return suggestionIDs.shift()
+}
+function resetSuggestionIDs() {
+    suggestionIDs = []
+}
+function getRandomID() {
+    return Math.random().toString(36).substr(2,9)
 }
 
 function getLineNumInArrayList(index, arrayToSearchInto) {
