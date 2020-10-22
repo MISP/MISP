@@ -1194,7 +1194,7 @@ class Attribute extends AppModel
                 }
                 break;
             case 'filename|vhash':
-                if (preg_match('#^.+\|[a-zA-Z0-9&!="]+$#', $value)) {
+                if (preg_match('#^.+\|[a-zA-Z0-9&!=\"]+$#', $value)) {
                     $returnValue = true;
                 } else {
                     $returnValue = __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
