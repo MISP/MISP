@@ -4759,7 +4759,7 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $result = $this->Module->queryModuleServer('/query', $data, false, $type);
+        $result = $this->Module->queryModuleServer($data, false, $type);
         if (!$result) {
             throw new MethodNotAllowedException(__('%s service not reachable.', $type));
         }
@@ -4804,7 +4804,7 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $result = $this->Module->queryModuleServer('/query', $data, false, $type);
+        $result = $this->Module->queryModuleServer($data, false, $type);
         if (!$result) {
             throw new MethodNotAllowedException(__('%s service not reachable.', $type));
         }
@@ -4994,7 +4994,7 @@ class EventsController extends AppController
                     if (!empty($filename)) {
                         $modulePayload['filename'] = $filename;
                     }
-                    $result = $this->Module->queryModuleServer('/query', $modulePayload, false, $moduleFamily = 'Import');
+                    $result = $this->Module->queryModuleServer($modulePayload, false, $moduleFamily = 'Import');
                     if (!$result) {
                         throw new Exception(__('Import service not reachable.'));
                     }
