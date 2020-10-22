@@ -3256,7 +3256,7 @@ class Server extends AppModel
                         } else {
                             $setting['test'] = 'testForEmpty';
                             $setting['type'] = 'string';
-                            $setting['description'] = __('Set this required module specific setting.');
+                            $setting['description'] = isset($result['description']) ? $result['description'] : __('Set this required module specific setting.');
                             $setting['value'] = '';
                         }
                         $serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
@@ -5228,11 +5228,10 @@ class Server extends AppModel
     public function moduleDiagnostics(&$diagnostic_errors, $type = 'Enrichment')
     {
         $this->Module = ClassRegistry::init('Module');
-        $types = array('Enrichment', 'Import', 'Export', 'Cortex');
         $diagnostic_errors++;
         if (Configure::read('Plugin.' . $type . '_services_enable')) {
             $exception = false;
-            $result = $this->Module->getModules(false, $type, $exception);
+            $result = $this->Module->getModules($type, $exception);
             if ($exception) {
                 return $exception;
             }

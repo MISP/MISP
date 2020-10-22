@@ -82,8 +82,7 @@ class Module extends AppModel
         return true;
     }
 
-
-    public function getModules($type = false, $moduleFamily = 'Enrichment', &$exception = false)
+    public function getModules($moduleFamily = 'Enrichment', &$exception = false)
     {
         $modules = $this->queryModuleServer('/modules', false, false, $moduleFamily, $exception);
         if (!$modules) {
@@ -99,7 +98,7 @@ class Module extends AppModel
 
     public function getEnabledModules($user, $type = false, $moduleFamily = 'Enrichment')
     {
-        $modules = $this->getModules($type, $moduleFamily);
+        $modules = $this->getModules($moduleFamily);
         if (is_array($modules)) {
             foreach ($modules['modules'] as $k => $module) {
                 if (!Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_enabled') || ($type && !in_array(strtolower($type), $module['meta']['module-type']))) {
@@ -156,7 +155,7 @@ class Module extends AppModel
             throw new InvalidArgumentException("Invalid type '$type'.");
         }
         $moduleFamily = $this->__typeToFamily[$type];
-        $modules = $this->getModules($type, $moduleFamily);
+        $modules = $this->getModules($moduleFamily);
         if (!Configure::read('Plugin.' . $moduleFamily . '_' . $name . '_enabled')) {
             return 'The requested module is not enabled.';
         }
@@ -199,6 +198,14 @@ class Module extends AppModel
         return "$url:$port";
     }
 
+    /**
+     * @param string $uri
+     * @param array|false $post
+     * @param bool $hover
+     * @param string $moduleFamily
+     * @param Exception|false $exception
+     * @return array|false
+     */
     public function queryModuleServer($uri, $post = false, $hover = false, $moduleFamily = 'Enrichment', &$exception = false)
     {
         $url = $this->__getModuleServer($moduleFamily);
@@ -227,9 +234,9 @@ class Module extends AppModel
         }
         $httpSocket = new HttpSocket($settings);
         $request = array(
-                'header' => array(
-                        'Content-Type' => 'application/json',
-                )
+            'header' => array(
+                'Content-Type' => 'application/json',
+            )
         );
         if ($moduleFamily == 'Cortex') {
             if (!empty(Configure::read('Plugin.' . $moduleFamily . '_authkey'))) {
@@ -238,6 +245,10 @@ class Module extends AppModel
         }
         try {
             if ($post) {
+                if (!is_array($post)) {
+                    throw new InvalidArgumentException("Post data must be array, " . gettype($post) . " given.");
+                }
+                $post = json_encode($post);
                 $response = $httpSocket->post($url . $uri, $post, $request);
             } else {
                 if ($moduleFamily == 'Cortex') {
@@ -245,7 +256,13 @@ class Module extends AppModel
                 }
                 $response = $httpSocket->get($url . $uri, false, $request);
             }
-            return json_decode($response->body, true);
+            if (!$response->isOk()) {
+                if ($httpSocket->lastError()) {
+                    throw new Exception("Failed to get response from $moduleFamily module " . $httpSocket->lastError());
+                }
+                throw new Exception("Failed to get response from $moduleFamily module: HTTP $response->reasonPhrase", (int)$response->code);
+            }
+            return $this->jsonDecode($response->body);
         } catch (Exception $e) {
             $this->logException('Failed to query module ' . $moduleFamily, $e);
             $exception = $e->getMessage();
@@ -253,20 +270,31 @@ class Module extends AppModel
         }
     }
 
+    /**
+     * @param string $moduleFamily
+     * @return array
+     */
     public function getModuleSettings($moduleFamily = 'Enrichment')
     {
-        $modules = $this->getModules(false, $moduleFamily);
+        $modules = $this->getModules($moduleFamily);
         $result = array();
         if (!empty($modules['modules'])) {
             foreach ($modules['modules'] as $module) {
                 if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
-                    $result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
-                    $result[$module['name']][1] = array('name' => 'restrict', 'type' => 'orgs');
+                    $moduleSettings = [
+                        array('name' => 'enabled', 'type' => 'boolean'),
+                        array('name' => 'restrict', 'type' => 'orgs')
+                    ];
                     if (isset($module['meta']['config'])) {
-                        foreach ($module['meta']['config'] as $conf) {
-                            $result[$module['name']][] = array('name' => $conf, 'type' => 'string');
+                        foreach ($module['meta']['config'] as $key => $value) {
+                            if (is_string($key)) {
+                                $moduleSettings[] = array('name' => $key, 'type' => 'string', 'description' => $value);
+                            } else {
+                                $moduleSettings[] = array('name' => $value, 'type' => 'string');
+                            }
                         }
                     }
+                    $result[$module['name']] = $moduleSettings;
                 }
             }
         }
