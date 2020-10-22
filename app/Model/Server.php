@@ -5230,10 +5230,10 @@ class Server extends AppModel
         $this->Module = ClassRegistry::init('Module');
         $diagnostic_errors++;
         if (Configure::read('Plugin.' . $type . '_services_enable')) {
-            $exception = false;
-            $result = $this->Module->getModules($type, $exception);
-            if ($exception) {
-                return $exception;
+            try {
+                $result = $this->Module->getModules($type, true);
+            } catch (Exception $e) {
+                return $e->getMessage();
             }
             if (empty($result)) {
                 return 2;

@@ -1820,7 +1820,11 @@ class Attribute extends AppModel
 
     public function saveAttachment($attribute, $path_suffix='')
     {
-        return $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
+        $result = $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
+        if ($result) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
+        }
+        return $result;
     }
 
     /**

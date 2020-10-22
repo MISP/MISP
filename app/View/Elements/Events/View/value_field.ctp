@@ -46,14 +46,27 @@ switch ($object['type']) {
             }
 
             if (isset($object['objectType'])) {
+                if (array_key_exists('infected', $object) && $object['infected'] !== false) { // it is not possible to use isset
+                    if ($object['infected'] === null) {
+                        $confirm = __('This file was not checked by AV scan. Do you really want to download it?');
+                    } else {
+                        $confirm = __('According to AV scan, this file contains %s malware. Do you really want to download it?', $object['infected']);
+                    }
+                } else {
+                    $confirm = null;
+                }
+
                 $controller = $object['objectType'] === 'proposal' ? 'shadow_attributes' : 'attributes';
                 $url = array('controller' => $controller, 'action' => 'download', $object['id']);
-                echo $this->Html->link($filename, $url, array('class' => $linkClass));
+                echo $this->Html->link($filename, $url, array('class' => $linkClass), $confirm);
             } else {
                 echo $filename;
             }
             if (isset($filenameHash[1])) {
                 echo '<br>' . $filenameHash[1];
+            }
+            if (isset($object['infected']) && $object['infected'] !== false) {
+                echo ' <i class="fas fa-virus" title="' . __('This file contains malware %s', $object['infected'])  . '"></i>';
             }
         }
         break;

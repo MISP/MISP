@@ -33,7 +33,6 @@ class AttachmentTool
         return $this->_exists(true, $eventId, $attributeId, $path_suffix);
     }
 
-
     /**
      * @param bool $shadow
      * @param int $eventId
@@ -424,7 +423,7 @@ class AttachmentTool
      * Naive way to detect if we're working in S3
      * @return bool
      */
-    private function attachmentDirIsS3()
+    public function attachmentDirIsS3()
     {
         return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
     }
