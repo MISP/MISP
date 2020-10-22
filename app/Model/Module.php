@@ -82,8 +82,7 @@ class Module extends AppModel
         return true;
     }
 
-
-    public function getModules($type = false, $moduleFamily = 'Enrichment', &$exception = false)
+    public function getModules($moduleFamily = 'Enrichment', &$exception = false)
     {
         $modules = $this->queryModuleServer('/modules', false, false, $moduleFamily, $exception);
         if (!$modules) {
@@ -99,7 +98,7 @@ class Module extends AppModel
 
     public function getEnabledModules($user, $type = false, $moduleFamily = 'Enrichment')
     {
-        $modules = $this->getModules($type, $moduleFamily);
+        $modules = $this->getModules($moduleFamily);
         if (is_array($modules)) {
             foreach ($modules['modules'] as $k => $module) {
                 if (!Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_enabled') || ($type && !in_array(strtolower($type), $module['meta']['module-type']))) {
@@ -156,7 +155,7 @@ class Module extends AppModel
             throw new InvalidArgumentException("Invalid type '$type'.");
         }
         $moduleFamily = $this->__typeToFamily[$type];
-        $modules = $this->getModules($type, $moduleFamily);
+        $modules = $this->getModules($moduleFamily);
         if (!Configure::read('Plugin.' . $moduleFamily . '_' . $name . '_enabled')) {
             return 'The requested module is not enabled.';
         }
@@ -255,7 +254,7 @@ class Module extends AppModel
 
     public function getModuleSettings($moduleFamily = 'Enrichment')
     {
-        $modules = $this->getModules(false, $moduleFamily);
+        $modules = $this->getModules($moduleFamily);
         $result = array();
         if (!empty($modules['modules'])) {
             foreach ($modules['modules'] as $module) {

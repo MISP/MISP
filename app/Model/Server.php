@@ -5228,11 +5228,10 @@ class Server extends AppModel
     public function moduleDiagnostics(&$diagnostic_errors, $type = 'Enrichment')
     {
         $this->Module = ClassRegistry::init('Module');
-        $types = array('Enrichment', 'Import', 'Export', 'Cortex');
         $diagnostic_errors++;
         if (Configure::read('Plugin.' . $type . '_services_enable')) {
             $exception = false;
-            $result = $this->Module->getModules(false, $type, $exception);
+            $result = $this->Module->getModules($type, $exception);
             if ($exception) {
                 return $exception;
             }
