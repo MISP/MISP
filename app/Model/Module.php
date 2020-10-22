@@ -264,6 +264,10 @@ class Module extends AppModel
         }
     }
 
+    /**
+     * @param string $moduleFamily
+     * @return array
+     */
     public function getModuleSettings($moduleFamily = 'Enrichment')
     {
         $modules = $this->getModules($moduleFamily);
@@ -271,13 +275,20 @@ class Module extends AppModel
         if (!empty($modules['modules'])) {
             foreach ($modules['modules'] as $module) {
                 if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
-                    $result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
-                    $result[$module['name']][1] = array('name' => 'restrict', 'type' => 'orgs');
+                    $moduleSettings = [
+                        array('name' => 'enabled', 'type' => 'boolean'),
+                        array('name' => 'restrict', 'type' => 'orgs')
+                    ];
                     if (isset($module['meta']['config'])) {
-                        foreach ($module['meta']['config'] as $conf) {
-                            $result[$module['name']][] = array('name' => $conf, 'type' => 'string');
+                        foreach ($module['meta']['config'] as $key => $value) {
+                            if (is_string($key)) {
+                                $moduleSettings[] = array('name' => $key, 'type' => 'string', 'description' => $value);
+                            } else {
+                                $moduleSettings[] = array('name' => $value, 'type' => 'string');
+                            }
                         }
                     }
+                    $result[$module['name']] = $moduleSettings;
                 }
             }
         }

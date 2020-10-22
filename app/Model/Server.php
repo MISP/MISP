@@ -3256,7 +3256,7 @@ class Server extends AppModel
                         } else {
                             $setting['test'] = 'testForEmpty';
                             $setting['type'] = 'string';
-                            $setting['description'] = __('Set this required module specific setting.');
+                            $setting['description'] = isset($result['description']) ? $result['description'] : __('Set this required module specific setting.');
                             $setting['value'] = '';
                         }
                         $serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
