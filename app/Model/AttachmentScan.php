@@ -154,29 +154,30 @@ class AttachmentScan extends AppModel
             throw new Exception("S3 attachment storage is not supported now for AV scanning.");
         }
 
+        $fields = ['id', 'uuid', 'type', 'value', 'event_id'];
         if ($type === 'all') {
             $attributes = ClassRegistry::init('Attribute')->find('all', array(
                 'recursive' => -1,
                 'conditions' => ['type' => 'attachment'],
-                'fields' => ['id', 'type', 'event_id'],
+                'fields' => $fields,
             ));
             $shadowAttributes = ClassRegistry::init('ShadowAttribute')->find('all', array(
                 'recursive' => -1,
                 'conditions' => ['type' => 'attachment'],
-                'fields' => ['id', 'type', 'event_id'],
+                'fields' => $fields,
             ));
             $attributes = array_merge($attributes, $shadowAttributes);
         } else if ($type === self::TYPE_ATTRIBUTE) {
             $attributes = ClassRegistry::init('Attribute')->find('all', array(
                 'recursive' => -1,
                 'conditions' => ['type' => 'attachment', 'id' => $attributeId],
-                'fields' => ['id', 'type', 'event_id'],
+                'fields' => $fields,
             ));
         } else if ($type === self::TYPE_SHADOW_ATTRIBUTE) {
             $attributes = ClassRegistry::init('ShadowAttribute')->find('all', array(
                 'recursive' => -1,
                 'conditions' => ['type' => 'attachment', 'id' => $attributeId],
-                'fields' => ['id', 'type', 'event_id'],
+                'fields' => $fields,
             ));
         } else {
             throw new InvalidArgumentException("Input must be 'all', 'Attribute' or 'ShadowAttribute', '$type' provided.");
