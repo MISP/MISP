@@ -256,6 +256,12 @@ class Module extends AppModel
                 }
                 $response = $httpSocket->get($url . $uri, false, $request);
             }
+            if (!$response->isOk()) {
+                if ($httpSocket->lastError()) {
+                    throw new Exception("Failed to get response from $moduleFamily module " . $httpSocket->lastError());
+                }
+                throw new Exception("Failed to get response from $moduleFamily module: HTTP $response->reasonPhrase", (int)$response->code);
+            }
             return $this->jsonDecode($response->body);
         } catch (Exception $e) {
             $this->logException('Failed to query module ' . $moduleFamily, $e);
