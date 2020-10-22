@@ -2439,7 +2439,6 @@ class AttributesController extends AppController
             } else {
                 $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
             }
-            $data = json_encode($data);
             $result = $this->Module->queryModuleServer('/query', $data, true);
             if ($result) {
                 if (!is_array($result)) {

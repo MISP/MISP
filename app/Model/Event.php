@@ -5751,7 +5751,7 @@ class Event extends AppModel
             }
         }
         $modulePayload['data'] = $events;
-        $result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, 'Export');
+        $result = $this->Module->queryModuleServer('/query', $modulePayload, false, 'Export');
         return array(
                 'data' => $result['data'],
                 'extension' => $module['mispattributes']['outputFileExtension'],
@@ -6135,7 +6135,6 @@ class Event extends AppModel
                         } else {
                             $data[$attribute['type']] = $attribute['value'];
                         }
-                        $data = json_encode($data);
                         $result = $this->Module->queryModuleServer('/query', $data, false, 'Enrichment');
                         if (!$result) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');

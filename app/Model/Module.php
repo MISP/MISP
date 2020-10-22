@@ -198,6 +198,14 @@ class Module extends AppModel
         return "$url:$port";
     }
 
+    /**
+     * @param string $uri
+     * @param array|false $post
+     * @param bool $hover
+     * @param string $moduleFamily
+     * @param Exception|false $exception
+     * @return array|false
+     */
     public function queryModuleServer($uri, $post = false, $hover = false, $moduleFamily = 'Enrichment', &$exception = false)
     {
         $url = $this->__getModuleServer($moduleFamily);
@@ -226,9 +234,9 @@ class Module extends AppModel
         }
         $httpSocket = new HttpSocket($settings);
         $request = array(
-                'header' => array(
-                        'Content-Type' => 'application/json',
-                )
+            'header' => array(
+                'Content-Type' => 'application/json',
+            )
         );
         if ($moduleFamily == 'Cortex') {
             if (!empty(Configure::read('Plugin.' . $moduleFamily . '_authkey'))) {
@@ -237,6 +245,10 @@ class Module extends AppModel
         }
         try {
             if ($post) {
+                if (!is_array($post)) {
+                    throw new InvalidArgumentException("Post data must be array, " . gettype($post) . " given.");
+                }
+                $post = json_encode($post);
                 $response = $httpSocket->post($url . $uri, $post, $request);
             } else {
                 if ($moduleFamily == 'Cortex') {
