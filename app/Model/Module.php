@@ -244,7 +244,7 @@ class Module extends AppModel
                 }
                 $response = $httpSocket->get($url . $uri, false, $request);
             }
-            return json_decode($response->body, true);
+            return $this->jsonDecode($response->body);
         } catch (Exception $e) {
             $this->logException('Failed to query module ' . $moduleFamily, $e);
             $exception = $e->getMessage();
