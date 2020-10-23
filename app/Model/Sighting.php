@@ -50,6 +50,9 @@ class Sighting extends AppModel
         'csv' => array('csv', 'CsvExport', 'csv')
     );
 
+    /** @var array */
+    private $orgCache = [];
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -240,10 +243,6 @@ class Sighting extends AppModel
         if ($extraConditions !== false) {
             $conditions['AND'] = $extraConditions;
         }
-        if (Configure::read('MISP.showorg')) {
-            $contain['Organisation'] = array('fields' => array('Organisation.id', 'Organisation.uuid', 'Organisation.name'));
-        }
-
         // Sighting reporters setting
         // If the event has any sightings for the user's org, then the user is a sighting reporter for the event too.
         // This means that he /she has access to the sightings data contained within
@@ -264,6 +263,7 @@ class Sighting extends AppModel
             'conditions' => $conditions,
             'recursive' => -1,
             'contain' => $contain,
+            'callbacks' => 'before', // disable after callbacks for every attribute
         ));
         if (empty($sightings)) {
             return array();
@@ -272,14 +272,14 @@ class Sighting extends AppModel
         $anonymiseAs = Configure::read('Plugin.Sightings_anonymise_as');
         $anonOrg = null;
         if ($forSync && !empty($anonymiseAs)) {
-            $this->Organisation = ClassRegistry::init('Organisation');
-            $anonOrg = $this->Organisation->find('first', [
-                'recursive' => -1,
-                'conditions' => ['Organisation.id' => $anonymiseAs],
-                'fields' => ['Organisation.id', 'Organisation.uuid', 'Organisation.name']
-            ]);
+            $anonOrg = $this->getOrganisationById($anonymiseAs);
         }
+        $showOrg = Configure::read('MISP.showorg');
         foreach ($sightings as $k => $sighting) {
+            if ($showOrg && $sighting['Sighting']['org_id']) {
+                $sighting['Organisation'] = $this->getOrganisationById($sighting['Sighting']['org_id']);
+            }
+
             if (
                 ($sighting['Sighting']['org_id'] == 0 && !empty($sighting['Organisation'])) ||
                 $anonymise || !empty($anonOrg)
@@ -289,8 +289,8 @@ class Sighting extends AppModel
                         unset($sighting['Sighting']['org_id']);
                         unset($sighting['Organisation']);
                     } else {
-                        $sighting['Sighting']['org_id'] = $anonOrg['Organisation']['id'];
-                        $sighting['Organisation'] = $anonOrg['Organisation'];
+                        $sighting['Sighting']['org_id'] = $anonOrg['id'];
+                        $sighting['Organisation'] = $anonOrg;
                     }
                 }
             }
@@ -542,7 +542,6 @@ class Sighting extends AppModel
         $sightings = $this->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1,
-            'contain' => array('Organisation.name'),
             'order' => array(sprintf('Sighting.date_sighting %s', $order_desc ? 'DESC' : ''))
         ));
         if (!empty($sightings) && empty(Configure::read('Plugin.Sightings_policy')) && !$user['Role']['perm_site_admin']) {
@@ -596,6 +595,11 @@ class Sighting extends AppModel
             }
             $sightings = array_values($sightings);
         }
+
+        foreach ($sightings as $k => $sighting) {
+            $sightings[$k]['Organisation'] = $this->getOrganisationById($sighting['Sighting']['org_id']);
+        }
+
         return $sightings;
     }
 
@@ -820,5 +824,33 @@ class Sighting extends AppModel
         $rangeInDays = Configure::read('MISP.Sightings_range');
         $rangeInDays = (!empty($rangeInDays) && is_numeric($rangeInDays)) ? $rangeInDays : 365;
         return strtotime("-$rangeInDays days");
+    }
+
+    /**
+     * Reduce memory usage by not fetching organisation object for every sighting but just once. Then organisation
+     * object will be deduplicated in memory.
+     *
+     * @param int $orgId
+     * @return array
+     */
+    private function getOrganisationById($orgId)
+    {
+        if (isset($this->orgCache[$orgId])) {
+            return $this->orgCache[$orgId];
+        }
+
+        if (!isset($this->Organisation)) {
+            $this->Organisation = ClassRegistry::init('Organisation');
+        }
+        $org = $this->Organisation->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Organisation.id' => $orgId],
+            'fields' => ['Organisation.id', 'Organisation.uuid', 'Organisation.name']
+        ]);
+        if (!empty($org)) {
+            $org = $org['Organisation'];
+        }
+        $this->orgCache[$orgId] = $org;
+        return $this->orgCache[$orgId];
     }
 }
