@@ -497,7 +497,7 @@ function MISPPictureElementRenderer(tokens, idx, options, env, slf) {
 function renderMISPElement(scope, elementID, indexes) {
     var templateVariables
     if (scope == 'suggestion') {
-        var suggestionKey = 'suggestion-' + String(indexes.lineStart) + '-' + String(indexes.suggestionID)
+        var suggestionKey = 'suggestion-' + String(indexes.suggestionID)
         if (suggestions[elementID] !== undefined) {
             var suggestion = suggestions[elementID][suggestionKey]
             if (suggestion !== undefined) {
@@ -971,7 +971,7 @@ function prepareSuggestionInterface(complexTypeToolResult, replacementValues, re
     entitiesFromComplexTool = complexTypeToolResult
     searchForUnreferencedValues(replacementValues)
     searchForUnreferencedContext(replacementContext)
-    entitiesFromComplexTool = injectNumberOfOccurencesInReport(entitiesFromComplexTool)
+    entitiesFromComplexTool = injectNumberOfOccurrencesInReport(entitiesFromComplexTool)
     setupSuggestionMarkdownListeners()
     constructSuggestionTables(entitiesFromComplexTool)
     toggleMarkdownEditorLoading(false)
@@ -1038,7 +1038,7 @@ function constructSuggestionMapping(entity, indicesInCM) {
     var suggestionBaseKey = 'suggestion-', suggestionKey
     suggestions[entity.value] = {}
     indicesInCM.forEach(function(index) {
-        suggestionKey = suggestionBaseKey + index.editorPosition.line + '-' + getNewSuggestionID()
+        suggestionKey = suggestionBaseKey + getNewSuggestionID()
         suggestions[entity.value][suggestionKey] = {
             startIndex: index,
             endIndex: {index: index.index + entity.value.length},
@@ -1046,9 +1046,17 @@ function constructSuggestionMapping(entity, indicesInCM) {
             checked: true
         }
     });
+    setTimeout(function() {
+        var notRenderedCount = suggestionIDs.length
+        if (notRenderedCount > 0) {
+            pickedSuggestion.tr.find('.occurrence-issues')
+                .attr('title', 'Could not render ' + notRenderedCount + ' elements. Manual investigation required')
+                .text('⚠ ' + notRenderedCount)
+        }
+    }, 300);
 }
 
-function injectNumberOfOccurencesInReport(entities) {
+function injectNumberOfOccurrencesInReport(entities) {
     var content = getEditorData()
     entities.forEach(function(entity, i) {
         entities[i].occurrences = getAllIndicesOf(content, entity.value, false, false).length
@@ -1118,6 +1126,9 @@ function pickSuggestionColumn(index, tableID, force) {
     tableID = tableID === undefined ? 'replacementTable' : tableID
     force = force === undefined ? false : force;
     if (pickedSuggestion.tableID != tableID || pickedSuggestion.index != index || force) {
+        if (pickedSuggestion.tr) {
+            pickedSuggestion.tr.find('.occurrence-issues').attr('title', '').text('')
+        }
         var $trs = $('#' + tableID + ' tr')
         $trs.removeClass('info').find('button').prop('disabled', true)
         $trs.find('select').prop('disabled', true)
@@ -1168,13 +1179,13 @@ function getContentWithCheckedElements(isReplacement) {
         var suggestion = suggestions[value][suggestionKey]
         contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
         nextIndex = suggestion.startIndex.index
-        renderedInMardown = $('.misp-element-wrapper.suggestion[data-suggestionkey="' + suggestionKey + '"]').length > 0;
+        var renderedInMardown = $('.misp-element-wrapper.suggestion[data-suggestionkey="' + suggestionKey + '"]').length > 0;
         if (suggestion.checked && renderedInMardown) { // If the suggestion is not rendered, ignore it (could happen if parent block is escaped)
             if (isReplacement) {
-                if (suggestion.isContext === true) {
-                    contentWithPickedSuggestions += '@[attribute](' + suggestion.complexTypeToolResult.replacement + ')'
-                } else {
+                if (pickedSuggestion.isContext === true) {
                     contentWithPickedSuggestions += '@[tag](' + suggestion.complexTypeToolResult.replacement + ')'
+                } else {
+                    contentWithPickedSuggestions += '@[attribute](' + suggestion.complexTypeToolResult.replacement + ')'
                 }
             } else {
                 contentWithPickedSuggestions += content.substr(nextIndex, suggestionLength)
@@ -1236,6 +1247,7 @@ function submitExtractionSuggestion() {
                         var report = postResult.data.report.EventReport
                         var complexTypeToolResult = postResult.data.complexTypeToolResult
                         var replacementValues = postResult.data.replacementValues
+                        var replacementContext = postResult.data.replacementContext
                         lastModified = report.timestamp + '000'
                         refreshLastUpdatedField()
                         originalRaw = report.content
@@ -1245,7 +1257,7 @@ function submitExtractionSuggestion() {
                             contentBeforeSuggestions = originalRaw
                             pickedSuggestion = { tableID: null, tr: null, entity: null, index: null, isContext: null }
                             pickSuggestionColumn(-1)
-                            prepareSuggestionInterface(complexTypeToolResult, replacementValues)
+                            prepareSuggestionInterface(complexTypeToolResult, replacementValues, replacementContext)
                         })
                     }
                 }
@@ -1709,20 +1721,23 @@ function constructExtractionTable(entities) {
                 $('<td/>').addClass('bold blue').text(entity.value).css('word-wrap', 'anywhere'),
                 $('<td/>').append($selectType),
                 $('<td/>').append($selectCategory),
-                $('<td/>').append($('<span/>').addClass('input-prepend input-append').append(
-                    $('<button type="button"/>').attr('title', 'Jump to previous occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
-                        $('<a/>').addClass('fas fa-caret-left')
-                    ).click(function(e) {
-                        e.stopPropagation()
-                        jumpToPreviousOccurrence()
-                    }),
-                    $('<input type="text" disabled />').css('max-width', '2em').val(entity.occurrences),
-                    $('<button type="button"/>').attr('title', 'Jump to next occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
-                        $('<a/>').addClass('fas fa-caret-right')
-                    ).click(function(e) {
-                        e.stopPropagation()
-                        jumpToNextOccurrence()
-                    }),
+                $('<td/>').append($('<span/>').css('white-space', 'nowrap').append(
+                    $('<span/>').addClass('input-prepend input-append').append(
+                        $('<button type="button"/>').attr('title', 'Jump to previous occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
+                            $('<a/>').addClass('fas fa-caret-left')
+                        ).click(function(e) {
+                            e.stopPropagation()
+                            jumpToPreviousOccurrence()
+                        }),
+                        $('<input type="text" disabled />').css('max-width', '2em').val(entity.occurrences),
+                        $('<button type="button"/>').attr('title', 'Jump to next occurrence').addClass('add-on btn btn-mini').css('height', 'auto').append(
+                            $('<a/>').addClass('fas fa-caret-right')
+                        ).click(function(e) {
+                            e.stopPropagation()
+                            jumpToNextOccurrence()
+                        })
+                    ),
+                    $('<span/>').addClass('occurrence-issues bold red').css({'margin-left': '3px'})
                 )),
                 $('<td/>').append(
                     $('<span/>').css('white-space', 'nowrap').append(
