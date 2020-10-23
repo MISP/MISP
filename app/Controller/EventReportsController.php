@@ -198,13 +198,26 @@ class EventReportsController extends AppController
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
         } else {
             if ($this->request->is('post')) {
-                $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'view', $throwErrors=true, $full=false);
+                $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', $throwErrors=true, $full=false);
                 $results = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
                 $report['EventReport']['content'] = $results['replacementResult']['contentWithReplacements'];
                 $contextResults = $this->EventReport->extractWithReplacementsFromReport($this->Auth->user(), $report, ['replace' => true]);
                 $suggestionResult = $this->EventReport->transformFreeTextIntoSuggestion($contextResults['contentWithReplacements'], $results['complexTypeToolResult']);
                 $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestionResult['contentWithSuggestions'], $suggestionResult['suggestionsMapping']);
                 if (empty($errors)) {
+                    if (!empty($this->data['EventReport']['tag_event'])) {
+                        $this->loadModel('EventTag');
+                        foreach ($contextResults['replacedContext'] as $rawText => $tagNames) {
+                            // Replace with first one until a better strategy is found
+                            reset($tagNames);
+                            $tagName = key($tagNames);
+                            $tagId = $this->EventTag->Tag->lookupTagIdFromName($tagName);
+                            if ($tagId === -1) {
+                                $tagId = $this->EventTag->Tag->captureTag(['name' => $tagName], $this->Auth->user());
+                            }
+                            $this->EventTag->attachTagToEvent($report['EventReport']['event_id'], $tagId);
+                        }
+                    }
                     $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
                     $data = [ 'report' => $report ];
                     $successMessage = __('Automatic extraction applied to Event Report %s', $reportId);
@@ -216,7 +229,7 @@ class EventReportsController extends AppController
             }
             $this->layout = 'ajax';
             $this->set('reportId', $reportId);
-            $this->render('ajax/replaceSuggestionInReport');
+            $this->render('ajax/extractAllFromReport');
         }
     }
 

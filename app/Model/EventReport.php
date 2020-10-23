@@ -536,7 +536,7 @@ class EventReport extends AppModel
                 $errors[] = $savedAttribute['errors'];
             }
         }
-        if ($success > 0) {
+        if ($success > 0 || count($suggestionsMapping) == 0) {
             $report['EventReport']['content'] = $replacedContent;
             $editErrors = $this->editReport($user, $report, $report['EventReport']['event_id']);
             if (!empty($editErrors)) {

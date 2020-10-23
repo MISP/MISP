@@ -912,48 +912,7 @@ function reloadRenderingRuleEnabledUI() {
 
 function automaticEntitiesExtraction() {
     var url = baseurl + '/eventReports/extractAllFromReport/' + reportid
-    fetchFormDataAjax(url, function(formHTML) {
-        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
-        var $tmpForm = $('#temp form')
-        var formUrl = $tmpForm.attr('action')
-        $.ajax({
-            data: $tmpForm.serialize(),
-            beforeSend: function() {
-                toggleMarkdownEditorLoading(true, 'Exctracting all entities')
-            },
-            success: function(postResult, textStatus) {
-                if (postResult) {
-                    showMessage('success', postResult.message);
-                    if (postResult.data !== undefined) {
-                        location.reload()
-                        // full reload?
-                        // var report = postResult.data.report.EventReport
-                        // var complexTypeToolResult = postResult.data.complexTypeToolResult
-                        // lastModified = report.timestamp + '000'
-                        // refreshLastUpdatedField()
-                        // originalRaw = report.content
-                        // revalidateContentCache()
-                        // fetchProxyMISPElements(function() {
-                        //     setEditorData(originalRaw)
-                        //     contentBeforeSuggestions = originalRaw
-                        //     pickedSuggestion = { tableID: null, tr: null, entity: null, index: null }
-                        //     pickSuggestionColumn(-1)
-                        //     prepareSuggestionInterface(complexTypeToolResult)
-                        // })
-                    }
-                }
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                showMessage('fail', saveFailedMessage + ': ' + errorThrown);
-            },
-            complete:function() {
-                $('#temp').remove();
-                toggleMarkdownEditorLoading(false)
-            },
-            type:"post",
-            url: formUrl
-        })
-    })
+    openGenericModal(url)
 }
 
 function manualEntitiesExtraction() {
