@@ -187,6 +187,8 @@ class EventReportsController extends AppController
             $this->__injectIndexVariablesToViewContext($filters);
             if (!empty($filters['index_for_event'])) {
                 $this->set('extendedEvent', !empty($filters['extended_event']));
+                $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
+                $this->set('importModuleEnabled', !empty($fetcherModule));
                 $this->render('ajax/indexForEvent');
             }
         }
@@ -200,10 +202,9 @@ class EventReportsController extends AppController
             if ($this->request->is('post')) {
                 $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'view', $throwErrors=true, $full=false);
                 $results = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
-                $contextResults = $this->EventReport->extractWithReplacementsFromReport($this->Auth->user(), $results['replacementResult']['contentWithReplacements']);
+                $report['EventReport']['content'] = $results['replacementResult']['contentWithReplacements'];
+                $contextResults = $this->EventReport->extractWithReplacementsFromReport($this->Auth->user(), $report, ['replace' => true]);
                 $suggestionResult = $this->EventReport->transformFreeTextIntoSuggestion($contextResults['contentWithReplacements'], $results['complexTypeToolResult']);
-                // need to test that context get replaced
-                // $suggestionResult = $this->EventReport->transformFreeTextIntoSuggestion($results['replacementResult']['contentWithReplacements'], $results['complexTypeToolResult']);
                 $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestionResult['contentWithSuggestions'], $suggestionResult['suggestionsMapping']);
                 if (empty($errors)) {
                     $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
@@ -257,10 +258,12 @@ class EventReportsController extends AppController
                 if (empty($errors)) {
                     $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
                     $results = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
+                    $contextResults = $this->EventReport->extractWithReplacementsFromReport($this->Auth->user(), $report);
                     $data = [
                         'report' => $report,
                         'complexTypeToolResult' => $results['complexTypeToolResult'],
-                        'replacementValues' => $results['replacementResult']['replacedValues']
+                        'replacementValues' => $results['replacementResult']['replacedValues'],
+                        'replacementContext' => $contextResults['replacedContext']
                     ];
                     $successMessage = __('Suggestions applied to Event Report %s', $reportId);
                     return $this->__getSuccessResponseBasedOnContext($successMessage, $data, 'applySuggestions', $reportId);
@@ -272,6 +275,44 @@ class EventReportsController extends AppController
             $this->layout = 'ajax';
             $this->render('ajax/replaceSuggestionInReport');
         }
+    }
+
+    public function importReportFromUrl($event_id)
+    {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+        }
+        $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
+        if ($this->request->is('post')) {
+            if (empty($this->data['EventReport']['url'])) {
+                throw new MethodNotAllowedException(__('An URL must be provided'));
+            }
+            $url = $this->data['EventReport']['url'];
+            $markdown = $this->EventReport->downloadMarkdownFromURL($event_id, $url);
+            $errors = [];
+            if (!empty($markdown)) {
+                $report = [
+                    'name' => __('Report from - %s (%s)', $url, time()),
+                    'distribution' => 5,
+                    'content' => $markdown
+                ];
+                $errors = $this->EventReport->addReport($this->Auth->user(), $report, $event_id);
+                $redirectTarget = array('controller' => 'events', 'action' => 'view', $event_id);
+            } else {
+                $errors[] = __('Could not fetch report from URL. Fetcher module not enabled or could not download the page');
+            }
+            if (!empty($errors)) {
+                return $this->__getFailResponseBasedOnContext($errors, array(), 'addFromURL', $this->EventReport->id, $redirectTarget);
+            } else {
+                $successMessage = __('Report downloaded and created');
+                $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, $report, 'addFromURL', false, $redirectTarget);
+            }
+        }
+        $this->set('importModuleEnabled', empty($fetcherModule));
+        $this->set('event_id', $event_id);
+        $this->layout = 'ajax';
+        $this->render('ajax/importReportFromUrl');
     }
 
     private function __generateIndexConditions($filters = [])

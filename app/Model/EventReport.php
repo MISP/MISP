@@ -682,7 +682,7 @@ class EventReport extends AppModel
      * @param  array $report
      * @return array
      */
-    public function extractWithReplacementsFromReport(array $user, array $report, $options = [])
+    public function extractWithReplacementsFromReport(array $user, array $report, array $options = [])
     {
         $baseOptions = [
             'replace' => false,
@@ -788,20 +788,50 @@ class EventReport extends AppModel
         $toReturn = [
             'replacedContext' => $replacedContext
         ];
-        if (!$options['replace']) {
+        if ($options['replace']) {
             $content = $originalContent;
             foreach ($replacedContext as $rawText => $replacements) {
                 // Replace with first one until a better strategy is found
                 reset($replacements);
                 $replacement = key($replacements);
                 $textToInject = sprintf('@[tag](%s)', $replacement);
-                $content = str_replace($replacement, $textToInject, $content);
+                $content = str_replace($rawText, $textToInject, $content);
             }
             $toReturn['contentWithReplacements'] = $content;
         }
         return $toReturn;
     }
-    
+
+    public function downloadMarkdownFromURL($event_id, $url)
+    {
+        $this->Module = ClassRegistry::init('Module');
+        $module = $this->Module->getEnabledModule('html_to_markdown', 'expansion');
+        $modulePayload = [
+            'module' => $module['name'],
+            'event_id' => $event_id,
+            'url' => $url
+        ];
+        $module = $this->isFetchURLModuleEnabled();
+        if (!empty($module)) {
+            $result = $this->Module->queryModuleServer('/query', json_encode($modulePayload), false, $moduleFamily = 'Import');
+            if (empty($result['results'][0]['values'][0])) {
+                return '';
+            }
+            return $result['results'][0]['values'][0];
+        }
+        return false;
+    }
+
+    public function isFetchURLModuleEnabled() {
+        $this->Module = ClassRegistry::init('Module');
+        $module = $this->Module->getEnabledModule('html_to_markdown', 'expansion');
+        if (!empty($module)) {
+            return $module;
+        } else {
+            return false;
+        }
+    }
+
     /**
      * findValidReplacementTag Search if tagName is in content and is not wrapped in a tag reference
      *
@@ -813,7 +843,7 @@ class EventReport extends AppModel
     {
         $lastIndex = 0;
         $allIndices = [];
-        $toSearch = ' ' . $tagName . ' ';
+        $toSearch = strpos($tagName, ':') === false ? ' ' . $tagName . ' ' : $tagName;
         while (($lastIndex = strpos($content, $toSearch, $lastIndex)) !== false) {
             $allIndices[] = $lastIndex;
             $lastIndex = $lastIndex + strlen($toSearch);
