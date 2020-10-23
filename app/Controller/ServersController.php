@@ -1121,7 +1121,14 @@ class ServersController extends AppController
                 $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
                 $this->set('sessionCount', $sessionCount);
 
-                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo');
+                $this->loadModel('AttachmentScan');
+                try {
+                    $attachmentScan = ['status' => true, 'software' => $this->AttachmentScan->diagnostic()];
+                } catch (Exception $e) {
+                    $attachmentScan = ['status' => false, 'error' => $e->getMessage()];
+                }
+
+                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan');
             }
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);

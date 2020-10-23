@@ -1,11 +1,13 @@
 <?php
 App::uses('AppModel', 'Model');
-App::uses('ClamAvTool', 'Tools');
 
 class AttachmentScan extends AppModel
 {
     const TYPE_ATTRIBUTE = 'Attribute',
         TYPE_SHADOW_ATTRIBUTE = 'ShadowAttribute';
+
+    // base64 encoded eicar.exe
+    const EICAR = 'WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCo=';
 
     /** @var AttachmentTool */
     private $attachmentTool;
@@ -55,6 +57,50 @@ class AttachmentScan extends AppModel
         if (Configure::read('MISP.attachment_scan_hash_only')) {
             array_shift($this->possibleTypes); // remove 'attachment' type
         }
+    }
+
+    /**
+     * Checks configuration and connection to module wth AV engine and returns an array of scanning software.
+     *
+     * @return array
+     * @throws Exception
+     */
+    public function diagnostic()
+    {
+        if (!$this->isEnabled()) {
+            throw new Exception("Malware scanning module is not configured.");
+        }
+
+        if ($this->attachmentTool()->attachmentDirIsS3()) {
+            throw new Exception("S3 attachment storage is not supported now for malware scanning.");
+        }
+
+        $moduleInfo = $this->loadModuleInfo($this->attachmentScanModuleName);
+
+        if (in_array('attachment', $moduleInfo['types'])) {
+            $fakeAttribute = [
+                'uuid' => CakeText::uuid(),
+                'event_id' => 1,
+                'type' => 'attachment',
+                'value' => 'eicar.com',
+                'data' => self::EICAR,
+            ];
+        } else {
+            $hashAlgo = $moduleInfo['types'][0];
+            $hash = hash($hashAlgo, base64_decode(self::EICAR));
+            $fakeAttribute = [
+                'uuid' => CakeText::uuid(),
+                'event_id' => 1,
+                'type' => $hashAlgo,
+                'value' => $hash,
+            ];
+        }
+        $results = $this->sendToModule($fakeAttribute, $moduleInfo['config']);
+        if (empty($results)) {
+            throw new Exception("Eicar test file was not detected.");
+        }
+
+        return array_column($results, 'software');
     }
 
     /**
@@ -151,7 +197,7 @@ class AttachmentScan extends AppModel
         }
 
         if ($this->attachmentTool()->attachmentDirIsS3()) {
-            throw new Exception("S3 attachment storage is not supported now for AV scanning.");
+            throw new Exception("S3 attachment storage is not supported now for malware scanning.");
         }
 
         $fields = ['id', 'uuid', 'type', 'value', 'event_id'];
@@ -190,7 +236,7 @@ class AttachmentScan extends AppModel
         }
 
         try {
-            $moduleOptions = $this->loadModuleInfo($this->attachmentScanModuleName);
+            $moduleInfo = $this->loadModuleInfo($this->attachmentScanModuleName);
         } catch (Exception $e) {
             $job->saveStatus($jobId, false, 'Could not connect to attachment scan module.');
             $this->logException('Could not connect to attachment scan module.', $e);
@@ -203,7 +249,7 @@ class AttachmentScan extends AppModel
         foreach ($attributes as $attribute) {
             $type = isset($attribute['Attribute']) ? self::TYPE_ATTRIBUTE : self::TYPE_SHADOW_ATTRIBUTE;
             try {
-                $infected = $this->scanAttachment($type, $attribute[$type], $moduleOptions);
+                $infected = $this->scanAttachment($type, $attribute[$type], $moduleInfo);
                 if ($infected === true) {
                     $virusFound++;
                 }
@@ -307,7 +353,7 @@ class AttachmentScan extends AppModel
         } else {
             // Instead of sending whole file to module, just generate file hash and send that hash as fake attribute.
             $hashAlgo = $moduleInfo['types'][0];
-            $hash = hash_file($moduleInfo['types'][0], $file->pwd());
+            $hash = hash_file($hashAlgo, $file->pwd());
             if (!$hash) {
                 throw new Exception("Could not generate $hashAlgo hash for file '$file->path'.");
             }
