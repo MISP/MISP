@@ -1023,11 +1023,17 @@ function convertEntityIntoSuggestion(content, entity) {
 function extractFromReport(callback) {
     $.ajax({
         dataType: "json",
+        beforeSend: function() {
+            toggleMarkdownEditorLoading(true, 'Extracting entities')
+        },
         success:function(data, textStatus) {
             callback(data);
         },
         error: function(jqXHR, textStatus, errorThrown) {
             showMessage('fail', 'Could not extract entities from report. ' + textStatus)
+        },
+        complete: function() {
+            toggleMarkdownEditorLoading(false)
         },
         type:'get',
         url: baseurl + '/eventReports/extractFromReport/' + reportid
