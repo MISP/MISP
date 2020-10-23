@@ -33,9 +33,8 @@
       $tr_class .= ' tableHighlightBorder borderOrange';
     }
   }
-  $identifier = (empty($k)) ? '' : ' id="row_' . h($k) . '" tabindex="0"';
 ?>
-<tr id = "proposal<?php echo '_' . $object['id'] . '_tr'; ?>" class="<?php echo $tr_class; ?>" <?php echo $identifier; ?>>
+<tr id="proposal_<?= $object['id'] ?>_tr" class="<?php echo $tr_class; ?>">
   <?php if ($mayModify): ?>
     <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
       <input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal row_checkbox" type="checkbox" aria-label="<?php __('Select proposal');?>" data-id="<?php echo $object['id'];?>" />
@@ -43,15 +42,15 @@
   <?php endif; ?>
   <td class="short context hidden">
     <?php
-      echo $object['objectType'] == 0 ? h($object['id']) : '&nbsp;';
+      echo h($object['id']);
     ?>
   </td>
-  <td class="short context hidden uuid"><?= $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?></td>
+  <td class="short context hidden uuid quickSelect"><?= h($object['uuid']) ?></td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
   <td class="short">
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
       <?php
         if (isset($object['timestamp'])) echo date('Y-m-d', $object['timestamp']);
         else echo '&nbsp';
@@ -75,29 +74,23 @@
   ?>
   </td>
   <td class="short">
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class = "inline-field-placeholder"></div>
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_category_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'category', <?php echo $event['Event']['id'];?>);">
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class="inline-field-placeholder"></div>
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_category_solid'; ?>" class="inline-field-solid">
       <?php echo h($object['category']); ?>
     </div>
   </td>
   <td class="short">
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_type_placeholder'; ?>" class = "inline-field-placeholder"></div>
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_type_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'type', <?php echo $event['Event']['id'];?>);">
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_type_placeholder'; ?>" class="inline-field-placeholder"></div>
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_type_solid'; ?>" class="inline-field-solid">
       <?php echo h($object['type']); ?>
     </div>
   </td>
   <td id="<?php echo h($currentType) . '_' . h($object['id']) . '_container'; ?>" class="showspaces limitedWidth shortish">
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
-    <?php
-      if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']) $editable = ' ondblclick="activateField(\'' . $currentType . '\', \'' . $object['id'] . '\', \'value\', \'' . $event['Event']['id'] . '\');"';
-      else $editable = '';
-    ?>
-    <div id = "<?php echo $currentType; ?>_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
-      <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="' . h($currentType) . '" data-object-id="' . h($object['id']) . '"'?>>
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class="inline-field-placeholder"></div>
+    <div id="<?php echo $currentType; ?>_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid">
     <?php
         echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
     ?>
-      </span>
       <?php
         if (isset($object['warnings'])) {
           $temp = '';
@@ -112,8 +105,8 @@
   <td class="shortish">&nbsp;</td>
   <td class="shortish">&nbsp;</td>
   <td class="showspaces bitwider">
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class="inline-field-placeholder"></div>
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid">
       <?php echo nl2br(h($object['comment'])); ?>&nbsp;
     </div>
   </td>
@@ -142,7 +135,7 @@
               $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . h($v) . '</span><br />';
             endforeach;
           ?>
-            <li style="padding-right: 0px; padding-left:0px;"  data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover"><span>
+            <li style="padding-right: 0px; padding-left:0px;" data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover"><span>
               <?php
                 if ($isSiteAdmin):
                   echo $this->Html->link($feed['id'], array('controller' => 'feeds', 'action' => 'previewIndex', $feed['id']), array('style' => 'margin-right:3px;'));
@@ -160,8 +153,8 @@
     </ul>
   </td>
   <td class="short">
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_placeholder'; ?>" class = "inline-field-placeholder"></div>
-    <div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'to_ids', <?php echo $event['Event']['id'];?>);">
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_to_ids_placeholder'; ?>" class="inline-field-placeholder"></div>
+    <div id="<?php echo $currentType . '_' . $object['id'] . '_to_ids_solid'; ?>" class="inline-field-solid">
       <?php
         if ($object['to_ids']) echo 'Yes';
         else echo 'No';
@@ -185,7 +178,7 @@
           echo $this->Form->create('Shadow_Attribute', array('id' => 'ShadowAttribute_' . $object['id'] . '_accept', 'url' => $baseurl . '/shadow_attributes/accept/' . $object['id'], 'style' => 'display:none;'));
           echo $this->Form->end();
         ?>
-          <span class="icon-ok icon-white useCursorPointer" title="<?php echo __('Accept Proposal');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept proposal');?>" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+          <span class="fas fa-check white useCursorPointer" title="<?php echo __('Accept Proposal');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept proposal');?>" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
         <?php
         }
         if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin || ($object['org_id'] == $me['org_id'])) {

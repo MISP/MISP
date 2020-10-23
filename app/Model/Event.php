@@ -2395,15 +2395,6 @@ class Event extends AppModel
                             unset($event['Attribute'][$key]['EventTag']);
                         }
                     }
-                    // unset empty attribute tags that got added because the tag wasn't exportable
-                    if (!empty($attribute['AttributeTag'])) {
-                        foreach ($attribute['AttributeTag'] as $atk => $attributeTag) {
-                            if (empty($attributeTag['Tag'])) {
-                                unset($event['Attribute'][$key]['AttributeTag'][$atk]);
-                            }
-                        }
-                        $event['Attribute'][$key]['AttributeTag'] = array_values($event['Attribute'][$key]['AttributeTag']);
-                    }
                     $event['Attribute'][$key]['ShadowAttribute'] = array();
                     // If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
                     // This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
@@ -5380,6 +5371,10 @@ class Event extends AppModel
                 }
             }
         }
+        if ($object['type'] === 'attachment' && $this->loadAttachmentScan()->isEnabled()) {
+            $type = $object['objectType'] === 'attribute' ? AttachmentScan::TYPE_ATTRIBUTE : AttachmentScan::TYPE_SHADOW_ATTRIBUTE;
+            $object['infected'] = $this->loadAttachmentScan()->isInfected($type, $object['id']);;
+        }
         return $object;
     }
 
@@ -5760,7 +5755,7 @@ class Event extends AppModel
             }
         }
         $modulePayload['data'] = $events;
-        $result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, 'Export');
+        $result = $this->Module->queryModuleServer('/query', $modulePayload, false, 'Export');
         return array(
                 'data' => $result['data'],
                 'extension' => $module['mispattributes']['outputFileExtension'],
@@ -5924,7 +5919,6 @@ class Event extends AppModel
             return $this->assetCache['tagFilters'];
         } else {
             $filters = array();
-            $tag = ClassRegistry::init('Tag');
             $args = $this->Attribute->dissectArgs($tagRules);
             $tagArray = $this->EventTag->Tag->fetchEventTagIds($args[0], $args[1]);
             if (!empty($tagArray[0])) {
@@ -6145,7 +6139,6 @@ class Event extends AppModel
                         } else {
                             $data[$attribute['type']] = $attribute['value'];
                         }
-                        $data = json_encode($data);
                         $result = $this->Module->queryModuleServer('/query', $data, false, 'Enrichment');
                         if (!$result) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
@@ -6229,8 +6222,8 @@ class Event extends AppModel
                     }
                 }
             }
-            $data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
         }
+        $data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
         return $data;
     }
 

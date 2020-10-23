@@ -245,7 +245,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         ?>
         setContextFields();
         popoverStartup();
-        $('.select_attribute').removeAttr('checked').click(function(e) {
+        $('.select_attribute').prop('checked', false).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
                     selectAllInbetween(lastSelected, this.id);
@@ -254,7 +254,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
             }
             attributeListAnyAttributeCheckBoxesChecked();
         });
-        $('.select_proposal').removeAttr('checked').click(function(e){
+        $('.select_proposal').prop('checked', false).click(function(e){
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
                     selectAllInbetween(lastSelected, this.id);

@@ -37,7 +37,7 @@
       echo $this->Form->input('Attribute.' . $k . '.type', $formSettings);
       echo '<span class="bold">' . Inflector::humanize(h($element['object_relation'])) . '</span>';
       if (!empty($template['ObjectTemplate']['requirements']['required']) && in_array($element['object_relation'], $template['ObjectTemplate']['requirements']['required'])) {
-        echo '<span class="bold red">' . '(*)' . '</span>';
+        echo '<span class="red" style="vertical-align: super;font-size: 8px;margin-left: 2px;" title="' . __('Required') . '"><i class="fas fa-asterisk"></i></span>';
       }
       echo ' :: ' . h($element['type']) . '';
     ?>

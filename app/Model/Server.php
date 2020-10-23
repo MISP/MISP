@@ -2251,6 +2251,14 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean'
                         ),
+                        'Enrichment_hover_popover_only' => array(
+                            'level' => 0,
+                            'description' => __('When enabled, user have to click on magnifier icon to show enrichment'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
                         'Enrichment_hover_timeout' => array(
                                 'level' => 1,
                                 'description' => __('Set a timeout for the hover services'),
@@ -2597,6 +2605,10 @@ class Server extends AppModel
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
             if ($result) {
                 $successes[] = $eventId;
+                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'add_from_connected_server');
+                }
             } else {
                 $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
             }
@@ -2607,6 +2619,10 @@ class Server extends AppModel
                 $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
                     $successes[] = $eventId;
+                    if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                        $pubSubTool = $this->getPubSubTool();
+                        $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'edit_from_connected_server');
+                    }
                 } elseif (isset($result['error'])) {
                     $fails[$eventId] = $result['error'];
                 } else {
@@ -2641,62 +2657,6 @@ class Server extends AppModel
             $fails[$eventId] = __('failed downloading the event');
         }
         return true;
-    }
-
-    private function __handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user)
-    {
-        $pulledProposals = array();
-        if (!empty($proposals)) {
-            $shadowAttribute = ClassRegistry::init('ShadowAttribute');
-            $shadowAttribute->recursive = -1;
-            $uuidEvents = array_flip($events);
-            foreach ($proposals as $k => &$proposal) {
-                $proposal = $proposal['ShadowAttribute'];
-                $oldsa = $shadowAttribute->findOldProposal($proposal);
-                $proposal['event_id'] = $uuidEvents[$proposal['event_uuid']];
-                if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
-                    if ($oldsa) {
-                        $shadowAttribute->delete($oldsa['id']);
-                    }
-                    if (!isset($pulledProposals[$proposal['event_id']])) {
-                        $pulledProposals[$proposal['event_id']] = 0;
-                    }
-                    $pulledProposals[$proposal['event_id']]++;
-                    if (isset($proposal['old_id'])) {
-                        $oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
-                        if ($oldAttribute) {
-                            $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-                        } else {
-                            $proposal['old_id'] = 0;
-                        }
-                    }
-                    // check if this is a proposal from an old MISP instance
-                    if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
-                        $proposal['Org'] = $proposal['org'];
-                        $proposal['EventOrg'] = $proposal['event_org'];
-                    } elseif (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
-                        continue;
-                    }
-                    $proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
-                    $proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
-                    unset($proposal['Org']);
-                    unset($proposal['EventOrg']);
-                    $shadowAttribute->create();
-                    if (!isset($proposal['deleted']) || !$proposal['deleted']) {
-                        if ($shadowAttribute->save($proposal)) {
-                            $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
-                        }
-                    }
-                }
-                if ($jobId) {
-                    if ($k % 50 == 0) {
-                        $job->id =  $jobId;
-                        $job->saveField('progress', 50 * (($k + 1) / count($proposals)) + 50);
-                    }
-                }
-            }
-        }
-        return $pulledProposals;
     }
 
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
@@ -3296,7 +3256,7 @@ class Server extends AppModel
                         } else {
                             $setting['test'] = 'testForEmpty';
                             $setting['type'] = 'string';
-                            $setting['description'] = __('Set this required module specific setting.');
+                            $setting['description'] = isset($result['description']) ? $result['description'] : __('Set this required module specific setting.');
                             $setting['value'] = '';
                         }
                         $serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
@@ -4325,96 +4285,99 @@ class Server extends AppModel
         return $validItems;
     }
 
-    public function runConnectionTest($id)
+    /**
+     * @param array $server
+     * @return array
+     * @throws JsonException
+     */
+    public function runConnectionTest(array $server)
     {
-        $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
+        App::uses('SyncTool', 'Tools');
+        try {
+            $clientCertificate = SyncTool::getServerClientCertificateInfo($server);
+            if ($clientCertificate) {
+                $clientCertificate['valid_from'] = $clientCertificate['valid_from'] ? $clientCertificate['valid_from']->format('c') : __('Not defined');
+                $clientCertificate['valid_to'] = $clientCertificate['valid_to'] ? $clientCertificate['valid_to']->format('c') : __('Not defined');
+                $clientCertificate['public_key_size'] = $clientCertificate['public_key_size'] ?: __('Unknwon');
+                $clientCertificate['public_key_type'] = $clientCertificate['public_key_type'] ?: __('Unknwon');
+            }
+        } catch (Exception $e) {
+            $clientCertificate = ['error' => $e->getMessage()];
+        }
+
         $HttpSocket = $this->setupHttpSocket($server, null, 5);
         $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/servers/getVersion';
+
         try {
             $response = $HttpSocket->get($uri, false, $request);
+            if ($response === false) {
+                throw new Exception("Connection failed for unknown reason.");
+            }
         } catch (Exception $e) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: Connection test failed. Reason: ' . json_encode($e->getMessage()),
-            ));
-            return array('status' => 2);
+            $logTitle = 'Error: Connection test failed. Reason: ' .  $e->getMessage();
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $logTitle);
+            return array('status' => 2, 'client_certificate' => $clientCertificate);
         }
-        if ($response->isOk()) {
-            return array('status' => 1, 'message' => $response->body());
-        } else {
-            if ($response->code == '403') {
-                return array('status' => 4);
-            }
-            if ($response->code == '405') {
-                try {
-                    $responseText = $this->jsonDecode($response->body)['message'];
-                } catch (Exception $e) {
-                    return array('status' => 3);
-                }
+
+        if ($response->code == '403') {
+            return array('status' => 4, 'client_certificate' => $clientCertificate);
+        } else if ($response->code == '405') {
+            try {
+                $responseText = $this->jsonDecode($response->body)['message'];
                 if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') {
-                    return array('status' => 5);
+                    return array('status' => 5, 'client_certificate' => $clientCertificate);
                 } elseif ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') {
-                    return array('status' => 6);
+                    return array('status' => 6, 'client_certificate' => $clientCertificate);
                 }
+            } catch (Exception $e) {
+                // pass
             }
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: Connection test failed. Returned data is in the change field.',
-                    'change' => sprintf(
-                        'response () => (%s), response-code () => (%s)',
-                        $response->body,
-                        $response->code
-                    )
-            ));
-            return array('status' => 3);
+        } else if ($response->isOk()) {
+            try {
+                $info = $this->jsonDecode($response->body());
+                if (!isset($info['version'])) {
+                    throw new Exception("Server returns JSON response, but doesn't contain required 'version' field.");
+                }
+                return array('status' => 1, 'info' => $info, 'client_certificate' => $clientCertificate);
+            } catch (Exception $e) {
+                // Even if server returns OK status, that doesn't mean that connection to another MISP instance works
+            }
         }
+
+        $logTitle = 'Error: Connection test failed. Returned data is in the change field.';
+        $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $logTitle, [
+            'response' => ['', $response->body],
+            'response-code' => ['', $response->code],
+        ]);
+        return array('status' => 3, 'client_certificate' => $clientCertificate);
     }
 
-    public function runPOSTtest($id)
+    /**
+     * @param array $server
+     * @return int
+     * @throws JsonException
+     */
+    public function runPOSTtest(array $server)
     {
-        $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        if (empty($server)) {
-            throw new InvalidArgumentException(__('Invalid server.'));
+        $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
+        if (!$testFile) {
+            throw new Exception("Could not load payload for POST test.");
         }
         $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
-        $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
         $uri = $server['Server']['url'] . '/servers/postTest';
-        $this->Log = ClassRegistry::init('Log');
+
         try {
             $response = $HttpSocket->post($uri, json_encode(array('testString' => $testFile)), $request);
             $rawBody = $response->body;
-            $response = json_decode($response, true);
+            $response = $this->jsonDecode($rawBody);
         } catch (Exception $e) {
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: POST connection test failed. Reason: ' . json_encode($e->getMessage()),
-            ));
+            $title = 'Error: POST connection test failed. Reason: ' . $e->getMessage();
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
             return 8;
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
-            $responseString = '';
             if (!empty($repsonse['body']['testString'])) {
                 $responseString = $response['body']['testString'];
             } else if (!empty($rawBody)){
@@ -4422,32 +4385,17 @@ class Server extends AppModel
             } else {
                 $responseString = __('Response was empty.');
             }
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: POST connection test failed due to the message body not containing the expected data. Response: ' . PHP_EOL . PHP_EOL . $responseString,
-            ));
+
+            $title = 'Error: POST connection test failed due to the message body not containing the expected data. Response: ' . PHP_EOL . PHP_EOL . $responseString;
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
             return 9;
         }
         $headers = array('Accept', 'Content-type');
         foreach ($headers as $header) {
             if (!isset($response['headers'][$header]) || $response['headers'][$header] != 'application/json') {
                 $responseHeader = isset($response['headers'][$header]) ? $response['headers'][$header] : 'Header was not set.';
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => $id,
-                        'email' => 'SYSTEM',
-                        'action' => 'error',
-                        'user_id' => 0,
-                        'title' => 'Error: POST connection test failed due to a header not matching the expected value. Expected: "application/json", received "' . $responseHeader,
-                ));
+                $title = 'Error: POST connection test failed due to a header not matching the expected value. Expected: "application/json", received "' . $responseHeader . '"';
+                $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
                 return 10;
             }
         }
@@ -5280,13 +5228,12 @@ class Server extends AppModel
     public function moduleDiagnostics(&$diagnostic_errors, $type = 'Enrichment')
     {
         $this->Module = ClassRegistry::init('Module');
-        $types = array('Enrichment', 'Import', 'Export', 'Cortex');
         $diagnostic_errors++;
         if (Configure::read('Plugin.' . $type . '_services_enable')) {
-            $exception = false;
-            $result = $this->Module->getModules(false, $type, $exception);
-            if ($exception) {
-                return $exception;
+            try {
+                $result = $this->Module->getModules($type, true);
+            } catch (Exception $e) {
+                return $e->getMessage();
             }
             if (empty($result)) {
                 return 2;

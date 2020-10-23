@@ -1,6 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property Event $Event
+ */
 class EventReport extends AppModel
 {
     public $actsAs = array(
@@ -21,8 +24,8 @@ class EventReport extends AppModel
         ),
         'uuid' => array(
             'uuid' => array(
-                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
-                'message' => 'Please provide a valid UUID'
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
             ),
             'unique' => array(
                 'rule' => 'isUnique',
@@ -64,6 +67,8 @@ class EventReport extends AppModel
         // generate UUID if it doesn't exist
         if (empty($this->data['EventReport']['uuid'])) {
             $this->data['EventReport']['uuid'] = CakeText::uuid();
+        } else {
+            $this->data['EventReport']['uuid'] = strtolower($this->data['EventReport']['uuid']);
         }
         // generate timestamp if it doesn't exist
         if (empty($this->data['EventReport']['timestamp'])) {
@@ -77,8 +82,8 @@ class EventReport extends AppModel
         // These fields all have sane defaults either based on another field, or due to server settings
         if (!isset($this->data['EventReport']['distribution'])) {
             $this->data['EventReport']['distribution'] = Configure::read('MISP.default_attribute_distribution');
-            if ($report['EventReport']['distribution'] == 'event') {
-                $report['EventReport']['distribution'] = 5;
+            if ($this->data['EventReport']['distribution'] == 'event') {
+                $this->data['EventReport']['distribution'] = 5;
             }
         }
         return true;
@@ -272,27 +277,18 @@ class EventReport extends AppModel
      */
     public function simpleFetchById(array $user, $reportId, $throwErrors=true, $full=false)
     {
-        if (Validation::uuid($reportId)) {
-            $temp = $this->find('first', array(
-                'recursive' => -1,
-                'fields' => array("EventReport.id", "EventReport.uuid"),
-                'conditions' => array("EventReport.uuid" => $reportId)
-            ));
-            if (empty($temp)) {
-                if ($throwErrors) {
-                    throw new NotFoundException(__('Invalid report'));
-                }
-                return array();
-            }
-            $reportId = $temp['EventReport']['id'];
-        } elseif (!is_numeric($reportId)) {
+        if (is_numeric($reportId)) {
+            $options = array('conditions' => array("EventReport.id" => $reportId));
+        } elseif (Validation::uuid($reportId)) {
+            $options = array('conditions' => array("EventReport.uuid" => $reportId));
+        } else {
             if ($throwErrors) {
                 throw new NotFoundException(__('Invalid report'));
             }
             return array();
         }
-        $options = array('conditions' => array("EventReport.id" => $reportId));
-        $report = $this->fetchReports($user, $options, $full=$full);
+
+        $report = $this->fetchReports($user, $options, $full);
         if (!empty($report)) {
             return $report[0];
         }
@@ -308,7 +304,7 @@ class EventReport extends AppModel
      * @param  array $user
      * @param  array $options
      * @param  bool  $full
-     * @return void
+     * @return array
      */
     public function fetchReports(array $user, array $options = array(), $full=false)
     {
@@ -411,83 +407,107 @@ class EventReport extends AppModel
     /**
      * getProxyMISPElements Extract MISP Elements from an event and make them accessible by their UUID
      *
-     * @param  array $user
-     * @param  int|string $eventid
+     * @param array $user
+     * @param int|string $eventid
      * @return array
+     * @throws Exception
      */
     public function getProxyMISPElements(array $user, $eventid)
     {
-        $event = $this->Event->fetchEvent($user, ['eventid' => $eventid]);
+        $options = [
+            'noSightings' => true,
+            'sgReferenceOnly' => true,
+            'noEventReports' => true,
+            'noShadowAttributes' => true,
+        ];
+
+        $event = $this->Event->fetchEvent($user, array_merge(['eventid' => $eventid], $options));
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
         }
         $event = $event[0];
-        $parentEventId = $this->Event->fetchSimpleEventIds($user, ['conditions' => [
-            'uuid' => $event['Event']['extends_uuid']
-        ]]);
-        $completeEvent = $event;
-        if (!empty($parentEventId)) {
-            $parentEvent = $this->Event->fetchEvent($user, ['eventid' => $parentEventId, 'extended' => true]);
-            if (!empty($parentEvent)) {
-                $parentEvent = $parentEvent[0];
-                $completeEvent = $parentEvent;
+
+        if (!empty($event['Event']['extends_uuid'])) {
+            $extendedParentEvent = $this->Event->fetchEvent($user, array_merge([
+                'event_uuid' => $event['Event']['extends_uuid'],
+                'extended' => true,
+            ], $options));
+            if (!empty($extendedParentEvent)) {
+                $event = $extendedParentEvent[0];
             }
         }
-        $attributes = Hash::combine($completeEvent, 'Attribute.{n}.uuid', 'Attribute.{n}');
-        $this->AttributeTag = ClassRegistry::init('AttributeTag');
-        $allTagNames = Hash::combine($event['EventTag'], '{n}.Tag.name', '{n}.Tag');
-        $attributeTags = Hash::combine($this->AttributeTag->getAttributesTags($completeEvent['Attribute'], true), '{n}.name', '{n}');
-        $parentEventTags = !empty($parentEvent) ? Hash::combine($parentEvent['EventTag'], '{n}.Tag.name', '{n}.Tag') : [];
-        $allTagNames = array_merge($allTagNames, $attributeTags, $parentEventTags);
+
+        $allTagNames = [];
+        foreach ($event['EventTag'] as $eventTag) {
+            // include just tags that belongs to requested event or its parent, not to other child
+            if ($eventTag['event_id'] == $eventid || $eventTag['event_id'] == $event['Event']['id']) {
+                $allTagNames[$eventTag['Tag']['name']] = $eventTag['Tag'];
+            }
+        }
+
+        $attributes = [];
+        foreach ($event['Attribute'] as $attribute) {
+            unset($attribute['ShadowAttribute']);
+            foreach ($attribute['AttributeTag'] as $at) {
+                $allTagNames[$at['Tag']['name']] = $at['Tag'];
+            }
+            $this->Event->Attribute->removeGalaxyClusterTags($attribute);
+            $attributes[$attribute['uuid']] = $attribute;
+        }
+
         $objects = [];
         $templateConditions = [];
-        $recordedConditions = [];
-        foreach ($completeEvent['Object'] as $k => $object) {
-            $objects[$object['uuid']] = $object;
-            $objectAttributes = [];
-            foreach ($object['Attribute'] as $i => $objectAttribute) {
-                $objectAttributes[$objectAttribute['uuid']] = $object['Attribute'][$i];
-                $objectAttributes[$objectAttribute['uuid']]['object_uuid'] = $object['uuid'];
+        foreach ($event['Object'] as $k => $object) {
+            foreach ($object['Attribute'] as &$objectAttribute) {
+                unset($objectAttribute['ShadowAttribute']);
+                $objectAttribute['object_uuid'] = $object['uuid'];
+                $attributes[$objectAttribute['uuid']] = $objectAttribute;
+
+                foreach ($objectAttribute['AttributeTag'] as $at) {
+                    $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                }
+                $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
             }
-            $attributes = array_merge($attributes, $objectAttributes);
-            $objectAttributeTags = Hash::combine($this->AttributeTag->getAttributesTags($object['Attribute'], true), '{n}.name', '{n}');
-            $allTagNames = array_merge($allTagNames, $objectAttributeTags);
-            $uniqueCondition = sprintf('%s.%s', $object['template_uuid'], $object['template_version']);
-            if (!isset($recordedConditions[$uniqueCondition])) {
-                $templateConditions['OR'][] = [
+            $objects[$object['uuid']] = $object;
+
+            $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
+            if (!isset($templateConditions[$uniqueCondition])) {
+                $templateConditions[$uniqueCondition]['AND'] = [
                     'ObjectTemplate.uuid' => $object['template_uuid'],
                     'ObjectTemplate.version' => $object['template_version']
                 ];
-                $recordedConditions[$uniqueCondition] = true;
             }
         }
-        $templateConditions = empty($templateConditions) ? ['ObjectTemplate.id' => 0] : $templateConditions;
-        $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-        $templates = $this->ObjectTemplate->find('all', array(
-            'conditions' => $templateConditions,
-            'recursive' => -1,
-            'contain' => array(
-                'ObjectTemplateElement' => [
-                    'order' => ['ui-priority' => 'DESC'],
-                    'fields' => ['object_relation', 'type', 'ui-priority']
-                ]
-            )
-        ));
-        $objectTemplates = [];
-        foreach ($templates as $template) {
-            $objectTemplates[sprintf('%s.%s', $template['ObjectTemplate']['uuid'], $template['ObjectTemplate']['version'])] = $template;
+        if (!empty($templateConditions)) {
+            // Fetch object templates for event objects
+            $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+            $templates = $this->ObjectTemplate->find('all', array(
+                'conditions' => ['OR' => array_values($templateConditions)],
+                'recursive' => -1,
+                'contain' => array(
+                    'ObjectTemplateElement' => [
+                        'order' => ['ui-priority' => 'DESC'],
+                        'fields' => ['object_relation', 'type', 'ui-priority']
+                    ]
+                )
+            ));
+            $objectTemplates = [];
+            foreach ($templates as $template) {
+                $objectTemplates["{$template['ObjectTemplate']['uuid']}.{$template['ObjectTemplate']['version']}"] = $template;
+            }
+        } else {
+            $objectTemplates = [];
         }
         $this->Galaxy = ClassRegistry::init('Galaxy');
         $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
         $allowedGalaxies = Hash::combine($allowedGalaxies, '{n}.Galaxy.uuid', '{n}.Galaxy');
-        $proxyMISPElements = [
+        return [
             'attribute' => $attributes,
             'object' => $objects,
             'objectTemplates' => $objectTemplates,
             'galaxymatrix' => $allowedGalaxies,
             'tagname' => $allTagNames
         ];
-        return $proxyMISPElements;
     }
 
     private function saveAndReturnErrors($data, $saveOptions = [], $errors = [])

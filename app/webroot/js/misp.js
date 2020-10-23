@@ -108,11 +108,12 @@ function delegatePopup(id) {
 }
 
 function genericPopup(url, popupTarget, callback) {
+    var $popupTarget = $(popupTarget);
     $.get(url, function(data) {
-        $(popupTarget).html(data);
-        $(popupTarget).fadeIn();
-        left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
-        $(popupTarget).css({'left': left + 'px'});
+        $popupTarget.html(data);
+        $popupTarget.fadeIn();
+        var left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
+        $popupTarget.css({'left': left + 'px'});
         $("#gray_out").fadeIn();
         if (callback !== undefined) {
             callback();
@@ -497,30 +498,36 @@ function updateObjectFieldOnSuccess(name, type, id, field, event) {
 
 function activateField(type, id, field, event) {
     resetForms();
-    if (type == 'denyForm') return;
-    var objectType = 'attributes';
-    var containerName = 'Attribute';
-    if (type == 'Object') {
+    if (type === 'denyForm') {
+        return;
+    }
+    var objectType, containerName;
+    if (type === 'Object') {
         objectType = 'objects';
         containerName = 'Object';
+    } else {
+        objectType = 'attributes';
+        containerName = 'Attribute';
     }
     var name = '#' + type + '_' + id + '_' + field;
     var container_name = '#' + containerName + '_' + id + '_' + field;
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function() {
             $(".loading").show();
         },
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+        success: function (data) {
             $(container_name + '_placeholder').html(data);
             postActivationScripts(name, type, id, field, event);
         },
         url: baseurl + "/" + objectType + "/fetchEditForm/" + id + "/" + field,
+        complete: function() {
+            $(".loading").hide();
+        },
+        error: xhrFailCallback
     });
 }
-
 
 function submitQuickTag(form) {
     $('#' + form).submit();
@@ -549,12 +556,6 @@ function postActivationScripts(name, type, id, field, event) {
 
     $(name + '_form').bind("focusin", function(){
         inputFieldButtonActive(name + '_field');
-    });
-
-    $(name + '_form').bind("keydown", function(e) {
-        if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
-            submitForm(type, id, field, event);
-        }
     });
     $(name + '_field').closest('.inline-input-container').children('.inline-input-accept').bind('click', function() {
         submitForm(type, id, field, event);
@@ -1475,7 +1476,10 @@ function cancelPopoverForm(id) {
     $("#gray_out").fadeOut();
     $("#popover_form_large").fadeOut();
     $("#screenshot_box").fadeOut();
-    $("#popover_box").fadeOut();
+    $("#popover_box")
+        .fadeOut()
+        .removeAttr('style') // remove all inline styles
+        .empty(); // remove all child elements
     $("#confirmation_box").fadeOut();
     $('#popover_form').fadeOut();
     if (id !== undefined && id !== '') {
@@ -2801,7 +2805,7 @@ function moduleResultsSubmit(id) {
     }
     if ($('.MISPAttribute').length) {
         var attributes = [];
-        $('.MISPAttribute').each(function(a) {
+        $('.MISPAttribute').each(function() {
             var category_value;
             var type_value;
             if ($(this).find('.AttributeCategorySelect').length) {
@@ -2861,32 +2865,33 @@ function moduleResultsSubmit(id) {
         cache: false,
         url: baseurl + "/events/handleModuleResults/" + id,
         data: formData,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
-        success:function (data, textStatus) {
+        success: function () {
             window.location = baseurl + '/events/view/' + id;
         },
-        complete:function() {
+        complete: function() {
             $(".loading").hide();
-        }
+        },
+        error: xhrFailCallback,
     });
 }
 
 function objectTemplateViewContent(context, id) {
     var url = baseurl + "/objectTemplateElements/viewElements/" + id + "/" + context;
     $.ajax({
-            url: url,
-            type:'GET',
+        url: url,
+        type:'GET',
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
-            error: function(){
-                $('#ajaxContent').html('An error has occured, please reload the page.');
-            },
-            success: function(response){
-                $('#ajaxContent').html(response);
-            },
+        error: function(){
+            $('#ajaxContent').html('An error has occured, please reload the page.');
+        },
+        success: function(response){
+            $('#ajaxContent').html(response);
+        },
         complete: function() {
             $(".loading").hide();
         },
@@ -3292,22 +3297,51 @@ function getRemoteSyncUser(id) {
 function testConnection(id) {
     $.ajax({
         url: baseurl + '/servers/testConnection/' + id,
-        type:'GET',
-        beforeSend: function (XMLHttpRequest) {
+        type: 'GET',
+        beforeSend: function () {
             $("#connection_test_" + id).html('Running test...');
         },
         error: function(){
-            $("#connection_test_" + id).html('Internal error.');
+            $("#connection_test_" + id).html('<span class="red bold">Internal error</span>');
         },
-        success: function(response){
-            var result = response;
+        success: function(result) {
+            function line(name, value, valid) {
+                var $value = $('<span></span>').text(value);
+                if (valid === true) {
+                    $value.addClass('green');
+                } else if (valid === false) {
+                    $value.addClass('red');
+                } else if (valid) {
+                    $value.addClass(valid);
+                }
+                return $('<div></div>').text(name + ': ').append($value).html() + '<br>';
+            }
+
+            var html = '';
+
+            if (result.client_certificate) {
+                var cert = result.client_certificate;
+                html += '<span class="bold">Client certificate:</span><br>';
+                if (cert.error) {
+                    html += '<span class="red bold">Error: ' + cert.error + '</span><br>';
+                } else {
+                    html += line("Subject", cert.subject);
+                    html += line("Issuer", cert.issuer);
+                    html += line("Serial number", cert.serial_number);
+                    html += line("Valid from", cert.valid_from, cert.valid_from_ok);
+                    html += line("Valid to", cert.valid_to, cert.valid_to_ok);
+                    html += line("Public key", cert.public_key_type + ' (' + cert.public_key_size + ' bits)', cert.public_key_size_ok);
+                }
+                html += "<br>";
+            }
+
             switch (result.status) {
             case 1:
-                status_message = "OK";
-                compatibility = "Compatible";
-                compatibility_colour = "green";
-                colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
-                issue_colour = "red";
+                var status_message = "OK";
+                var compatibility = "Compatible";
+                var compatibility_colour = "green";
+                var colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
+                var issue_colour = "red";
                 if (result.mismatch == "hotfix") issue_colour = "orange";
                 if (result.newer == "local") {
                     colours.remote = 'class="' + issue_colour + '"';
@@ -3333,6 +3367,7 @@ function testConnection(id) {
                     else status_message = "Remote outdated, notify admin!"
                     colours.status = 'class="' + issue_colour + '"';
                 }
+                var post_result;
                 if (result.post != false) {
                     var post_colour = "red";
                     if (result.post == 1) {
@@ -3349,36 +3384,36 @@ function testConnection(id) {
                         post_result = "Remote too old for this test";
                     }
                 }
-                resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
-                resultDiv += '<div>Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
-                resultDiv += '<div>Status: <span ' + colours.status + '>' + status_message + '</span><br />';
-                resultDiv += '<div>Compatiblity: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
-                resultDiv += '<div>POST test: <span class="' + post_colour + '">' + post_result + '</span><br />';
-                $("#connection_test_" + id).html(resultDiv);
-                //$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
+                html += line('Local version', result.local_version, colours.local);
+                html += line('Remote version', result.version, colours.remote);
+                html += line('Status', status_message, colours.status);
+                html += line('Compatibility', compatibility, compatibility_colour);
+                html += line('POST test', post_result, post_colour);
                 break;
             case 2:
-                $("#connection_test_" + id).html('<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>');
+                html += '<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>';
                 break;
             case 3:
-                $("#connection_test_" + id).html('<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>');
+                html += '<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>';
                 break;
             case 4:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>');
+                html += '<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>';
                 break;
             case 5:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>');
+                html += '<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>';
                 break;
             case 6:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>');
+                html += '<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>';
                 break;
             case 7:
-                $("#connection_test_" + id).html('<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>');
+                html += '<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>';
                 break;
             case 8:
-                $("#connection_test_" + id).html('<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, syncing sightings only</span>');
+                html += '<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, syncing sightings only</span>';
                 break;
             }
+
+            $("#connection_test_" + id).html(html);
         }
     })
 }
@@ -3886,14 +3921,6 @@ $(document.body).on('mouseenter', '.eventViewAttributeHover', function () {
     clearTimeout(hoverEnrichmentPopoverTimer);
 });
 
-$(".cortex-json").click(function() {
-    var cortex_data = $(this).data('cortex-json');
-    cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-    var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-    popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-
-});
-
 function showEnrichmentPopover(type, id) {
     var $popoverBox = $('#popover_box');
     $popoverBox.empty();
@@ -4034,10 +4061,24 @@ function formCategoryChanged(id) {
     var alreadySelected = $type.val();
     var options = $type.prop('options');
     $('option', $type).remove();
-    $.each(category_type_mapping[$('#' + id + 'Category').val()], function(val, text) {
+
+    var selectedCategory = $('#' + id + 'Category').val();
+    var optionsToPush;
+    if (selectedCategory === "") { // if no category is selected, insert all attribute types
+        optionsToPush = {};
+        for (var category in category_type_mapping) {
+            for (var type in category_type_mapping[category]) {
+                optionsToPush[type] = category_type_mapping[category][type];
+            }
+        }
+    } else {
+        optionsToPush = category_type_mapping[selectedCategory];
+    }
+
+    $.each(optionsToPush, function (val, text) {
         options[options.length] = new Option(text, val);
         if (val === alreadySelected) {
-            options[options.length-1].selected = true;
+            options[options.length - 1].selected = true;
         }
     });
     // enable the form element
@@ -4645,23 +4686,6 @@ $(document).ready(function() {
     $('.quickSelect').click(function() {
         quickSelect(this);
     });
-    $(".cortex-json").click(function() {
-        var cortex_data = $(this).data('cortex-json');
-        cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-        var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-        popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-        $('#popover_box').html(popupHtml);
-        $('#popover_box').show();
-        $('#popover_box').css({'padding': '5px'});
-        left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
-        if (($('#popover_box').height() + 250) > $(window).height()) {
-            $('#popover_box').height($(window).height() - 250);
-            $('#popover_box').css("overflow-y", "scroll");
-            $('#popover_box').css("overflow-x", "hidden");
-        }
-        $('#popover_box').css({'left': left + 'px'});
-        $("#gray_out").fadeIn();
-    });
     $('.add_object_attribute_row').click(function() {
         var template_id = $(this).data('template-id');
         var object_relation = $(this).data('object-relation');
@@ -4721,7 +4745,11 @@ $(document.body).on('click', 'span[data-full] a', function(e) {
     var data = $parent.attr('data-full');
     var type = $parent.attr('data-full-type');
     var $box;
-    if (type === 'raw') {
+    if (type === 'raw' || type === 'cortex') {
+        if (type === 'cortex') {
+            data = JSON.stringify(JSON.parse(data), null, 2); // make JSON nicer
+        }
+
         $box = $('<pre>').css({
             'background': 'white',
             'border': '0',
@@ -4752,7 +4780,7 @@ $(document.body).on('keyup', '#quickFilterField', function(e) {
 $(document.body).on('keydown', 'textarea', function(e) {
     if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) { // CMD+ENTER or CTRL+ENTER key
         if (e.target.form) {
-            e.target.form.submit();
+            $(e.target.form).submit();
         }
     }
 });

@@ -49,7 +49,7 @@ class AppController extends Controller
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
     private $__queryVersion = '113';
-    public $pyMispVersion = '2.4.131';
+    public $pyMispVersion = '2.4.133';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $pythonmin = '3.6';
@@ -467,12 +467,6 @@ class AppController extends Controller
             $this->userRole = $role;
 
             $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
-            } else {
-                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
-            }
-            $this->set('notifications', $notifications);
 
             if (
                 Configure::read('MISP.log_paranoid') ||
@@ -543,17 +537,28 @@ class AppController extends Controller
             }
         }
         $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
-        $this->loadModel('UserSetting');
-        $homepage = $this->UserSetting->find('first', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'UserSetting.user_id' => $this->Auth->user('id'),
-                'UserSetting.setting' => 'homepage'
-            ),
-            'contain' => array('User.id', 'User.org_id')
-        ));
-        if (!empty($homepage)) {
-            $this->set('homepage', $homepage['UserSetting']['value']);
+
+        // Notifications and homepage is not necessary for AJAX or REST requests
+        if ($this->Auth->user() && !$this->_isRest() && !$this->request->is('ajax')) {
+            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+            } else {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+            }
+            $this->set('notifications', $notifications);
+
+            $this->loadModel('UserSetting');
+            $homepage = $this->UserSetting->find('first', array(
+                'recursive' => -1,
+                'conditions' => array(
+                    'UserSetting.user_id' => $this->Auth->user('id'),
+                    'UserSetting.setting' => 'homepage'
+                ),
+                'contain' => array('User.id', 'User.org_id')
+            ));
+            if (!empty($homepage)) {
+                $this->set('homepage', $homepage['UserSetting']['value']);
+            }
         }
     }
 

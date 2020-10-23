@@ -1,38 +1,51 @@
 <?php
-  $tr_class = '';
-  if (empty($context)) {
-      $context = 'event';
-  }
-  $linkClass = 'blue';
-  if ($event['Event']['id'] != $object['event_id']) {
+$tr_class = '';
+if (empty($context)) {
+    $context = 'event';
+}
+$linkClass = 'blue';
+if ($event['Event']['id'] != $object['event_id']) {
     if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
-      $mayModify = false;
+        $mayModify = false;
     }
-  }
-  $editScope = ($isSiteAdmin || $mayModify) ? 'Attribute' : 'ShadowAttribute';
-  if (!empty($child)) {
+}
+$editScope = ($isSiteAdmin || $mayModify) ? 'Attribute' : 'ShadowAttribute';
+if (!empty($child)) {
     if ($child === 'last' && empty($object['ShadowAttribute'])) {
-      $tr_class .= ' tableHighlightBorderBottom borderBlue';
+        $tr_class .= ' tableHighlightBorderBottom borderBlue';
     } else {
-      $tr_class .= ' tableHighlightBorderCenter borderBlue';
+        $tr_class .= ' tableHighlightBorderCenter borderBlue';
     }
     if (!empty($object['ShadowAttribute'])) {
-      $tr_class .= ' tableInsetOrangeFirst';
+        $tr_class .= ' tableInsetOrangeFirst';
     }
-  } else {
+} else {
     $child = false;
     if (!empty($object['ShadowAttribute'])) {
-      $tr_class .= ' tableHighlightBorderTop borderOrange';
+        $tr_class .= ' tableHighlightBorderTop borderOrange';
     }
-  }
-  if (!empty($object['deleted'])) {
+}
+if (!empty($object['deleted'])) {
     $tr_class .= ' deleted-attribute';
-  }
-  if (!empty($k)) {
+}
+if (!empty($k)) {
     $tr_class .= ' row_' . h($k);
-  }
+}
 
-  $objectId = h($object['id']);
+$objectId = h($object['id']);
+
+$quickEdit = function($fieldName) use ($editScope, $object, $event) {
+    if ($object['deleted']) {
+        return ''; // deleted attributes are not editable
+    }
+    if ($editScope === 'ShadowAttribute') {
+        return ''; // currently it is not supported to create proposals trough quick edit
+    }
+    if ($fieldName === 'value' && ($object['type'] === 'attachment' || $object['type'] === 'malware-sample')) {
+        return '';
+    }
+    return " onmouseenter=\"quickEditHover(this, '$editScope', '{$object['id']}', '$fieldName', {$event['Event']['id']});\"";
+}
 
 ?>
 <tr id="Attribute_<?= $objectId ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
@@ -54,7 +67,7 @@
     <td class="short context hidden">
       <?= $objectId ?>
     </td>
-    <td class="short context hidden uuid"><?php echo h($object['uuid']); ?></td>
+    <td class="short context hidden uuid quickSelect"><?php echo h($object['uuid']); ?></td>
     <td class="short context hidden">
         <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
     </td>
@@ -89,13 +102,13 @@
       ?>
       &nbsp;
     </td>
-    <td class="short" onmouseenter="quickEditHover(this, '<?php echo $editScope; ?>', '<?= $objectId ?>', 'category', <?php echo $event['Event']['id'];?>);">
+    <td class="short"<?= $quickEdit('category') ?>>
       <div id="Attribute_<?= $objectId ?>_category_placeholder" class="inline-field-placeholder"></div>
       <div id="Attribute_<?= $objectId ?>_category_solid" class="inline-field-solid">
         <?php echo h($object['category']); ?>
       </div>
     </td>
-    <td class="short" onmouseenter="quickEditHover(this, '<?php echo $editScope; ?>', '<?= $objectId ?>', 'type', <?php echo $event['Event']['id'];?>);">
+    <td class="short"<?= $quickEdit('type') ?>>
       <?php
         if (!empty($object['object_relation'])):
       ?>
@@ -103,20 +116,12 @@
       <?php
         endif;
       ?>
-      <div></div>
       <div id="Attribute_<?= $objectId ?>_type_placeholder" class="inline-field-placeholder"></div>
       <div id="Attribute_<?= $objectId ?>_type_solid" class="inline-field-solid">
         <?php echo h($object['type']); ?>
       </div>
     </td>
-    <?php
-        if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']):
-            $editable = ' onmouseenter="quickEditHover(this, \'' . $editScope . '\', \'' . $objectId . '\', \'value\', \'' . $event['Event']['id'] . '\' );"';
-        else:
-            $editable = '';
-        endif;
-    ?>
-    <td id="Attribute_<?= $objectId ?>_container" class="showspaces limitedWidth shortish"<?= $editable ?>>
+    <td id="Attribute_<?= $objectId ?>_container" class="showspaces limitedWidth shortish"<?= $quickEdit('value') ?>>
       <div id="Attribute_<?= $objectId ?>_value_placeholder" class="inline-field-placeholder"></div>
       <div id="Attribute_<?= $objectId ?>_value_solid" class="inline-field-solid">
         <span>
@@ -124,12 +129,8 @@
             $spanExtra = '';
             $popupButton = '';
             if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
-                $commonDataFields = sprintf(
-                    'data-object-type="Attribute" data-object-id="%s"',
-                    $objectId
-                );
-
-                $spanExtra = sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
+                $commonDataFields = sprintf('data-object-type="Attribute" data-object-id="%s"', $objectId);
+                $spanExtra = Configure::read('Plugin.Enrichment_hover_popover_only') ? '' : sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
                 $popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup noPrint" title="%s" %s></i>', __('Show hover enrichment'), $commonDataFields);
             }
             echo sprintf(
@@ -180,7 +181,7 @@
         ));
       ?>
     </td>
-    <td class="showspaces bitwider" onmouseenter="quickEditHover(this, '<?php echo $editScope; ?>', '<?= $objectId ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+    <td class="showspaces bitwider"<?= $quickEdit('comment') ?>>
       <div id="Attribute_<?= $objectId ?>_comment_placeholder" class="inline-field-placeholder"></div>
       <div id="Attribute_<?= $objectId ?>_comment_solid" class="inline-field-solid">
         <?php echo nl2br(h($object['comment'])); ?>&nbsp;
@@ -201,17 +202,17 @@
       >
     </td>
     <td class="shortish">
-      <ul class="inline" style="margin:0">
         <?php
           if (!empty($event['RelatedAttribute'][$object['id']])) {
-            echo $this->element('Events/View/attribute_correlations', array(
-              'scope' => 'Attribute',
-              'object' => $object,
-              'event' => $event,
-            ));
+              echo '<ul class="inline" style="margin:0">';
+              echo $this->element('Events/View/attribute_correlations', array(
+                  'scope' => 'Attribute',
+                  'object' => $object,
+                  'event' => $event,
+              ));
+              echo '</ul>';
           }
         ?>
-      </ul>
     </td>
     <td class="shortish">
       <ul class="inline" style="margin:0">
@@ -225,15 +226,15 @@
                             foreach ($v as $k2 => $v2) {
                                 $v[$k2] = h($v2);
                             }
-                            $v = implode('<br />', $v);
+                            $v = implode('<br>', $v);
                         } else {
                             $v = h($v);
                         }
-                        $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
+                        $popover .= '<span class="bold black">' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br>';
                     }
                     $liContents = '';
                     if ($isSiteAdmin || $hostOrgUser) {
-                        if ($feed['source_format'] == 'misp') {
+                        if ($feed['source_format'] === 'misp') {
                             $liContents .= sprintf(
                                 '<form action="%s/feeds/previewIndex/%s" method="post" style="margin:0;line-height:auto;">%s%s</form>',
                                 $baseurl,
@@ -250,14 +251,11 @@
                             );
                         } else {
                             $liContents .= sprintf(
-                                '<form>%s</form>',
-                                sprintf(
-                                    '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
-                                    $baseurl,
-                                    h($feed['id']),
-                                    h($popover),
-                                    h($feed['id'])
-                                )
+                                '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
+                                $baseurl,
+                                h($feed['id']),
+                                h($popover),
+                                h($feed['id'])
                             );
                         }
                     } else {
@@ -320,7 +318,7 @@
             <input type="checkbox" class="toids-toggle" id="toids_toggle_<?= $objectId ?>" data-attribute-id="<?= $objectId ?>" aria-label="<?= __('Toggle IDS flag') ?>" title="<?= __('Toggle IDS flag') ?>"<?= $object['to_ids'] ? ' checked' : ''; ?><?= $mayModify ? '' : ' disabled' ?>>
         </div>
     </td>
-    <td class="short" onmouseenter="quickEditHover(this, '<?php echo $editScope; ?>', '<?= $objectId ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
+    <td class="short"<?= $quickEdit('distribution') ?>>
         <?php
             $turnRed = '';
             if ($object['distribution'] == 0) {
@@ -363,7 +361,7 @@
         if ($object['deleted']):
           if ($isSiteAdmin || $mayModify):
       ?>
-          <span class="icon-repeat useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onClick="deleteObject('attributes', 'restore', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+          <span class="fas fa-redo useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onClick="deleteObject('attributes', 'restore', '<?= $objectId ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
           <span class="fa fa-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="i<?php echo __('Permanently delete attribute');?>" onClick="deleteObject('attributes', 'delete', '<?= $objectId . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
       <?php
           endif;
@@ -417,18 +415,18 @@
   </td>
 </tr>
 <?php
-  if (!empty($object['ShadowAttribute'])) {
+if (!empty($object['ShadowAttribute'])) {
     end($object['ShadowAttribute']);
     $lastElement = key($object['ShadowAttribute']);
     foreach ($object['ShadowAttribute'] as $propKey => $proposal) {
-      echo $this->element('/Events/View/row_' . $proposal['objectType'], array(
-        'object' => $proposal,
-        'mayModify' => $mayModify,
-        'mayChangeCorrelation' => $mayChangeCorrelation,
-        'fieldCount' => $fieldCount,
-        'child' => $propKey == $lastElement ? 'last' : true,
-        'objectContainer' => $child
-      ));
+        echo $this->element('/Events/View/row_' . $proposal['objectType'], array(
+            'object' => $proposal,
+            'mayModify' => $mayModify,
+            'mayChangeCorrelation' => $mayChangeCorrelation,
+            'fieldCount' => $fieldCount,
+            'child' => $propKey == $lastElement ? 'last' : true,
+            'objectContainer' => $child
+        ));
     }
-  }
-?>
+}
+

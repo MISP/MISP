@@ -122,11 +122,11 @@
   <tr>
     <th><?php echo __('Save');?></th>
     <th><?php echo __('Name :: type');?></th>
-        <th><?php echo __('Description');?></th>
+    <th><?php echo __('Description');?></th>
     <th><?php echo __('Category');?></th>
     <th><?php echo __('Value');?></th>
     <th><?php echo __('IDS');?></th>
-        <th><?php echo __('Disable Correlation');?></th>
+    <th><?php echo __('Disable Correlation');?></th>
     <th><?php echo __('Distribution');?></th>
     <th><?php echo __('Comment');?></th>
   </tr>
@@ -139,8 +139,8 @@
         array(
           'element' => $element,
           'k' => $k,
-                'action' => $action,
-                'enabledRows' => $enabledRows
+          'action' => $action,
+          'enabledRows' => $enabledRows
         )
       );
         if ($element['multiple']):

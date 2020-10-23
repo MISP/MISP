@@ -396,7 +396,7 @@ class SendEmail
             try {
                 $gnupgEmail = Configure::read('GnuPG.email');
                 if (empty($gnupgEmail)) {
-                    throw new Exception("Email signing is enabled but variable 'GnuPG.email' is not set.");
+                    throw new Exception("GPG email signing is enabled but variable 'GnuPG.email' is not set.");
                 }
 
                 $this->gpg->addSignKey($gnupgEmail, Configure::read('GnuPG.password'));
@@ -406,7 +406,7 @@ class SendEmail
 
                 $signed = true;
             } catch (Exception $e) {
-                throw new SendEmailException("The message could not be signed.", 0, $e);
+                throw new SendEmailException("The message could not be signed by GPG.", 0, $e);
             }
         }
 
@@ -419,11 +419,11 @@ class SendEmail
             try {
                 $fingerprint = $this->importAndValidateGpgPublicKey($user['User']['gpgkey']);
             } catch (Crypt_GPG_NoDataException $e) {
-                throw new SendEmailException("The message could not be encrypted because the provided key is invalid.", 0, $e);
+                throw new SendEmailException("The message could not be encrypted because the provided GPG key is invalid.", 0, $e);
             }
 
             if (!$fingerprint) {
-                throw new SendEmailException("The message could not be encrypted because the provided key is either expired or cannot be used for encryption.");
+                throw new SendEmailException("The message could not be encrypted because the provided GPG key is either expired or cannot be used for encryption.");
             }
 
             try {
@@ -441,7 +441,7 @@ class SendEmail
 
                 $encrypted = true;
             } catch (Exception $e) {
-                throw new SendEmailException('The message could not be encrypted.', 0, $e);
+                throw new SendEmailException('The message could not be encrypted by GPG.', 0, $e);
             }
         }
 
@@ -472,23 +472,23 @@ class SendEmail
             // Try to encrypt empty message
             $this->encryptTextBySmime($certificate, '');
         } catch (SendEmailException $e) {
-            throw new Exception('This certificate cannot be used to encrypt email.', 0, $e);
+            throw new Exception('This S/MIME certificate cannot be used to encrypt email.', 0, $e);
         }
 
         $parsed = openssl_x509_parse($certificate);
 
         if (!$parsed) {
-            throw new Exception('Could not parse certificate');
+            throw new Exception('Could not parse S/MIME certificate');
         }
 
         if ($parsed['purposes'][X509_PURPOSE_SMIME_ENCRYPT][0] !== true) {
-            throw new Exception('This certificate cannot be used to encrypt email.');
+            throw new Exception('This S/MIME certificate cannot be used to encrypt email.');
         }
 
         $now = new DateTime();
         $validToTime = new DateTime("@{$parsed['validTo_time_t']}");
         if ($validToTime <= $now) {
-            throw new Exception('This certificate is expired.');
+            throw new Exception('This S/MIME certificate expired at ' . $validToTime->format('c'));
         }
 
         return true;
@@ -774,6 +774,7 @@ class SendEmail
      * @param string $content
      * @return File[]
      * @throws SendEmailException
+     * @throws MethodNotAllowedException
      */
     private function createInputOutputFiles($content)
     {

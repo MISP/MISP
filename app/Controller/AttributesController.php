@@ -158,7 +158,6 @@ class AttributesController extends AppController
             if (!isset($attributes[0])) {
                 $attributes = array(0 => $attributes);
             }
-            $this->Warninglist = ClassRegistry::init('Warninglist');
             $fails = array();
             $successes = 0;
             $attributeCount = count($attributes);
@@ -1624,6 +1623,7 @@ class AttributesController extends AppController
         $this->Feed = ClassRegistry::init('Feed');
 
         $this->loadModel('Sighting');
+        $this->loadModel('AttachmentScan');
         $user = $this->Auth->user();
         foreach ($attributes as $k => $attribute) {
             $attributeId = $attribute['Attribute']['id'];
@@ -1635,6 +1635,10 @@ class AttributesController extends AppController
                     $attribute['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
                 }
                 $attributes[$k] = $attribute;
+            }
+            if ($attribute['Attribute']['type'] === 'attachment' && $this->AttachmentScan->isEnabled()) {
+                $infected = $this->AttachmentScan->isInfected(AttachmentScan::TYPE_ATTRIBUTE, $attribute['Attribute']['id']);
+                $attributes[$k]['Attribute']['infected'] = $infected;
             }
 
             if ($attribute['Attribute']['distribution'] == 4) {
@@ -2440,7 +2444,6 @@ class AttributesController extends AppController
             } else {
                 $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
             }
-            $data = json_encode($data);
             $result = $this->Module->queryModuleServer('/query', $data, true);
             if ($result) {
                 if (!is_array($result)) {

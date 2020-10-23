@@ -583,7 +583,7 @@ class AdminShell extends AppShell
                 'db_version' => $dbVersion
             );
             $file = new File(ROOT . DS . 'db_schema.json', true);
-            $file->write(json_encode($data, JSON_PRETTY_PRINT));
+            $file->write(json_encode($data, JSON_PRETTY_PRINT) . "\n");
             $file->close();
             echo __("> Database schema dumped on disk") . PHP_EOL;
         } else {
@@ -639,5 +639,20 @@ class AdminShell extends AppShell
             '%s==============================%sIP: %s%s==============================%sUser #%s: %s%s==============================%s',
             PHP_EOL, PHP_EOL, $ip, PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL
         );
+    }
+
+    public function scanAttachment()
+    {
+        $input = $this->args[0];
+        $attributeId = isset($this->args[1]) ? $this->args[1] : null;
+        $jobId = isset($this->args[2]) ? $this->args[2] : null;
+
+        $this->loadModel('AttachmentScan');
+        $result = $this->AttachmentScan->scan($input, $attributeId, $jobId);
+        if ($result === false) {
+            echo 'Job failed' . PHP_EOL;
+        } else {
+            echo $result . PHP_EOL;
+        }
     }
 }

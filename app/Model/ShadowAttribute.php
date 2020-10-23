@@ -403,7 +403,11 @@ class ShadowAttribute extends AppModel
     public function saveBase64EncodedAttachment($attribute)
     {
         $data = base64_decode($attribute['data']);
-        return $this->loadAttachmentTool()->saveShadow($attribute['event_id'], $attribute['id'], $data);
+        $result = $this->loadAttachmentTool()->saveShadow($attribute['event_id'], $attribute['id'], $data);
+        if ($result) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_SHADOW_ATTRIBUTE, $attribute);
+        }
+        return $result;
     }
 
     /**
@@ -471,22 +475,29 @@ class ShadowAttribute extends AppModel
         }
     }
 
-    public function getEventContributors($id)
+    /**
+     * @param int $eventId
+     * @return array Key is organisation ID, value is an organisation name
+     */
+    public function getEventContributors($eventId)
     {
-        $orgs = $this->find('all', array('fields' => array(
-            'DISTINCT(ShadowAttribute.org_id)'),
-            'conditions' => array('event_id' => $id),
+        $orgs = $this->find('all', array(
+            'fields' => array('DISTINCT(ShadowAttribute.org_id)'),
+            'conditions' => array('event_id' => $eventId),
             'recursive' => -1,
             'order' => false
         ));
-        $org_ids = array();
-        $this->Organisation = ClassRegistry::init('Organisation');
-        foreach ($orgs as $org) {
-            $org_ids[] = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('id', 'name'), 'conditions' => array('Organisation.id' => $org['ShadowAttribute']['org_id'])));
+        if (empty($orgs)) {
+            return [];
         }
-        return $org_ids;
-    }
 
+        $this->Organisation = ClassRegistry::init('Organisation');
+        return $this->Organisation->find('list', array(
+            'recursive' => -1,
+            'fields' => array('id', 'name'),
+            'conditions' => array('Organisation.id' => Hash::extract($orgs, "{n}.ShadowAttribute.org_id")))
+        );
+    }
 
     /**
      * Sends an email to members of the organization that owns the event

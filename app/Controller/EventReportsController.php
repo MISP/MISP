@@ -84,8 +84,6 @@ class EventReportsController extends AppController
     public function viewSummary($reportId)
     {
         $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
-        $proxyMISPElements = $this->EventReport->getProxyMISPElements($this->Auth->user(), $report['EventReport']['event_id']);
-        $this->set('proxyMISPElements', $proxyMISPElements);
         $this->set('id', $reportId);
         $this->set('report', $report);
         $this->__injectDistributionLevelToViewContext();

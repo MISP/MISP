@@ -1276,6 +1276,7 @@ class EventsController extends AppController
         $this->set('object_count', $objectCount);
         // set the data for the contributors / history field
         $contributors = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
+        $this->set('contributors', $contributors);
         if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user('org_id')) {
             $proposalStatus = false;
             if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute'])) {
@@ -1474,7 +1475,6 @@ class EventsController extends AppController
             $cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
             $this->set('cortex_modules', $cortex_modules);
         }
-        $this->set('contributors', $contributors);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $attributeUri = $this->baseurl . '/events/viewEventAttributes/' . $event['Event']['id'];
         foreach ($this->params->named as $k => $v) {
@@ -2958,18 +2958,6 @@ class EventsController extends AppController
         return $this->restSearch();
     }
 
-    // Grab an event or a list of events for the event view or any of the XML exports. The returned object includes an array of events (or an array that only includes a single event if an ID was given)
-    // Included with the event are the attached attributes, shadow attributes, related events, related attribute information for the event view and the creating user's email address where appropriate
-    private function __fetchEvent($eventid = false, $idList = false, $user = false, $tags = false, $from = false, $to = false)
-    {
-        // if we come from automation, we may not be logged in - instead we used an auth key in the URL.
-        if (empty($user)) {
-            $user = $this->Auth->user();
-        }
-        $results = $this->Event->fetchEvent($user, array('eventid' => $eventid, 'idList' => $idList, 'tags' => $tags, 'from' => $from, 'to' => $to));
-        return $results;
-    }
-
     public function nids()
     {
         $this->_legacyAPIRemap(array(
@@ -4310,21 +4298,6 @@ class EventsController extends AppController
         $this->set('id', $id);
     }
 
-    public function viewEventGraph()
-    {
-        $event = $this->Event->fetchEvent($this->Auth->user(), array(
-            'eventid' => $id
-        ));
-        if (empty($event)) {
-            throw new MethodNotAllowedException(__('Invalid Event.'));
-        }
-        $this->set('event', $event[0]);
-        $this->set('scope', 'event');
-        $this->set('id', $id);
-    }
-
-
-
     /*
         public function deleteNode($id) {
             if (!$this->request->is('post')) throw new MethodNotAllowedException(__('Only POST requests are allowed.'));
@@ -4357,16 +4330,17 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    private function genDistributionGraph($id, $type = 'event', $extended = 0) {
+    private function genDistributionGraph($id, $type = 'event', $extended = 0)
+    {
         $validTools = array('event');
         if (!in_array($type, $validTools)) {
             throw new MethodNotAllowedException(__('Invalid type.'));
         }
-        $this->loadModel('Server');
-        $this->loadModel('Organisation');
+
         App::uses('DistributionGraphTool', 'Tools');
         $grapher = new DistributionGraphTool();
 
+        $this->loadModel('Server');
         $servers = $this->Server->find('list', array(
             'fields' => array('name'),
         ));
@@ -4785,7 +4759,6 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $data = json_encode($data);
         $result = $this->Module->queryModuleServer('/query', $data, false, $type);
         if (!$result) {
             throw new MethodNotAllowedException(__('%s service not reachable.', $type));
@@ -4831,7 +4804,6 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $data = json_encode($data);
         $result = $this->Module->queryModuleServer('/query', $data, false, $type);
         if (!$result) {
             throw new MethodNotAllowedException(__('%s service not reachable.', $type));
@@ -4908,8 +4880,8 @@ class EventsController extends AppController
             throw new ForbiddenException(__('You don\'t have permission to do that.'));
         }
 
-        $resolved_data = json_decode($this->request->data['Event']['JsonObject'], true);
-        $data = json_decode($this->request->data['Event']['data'], true);
+        $resolved_data = $this->Event->jsonDecode($this->request->data['Event']['JsonObject']);
+        $data = $this->Event->jsonDecode($this->request->data['Event']['data']);
         if (!empty($data['initialObject'])) {
             $resolved_data['initialObject'] = $data['initialObject'];
         }
@@ -4917,7 +4889,12 @@ class EventsController extends AppController
         $default_comment = $this->request->data['Event']['default_comment'];
         $flashMessage = $this->Event->processModuleResultsDataRouter($this->Auth->user(), $resolved_data, $event['Event']['id'], $default_comment);
         $this->Flash->info($flashMessage);
-        $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+
+        if ($this->request->is('ajax')) {
+            return $this->RestResponse->viewData($flashMessage, $this->response->type());
+        } else {
+            $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
+        }
     }
 
     public function importModule($module, $eventId)
@@ -5017,7 +4994,7 @@ class EventsController extends AppController
                     if (!empty($filename)) {
                         $modulePayload['filename'] = $filename;
                     }
-                    $result = $this->Module->queryModuleServer('/query', json_encode($modulePayload), false, $moduleFamily = 'Import');
+                    $result = $this->Module->queryModuleServer('/query', $modulePayload, false, $moduleFamily = 'Import');
                     if (!$result) {
                         throw new Exception(__('Import service not reachable.'));
                     }
