@@ -41,10 +41,11 @@ echo $this->Form->create('Attribute', array('id'));
 </div>
 
 <script type="text/javascript">
-$(document).ready(function() {
+$(function() {
     $('#cancel_attribute_add').click(function() {
         cancelPopoverForm();
     });
+    $('#AttributeValue').focus();
 });
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

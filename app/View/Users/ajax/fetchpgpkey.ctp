@@ -2,7 +2,7 @@
     <legend><?php echo __('Choose the key that you would like to use'); ?></legend>
     <p style="padding:0.3em 10px">
         <?php echo __("Do not blindly trust fetched keys and check the fingerprint from other source.") ?>
-        <a href="https://evil32.com" target="_blank"><?php echo __("And do not check just Key ID, but whole fingerprint.") ?></a>
+        <a href="https://evil32.com" rel="noreferrer noopener" target="_blank"><?php echo __("And do not check just Key ID, but whole fingerprint.") ?></a>
     </p>
     <div class="popover_choice_main" id ="popover_choice_main">
         <table style="width:100%;">

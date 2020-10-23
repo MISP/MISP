@@ -316,6 +316,7 @@ td.highlight3 {
 table.table-striped > tbody > tr.objectAddFieldTr > td {
     position: absolute;
     background-color: #ffffff00;
+    height: 0;
 }
 
 table.table-striped > tbody > tr > td > span.objectAddField {
@@ -939,8 +940,37 @@ a.proposal_link_red:hover {
     float: left;
 }
 
+#eventreport_div {
+    position: relative;
+    margin-top: 20px;
+    padding: 35px 15px 0px 15px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+#eventreport_div > .report-title-section {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    padding: 3px 7px;
+    font-weight: bold;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    color: #6b6b6b;
+    border-radius: 3px 0 3px 0;
+}
+
 .modal-body-long {
     max-height: 600px;
+}
+
+.modal-body-xl {
+    max-height: 70vh;
+}
+
+.modal-body-lg {
+    max-height: 60vh;
 }
 
 .ajax_popover_form {
@@ -953,6 +983,18 @@ a.proposal_link_red:hover {
     border-radius: 11px 11px 10px 10px;
     box-shadow: 4px 4px 4px #333;
     z-index:5;
+}
+
+.modal.modal-lg {
+    width: 60%;
+    left: 20%;
+    margin-left: 0px;
+}
+
+.modal.modal-xl {
+    width: 90%;
+    left: 5%;
+    margin-left: 0px;
 }
 
 .ajax_popover_form_large {
@@ -1045,9 +1087,10 @@ a.proposal_link_red:hover {
 }
 
 .hover_enrichment_text {
-    border:0px;
-    background-color:transparent;
-    display:inline;
+    border: 0;
+    background-color: transparent;
+    display: inline;
+    padding: 0;
 }
 
 .hover_enrichment_title {
@@ -1254,7 +1297,8 @@ span.success {
     bottom:-17px;
     background-color: #fff;
     position:absolute;
-    z-index:100;
+    z-index:10;
+    color: #333;
 }
 
 .inline-input-active {
@@ -1271,7 +1315,9 @@ span.success {
 
 .inline-input-button span {
     display:block;
-    margin: 0 auto;
+    margin-top: 2px;
+    text-align: center;
+    font-size: 13px;
 }
 
 .inline-input-accept {
@@ -1738,6 +1784,7 @@ span.success {
     width:100%;
     line-height:30px;
     border-top:1px solid black;
+    cursor: pointer;
 }
 
 .templateChoiceButton:hover {
@@ -2292,6 +2339,17 @@ tr.redRow td, .redElement {
     border-top:0px !important;
 }
 
+tr.redRow td a, tr.redRow td a:hover,
+tr.darkOrangeRow td a, tr.darkOrangeRow td a:hover,
+tr.blueRow td a, tr.blueRow td a:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+a.fa, a.fas, a.fa:hover, a.fas:hover {
+    text-decoration: none !important;
+}
+
 .blank_table_row {
     height: 10px;
 }
@@ -2322,7 +2380,7 @@ table tr:hover .down-expand-button {
 }
 
 .strikethrough {
-    text-decoration: line-through;
+    text-decoration: line-through !important;
 }
 
 .highlighted_node {
@@ -2541,4 +2599,49 @@ table tr:hover .down-expand-button {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+}
+
+/* Threat levels */
+.threat-level-high::before, .threat-level-medium::before, .threat-level-low::before, .threat-level-undefined::before {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+    padding-right: .3em;
+}
+
+.threat-level-high::before {
+    content: "\f102";
+    color: rgb(192,0,0);
+}
+
+.threat-level-medium::before {
+    content: "\f068";
+    color: #3465a4;
+}
+
+.threat-level-low::before {
+    content: "\f103";
+    color: rgb(35,120,40);
+}
+
+.threat-level-undefined::before {
+    content: "\f128";
+    color: gray;
+}
+
+#UserGpgkey, #UserCertifPublic {
+    font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+    font-size: 100%;
+    width: 45em;
+}
+
+.authkey {
+    font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+    font-size: 11px;
 }

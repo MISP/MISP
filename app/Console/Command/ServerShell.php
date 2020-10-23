@@ -36,10 +36,15 @@ class ServerShell extends AppShell
         }
 
         $serverId = intval($this->args[0]);
-        $res = @$this->Server->runConnectionTest($serverId);
-        if (!empty($res['message']))
-            $res['message'] = json_decode($res['message']);
+        $server = $this->Server->find('first', [
+            'conditions' => ['Server.id' => $serverId],
+            'recursive' => -1,
+        ]);
+        if (!$server) {
+            die("Server with ID $serverId doesn't exists.");
+        }
 
+        $res = @$this->Server->runConnectionTest($server);
         echo json_encode($res) . PHP_EOL;
     }
 

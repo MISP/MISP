@@ -150,6 +150,16 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'view' => array('*'),
             ),
+            'eventReports' => array(
+                'add' => array('perm_add'),
+                'view' => array('*'),
+                'viewSummary' => array('*'),
+                'edit' => array('perm_add'),
+                'delete' => array('perm_add'),
+                'restore' => array('perm_add'),
+                'index' => array('*'),
+                'getProxyMISPElements' => array('*'),
+            ),
             'events' => array(
                     'add' => array('perm_add'),
                     'addIOC' => array('perm_add'),
@@ -221,7 +231,6 @@ class ACLComponent extends Component
                     'upload_stix' => array('perm_add'),
                     'view' => array('*'),
                     'viewEventAttributes' => array('*'),
-                    'viewEventGraph' => array('*'),
                     'viewGraph' => array('*'),
                     'viewGalaxyMatrix' => array('*'),
                     'xml' => array('*')
@@ -373,7 +382,6 @@ class ACLComponent extends Component
                     'fetchSGOrgRow' => array('*'),
                     'getUUIDs' => array('perm_sync'),
                     'index' => array('*'),
-                    'landingpage' => array('*'),
                     'view' => array('*'),
             ),
             'pages' => array(

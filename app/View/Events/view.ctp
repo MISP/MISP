@@ -23,9 +23,9 @@
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
         $table_data[] = array(
             'key' => 'UUID',
-            'html' => sprintf('%s %s',
+            'html' => sprintf('<span class="quickSelect">%s</span> %s',
                 $event['Event']['uuid'],
-                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px;" title="%s">+</a>',
+                sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px; margin-left: 0.3em" title="%s">+</a>',
                     $baseurl,
                     $event['Event']['id'],
                     __('Extend this event')
@@ -75,11 +75,11 @@
         }
         if (!empty($contributors)) {
             $contributorsContent = '';
-            foreach ($contributors as $k => $entry) {
+            foreach ($contributors as $organisationId => $name) {
                 $contributorsContent .= sprintf(
-                    '<a href="%s" style="margin-right:2px;text-decoration: none;">%s</a>',
-                    $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($entry['Organisation']['name']),
-                    $this->OrgImg->getOrgImg(array('name' => $entry['Organisation']['name'], 'id' => $entry['Organisation']['id'], 'size' => 24), true, true)
+                    '<a href="%s">%s</a>',
+                    $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($name),
+                    $this->OrgImg->getOrgImg(array('name' => $name, 'id' => $organisationId, 'size' => 24), true, true)
                 );
             }
             $table_data[] = array(
@@ -117,7 +117,8 @@
             $table_data[] = array(
                 'key' => __('Threat Level'),
                 'key_title' => $eventDescriptions['threat_level_id']['desc'],
-                'value' => $event['ThreatLevel']['name']
+                'value' => $event['ThreatLevel']['name'],
+                'value_class' => 'threat-level-' . strtolower($event['ThreatLevel']['name']),
             );
         }
         $table_data[] = array(
@@ -205,15 +206,16 @@
                 'html' => sprintf(
                     '%s %s %s',
                     $extended_by,
-                    sprintf(
+                    __(
                         'Currently in %s view.',
                         $extended ? __('extended') : __('atomic')
                     ),
                     sprintf(
-                        '<a href="%s/events/view/%s%s"><span class="fa fa-sync"></span></a>',
+                        '<a href="%s/events/view/%s%s"><span class="fa fa-sync" title="%s"></span></a>',
                         $baseurl,
                         $event['Event']['id'],
-                        ($extended ? '' : '/extended:1')
+                        ($extended ? '' : '/extended:1'),
+                        $extended ? __('Switch to atomic view') : __('Switch to extended view')
                     )
                 )
             );
@@ -333,7 +335,6 @@
                     <?php echo '</ul>' ?>
                 </div>
             <?php endif; ?>
-
             <?php
                 if (!empty($event['RelatedEvent'])):
             ?>
@@ -489,6 +490,9 @@
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attackmatrix_toggle" data-toggle-type="attackmatrix" onclick="enable_attack_matrix();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>" style="vertical-align:top;"></span><?php echo __('ATT&CK matrix');?>
         </button>
+        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventreport_toggle" data-toggle-type="eventreport">
+            <span class="icon-plus icon-white" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>" style="vertical-align:top;"></span><?php echo __('Event reports');?>
+        </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
             <span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
         </button>
@@ -515,12 +519,14 @@
     </div>
     <div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false" data-mitre-attack-galaxy-id="<?php echo h($mitreAttackGalaxyId)?>">
     </div>
+    <div id="eventreport_div" style="display: none;">
+        <span class="report-title-section"><?php echo __('Event Reports');?></span>
+        <div id="eventreport_index_div"></div>
+    </div>
     <div id="attributes_div">
         <?php echo $this->element('eventattribute'); ?>
     </div>
     <div id="discussions_div">
-    </div>
-    <div id="attribute_creation_div" style="display:none;">
     </div>
 </div>
 <script type="text/javascript">
@@ -539,6 +545,12 @@ $(document).ready(function () {
         $("#discussions_div").html(data);
     });
 
+    $.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?>", function(data) {
+        $("#eventreport_index_div").html(data);
+        if ($('#eventreport_index_div table tbody > tr').length) { // open if contain a report
+            $('#eventreport_toggle').click()
+        }
+    });
 });
 
 function enable_correlation_graph() {
@@ -552,5 +564,6 @@ function enable_attack_matrix() {
         $("#attackmatrix_div").html(data);
     });
 }
+
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />

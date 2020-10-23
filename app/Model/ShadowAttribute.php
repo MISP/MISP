@@ -1,12 +1,13 @@
 <?php
-
 App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
+App::uses('ComplexTypeTool', 'Tools');
 
 /**
  * @property Event $Event
+ * @property Attribute $Attribute
  */
 class ShadowAttribute extends AppModel
 {
@@ -58,7 +59,6 @@ class ShadowAttribute extends AppModel
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
             'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-            //'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
     );
 
     // if these then a category my have upload to be zipped
@@ -122,7 +122,7 @@ class ShadowAttribute extends AppModel
         ),
         'to_ids' => array(
             'boolean' => array(
-                'rule' => array('boolean'),
+                'rule' => 'boolean',
                 'required' => false,
             ),
         ),
@@ -133,9 +133,9 @@ class ShadowAttribute extends AppModel
             ),
         ),
         'proposal_to_delete' => array(
-                'boolean' => array(
-                        'rule' => array('boolean'),
-                ),
+            'boolean' => array(
+                'rule' => 'boolean',
+            ),
         ),
         'first_seen' => array(
             'rule' => array('datetimeOrNull'),
@@ -152,15 +152,8 @@ class ShadowAttribute extends AppModel
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
-        $this->virtualFields = Set::merge($this->virtualFields, array(
-            //'distribution' => 'IF (Attribute.private=true, "Your organization only", IF (Attribute.cluster=true, "This Community-only", "All communities"))',
-            //'distribution' => 'IF (ShadowAttribute.private=true AND ShadowAttribute.cluster=false, "Your organization only", IF (ShadowAttribute.private=true AND ShadowAttribute.cluster=true, "This server-only", IF (ShadowAttribute.private=false AND ShadowAttribute.cluster=true, "This Community-only", IF (ShadowAttribute.communitie=true, "Connected communities" , "All communities"))))',
-        ));
-        $this->fieldDescriptions = Set::merge($this->fieldDescriptions, array(
-            //'distribution' => array('desc' => 'This fields indicates the intended distribution of the attribute (same as when adding an event, see Add Event)'),
-        ));
-        $this->categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
-        $this->typeDefinitions = $this->Event->Attribute->typeDefinitions;
+        $this->categoryDefinitions = $this->Attribute->categoryDefinitions;
+        $this->typeDefinitions = $this->Attribute->typeDefinitions;
     }
 
     // The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -211,7 +204,7 @@ class ShadowAttribute extends AppModel
         if (isset($sa['ShadowAttribute'])) {
             $sa = $sa['ShadowAttribute'];
         }
-        if (in_array($sa['type'], $this->Event->Attribute->nonCorrelatingTypes)) {
+        if (in_array($sa['type'], $this->Attribute->nonCorrelatingTypes)) {
             return;
         }
         $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
@@ -222,14 +215,14 @@ class ShadowAttribute extends AppModel
             $correlatingValues[] = $sa['value2'];
         }
         foreach ($correlatingValues as $k => $cV) {
-            $correlatingAttributes[$k] = $this->Event->Attribute->find('all', array(
+            $correlatingAttributes[$k] = $this->Attribute->find('all', array(
                     'conditions' => array(
                             'AND' => array(
                                     'OR' => array(
                                             'Attribute.value1' => $cV,
                                             'Attribute.value2' => $cV
                                     ),
-                                    'Attribute.type !=' => $this->Event->Attribute->nonCorrelatingTypes,
+                                    'Attribute.type !=' => $this->Attribute->nonCorrelatingTypes,
                                     'Attribute.deleted' => 0,
                                     'Attribute.event_id !=' => $sa['event_id']
                             ),
@@ -304,9 +297,6 @@ class ShadowAttribute extends AppModel
         parent::beforeValidate();
         // remove leading and trailing blanks
         //$this->trimStringFields(); // TODO
-        if (isset($this->data['ShadowAttribute']['value'])) {
-            $this->data['ShadowAttribute']['value'] = trim($this->data['ShadowAttribute']['value']);
-        }
 
         if (!isset($this->data['ShadowAttribute']['comment'])) {
             $this->data['ShadowAttribute']['comment'] = '';
@@ -314,6 +304,14 @@ class ShadowAttribute extends AppModel
 
         if (!isset($this->data['ShadowAttribute']['type'])) {
             return false;
+        }
+
+        // make some changes to the inserted value
+        if (isset($this->data['ShadowAttribute']['value'])) {
+            $value = trim($this->data['ShadowAttribute']['value']);
+            $value = ComplexTypeTool::refangValue($value, $this->data['ShadowAttribute']['type']);
+            $value = $this->Attribute->modifyBeforeValidation($this->data['ShadowAttribute']['type'], $value);
+            $this->data['ShadowAttribute']['value'] = $value;
         }
 
         if (!isset($this->data['ShadowAttribute']['org'])) {
@@ -329,9 +327,6 @@ class ShadowAttribute extends AppModel
             $this->data['ShadowAttribute']['proposal_to_delete'] = 0;
         }
 
-        // make some last changes to the inserted value
-        $this->data['ShadowAttribute']['value'] = $this->Event->Attribute->modifyBeforeValidation($this->data['ShadowAttribute']['type'], $this->data['ShadowAttribute']['value']);
-
         // generate UUID if it doesn't exist
         if (empty($this->data['ShadowAttribute']['uuid'])) {
             $this->data['ShadowAttribute']['uuid'] = CakeText::uuid();
@@ -340,7 +335,7 @@ class ShadowAttribute extends AppModel
         }
 
         if (!empty($this->data['ShadowAttribute']['type']) && empty($this->data['ShadowAttribute']['category'])) {
-            $this->data['ShadowAttribute']['category'] = $this->Event->Attribute->typeDefinitions[$this->data['ShadowAttribute']['type']]['default_category'];
+            $this->data['ShadowAttribute']['category'] = $this->Attribute->typeDefinitions[$this->data['ShadowAttribute']['type']]['default_category'];
         }
 
         // always return true, otherwise the object cannot be saved
@@ -366,38 +361,28 @@ class ShadowAttribute extends AppModel
 
     public function validCategory($fields)
     {
-        return $this->Event->Attribute->validCategory($fields);
+        return $this->Attribute->validCategory($fields);
     }
 
     public function validateAttributeValue($fields)
     {
         $value = $fields['value'];
-        return $this->Event->Attribute->runValidation($value, $this->data['ShadowAttribute']['type']);
+        return $this->Attribute->runValidation($value, $this->data['ShadowAttribute']['type']);
     }
 
     public function getCompositeTypes()
     {
-        // build the list of composite Attribute.type dynamically by checking if type contains a |
-        // default composite types
-        $compositeTypes = array('malware-sample');  // TODO hardcoded composite
-        // dynamically generated list
-        foreach (array_keys($this->typeDefinitions) as $type) {
-            $pieces = explode('|', $type);
-            if (2 == count($pieces)) {
-                $compositeTypes[] = $type;
-            }
-        }
-        return $compositeTypes;
+        return $this->Attribute->getCompositeTypes();
     }
 
     public function typeIsMalware($type)
     {
-        return in_array($type, $this->zippedDefinitions);
+        return $this->Attribute->typeIsAttachment($type);
     }
 
     public function typeIsAttachment($type)
     {
-        return in_array($type, $this->zippedDefinitions) || in_array($type, $this->uploadDefinitions);
+        return $this->Attribute->typeIsAttachment($type);
     }
 
     public function base64EncodeAttachment(array $attribute)
@@ -418,7 +403,11 @@ class ShadowAttribute extends AppModel
     public function saveBase64EncodedAttachment($attribute)
     {
         $data = base64_decode($attribute['data']);
-        return $this->loadAttachmentTool()->saveShadow($attribute['event_id'], $attribute['id'], $data);
+        $result = $this->loadAttachmentTool()->saveShadow($attribute['event_id'], $attribute['id'], $data);
+        if ($result) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_SHADOW_ATTRIBUTE, $attribute);
+        }
+        return $result;
     }
 
     /**
@@ -449,15 +438,7 @@ class ShadowAttribute extends AppModel
     // check whether the variable is null or datetime
     public function datetimeOrNull($fields)
     {
-        $k = array_keys($fields)[0];
-        $seen = $fields[$k];
-        try {
-            new DateTime($seen);
-            $returnValue = true;
-        } catch (Exception $e) {
-            $returnValue = false;
-        }
-        return $returnValue || is_null($seen);
+        return $this->Attribute->datetimeOrNull($fields);
     }
 
     public function setDeleted($id)
@@ -494,22 +475,29 @@ class ShadowAttribute extends AppModel
         }
     }
 
-    public function getEventContributors($id)
+    /**
+     * @param int $eventId
+     * @return array Key is organisation ID, value is an organisation name
+     */
+    public function getEventContributors($eventId)
     {
-        $orgs = $this->find('all', array('fields' => array(
-            'DISTINCT(ShadowAttribute.org_id)'),
-            'conditions' => array('event_id' => $id),
+        $orgs = $this->find('all', array(
+            'fields' => array('DISTINCT(ShadowAttribute.org_id)'),
+            'conditions' => array('event_id' => $eventId),
             'recursive' => -1,
             'order' => false
         ));
-        $org_ids = array();
-        $this->Organisation = ClassRegistry::init('Organisation');
-        foreach ($orgs as $org) {
-            $org_ids[] = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('id', 'name'), 'conditions' => array('Organisation.id' => $org['ShadowAttribute']['org_id'])));
+        if (empty($orgs)) {
+            return [];
         }
-        return $org_ids;
-    }
 
+        $this->Organisation = ClassRegistry::init('Organisation');
+        return $this->Organisation->find('list', array(
+            'recursive' => -1,
+            'fields' => array('id', 'name'),
+            'conditions' => array('Organisation.id' => Hash::extract($orgs, "{n}.ShadowAttribute.org_id")))
+        );
+    }
 
     /**
      * Sends an email to members of the organization that owns the event
@@ -714,7 +702,7 @@ class ShadowAttribute extends AppModel
                     'OR' => array(
                         'Event.org_id' => $user['org_id'],
                         ['AND' => [
-                            'Event.distribution' => array(1,2,3,5),
+                            'Event.distribution' => array(1,2,3),
                             $unpublishedPrivate ? ['Event.published' => 1] : [],
                         ]],
                         ['AND' => [

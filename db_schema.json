@@ -59,6 +59,74 @@
                 "extra": ""
             }
         ],
+        "attachment_scans": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "type",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "attribute_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "infected",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "malware_name",
+                "is_nullable": "YES",
+                "data_type": "varchar",
+                "character_maximum_length": "191",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(191)",
+                "column_default": "NULL",
+                "extra": ""
+            },
+            {
+                "column_name": "timestamp",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
         "attributes": [
             {
                 "column_name": "id",
@@ -1346,6 +1414,107 @@
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
+            }
+        ],
+        "event_reports": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8_bin",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "event_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "name",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "content",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_general_ci",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "distribution",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(4)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "sharing_group_id",
+                "is_nullable": "YES",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "timestamp",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "deleted",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
                 "column_default": "0",
                 "extra": ""
             }
@@ -6693,13 +6862,13 @@
             },
             {
                 "column_name": "warninglist_entry_count",
-                "is_nullable": "YES",
+                "is_nullable": "NO",
                 "data_type": "int",
                 "character_maximum_length": null,
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11) unsigned",
-                "column_default": null,
+                "column_default": "0",
                 "extra": ""
             }
         ],
@@ -6780,6 +6949,11 @@
         },
         "allowedlist": {
             "id": true
+        },
+        "attachment_scans": {
+            "id": true,
+            "type": false,
+            "attribute_id": false
         },
         "attributes": {
             "id": true,
@@ -6866,6 +7040,13 @@
             "event_id": false,
             "user_id": false,
             "timestamp": false
+        },
+        "event_reports": {
+            "id": true,
+            "uuid": true,
+            "name": false,
+            "event_id": false,
+            "sharing_group_id": false
         },
         "event_tags": {
             "id": true,
@@ -7167,5 +7348,5 @@
             "id": true
         }
     },
-    "db_version": "57"
+    "db_version": "60"
 }

@@ -3,7 +3,7 @@
 		{
 			"key": "t",
 			"description": "Open the tag selection modal",
-			"action": "$('#addTagButton').click()"
+			"action": "$('.addTagButton').first().click()"
 		},
 		{
 			"key": "f",
@@ -18,7 +18,7 @@
 		{
 			"key": "s",
 			"description": "Focus the filter attribute bar",
-			"action": "$('#attributesFilterField').focus()"
+			"action": "$('#quickFilterField').focus()"
 		}
 	]
 }

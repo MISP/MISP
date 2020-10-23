@@ -88,21 +88,26 @@
                       $simple_flattened_attribute_noval[$cur_flat_noval] = $id;
                       echo sprintf('<tr data-curflat="%s" data-curflatnoval="%s">', h($cur_flat), h($cur_flat_noval));
                       echo '<td>' . h($attribute['object_relation']) . '</td>';
-                      foreach ($attributeFields as $field):
-                        if ($field == 'distribution') {
-                          if ($attribute['distribution'] != 4) {
-                            $attribute[$field] = $distributionLevels[$attribute['distribution']];
-                          } else {
-                            $attribute[$field] = $sharing_groups[$attribute['sharing_group_id']];
+                      foreach ($attributeFields as $field) {
+                          if ($field === 'distribution') {
+                              if ($attribute['distribution'] != 4) {
+                                  $attribute[$field] = $distributionLevels[$attribute['distribution']];
+                              } else {
+                                  $attribute[$field] = $sharing_groups[$attribute['sharing_group_id']];
+                              }
+                          } else if ($field === 'to_ids') {
+                              $attribute[$field] = $attribute[$field] ? __('Yes') : __('No');
                           }
-                        }
-                        if ($field == 'to_ids') $attribute[$field] = $attribute[$field] ? __('Yes') : __('No');
-                          if (isset($attribute[$field])):
-                           echo '<td>'.h($attribute[$field]). '</td>';
-                          else:
-                           echo '<td></td>';
-                          endif;
-                      endforeach;
+                          if (isset($attribute[$field])) {
+                              if (isset($attribute['validation'][$field])) {
+                                  echo '<td>' . h($attribute[$field]) . ' <i class="fas fa-times red" title="' . h(implode(', ', $attribute['validation'][$field])) . '"></i></td>';
+                              } else {
+                                  echo '<td>' . h($attribute[$field]) . '</td>';
+                              }
+                          } else {
+                              echo '<td></td>';
+                          }
+                      }
                       echo '</tr>';
                     endforeach;
                   endif;

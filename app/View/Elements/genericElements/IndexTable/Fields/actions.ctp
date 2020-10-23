@@ -71,7 +71,7 @@
                     'aria-label' => empty($action['title']) ? '' : h($action['title']),
                 ),
                 empty($action['postLinkConfirm'])? '' : $action['postLinkConfirm']
-            );
+            ) . ' ';
         } else {
             if (!empty($action['onclick']) && !empty($action['onclick_params_data_path'])) {
                 $action['onclick'] = str_replace(
@@ -93,4 +93,3 @@
         }
     }
     echo '</td>';
-?>

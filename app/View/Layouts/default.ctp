@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language')  ?>">
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <?php echo $this->Html->charset(); ?>
@@ -13,7 +13,6 @@
             //'bootstrap4',
             'bootstrap-datepicker',
             'bootstrap-colorpicker',
-            'famfamfam-flags',
             'font-awesome',
             'jquery-ui',
             'chosen.min',

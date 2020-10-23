@@ -26,6 +26,9 @@ if (empty($url)) {
 } else {
     $a = 'href="' . $this->get('baseurl') . h($url) . '"';
 }
+if (!empty($title)) {
+    $a .= ' title="' . h($title) . '"';
+}
 if (!empty($onClick)) {
     $params = '';
     foreach ($onClick['params'] as $param) {

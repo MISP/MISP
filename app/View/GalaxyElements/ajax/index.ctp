@@ -26,7 +26,9 @@
         <tr>
             <td class="short"><?= h($item['GalaxyElement']['key']); ?></td>
             <td class="short"><?php if ($item['GalaxyElement']['key'] === 'refs') {
-                echo '<a href="' . h($item['GalaxyElement']['value']) . '" rel="noreferrer">' . h($item['GalaxyElement']['value']) . '</a>';
+                echo '<a href="' . h($item['GalaxyElement']['value']) . '" rel="noreferrer noopener">' . h($item['GalaxyElement']['value']) . '</a>';
+            } else if ($item['GalaxyElement']['key'] === 'country') {
+                echo $this->Icon->countryFlag($item['GalaxyElement']['value']) . ' ' . h($item['GalaxyElement']['value']);
             } else {
                 echo h($item['GalaxyElement']['value']);
             }

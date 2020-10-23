@@ -99,11 +99,6 @@
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter('<?php echo '/' . h($feed['Feed']['id']);?>');
         });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter('<?php echo '/' . h($feed['Feed']['id']);?>');
-            }
-        });
     });
 </script>
 <?php

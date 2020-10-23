@@ -158,7 +158,6 @@ class AttributesController extends AppController
             if (!isset($attributes[0])) {
                 $attributes = array(0 => $attributes);
             }
-            $this->Warninglist = ClassRegistry::init('Warninglist');
             $fails = array();
             $successes = 0;
             $attributeCount = count($attributes);
@@ -1624,6 +1623,7 @@ class AttributesController extends AppController
         $this->Feed = ClassRegistry::init('Feed');
 
         $this->loadModel('Sighting');
+        $this->loadModel('AttachmentScan');
         $user = $this->Auth->user();
         foreach ($attributes as $k => $attribute) {
             $attributeId = $attribute['Attribute']['id'];
@@ -1635,6 +1635,10 @@ class AttributesController extends AppController
                     $attribute['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
                 }
                 $attributes[$k] = $attribute;
+            }
+            if ($attribute['Attribute']['type'] === 'attachment' && $this->AttachmentScan->isEnabled()) {
+                $infected = $this->AttachmentScan->isInfected(AttachmentScan::TYPE_ATTRIBUTE, $attribute['Attribute']['id']);
+                $attributes[$k]['Attribute']['infected'] = $infected;
             }
 
             if ($attribute['Attribute']['distribution'] == 4) {
@@ -2403,23 +2407,20 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             throw new NotFoundException(__('Invalid Attribute'));
         }
-        $this->loadModel('Server');
         $this->loadModel('Module');
         $modules = $this->Module->getEnabledModules($this->Auth->user());
         $validTypes = array();
         if (isset($modules['hover_type'][$attribute[0]['Attribute']['type']])) {
             $validTypes = $modules['hover_type'][$attribute[0]['Attribute']['type']];
         }
-        $url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
-        $port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
         $resultArray = array();
         foreach ($validTypes as $type) {
             $options = array();
             $found = false;
             foreach ($modules['modules'] as $temp) {
-                if ($temp['name'] == $type) {
+                if ($temp['name'] === $type) {
                     $found = true;
-                    $format = (isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
+                    $format = isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
@@ -2443,33 +2444,35 @@ class AttributesController extends AppController
             } else {
                 $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
             }
-            $data = json_encode($data);
             $result = $this->Module->queryModuleServer('/query', $data, true);
             if ($result) {
                 if (!is_array($result)) {
-                    $resultArray[$type][] = array($type => $result);
+                    $resultArray[$type] = ['error' => $result];
+                    continue;
                 }
             } else {
                 // TODO: i18n?
-                $resultArray[$type][] = array($type => 'Enrichment service not reachable.');
+                $resultArray[$type] = ['error' => 'Enrichment service not reachable.'];
                 continue;
             }
             $current_result = array();
             if (isset($result['results']['Object'])) {
                 if (!empty($result['results']['Object'])) {
                     $objects = array();
-                    foreach($result['results']['Object'] as $object) {
+                    foreach ($result['results']['Object'] as $object) {
                         if (isset($object['Attribute']) && !empty($object['Attribute'])) {
                             $object_attributes = array();
                             foreach($object['Attribute'] as $object_attribute) {
-                                array_push($object_attributes, array('object_relation' => $object_attribute['object_relation'], 'value' => $object_attribute['value']));
+                                $object_attributes[] = [
+                                    'object_relation' => $object_attribute['object_relation'],
+                                    'value' => $object_attribute['value'],
+                                    'type' => $object_attribute['type'],
+                                ];
                             }
-                            array_push($objects, array('name' => $object['name'], 'Attribute' => $object_attributes));
+                            $objects[] = array('name' => $object['name'], 'Attribute' => $object_attributes);
                         }
                     }
-                    if (!empty($objects)) {
-                        $current_result['Object'] = $objects;
-                    }
+                    $current_result['Object'] = $objects;
                 }
                 unset($result['results']['Object']);
             }
@@ -2503,6 +2506,7 @@ class AttributesController extends AppController
                 }
             }
         }
+        $this->set('persistent', $persistent);
         $this->set('results', $resultArray);
         $this->layout = 'ajax';
         $this->render('ajax/hover_enrichment');
