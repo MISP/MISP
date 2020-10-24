@@ -517,7 +517,7 @@
     </div>
     <div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>
-    <div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false" data-mitre-attack-galaxy-id="<?php echo h($mitreAttackGalaxyId)?>">
+    <div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>
     <div id="eventreport_div" style="display: none;">
         <span class="report-title-section"><?php echo __('Event Reports');?></span>
