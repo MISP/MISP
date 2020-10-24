@@ -2456,7 +2456,7 @@ class AttributesController extends AppController
             } else {
                 $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
             }
-            $result = $this->Module->queryModuleServer('/query', $data, true);
+            $result = $this->Module->queryModuleServer($data, true);
             if ($result) {
                 if (!is_array($result)) {
                     $resultArray[$type] = ['error' => $result];

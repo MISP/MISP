@@ -390,14 +390,17 @@ class AttachmentScan extends AppModel
      */
     private function sendToModule(array $attribute, array $moduleConfig)
     {
+        // How long we will wait for scan result
+        $timeout = Configure::read('MISP.attachment_scan_timeout') ?: 30;
         $data = [
             'module' => $this->attachmentScanModuleName,
             'attribute' => $attribute,
             'event_id' => $attribute['event_id'],
             'config' => $moduleConfig,
+            'timeout' => $timeout, // module internal timeout
         ];
 
-        $results = $this->moduleModel()->queryModuleServer('/query', $data, false, 'Enrichment', true);
+        $results = $this->moduleModel()->sendRequest('/query', $timeout + 1, $data, 'Enrichment');
         if (isset($results['error'])) {
             throw new Exception("{$this->attachmentScanModuleName} module returns error: " . $results['error']);
         }
