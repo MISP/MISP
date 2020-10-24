@@ -560,7 +560,7 @@ function enable_correlation_graph() {
 }
 
 function enable_attack_matrix() {
-    $.get("<?php echo $baseurl; ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
+    $.get("<?php echo $baseurl; ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/mitre-attack/event/1", function(data) {
         $("#attackmatrix_div").html(data);
     });
 }

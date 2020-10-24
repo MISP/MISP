@@ -1953,9 +1953,17 @@ class AttributesController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
         }
+
+        $fieldsToFetch = ['id', $field];
+        if ($field === 'value') {
+            $fieldsToFetch[] = 'to_ids'; // for warninglist
+            $fieldsToFetch[] = 'type'; // for view
+            $fieldsToFetch[] = 'category'; // for view
+        }
+
         $params = array(
             'conditions' => array('Attribute.id' => $id),
-            'fields' => array('id', 'category', 'type', $field),
+            'fields' => $fieldsToFetch,
             'contain' => ['Event'],
             'flatten' => 1,
         );
@@ -1975,7 +1983,11 @@ class AttributesController extends AppController
             } else {
                 echo '&nbsp';
             }
+        } elseif ($field === 'value') {
+            $this->loadModel('Warninglist');
+            $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);
         }
+
         $this->set('value', $result);
         $this->set('object', $attribute);
         $this->set('field', $field);
