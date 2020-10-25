@@ -1505,8 +1505,6 @@ class EventsController extends AppController
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('defaultFilteringRules', $this->defaultFilteringRules);
-        $this->loadModel('Galaxy');
-        $this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
         $this->set('modificationMapCSV', $modificationMapCSV);
         $this->set('title_for_layout', __('Event #%s', $event['Event']['id']));
     }
@@ -4518,11 +4516,16 @@ class EventsController extends AppController
 
     public function viewGalaxyMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
     {
-        $local = !empty($this->params['named']['local']);
-        $this->set('local', $local);
         $this->loadModel('Galaxy');
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
-        $matrixData = $this->Galaxy->getMatrix($galaxy_id);
+        if ($galaxy_id === 'mitre-attack') { // specific case for MITRE ATTACK matrix
+            $galaxy_id = $mitreAttackGalaxyId;
+        }
+
+        $matrixData = $this->Galaxy->getMatrix($galaxy_id); // throws exception if matrix not found
+
+        $local = !empty($this->params['named']['local']);
+        $this->set('local', $local);
 
         $tabs = $matrixData['tabs'];
         $matrixTags = $matrixData['matrixTags'];
@@ -4759,7 +4762,7 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $result = $this->Module->queryModuleServer('/query', $data, false, $type);
+        $result = $this->Module->queryModuleServer($data, false, $type);
         if (!$result) {
             throw new MethodNotAllowedException(__('%s service not reachable.', $type));
         }
@@ -4804,7 +4807,7 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $result = $this->Module->queryModuleServer('/query', $data, false, $type);
+        $result = $this->Module->queryModuleServer($data, false, $type);
         if (!$result) {
             throw new MethodNotAllowedException(__('%s service not reachable.', $type));
         }
@@ -4994,7 +4997,7 @@ class EventsController extends AppController
                     if (!empty($filename)) {
                         $modulePayload['filename'] = $filename;
                     }
-                    $result = $this->Module->queryModuleServer('/query', $modulePayload, false, $moduleFamily = 'Import');
+                    $result = $this->Module->queryModuleServer($modulePayload, false, $moduleFamily = 'Import');
                     if (!$result) {
                         throw new Exception(__('Import service not reachable.'));
                     }

@@ -108,11 +108,11 @@ switch ($object['type']) {
             $value = str_replace("\r", '', $object['value']);
             $truncated = $truncateLongText($value);
             if ($truncated) {
-                echo '<span data-full="' . h($object['value']) .'" data-full-type="text">' .
+                echo '<span style="white-space: pre-wrap;" data-full="' . h($object['value']) .'" data-full-type="text">' .
                     str_replace(" ", '&nbsp;', h(rtrim($truncated)));
                 echo ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
             } else {
-                echo str_replace(" ", '&nbsp;', h($value));
+                echo '<span style="white-space: pre-wrap;">' . str_replace(" ", '&nbsp;', h($value)) . '</span>';
             }
         }
         break;
@@ -153,14 +153,22 @@ switch ($object['type']) {
             if ($truncated) {
                 $rawTypes = ['email-header', 'yara', 'pgp-private-key', 'pgp-public-key', 'url'];
                 $dataFullType = in_array($object['type'], $rawTypes) ? 'raw' : 'text';
-                echo '<span data-full="' . h($value) .'" data-full-type="' . $dataFullType .'">' . h(rtrim($truncated)) .
+                echo '<span style="white-space: pre-wrap;" data-full="' . h($value) .'" data-full-type="' . $dataFullType .'">' . h($truncated) .
                     ' <b>&hellip;</b><br><a href="#">' . __('Show all') . '</a></span>';
             } else {
-                echo h($value);
+                echo '<span style="white-space: pre-wrap;">' . h($value) . '</span>';
             }
         }
 }
 
 if (isset($object['validationIssue'])) {
-    echo ' <span class="fa fa-exclamation-triangle" title="' . __('Warning, this doesn\'t seem to be a legitimate ') . strtoupper(h($object['type'])) . __(' value') . '">&nbsp;</span>';
+    echo ' <span class="fa fa-exclamation-triangle" title="' . __('Warning, this doesn\'t seem to be a legitimate %s value', strtoupper(h($object['type']))) . '">&nbsp;</span>';
+}
+
+if (isset($object['warnings'])) {
+    $temp = '';
+    foreach ($object['warnings'] as $warning) {
+        $temp .= '<span class="bold">' . h($warning['match']) . ':</span> <span class="red">' . h($warning['warninglist_name']) . '</span><br>';
+    }
+    echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="fa fa-exclamation-triangle" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
 }

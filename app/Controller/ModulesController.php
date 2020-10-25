@@ -42,7 +42,7 @@ class ModulesController extends AppController
         }
 
         // Query
-        $result = $this->Module->queryModuleServer('/query', $data, true);
+        $result = $this->Module->queryModuleServer($data, true);
         if (!$result) {
             $result = array('error' => 'Something went wrong, no response from module.');
         }

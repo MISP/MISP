@@ -427,7 +427,7 @@ function updateIndex(id, context, newPage) {
         div = "#templateElements";
     }
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         dataType:"html",
@@ -452,15 +452,15 @@ function updateIndex(id, context, newPage) {
 
 function updateAttributeFieldOnSuccess(name, type, id, field, event) {
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            if (field != 'timestamp') {
+        beforeSend: function () {
+            if (field !== 'timestamp') {
                 $(".loading").show();
             }
         },
         dataType:"html",
         cache: false,
         success:function (data, textStatus) {
-            if (field != 'timestamp') {
+            if (field !== 'timestamp') {
                 $(".loading").hide();
                 $(name + '_solid').html(data);
                 $(name + '_placeholder').empty();
@@ -468,6 +468,7 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
             } else {
                 $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
             }
+            popoverStartup(); // reactive popovers
         },
         url: baseurl + "/attributes/fetchViewValue/" + id + "/" + field,
     });
@@ -793,7 +794,7 @@ function refreshTagCollectionRow(tag_collection_id) {
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
     responseArray = data;
-    if (type == 'Attribute') {
+    if (type === 'Attribute') {
         if (responseArray.saved) {
             var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
             showMessage('success', msg);
@@ -804,13 +805,11 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
             updateAttributeFieldOnSuccess(name, type, id, field, event);
         }
-    }
-    if (type == 'ShadowAttribute') {
+    } else if (type === 'ShadowAttribute') {
         updateIndex(event, 'event');
-    } else if (type == 'Object') {
+    } else if (type === 'Object') {
         if (responseArray.saved) {
-            var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
-            showMessage('success', msg);
+            showMessage('success', responseArray.message);
             updateObjectFieldOnSuccess(name, type, id, field, event);
             updateObjectFieldOnSuccess(name, type, id, 'timestamp', event);
             eventUnpublish();
@@ -947,27 +946,27 @@ function multiSelectDeleteEventBlocklist(on, cache) {
 
 function multiSelectAction(event, context) {
     var settings = {
-            deleteAttributes: {
-                confirmation: "Are you sure you want to delete all selected attributes?",
-                controller: "attributes",
-                camelCase: "Attribute",
-                alias: "attribute",
-                action: "delete"
-            },
-            acceptProposals: {
-                confirmation: "Are you sure you want to accept all selected proposals?",
-                controller: "shadow_attributes",
-                camelCase: "ShadowAttribute",
-                alias: "proposal",
-                action: "accept"
-            },
-            discardProposals: {
-                confirmation: "Are you sure you want to discard all selected proposals?",
-                controller: "shadow_attributes",
-                camelCase: "ShadowAttribute",
-                alias: "proposal",
-                action: "discard"
-            },
+        deleteAttributes: {
+            confirmation: "Are you sure you want to delete all selected attributes?",
+            controller: "attributes",
+            camelCase: "Attribute",
+            alias: "attribute",
+            action: "delete"
+        },
+        acceptProposals: {
+            confirmation: "Are you sure you want to accept all selected proposals?",
+            controller: "shadow_attributes",
+            camelCase: "ShadowAttribute",
+            alias: "proposal",
+            action: "accept"
+        },
+        discardProposals: {
+            confirmation: "Are you sure you want to discard all selected proposals?",
+            controller: "shadow_attributes",
+            camelCase: "ShadowAttribute",
+            alias: "proposal",
+            action: "discard"
+        },
     };
     var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
     if (answer) {
@@ -982,7 +981,6 @@ function multiSelectAction(event, context) {
         var formData = $('#' + settings[context]["action"] + '_selected').serialize();
         if (context == 'deleteAttributes') {
             var url = $('#delete_selected').attr('action');
-            console.log(url);
         } else {
             var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
         }
@@ -991,11 +989,20 @@ function multiSelectAction(event, context) {
             cache: false,
             type:"POST",
             url: url,
-            success:function (data, textStatus) {
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
                 updateIndex(event, 'event');
                 var result = handleGenericAjaxResponse(data);
-                if (settings[context]["action"] != "discard" && result == true) eventUnpublish();
+                if (settings[context]["action"] != "discard" && result == true) {
+                    eventUnpublish();
+                }
             },
+            complete: function () {
+                $(".loading").hide();
+            },
+            error: xhrFailCallback,
         });
     }
     return false;
