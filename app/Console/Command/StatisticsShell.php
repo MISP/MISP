@@ -214,6 +214,18 @@ class StatisticsShell extends AppShell {
             ],
             'fields' => ['Log.model_id', 'Log.created']
         ]);
+        $localOnly = empty($this->args[0]) ? false : true;
+        if ($localOnly) {
+            $orgs = $this->Organisation->find('list', [
+                'recursive' => -1,
+                'fields' => ['Organisation.id', 'Organisation.local']
+            ]);
+            foreach ($orgs as $org_id => $local) {
+                if (!$local && isset($orgCreations[$org_id])) {
+                    unset($orgCreations[$org_id]);
+                }
+            }
+        }
         $years = [];
         foreach ($orgCreations as $orgCreation) {
             $year = substr($orgCreation, 0, 4);
