@@ -204,4 +204,39 @@ class StatisticsShell extends AppShell {
         echo __('Average days until first event: %s', (int)($average_time_to_first_event / count($data)));
         echo PHP_EOL . str_repeat('-', 63) . PHP_EOL;
     }
+
+    public function yearlyOrgGrowth()
+    {
+        $orgCreations = $this->Log->find('list', [
+            'conditions' => [
+                'model' => 'Organisation',
+                'action' => 'add'
+            ],
+            'fields' => ['Log.model_id', 'Log.created']
+        ]);
+        $years = [];
+        foreach ($orgCreations as $orgCreation) {
+            $year = substr($orgCreation, 0, 4);
+            if (empty($years[$year])) {
+                $years[$year] = 0;
+            }
+            $years[$year] += 1;
+        }
+        ksort($years);
+        $yearOverYear = [];
+        $previous = 0;
+        echo PHP_EOL . str_repeat('-', 63) . PHP_EOL;
+        echo __('Year over year growth of organisation count.');
+        echo PHP_EOL . str_repeat('-', 63) . PHP_EOL;
+        $currentYear = date("Y");
+        foreach ($years as $year => $count) {
+            $prognosis = '';
+            if ($year == $currentYear) {
+                $percentage_passed = (strtotime(($year +1) . '-01-01') - strtotime(($year) . '-01-01')) / (time() - (strtotime($year . '-01-01')));
+                $prognosis = sprintf(' (%s by the end of the year at current rate)', round($percentage_passed * $count));
+            }
+            echo __('%s: %s %s%s', $year, $count - $previous, $prognosis, PHP_EOL);
+        }
+        echo str_repeat('-', 63) . PHP_EOL;
+    }
 }
