@@ -6999,7 +6999,7 @@ class Event extends AppModel
         unset($result);
         unset($temp);
         $tmpfile->write($exportTool->footer($exportToolParams));
-        return $tmpfile->finish();
+        return $tmpfile;
     }
 
     /*

@@ -1324,7 +1324,7 @@ class AppController extends Controller
         $final = $this->$scope->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
         if (!empty($renderView) && !empty($final)) {
             $this->layout = false;
-            $final = json_decode($final, true);
+            $final = json_decode($final->intoString(), true);
             foreach ($final as $key => $data) {
                 $this->set($key, $data);
             }

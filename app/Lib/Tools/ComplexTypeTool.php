@@ -177,7 +177,7 @@ class ComplexTypeTool
         unset($input);
 
         $iocArray = [];
-        foreach ($tmpFile->csv($delimiter) as $row) {
+        foreach ($tmpFile->intoParsedCsv($delimiter) as $row) {
             if (!empty($row[0][0]) && $row[0][0] === '#') { // Comment
                 continue;
             }

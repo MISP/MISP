@@ -548,7 +548,15 @@ class RestResponseComponent extends Component
                 }
             }
         }
-        $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+
+        App::uses('TmpFileTool', 'Tools');
+        if ($response instanceof TmpFileTool) {
+            App::uses('CakeResponseTmp', 'Tools');
+            $cakeResponse = new CakeResponseTmp(['status' => $code, 'type' => $type]);
+            $cakeResponse->file($response);
+        } else {
+            $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+        }
 
         if (Configure::read('Security.allow_cors')) {
             $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";

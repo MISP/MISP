@@ -908,7 +908,7 @@ class Sighting extends AppModel
         }
 
         $tmpfile->write($exportTool->footer($exportToolParams));
-        return $tmpfile->finish();
+        return $tmpfile;
     }
 
     /**
