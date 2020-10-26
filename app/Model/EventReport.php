@@ -845,11 +845,7 @@ class EventReport extends AppModel
     public function isFetchURLModuleEnabled() {
         $this->Module = ClassRegistry::init('Module');
         $module = $this->Module->getEnabledModule('html_to_markdown', 'expansion');
-        if (!empty($module)) {
-            return $module;
-        } else {
-            return false;
-        }
+        return !empty($module) ? $module : false;
     }
 
     /**
@@ -879,6 +875,21 @@ class EventReport extends AppModel
                 }
             }
             return false;
+        }
+    }
+
+    public function AttachTagsAfterReplacements($user, $replacedContext)
+    {
+        $this->EventTag = ClassRegistry::init('EventTag');
+        foreach ($replacedContext as $rawText => $tagNames) {
+            // Replace with first one until a better strategy is found
+            reset($tagNames);
+            $tagName = key($tagNames);
+            $tagId = $this->EventTag->Tag->lookupTagIdFromName($tagName);
+            if ($tagId === -1) {
+                $tagId = $this->EventTag->Tag->captureTag(['name' => $tagName], $user);
+            }
+            $this->EventTag->attachTagToEvent($report['EventReport']['event_id'], $tagId);
         }
     }
 }

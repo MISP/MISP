@@ -206,17 +206,7 @@ class EventReportsController extends AppController
                 $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestionResult['contentWithSuggestions'], $suggestionResult['suggestionsMapping']);
                 if (empty($errors)) {
                     if (!empty($this->data['EventReport']['tag_event'])) {
-                        $this->loadModel('EventTag');
-                        foreach ($contextResults['replacedContext'] as $rawText => $tagNames) {
-                            // Replace with first one until a better strategy is found
-                            reset($tagNames);
-                            $tagName = key($tagNames);
-                            $tagId = $this->EventTag->Tag->lookupTagIdFromName($tagName);
-                            if ($tagId === -1) {
-                                $tagId = $this->EventTag->Tag->captureTag(['name' => $tagName], $this->Auth->user());
-                            }
-                            $this->EventTag->attachTagToEvent($report['EventReport']['event_id'], $tagId);
-                        }
+                        $this->AttachTagsAfterReplacements($this->Auth->User(), $contextResults['replacedContext']);
                     }
                     $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
                     $data = [ 'report' => $report ];
