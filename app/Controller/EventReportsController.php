@@ -186,7 +186,7 @@ class EventReportsController extends AppController
             if (!empty($filters['index_for_event'])) {
                 $this->set('extendedEvent', !empty($filters['extended_event']));
                 $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
-                $this->set('importModuleEnabled', !empty($fetcherModule));
+                $this->set('importModuleEnabled', is_array($fetcherModule));
                 $this->render('ajax/indexForEvent');
             }
         }
@@ -298,10 +298,10 @@ class EventReportsController extends AppController
                     'content' => $markdown
                 ];
                 $errors = $this->EventReport->addReport($this->Auth->user(), $report, $event_id);
-                $redirectTarget = array('controller' => 'events', 'action' => 'view', $event_id);
             } else {
                 $errors[] = __('Could not fetch report from URL. Fetcher module not enabled or could not download the page');
             }
+            $redirectTarget = array('controller' => 'events', 'action' => 'view', $event_id);
             if (!empty($errors)) {
                 return $this->__getFailResponseBasedOnContext($errors, array(), 'addFromURL', $this->EventReport->id, $redirectTarget);
             } else {
@@ -310,7 +310,7 @@ class EventReportsController extends AppController
                 return $this->__getSuccessResponseBasedOnContext($successMessage, $report, 'addFromURL', false, $redirectTarget);
             }
         }
-        $this->set('importModuleEnabled', empty($fetcherModule));
+        $this->set('importModuleEnabled', is_array($fetcherModule));
         $this->set('event_id', $event_id);
         $this->layout = 'ajax';
         $this->render('ajax/importReportFromUrl');

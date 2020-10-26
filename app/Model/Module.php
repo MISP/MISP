@@ -156,7 +156,7 @@ class Module extends AppModel
             return 'The requested module is not enabled.';
         }
         if (is_array($modules)) {
-            foreach ($modules['modules'] as $module) {
+            foreach ($modules as $module) {
                 if ($module['name'] == $name) {
                     if ($type && in_array(strtolower($type), $module['meta']['module-type'])) {
                         return $module;

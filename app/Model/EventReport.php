@@ -825,7 +825,10 @@ class EventReport extends AppModel
     public function downloadMarkdownFromURL($event_id, $url)
     {
         $this->Module = ClassRegistry::init('Module');
-        $module = $this->Module->getEnabledModule('html_to_markdown', 'expansion');
+        $module = $this->isFetchURLModuleEnabled();
+        if (!is_array($module)) {
+            return false;
+        }
         $modulePayload = [
             'module' => $module['name'],
             'event_id' => $event_id,
@@ -833,7 +836,7 @@ class EventReport extends AppModel
         ];
         $module = $this->isFetchURLModuleEnabled();
         if (!empty($module)) {
-            $result = $this->Module->queryModuleServer('/query', json_encode($modulePayload), false, $moduleFamily = 'Import');
+            $result = $this->Module->queryModuleServer('/query', $modulePayload, false);
             if (empty($result['results'][0]['values'][0])) {
                 return '';
             }
