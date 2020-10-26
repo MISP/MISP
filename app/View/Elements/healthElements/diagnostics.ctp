@@ -280,7 +280,7 @@
         <b>Status:</b> <span class="green bold"><?= __('OK') ?></span><br>
         <b>Software</b>: <?= implode(", ", $attachmentScan['software']) ?>
         <?php else: ?>
-        <b>Status:</b> <span class="red bold"><?= __('Not available.') ?></span>
+        <b>Status:</b> <span class="red bold"><?= __('Not available.') ?></span><br>
         <b>Reason:</b> <?= $attachmentScan['error'] ?>
         <?php endif; ?>
     </div>

@@ -90,11 +90,15 @@ class Module extends AppModel
      */
     public function getModules($moduleFamily = 'Enrichment', $throwException = false)
     {
-        $modules = $this->queryModuleServer('/modules', false, false, $moduleFamily, $throwException);
-        if ($modules === false) { // not possible when $throwException is true
+        try {
+            // Wait just one second to not block loading pages when modules are not reachable
+            return $this->sendRequest('/modules', 1, null, $moduleFamily);
+        } catch (Exception $e) {
+            if ($throwException) {
+                throw $e;
+            }
             return 'Module service not reachable.';
         }
-        return $modules;
     }
 
     public function getEnabledModules($user, $type = false, $moduleFamily = 'Enrichment')
@@ -195,44 +199,57 @@ class Module extends AppModel
     }
 
     /**
-     * @param string $uri
-     * @param array|false $post
+     * Send request to `/query` module endpoint.
+     *
+     * @param array $postData
      * @param bool $hover
      * @param string $moduleFamily
      * @param bool $throwException
      * @return array|false
      * @throws JsonException
      */
-    public function queryModuleServer($uri, $post = false, $hover = false, $moduleFamily = 'Enrichment', $throwException = false)
+    public function queryModuleServer(array $postData, $hover = false, $moduleFamily = 'Enrichment', $throwException = false)
+    {
+        if ($hover) {
+            $timeout = Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ?: 5;
+        } else {
+            $timeout = Configure::read('Plugin.' . $moduleFamily . '_timeout') ?: 10;
+        }
+        try {
+            return $this->sendRequest('/query', $timeout, $postData, $moduleFamily);
+        } catch (Exception $e) {
+            if ($throwException) {
+                throw $e;
+            }
+            $this->logException('Failed to query module ' . $moduleFamily, $e);
+            return false;
+        }
+    }
+
+    /**
+     * Low-level way how to send request to module.
+     *
+     * @param string $uri
+     * @param int $timeout
+     * @param array|null $postData
+     * @param string $moduleFamily
+     * @return array
+     * @throws JsonException
+     */
+    public function sendRequest($uri, $timeout, $postData = null, $moduleFamily = 'Enrichment')
     {
         $url = $this->__getModuleServer($moduleFamily);
         if (!$url) {
-            if ($throwException) {
-                throw new Exception("Module type $moduleFamily is not enabled.");
-            }
-            return false;
+            throw new Exception("Module type $moduleFamily is not enabled.");
         }
         App::uses('HttpSocket', 'Network/Http');
-        if ($hover) {
-            $settings = array(
-                'timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ?: 5
-            );
-        } else {
-            $settings = array(
-                'timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ?: 10
-            );
-        }
         $sslSettings = array('ssl_verify_peer', 'ssl_verify_host', 'ssl_allow_self_signed', 'ssl_verify_peer', 'ssl_cafile');
         foreach ($sslSettings as $sslSetting) {
             if (Configure::check('Plugin.' . $moduleFamily . '_' . $sslSetting) && Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting) !== '') {
                 $settings[$sslSetting] = Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting);
             }
         }
-        // let's set a low timeout for the introspection so that we don't block the loading of pages due to a misconfigured modules
-        if ($uri == '/modules') {
-            $settings['timeout'] = 1;
-        }
-        $httpSocket = new HttpSocket($settings);
+        $httpSocket = new HttpSocket(['timeout' => $timeout]);
         $request = array(
             'header' => array(
                 'Content-Type' => 'application/json',
@@ -243,33 +260,25 @@ class Module extends AppModel
                 $request['header']['Authorization'] = 'Bearer ' . Configure::read('Plugin.' . $moduleFamily . '_authkey');
             }
         }
-        try {
-            if ($post) {
-                if (!is_array($post)) {
-                    throw new InvalidArgumentException("Post data must be array, " . gettype($post) . " given.");
-                }
-                $post = json_encode($post);
-                $response = $httpSocket->post($url . $uri, $post, $request);
-            } else {
-                if ($moduleFamily == 'Cortex') {
-                    unset($request['header']['Content-Type']);
-                }
-                $response = $httpSocket->get($url . $uri, false, $request);
+        if ($postData) {
+            if (!is_array($postData)) {
+                throw new InvalidArgumentException("Post data must be array, " . gettype($postData) . " given.");
             }
-            if (!$response->isOk()) {
-                if ($httpSocket->lastError()) {
-                    throw new Exception("Failed to get response from $moduleFamily module " . $httpSocket->lastError());
-                }
-                throw new Exception("Failed to get response from $moduleFamily module: HTTP $response->reasonPhrase", (int)$response->code);
+            $post = json_encode($postData);
+            $response = $httpSocket->post($url . $uri, $post, $request);
+        } else {
+            if ($moduleFamily == 'Cortex') {
+                unset($request['header']['Content-Type']);
             }
-            return $this->jsonDecode($response->body);
-        } catch (Exception $e) {
-            if ($throwException) {
-                throw $e;
-            }
-            $this->logException('Failed to query module ' . $moduleFamily, $e);
-            return false;
+            $response = $httpSocket->get($url . $uri, false, $request);
         }
+        if (!$response->isOk()) {
+            if ($httpSocket->lastError()) {
+                throw new Exception("Failed to get response from $moduleFamily module: " . $httpSocket->lastError['str']);
+            }
+            throw new Exception("Failed to get response from $moduleFamily module: HTTP $response->reasonPhrase", (int)$response->code);
+        }
+        return $this->jsonDecode($response->body);
     }
 
     /**

@@ -124,31 +124,20 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     <td id="Attribute_<?= $objectId ?>_container" class="showspaces limitedWidth shortish"<?= $quickEdit('value') ?>>
       <div id="Attribute_<?= $objectId ?>_value_placeholder" class="inline-field-placeholder"></div>
       <div id="Attribute_<?= $objectId ?>_value_solid" class="inline-field-solid">
-        <span>
         <?php
-            $spanExtra = '';
-            $popupButton = '';
             if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
                 $commonDataFields = sprintf('data-object-type="Attribute" data-object-id="%s"', $objectId);
                 $spanExtra = Configure::read('Plugin.Enrichment_hover_popover_only') ? '' : sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
                 $popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup noPrint" title="%s" %s></i>', __('Show hover enrichment'), $commonDataFields);
+                echo sprintf(
+                    '<span%s>%s</span> %s',
+                    $spanExtra,
+                    $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)),
+                    $popupButton
+                );
+            } else {
+                echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
             }
-            echo sprintf(
-                '<span%s style="white-space: pre-wrap;">%s</span> %s',
-                $spanExtra,
-                $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)),
-                $popupButton
-            );
-        ?>
-        </span>
-        <?php
-          if (isset($object['warnings'])) {
-              $temp = '';
-              foreach ($object['warnings'] as $warning) {
-                  $temp .= '<span class="bold">' . h($warning['match']) . ':</span> <span class="red">' . h($warning['warninglist_name']) . '</span><br>';
-              }
-            echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="fa fa-exclamation-triangle" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover" data-placement="right">&nbsp;</span>';
-          }
         ?>
       </div>
     </td>
