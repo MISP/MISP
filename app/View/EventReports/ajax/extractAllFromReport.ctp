@@ -9,7 +9,7 @@ echo $this->element('genericElements/Form/genericForm', array(
             'fields' => array(
                 sprintf('<h5>%s</h5>', __('Post extraction actions:')),
                 array(
-                    'label' => __('Tag the event with element found in the report'),
+                    'label' => __('Tag the event with contextual elements found in the report'),
                     'field' => 'tag_event',
                     'type' => 'checkbox',
                     'div' => array('class' => 'checkbox')

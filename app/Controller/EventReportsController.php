@@ -206,7 +206,7 @@ class EventReportsController extends AppController
                 $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestionResult['contentWithSuggestions'], $suggestionResult['suggestionsMapping']);
                 if (empty($errors)) {
                     if (!empty($this->data['EventReport']['tag_event'])) {
-                        $this->AttachTagsAfterReplacements($this->Auth->User(), $contextResults['replacedContext']);
+                        $this->EventReport->attachTagsAfterReplacements($this->Auth->User(), $contextResults['replacedContext'], $report['EventReport']['event_id']);
                     }
                     $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
                     $data = [ 'report' => $report ];
@@ -230,6 +230,7 @@ class EventReportsController extends AppController
         } else {
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'view', $throwErrors=true, $full=false);
             $dataResults = $this->EventReport->getComplexTypeToolResultWithReplacements($this->Auth->user(), $report);
+            $report['EventReport']['content'] = $dataResults['replacementResult']['contentWithReplacements'];
             $contextResults = $this->EventReport->extractWithReplacements($this->Auth->user(), $report);
             $typeToCategoryMapping = $this->EventReport->Event->Attribute->typeToCategoryMapping();
             $data = [

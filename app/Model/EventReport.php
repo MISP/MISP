@@ -717,6 +717,7 @@ class EventReport extends AppModel
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $mitreAttackGalaxyId = $this->GalaxyCluster->Galaxy->getMitreAttackGalaxyId();
         $clusterContain = ['Tag'];
+        $replacedContext = [];
 
         if ($options['prune_deprecated']) {
             $clusterContain['Galaxy'] = ['conditions' => ['Galaxy.namespace !=' => 'deprecated']];
@@ -881,7 +882,7 @@ class EventReport extends AppModel
         }
     }
 
-    public function AttachTagsAfterReplacements($user, $replacedContext)
+    public function attachTagsAfterReplacements($user, $replacedContext, $eventId)
     {
         $this->EventTag = ClassRegistry::init('EventTag');
         foreach ($replacedContext as $rawText => $tagNames) {
@@ -892,7 +893,7 @@ class EventReport extends AppModel
             if ($tagId === -1) {
                 $tagId = $this->EventTag->Tag->captureTag(['name' => $tagName], $user);
             }
-            $this->EventTag->attachTagToEvent($report['EventReport']['event_id'], $tagId);
+            $this->EventTag->attachTagToEvent($eventId, $tagId);
         }
     }
 }
