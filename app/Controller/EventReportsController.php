@@ -199,9 +199,9 @@ class EventReportsController extends AppController
         } else {
             if ($this->request->is('post')) {
                 $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', $throwErrors=true, $full=false);
-                $results = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
+                $results = $this->EventReport->getComplexTypeToolResultWithReplacements($this->Auth->user(), $report);
                 $report['EventReport']['content'] = $results['replacementResult']['contentWithReplacements'];
-                $contextResults = $this->EventReport->extractWithReplacementsFromReport($this->Auth->user(), $report, ['replace' => true]);
+                $contextResults = $this->EventReport->extractWithReplacements($this->Auth->user(), $report, ['replace' => true]);
                 $suggestionResult = $this->EventReport->transformFreeTextIntoSuggestion($contextResults['contentWithReplacements'], $results['complexTypeToolResult']);
                 $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestionResult['contentWithSuggestions'], $suggestionResult['suggestionsMapping']);
                 if (empty($errors)) {
@@ -239,8 +239,8 @@ class EventReportsController extends AppController
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
         } else {
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'view', $throwErrors=true, $full=false);
-            $dataResults = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
-            $contextResults = $this->EventReport->extractWithReplacementsFromReport($this->Auth->user(), $report);
+            $dataResults = $this->EventReport->getComplexTypeToolResultWithReplacements($this->Auth->user(), $report);
+            $contextResults = $this->EventReport->extractWithReplacements($this->Auth->user(), $report);
             $typeToCategoryMapping = $this->EventReport->Event->Attribute->typeToCategoryMapping();
             $data = [
                 'complexTypeToolResult' => $dataResults['complexTypeToolResult'],
@@ -268,8 +268,8 @@ class EventReportsController extends AppController
                 }
                 if (empty($errors)) {
                     $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
-                    $results = $this->EventReport->getComplexTypeToolResultWithReplacementsFromReport($this->Auth->user(), $report);
-                    $contextResults = $this->EventReport->extractWithReplacementsFromReport($this->Auth->user(), $report);
+                    $results = $this->EventReport->getComplexTypeToolResultWithReplacements($this->Auth->user(), $report);
+                    $contextResults = $this->EventReport->extractWithReplacements($this->Auth->user(), $report);
                     $data = [
                         'report' => $report,
                         'complexTypeToolResult' => $results['complexTypeToolResult'],

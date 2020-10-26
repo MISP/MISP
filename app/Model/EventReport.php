@@ -684,7 +684,7 @@ class EventReport extends AppModel
         return $complexTypeToolResult;
     }
 
-    public function getComplexTypeToolResultWithReplacementsFromReport($user, $report)
+    public function getComplexTypeToolResultWithReplacements($user, $report)
     {
         $complexTypeToolResult = $this->getComplexTypeToolResultFromReport($report['EventReport']['content']);
         $replacementResult = $this->transformFreeTextIntoReplacement($user, $report, $complexTypeToolResult);
@@ -696,13 +696,13 @@ class EventReport extends AppModel
     }
     
     /**
-     * extractWithReplacementsFromReport Extract context information from report with special care for ATT&CK
+     * extractWithReplacements Extract context information from report with special care for ATT&CK
      *
      * @param  array $user
      * @param  array $report
      * @return array
      */
-    public function extractWithReplacementsFromReport(array $user, array $report, array $options = [])
+    public function extractWithReplacements(array $user, array $report, array $options = [])
     {
         $baseOptions = [
             'replace' => false,
