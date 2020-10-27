@@ -91,13 +91,6 @@
                         'dbclickAction' => true
                     ),
                     array(
-                        'url' => '/eventReports/edit',
-                        'url_params_data_paths' => array(
-                            'EventReport.id'
-                        ),
-                        'icon' => 'edit'
-                    ),
-                    array(
                         'title' => __('Delete'),
                         'icon' => 'trash',
                         'onclick' => 'simplePopup(\'' . $baseurl . '/event_reports/delete/[onclick_params_data_path]\');',
