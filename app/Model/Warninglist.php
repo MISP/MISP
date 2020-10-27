@@ -509,7 +509,11 @@ class Warninglist extends AppModel
 		foreach ($warninglists as $warninglist) {
 			if ($warninglist['Warninglist']['type'] == 'wildmask') {
 				$mvalues = $this->getFilteredEntries($warninglist);
-				$wildlist = array_merge($wildlist, $mvalues);
+				foreach ($mvalues as $mvalue) {
+					if (substr($mvalue, 0,2) === "!.") {
+						array_push($wildlist, substr($mvalue, 2));
+					}
+				}
 			}
 		}
 		return $wildlist;
