@@ -206,40 +206,38 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     <td class="shortish">
       <ul class="inline" style="margin:0">
         <?php
-            if (!empty($object['Feed'])) {
+            if (isset($object['Feed'])) {
                 foreach ($object['Feed'] as $feed) {
-                    $popover = '';
-                    foreach ($feed as $k => $v) {
-                        if ($k == 'id') continue;
-                        if (is_array($v)) {
-                            foreach ($v as $k2 => $v2) {
-                                $v[$k2] = h($v2);
-                            }
-                            $v = implode('<br>', $v);
-                        } else {
-                            $v = h($v);
-                        }
-                        $popover .= '<span class="bold black">' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br>';
+                    $relatedData = array(
+                        __('Name') => $feed['name'],
+                        __('URL') => $feed['url'],
+                        __('Provider') => $feed['provider'],
+                    );
+                    if (isset($feed['event_uuids'])) {
+                        $relatedData[__('Event UUIDs')] = implode('<br>', $feed['event_uuids']);
                     }
-                    $liContents = '';
+                    $popover = '';
+                    foreach ($relatedData as $k => $v) {
+                        $popover .= '<span class="bold black">' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br>';
+                    }
                     if ($isSiteAdmin || $hostOrgUser) {
                         if ($feed['source_format'] === 'misp') {
-                            $liContents .= sprintf(
+                            $liContents = sprintf(
                                 '<form action="%s/feeds/previewIndex/%s" method="post" style="margin:0;line-height:auto;">%s%s</form>',
                                 $baseurl,
                                 h($feed['id']),
                                 sprintf(
                                     '<input type="hidden" name="data[Feed][eventid]" value="%s">',
-                                    h(json_encode($feed['event_uuids'], true))
+                                    h(json_encode($feed['event_uuids']))
                                 ),
                                 sprintf(
-                                    '<input type="submit" class="linkButton useCursorPointer" value="%s" data-toggle="popover" data-content="%s" data-trigger="hover" style="margin-right:3px;line-height:normal;vertical-align: text-top;" />',
+                                    '<input type="submit" class="linkButton useCursorPointer" value="%s" data-toggle="popover" data-content="%s" data-trigger="hover" style="margin-right:3px;line-height:normal;vertical-align: text-top;">',
                                     h($feed['id']),
                                     h($popover)
                                 )
                             );
                         } else {
-                            $liContents .= sprintf(
+                            $liContents = sprintf(
                                 '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
                                 $baseurl,
                                 h($feed['id']),
@@ -248,7 +246,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
                             );
                         }
                     } else {
-                        $liContents .= sprintf(
+                        $liContents = sprintf(
                             '<span style="margin-right:3px;">%s</span>',
                             h($feed['id'])
                         );
@@ -259,7 +257,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
                     );
                 }
             }
-            if (!empty($object['Server'])) {
+            if (isset($object['Server'])) {
                 foreach ($object['Server'] as $server) {
                     $popover = '';
                     foreach ($server as $k => $v) {
