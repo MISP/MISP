@@ -380,6 +380,15 @@ class Feed extends AppModel
                 }
             } else {
                 $parts = [$attribute['value']];
+
+                // Some feeds contains URL without protocol, so if attribute is URL and value contains protocol,
+                // we will check also value without protocol.
+                if ($attribute['type'] === 'url' || $attribute['type'] === 'uri') {
+                    $protocolPos = strpos($attribute['value'], '://');
+                    if ($protocolPos !== false) {
+                        $parts[] = substr($attribute['value'], $protocolPos + 3);
+                    }
+                }
             }
 
             foreach ($parts as $part) {
