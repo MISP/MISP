@@ -374,7 +374,7 @@
                 endif;
                 if (!empty($event['Feed']) || !empty($event['Event']['FeedCount'])):
             ?>
-                    <h3>Related Feeds</h3>
+                    <h3><?= __('Related Feeds') ?> <a href="#attributeList" title="<?= __('Show just attributes that has feed hits') ?>" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'feed')"><?= __('(show)') ?></a></h3>
             <?php
                     if (!empty($event['Feed'])):
             ?>
@@ -457,7 +457,10 @@
             ?>
             <?php if (!empty($event['warnings'])): ?>
                 <div class="warning_container">
-                    <h4 class="red"><?= __('Warning: Potential false positives') ?> <a href="#attributeList" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'warning')"><?= __('(show)') ?></a></h4>
+                    <h4 class="red">
+                        <?= __('Warning: Potential false positives') ?>
+                        <a href="#attributeList" title="<?= __('Show just attributes that has warning') ?>" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'warning')"><?= __('(show)') ?></a>
+                    </h4>
                     <?php
                         $links = [];
                         foreach ($event['warnings'] as $id => $name) {
