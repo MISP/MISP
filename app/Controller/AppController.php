@@ -48,7 +48,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '113';
+    private $__queryVersion = '114';
     public $pyMispVersion = '2.4.133';
     public $phpmin = '7.2';
     public $phprec = '7.4';
