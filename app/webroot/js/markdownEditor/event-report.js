@@ -227,6 +227,7 @@ function hintMISPElements(cm, options) {
         } else { // search in hint arrays
             var addedItems = {}
             var maxHints = 10
+            maxHints += 10*(elementID.length - 3); // adapt hint numbers if typed value is large enough
             if (MISPElementHints[scope] !== undefined) {
                 for (var i = 0; i < MISPElementHints[scope].length; i++) {
                     var hintArray = MISPElementHints[scope][i];
