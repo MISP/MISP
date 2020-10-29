@@ -6,6 +6,19 @@
     .misp-element-wrapper.object .obj-value {
         color: black !important;
     }
+
+    .misp-element-wrapper.attribute .attr-value > span {
+        max-width: unset !important;
+        white-space: normal !important;
+    }
+    .misp-element-wrapper.object .obj-value > span {
+        max-width: unset !important;
+        white-space: normal !important;
+    }
+    span.misp-element-wrapper.attribute {
+        max-width: unset !important;
+        white-space: normal !important;
+    }
 }
 
 span.misp-element-wrapper {

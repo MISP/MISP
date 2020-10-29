@@ -13,6 +13,10 @@
         left: 0;
         top: 0;
     }
+
+    div.markdownEditor-full-container {
+        position: unset !important;
+    }
 }
 
 .markdownEditor-full-container {
