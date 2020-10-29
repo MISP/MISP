@@ -279,7 +279,7 @@ class SendEmail
      */
     public function sendExternal(array $params)
     {
-        foreach (array('body', 'reply-to', 'to', 'subject', 'text') as $requiredParam) {
+        foreach (array('body', 'reply-to', 'to', 'subject') as $requiredParam) {
             if (!isset($params[$requiredParam])) {
                 throw new InvalidArgumentException("Param '$requiredParam' is required, but not provided.");
             }
