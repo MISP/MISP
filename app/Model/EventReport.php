@@ -835,18 +835,15 @@ class EventReport extends AppModel
             'event_id' => $event_id,
             'url' => $url
         ];
-        $module = $this->isFetchURLModuleEnabled();
-        if (!empty($module)) {
-            $result = $this->Module->queryModuleServer('/query', $modulePayload, false);
-            if (empty($result['results'][0]['values'][0])) {
-                return '';
-            }
-            return $result['results'][0]['values'][0];
+        $result = $this->Module->queryModuleServer($modulePayload);
+        if (empty($result['results'][0]['values'][0])) {
+            return '';
         }
-        return false;
+        return $result['results'][0]['values'][0];
     }
 
-    public function isFetchURLModuleEnabled() {
+    public function isFetchURLModuleEnabled()
+    {
         $this->Module = ClassRegistry::init('Module');
         $module = $this->Module->getEnabledModule('html_to_markdown', 'expansion');
         return !empty($module) ? $module : false;
