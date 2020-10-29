@@ -1,6 +1,6 @@
 <?php
     $table_data = array();
-    $table_data[] = array('key' => __('Id'), 'value' => $feed['Feed']['id']);
+    $table_data[] = array('key' => __('ID'), 'value' => $feed['Feed']['id']);
     $table_data[] = array('key' => __('Name'), 'value' => $feed['Feed']['name']);
     $table_data[] = array('key' => __('URL'), 'value' => $feed['Feed']['url']);
     $table_data[] = array(
@@ -19,7 +19,7 @@
                 $this->element(
                     'ajaxTags',
                     array(
-                        'event' => false,
+                        'scope' => 'feed',
                         'tags' => array(array('Tag' => $feed['Tag'])),
                         'tagAccess' => false,
                         'static_tags_only' => true
@@ -74,13 +74,12 @@
 
 //    $table_data[] = array('key' => __('Role'), 'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])));
     echo sprintf(
-        '<div class="feeds view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s<hr /><div class="feed_overlap_tool">%s</div></div></div></div>%s',
+        '<div class="feeds view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s<hr /><div class="feed_overlap_tool">%s</div></div></div></div>',
         sprintf(
             '<h2>%s</h2>%s',
             __('Feed'),
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
-        $this->element('Feeds/View/feed_overlap_tool', array('other_feeds' => $other_feeds, 'feed' => $feed)),
-        $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'view'))
+        $this->element('Feeds/View/feed_overlap_tool', array('other_feeds' => $other_feeds, 'feed' => $feed))
     );
-?>
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'view'));
