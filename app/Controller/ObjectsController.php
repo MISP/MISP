@@ -234,11 +234,13 @@ class ObjectsController extends AppController
                     $object['Attribute'][$k]['event_id'] = $eventId;
                     $this->MispObject->Event->Attribute->set($object['Attribute'][$k]);
                     if (!$this->MispObject->Event->Attribute->validates()) {
-                        if ($this->MispObject->Event->Attribute->validationErrors['value'][0] !== 'Composite type found but the value not in the composite (value1|value2) format.') {
+                        $validationErrors = $this->MispObject->Event->Attribute->validationErrors;
+                        $isCompositeError = isset($validationErrors['value']) && $validationErrors['value'][0] === 'Composite type found but the value not in the composite (value1|value2) format.';
+                        if (!$isCompositeError) {
                             $error = sprintf(
                                 'Could not save object as at least one attribute has failed validation (%s). %s',
                                 isset($attribute['object_relation']) ? $attribute['object_relation'] : 'No object_relation',
-                                json_encode($this->MispObject->Event->Attribute->validationErrors)
+                                json_encode($validationErrors)
                             );
                         }
                     }
