@@ -4779,4 +4779,18 @@ class Attribute extends AppModel
     {
         return (is_int($value) && $value >= 0) || ctype_digit($value);
     }
+
+    public function typeToCategoryMapping()
+    {
+        $typeCategoryMapping = array();
+        foreach ($this->categoryDefinitions as $k => $cat) {
+            foreach ($cat['types'] as $type) {
+                $typeCategoryMapping[$type][$k] = $k;
+            }
+        }
+        foreach ($typeCategoryMapping as $k => $v) {
+            $typeCategoryMapping[$k] = array_values($v);
+        }
+        return $typeCategoryMapping;
+    }
 }
