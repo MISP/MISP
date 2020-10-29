@@ -118,7 +118,7 @@ function genericPopup(url, popupTarget, callback) {
         if (callback !== undefined) {
             callback();
         }
-    });
+    }).fail(xhrFailCallback)
 }
 
 function screenshotPopup(url, title) {
