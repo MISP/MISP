@@ -124,35 +124,20 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     <td id="Attribute_<?= $objectId ?>_container" class="showspaces limitedWidth shortish"<?= $quickEdit('value') ?>>
       <div id="Attribute_<?= $objectId ?>_value_placeholder" class="inline-field-placeholder"></div>
       <div id="Attribute_<?= $objectId ?>_value_solid" class="inline-field-solid">
-        <span>
         <?php
-            $spanExtra = '';
-            $popupButton = '';
             if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
-                $commonDataFields = sprintf(
-                    'data-object-type="Attribute" data-object-id="%s"',
-                    $objectId
-                );
-
-                $spanExtra = sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
+                $commonDataFields = sprintf('data-object-type="Attribute" data-object-id="%s"', $objectId);
+                $spanExtra = Configure::read('Plugin.Enrichment_hover_popover_only') ? '' : sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
                 $popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup noPrint" title="%s" %s></i>', __('Show hover enrichment'), $commonDataFields);
+                echo sprintf(
+                    '<span%s>%s</span> %s',
+                    $spanExtra,
+                    $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)),
+                    $popupButton
+                );
+            } else {
+                echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
             }
-            echo sprintf(
-                '<span%s style="white-space: pre-wrap;">%s</span> %s',
-                $spanExtra,
-                $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)),
-                $popupButton
-            );
-        ?>
-        </span>
-        <?php
-          if (isset($object['warnings'])) {
-              $temp = '';
-              foreach ($object['warnings'] as $warning) {
-                  $temp .= '<span class="bold">' . h($warning['match']) . ':</span> <span class="red">' . h($warning['warninglist_name']) . '</span><br>';
-              }
-            echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="fa fa-exclamation-triangle" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover" data-placement="right">&nbsp;</span>';
-          }
         ?>
       </div>
     </td>
@@ -206,17 +191,17 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
       >
     </td>
     <td class="shortish">
-      <ul class="inline" style="margin:0">
         <?php
           if (!empty($event['RelatedAttribute'][$object['id']])) {
-            echo $this->element('Events/View/attribute_correlations', array(
-              'scope' => 'Attribute',
-              'object' => $object,
-              'event' => $event,
-            ));
+              echo '<ul class="inline" style="margin:0">';
+              echo $this->element('Events/View/attribute_correlations', array(
+                  'scope' => 'Attribute',
+                  'object' => $object,
+                  'event' => $event,
+              ));
+              echo '</ul>';
           }
         ?>
-      </ul>
     </td>
     <td class="shortish">
       <ul class="inline" style="margin:0">
@@ -230,15 +215,15 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
                             foreach ($v as $k2 => $v2) {
                                 $v[$k2] = h($v2);
                             }
-                            $v = implode('<br />', $v);
+                            $v = implode('<br>', $v);
                         } else {
                             $v = h($v);
                         }
-                        $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
+                        $popover .= '<span class="bold black">' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br>';
                     }
                     $liContents = '';
                     if ($isSiteAdmin || $hostOrgUser) {
-                        if ($feed['source_format'] == 'misp') {
+                        if ($feed['source_format'] === 'misp') {
                             $liContents .= sprintf(
                                 '<form action="%s/feeds/previewIndex/%s" method="post" style="margin:0;line-height:auto;">%s%s</form>',
                                 $baseurl,
@@ -255,14 +240,11 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
                             );
                         } else {
                             $liContents .= sprintf(
-                                '<form>%s</form>',
-                                sprintf(
-                                    '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
-                                    $baseurl,
-                                    h($feed['id']),
-                                    h($popover),
-                                    h($feed['id'])
-                                )
+                                '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
+                                $baseurl,
+                                h($feed['id']),
+                                h($popover),
+                                h($feed['id'])
                             );
                         }
                     } else {

@@ -15,7 +15,7 @@ class MispAdminSyncTestWidget
 	{
         $this->Server = ClassRegistry::init('Server');
         $servers = $this->Server->find('all', array(
-            'fields' => array('id', 'url', 'name', 'pull', 'push', 'caching_enabled'),
+            'fields' => array('id', 'url', 'name', 'pull', 'push', 'caching_enabled', 'authkey', 'cert_file', 'client_cert_file', 'self_signed'),
             'conditions' => array('OR' => array('pull' => 1, 'push' => 1, 'caching_enabled' => 1)),
             'recursive' => -1
         ));
@@ -25,16 +25,15 @@ class MispAdminSyncTestWidget
         }
         $syncTestErrorCodes = $this->Server->syncTestErrorCodes;
         foreach ($servers as $server) {
-            $result = $this->Server->runConnectionTest($server['Server']['id']);
+            $result = $this->Server->runConnectionTest($server);
             if ($result['status'] === 1) {
                 $message = __('Connected.');
                 $colour = 'green';
-                $flags = json_decode($result['message'], true);
-                if (empty($flags['perm_sync'])) {
+                if (empty($result['info']['perm_sync'])) {
                     $colour = 'orange';
                     $message .= ' ' . __('No sync access.');
                 }
-                if (empty($flags['perm_sighting'])) {
+                if (empty($result['info']['perm_sighting'])) {
                     $colour = 'orange';
                     $message .= ' ' . __('No sighting access.');
                 }

@@ -82,28 +82,32 @@ class Module extends AppModel
         return true;
     }
 
-
-    public function getModules($type = false, $moduleFamily = 'Enrichment', &$exception = false)
+    /**
+     * @param string $moduleFamily
+     * @param bool $throwException
+     * @return array[]|string
+     * @throws JsonException
+     */
+    public function getModules($moduleFamily = 'Enrichment', $throwException = false)
     {
-        $modules = $this->queryModuleServer('/modules', false, false, $moduleFamily, $exception);
-        if (!$modules) {
+        try {
+            // Wait just one second to not block loading pages when modules are not reachable
+            return $this->sendRequest('/modules', 1, null, $moduleFamily);
+        } catch (Exception $e) {
+            if ($throwException) {
+                throw $e;
+            }
             return 'Module service not reachable.';
-        }
-        if (!empty($modules)) {
-            $result = array('modules' => $modules);
-            return $result;
-        } else {
-            return 'The module service reports that it found no modules.';
         }
     }
 
     public function getEnabledModules($user, $type = false, $moduleFamily = 'Enrichment')
     {
-        $modules = $this->getModules($type, $moduleFamily);
+        $modules = $this->getModules($moduleFamily);
         if (is_array($modules)) {
-            foreach ($modules['modules'] as $k => $module) {
+            foreach ($modules as $k => $module) {
                 if (!Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_enabled') || ($type && !in_array(strtolower($type), $module['meta']['module-type']))) {
-                    unset($modules['modules'][$k]);
+                    unset($modules[$k]);
                     continue;
                 }
                 if (
@@ -111,38 +115,33 @@ class Module extends AppModel
                     Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_restrict') &&
                     Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_restrict') != $user['org_id']
                 ) {
-                    unset($modules['modules'][$k]);
+                    unset($modules[$k]);
                 }
             }
         } else {
             return 'The modules system reports that it found no suitable modules.';
         }
-        if (!isset($modules) || empty($modules)) {
-            $modules = array();
+        if (empty($modules)) {
+            return [];
         }
-        if (isset($modules['modules']) && !empty($modules['modules'])) {
-            $modules['modules'] = array_values($modules['modules']);
-        }
-        if (!is_array($modules)) {
-            return array();
-        }
-        foreach ($modules['modules'] as $temp) {
+        $output = ['modules' => array_values($modules)];
+        foreach ($modules as $temp) {
             if (isset($temp['meta']['module-type']) && in_array('import', $temp['meta']['module-type'])) {
-                $modules['Import'] = $temp['name'];
+                $output['Import'] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('export', $temp['meta']['module-type'])) {
-                $modules['Export'] = $temp['name'];
+                $output['Export'] = $temp['name'];
             } else {
                 foreach ($temp['mispattributes']['input'] as $input) {
                     if (!isset($temp['meta']['module-type']) || (in_array('expansion', $temp['meta']['module-type']) || in_array('cortex', $temp['meta']['module-type']))) {
-                        $modules['types'][$input][] = $temp['name'];
+                        $output['types'][$input][] = $temp['name'];
                     }
                     if (isset($temp['meta']['module-type']) && in_array('hover', $temp['meta']['module-type'])) {
-                        $modules['hover_type'][$input][] = $temp['name'];
+                        $output['hover_type'][$input][] = $temp['name'];
                     }
                 }
             }
         }
-        return $modules;
+        return $output;
     }
 
     /**
@@ -156,7 +155,7 @@ class Module extends AppModel
             throw new InvalidArgumentException("Invalid type '$type'.");
         }
         $moduleFamily = $this->__typeToFamily[$type];
-        $modules = $this->getModules($type, $moduleFamily);
+        $modules = $this->getModules($moduleFamily);
         if (!Configure::read('Plugin.' . $moduleFamily . '_' . $name . '_enabled')) {
             return 'The requested module is not enabled.';
         }
@@ -199,74 +198,114 @@ class Module extends AppModel
         return "$url:$port";
     }
 
-    public function queryModuleServer($uri, $post = false, $hover = false, $moduleFamily = 'Enrichment', &$exception = false)
+    /**
+     * Send request to `/query` module endpoint.
+     *
+     * @param array $postData
+     * @param bool $hover
+     * @param string $moduleFamily
+     * @param bool $throwException
+     * @return array|false
+     * @throws JsonException
+     */
+    public function queryModuleServer(array $postData, $hover = false, $moduleFamily = 'Enrichment', $throwException = false)
+    {
+        if ($hover) {
+            $timeout = Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ?: 5;
+        } else {
+            $timeout = Configure::read('Plugin.' . $moduleFamily . '_timeout') ?: 10;
+        }
+        try {
+            return $this->sendRequest('/query', $timeout, $postData, $moduleFamily);
+        } catch (Exception $e) {
+            if ($throwException) {
+                throw $e;
+            }
+            $this->logException('Failed to query module ' . $moduleFamily, $e);
+            return false;
+        }
+    }
+
+    /**
+     * Low-level way how to send request to module.
+     *
+     * @param string $uri
+     * @param int $timeout
+     * @param array|null $postData
+     * @param string $moduleFamily
+     * @return array
+     * @throws JsonException
+     */
+    public function sendRequest($uri, $timeout, $postData = null, $moduleFamily = 'Enrichment')
     {
         $url = $this->__getModuleServer($moduleFamily);
         if (!$url) {
-            return false;
+            throw new Exception("Module type $moduleFamily is not enabled.");
         }
         App::uses('HttpSocket', 'Network/Http');
-        if ($hover) {
-            $settings = array(
-                'timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ?: 5
-            );
-        } else {
-            $settings = array(
-                'timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ?: 10
-            );
-        }
         $sslSettings = array('ssl_verify_peer', 'ssl_verify_host', 'ssl_allow_self_signed', 'ssl_verify_peer', 'ssl_cafile');
         foreach ($sslSettings as $sslSetting) {
             if (Configure::check('Plugin.' . $moduleFamily . '_' . $sslSetting) && Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting) !== '') {
                 $settings[$sslSetting] = Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting);
             }
         }
-        // let's set a low timeout for the introspection so that we don't block the loading of pages due to a misconfigured modules
-        if ($uri == '/modules') {
-            $settings['timeout'] = 1;
-        }
-        $httpSocket = new HttpSocket($settings);
+        $httpSocket = new HttpSocket(['timeout' => $timeout]);
         $request = array(
-                'header' => array(
-                        'Content-Type' => 'application/json',
-                )
+            'header' => array(
+                'Content-Type' => 'application/json',
+            )
         );
         if ($moduleFamily == 'Cortex') {
             if (!empty(Configure::read('Plugin.' . $moduleFamily . '_authkey'))) {
                 $request['header']['Authorization'] = 'Bearer ' . Configure::read('Plugin.' . $moduleFamily . '_authkey');
             }
         }
-        try {
-            if ($post) {
-                $response = $httpSocket->post($url . $uri, $post, $request);
-            } else {
-                if ($moduleFamily == 'Cortex') {
-                    unset($request['header']['Content-Type']);
-                }
-                $response = $httpSocket->get($url . $uri, false, $request);
+        if ($postData) {
+            if (!is_array($postData)) {
+                throw new InvalidArgumentException("Post data must be array, " . gettype($postData) . " given.");
             }
-            return json_decode($response->body, true);
-        } catch (Exception $e) {
-            $this->logException('Failed to query module ' . $moduleFamily, $e);
-            $exception = $e->getMessage();
-            return false;
+            $post = json_encode($postData);
+            $response = $httpSocket->post($url . $uri, $post, $request);
+        } else {
+            if ($moduleFamily == 'Cortex') {
+                unset($request['header']['Content-Type']);
+            }
+            $response = $httpSocket->get($url . $uri, false, $request);
         }
+        if (!$response->isOk()) {
+            if ($httpSocket->lastError()) {
+                throw new Exception("Failed to get response from $moduleFamily module: " . $httpSocket->lastError['str']);
+            }
+            throw new Exception("Failed to get response from $moduleFamily module: HTTP $response->reasonPhrase", (int)$response->code);
+        }
+        return $this->jsonDecode($response->body);
     }
 
+    /**
+     * @param string $moduleFamily
+     * @return array
+     */
     public function getModuleSettings($moduleFamily = 'Enrichment')
     {
-        $modules = $this->getModules(false, $moduleFamily);
+        $modules = $this->getModules($moduleFamily);
         $result = array();
-        if (!empty($modules['modules'])) {
-            foreach ($modules['modules'] as $module) {
+        if (!empty($modules)) {
+            foreach ($modules as $module) {
                 if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
-                    $result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
-                    $result[$module['name']][1] = array('name' => 'restrict', 'type' => 'orgs');
+                    $moduleSettings = [
+                        array('name' => 'enabled', 'type' => 'boolean'),
+                        array('name' => 'restrict', 'type' => 'orgs')
+                    ];
                     if (isset($module['meta']['config'])) {
-                        foreach ($module['meta']['config'] as $conf) {
-                            $result[$module['name']][] = array('name' => $conf, 'type' => 'string');
+                        foreach ($module['meta']['config'] as $key => $value) {
+                            if (is_string($key)) {
+                                $moduleSettings[] = array('name' => $key, 'type' => 'string', 'description' => $value);
+                            } else {
+                                $moduleSettings[] = array('name' => $value, 'type' => 'string');
+                            }
                         }
                     }
+                    $result[$module['name']] = $moduleSettings;
                 }
             }
         }

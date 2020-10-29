@@ -238,7 +238,7 @@
     ?></pre>
     <code>&lt;request&gt;&lt;type&gt;ip&lt;/type&gt;&lt;eventid&gt;!51&lt;/eventid&gt;&lt;eventid&gt;!62&lt;/eventid&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
     <p><?php echo __('Alternatively, it is also possible to pass the filters via the parameters in the URL, though it is highly advised to use POST requests with JSON objects instead. The format is as described below');?>:</p>
-    <pre><?php echo $baseurl.'/attributes/bro/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]'; ?></pre>
+    <pre><?php echo $baseurl.'/attributes/bro/download/[type]/[tags]/[event_id]/[from]/[to]/[last]'; ?></pre>
     <b>type</b>: <?php echo __('The Bro type, any valid Bro type is accepted. The mapping between Bro and MISP types is as follows');?>:<br />
     <pre><?php
         foreach ($broTypes as $key => $value) {

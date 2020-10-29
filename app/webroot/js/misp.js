@@ -427,7 +427,7 @@ function updateIndex(id, context, newPage) {
         div = "#templateElements";
     }
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         dataType:"html",
@@ -452,15 +452,15 @@ function updateIndex(id, context, newPage) {
 
 function updateAttributeFieldOnSuccess(name, type, id, field, event) {
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            if (field != 'timestamp') {
+        beforeSend: function () {
+            if (field !== 'timestamp') {
                 $(".loading").show();
             }
         },
         dataType:"html",
         cache: false,
         success:function (data, textStatus) {
-            if (field != 'timestamp') {
+            if (field !== 'timestamp') {
                 $(".loading").hide();
                 $(name + '_solid').html(data);
                 $(name + '_placeholder').empty();
@@ -468,6 +468,7 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
             } else {
                 $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
             }
+            popoverStartup(); // reactive popovers
         },
         url: baseurl + "/attributes/fetchViewValue/" + id + "/" + field,
     });
@@ -793,7 +794,7 @@ function refreshTagCollectionRow(tag_collection_id) {
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
     responseArray = data;
-    if (type == 'Attribute') {
+    if (type === 'Attribute') {
         if (responseArray.saved) {
             var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
             showMessage('success', msg);
@@ -804,13 +805,11 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
             updateAttributeFieldOnSuccess(name, type, id, field, event);
         }
-    }
-    if (type == 'ShadowAttribute') {
+    } else if (type === 'ShadowAttribute') {
         updateIndex(event, 'event');
-    } else if (type == 'Object') {
+    } else if (type === 'Object') {
         if (responseArray.saved) {
-            var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
-            showMessage('success', msg);
+            showMessage('success', responseArray.message);
             updateObjectFieldOnSuccess(name, type, id, field, event);
             updateObjectFieldOnSuccess(name, type, id, 'timestamp', event);
             eventUnpublish();
@@ -947,27 +946,27 @@ function multiSelectDeleteEventBlocklist(on, cache) {
 
 function multiSelectAction(event, context) {
     var settings = {
-            deleteAttributes: {
-                confirmation: "Are you sure you want to delete all selected attributes?",
-                controller: "attributes",
-                camelCase: "Attribute",
-                alias: "attribute",
-                action: "delete"
-            },
-            acceptProposals: {
-                confirmation: "Are you sure you want to accept all selected proposals?",
-                controller: "shadow_attributes",
-                camelCase: "ShadowAttribute",
-                alias: "proposal",
-                action: "accept"
-            },
-            discardProposals: {
-                confirmation: "Are you sure you want to discard all selected proposals?",
-                controller: "shadow_attributes",
-                camelCase: "ShadowAttribute",
-                alias: "proposal",
-                action: "discard"
-            },
+        deleteAttributes: {
+            confirmation: "Are you sure you want to delete all selected attributes?",
+            controller: "attributes",
+            camelCase: "Attribute",
+            alias: "attribute",
+            action: "delete"
+        },
+        acceptProposals: {
+            confirmation: "Are you sure you want to accept all selected proposals?",
+            controller: "shadow_attributes",
+            camelCase: "ShadowAttribute",
+            alias: "proposal",
+            action: "accept"
+        },
+        discardProposals: {
+            confirmation: "Are you sure you want to discard all selected proposals?",
+            controller: "shadow_attributes",
+            camelCase: "ShadowAttribute",
+            alias: "proposal",
+            action: "discard"
+        },
     };
     var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
     if (answer) {
@@ -982,7 +981,6 @@ function multiSelectAction(event, context) {
         var formData = $('#' + settings[context]["action"] + '_selected').serialize();
         if (context == 'deleteAttributes') {
             var url = $('#delete_selected').attr('action');
-            console.log(url);
         } else {
             var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
         }
@@ -991,11 +989,20 @@ function multiSelectAction(event, context) {
             cache: false,
             type:"POST",
             url: url,
-            success:function (data, textStatus) {
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
                 updateIndex(event, 'event');
                 var result = handleGenericAjaxResponse(data);
-                if (settings[context]["action"] != "discard" && result == true) eventUnpublish();
+                if (settings[context]["action"] != "discard" && result == true) {
+                    eventUnpublish();
+                }
             },
+            complete: function () {
+                $(".loading").hide();
+            },
+            error: xhrFailCallback,
         });
     }
     return false;
@@ -2516,33 +2523,42 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 }
 
 function serverSettingSubmitForm(name, setting, id) {
-    subGroup = getSubGroupFromSetting(setting);
+    var subGroup = getSubGroupFromSetting(setting);
     var formData = $(name + '_field').closest("form").serialize();
     $.ajax({
         data: formData,
         cache: false,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
-        success:function (data, textStatus) {
+        success: function (data) {
+            if (!data.saved) {
+                $(".loading").hide();
+                showMessage('fail', data.errors);
+                resetForms();
+                $('.inline-field-placeholder').hide();
+                return;
+            }
+
             $.ajax({
-                type:"get",
+                type: "get",
                 url: baseurl + "/servers/serverSettingsReloadSetting/" + setting + "/" + id,
-                success:function (data2, textStatus2) {
+                success: function (data2) {
                     $('#' + subGroup + "_" + id + '_row').replaceWith(data2);
                     $(".loading").hide();
                 },
-                error:function() {
+                error: function() {
                     showMessage('fail', 'Could not refresh the table.');
                 }
             });
         },
-        error:function() {
+        error: function() {
+            $(".loading").hide();
             showMessage('fail', 'Request failed for an unknown reason.');
             resetForms();
             $('.inline-field-placeholder').hide();
         },
-        type:"post",
+        type: "post",
         url: baseurl + "/servers/serverSettingsEdit/" + setting + "/" + id + "/" + 1
     });
     $(name + '_field').unbind("keyup");
@@ -3297,22 +3313,51 @@ function getRemoteSyncUser(id) {
 function testConnection(id) {
     $.ajax({
         url: baseurl + '/servers/testConnection/' + id,
-        type:'GET',
-        beforeSend: function (XMLHttpRequest) {
+        type: 'GET',
+        beforeSend: function () {
             $("#connection_test_" + id).html('Running test...');
         },
         error: function(){
-            $("#connection_test_" + id).html('Internal error.');
+            $("#connection_test_" + id).html('<span class="red bold">Internal error</span>');
         },
-        success: function(response){
-            var result = response;
+        success: function(result) {
+            function line(name, value, valid) {
+                var $value = $('<span></span>').text(value);
+                if (valid === true) {
+                    $value.addClass('green');
+                } else if (valid === false) {
+                    $value.addClass('red');
+                } else if (valid) {
+                    $value.addClass(valid);
+                }
+                return $('<div></div>').text(name + ': ').append($value).html() + '<br>';
+            }
+
+            var html = '';
+
+            if (result.client_certificate) {
+                var cert = result.client_certificate;
+                html += '<span class="bold">Client certificate:</span><br>';
+                if (cert.error) {
+                    html += '<span class="red bold">Error: ' + cert.error + '</span><br>';
+                } else {
+                    html += line("Subject", cert.subject);
+                    html += line("Issuer", cert.issuer);
+                    html += line("Serial number", cert.serial_number);
+                    html += line("Valid from", cert.valid_from, cert.valid_from_ok);
+                    html += line("Valid to", cert.valid_to, cert.valid_to_ok);
+                    html += line("Public key", cert.public_key_type + ' (' + cert.public_key_size + ' bits)', cert.public_key_size_ok);
+                }
+                html += "<br>";
+            }
+
             switch (result.status) {
             case 1:
-                status_message = "OK";
-                compatibility = "Compatible";
-                compatibility_colour = "green";
-                colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
-                issue_colour = "red";
+                var status_message = "OK";
+                var compatibility = "Compatible";
+                var compatibility_colour = "green";
+                var colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
+                var issue_colour = "red";
                 if (result.mismatch == "hotfix") issue_colour = "orange";
                 if (result.newer == "local") {
                     colours.remote = 'class="' + issue_colour + '"';
@@ -3338,6 +3383,7 @@ function testConnection(id) {
                     else status_message = "Remote outdated, notify admin!"
                     colours.status = 'class="' + issue_colour + '"';
                 }
+                var post_result;
                 if (result.post != false) {
                     var post_colour = "red";
                     if (result.post == 1) {
@@ -3354,36 +3400,36 @@ function testConnection(id) {
                         post_result = "Remote too old for this test";
                     }
                 }
-                resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
-                resultDiv += '<div>Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
-                resultDiv += '<div>Status: <span ' + colours.status + '>' + status_message + '</span><br />';
-                resultDiv += '<div>Compatiblity: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
-                resultDiv += '<div>POST test: <span class="' + post_colour + '">' + post_result + '</span><br />';
-                $("#connection_test_" + id).html(resultDiv);
-                //$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
+                html += line('Local version', result.local_version, colours.local);
+                html += line('Remote version', result.version, colours.remote);
+                html += line('Status', status_message, colours.status);
+                html += line('Compatibility', compatibility, compatibility_colour);
+                html += line('POST test', post_result, post_colour);
                 break;
             case 2:
-                $("#connection_test_" + id).html('<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>');
+                html += '<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>';
                 break;
             case 3:
-                $("#connection_test_" + id).html('<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>');
+                html += '<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>';
                 break;
             case 4:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>');
+                html += '<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>';
                 break;
             case 5:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>');
+                html += '<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>';
                 break;
             case 6:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>');
+                html += '<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>';
                 break;
             case 7:
-                $("#connection_test_" + id).html('<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>');
+                html += '<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>';
                 break;
             case 8:
-                $("#connection_test_" + id).html('<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, syncing sightings only</span>');
+                html += '<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, syncing sightings only</span>';
                 break;
             }
+
+            $("#connection_test_" + id).html(html);
         }
     })
 }

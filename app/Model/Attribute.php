@@ -1194,7 +1194,7 @@ class Attribute extends AppModel
                 }
                 break;
             case 'filename|vhash':
-                if (preg_match('#^.+\|[a-zA-Z0-9&!="]+$#', $value)) {
+                if (preg_match('#^.+\|[a-zA-Z0-9&!=\"]+$#', $value)) {
                     $returnValue = true;
                 } else {
                     $returnValue = __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
@@ -1820,7 +1820,11 @@ class Attribute extends AppModel
 
     public function saveAttachment($attribute, $path_suffix='')
     {
-        return $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
+        $result = $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
+        if ($result) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
+        }
+        return $result;
     }
 
     /**
@@ -3703,7 +3707,7 @@ class Attribute extends AppModel
     }
 
     /**
-     * @param $attribute
+     * @param array $attribute
      * @param bool $context
      * @return array|true
      */
@@ -3713,6 +3717,7 @@ class Attribute extends AppModel
         if (!$context) {
             unset($this->validate['event_id']);
             unset($this->validate['value']['uniqueValue']);
+            unset($this->validate['uuid']['unique']);
         }
         if ($this->validates()) {
             return true;
