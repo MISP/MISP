@@ -1325,6 +1325,24 @@ class User extends AppModel
     }
 
     /**
+     * Updates `current_login` and `last_login` time in database.
+     *
+     * @param array $user
+     * @return array|bool
+     * @throws Exception
+     */
+    public function updateLoginTimes(array $user)
+    {
+        if (!isset($user['id'])) {
+            throw new InvalidArgumentException("Invalid user object provided.");
+        }
+        $user['action'] = 'login'; // for afterSave callbacks
+        $user['last_login'] = $user['current_login'];
+        $user['current_login'] = time();
+        return $this->save($user, true, array('id', 'last_login', 'current_login'));
+    }
+
+    /**
      * Initialize GPG. Returns `null` if initialization failed.
      *
      * @return null|CryptGpgExtended
