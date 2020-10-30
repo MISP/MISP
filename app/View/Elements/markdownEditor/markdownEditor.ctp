@@ -130,6 +130,11 @@
                 <span class="<?= $this->FontAwesome->getClass('quote-left') ?> useCursorPointer icon" onclick="replacementAction('quote')" title="<?= __('Quote') ?>"></span>
                 <span class="<?= $this->FontAwesome->getClass('code') ?> useCursorPointer icon" onclick="replacementAction('code')" title="<?= __('Code') ?>"></span>
                 <span class="<?= $this->FontAwesome->getClass('table') ?> useCursorPointer icon" onclick="replacementAction('table')" title="<?= __('Table') ?>"></span>
+                <span style="position: absolute;right: 10px;">
+                    <button id="cancelMarkdownButton" type="button" class="btn btn-mini" onclick="cancelEdit()">
+                        <?= __('Cancel') ?>
+                    </button>
+                </span>
             </div>
             <textarea id="editor"></textarea>
             <div id="bottom-bar" class="editor-action-bar">

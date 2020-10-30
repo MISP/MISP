@@ -422,6 +422,11 @@ function saveMarkdown(confirmSave, callback) {
     })
 }
 
+function cancelEdit() {
+    setEditorData(originalRaw);
+    setMode('viewer')
+}
+
 function downloadMarkdown(type) {
     var content, fileType, baseName, extension
     if (type == 'pdf') {
