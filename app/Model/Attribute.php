@@ -3483,7 +3483,6 @@ class Attribute extends AppModel
             $params['page'] = 0;
         } else {
             $loop = false;
-            $pagesToFetch = 1;
         }
         $attributes = array();
         if (!empty($options['includeEventTags'])) {
@@ -4648,46 +4647,49 @@ class Attribute extends AppModel
             $params['page'] = 1;
         }
         if (empty($exportTool->mock_query_only)) {
-            $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+            $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams);
         }
         $tmpfile->write($exportTool->footer($exportToolParams));
         return $tmpfile->finish();
     }
 
-    private function __iteratedFetch($user, &$params, &$loop, TmpFileTool $tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
+    /**
+     * @param array $user
+     * @param array $params
+     * @param bool $loop If true, data are fetched in loop to keep memory usage low
+     * @param TmpFileTool $tmpfile
+     * @param $exportTool
+     * @param array $exportToolParams
+     * @return int
+     * @throws Exception
+     */
+    private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams)
     {
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
+        $separator = $exportTool->separator($exportToolParams);
+        $elementCounter = 0;
         $continue = true;
-        while ($continue) {
+        do {
             $results = $this->fetchAttributes($user, $params, $continue);
+            if (empty($results)) {
+                break; // nothing found, skip rest
+            }
             if ($params['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
-            $params['page'] += 1;
             $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
-            $i = 0;
-            $temp = '';
+            $elementCounter += count($results);
             foreach ($results as $attribute) {
-                $elementCounter++;
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
-                $temp .= $handlerResult;
                 if ($handlerResult !== '') {
-                    if ($i != count($results) -1) {
-                        $temp .= $exportTool->separator($exportToolParams);
-                    }
+                    $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
-                $i++;
             }
-            if (!$loop) {
-                $continue = false;
-            }
-            if ($continue) {
-                $temp .= $exportTool->separator($exportToolParams);
-            }
-            $tmpfile->write($temp);
-        }
-        return true;
+            $params['page'] += 1;
+        } while ($loop && $continue);
+
+        return $elementCounter;
     }
 
     public function set_filter_uuid(&$params, $conditions, $options)
