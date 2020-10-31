@@ -182,7 +182,10 @@ class UsersController extends AppController
             }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
-                $fieldList = array('email', 'autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
+                $fieldList = array('autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
+                if ($this->__canChangeLogin()) {
+                    $fieldList[] = 'email';
+                }
                 if ($this->__canChangePassword() && !empty($this->request->data['User']['password'])) {
                     $fieldList[] = 'password';
                     $fieldList[] = 'confirm_password';
@@ -243,6 +246,7 @@ class UsersController extends AppController
         $this->set('roles', $roles);
         $this->set('id', $id);
         $this->set('canChangePassword', $this->__canChangePassword());
+        $this->set('canChangeLogin', $this->__canChangeLogin());
     }
 
     public function change_pw()
@@ -2734,5 +2738,10 @@ class UsersController extends AppController
     private function __canChangePassword()
     {
         return $this->ACL->canUserAccess($this->Auth->user(), 'users', 'change_pw');
+    }
+
+    private function __canChangeLogin()
+    {
+        return !Configure::read('MISP.disable_user_login_change');
     }
 }

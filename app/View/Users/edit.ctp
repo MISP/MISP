@@ -3,7 +3,7 @@
     <fieldset>
         <legend><?php echo __('Edit My Profile'); ?></legend>
     <?php
-        echo $this->Form->input('email');
+        echo $this->Form->input('email', ['disabled' => $canChangeLogin ? false : 'disabled']);
     ?>
         <div class="input clear"></div>
     <?php
@@ -18,7 +18,7 @@
     ?>
         <div class="input clear"></div>
     <?php
-        echo $this->Form->input('nids_sid');
+        echo $this->Form->input('nids_sid', ['label' => __('NIDS SID')]);
     ?>
         <div class="input clear"></div>
     <?php
