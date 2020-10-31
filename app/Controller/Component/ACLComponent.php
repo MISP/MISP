@@ -618,19 +618,19 @@ class ACLComponent extends Component
                     'admin_quickEmail' => array('perm_admin'),
                     'admin_view' => array('perm_admin'),
                     'attributehistogram' => array('*'),
-                    'change_pw' => array('*'),
+                    'change_pw' => ['AND' => ['self_management_enabled', 'password_change_enabled']],
                     'checkAndCorrectPgps' => array(),
                     'checkIfLoggedIn' => array('*'),
                     'dashboard' => array('*'),
                     'delete' => array('perm_admin'),
                     'discardRegistrations' => array('perm_site_admin'),
                     'downloadTerms' => array('*'),
-                    'edit' => array('*'),
+                    'edit' => array('self_management_enabled'),
                     'email_otp' => array('*'),
                     'searchGpgKey' => array('*'),
                     'fetchGpgKey' => array('*'),
                     'histogram' => array('*'),
-                    'initiatePasswordReset' => array('perm_admin'),
+                    'initiatePasswordReset' => ['AND' => ['perm_admin', 'password_change_enabled']],
                     'login' => array('*'),
                     'logout' => array('*'),
                     'register' => array('*'),
@@ -679,22 +679,24 @@ class ACLComponent extends Component
                     'delete' => array('perm_modify'),
             )
     );
+
+    private $dynamicChecks = [];
     
     public function __construct(ComponentCollection $collection, $settings = array())
     {
         parent::__construct($collection, $settings);
-        
-        // Additional dynamic checks
-        $this->__aclList['users']['edit'] = function (array $user) {
+
+        $this->dynamicChecks['host_org_user'] = function (array $user) {
+            $hostOrgId = Configure::read('MISP.host_org_id');
+            return (int)$user['org_id'] === (int)$hostOrgId;
+        };
+        $this->dynamicChecks['self_management_enabled'] = function (array $user) {
             if (Configure::read('MISP.disableUserSelfManagement') && !$user['Role']['perm_admin'])  {
                 throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
             }
             return true;
         };
-        $this->__aclList['users']['change_pw'] = function (array $user) {
-            if (Configure::read('MISP.disableUserSelfManagement') && !$user['Role']['perm_admin'])  {
-                throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
-            }
+        $this->dynamicChecks['password_change_enabled'] = function (array $user) {
             if (Configure::read('MISP.disable_user_password_change')) {
                 throw new MethodNotAllowedException('User password change has been disabled on this instance.');
             }
@@ -827,21 +829,13 @@ class ACLComponent extends Component
         }
         if (isset($aclList[$controller][$action]) && !empty($aclList[$controller][$action])) {
             $rules = $aclList[$controller][$action];
-            if ($rules instanceof Closure) {
-                if ($rules($user)) {
-                    return true;
-                } else {
-                    $this->__error(403);
-                }
-            }
             if (in_array('*', $rules)) {
                 return true;
             }
-            $host_org_id = (int)Configure::read('MISP.host_org_id');
             if (isset($rules['OR'])) {
                 foreach ($rules['OR'] as $permission) {
-                    if ($permission === 'host_org_user') {
-                        if ((int)$user['org_id'] === $host_org_id) {
+                    if (isset($this->dynamicChecks[$permission])) {
+                        if ($this->dynamicChecks[$permission]($user)) {
                             return true;
                         }
                     } else {
@@ -853,8 +847,8 @@ class ACLComponent extends Component
             } elseif (isset($rules['AND'])) {
                 $allConditionsMet = true;
                 foreach ($rules['AND'] as $permission) {
-                    if ($permission === 'host_org_user') {
-                        if ((int)$user['org_id'] !== $host_org_id) {
+                    if (isset($this->dynamicChecks[$permission])) {
+                        if (!$this->dynamicChecks[$permission]($user)) {
                             $allConditionsMet = false;
                         }
                     } else {
@@ -866,9 +860,11 @@ class ACLComponent extends Component
                 if ($allConditionsMet) {
                     return true;
                 }
-            } elseif ($rules[0] !== 'host_org_user' && $user['Role'][$rules[0]]) {
-                return true;
-            } elseif ($rules[0] === 'host_org_user' && (int)$user['org_id'] === $host_org_id) {
+            } elseif (isset($this->dynamicChecks[$rules[0]])) {
+                if ($this->dynamicChecks[$rules[0]]($user)) {
+                    return true;
+                }
+            } elseif ($user['Role'][$rules[0]]) {
                 return true;
             }
         }

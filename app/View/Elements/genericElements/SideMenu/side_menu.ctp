@@ -778,13 +778,15 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/admin/users/view/' . h($id),
                             'text' => __('View User')
                         ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'onClick' => array(
-                                'function' => 'initiatePasswordReset',
-                                'params' => array($id)
-                            ),
-                            'text' => __('Reset Password')
-                        ));
+                        if ($canAccess('users', 'initiatePasswordReset')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'onClick' => array(
+                                    'function' => 'initiatePasswordReset',
+                                    'params' => array($id)
+                                ),
+                                'text' => __('Reset Password')
+                            ));
+                        }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'editUser',
                             'url' => $baseurl . '/admin/users/edit/' . h($id),
