@@ -837,7 +837,7 @@ class EventReport extends AppModel
         ];
         $module = $this->isFetchURLModuleEnabled();
         if (!empty($module)) {
-            $result = $this->Module->queryModuleServer('/query', $modulePayload, false);
+            $result = $this->Module->queryModuleServer($modulePayload, false);
             if (empty($result['results'][0]['values'][0])) {
                 return '';
             }
