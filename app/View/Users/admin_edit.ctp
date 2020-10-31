@@ -3,7 +3,10 @@
     <fieldset>
         <legend><?php echo __('Admin Edit User'); ?></legend>
     <?php
-        echo $this->Form->input('email');
+        echo $this->Form->input('email', [
+            'disabled' => !$canChangeLogin,
+            'data-disabled-reason' => !$canChangePassword ? __('User login change is disabled on this instance') : '',
+        ]);
     ?>
         <div class="clear"></div>
     <?php
@@ -29,7 +32,12 @@
     <div class="clear"></div>
     <div id="passwordDivDiv">
         <?php
-            echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password')));
+            echo $this->Form->input('enable_password', [
+                'type' => 'checkbox',
+                'label' => __('Set password'),
+                'disabled' => !$canChangePassword,
+                'data-disabled-reason' => !$canChangePassword ? __('User password change is disabled on this instance') : '',
+            ]);
         ?>
         <a class="useCursorPointer" onclick="$('#resetAuthKeyForm').submit();"><?= __('Reset Auth Key') ?></a>
         <div id="PasswordDiv">
@@ -54,9 +62,9 @@
         }
         echo $this->Form->input('role_id', array('label' => __('Role')));   // TODO ACL, User edit role_id.
         echo $this->Form->input('authkey', array('disabled' => 'disabled', 'div' => 'input clear'));
-        echo $this->Form->input('nids_sid');
+        echo $this->Form->input('nids_sid', ['label' => __('NIDS SID')]);
     ?>
-        <div id = "syncServers" class="hidden">
+        <div id="syncServers" class="hidden">
     <?php
             echo $this->Form->input('server_id', array('label' => __('Sync user for'), 'div' => 'clear', 'options' => $servers));
     ?>
@@ -68,7 +76,12 @@
     <?php
         if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s S/MIME public key in PEM format here.')));
         echo $this->Form->input('termsaccepted', array('type' => 'checkbox', 'label' => __('Terms accepted')));
-        echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => __('Change Password')));
+        echo $this->Form->input('change_pw', [
+            'type' => 'checkbox',
+            'label' => __('User must change password after next login'),
+            'disabled' => !$canChangePassword,
+            'data-disabled-reason' => !$canChangePassword ? __('User password change is disabled on this instance') : '',
+        ]);
         echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
         echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
     ?>

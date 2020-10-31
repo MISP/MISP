@@ -907,7 +907,6 @@ class UsersController extends AppController
                     }
                 }
             }
-            $fail = false;
             if (!$this->_isSiteAdmin() && !$abortPost) {
                 $organisation = $this->User->Organisation->find('first', array(
                     'conditions' => array('Organisation.id' => $userToEdit['User']['org_id']),
@@ -941,6 +940,13 @@ class UsersController extends AppController
                 $blockedFields = array('id', 'invited_by');
                 if (!$this->_isSiteAdmin()) {
                     $blockedFields[] = 'org_id';
+                }
+                if (!$this->__canChangeLogin()) {
+                    $blockedFields[] = 'email';
+                }
+                if (!$this->__canChangePassword()) {
+                    $blockedFields[] = 'enable_password';
+                    $blockedFields[] = 'change_pw';
                 }
                 foreach (array_keys($this->request->data['User']) as $field) {
                     if (in_array($field, $blockedFields)) {
@@ -1080,6 +1086,8 @@ class UsersController extends AppController
         $this->set('id', $id);
         $this->set(compact('roles'));
         $this->set(compact('syncRoles'));
+        $this->set('canChangeLogin', $this->__canChangeLogin());
+        $this->set('canChangePassword', $this->__canChangePassword());
     }
 
     public function admin_delete($id = null)
@@ -2742,6 +2750,9 @@ class UsersController extends AppController
 
     private function __canChangeLogin()
     {
+        if ($this->_isSiteAdmin()) {
+            return true;
+        }
         return !Configure::read('MISP.disable_user_login_change');
     }
 }
