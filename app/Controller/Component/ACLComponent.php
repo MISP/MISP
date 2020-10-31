@@ -961,39 +961,18 @@ class ACLComponent extends Component
         return $results;
     }
 
-    private function __checkRoleAccess($role)
+    private function __checkRoleAccess(array $role)
     {
         $result = array();
+        $fakeUser = ['Role' => $role, 'org_id' => Configure::read('MISP.host_org_id')];
         foreach ($this->__aclList as $controller => $actions) {
-            $controllerNames = Inflector::variable($controller) == Inflector::underscore($controller) ? array(Inflector::variable($controller)) : array(Inflector::variable($controller), Inflector::underscore($controller));
+            $controllerNames = Inflector::variable($controller) === Inflector::underscore($controller) ?
+                array(Inflector::variable($controller)) :
+                array(Inflector::variable($controller), Inflector::underscore($controller));
             foreach ($controllerNames as $controllerName) {
                 foreach ($actions as $action => $permissions) {
-                    if ($role['perm_site_admin']) {
-                        $result[] = DS . $controllerName . DS . $action;
-                    } elseif (in_array('*', $permissions)) {
-                        $result[] = DS . $controllerName . DS . $action . DS . '*';
-                    } elseif (isset($permissions['OR'])) {
-                        $access = false;
-                        foreach ($permissions['OR'] as $permission) {
-                            if ($role[$permission]) {
-                                $access = true;
-                            }
-                        }
-                        if ($access) {
-                            $result[] = DS . $controllerName . DS . $action . DS . '*';
-                        }
-                    } elseif (isset($permissions['AND'])) {
-                        $access = true;
-                        foreach ($permissions['AND'] as $permission) {
-                            if ($role[$permission]) {
-                                $access = false;
-                            }
-                        }
-                        if ($access) {
-                            $result[] = DS . $controllerName . DS . $action . DS . '*';
-                        }
-                    } elseif (isset($permissions[0]) && $role[$permissions[0]]) {
-                        $result[] = DS . $controllerName . DS . $action . DS . '*';
+                    if ($this->canUserAccess($fakeUser, $controllerName, $action)) {
+                        $result[] = "/$controllerName/$action";
                     }
                 }
             }
