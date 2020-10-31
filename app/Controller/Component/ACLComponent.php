@@ -685,14 +685,14 @@ class ACLComponent extends Component
         parent::__construct($collection, $settings);
         
         // Additional dynamic checks
-        $this->__aclList['users']['edit'] = function () {
-            if (Configure::read('MISP.disableUserSelfManagement'))  {
+        $this->__aclList['users']['edit'] = function (array $user) {
+            if (Configure::read('MISP.disableUserSelfManagement') && !$user['Role']['perm_admin'])  {
                 throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
             }
             return true;
         };
-        $this->__aclList['users']['change_pw'] = function () {
-            if (Configure::read('MISP.disableUserSelfManagement'))  {
+        $this->__aclList['users']['change_pw'] = function (array $user) {
+            if (Configure::read('MISP.disableUserSelfManagement') && !$user['Role']['perm_admin'])  {
                 throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
             }
             if (Configure::read('MISP.disable_user_password_change')) {
@@ -719,7 +719,6 @@ class ACLComponent extends Component
         foreach ($loggedActions as $k => $v) {
             $loggedActions[$k] = array_change_key_case($v);
         }
-        $message = '';
         if (!empty($loggedActions[$controller])) {
             if (!empty($loggedActions[$controller][$action])) {
                 $message = $loggedActions[$controller][$action]['message'];
@@ -813,15 +812,15 @@ class ACLComponent extends Component
     {
         $controller = lcfirst(Inflector::camelize($controller));
         $action = strtolower($action);
-        $aclList = $this->__aclList;
-        foreach ($aclList as $k => $v) {
-            $aclList[$k] = array_change_key_case($v);
-        }
         if ($checkLoggedActions) {
             $this->__checkLoggedActions($user, $controller, $action);
         }
         if ($user && $user['Role']['perm_site_admin']) {
             return true;
+        }
+        $aclList = $this->__aclList;
+        foreach ($aclList as $k => $v) {
+            $aclList[$k] = array_change_key_case($v);
         }
         if (!isset($aclList[$controller])) {
             $this->__error(404);

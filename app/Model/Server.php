@@ -918,8 +918,25 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                                 'null' => false,
-
                         ),
+                    'disable_user_login_change' => array(
+                        'level' => self::SETTING_RECOMMENDED,
+                        'description' => __('When enabled only site admins can change user email.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => false,
+                    ),
+                    'disable_user_password_change' => array(
+                        'level' => self::SETTING_RECOMMENDED,
+                        'description' => __('When enabled only site admins can change user password.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => false,
+                    ),
                         'block_event_alert' => array(
                                 'level' => 1,
                                 'description' => __('Enable this setting to start blocking alert e-mails for events with a certain tag. Define the tag in MISP.block_event_alert_tag.'),
