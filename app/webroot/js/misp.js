@@ -4684,6 +4684,14 @@ $(document).ready(function() {
             return $(this).data('disabled-reason');
         }
     });
+    $('#PasswordPopover').popover("destroy").popover({
+        placement: 'right',
+        html: 'true',
+        trigger: 'hover',
+        content: function () {
+            return $(this).data('content');
+        }
+    });
     $(".queryPopover").click(function() {
         url = $(this).data('url');
         id = $(this).data('id');

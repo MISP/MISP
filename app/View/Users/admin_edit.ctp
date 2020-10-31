@@ -1,5 +1,5 @@
 <div class="users form">
-<?php echo $this->Form->create('User', array('novalidate'=>true));?>
+<?php echo $this->Form->create('User', array('novalidate' => true));?>
     <fieldset>
         <legend><?php echo __('Admin Edit User'); ?></legend>
     <?php
@@ -42,10 +42,10 @@
         <div id="PasswordDiv">
             <div class="clear"></div>
             <?php
-                $passwordPopover = '<span class=\"blue bold\">' . __('Length') .'</span>: ' . h($length) . '<br />';
-                $passwordPopover .= '<span class=\"blue bold\">' . __('Complexity') .'</span>: ' . h($complexity);
+                $passwordPopover = '<span class="blue bold">' . __('Length') .'</span>: ' . h($length) . '<br>';
+                $passwordPopover .= '<span class="blue bold">' . __('Complexity') .'</span>: ' . h($complexity);
                 echo $this->Form->input('password', array(
-                    'label' => __('Password') . ' <span id="PasswordPopover" class="fas fa-info-circle"></span>'
+                    'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) .'" class="fas fa-info-circle"></span>'
                 ));
                 echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
             ?>
@@ -74,7 +74,10 @@
     ?>
         <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s GnuPG key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GnuPG key');?></span></div>
     <?php
-        if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s S/MIME public key in PEM format here.')));
+        if (Configure::read('SMIME.enabled')) {
+            echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s S/MIME public key in PEM format here.')));
+        }
+        echo '<div class="user-edit-checkboxes">';
         echo $this->Form->input('termsaccepted', array('type' => 'checkbox', 'label' => __('Terms accepted')));
         echo $this->Form->input('change_pw', [
             'type' => 'checkbox',
@@ -84,11 +87,8 @@
         ]);
         echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
         echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
-    ?>
-        <div class="clear"></div>
-    <?php
         echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Disable this user account')));
-
+        echo '</div>';
     ?>
     </fieldset>
     <div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>
@@ -100,7 +100,7 @@
 ?>
     </div>
 <?php
-    echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+    echo $this->Form->button(__('Edit user'), array('class' => 'btn btn-primary'));
     echo $this->Form->end();
     echo $this->Form->create('User', array(
         'url' => array('controller' => 'users', 'action' => 'resetauthkey', $id),
@@ -115,7 +115,7 @@
 
 <script type="text/javascript">
     var syncRoles = <?php echo json_encode($syncRoles); ?>;
-    $(document).ready(function() {
+    $(function() {
         syncUserSelected();
         $('#UserRoleId').change(function() {
             syncUserSelected();
@@ -127,12 +127,6 @@
         });
         $('#UserExternalAuthRequired').change(function() {
             checkUserExternalAuth();
-        });
-        $('#PasswordPopover').popover("destroy").popover({
-            placement: 'right',
-            html: 'true',
-            trigger: 'hover',
-            content: '<?php echo $passwordPopover; ?>'
         });
     });
 </script>
