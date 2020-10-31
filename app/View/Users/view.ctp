@@ -13,12 +13,7 @@
     );
     $table_data[] = array(
         'key' => __('Organisation'),
-        'html' => sprintf(
-            '<a href="%s/organisations/view/%s">%s</a>',
-            $baseurl,
-            h($user['Organisation']['id']),
-            h($user['Organisation']['name'])
-        )
+        'html' => $this->OrgImg->getNameWithImg($user),
     );
     $table_data[] = array('key' => __('Role'), 'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])));
     $table_data[] = array('key' => __('Autoalert'), 'boolean' => $user['User']['autoalert']);
