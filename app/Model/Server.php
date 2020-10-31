@@ -921,7 +921,7 @@ class Server extends AppModel
                         ),
                     'disable_user_login_change' => array(
                         'level' => self::SETTING_RECOMMENDED,
-                        'description' => __('When enabled only site admins can change user email.'),
+                        'description' => __('When enabled only Site admins can change user email. This should be enabled if you manage user logins by external system.'),
                         'value' => false,
                         'errorMessage' => '',
                         'test' => 'testBool',
@@ -930,7 +930,16 @@ class Server extends AppModel
                     ),
                     'disable_user_password_change' => array(
                         'level' => self::SETTING_RECOMMENDED,
-                        'description' => __('When enabled only site admins can change user password.'),
+                        'description' => __('When enabled only Site admins can change user password. This should be enabled if you manage user passwords by external system.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => false,
+                    ),
+                    'disable_user_add' => array(
+                        'level' => self::SETTING_RECOMMENDED,
+                        'description' => __('When enabled, Org Admins could not add new users. This should be enabled if you manage users by external system.'),
                         'value' => false,
                         'errorMessage' => '',
                         'test' => 'testBool',

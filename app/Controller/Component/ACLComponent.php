@@ -608,7 +608,7 @@ class ACLComponent extends Component
             ),
             'users' => array(
                     'acceptRegistrations' => array('perm_site_admin'),
-                    'admin_add' => array('perm_admin'),
+                    'admin_add' => ['AND' => ['perm_admin', 'add_user_enabled']],
                     'admin_delete' => array('perm_admin'),
                     'admin_edit' => array('perm_admin'),
                     'admin_email' => array('perm_admin'),
@@ -699,6 +699,12 @@ class ACLComponent extends Component
         $this->dynamicChecks['password_change_enabled'] = function (array $user) {
             if (Configure::read('MISP.disable_user_password_change')) {
                 throw new MethodNotAllowedException('User password change has been disabled on this instance.');
+            }
+            return true;
+        };
+        $this->dynamicChecks['add_user_enabled'] = function (array $user) {
+            if (Configure::read('MISP.disable_user_add')) {
+                throw new MethodNotAllowedException('Adding users has been disabled on this instance.');
             }
             return true;
         };

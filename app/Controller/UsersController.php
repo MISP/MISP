@@ -338,9 +338,6 @@ class UsersController extends AppController
 
     public function admin_index()
     {
-        if (!$this->_isAdmin()) {
-            throw new NotFoundException(__('Invalid user or not authorised.'));
-        }
         $this->User->virtualFields['org_ci'] = 'UPPER(Organisation.name)';
         $urlParams = "";
         $passedArgsArray = array();
@@ -496,9 +493,6 @@ class UsersController extends AppController
 
     public function admin_filterUserIndex()
     {
-        if (!$this->_isAdmin() && !$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         $passedArgsArray = array();
         $booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
         $textFields = array('role', 'email', 'authkey');
@@ -632,9 +626,6 @@ class UsersController extends AppController
 
     public function admin_add()
     {
-        if (!$this->_isAdmin()) {
-            throw new Exception('Administrators only.');
-        }
         $params = null;
         if (!$this->_isSiteAdmin()) {
             $params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));

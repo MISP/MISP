@@ -330,7 +330,8 @@
                     ),
                     array(
                         'text' => __('Add User'),
-                        'url' => $baseurl . '/admin/users/add'
+                        'url' => $baseurl . '/admin/users/add',
+                        'requirement' => $canAccess('users', 'admin_add'),
                     ),
                     array(
                         'text' => __('Contact Users'),
