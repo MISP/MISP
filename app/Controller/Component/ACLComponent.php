@@ -159,6 +159,10 @@ class ACLComponent extends Component
                 'restore' => array('perm_add'),
                 'index' => array('*'),
                 'getProxyMISPElements' => array('*'),
+                'extractAllFromReport' => array('*'),
+                'extractFromReport' => array('*'),
+                'replaceSuggestionInReport' => array('*'),
+                'importReportFromUrl' => array('*'),
             ),
             'events' => array(
                     'add' => array('perm_add'),
