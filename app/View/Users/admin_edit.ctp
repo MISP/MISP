@@ -39,7 +39,6 @@
                 'data-disabled-reason' => !$canChangePassword ? __('User password change is disabled on this instance') : '',
             ]);
         ?>
-        <a class="useCursorPointer" onclick="$('#resetAuthKeyForm').submit();"><?= __('Reset Auth Key') ?></a>
         <div id="PasswordDiv">
             <div class="clear"></div>
             <?php
@@ -61,7 +60,8 @@
             ));
         }
         echo $this->Form->input('role_id', array('label' => __('Role')));   // TODO ACL, User edit role_id.
-        echo $this->Form->input('authkey', array('disabled' => 'disabled', 'div' => 'input clear'));
+        $authkeyLabel = __('Authkey') . ' <a class="useCursorPointer" onclick="$(\'#resetAuthKeyForm\').submit();">' . __('(Reset)') . '</a>';
+        echo $this->Form->input('authkey', array('disabled' => true, 'div' => 'input clear', 'label' => $authkeyLabel));
         echo $this->Form->input('nids_sid', ['label' => __('NIDS SID')]);
     ?>
         <div id="syncServers" class="hidden">
