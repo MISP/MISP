@@ -7,12 +7,14 @@
     ?>
         <div class="input clear"></div>
     <?php
+    if ($canChangePassword) {
         $passwordPopover = '<span class="blue bold">' . __('Minimal length') . '</span>: ' . h($length) . '<br>';
         $passwordPopover .= '<span class="blue bold">' . __('Complexity') . '</span>: ' . h($complexity);
         echo $this->Form->input('password', array(
             'label' => __('Password') . ' <span id="PasswordPopover" class="fas fa-info-circle"></span>'
         ));
         echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
+    }
     ?>
         <div class="input clear"></div>
     <?php
@@ -46,6 +48,7 @@
     $user['User']['id'] = $id;
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'edit', 'user' => $user));
 ?>
+<?php if ($canChangePassword): ?>
 <script type="text/javascript">
     $(function() {
         $('#PasswordPopover').popover("destroy").popover({
@@ -56,4 +59,5 @@
         });
     });
 </script>
+<?php endif; ?>
 <?php echo $this->Js->writeBuffer();

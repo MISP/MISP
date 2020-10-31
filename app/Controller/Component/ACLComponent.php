@@ -679,6 +679,28 @@ class ACLComponent extends Component
                     'delete' => array('perm_modify'),
             )
     );
+    
+    public function __construct(ComponentCollection $collection, $settings = array())
+    {
+        parent::__construct($collection, $settings);
+        
+        // Additional dynamic checks
+        $this->__aclList['users']['edit'] = function () {
+            if (Configure::read('MISP.disableUserSelfManagement'))  {
+                throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
+            }
+            return true;
+        };
+        $this->__aclList['users']['change_pw'] = function () {
+            if (Configure::read('MISP.disableUserSelfManagement'))  {
+                throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
+            }
+            if (Configure::read('MISP.disable_user_password_change')) {
+                throw new MethodNotAllowedException('User password change has been disabled on this instance.');
+            }
+            return true;
+        };
+    }
 
     private function __checkLoggedActions($user, $controller, $action)
     {
@@ -753,6 +775,24 @@ class ACLComponent extends Component
     }
 
     /**
+     * @param array $user
+     * @param string $controller
+     * @param string $action
+     * @return bool
+     */
+    public function canUserAccess($user, $controller, $action)
+    {
+        try {
+            $this->checkAccess($user, $controller, $action, false);
+        } catch (NotFoundException $e) {
+            throw new RuntimeException("Invalid controller '$controller' specified.", 0, $e);
+        } catch (MethodNotAllowedException $e) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * The check works like this:
      * - If the user is a site admin, return true
      * - If the requested action has an OR-d list, iterate through the list. If any of the permissions are set for the user, return true
@@ -763,38 +803,46 @@ class ACLComponent extends Component
      * @param array|null $user
      * @param string $controller
      * @param string $action
-     * @param bool $soft If true, instead of exception, HTTP error code is retuned as int.
-     * @return bool|int
+     * @param bool $checkLoggedActions
+     * @return true
      * @throws NotFoundException
      * @throws MethodNotAllowedException
      * @throws InternalErrorException
      */
-    public function checkAccess($user, $controller, $action, $soft = false)
+    public function checkAccess($user, $controller, $action, $checkLoggedActions = true)
     {
         $controller = lcfirst(Inflector::camelize($controller));
         $action = strtolower($action);
-        $host_org_id = Configure::read('MISP.host_org_id');
         $aclList = $this->__aclList;
         foreach ($aclList as $k => $v) {
             $aclList[$k] = array_change_key_case($v);
         }
-        if (!$soft) {
+        if ($checkLoggedActions) {
             $this->__checkLoggedActions($user, $controller, $action);
         }
         if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
         if (!isset($aclList[$controller])) {
-            return $this->__error(404, 'Invalid controller.', $soft);
+            $this->__error(404);
         }
         if (isset($aclList[$controller][$action]) && !empty($aclList[$controller][$action])) {
-            if (in_array('*', $aclList[$controller][$action])) {
+            $rules = $aclList[$controller][$action];
+            if ($rules instanceof Closure) {
+                if ($rules($user)) {
+                    return true;
+                } else {
+                    $this->__error(403);
+                }
+            }
+            if (in_array('*', $rules)) {
                 return true;
             }
-            if (isset($aclList[$controller][$action]['OR'])) {
-                foreach ($aclList[$controller][$action]['OR'] as $permission) {
+            $host_org_id = (int)Configure::read('MISP.host_org_id');
+            if (isset($rules['OR'])) {
+                foreach ($rules['OR'] as $permission) {
                     if ($permission === 'host_org_user') {
-                        if ((int)$user['org_id'] === (int)$host_org_id) {
+                        if ((int)$user['org_id'] === $host_org_id) {
                             return true;
                         }
                     } else {
@@ -803,11 +851,11 @@ class ACLComponent extends Component
                         }
                     }
                 }
-            } elseif (isset($aclList[$controller][$action]['AND'])) {
+            } elseif (isset($rules['AND'])) {
                 $allConditionsMet = true;
-                foreach ($aclList[$controller][$action]['AND'] as $permission) {
+                foreach ($rules['AND'] as $permission) {
                     if ($permission === 'host_org_user') {
-                        if ((int)$user['org_id'] !== (int)$host_org_id) {
+                        if ((int)$user['org_id'] !== $host_org_id) {
                             $allConditionsMet = false;
                         }
                     } else {
@@ -819,27 +867,28 @@ class ACLComponent extends Component
                 if ($allConditionsMet) {
                     return true;
                 }
-            } elseif ($aclList[$controller][$action][0] !== 'host_org_user' && $user['Role'][$aclList[$controller][$action][0]]) {
+            } elseif ($rules[0] !== 'host_org_user' && $user['Role'][$rules[0]]) {
                 return true;
-            } elseif ($aclList[$controller][$action][0] === 'host_org_user' && (int)$user['org_id'] === (int)$host_org_id) {
+            } elseif ($rules[0] === 'host_org_user' && (int)$user['org_id'] === $host_org_id) {
                 return true;
             }
         }
-        return $this->__error(403, 'You do not have permission to use this functionality.', $soft);
+        $this->__error(403);
     }
 
-    private function __error($code, $message, $soft = false)
+    /**
+     * @param int $code
+     * @throws InternalErrorException|MethodNotAllowedException|NotFoundException
+     */
+    private function __error($code)
     {
-        if ($soft) {
-            return $code;
-        }
         switch ($code) {
             case 404:
-                throw new NotFoundException($message);
+                throw new NotFoundException('Invalid controller.');
             case 403:
-                throw new MethodNotAllowedException($message);
+                throw new MethodNotAllowedException('You do not have permission to use this functionality.');
             default:
-                throw new InternalErrorException('Unknown error: ' . $message);
+                throw new InternalErrorException('Unknown error');
         }
     }
 

@@ -1,10 +1,6 @@
 <?php
 $canAccess = function ($controller, $action) use ($me, $aclComponent) {
-    $response = $aclComponent->checkAccess($me, $controller, $action, true);
-    if ($response === 404) {
-        throw new Exception("Invalid controller '$controller' specified for menu requirements.");
-    }
-    return $response === true;
+    return $aclComponent->canUserAccess($me, $controller, $action);
 };
 
 $this->set('menuItem', $menuItem);
@@ -549,23 +545,28 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     break;
 
                 case 'globalActions':
-                    if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view' || $menuItem === 'change_pw')) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/users/edit',
-                            'text' => __('Edit My Profile')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/users/change_pw',
-                            'text' => __('Change Password')
-                        ));
+                    if ($menuItem === 'edit' || $menuItem === 'view' || $menuItem === 'change_pw') {
+                        if ($canAccess('users', 'edit')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => $baseurl . '/users/edit',
+                                'text' => __('Edit My Profile')
+                            ));
+                        }
+                        if ($canAccess('users', 'change_pw')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => $baseurl . '/users/change_pw',
+                                'text' => __('Change Password')
+                            ));
+                        } else if (Configure::read('Plugin.CustomAuth_custom_password_reset')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'custom_pw_reset',
+                                'url' => Configure::read('Plugin.CustomAuth_custom_password_reset'),
+                                'text' => __('Change Password')
+                            ));
+                        }
                         echo $divider;
-                    } else if (Configure::read('Plugin.CustomAuth_custom_password_reset')) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'custom_pw_reset',
-                            'url' => Configure::read('Plugin.CustomAuth_custom_password_reset'),
-                            'text' => __('Reset Password')
-                        ));
                     }
+
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',
                         'url' => $baseurl . '/users/view/me',
