@@ -2002,7 +2002,7 @@ class ServersController extends AppController
             'body' => empty($request['body']) ? '' : $request['body'],
             'url' => $request['url'],
             'http_method' => $request['method'],
-            'use_full_path' => $request['use_full_path'],
+            'use_full_path' => empty($request['use_full_path']) ? false : $request['use_full_path'],
             'show_result' => $request['show_result'],
             'skip_ssl' => $request['skip_ssl_validation'],
             'bookmark' => $request['bookmark'],
@@ -2010,9 +2010,9 @@ class ServersController extends AppController
             'timestamp' => $date->getTimestamp()
         );
         if (!empty($request['url'])) {
-            if (empty($request['use_full_path'])) {
+            if (empty($request['use_full_path']) || empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
                 $path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
-                $url = Configure::read('MISP.baseurl') . $path;
+                $url = empty(Configure::read('Security.rest_client_baseurl')) ? (Configure::read('MISP.baseurl') . $path) : (Configure::read('Security.rest_client_baseurl') . $path);
                 unset($request['url']);
             } else {
                 $url = $request['url'];
@@ -2082,6 +2082,7 @@ class ServersController extends AppController
         }
         $view_data['duration'] = microtime(true) - $start;
         $view_data['duration'] = round($view_data['duration'] * 1000, 2) . 'ms';
+        $view_data['url'] = $url;
         $view_data['code'] =  $response->code;
         $view_data['headers'] = $response->headers;
         if (!empty($request['show_result'])) {
