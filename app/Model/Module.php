@@ -289,7 +289,7 @@ class Module extends AppModel
     {
         $modules = $this->getModules($moduleFamily);
         $result = array();
-        if (!empty($modules)) {
+        if (is_array($modules)) {
             foreach ($modules as $module) {
                 if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
                     $moduleSettings = [
