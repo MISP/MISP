@@ -34,7 +34,7 @@
             }
             break;
     }
-    $full = $isAclTagger && $tagAccess && empty($static_tags_only);
+    $full = $isAclTagger && isset($tagAccess) && $tagAccess && empty($static_tags_only);
     $host_org_editor = (int)$me['org_id'] === Configure::read('MISP.host_org_id') && $isAclTagger && empty($static_tags_only);
     $tagData = "";
     foreach ($tags as $tag) {
