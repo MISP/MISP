@@ -89,7 +89,7 @@ class ObjectsController extends AppController
 
         if (isset($this->request->data['Attribute'])) {
             foreach ($this->request->data['Attribute'] as &$attribute) {
-                $validation = $this->MispObject->Attribute->validateAttribute($attribute);
+                $validation = $this->MispObject->Attribute->validateAttribute($attribute, false);
                 if ($validation !== true) {
                     $attribute['validation'] = $validation;
                 }

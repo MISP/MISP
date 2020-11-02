@@ -23,9 +23,9 @@ class LogsController extends AppController
     {
         parent::beforeFilter();
 
-        // permit reuse of CSRF tokens on the search page.
+        // No need for CSRF tokens for a search
         if ('admin_search' == $this->request->params['action']) {
-            $this->Security->csrfUseOnce = false;
+            $this->Security->csrfCheck = false;
         }
     }
 

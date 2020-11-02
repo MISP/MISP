@@ -6,6 +6,11 @@
         <button class="btn btn-small btn-primary" onclick="openGenericModal(baseurl + '/eventReports/add/<?= h($event_id) ?>')">
             <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add Event Report') ?>
         </button>
+        <?php if ($importModuleEnabled): ?>
+            <button class="btn btn-small btn-primary" onclick="openGenericModal(baseurl + '/eventReports/importReportFromUrl/<?= h($event_id) ?>')" title="<?= __('Content for this URL will be downloaded and converted to Mardown') ?>">
+                <i class="<?= $this->FontAwesome->getClass('link') ?>"></i> <?= __('Import from URL') ?>
+            </button>
+        <?php endif; ?>
     </div>
     <?php
         echo $this->element('/genericElements/IndexTable/index_table', array(
@@ -84,13 +89,6 @@
                         ),
                         'icon' => 'eye',
                         'dbclickAction' => true
-                    ),
-                    array(
-                        'url' => '/eventReports/edit',
-                        'url_params_data_paths' => array(
-                            'EventReport.id'
-                        ),
-                        'icon' => 'edit'
                     ),
                     array(
                         'title' => __('Delete'),

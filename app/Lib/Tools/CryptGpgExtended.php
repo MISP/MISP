@@ -1,6 +1,16 @@
 <?php
 class CryptGpgExtended extends Crypt_GPG
 {
+    public function __construct(array $options = array())
+    {
+        if (!method_exists($this, '_prepareInput')) {
+            $reflector = new \ReflectionClass('Crypt_GPG');
+            $classPath = $reflector->getFileName();
+            throw new Exception("Crypt_GPG class from '$classPath' is too old, at least version 1.6.1 is required.");
+        }
+        parent::__construct($options);
+    }
+
     /**
      * Export the smallest public key possible from the keyring.
      *

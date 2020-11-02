@@ -13,6 +13,7 @@ class EventReport extends AppModel
             'userKey' => 'user_id',
             'change' => 'full'
         ),
+        'Regexp' => array('fields' => array('value')),
     );
 
     public $validate = array(
@@ -518,5 +519,381 @@ class EventReport extends AppModel
             }
         }
         return $errors;
+    }
+
+    public function applySuggestions($user, $report, $contentWithSuggestions, $suggestionsMapping) {
+        $errors = [];
+        $replacedContent = $contentWithSuggestions;
+        $success = 0;
+        foreach ($suggestionsMapping as $value => $suggestedAttribute) {
+            $suggestedAttribute['value'] = $value;
+            $savedAttribute = $this->createAttributeFromSuggestion($user, $report, $suggestedAttribute);
+            if (empty($savedAttribute['errors'])) {
+                $success++;
+                $replacedContent = $this->applySuggestionsInText($replacedContent, $savedAttribute['attribute'], $value);
+            } else {
+                $replacedContent = $this->revertToOriginalInText($replacedContent, $value);
+                $errors[] = $savedAttribute['errors'];
+            }
+        }
+        if ($success > 0 || count($suggestionsMapping) == 0) {
+            $report['EventReport']['content'] = $replacedContent;
+            $editErrors = $this->editReport($user, $report, $report['EventReport']['event_id']);
+            if (!empty($editErrors)) {
+                $errors[] = $editErrors;
+            }
+        }
+        return $errors;
+    }
+    
+    public function applySuggestionsInText($contentWithSuggestions, $attribute, $value)
+    {
+        $textToBeReplaced = sprintf('@[suggestion](%s)', $value);
+        $textToInject = sprintf('@[attribute](%s)', $attribute['Attribute']['uuid']);
+        $replacedContent = str_replace($textToBeReplaced, $textToInject, $contentWithSuggestions);
+        return $replacedContent;
+    }
+
+    public function revertToOriginalInText($contentWithSuggestions, $value)
+    {
+        $textToBeReplaced = sprintf('@[suggestion](%s)', $value);
+        $textToInject = $value;
+        $replacedContent = str_replace($textToBeReplaced, $textToInject, $contentWithSuggestions);
+        return $replacedContent;
+    }
+
+    private function createAttributeFromSuggestion($user, $report, $suggestedAttribute)
+    {
+        $errors = [];
+        $attribute = [
+            'event_id' => $report['EventReport']['event_id'],
+            'distribution' => 5,
+            'category' => $suggestedAttribute['category'],
+            'type' => $suggestedAttribute['type'],
+            'value' => $suggestedAttribute['value'],
+            'to_ids' => $suggestedAttribute['to_ids'],
+        ];
+        $validationErrors = array();
+        $this->Event->Attribute->captureAttribute($attribute, $report['EventReport']['event_id'], $user, false, false, false, $validationErrors);
+        $savedAttribute = false;
+        if (!empty($validationErrors)) {
+            $errors = $validationErrors;
+        } else {
+            $savedAttribute = $this->Event->Attribute->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Attribute.id' => $this->Event->Attribute->id),
+            ));
+        }
+        return [
+            'errors' => $errors,
+            'attribute' => $savedAttribute
+        ];
+    }
+    
+    /**
+     * transformFreeTextIntoReplacement
+     *
+     * @param  array $user
+     * @param  array $report
+     * @param  array $complexTypeToolResult Uses the complex type tool output to support import regex replacements.
+     *                                      Another solution would be to run the regex replacement on each token of the report which is too heavy
+     * @return array
+     */
+    public function transformFreeTextIntoReplacement(array $user, array $report, array $complexTypeToolResult)
+    {
+        $complexTypeToolResultWithImportRegex = $this->injectImportRegexOnComplexTypeToolResult($complexTypeToolResult);
+        $valueToValueWithRegex = Hash::combine($complexTypeToolResultWithImportRegex, '{n}.valueWithImportRegex', '{n}.value');
+        $proxyElements = $this->getProxyMISPElements($user, $report['EventReport']['event_id']);
+        $originalContent = $report['EventReport']['content'];
+        $content = $originalContent;
+        $replacedValues = [];
+        foreach ($proxyElements['attribute'] as $uuid => $attribute) {
+            $count = 0;
+            $textToInject = sprintf('@[attribute](%s)', $uuid);
+            $content = str_replace($attribute['value'], $textToInject, $content, $count);
+            if ($count > 0 || strpos($originalContent, $attribute['value'])) { // Check if the value has been replaced by the first match
+                if (!isset($replacedValues[$attribute['value']])) {
+                    $replacedValues[$attribute['value']] = [
+                        'attributeUUIDs' => [$uuid],
+                        'valueInReport' => $attribute['value'],
+                    ];
+                } else {
+                    $replacedValues[$attribute['value']]['attributeUUIDs'][] = $uuid;
+                }
+                $count = 0;
+            }
+            if (isset($valueToValueWithRegex[$attribute['value']]) && $valueToValueWithRegex[$attribute['value']] != $attribute['value']) {
+                $content = str_replace($valueToValueWithRegex[$attribute['value']], $textToInject, $content, $count);
+                if ($count > 0 || strpos($originalContent, $valueToValueWithRegex[$attribute['value']])) {
+                    if (!isset($replacedValues[$attribute['value']])) {
+                        $replacedValues[$attribute['value']] = [
+                            'attributeUUIDs' => [$uuid],
+                            'valueInReport' => $valueToValueWithRegex[$attribute['value']],
+                        ];
+                    } else {
+                        $replacedValues[$attribute['value']]['attributeUUIDs'][] = $uuid;
+                    }
+                }
+            }
+        }
+        return [
+            'contentWithReplacements' => $content,
+            'replacedValues' => $replacedValues
+        ];
+    }
+
+    public function transformFreeTextIntoSuggestion($content, $complexTypeToolResult)
+    {
+        $replacedContent = $content;
+        $suggestionsMapping = [];
+        $typeToCategoryMapping = $this->Event->Attribute->typeToCategoryMapping();
+        foreach ($complexTypeToolResult as $i => $complexTypeToolEntry) {
+            $textToBeReplaced = $complexTypeToolEntry['value'];
+            $textToInject = sprintf('@[suggestion](%s)', $textToBeReplaced);
+            $suggestionsMapping[$textToBeReplaced] = [
+                'category' => $typeToCategoryMapping[$complexTypeToolEntry['default_type']][0],
+                'type' => $complexTypeToolEntry['default_type'],
+                'value' => $textToBeReplaced,
+                'to_ids' => $complexTypeToolEntry['to_ids'],
+            ];
+            $replacedContent = str_replace($textToBeReplaced, $textToInject, $replacedContent);
+        }
+        return [
+            'contentWithSuggestions' => $replacedContent,
+            'suggestionsMapping' => $suggestionsMapping
+        ];
+    }
+
+    public function injectImportRegexOnComplexTypeToolResult($complexTypeToolResult) {
+        foreach ($complexTypeToolResult as $i => $complexTypeToolEntry) {
+            $transformedValue = $this->runRegexp($complexTypeToolEntry['default_type'], $complexTypeToolEntry['value']);
+            if ($transformedValue !== false) {
+                $complexTypeToolResult[$i]['valueWithImportRegex'] = $transformedValue;
+            }
+        }
+        return $complexTypeToolResult;
+    }
+
+    public function getComplexTypeToolResultFromReport($content)
+    {
+        App::uses('ComplexTypeTool', 'Tools');
+        $complexTypeTool = new ComplexTypeTool();
+        $this->Warninglist = ClassRegistry::init('Warninglist');
+        $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+        $complexTypeToolResult = $complexTypeTool->checkComplexRouter($content, 'freetext');
+        return $complexTypeToolResult;
+    }
+
+    public function getComplexTypeToolResultWithReplacements($user, $report)
+    {
+        $complexTypeToolResult = $this->getComplexTypeToolResultFromReport($report['EventReport']['content']);
+        $replacementResult = $this->transformFreeTextIntoReplacement($user, $report, $complexTypeToolResult);
+        $complexTypeToolResult = $this->getComplexTypeToolResultFromReport($replacementResult['contentWithReplacements']);
+        return [
+            'complexTypeToolResult' => $complexTypeToolResult,
+            'replacementResult' => $replacementResult,
+        ];
+    }
+    
+    /**
+     * extractWithReplacements Extract context information from report with special care for ATT&CK
+     *
+     * @param  array $user
+     * @param  array $report
+     * @return array
+     */
+    public function extractWithReplacements(array $user, array $report, array $options = [])
+    {
+        $baseOptions = [
+            'replace' => false,
+            'tags' => true,
+            'synonyms' => true,
+            'synonyms_min_characters' => 4,
+            'prune_deprecated' => true,
+            'attack' => true,
+        ];
+        $options = array_merge($baseOptions, $options);
+        $originalContent = $report['EventReport']['content'];
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $mitreAttackGalaxyId = $this->GalaxyCluster->Galaxy->getMitreAttackGalaxyId();
+        $clusterContain = ['Tag'];
+        $replacedContext = [];
+
+        if ($options['prune_deprecated']) {
+            $clusterContain['Galaxy'] = ['conditions' => ['Galaxy.namespace !=' => 'deprecated']];
+        }
+        if ($options['synonyms']) {
+            $clusterContain['GalaxyElement'] = ['conditions' => ['GalaxyElement.key' => 'synonyms']];
+        }
+        $clusterConditions = [];
+        if ($options['attack']) {
+            $clusterConditions = ['GalaxyCluster.galaxy_id !=' => $mitreAttackGalaxyId];
+        }
+        $clusters = $this->GalaxyCluster->find('all', [
+            'conditions' => $clusterConditions,
+            'contain' => $clusterContain
+        ]);
+
+        if ($options['tags']) {
+            $this->Tag = ClassRegistry::init('Tag');
+            $tags = $this->Tag->fetchUsableTags($user);
+            foreach ($tags as $i => $tag) {
+                $tagName = $tag['Tag']['name'];
+                $found = $this->isValidReplacementTag($originalContent, $tagName);
+                if ($found) {
+                    $replacedContext[$tagName][$tagName] = $tag['Tag'];
+                } else {
+                    $tagNameUpper = strtoupper($tagName);
+                    $found = $this->isValidReplacementTag($originalContent, $tagNameUpper);
+                    if ($found) {
+                        $replacedContext[$tagNameUpper][$tagName] = $tag['Tag'];
+                    }
+                }
+            }
+        }
+
+        foreach ($clusters as $i => $cluster) {
+            $cluster['GalaxyCluster']['colour'] = '#0088cc';
+            $tagName = $cluster['GalaxyCluster']['tag_name'];
+            $found = $this->isValidReplacementTag($originalContent, $tagName);
+            if ($found) {
+                $replacedContext[$tagName][$tagName] = $cluster['GalaxyCluster'];
+            }
+            $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
+            $found = strpos($originalContent, $toSearch) !== false;
+            if ($found) {
+                $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
+            }
+            if ($options['synonyms']) {
+                foreach ($cluster['GalaxyElement'] as $j => $element) {
+                    if (strlen($element['value']) >= $options['synonyms_min_characters']) {
+                        $toSearch = ' ' . $element['value'] . ' ';
+                        $found = strpos($originalContent, $toSearch) !== false;
+                        if ($found) {
+                            $replacedContext[$element['value']][$tagName] = $cluster['GalaxyCluster'];
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($options['attack']) {
+            unset($clusterContain['Galaxy']);
+            $attackClusters = $this->GalaxyCluster->find('all', [
+                'conditions' => ['GalaxyCluster.galaxy_id' => $mitreAttackGalaxyId],
+                'contain' => $clusterContain
+            ]);
+            foreach ($attackClusters as $i => $cluster) {
+                $cluster['GalaxyCluster']['colour'] = '#0088cc';
+                $tagName = $cluster['GalaxyCluster']['tag_name'];
+                $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
+                $found = strpos($originalContent, $toSearch) !== false;
+                if ($found) {
+                    $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
+                } else {
+                    $clusterParts = explode(' - ', $cluster['GalaxyCluster']['value'], 2);
+                    $toSearch = ' ' . $clusterParts[0] . ' ';
+                    $found = strpos($originalContent, $toSearch) !== false;
+                    if ($found) {
+                        $replacedContext[$clusterParts[0]][$tagName] = $cluster['GalaxyCluster'];
+                    } else {
+                        $toSearch = ' ' . $clusterParts[1] . ' ';
+                        $found = strpos($originalContent, $toSearch) !== false;
+                        if ($found) {
+                            $replacedContext[$clusterParts[1]][$tagName] = $cluster['GalaxyCluster'];
+                        }
+                    }
+                }
+            }
+        }
+        $toReturn = [
+            'replacedContext' => $replacedContext
+        ];
+        if ($options['replace']) {
+            $content = $originalContent;
+            foreach ($replacedContext as $rawText => $replacements) {
+                // Replace with first one until a better strategy is found
+                reset($replacements);
+                $replacement = key($replacements);
+                $textToInject = sprintf('@[tag](%s)', $replacement);
+                $content = str_replace($rawText, $textToInject, $content);
+            }
+            $toReturn['contentWithReplacements'] = $content;
+        }
+        return $toReturn;
+    }
+
+    public function downloadMarkdownFromURL($event_id, $url)
+    {
+        $this->Module = ClassRegistry::init('Module');
+        $module = $this->isFetchURLModuleEnabled();
+        if (!is_array($module)) {
+            return false;
+        }
+        $modulePayload = [
+            'module' => $module['name'],
+            'event_id' => $event_id,
+            'url' => $url
+        ];
+        $module = $this->isFetchURLModuleEnabled();
+        if (!empty($module)) {
+            $result = $this->Module->queryModuleServer($modulePayload, false);
+            if (empty($result['results'][0]['values'][0])) {
+                return '';
+            }
+            return $result['results'][0]['values'][0];
+        }
+        return false;
+    }
+
+    public function isFetchURLModuleEnabled() {
+        $this->Module = ClassRegistry::init('Module');
+        $module = $this->Module->getEnabledModule('html_to_markdown', 'expansion');
+        return !empty($module) ? $module : false;
+    }
+
+    /**
+     * findValidReplacementTag Search if tagName is in content and is not wrapped in a tag reference
+     *
+     * @param  string $content
+     * @param  string $tagName
+     * @return bool
+     */
+    private function isValidReplacementTag($content, $tagName)
+    {
+        $lastIndex = 0;
+        $allIndices = [];
+        $toSearch = strpos($tagName, ':') === false ? ' ' . $tagName . ' ' : $tagName;
+        while (($lastIndex = strpos($content, $toSearch, $lastIndex)) !== false) {
+            $allIndices[] = $lastIndex;
+            $lastIndex = $lastIndex + strlen($toSearch);
+        }
+        if (empty($allIndices)) {
+            return false;
+        } else {
+            $wrapper = '@[tag](';
+            foreach ($allIndices as $i => $index) {
+                $stringBeforeTag = substr($content, $index - strlen($wrapper), strlen($wrapper));
+                if ($stringBeforeTag != $wrapper) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    public function attachTagsAfterReplacements($user, $replacedContext, $eventId)
+    {
+        $this->EventTag = ClassRegistry::init('EventTag');
+        foreach ($replacedContext as $rawText => $tagNames) {
+            // Replace with first one until a better strategy is found
+            reset($tagNames);
+            $tagName = key($tagNames);
+            $tagId = $this->EventTag->Tag->lookupTagIdFromName($tagName);
+            if ($tagId === -1) {
+                $tagId = $this->EventTag->Tag->captureTag(['name' => $tagName], $user);
+            }
+            $this->EventTag->attachTagToEvent($eventId, $tagId);
+        }
     }
 }
