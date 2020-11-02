@@ -643,8 +643,10 @@ class MispObject extends AppModel
         return $template;
     }
 
-    /*
+    /**
      * Clean the attribute list up from artifacts introduced by the object form
+     * @param array $attributes
+     * @return string|array
      */
     public function attributeCleanup($attributes)
     {
