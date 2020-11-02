@@ -1511,6 +1511,11 @@ class EventsController extends AppController
 
     public function view($id = null, $continue = false, $fromEvent = null)
     {
+        if ($this->request->is('head')) { // Just check if event exists
+            $exists = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['fields' => ['id']]);
+            return new CakeResponse(['status' => $exists ? 200 : 404]);
+        }
+
         if (is_numeric($id)) {
             $conditions = array('eventid' => $id);
         } else if (Validation::uuid($id)) {
