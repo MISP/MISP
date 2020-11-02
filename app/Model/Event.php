@@ -4054,12 +4054,14 @@ class Event extends AppModel
 
         // reposition to get the event.id with given uuid
         if (isset($data['Event']['uuid'])) {
-            $existingEvent = $this->findByUuid($data['Event']['uuid']);
+            $conditions = ['Event.uuid' => $data['Event']['uuid']];
         } elseif ($id) {
-            $existingEvent = $this->findById($id);
+            $conditions = ['Event.id' => $id];
         } else {
             throw new InvalidArgumentException("No event UUID or ID provided.");
         }
+        $existingEvent = $this->find('first', ['conditions' => $conditions, 'recursive' => -1]);
+
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
             $server = $this->Server->find('first', array(
