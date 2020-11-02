@@ -1309,6 +1309,23 @@ class Server extends AppModel
                                 'editable' => false,
                                 'redacted' => true
                         ),
+                        'rest_client_enable_arbitrary_urls' => array(
+                            'level' => 0,
+                            'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via the rest client. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
+                        'rest_client_baseurl' => array(
+                            'level' => 1,
+                            'description' => __('If left empty, the baseurl of your MISP is used. However, in some instances (such as port-forwarded VM installations) this will not work. You can override the baseurl with a url through which your MISP can reach itself (typically https://127.0.0.1 would work).'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => null,
+                            'type' => 'string',
+                        ),
                         'syslog' => array(
                             'level' => 0,
                             'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
