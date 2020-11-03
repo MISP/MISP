@@ -2,10 +2,16 @@
     if (empty($scope)) {
         $scope = 'event';
     }
-    $searchUrl = '/events/index/searchtag:';
+    $full = $isAclTagger && isset($tagAccess) && $tagAccess && empty($static_tags_only);
     switch ($scope) {
         case 'event':
-            $id = h($event['Event']['id']);
+            if ($full) {
+                if (!isset($event['Event']['id'])) {
+                    throw new InvalidArgumentException("Scope is event, but event is not defined.");
+                }
+                $id = h($event['Event']['id']);
+            }
+            $searchUrl = '/events/index/searchtag:';
             if (!empty($required_taxonomies)) {
                 foreach ($required_taxonomies as $k => $v) {
                     foreach ($tags as $tag) {
@@ -20,7 +26,7 @@
                 }
                 if (!empty($required_taxonomies)) {
                     echo sprintf(
-                        'Missing taxonomies: <span class="red bold">%s</span><br />',
+                        'Missing taxonomies: <span class="red bold">%s</span><br>',
                         implode(', ', $required_taxonomies)
                     );
                 }
@@ -33,8 +39,10 @@
                 $searchUrl = sprintf("/servers/previewIndex/%s/searchtag:", h($server['Server']['id']));
             }
             break;
+        default:
+            throw new InvalidArgumentException("Invalid scope '$scope' provided, should be 'event' or 'attribute'.");
     }
-    $full = $isAclTagger && $tagAccess && empty($static_tags_only);
+
     $host_org_editor = (int)$me['org_id'] === Configure::read('MISP.host_org_id') && $isAclTagger && empty($static_tags_only);
     $tagData = "";
     foreach ($tags as $tag) {
@@ -192,4 +200,4 @@
         $tagConflictData .= '</div></div></span>';
     }
     echo $tagConflictData;
-?>
+
