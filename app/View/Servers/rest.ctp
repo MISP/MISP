@@ -65,10 +65,12 @@
         ?>
         <div class="input clear" style="width:100%;" />
         <?php
-            echo $this->Form->input('use_full_path', array(
-                'label' => __('Use full path - disclose my apikey'),
-                'type' => 'checkbox'
-            ));
+            if (!empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
+                echo $this->Form->input('use_full_path', array(
+                    'label' => __('Use full path - disclose my apikey'),
+                    'type' => 'checkbox'
+                ));
+            }
             echo $this->Form->input('bookmark', array(
                 'label' => __('Bookmark query'),
                 'type' => 'checkbox',
@@ -156,9 +158,9 @@
             }
             echo '</div>';
         }
-
         if (!empty($data['data'])):
             echo sprintf('<h3>%s</h3>', __('Response'));
+            echo sprintf('<div><span class="bold">%s</span>: %s</div>', __('Queried URL'), h($data['url']));
             echo sprintf('<div><span class="bold">%s</span>: %d</div>', __('Response code'), h($data['code']));
             echo sprintf('<div><span class="bold">%s</span>: %s</div>', __('Request duration'), h($data['duration']));
             echo sprintf('<div class="bold">%s</div>', __('Headers'));

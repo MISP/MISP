@@ -293,13 +293,6 @@ class StixParser():
             print(f'More than one {main_type} objects in this observable: {observable}', file=sys.stderr)
         return main_objects[0] if main_objects else None, references
 
-    def _get_tag_names_from_synonym(self, name):
-        try:
-            return self._synonyms_to_tag_names[name]
-        except TypeError:
-            self._load_synonyms_to_tag_names()
-            return self._synonyms_to_tag_names[name]
-
     @staticmethod
     def getTimestampfromDate(date):
         try:
@@ -1139,6 +1132,13 @@ class StixFromMISPParser(StixParser):
     def get_misp_type(labels):
         return labels[0].split('=')[1].strip('"')
 
+    def _get_tag_names_from_synonym(self, name):
+        try:
+            return self._synonyms_to_tag_names[name]
+        except TypeError:
+            self._load_synonyms_to_tag_names()
+            return self._synonyms_to_tag_names[name]
+
     @staticmethod
     def parse_attribute_pattern(pattern):
         if ' AND ' in pattern:
@@ -1203,8 +1203,13 @@ class ExternalStixParser(StixParser):
         self.handle_markings()
 
     def parse_galaxy(self, galaxy):
-        if galaxy.name in self._synonyms_to_tag_names:
-            return self._synonyms_to_tag_names[galaxy.name]
+        try:
+            galaxy_name = self._check_existing_galaxy_name(galaxy.name)
+        except AttributeError:
+            self._load_synonyms_to_tag_names()
+            galaxy_name = self._check_existing_galaxy_name(galaxy.name)
+        if galaxy_name:
+            return galaxy_name
         return [f'misp-galaxy:{galaxy._type}="{galaxy.name}"']
 
     def _parse_indicator(self, indicator):
@@ -1959,6 +1964,14 @@ class ExternalStixParser(StixParser):
                 })
                 attribute.update(tmp_attribute)
                 self.misp_event.add_attribute(**attribute)
+
+    def _check_existing_galaxy_name(self, galaxy_name):
+        if galaxy_name in self._synonyms_to_tag_names:
+            return self._synonyms_to_tag_names[galaxy_name]
+        for name, tag_names in self._synonyms_to_tag_names.items():
+            if galaxy_name in name:
+                return tag_names
+        return None
 
     def create_misp_object(self, stix_object, name=None):
         misp_object = MISPObject(name if name is not None else stix_object.type,
