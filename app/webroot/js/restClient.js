@@ -167,6 +167,7 @@ function removeRestClientHistoryItem(id) {
         $('#showQB').click(function() {
             $('#qb-div').toggle();
             if ($('#TemplateSelect').val() !== '') {
+                $('#ServerUrl').val('')
                 $('#TemplateSelect').trigger("change");
             }
         });
@@ -228,7 +229,7 @@ function updateQueryTool(url, isEmpty) {
     var filtersJson = fieldsConstraint[url];
 
     isEmpty = isEmpty === undefined ? false : isEmpty;
-    var body = $('#ServerBody').val();
+    var body = cm.getValue();
     if (!isEmpty && body !== undefined && body.length > 0) {
         body = JSON.parse(body);
     } else {
@@ -304,13 +305,21 @@ function updateQueryTool(url, isEmpty) {
             values.forEach(function(value) {
                 var r = $.extend({}, filtersJson[k], true);
                 r.value = value;
-                rules.rules[0].rules.push(r);
+                if (mandatoryFields !== undefined && mandatoryFields.length > 0) {
+                    rules.rules[0].rules.push(r);
+                } else {
+                    rules.rules.push(r);
+                }
             });
         } else {
             var r = filtersJson[k];
             if (r !== undefined) { // rule is not defined in the description
                 r.value = values;
-                rules.rules[0].rules.push(r);
+                if (mandatoryFields !== undefined && mandatoryFields.length > 0) {
+                    rules.rules[0].rules.push(r);
+                } else {
+                    rules.rules.push(r);
+                }
             }
         }
     });
