@@ -188,13 +188,29 @@
 
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'rest'));
-    echo $this->Html->script('doT');
-    echo $this->Html->script('extendext');
-    echo $this->Html->script('moment-with-locales');
-    echo $this->Html->css('query-builder.default');
-    echo $this->Html->script('query-builder');
-    echo $this->Html->script('FileSaver');
-    echo $this->Html->script('restClient');
+    echo $this->element('genericElements/assetLoader', array(
+        'js' => array(
+            'moment-with-locales',
+            'extendext',
+            'doT',
+            'query-builder',
+            'FileSaver',
+            'restClient',
+            'codemirror/codemirror',
+            'codemirror/modes/javascript',
+            'codemirror/addons/show-hint',
+            'codemirror/addons/closebrackets',
+            'codemirror/addons/lint',
+            'codemirror/addons/jsonlint',
+            'codemirror/addons/json-lint',
+        ),
+        'css' => array(
+            'query-builder.default',
+            'codemirror',
+            'codemirror/show-hint',
+            'codemirror/lint',
+        )
+    ));
 ?>
 
 <script type="text/javascript">
@@ -204,5 +220,24 @@
         populate_rest_history('history');
         populate_rest_history('bookmark');
         toggleRestClientBookmark();
+        setupCodeMirror();
     });
 </script>
+
+<style>
+.CodeMirror-wrap {
+    border: 1px solid #cccccc;
+    width: 540px;
+    height: 130px;
+    margin-bottom: 10px;
+    resize: auto;
+}
+.cm-trailingspace {
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QUXCToH00Y1UgAAACFJREFUCNdjPMDBUc/AwNDAAAFMTAwMDA0OP34wQgX/AQBYgwYEx4f9lQAAAABJRU5ErkJggg==);
+    background-position: bottom left;
+    background-repeat: repeat-x;
+}
+.CodeMirror-gutters {
+    z-index: 2;
+}
+</style>
