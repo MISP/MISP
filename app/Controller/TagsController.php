@@ -41,6 +41,14 @@ class TagsController extends AppController
         if ($this->_isSiteAdmin()) {
             $this->paginate['contain']['User'] = array('fields' => array('id', 'email'));
         }
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => ['favouritesOnly', 'filter', 'searchall', 'name', 'search', 'exclude_statistics'],
+            'ordered_url_params' => @compact($paramArray)
+        );
+        $exception = false;
+        $passedArgsArray = $this->_harvestParameters($filterData, $exception);
         $taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
         $taxonomyNamespaces = array();
         if (!empty($taxonomies)) {
@@ -49,9 +57,8 @@ class TagsController extends AppController
             }
         }
         $taxonomyTags = array();
-        $passedArgsArray = array();
         $this->Event->recursive = -1;
-        if ($favouritesOnly) {
+        if (!empty($passedArgsArray['favouritesOnly'])) {
             $tag_id_list = $this->Tag->FavouriteTag->find('list', array(
                     'conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id')),
                     'fields' => array('FavouriteTag.tag_id')
@@ -61,19 +68,13 @@ class TagsController extends AppController
             }
             $this->paginate['conditions']['AND']['Tag.id'] = $tag_id_list;
         }
-        if (isset($this->params['named']['searchall'])) {
-            $passedArgsArray['all'] = $this->params['named']['searchall'];
-        } elseif ($this->request->is('post')) {
-            $validNames = array('filter', 'searchall', 'name', 'search');
-            foreach ($validNames as $vn) {
-                if (!empty($this->request->data[$vn])) {
-                    $passedArgsArray['all'] = $this->request->data[$vn];
-                    continue;
-                }
-            }
+        if (!empty($passedArgsArray['searchall'])) {
+            $this->paginate['conditions']['AND'][] = ['LOWER(Tag.name) LIKE' => '%' . strtolower($passedArgsArray['searchall']) . '%'];
         }
-        if (!empty($passedArgsArray['all'])) {
-            $this->paginate['conditions']['AND']['LOWER(Tag.name) LIKE'] = '%' . strtolower($passedArgsArray['all']) . '%';
+        foreach (['name', 'filter', 'search'] as $f) {
+            if (!empty($passedArgsArray['name'])) {
+                $this->paginate['conditions']['AND'][] = ['LOWER(Tag.name)' => strtolower($passedArgsArray[$f])];
+            }
         }
         if ($this->_isRest()) {
             unset($this->paginate['limit']);
@@ -81,6 +82,11 @@ class TagsController extends AppController
             unset($this->paginate['contain']['AttributeTag']);
             $paginated = $this->Tag->find('all', $this->paginate);
         } else {
+            if (!empty($passedArgsArray['exclude_statistics'])) {
+                unset($this->paginate['contain']['EventTag']);
+                unset($this->paginate['contain']['AttributeTag']);
+                $this->set('exclude_statistics', true);
+            }
             $paginated = $this->paginate();
         }
         $tagList = array();
@@ -88,20 +94,22 @@ class TagsController extends AppController
         $sgs = $this->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
         foreach ($paginated as $k => $tag) {
             $tagList[] = $tag['Tag']['id'];
-            $paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
-            if (!$this->_isRest()) {
-                $paginated[$k]['event_ids'] = array();
-                $paginated[$k]['attribute_ids'] = array();
-                foreach ($paginated[$k]['EventTag'] as $et) {
-                    $paginated[$k]['event_ids'][] = $et['event_id'];
+            if (empty($passedArgsArray['exclude_statistics'])) {
+                $paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
+                if (!$this->_isRest()) {
+                    $paginated[$k]['event_ids'] = array();
+                    $paginated[$k]['attribute_ids'] = array();
+                    foreach ($paginated[$k]['EventTag'] as $et) {
+                        $paginated[$k]['event_ids'][] = $et['event_id'];
+                    }
+                    unset($paginated[$k]['EventTag']);
+                    foreach ($paginated[$k]['AttributeTag'] as $at) {
+                        $paginated[$k]['attribute_ids'][] = $at['attribute_id'];
+                    }
+                    unset($paginated[$k]['AttributeTag']);
                 }
-                unset($paginated[$k]['EventTag']);
-                foreach ($paginated[$k]['AttributeTag'] as $at) {
-                    $paginated[$k]['attribute_ids'][] = $at['attribute_id'];
-                }
-                unset($paginated[$k]['AttributeTag']);
+                $paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
             }
-            $paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
             if (!empty($tag['FavouriteTag'])) {
                 foreach ($tag['FavouriteTag'] as $ft) {
                     if ($ft['user_id'] == $this->Auth->user('id')) {
@@ -128,7 +136,7 @@ class TagsController extends AppController
                 }
             }
         }
-        if (!$this->_isRest()) {
+        if (!$this->_isRest() && empty($passedArgsArray['exclude_statistics'])) {
             $this->loadModel('Sighting');
             $sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList);
             $sightings['attribute'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList, 'attribute');
@@ -152,13 +160,13 @@ class TagsController extends AppController
                     $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
                     $to = date('Y-m-d', time());
                     for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
-                        if (!isset($csv[$k])) {
-                            $csv[$k] = 'Date,Close\n';
+                        if (!isset($paginated[$k]['Tag']['csv'])) {
+                            $paginated[$k]['Tag']['csv'] = 'Date,Close\n';
                         }
                         if (isset($tag['sightings'][$date])) {
-                            $csv[$k] .= $date . ',' . $tag['sightings'][$date] . '\n';
+                            $paginated[$k]['Tag']['csv'] .= $date . ',' . $tag['sightings'][$date] . '\n';
                         } else {
-                            $csv[$k] .= $date . ',0\n';
+                            $paginated[$k]['Tag']['csv'] .= $date . ',0\n';
                         }
                     }
                 }

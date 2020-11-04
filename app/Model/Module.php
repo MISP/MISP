@@ -160,7 +160,7 @@ class Module extends AppModel
             return 'The requested module is not enabled.';
         }
         if (is_array($modules)) {
-            foreach ($modules['modules'] as $module) {
+            foreach ($modules as $module) {
                 if ($module['name'] == $name) {
                     if ($type && in_array(strtolower($type), $module['meta']['module-type'])) {
                         return $module;
@@ -289,7 +289,7 @@ class Module extends AppModel
     {
         $modules = $this->getModules($moduleFamily);
         $result = array();
-        if (!empty($modules)) {
+        if (is_array($modules)) {
             foreach ($modules as $module) {
                 if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
                     $moduleSettings = [

@@ -10,7 +10,10 @@
         if (is_array($field['url_params_data_paths'])) {
             $temp = array();
             foreach ($field['url_params_data_paths'] as $path) {
-                $temp[] = h(Hash::extract($row, $path)[0]);
+                $extracted_value = Hash::extract($row, $path);
+                if (!empty($extracted_value)) {
+                    $temp[] = h($extracted_value[0]);
+                }
             }
             $url_param_data_paths = implode('/', $temp);
         } else {

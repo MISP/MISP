@@ -155,6 +155,13 @@ function initCodeMirror() {
     }
     if (typeof cmCustomHints === 'function') {
         cmOptions['hintOptions']['hint'] = cmCustomHints
+        // cmOptions['hintOptions']['hint'] = function (cm, options) {
+        //     var result = cmCustomHints(cm, options);
+        //     if (result) {
+        //       CodeMirror.on(result, 'shown', function() {})
+        //     }
+        //     return result;
+        // }
     }
     cm = CodeMirror.fromTextArea($editor[0], cmOptions);
     cm.on('changes', function(cm, event) {
@@ -365,12 +372,13 @@ function setEditorData(data) {
     cm.setValue(data)
 }
 
-function saveMarkdown() {
+function saveMarkdown(confirmSave, callback) {
+    confirmSave = confirmSave === undefined ? true : confirmSave
     if (modelNameForSave === undefined || markdownModelFieldNameForSave === undefined) {
         console.log('Model or field not defined. Save not possible')
         return
     }
-    if (!confirm(saveConfirmMessage)) {
+    if (confirmSave && !confirm(saveConfirmMessage)) {
         return
     }
     var url = baseurl + "/eventReports/edit/" + reportid
@@ -404,11 +412,19 @@ function saveMarkdown() {
                 $('#temp').remove();
                 toggleLoadingInSaveButton(false)
                 $editor.prop('disabled', false);
+                if (callback !== undefined) {
+                    callback()
+                }
             },
             type:"post",
             url: formUrl
         })
     })
+}
+
+function cancelEdit() {
+    setEditorData(originalRaw);
+    setMode('viewer')
 }
 
 function downloadMarkdown(type) {
@@ -573,6 +589,10 @@ function baseReplacementAction(action) {
         cm.setCursor(setCursorTo.line, setCursorTo.ch)
     }
     cm.focus()
+}
+
+function setCMReadOnly(readonly) {
+    cm.setOption('readOnly', readonly)
 }
 
 function insertTopToolbarSection() {
