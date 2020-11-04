@@ -1511,6 +1511,11 @@ class EventsController extends AppController
 
     public function view($id = null, $continue = false, $fromEvent = null)
     {
+        if ($this->request->is('head')) { // Just check if event exists
+            $exists = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['fields' => ['id']]);
+            return new CakeResponse(['status' => $exists ? 200 : 404]);
+        }
+
         if (is_numeric($id)) {
             $conditions = array('eventid' => $id);
         } else if (Validation::uuid($id)) {
@@ -1917,7 +1922,8 @@ class EventsController extends AppController
                             throw new ForbiddenException(__('Event blocked by local blocklist.'));
                         }
                         // REST users want to see the newly created event
-                        $results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $created_id));
+                        $metadata = $this->request->param('named.metadata');
+                        $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $created_id, 'metadata' => $metadata]);
                         $event = $results[0];
                         if (!empty($validationErrors)) {
                             $event['errors'] = $validationErrors;
@@ -2292,7 +2298,8 @@ class EventsController extends AppController
                 $result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id);
                 if ($result === true) {
                     // REST users want to see the newly created event
-                    $results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+                    $metadata = $this->request->param('named.metadata');
+                    $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id, 'metadata' => $metadata]);
                     $event = $results[0];
                     $this->set('event', $event);
                     $this->render('view');
@@ -2300,8 +2307,6 @@ class EventsController extends AppController
                 } else {
                     $message = 'Error';
                     if ($this->_isRest()) {
-                        App::uses('JSONConverterTool', 'Tools');
-                        $converter = new JSONConverterTool();
                         if (isset($result['error'])) {
                             $errors = $result['error'];
                         } else {
