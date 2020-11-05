@@ -5633,4 +5633,53 @@ class EventsController extends AppController
             $this->redirect(['action' => 'restoreDeletedEvents']);
         }
     }
+
+    public function runTaxonomyExclusivityCheck($id)
+    {
+        $conditions = [];
+        if (is_numeric($id)) {
+            $conditions = array('eventid' => $id);
+        } else if (Validation::uuid($id)) {
+            $conditions = array('event_uuid' => $id);
+        } else {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $conditions['excludeLocalTags'] = false;
+        $conditions['excludeGalaxy'] = true;
+        $event = $this->Event->fetchEvent($this->Auth->user(), $conditions);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $event = $event[0];
+        $this->loadModel('Taxonomy');
+        $allConflicts = [];
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
+        if (!empty($tagConflicts['global']) || !empty($tagConflicts['local'])) {
+            $tagConflicts['Event'] = $event['Event'];
+            $allConflicts[] = $tagConflicts;
+        }
+        foreach ($event['Object'] as $k => $object) {
+            if (isset($object['Attribute'])) {
+                foreach ($object['Attribute'] as $k2 => $attribute) {
+                    $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
+                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                    if (!empty($tagConflicts['global']) || !empty($tagConflicts['local'])) {
+                        $tagConflicts['Attribute'] = $event['Object'][$k]['Attribute'][$k2];
+                        unset($tagConflicts['Attribute']['AttributeTag'], $tagConflicts['Attribute']['Galaxy'], $tagConflicts['Attribute']['ShadowAttribute']);
+                        $allConflicts[] = $tagConflicts;
+                    }
+                }
+            }
+        }
+        foreach ($event['Attribute'] as $k => $attribute) {
+            $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
+            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+            if (!empty($tagConflicts['global']) || !empty($tagConflicts['local'])) {
+                $tagConflicts['Attribute'] = $event['Attribute'][$k];
+                unset($tagConflicts['Attribute']['AttributeTag'], $tagConflicts['Attribute']['Galaxy'], $tagConflicts['Attribute']['ShadowAttribute']);
+                $allConflicts[] = $tagConflicts;
+            }
+        }
+        return $this->RestResponse->viewData($allConflicts);
+    }
 }
