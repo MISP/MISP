@@ -2715,6 +2715,7 @@ class AppModel extends Model
             $temp = explode('&&', $filter);
             $filter = array();
             foreach ($temp as $f) {
+                $f = strval($f);
                 if ($f[0] === '!') {
                     $filter['NOT'][] = substr($f, 1);
                 } else {
@@ -2726,6 +2727,7 @@ class AppModel extends Model
         if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
             $temp = array();
             foreach ($filter as $param) {
+                $param = strval($param);
                 if (!empty($param)) {
                     if ($param[0] === '!') {
                         $temp['NOT'][] = substr($param, 1);
