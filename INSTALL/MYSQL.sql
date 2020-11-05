@@ -214,10 +214,10 @@ CREATE TABLE IF NOT EXISTS `events` (
 -- -------------------------------------------------------
 
 --
--- Table structure for `event_blacklists`
+-- Table structure for `event_blocklists`
 --
 
-CREATE TABLE IF NOT EXISTS `event_blacklists` (
+CREATE TABLE IF NOT EXISTS `event_blocklists` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `created` datetime NOT NULL,
@@ -541,10 +541,10 @@ KEY `type` (`type`)
 -- -------------------------------------------------------
 
 --
--- Table structure for `org_blacklists`
+-- Table structure for `org_blocklists`
 --
 
-CREATE TABLE IF NOT EXISTS `org_blacklists` (
+CREATE TABLE IF NOT EXISTS `org_blocklists` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `created` datetime NOT NULL,
@@ -704,7 +704,7 @@ CREATE TABLE IF NOT EXISTS `organisations` (
   INDEX `name` (`name`(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
-CREATE TABLE IF NOT EXISTS `org_blacklists` (
+CREATE TABLE IF NOT EXISTS `org_blocklists` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `created` datetime NOT NULL,
@@ -1339,10 +1339,10 @@ CREATE TABLE IF NOT EXISTS `warninglist_types` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `whitelist`
+-- Table structure for table `allowedlist`
 --
 
-CREATE TABLE IF NOT EXISTS `whitelist` (
+CREATE TABLE IF NOT EXISTS `allowedlist` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`)
@@ -1547,6 +1547,6 @@ INSERT IGNORE INTO `template_element_texts` (`id`, `name`, `template_element_id`
 (11, 'Persistence mechanism', 41, 'The following fields allow you to describe the persistence mechanism used by the malware'),
 (12, 'Indicators', 45, 'Just paste your list of indicators based on type into the appropriate field. All of the fields are optional, so inputting a list of IP addresses into the Network indicator field for example is sufficient to complete this template.');
 
-INSERT IGNORE INTO `org_blacklists` (`org_uuid`, `created`, `org_name`, `comment`) VALUES
+INSERT IGNORE INTO `org_blocklists` (`org_uuid`, `created`, `org_name`, `comment`) VALUES
 ('58d38339-7b24-4386-b4b4-4c0f950d210f', NOW(), 'Setec Astrononomy', 'default example'),
 ('58d38326-eda8-443a-9fa8-4e12950d210f', NOW(), 'Acme Finance', 'default example');

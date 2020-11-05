@@ -186,10 +186,10 @@ ALTER SEQUENCE public.correlations_id_seq OWNED BY public.correlations.id;
 
 
 --
--- Name: event_blacklists; Type: TABLE; Schema: public; Owner: -
+-- Name: event_blocklists; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.event_blacklists (
+CREATE TABLE public.event_blocklists (
     id bigint NOT NULL,
     event_uuid character varying(40) NOT NULL,
     created timestamp with time zone NOT NULL,
@@ -200,10 +200,10 @@ CREATE TABLE public.event_blacklists (
 
 
 --
--- Name: event_blacklists_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: event_blocklists_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.event_blacklists_id_seq
+CREATE SEQUENCE public.event_blocklists_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -212,10 +212,10 @@ CREATE SEQUENCE public.event_blacklists_id_seq
 
 
 --
--- Name: event_blacklists_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: event_blocklists_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.event_blacklists_id_seq OWNED BY public.event_blacklists.id;
+ALTER SEQUENCE public.event_blocklists_id_seq OWNED BY public.event_blocklists.id;
 
 
 --
@@ -967,10 +967,10 @@ ALTER SEQUENCE public.objects_id_seq OWNED BY public.objects.id;
 
 
 --
--- Name: org_blacklists; Type: TABLE; Schema: public; Owner: -
+-- Name: org_blocklists; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.org_blacklists (
+CREATE TABLE public.org_blocklists (
     id bigint NOT NULL,
     org_uuid character varying(40) NOT NULL,
     created timestamp with time zone NOT NULL,
@@ -980,10 +980,10 @@ CREATE TABLE public.org_blacklists (
 
 
 --
--- Name: org_blacklists_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: org_blocklists_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.org_blacklists_id_seq
+CREATE SEQUENCE public.org_blocklists_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -992,10 +992,10 @@ CREATE SEQUENCE public.org_blacklists_id_seq
 
 
 --
--- Name: org_blacklists_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: org_blocklists_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.org_blacklists_id_seq OWNED BY public.org_blacklists.id;
+ALTER SEQUENCE public.org_blocklists_id_seq OWNED BY public.org_blocklists.id;
 
 
 --
@@ -2002,20 +2002,20 @@ ALTER SEQUENCE public.warninglists_id_seq OWNED BY public.warninglists.id;
 
 
 --
--- Name: whitelist; Type: TABLE; Schema: public; Owner: -
+-- Name: allowedlist; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.whitelist (
+CREATE TABLE public.allowedlist (
     id bigint NOT NULL,
     name text NOT NULL
 );
 
 
 --
--- Name: whitelist_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: allowedlist_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.whitelist_id_seq
+CREATE SEQUENCE public.allowedlist_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -2024,10 +2024,10 @@ CREATE SEQUENCE public.whitelist_id_seq
 
 
 --
--- Name: whitelist_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: allowedlist_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.whitelist_id_seq OWNED BY public.whitelist.id;
+ALTER SEQUENCE public.allowedlist_id_seq OWNED BY public.allowedlist.id;
 
 
 --
@@ -2059,10 +2059,10 @@ ALTER TABLE ONLY public.correlations ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
--- Name: event_blacklists id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: event_blocklists id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.event_blacklists ALTER COLUMN id SET DEFAULT nextval('public.event_blacklists_id_seq'::regclass);
+ALTER TABLE ONLY public.event_blocklists ALTER COLUMN id SET DEFAULT nextval('public.event_blocklists_id_seq'::regclass);
 
 
 --
@@ -2213,10 +2213,10 @@ ALTER TABLE ONLY public.objects ALTER COLUMN id SET DEFAULT nextval('public.obje
 
 
 --
--- Name: org_blacklists id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: org_blocklists id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_blacklists ALTER COLUMN id SET DEFAULT nextval('public.org_blacklists_id_seq'::regclass);
+ALTER TABLE ONLY public.org_blocklists ALTER COLUMN id SET DEFAULT nextval('public.org_blocklists_id_seq'::regclass);
 
 
 --
@@ -2416,10 +2416,10 @@ ALTER TABLE ONLY public.warninglists ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
--- Name: whitelist id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: allowedlist id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.whitelist ALTER COLUMN id SET DEFAULT nextval('public.whitelist_id_seq'::regclass);
+ALTER TABLE ONLY public.allowedlist ALTER COLUMN id SET DEFAULT nextval('public.allowedlist_id_seq'::regclass);
 
 
 --
@@ -2471,10 +2471,10 @@ ALTER TABLE ONLY public.events
 
 
 --
--- Name: event_blacklists idx_20709_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: event_blocklists idx_20709_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.event_blacklists
+ALTER TABLE ONLY public.event_blocklists
     ADD CONSTRAINT idx_20709_primary PRIMARY KEY (id);
 
 
@@ -2647,10 +2647,10 @@ ALTER TABLE ONLY public.organisations
 
 
 --
--- Name: org_blacklists idx_20940_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: org_blocklists idx_20940_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.org_blacklists
+ALTER TABLE ONLY public.org_blocklists
     ADD CONSTRAINT idx_20940_primary PRIMARY KEY (id);
 
 
@@ -2871,10 +2871,10 @@ ALTER TABLE ONLY public.warninglist_types
 
 
 --
--- Name: whitelist idx_21226_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: allowedlist idx_21226_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.whitelist
+ALTER TABLE ONLY public.allowedlist
     ADD CONSTRAINT idx_21226_primary PRIMARY KEY (id);
 
 
@@ -3071,14 +3071,14 @@ CREATE UNIQUE INDEX idx_20691_uuid ON public.events USING btree (uuid);
 -- Name: idx_20709_event_orgc; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_20709_event_orgc ON public.event_blacklists USING btree (event_orgc);
+CREATE INDEX idx_20709_event_orgc ON public.event_blocklists USING btree (event_orgc);
 
 
 --
 -- Name: idx_20709_event_uuid; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_20709_event_uuid ON public.event_blacklists USING btree (event_uuid);
+CREATE INDEX idx_20709_event_uuid ON public.event_blocklists USING btree (event_uuid);
 
 
 --

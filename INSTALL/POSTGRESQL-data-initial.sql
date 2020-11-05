@@ -65,10 +65,10 @@ COPY public.correlations (id, value, "1_event_id", "1_attribute_id", event_id, a
 
 
 --
--- Data for Name: event_blacklists; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: event_blocklists; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.event_blacklists (id, event_uuid, created, event_info, comment, event_orgc) FROM stdin;
+COPY public.event_blocklists (id, event_uuid, created, event_info, comment, event_orgc) FROM stdin;
 \.
 
 
@@ -243,10 +243,10 @@ COPY public.objects (id, name, "meta-category", description, template_uuid, temp
 
 
 --
--- Data for Name: org_blacklists; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: org_blocklists; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.org_blacklists (id, org_uuid, created, org_name, comment) FROM stdin;
+COPY public.org_blocklists (id, org_uuid, created, org_name, comment) FROM stdin;
 1	58d38339-7b24-4386-b4b4-4c0f950d210f	2018-11-27 06:22:00+00	Setec Astrononomy	default example
 2	58d38326-eda8-443a-9fa8-4e12950d210f	2018-11-27 06:22:00+00	Acme Finance	default example
 \.
@@ -610,10 +610,10 @@ COPY public.warninglists (id, name, type, description, version, enabled, warning
 
 
 --
--- Data for Name: whitelist; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: allowedlist; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.whitelist (id, name) FROM stdin;
+COPY public.allowedlist (id, name) FROM stdin;
 \.
 
 
@@ -646,10 +646,10 @@ SELECT pg_catalog.setval('public.correlations_id_seq', 1, true);
 
 
 --
--- Name: event_blacklists_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: event_blocklists_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.event_blacklists_id_seq', 1, true);
+SELECT pg_catalog.setval('public.event_blocklists_id_seq', 1, true);
 
 
 --
@@ -800,10 +800,10 @@ SELECT pg_catalog.setval('public.objects_id_seq', 1, true);
 
 
 --
--- Name: org_blacklists_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: org_blocklists_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.org_blacklists_id_seq', 2, true);
+SELECT pg_catalog.setval('public.org_blocklists_id_seq', 2, true);
 
 
 --
@@ -1003,10 +1003,10 @@ SELECT pg_catalog.setval('public.warninglists_id_seq', 1, true);
 
 
 --
--- Name: whitelist_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: allowedlist_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.whitelist_id_seq', 1, true);
+SELECT pg_catalog.setval('public.allowedlist_id_seq', 1, true);
 
 
 --
