@@ -68,7 +68,7 @@ class LogsController extends AppController
                 'request' => $this->request,
                 'named_params' => $this->params['named'],
                 'paramArray' => $paramArray,
-                'ordered_url_params' => compact($paramArray)
+                'ordered_url_params' => func_get_args()
             );
             $exception = false;
             $filters = $this->_harvestParameters($filterData, $exception);

@@ -1136,16 +1136,17 @@ class TagsController extends AppController
         $this->loadModel('GalaxyCluster');
         $conditions = array();
         if (!$strictTagNameOnly) {
+            $conditionsCluster = [];
             foreach ($tag as $k => $t) {
                 $tag[$k] = strtolower($t);
-                $conditions['OR'][] = array('LOWER(GalaxyCluster.value)' => $tag[$k]);
+                $conditionsCluster['OR'][] = array('LOWER(GalaxyCluster.value)' => $tag[$k]);
             }
             foreach ($tag as $k => $t) {
-                $conditions['OR'][] = array('AND' => array('GalaxyElement.key' => 'synonyms', 'LOWER(GalaxyElement.value) LIKE' => $t));
+                $conditionsCluster['OR'][] = array('AND' => array('GalaxyElement.key' => 'synonyms', 'LOWER(GalaxyElement.value) LIKE' => $t));
             }
             $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
                 'recursive' => -1,
-                'conditions' => $conditions,
+                'conditions' => $conditionsCluster,
                 'contain' => array('GalaxyCluster.tag_name')
             ));
             foreach ($elements as $element) {
@@ -1155,9 +1156,9 @@ class TagsController extends AppController
                 $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
             }
         } else {
-                foreach ($tag as $k => $t) {
-                    $conditions['OR'][] = array('Tag.name' => $t);
-                }
+            foreach ($tag as $k => $t) {
+                $conditions['OR'][] = array('Tag.name' => $t);
+            }
         }
         $tags = $this->Tag->find('all', array(
             'conditions' => $conditions,

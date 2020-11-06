@@ -321,7 +321,8 @@ class Sighting extends AppModel
             // if sighting with given uuid already exists and quit early
             $existing_sighting = $this->find('count', array(
                 'recursive' => -1,
-                'conditions' => array('uuid' => $sighting_uuid)
+                'conditions' => array('uuid' => $sighting_uuid),
+                'callbacks' => false,
             ));
             if ($existing_sighting) {
                 return 0;
@@ -351,7 +352,10 @@ class Sighting extends AppModel
                 }
             }
         }
-        $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions, 'flatten' => 1));
+        $attributes = $this->Attribute->fetchAttributesSimple($user, [
+            'conditions' => $conditions,
+            'fields' => ['Attribute.id', 'Attribute.event_id'],
+        ]);
         if (empty($attributes)) {
             return 'No valid attributes found that match the criteria.';
         }

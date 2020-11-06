@@ -550,7 +550,7 @@ class ObjectsController extends AppController
         }
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
-        $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements);
+        $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements, false);
         if ($this->MispObject->save($object)) {
             $this->MispObject->Event->unpublishEvent($object['Event']['id']);
             if ($seen_changed) {

@@ -796,21 +796,6 @@ class MispObject extends AppModel
                                     if (isset($newAttribute[$f]) && $newAttribute[$f] != $originalAttribute[$f]) {
                                         $different = true;
                                     }
-                                    // Set seen of object at attribute level
-                                    if (isset($forcedSeenOnElements['first_seen'])) {
-                                        $newAttribute['first_seen'] = $forcedSeenOnElements['first_seen'];
-                                        if ($newAttribute['object_relation'] == 'first-seen') {
-                                            // $newAttribute['value'] = $forcedSeenOnElements['first_seen'];
-                                        }
-                                        $different = true;
-                                    }
-                                    if (isset($forcedSeenOnElements['last_seen'])) {
-                                        $newAttribute['last_seen'] = $forcedSeenOnElements['last_seen'];
-                                        if ($newAttribute['object_relation'] == 'last-seen') {
-                                            // $newAttribute['value'] = $forcedSeenOnElements['last_seen'];
-                                        }
-                                        $different = true;
-                                    }
                                 }
                                 if ($different) {
                                     $newAttribute['id'] = $originalAttribute['id'];
@@ -832,13 +817,13 @@ class MispObject extends AppModel
                     $newAttribute['object_id'] = $object['Object']['id'];
                     // Set seen of object at attribute level
                     if (isset($forcedSeenOnElements['first_seen'])) {
-                        $newAttribute['first_seen'] = $forcedSeenOnElements['first_seen'];
+                        $newAttribute['first_seen'] = empty($newAttribute['first_seen']) ? $forcedSeenOnElements['first_seen'] : $newAttribute['first_seen'];
                         if ($newAttribute['object_relation'] == 'first-seen') {
                             $newAttribute['value'] = $forcedSeenOnElements['first_seen'];
                         }
                     }
                     if (isset($forcedSeenOnElements['last_seen'])) {
-                        $newAttribute['last_seen'] = $forcedSeenOnElements['last_seen'];
+                        $newAttribute['last_seen'] = empty($newAttribute['last_seen']) ? $forcedSeenOnElements['last_seen'] : $newAttribute['last_seen'];
                         if ($newAttribute['object_relation'] == 'last-seen') {
                             $newAttribute['value'] = $forcedSeenOnElements['last_seen'];
                         }

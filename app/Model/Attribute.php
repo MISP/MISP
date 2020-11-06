@@ -3249,13 +3249,20 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function fetchAttributesSimple($user, $options = array())
+    /**
+     * Fetches attributes that $user can see.
+     *
+     * @param array $user
+     * @param array $options
+     * @return array
+     */
+    public function fetchAttributesSimple(array $user, array $options = array())
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
             'fields' => array(),
             'recursive' => -1,
-            'contain' => array()
+            'contain' => ['Event', 'Object'], // by default include Event and Object, because it is required for conditions
         );
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
@@ -3266,14 +3273,13 @@ class Attribute extends AppModel
         if (isset($options['contain'])) {
             $params['contain'] = $options['contain'];
         }
-        $results = $this->find('all', array(
+        return $this->find('all', array(
             'conditions' => $params['conditions'],
             'recursive' => -1,
             'fields' => $params['fields'],
             'contain' => $params['contain'],
             'sort' => false
         ));
-        return $results;
     }
 
     // Method that fetches all attributes for the various exports
@@ -3941,7 +3947,7 @@ class Attribute extends AppModel
                 'value1 LIKE' => '%/%'
             ),
             'fields' => array('value1'),
-            'group' => 'value1', // return just unique value
+            'group' => array('value1', 'id'), // return just unique value
             'order' => false
         ));
     }
