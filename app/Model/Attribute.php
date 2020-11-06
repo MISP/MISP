@@ -3947,7 +3947,7 @@ class Attribute extends AppModel
                 'value1 LIKE' => '%/%'
             ),
             'fields' => array('value1'),
-            'group' => 'value1', // return just unique value
+            'group' => array('value1', 'id'), // return just unique value
             'order' => false
         ));
     }
