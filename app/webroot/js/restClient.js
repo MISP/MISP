@@ -475,8 +475,7 @@ function findMatchingHints(str, allHints) {
 
 function getCompletions(token, isJSONKey) {
     var hints = []
-    var url = $('#ServerUrl').val()
-    var url = '/attributes/restSearch'
+    var url = $('#TemplateSelect').val()
     if (allValidApis[url] === undefined) {
         return hints
     }
