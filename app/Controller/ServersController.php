@@ -2170,7 +2170,7 @@ misp.direct_call(relative_path, body)
             $curl = sprintf(
                 'curl \%s -d \'%s\' \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s -X POST %s',
                 PHP_EOL,
-                json_encode(json_decode($request['body']), true),
+                json_encode(json_decode($request['body'])),
                 PHP_EOL,
                 $request['header']['Authorization'],
                 PHP_EOL,
@@ -2189,9 +2189,11 @@ misp.direct_call(relative_path, body)
         $relative_path = $this->request->data['url'];
         $result = $this->RestResponse->getApiInfo($relative_path);
         if ($this->_isRest()) {
-            return $this->RestResponse->viewData($result, $this->response->type(), false, true);
+            if (!empty($result)) {
+                $result['api_info'] = $result;
+            }
+            return $this->RestResponse->viewData($result, $this->response->type());
         } else {
-            $result = json_decode($result, true);
             if (empty($result)) {
                 return $this->RestResponse->viewData('&nbsp;', $this->response->type());
             }

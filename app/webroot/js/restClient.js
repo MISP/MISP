@@ -420,7 +420,7 @@ function addHoverInfo(url) {
                     if(apiInfo !== undefined && apiInfo !== '') {
                         $('#infofield-'+field).popover({
                             trigger: 'hover',
-                            content: ''+field+':'+ apiInfo,
+                            content: field + ': ' + apiInfo,
                         });
                     } else { // no help, delete icon
                         $('#infofield-'+field).remove();
