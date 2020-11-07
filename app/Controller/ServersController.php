@@ -1964,13 +1964,17 @@ class ServersController extends AppController
             }
             $curl = '';
             $python = '';
-            $result = $this->__doRestQuery($request, $curl, $python);
-            $this->set('curl', $curl);
-            $this->set('python', $python);
-            if (!$result) {
-                $this->Flash->error('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.');
-            } else {
-                $this->set('data', $result);
+            try {
+                $result = $this->__doRestQuery($request, $curl, $python);
+                $this->set('curl', $curl);
+                $this->set('python', $python);
+                if (!$result) {
+                    $this->Flash->error('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.');
+                } else {
+                    $this->set('data', $result);
+                }
+            } catch (Exception $e) {
+                $this->Flash->error(__('Something went wrong. %s', $e->getMessage()));
             }
         }
         $header =
@@ -1988,7 +1992,13 @@ class ServersController extends AppController
         $this->set('allValidApisFieldsContraint', $allValidApisFieldsContraint);
     }
 
-    private function __doRestQuery($request, &$curl = false, &$python = false)
+    /**
+     * @param array $request
+     * @param string $curl
+     * @param string $python
+     * @return array|false
+     */
+    private function __doRestQuery(array $request, &$curl = false, &$python = false)
     {
         App::uses('SyncTool', 'Tools');
         $params = array();
@@ -2018,7 +2028,7 @@ class ServersController extends AppController
                 $url = $request['url'];
             }
         } else {
-            throw new InvalidArgumentException('Url not set.');
+            throw new InvalidArgumentException('URL not set.');
         }
         if (!empty($request['skip_ssl_validation'])) {
             $params['ssl_verify_peer'] = false;
@@ -2081,7 +2091,7 @@ class ServersController extends AppController
             return false;
         }
         $view_data['duration'] = microtime(true) - $start;
-        $view_data['duration'] = round($view_data['duration'] * 1000, 2) . 'ms';
+        $view_data['duration'] = round($view_data['duration'] * 1000, 2) . ' ms';
         $view_data['url'] = $url;
         $view_data['code'] =  $response->code;
         $view_data['headers'] = $response->headers;
