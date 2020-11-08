@@ -956,6 +956,14 @@ class AttributesController extends AppController
 
     public function view($id)
     {
+        if ($this->request->is('head')) { // Just check if attribute exists
+            $attribute = $this->Attribute->fetchAttributesSimple($this->Auth->user(), [
+                'conditions' => $this->__idToConditions($id),
+                'fields' => ['Attribute.id'],
+            ]);
+            return new CakeResponse(['status' => $attribute ? 200 : 404]);
+        }
+
         $attribute = $this->__fetchAttribute($id);
         if (empty($attribute)) {
             throw new MethodNotAllowedException(__('Invalid attribute'));
