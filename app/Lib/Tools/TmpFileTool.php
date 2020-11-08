@@ -1,10 +1,11 @@
 <?php
 class TmpFileTool
 {
-    /**
-     * @var resource
-     */
+    /** @var resource */
     private $tmpfile;
+
+    /** @var string */
+    private $separator;
 
     /**
      * @param int $maxInMemory How many bytes should keep in memory before creating file on disk. By default is is 2 MB.
@@ -19,6 +20,22 @@ class TmpFileTool
         if ($this->tmpfile === false) {
             throw new Exception('Could not create temporary file.');
         }
+    }
+
+    /**
+     * Write data to stream with separator. Separator will be prepend to content for next call.
+     * @param string $content
+     * @param string $separator
+     * @throws Exception
+     */
+    public function writeWithSeparator($content, $separator)
+    {
+        if (isset($this->separator)) {
+            $this->write($this->separator . $content);
+        } else {
+            $this->write($content);
+        }
+        $this->separator = $separator;
     }
 
     /**
