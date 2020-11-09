@@ -50,7 +50,7 @@
                 <th style="text-align:center;"><?php echo __('Disable Correlation');?><input type="checkbox" id="checkAllDC" style="margin-top:0;margin-left:.3em"></th>
                 <th><?php echo __('Distribution');?></th>
                 <th><?php echo __('Comment');?></th>
-                <th><?php echo __('Tags');?></th>
+                <th><?php echo __('Tags (separated by comma)');?></th>
                 <th><?php echo __('Actions');?></th>
         </tr>
         <?php
@@ -192,7 +192,7 @@
                 <input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>/>
             </td>
             <td class="action short">
-                <span class="icon-remove pointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+                <span class="fa fa-times useCursorPointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
             </td>
         </tr>
     <?php

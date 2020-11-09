@@ -87,6 +87,15 @@ class ObjectsController extends AppController
             $similar_object_similarity_amount[$obj['Attribute']['object_id']] = $obj[0]['similarity_amount'];
         }
 
+        if (isset($this->request->data['Attribute'])) {
+            foreach ($this->request->data['Attribute'] as &$attribute) {
+                $validation = $this->MispObject->Attribute->validateAttribute($attribute, false);
+                if ($validation !== true) {
+                    $attribute['validation'] = $validation;
+                }
+            }
+        }
+
         $this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
         $this->set('action', $action);
         $this->set('template', $template);
@@ -225,11 +234,13 @@ class ObjectsController extends AppController
                     $object['Attribute'][$k]['event_id'] = $eventId;
                     $this->MispObject->Event->Attribute->set($object['Attribute'][$k]);
                     if (!$this->MispObject->Event->Attribute->validates()) {
-                        if ($this->MispObject->Event->Attribute->validationErrors['value'][0] !== 'Composite type found but the value not in the composite (value1|value2) format.') {
+                        $validationErrors = $this->MispObject->Event->Attribute->validationErrors;
+                        $isCompositeError = isset($validationErrors['value']) && $validationErrors['value'][0] === 'Composite type found but the value not in the composite (value1|value2) format.';
+                        if (!$isCompositeError) {
                             $error = sprintf(
                                 'Could not save object as at least one attribute has failed validation (%s). %s',
                                 isset($attribute['object_relation']) ? $attribute['object_relation'] : 'No object_relation',
-                                json_encode($this->MispObject->Event->Attribute->validationErrors)
+                                json_encode($validationErrors)
                             );
                         }
                     }
@@ -539,7 +550,7 @@ class ObjectsController extends AppController
         }
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
-        $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements);
+        $object = $this->MispObject->syncObjectAndAttributeSeen($object, $forcedSeenOnElements, false);
         if ($this->MispObject->save($object)) {
             $this->MispObject->Event->unpublishEvent($object['Event']['id']);
             if ($seen_changed) {
@@ -876,21 +887,31 @@ class ObjectsController extends AppController
 
     public function view($id)
     {
-        if ($this->_isRest()) {
-            $objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
+        if ($this->request->is('head')) { // Just check if object exists
+            $exists = $this->MispObject->fetchObjects($this->Auth->user(), [
                 'conditions' => $this->__objectIdToConditions($id),
-            ));
-            if (!empty($objects)) {
-                $object = $objects[0];
-                if (!empty($object['Event'])) {
-                    $object['Object']['Event'] = $object['Event'];
-                }
-                if (!empty($object['Attribute'])) {
-                    $object['Object']['Attribute'] = $object['Attribute'];
-                }
-                return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
-            }
+                'metadata' => true,
+            ]);
+            return new CakeResponse(['status' => $exists ? 200 : 404]);
+        }
+
+        $objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
+            'conditions' => $this->__objectIdToConditions($id),
+        ));
+        if (empty($objects)) {
             throw new NotFoundException(__('Invalid object.'));
+        }
+        $object = $objects[0];
+        if ($this->_isRest()) {
+            if (!empty($object['Event'])) {
+                $object['Object']['Event'] = $object['Event'];
+            }
+            if (!empty($object['Attribute'])) {
+                $object['Object']['Attribute'] = $object['Attribute'];
+            }
+            return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
+        } else {
+            $this->redirect('/events/view/' . $object['Object']['event_id']);
         }
     }
 

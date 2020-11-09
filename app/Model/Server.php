@@ -4,6 +4,10 @@ App::uses('GpgTool', 'Tools');
 
 class Server extends AppModel
 {
+    const SETTING_CRITICAL = 0,
+        SETTING_RECOMMENDED = 1,
+        SETTING_OPTIONAL = 2;
+
     public $name = 'Server';
 
     public $actsAs = array('SysLogLogable.SysLogLogable' => array(
@@ -153,6 +157,7 @@ class Server extends AppModel
             ),
             'console_automation_tasks' => array(
                 'data' => array(
+                    'PullAll' => 'MISP/app/Console/cake Server pullAll [user_id] [full|update]',
                     'Pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
@@ -541,6 +546,14 @@ class Server extends AppModel
                             'errorMessage' => '',
                             'test' => 'testBool',
                             'type' => 'boolean',
+                        ),
+                        'osuser' => array(
+                                'level' => 0,
+                                'description' => __('The Unix user MISP (php) is running as'),
+                                'value' => 'www-data',
+                                'errorMessage' => '',
+                                'test' => 'testForEmpty',
+                                'type' => 'string',
                         ),
                         'email' => array(
                                 'level' => 0,
@@ -1091,7 +1104,33 @@ class Server extends AppModel
                                'test' => 'testBool',
                                'type' => 'boolean',
                                'null' => true
-                       )
+                       ),
+                    'attachment_scan_module' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('Name of enrichment module that will be used for attachment malware scanning. This module must return av-signature or sb-signature object.'),
+                        'value' => '',
+                        'errorMessage' => '',
+                        'type' => 'string',
+                        'null' => true,
+                    ],
+                    'attachment_scan_hash_only' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('Send to attachment scan module just file hash. This can be useful if module sends attachment to remote service and you don\'t want to leak real data.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => true,
+                    ],
+                    'attachment_scan_timeout' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('How long to wait for scan results in seconds.'),
+                        'value' => 30,
+                        'errorMessage' => '',
+                        'test' => 'testForPositiveInteger',
+                        'type' => 'numeric',
+                        'null' => true,
+                    ]
                 ),
                 'GnuPG' => array(
                         'branch' => 1,
@@ -1269,6 +1308,23 @@ class Server extends AppModel
                                 'type' => 'string',
                                 'editable' => false,
                                 'redacted' => true
+                        ),
+                        'rest_client_enable_arbitrary_urls' => array(
+                            'level' => 0,
+                            'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via the rest client. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
+                        'rest_client_baseurl' => array(
+                            'level' => 1,
+                            'description' => __('If left empty, the baseurl of your MISP is used. However, in some instances (such as port-forwarded VM installations) this will not work. You can override the baseurl with a url through which your MISP can reach itself (typically https://127.0.0.1 would work).'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => null,
+                            'type' => 'string',
                         ),
                         'syslog' => array(
                             'level' => 0,
@@ -2242,6 +2298,14 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean'
                         ),
+                        'Enrichment_hover_popover_only' => array(
+                            'level' => 0,
+                            'description' => __('When enabled, user have to click on magnifier icon to show enrichment'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
                         'Enrichment_hover_timeout' => array(
                                 'level' => 1,
                                 'description' => __('Set a timeout for the hover services'),
@@ -2464,8 +2528,7 @@ class Server extends AppModel
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false) {
             $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-            $r = $this->EventBlocklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
-            if (!empty($r)) {
+            if ($this->EventBlocklist->isBlocked($event['Event']['uuid'])) {
                 return true;
             }
         }
@@ -2528,6 +2591,18 @@ class Server extends AppModel
                     }
                 }
             }
+            if (isset($event['Event']['EventReport']) && !empty($event['Event']['EventReport'])) {
+                foreach ($event['Event']['EventReport'] as $key => $r) {
+                    switch ($r['distribution']) {
+                        case '1':
+                            $event['Event']['EventReport'][$key]['distribution'] = '0';
+                            break;
+                        case '2':
+                            $event['Event']['EventReport'][$key]['distribution'] = '1';
+                            break;
+                    }
+                }
+            }
         }
 
         // Distribution, set reporter of the event, being the admin that initiated the pull
@@ -2557,6 +2632,13 @@ class Server extends AppModel
                 }
             }
         }
+        if (!empty($event['Event']['EventReport'])) {
+            foreach ($event['Event']['EventReport'] as $report) {
+                if (empty($report['deleted'])) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -2570,6 +2652,10 @@ class Server extends AppModel
             $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
             if ($result) {
                 $successes[] = $eventId;
+                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'add_from_connected_server');
+                }
             } else {
                 $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
             }
@@ -2580,6 +2666,10 @@ class Server extends AppModel
                 $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong, $force);
                 if ($result === true) {
                     $successes[] = $eventId;
+                    if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+                        $pubSubTool = $this->getPubSubTool();
+                        $pubSubTool->event_save(array('Event' => $eventId, 'Server' => $server['Server']['id']), 'edit_from_connected_server');
+                    }
                 } elseif (isset($result['error'])) {
                     $fails[$eventId] = $result['error'];
                 } else {
@@ -2614,62 +2704,6 @@ class Server extends AppModel
             $fails[$eventId] = __('failed downloading the event');
         }
         return true;
-    }
-
-    private function __handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user)
-    {
-        $pulledProposals = array();
-        if (!empty($proposals)) {
-            $shadowAttribute = ClassRegistry::init('ShadowAttribute');
-            $shadowAttribute->recursive = -1;
-            $uuidEvents = array_flip($events);
-            foreach ($proposals as $k => &$proposal) {
-                $proposal = $proposal['ShadowAttribute'];
-                $oldsa = $shadowAttribute->findOldProposal($proposal);
-                $proposal['event_id'] = $uuidEvents[$proposal['event_uuid']];
-                if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
-                    if ($oldsa) {
-                        $shadowAttribute->delete($oldsa['id']);
-                    }
-                    if (!isset($pulledProposals[$proposal['event_id']])) {
-                        $pulledProposals[$proposal['event_id']] = 0;
-                    }
-                    $pulledProposals[$proposal['event_id']]++;
-                    if (isset($proposal['old_id'])) {
-                        $oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
-                        if ($oldAttribute) {
-                            $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-                        } else {
-                            $proposal['old_id'] = 0;
-                        }
-                    }
-                    // check if this is a proposal from an old MISP instance
-                    if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
-                        $proposal['Org'] = $proposal['org'];
-                        $proposal['EventOrg'] = $proposal['event_org'];
-                    } elseif (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
-                        continue;
-                    }
-                    $proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
-                    $proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
-                    unset($proposal['Org']);
-                    unset($proposal['EventOrg']);
-                    $shadowAttribute->create();
-                    if (!isset($proposal['deleted']) || !$proposal['deleted']) {
-                        if ($shadowAttribute->save($proposal)) {
-                            $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
-                        }
-                    }
-                }
-                if ($jobId) {
-                    if ($k % 50 == 0) {
-                        $job->id =  $jobId;
-                        $job->saveField('progress', 50 * (($k + 1) / count($proposals)) + 50);
-                    }
-                }
-            }
-        }
-        return $pulledProposals;
     }
 
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
@@ -3125,11 +3159,16 @@ class Server extends AppModel
             if (empty($sgIds)) {
                 $sgIds = array(-1);
             }
+            $tableName = $this->Event->EventReport->table;
+            $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
             $findParams = array(
                     'conditions' => array(
                             $eventid_conditions_key => $eventid_conditions_value,
                             'Event.published' => 1,
-                            'Event.attribute_count >' => 0,
+                            'OR' => array(
+                                array('Event.attribute_count >' => 0),
+                                array($eventReportQuery),
+                            ),
                             'OR' => array(
                                 array(
                                     'AND' => array(
@@ -3442,7 +3481,7 @@ class Server extends AppModel
                         } else {
                             $setting['test'] = 'testForEmpty';
                             $setting['type'] = 'string';
-                            $setting['description'] = __('Set this required module specific setting.');
+                            $setting['description'] = isset($result['description']) ? $result['description'] : __('Set this required module specific setting.');
                             $setting['value'] = '';
                         }
                         $serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
@@ -3610,6 +3649,14 @@ class Server extends AppModel
             return __('This setting has to be a number.');
         }
         return true;
+    }
+
+    public function testForPositiveInteger($value)
+    {
+        if ((is_int($value) && $value >= 0) || ctype_digit($value)) {
+            return true;
+        }
+        return __('The value has to be a whole number greater or equal 0.');
     }
 
     public function testForCookieTimeout($value)
@@ -3799,7 +3846,7 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        $regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,5})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
+        $regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
 	if ( !preg_match($regex, $value, $matches)
                 || strtolower($matches['proto']) != strtolower($this->getProto())
                 || strtolower($matches['host']) != strtolower($this->getHost()) ) {
@@ -4471,96 +4518,99 @@ class Server extends AppModel
         return $validItems;
     }
 
-    public function runConnectionTest($id)
+    /**
+     * @param array $server
+     * @return array
+     * @throws JsonException
+     */
+    public function runConnectionTest(array $server)
     {
-        $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
+        App::uses('SyncTool', 'Tools');
+        try {
+            $clientCertificate = SyncTool::getServerClientCertificateInfo($server);
+            if ($clientCertificate) {
+                $clientCertificate['valid_from'] = $clientCertificate['valid_from'] ? $clientCertificate['valid_from']->format('c') : __('Not defined');
+                $clientCertificate['valid_to'] = $clientCertificate['valid_to'] ? $clientCertificate['valid_to']->format('c') : __('Not defined');
+                $clientCertificate['public_key_size'] = $clientCertificate['public_key_size'] ?: __('Unknwon');
+                $clientCertificate['public_key_type'] = $clientCertificate['public_key_type'] ?: __('Unknwon');
+            }
+        } catch (Exception $e) {
+            $clientCertificate = ['error' => $e->getMessage()];
+        }
+
         $HttpSocket = $this->setupHttpSocket($server, null, 5);
         $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/servers/getVersion';
+
         try {
             $response = $HttpSocket->get($uri, false, $request);
+            if ($response === false) {
+                throw new Exception("Connection failed for unknown reason.");
+            }
         } catch (Exception $e) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: Connection test failed. Reason: ' . json_encode($e->getMessage()),
-            ));
-            return array('status' => 2);
+            $logTitle = 'Error: Connection test failed. Reason: ' .  $e->getMessage();
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $logTitle);
+            return array('status' => 2, 'client_certificate' => $clientCertificate);
         }
-        if ($response->isOk()) {
-            return array('status' => 1, 'message' => $response->body());
-        } else {
-            if ($response->code == '403') {
-                return array('status' => 4);
-            }
-            if ($response->code == '405') {
-                try {
-                    $responseText = $this->jsonDecode($response->body)['message'];
-                } catch (Exception $e) {
-                    return array('status' => 3);
-                }
+
+        if ($response->code == '403') {
+            return array('status' => 4, 'client_certificate' => $clientCertificate);
+        } else if ($response->code == '405') {
+            try {
+                $responseText = $this->jsonDecode($response->body)['message'];
                 if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') {
-                    return array('status' => 5);
+                    return array('status' => 5, 'client_certificate' => $clientCertificate);
                 } elseif ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') {
-                    return array('status' => 6);
+                    return array('status' => 6, 'client_certificate' => $clientCertificate);
                 }
+            } catch (Exception $e) {
+                // pass
             }
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: Connection test failed. Returned data is in the change field.',
-                    'change' => sprintf(
-                        'response () => (%s), response-code () => (%s)',
-                        $response->body,
-                        $response->code
-                    )
-            ));
-            return array('status' => 3);
+        } else if ($response->isOk()) {
+            try {
+                $info = $this->jsonDecode($response->body());
+                if (!isset($info['version'])) {
+                    throw new Exception("Server returns JSON response, but doesn't contain required 'version' field.");
+                }
+                return array('status' => 1, 'info' => $info, 'client_certificate' => $clientCertificate);
+            } catch (Exception $e) {
+                // Even if server returns OK status, that doesn't mean that connection to another MISP instance works
+            }
         }
+
+        $logTitle = 'Error: Connection test failed. Returned data is in the change field.';
+        $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $logTitle, [
+            'response' => ['', $response->body],
+            'response-code' => ['', $response->code],
+        ]);
+        return array('status' => 3, 'client_certificate' => $clientCertificate);
     }
 
-    public function runPOSTtest($id)
+    /**
+     * @param array $server
+     * @return int
+     * @throws JsonException
+     */
+    public function runPOSTtest(array $server)
     {
-        $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        if (empty($server)) {
-            throw new InvalidArgumentException(__('Invalid server.'));
+        $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
+        if (!$testFile) {
+            throw new Exception("Could not load payload for POST test.");
         }
         $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
-        $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
         $uri = $server['Server']['url'] . '/servers/postTest';
-        $this->Log = ClassRegistry::init('Log');
+
         try {
             $response = $HttpSocket->post($uri, json_encode(array('testString' => $testFile)), $request);
             $rawBody = $response->body;
-            $response = json_decode($response, true);
+            $response = $this->jsonDecode($rawBody);
         } catch (Exception $e) {
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: POST connection test failed. Reason: ' . json_encode($e->getMessage()),
-            ));
+            $title = 'Error: POST connection test failed. Reason: ' . $e->getMessage();
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
             return 8;
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
-            $responseString = '';
             if (!empty($repsonse['body']['testString'])) {
                 $responseString = $response['body']['testString'];
             } else if (!empty($rawBody)){
@@ -4568,32 +4618,17 @@ class Server extends AppModel
             } else {
                 $responseString = __('Response was empty.');
             }
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: POST connection test failed due to the message body not containing the expected data. Response: ' . PHP_EOL . PHP_EOL . $responseString,
-            ));
+
+            $title = 'Error: POST connection test failed due to the message body not containing the expected data. Response: ' . PHP_EOL . PHP_EOL . $responseString;
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
             return 9;
         }
         $headers = array('Accept', 'Content-type');
         foreach ($headers as $header) {
             if (!isset($response['headers'][$header]) || $response['headers'][$header] != 'application/json') {
                 $responseHeader = isset($response['headers'][$header]) ? $response['headers'][$header] : 'Header was not set.';
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => $id,
-                        'email' => 'SYSTEM',
-                        'action' => 'error',
-                        'user_id' => 0,
-                        'title' => 'Error: POST connection test failed due to a header not matching the expected value. Expected: "application/json", received "' . $responseHeader,
-                ));
+                $title = 'Error: POST connection test failed due to a header not matching the expected value. Expected: "application/json", received "' . $responseHeader . '"';
+                $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
                 return 10;
             }
         }
@@ -5373,9 +5408,8 @@ class Server extends AppModel
         $gpgStatus = 0;
         if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
             $continue = true;
-            $gpgTool = new GpgTool();
             try {
-                $gpg = $gpgTool->initializeGpg();
+                $gpg = GpgTool::initializeGpg();
             } catch (Exception $e) {
                 $this->logException("Error during initializing GPG.", $e, LOG_NOTICE);
                 $gpgStatus = 2;
@@ -5428,13 +5462,12 @@ class Server extends AppModel
     public function moduleDiagnostics(&$diagnostic_errors, $type = 'Enrichment')
     {
         $this->Module = ClassRegistry::init('Module');
-        $types = array('Enrichment', 'Import', 'Export', 'Cortex');
         $diagnostic_errors++;
         if (Configure::read('Plugin.' . $type . '_services_enable')) {
-            $exception = false;
-            $result = $this->Module->getModules(false, $type, $exception);
-            if ($exception) {
-                return $exception;
+            try {
+                $result = $this->Module->getModules($type, true);
+            } catch (Exception $e) {
+                return $e->getMessage();
             }
             if (empty($result)) {
                 return 2;
@@ -5493,18 +5526,19 @@ class Server extends AppModel
 
     public function workerDiagnostics(&$workerIssueCount)
     {
+        $worker_array = array(
+            'cache' => array('ok' => false),
+            'default' => array('ok' => false),
+            'email' => array('ok' => false),
+            'prio' => array('ok' => false),
+            'update' => array('ok' => false),
+            'scheduler' => array('ok' => false)
+        );
         try {
             $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         } catch (Exception $e) {
             // redis connection failed
-            return array(
-                    'cache' => array('ok' => false),
-                    'default' => array('ok' => false),
-                    'email' => array('ok' => false),
-                    'prio' => array('ok' => false),
-                    'update' => array('ok' => false),
-                    'scheduler' => array('ok' => false)
-            );
+            return $worker_array;
         }
         $workers = $this->ResqueStatus->getWorkers();
         if (function_exists('posix_getpwuid')) {
@@ -5513,14 +5547,6 @@ class Server extends AppModel
         } else {
             $currentUser = trim(shell_exec('whoami'));
         }
-        $worker_array = array(
-                'cache' => array('ok' => true),
-                'default' => array('ok' => true),
-                'email' => array('ok' => true),
-                'prio' => array('ok' => true),
-                'update' => array('ok' => true),
-                'scheduler' => array('ok' => true)
-        );
         $procAccessible = file_exists('/proc');
         foreach ($workers as $pid => $worker) {
             $entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
@@ -5538,7 +5564,13 @@ class Server extends AppModel
                 $ok = false;
                 $workerIssueCount++;
             }
-            $worker_array[$entry]['workers'][] = array('pid' => $pid, 'user' => $worker['user'], 'alive' => $alive, 'correct_user' => $correct_user, 'ok' => $ok);
+            $worker_array[$entry]['workers'][] = array(
+                'pid' => $pid,
+                'user' => $worker['user'],
+                'alive' => $alive,
+                'correct_user' => $correct_user,
+                'ok' => $ok
+            );
         }
         foreach ($worker_array as $k => $queue) {
             if (isset($worker_array[$k]['workers'])) {

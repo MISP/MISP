@@ -21,17 +21,21 @@
         } else {
             $data['url'] = $baseurl . h($data['url']);
         }
-        $children = '';
+        $child_data = '';
         if (!empty($data['children'])) {
-            $child_data = '';
             foreach ($data['children'] as $child) {
                 $child_data .= $this->element('/genericElements/GlobalMenu/global_menu_' . (empty($child['type']) ? 'single' : $child['type']), array('data' => $child));
             }
-            $children = sprintf(
-                '<ul class="dropdown-menu">%s</ul>',
-                $child_data
-            );
         }
+
+        if ($data['url'] === '#' && !empty($data['children']) && empty($child_data)) {
+            return;
+        }
+
+        if (!empty($child_data)) {
+            $child_data = sprintf('<ul class="dropdown-menu">%s</ul>', $child_data);
+        }
+
         echo (sprintf(
             '<li %s><a href="%s" %s>%s%s</a>%s</li>',
             (empty($data['children']) ? '' : 'class="dropdown"'),
@@ -39,7 +43,7 @@
             (empty($data['children']) ? '' : 'class="dropdown-toggle" data-toggle="dropdown"'),
             (empty($data['html']) ? '' : $data['html']),
             (empty($data['text']) ? '' : h($data['text'])),
-            $children
+            $child_data
         ));
     }
 ?>

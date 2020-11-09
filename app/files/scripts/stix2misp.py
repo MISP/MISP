@@ -1241,6 +1241,8 @@ class ExternalStixParser(StixParser):
                 except KeyError:
                     print(f'Unknown Test Mechanism type: {test_mechanism._XSI_TYPE}', file=sys.stderr)
                     continue
+                if test_mechanism.rule.value is None:
+                    continue
                 attribute = MISPAttribute()
                 attribute.from_dict(**{
                     'type': attribute_type,

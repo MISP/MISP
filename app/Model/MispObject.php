@@ -545,16 +545,15 @@ class MispObject extends AppModel
             }
         }
         $results = $this->find('all', $params);
-        if ($options['enforceWarninglist']) {
+        if ($options['enforceWarninglist'] && !isset($this->Warninglist)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            $warninglists = $this->Warninglist->fetchForEventView();
         }
         $results = array_values($results);
         $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {
             foreach ($results as $key => $object) {
                 foreach ($object['Attribute'] as $key2 => $attribute) {
-                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
+                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
                         unset($results[$key][$key2]);
                         continue;
                     }
@@ -644,8 +643,10 @@ class MispObject extends AppModel
         return $template;
     }
 
-    /*
+    /**
      * Clean the attribute list up from artifacts introduced by the object form
+     * @param array $attributes
+     * @return string|array
      */
     public function attributeCleanup($attributes)
     {
@@ -795,21 +796,6 @@ class MispObject extends AppModel
                                     if (isset($newAttribute[$f]) && $newAttribute[$f] != $originalAttribute[$f]) {
                                         $different = true;
                                     }
-                                    // Set seen of object at attribute level
-                                    if (isset($forcedSeenOnElements['first_seen'])) {
-                                        $newAttribute['first_seen'] = $forcedSeenOnElements['first_seen'];
-                                        if ($newAttribute['object_relation'] == 'first-seen') {
-                                            // $newAttribute['value'] = $forcedSeenOnElements['first_seen'];
-                                        }
-                                        $different = true;
-                                    }
-                                    if (isset($forcedSeenOnElements['last_seen'])) {
-                                        $newAttribute['last_seen'] = $forcedSeenOnElements['last_seen'];
-                                        if ($newAttribute['object_relation'] == 'last-seen') {
-                                            // $newAttribute['value'] = $forcedSeenOnElements['last_seen'];
-                                        }
-                                        $different = true;
-                                    }
                                 }
                                 if ($different) {
                                     $newAttribute['id'] = $originalAttribute['id'];
@@ -831,13 +817,13 @@ class MispObject extends AppModel
                     $newAttribute['object_id'] = $object['Object']['id'];
                     // Set seen of object at attribute level
                     if (isset($forcedSeenOnElements['first_seen'])) {
-                        $newAttribute['first_seen'] = $forcedSeenOnElements['first_seen'];
+                        $newAttribute['first_seen'] = empty($newAttribute['first_seen']) ? $forcedSeenOnElements['first_seen'] : $newAttribute['first_seen'];
                         if ($newAttribute['object_relation'] == 'first-seen') {
                             $newAttribute['value'] = $forcedSeenOnElements['first_seen'];
                         }
                     }
                     if (isset($forcedSeenOnElements['last_seen'])) {
-                        $newAttribute['last_seen'] = $forcedSeenOnElements['last_seen'];
+                        $newAttribute['last_seen'] = empty($newAttribute['last_seen']) ? $forcedSeenOnElements['last_seen'] : $newAttribute['last_seen'];
                         if ($newAttribute['object_relation'] == 'last-seen') {
                             $newAttribute['value'] = $forcedSeenOnElements['last_seen'];
                         }

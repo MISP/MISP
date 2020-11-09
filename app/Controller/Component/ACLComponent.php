@@ -150,6 +150,20 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'view' => array('*'),
             ),
+            'eventReports' => array(
+                'add' => array('perm_add'),
+                'view' => array('*'),
+                'viewSummary' => array('*'),
+                'edit' => array('perm_add'),
+                'delete' => array('perm_add'),
+                'restore' => array('perm_add'),
+                'index' => array('*'),
+                'getProxyMISPElements' => array('*'),
+                'extractAllFromReport' => array('*'),
+                'extractFromReport' => array('*'),
+                'replaceSuggestionInReport' => array('*'),
+                'importReportFromUrl' => array('*'),
+            ),
             'events' => array(
                     'add' => array('perm_add'),
                     'addIOC' => array('perm_add'),
@@ -209,6 +223,7 @@ class ACLComponent extends Component
                     'reportValidationIssuesEvents' => array(),
                     'restoreDeletedEvents' => array('perm_site_admin'),
                     'restSearch' => array('*'),
+                    'runTaxonomyExclusivityCheck' => array('*'),
                     'saveFreeText' => array('perm_add'),
                     'stix' => array('*'),
                     'stix2' => array('*'),
@@ -222,7 +237,6 @@ class ACLComponent extends Component
                     'view' => array('*'),
                     'viewClusterRelations' => array('*'),
                     'viewEventAttributes' => array('*'),
-                    'viewEventGraph' => array('*'),
                     'viewGraph' => array('*'),
                     'viewGalaxyMatrix' => array('*'),
                     'xml' => array('*')
@@ -245,11 +259,17 @@ class ACLComponent extends Component
                     'fetchSelectedFromFreetextIndex' => array(),
                     'getEvent' => array(),
                     'importFeeds' => array(),
-                    'index' => array('*'),
+                    'index' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
                     'loadDefaultFeeds' => array('perm_site_admin'),
                     'previewEvent' => array('*'),
                     'previewIndex' => array('*'),
-                    'searchCaches' => array('*'),
+                    'searchCaches' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
                     'toggleSelected' => array('perm_site_admin'),
                     'view' => array('*'),
             ),
@@ -396,7 +416,6 @@ class ACLComponent extends Component
                     'fetchSGOrgRow' => array('*'),
                     'getUUIDs' => array('perm_sync'),
                     'index' => array('*'),
-                    'landingpage' => array('*'),
                     'view' => array('*'),
             ),
             'pages' => array(
@@ -454,7 +473,10 @@ class ACLComponent extends Component
                     'getSubmoduleQuickUpdateForm' => array(),
                     'getWorkers' => array(),
                     'getVersion' => array('*'),
-                    'idTranslator' => array('*'),
+                    'idTranslator' => ['OR' => [
+                        'host_org_user',
+                        'perm_site_admin',
+                    ]],
                     'import' => array(),
                     'index' => array(),
                     'ondemandAction' => array(),
@@ -777,7 +799,9 @@ class ACLComponent extends Component
         foreach ($aclList as $k => $v) {
             $aclList[$k] = array_change_key_case($v);
         }
-        $this->__checkLoggedActions($user, $controller, $action);
+        if (!$soft) {
+            $this->__checkLoggedActions($user, $controller, $action);
+        }
         if ($user && $user['Role']['perm_site_admin']) {
             return true;
         }
@@ -833,7 +857,6 @@ class ACLComponent extends Component
         switch ($code) {
             case 404:
                 throw new NotFoundException($message);
-                break;
             case 403:
                 throw new MethodNotAllowedException($message);
             default:

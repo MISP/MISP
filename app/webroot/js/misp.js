@@ -60,7 +60,7 @@ function quickDeleteSighting(id, rawId, context) {
     }).fail(xhrFailCallback)
 }
 
-function fetchAddSightingForm(type, attribute_id, page, onvalue) {
+function fetchAddSightingForm(type, attribute_id, onvalue) {
     var url = baseurl + "/sightings/quickAdd/" + attribute_id + "/" + type;
     if (onvalue) {
         url = url + "/1";
@@ -73,7 +73,7 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
     });
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placement) {
+function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
     var $clicked = $(clicked);
     var hoverbroken = false;
     $clicked.off('mouseleave.temp').on('mouseleave.temp', function() {
@@ -83,8 +83,8 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, page, placem
         $clicked.off('mouseleave.temp');
         if ($clicked.is(":hover") && !hoverbroken) {
             var html = '<div>'
-                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">This attribute</button>'
-                + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">Global value</button>'
+                + '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\')">This attribute</button>'
+                + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', true)">Global value</button>'
                 + '</div>';
             openPopover(clicked, html, true, placement);
         }
@@ -109,23 +109,24 @@ function delegatePopup(id) {
 }
 
 function genericPopup(url, popupTarget, callback) {
+    var $popupTarget = $(popupTarget);
     $.get(url, function(data) {
-        $(popupTarget).html(data);
-        $(popupTarget).fadeIn();
-        left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
-        $(popupTarget).css({'left': left + 'px'});
+        $popupTarget.html(data);
+        $popupTarget.fadeIn();
+        var left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
+        $popupTarget.css({'left': left + 'px'});
         $("#gray_out").fadeIn();
         if (callback !== undefined) {
             callback();
         }
-    });
+    }).fail(xhrFailCallback)
 }
 
 function screenshotPopup(url, title) {
     if (!url.startsWith('data:image/')) {
         url = url.slice(0, -1);
     }
-    popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
+    var popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>';
     url = $('<div>').text(url).html();
     title = $('<div>').text(title).html();
     popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
@@ -224,30 +225,30 @@ function toggleSetting(e, setting, id) {
     e.preventDefault();
     e.stopPropagation();
     switch (setting) {
-    case 'warninglist_enable':
-        formID = '#WarninglistIndexForm';
-        dataDiv = '#WarninglistData';
-        replacementForm = baseurl + '/warninglists/getToggleField/';
-        searchString = 'enabled';
-        break;
-    case 'favourite_tag':
-        formID = '#FavouriteTagIndexForm';
-        dataDiv = '#FavouriteTagData';
-        replacementForm = baseurl + '/favourite_tags/getToggleField/';
-        searchString = 'Adding';
-        break;
-    case 'activate_object_template':
-        formID = '#ObjectTemplateIndexForm';
-        dataDiv = '#ObjectTemplateData';
-        replacementForm = baseurl + '/ObjectTemplates/getToggleField/';
-        searchString = 'activated';
-        break;
-    case 'noticelist_enable':
-        formID = '#NoticelistIndexForm';
-        dataDiv = '#NoticelistData';
-        replacementForm = baseurl + '/noticelists/getToggleField/';
-        searchString = 'enabled';
-        break;
+        case 'warninglist_enable':
+            formID = '#WarninglistIndexForm';
+            dataDiv = '#WarninglistData';
+            replacementForm = baseurl + '/warninglists/getToggleField/';
+            searchString = 'enabled';
+            break;
+        case 'favourite_tag':
+            formID = '#FavouriteTagIndexForm';
+            dataDiv = '#FavouriteTagData';
+            replacementForm = baseurl + '/favourite_tags/getToggleField/';
+            searchString = 'Adding';
+            break;
+        case 'activate_object_template':
+            formID = '#ObjectTemplateIndexForm';
+            dataDiv = '#ObjectTemplateData';
+            replacementForm = baseurl + '/ObjectTemplates/getToggleField/';
+            searchString = 'activated';
+            break;
+        case 'noticelist_enable':
+            formID = '#NoticelistIndexForm';
+            dataDiv = '#NoticelistData';
+            replacementForm = baseurl + '/noticelists/getToggleField/';
+            searchString = 'enabled';
+            break;
     }
     $(dataDiv).val(id);
     var formData = $(formID).serialize();
@@ -261,12 +262,12 @@ function toggleSetting(e, setting, id) {
             if (result.success) {
                 var setting = false;
                 if (result.success.indexOf(searchString) > -1) setting = true;
-                $('#checkBox_' + id).prop('checked', setting);
+                $('#' + e.target.id).prop('checked', setting);
             }
             handleGenericAjaxResponse(data);
         },
         complete:function() {
-            $.get(baseurl + replacementForm, function(data) {
+            $.get(replacementForm, function(data) {
                 $('#hiddenFormDiv').html(data);
             });
             $(".loading").hide();
@@ -427,7 +428,7 @@ function updateIndex(id, context, newPage) {
         div = "#templateElements";
     }
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         dataType:"html",
@@ -452,15 +453,15 @@ function updateIndex(id, context, newPage) {
 
 function updateAttributeFieldOnSuccess(name, type, id, field, event) {
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            if (field != 'timestamp') {
+        beforeSend: function () {
+            if (field !== 'timestamp') {
                 $(".loading").show();
             }
         },
         dataType:"html",
         cache: false,
         success:function (data, textStatus) {
-            if (field != 'timestamp') {
+            if (field !== 'timestamp') {
                 $(".loading").hide();
                 $(name + '_solid').html(data);
                 $(name + '_placeholder').empty();
@@ -468,6 +469,7 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
             } else {
                 $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
             }
+            popoverStartup(); // reactive popovers
         },
         url: baseurl + "/attributes/fetchViewValue/" + id + "/" + field,
     });
@@ -498,30 +500,36 @@ function updateObjectFieldOnSuccess(name, type, id, field, event) {
 
 function activateField(type, id, field, event) {
     resetForms();
-    if (type == 'denyForm') return;
-    var objectType = 'attributes';
-    var containerName = 'Attribute';
-    if (type == 'Object') {
+    if (type === 'denyForm') {
+        return;
+    }
+    var objectType, containerName;
+    if (type === 'Object') {
         objectType = 'objects';
         containerName = 'Object';
+    } else {
+        objectType = 'attributes';
+        containerName = 'Attribute';
     }
     var name = '#' + type + '_' + id + '_' + field;
     var container_name = '#' + containerName + '_' + id + '_' + field;
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function() {
             $(".loading").show();
         },
-        dataType:"html",
+        dataType: "html",
         cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+        success: function (data) {
             $(container_name + '_placeholder').html(data);
             postActivationScripts(name, type, id, field, event);
         },
         url: baseurl + "/" + objectType + "/fetchEditForm/" + id + "/" + field,
+        complete: function() {
+            $(".loading").hide();
+        },
+        error: xhrFailCallback
     });
 }
-
 
 function submitQuickTag(form) {
     $('#' + form).submit();
@@ -550,12 +558,6 @@ function postActivationScripts(name, type, id, field, event) {
 
     $(name + '_form').bind("focusin", function(){
         inputFieldButtonActive(name + '_field');
-    });
-
-    $(name + '_form').bind("keydown", function(e) {
-        if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
-            submitForm(type, id, field, event);
-        }
     });
     $(name + '_field').closest('.inline-input-container').children('.inline-input-accept').bind('click', function() {
         submitForm(type, id, field, event);
@@ -588,30 +590,26 @@ function quickEditHover(td, type, id, field, event) {
     });
 }
 
-function addSighting(type, attribute_id, event_id, page) {
+function addSighting(type, attribute_id, event_id) {
     $('#Sighting_' + attribute_id + '_type').val(type);
     $.ajax({
         data: $('#Sighting_' + attribute_id).closest("form").serialize(),
         cache: false,
-        success:function (data, textStatus) {
+        success: function (data, textStatus) {
             handleGenericAjaxResponse(data);
             var result = data;
             if (result.saved == true) {
                 $('.sightingsCounter').each(function( counter ) {
                     $(this).html(parseInt($(this).html()) + 1);
                 });
-                if (typeof currentUri == 'undefined') {
-                    location.reload();
-                } else {
-                    updateIndex(event_id, 'event');
-                }
+                updateIndex(event_id, 'event');
             }
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Request failed for an unknown reason.');
-            updateIndex(context, 'event');
+            updateIndex(event_id, 'event');
         },
-        type:"post",
+        type: "post",
         url: baseurl + "/sightings/add/" + attribute_id
     });
 }
@@ -797,7 +795,7 @@ function refreshTagCollectionRow(tag_collection_id) {
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
     responseArray = data;
-    if (type == 'Attribute') {
+    if (type === 'Attribute') {
         if (responseArray.saved) {
             var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
             showMessage('success', msg);
@@ -808,13 +806,11 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
             showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
             updateAttributeFieldOnSuccess(name, type, id, field, event);
         }
-    }
-    if (type == 'ShadowAttribute') {
+    } else if (type === 'ShadowAttribute') {
         updateIndex(event, 'event');
-    } else if (type == 'Object') {
+    } else if (type === 'Object') {
         if (responseArray.saved) {
-            var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
-            showMessage('success', msg);
+            showMessage('success', responseArray.message);
             updateObjectFieldOnSuccess(name, type, id, field, event);
             updateObjectFieldOnSuccess(name, type, id, 'timestamp', event);
             eventUnpublish();
@@ -951,27 +947,27 @@ function multiSelectDeleteEventBlocklist(on, cache) {
 
 function multiSelectAction(event, context) {
     var settings = {
-            deleteAttributes: {
-                confirmation: "Are you sure you want to delete all selected attributes?",
-                controller: "attributes",
-                camelCase: "Attribute",
-                alias: "attribute",
-                action: "delete"
-            },
-            acceptProposals: {
-                confirmation: "Are you sure you want to accept all selected proposals?",
-                controller: "shadow_attributes",
-                camelCase: "ShadowAttribute",
-                alias: "proposal",
-                action: "accept"
-            },
-            discardProposals: {
-                confirmation: "Are you sure you want to discard all selected proposals?",
-                controller: "shadow_attributes",
-                camelCase: "ShadowAttribute",
-                alias: "proposal",
-                action: "discard"
-            },
+        deleteAttributes: {
+            confirmation: "Are you sure you want to delete all selected attributes?",
+            controller: "attributes",
+            camelCase: "Attribute",
+            alias: "attribute",
+            action: "delete"
+        },
+        acceptProposals: {
+            confirmation: "Are you sure you want to accept all selected proposals?",
+            controller: "shadow_attributes",
+            camelCase: "ShadowAttribute",
+            alias: "proposal",
+            action: "accept"
+        },
+        discardProposals: {
+            confirmation: "Are you sure you want to discard all selected proposals?",
+            controller: "shadow_attributes",
+            camelCase: "ShadowAttribute",
+            alias: "proposal",
+            action: "discard"
+        },
     };
     var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
     if (answer) {
@@ -986,7 +982,6 @@ function multiSelectAction(event, context) {
         var formData = $('#' + settings[context]["action"] + '_selected').serialize();
         if (context == 'deleteAttributes') {
             var url = $('#delete_selected').attr('action');
-            console.log(url);
         } else {
             var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
         }
@@ -995,11 +990,20 @@ function multiSelectAction(event, context) {
             cache: false,
             type:"POST",
             url: url,
-            success:function (data, textStatus) {
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
                 updateIndex(event, 'event');
                 var result = handleGenericAjaxResponse(data);
-                if (settings[context]["action"] != "discard" && result == true) eventUnpublish();
+                if (settings[context]["action"] != "discard" && result == true) {
+                    eventUnpublish();
+                }
             },
+            complete: function () {
+                $(".loading").hide();
+            },
+            error: xhrFailCallback,
         });
     }
     return false;
@@ -1336,6 +1340,11 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 $('#sightingsListAllToggle').removeClass('btn-inverse');
                 $('#sightingsListAllToggle').addClass('btn-primary');
             }
+            if (referer == 'addEventReport' && typeof window.reloadEventReportTable === 'function') {
+                context == 'eventReport'
+                reloadEventReportTable()
+                eventUnpublish()
+            }
             if (
                 (
                     context == 'event' &&
@@ -1504,12 +1513,13 @@ function showMessage(success, message, context) {
 
 function cancelPopoverForm(id) {
     $("#gray_out").fadeOut();
-    $("#popover_form").fadeOut();
     $("#popover_form_large").fadeOut();
     $("#screenshot_box").fadeOut();
-    $("#popover_box").fadeOut();
+    $("#popover_box")
+        .fadeOut()
+        .removeAttr('style') // remove all inline styles
+        .empty(); // remove all child elements
     $("#confirmation_box").fadeOut();
-    $('#gray_out').fadeOut();
     $('#popover_form').fadeOut();
     if (id !== undefined && id !== '') {
         $(id).fadeOut();
@@ -1682,25 +1692,28 @@ function templateElementFileCategoryChange(category) {
 }
 
 function openPopup(id, adjust_layout, callback) {
+    var $id = $(id);
     adjust_layout = adjust_layout === undefined ? true : adjust_layout;
     if (adjust_layout) {
+        $id.css({'top': '', 'height': ''}).removeClass('vertical-scroll'); // reset inline values
+
         var window_height = $(window).height();
-        var popup_height = $(id).height();
+        var popup_height = $id.height();
         if (window_height < popup_height) {
-            $(id).css("top", 50);
-            $(id).css("height", window_height);
-            $(id).addClass('vertical-scroll');
+            $id.css("top", 50);
+            $id.css("height", window_height - 50);
+            $id.addClass('vertical-scroll');
         } else {
             if (window_height > (300 + popup_height)) {
                 var top_offset = ((window_height - popup_height) / 2) - 150;
             } else {
                 var top_offset = (window_height - popup_height) / 2;
             }
-            $(id).css("top", top_offset + 'px');
+            $id.css("top", top_offset);
         }
     }
     $("#gray_out").fadeIn();
-    $(id).fadeIn(400, function() {
+    $id.fadeIn(400, function() {
         if (callback !== undefined) {
             callback();
         }
@@ -1775,7 +1788,7 @@ function openPopover(clicked, data, hover, placement, callback) {
         }
 
     } else {
-        // $clicked.popover('show');
+        $clicked.popover('show');
     }
     var popover = $clicked.data('popover');
 
@@ -2542,33 +2555,42 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 }
 
 function serverSettingSubmitForm(name, setting, id) {
-    subGroup = getSubGroupFromSetting(setting);
+    var subGroup = getSubGroupFromSetting(setting);
     var formData = $(name + '_field').closest("form").serialize();
     $.ajax({
         data: formData,
         cache: false,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
-        success:function (data, textStatus) {
+        success: function (data) {
+            if (!data.saved) {
+                $(".loading").hide();
+                showMessage('fail', data.errors);
+                resetForms();
+                $('.inline-field-placeholder').hide();
+                return;
+            }
+
             $.ajax({
-                type:"get",
+                type: "get",
                 url: baseurl + "/servers/serverSettingsReloadSetting/" + setting + "/" + id,
-                success:function (data2, textStatus2) {
+                success: function (data2) {
                     $('#' + subGroup + "_" + id + '_row').replaceWith(data2);
                     $(".loading").hide();
                 },
-                error:function() {
+                error: function() {
                     showMessage('fail', 'Could not refresh the table.');
                 }
             });
         },
-        error:function() {
+        error: function() {
+            $(".loading").hide();
             showMessage('fail', 'Request failed for an unknown reason.');
             resetForms();
             $('.inline-field-placeholder').hide();
         },
-        type:"post",
+        type: "post",
         url: baseurl + "/servers/serverSettingsEdit/" + setting + "/" + id + "/" + 1
     });
     $(name + '_field').unbind("keyup");
@@ -2686,7 +2708,7 @@ function importChoiceSelect(url, elementId, ajax) {
 function freetextImportResultsSubmit(id, count) {
     var attributeArray = [];
     var temp;
-    for (i = 0; i < count; i++) {
+    for (var i = 0; i < count; i++) {
         if ($('#Attribute' + i + 'Save').val() == 1) {
             temp = {
                 value:$('#Attribute' + i + 'Value').val(),
@@ -2703,7 +2725,7 @@ function freetextImportResultsSubmit(id, count) {
             }
             attributeArray[attributeArray.length] = temp;
         }
-    };
+    }
     $("#AttributeJsonObject").val(JSON.stringify(attributeArray));
     var formData = $(".mainForm").serialize();
     $.ajax({
@@ -2711,15 +2733,16 @@ function freetextImportResultsSubmit(id, count) {
         cache: false,
         url: baseurl + "/events/saveFreeText/" + id,
         data: formData,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
-        success:function (data, textStatus) {
+        success: function () {
             window.location = baseurl + '/events/view/' + id;
         },
-        complete:function() {
+        complete: function() {
             $(".loading").hide();
         },
+        error: xhrFailCallback,
     });
 }
 
@@ -2830,7 +2853,7 @@ function moduleResultsSubmit(id) {
     }
     if ($('.MISPAttribute').length) {
         var attributes = [];
-        $('.MISPAttribute').each(function(a) {
+        $('.MISPAttribute').each(function() {
             var category_value;
             var type_value;
             if ($(this).find('.AttributeCategorySelect').length) {
@@ -2890,32 +2913,33 @@ function moduleResultsSubmit(id) {
         cache: false,
         url: baseurl + "/events/handleModuleResults/" + id,
         data: formData,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
-        success:function (data, textStatus) {
+        success: function () {
             window.location = baseurl + '/events/view/' + id;
         },
-        complete:function() {
+        complete: function() {
             $(".loading").hide();
-        }
+        },
+        error: xhrFailCallback,
     });
 }
 
 function objectTemplateViewContent(context, id) {
     var url = baseurl + "/objectTemplateElements/viewElements/" + id + "/" + context;
     $.ajax({
-            url: url,
-            type:'GET',
+        url: url,
+        type:'GET',
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
-            error: function(){
-                $('#ajaxContent').html('An error has occured, please reload the page.');
-            },
-            success: function(response){
-                $('#ajaxContent').html(response);
-            },
+        error: function(){
+            $('#ajaxContent').html('An error has occured, please reload the page.');
+        },
+        success: function(response){
+            $('#ajaxContent').html(response);
+        },
         complete: function() {
             $(".loading").hide();
         },
@@ -2925,17 +2949,16 @@ function objectTemplateViewContent(context, id) {
 
 function organisationViewContent(context, id) {
     organisationViewButtonHighlight(context);
-    var action = "/organisations/landingpage/";
-    if (context == 'members') {
+    var action;
+    if (context === 'members') {
         action = "/admin/users/index/searchorg:";
-    }
-    if (context == 'events') {
+    } else if (context === 'events') {
         action = "/events/index/searchorg:";
     }
     $.ajax({
         url: baseurl + action + id,
         type:'GET',
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         error: function(){
@@ -3322,22 +3345,51 @@ function getRemoteSyncUser(id) {
 function testConnection(id) {
     $.ajax({
         url: baseurl + '/servers/testConnection/' + id,
-        type:'GET',
-        beforeSend: function (XMLHttpRequest) {
+        type: 'GET',
+        beforeSend: function () {
             $("#connection_test_" + id).html('Running test...');
         },
         error: function(){
-            $("#connection_test_" + id).html('Internal error.');
+            $("#connection_test_" + id).html('<span class="red bold">Internal error</span>');
         },
-        success: function(response){
-            var result = response;
+        success: function(result) {
+            function line(name, value, valid) {
+                var $value = $('<span></span>').text(value);
+                if (valid === true) {
+                    $value.addClass('green');
+                } else if (valid === false) {
+                    $value.addClass('red');
+                } else if (valid) {
+                    $value.addClass(valid);
+                }
+                return $('<div></div>').text(name + ': ').append($value).html() + '<br>';
+            }
+
+            var html = '';
+
+            if (result.client_certificate) {
+                var cert = result.client_certificate;
+                html += '<span class="bold">Client certificate:</span><br>';
+                if (cert.error) {
+                    html += '<span class="red bold">Error: ' + cert.error + '</span><br>';
+                } else {
+                    html += line("Subject", cert.subject);
+                    html += line("Issuer", cert.issuer);
+                    html += line("Serial number", cert.serial_number);
+                    html += line("Valid from", cert.valid_from, cert.valid_from_ok);
+                    html += line("Valid to", cert.valid_to, cert.valid_to_ok);
+                    html += line("Public key", cert.public_key_type + ' (' + cert.public_key_size + ' bits)', cert.public_key_size_ok);
+                }
+                html += "<br>";
+            }
+
             switch (result.status) {
             case 1:
-                status_message = "OK";
-                compatibility = "Compatible";
-                compatibility_colour = "green";
-                colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
-                issue_colour = "red";
+                var status_message = "OK";
+                var compatibility = "Compatible";
+                var compatibility_colour = "green";
+                var colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
+                var issue_colour = "red";
                 if (result.mismatch == "hotfix") issue_colour = "orange";
                 if (result.newer == "local") {
                     colours.remote = 'class="' + issue_colour + '"';
@@ -3363,6 +3415,7 @@ function testConnection(id) {
                     else status_message = "Remote outdated, notify admin!"
                     colours.status = 'class="' + issue_colour + '"';
                 }
+                var post_result;
                 if (result.post != false) {
                     var post_colour = "red";
                     if (result.post == 1) {
@@ -3379,36 +3432,36 @@ function testConnection(id) {
                         post_result = "Remote too old for this test";
                     }
                 }
-                resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
-                resultDiv += '<div>Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
-                resultDiv += '<div>Status: <span ' + colours.status + '>' + status_message + '</span><br />';
-                resultDiv += '<div>Compatiblity: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
-                resultDiv += '<div>POST test: <span class="' + post_colour + '">' + post_result + '</span><br />';
-                $("#connection_test_" + id).html(resultDiv);
-                //$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
+                html += line('Local version', result.local_version, colours.local);
+                html += line('Remote version', result.version, colours.remote);
+                html += line('Status', status_message, colours.status);
+                html += line('Compatibility', compatibility, compatibility_colour);
+                html += line('POST test', post_result, post_colour);
                 break;
             case 2:
-                $("#connection_test_" + id).html('<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>');
+                html += '<span class="red bold" title="There seems to be a connection issue. Make sure that the entered URL is correct and that the certificates are in order.">Server unreachable</span>';
                 break;
             case 3:
-                $("#connection_test_" + id).html('<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>');
+                html += '<span class="red bold" title="The server returned an unexpected result. Make sure that the provided URL (or certificate if it applies) are correct.">Unexpected error</span>';
                 break;
             case 4:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>');
+                html += '<span class="red bold" title="Authentication failed due to incorrect authentication key or insufficient privileges on the remote instance.">Authentication failed</span>';
                 break;
             case 5:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>');
+                html += '<span class="red bold" title="Authentication failed because the sync user is expected to change passwords. Log into the remote MISP to rectify this.">Password change required</span>';
                 break;
             case 6:
-                $("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>');
+                html += '<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>';
                 break;
             case 7:
-                $("#connection_test_" + id).html('<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>');
+                html += '<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>';
                 break;
             case 8:
-                $("#connection_test_" + id).html('<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, syncing sightings only</span>');
+                html += '<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, syncing sightings only</span>';
                 break;
             }
+
+            $("#connection_test_" + id).html(html);
         }
     })
 }
@@ -3648,12 +3701,14 @@ function syncUserSelected() {
     }
 }
 
-function filterAttributes(filter, id) {
-    var url = baseurl + "/events/viewEventAttributes/" + id;
-    if(filter === 'value'){
+function filterAttributes(filter, event_id) {
+    var url = baseurl + "/events/viewEventAttributes/" + event_id;
+    if (filter === 'value'){
         filter = encodeURIComponent($('#quickFilterField').val().trim());
         url += filter.length > 0 ? "/searchFor:" + filter : "";
-    } else if(filter !== 'all') {
+    } else if (filter === 'all') {
+        $('#quickFilterField').val(''); // clear input value
+    } else {
         url += "/attributeFilter:" + filter
         filter = encodeURIComponent($('#quickFilterField').val().trim());
         url += filter.length > 0 ? "/searchFor:" + filter : "";
@@ -3662,25 +3717,63 @@ function filterAttributes(filter, id) {
     $.ajax({
         type: "get",
         url: url,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function() {
             $(".loading").show();
         },
-        success:function (data) {
+        success: function(data) {
             $("#attributes_div").html(data);
             $(".loading").hide();
         },
-        error:function() {
+        error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
+            $(".loading").hide();
         }
     });
 }
 
+// Find object or attribute by UUID on current page
+function findObjectByUuid(uuid) {
+    var $tr = null;
+    $('#attributeList tr').each(function () {
+        var trId = $(this).attr('id');
+        if (trId && (trId.startsWith("Object") || trId.startsWith("Attribute") || trId.startsWith('proposal'))) {
+            var objectUuid = $('.uuid', this).text().trim();
+            if (objectUuid === uuid) {
+                $tr = $(this);
+                return false;
+            }
+        }
+    });
+    return $tr;
+}
+
+function focusObjectByUuid(uuid) {
+    var $tr = findObjectByUuid(uuid);
+    if (!$tr) {
+        return false;
+    }
+
+    $([document.documentElement, document.body]).animate({
+        scrollTop: $tr.offset().top - 45, // 42px is #topBar size, so make little bit more space
+    }, 1000, null, function () {
+        $tr.fadeTo(100, 0.3, function () { // blink active row
+            $(this).fadeTo(500, 1.0);
+        });
+        $tr.focus();
+    });
+    return true;
+}
+
 function pivotObjectReferences(url, uuid) {
+    if (focusObjectByUuid(uuid)) {
+        return; // object is on the same page, we don't need to reload page
+    }
+
     url += '/focus:' + uuid;
     $.ajax({
-        type:"get",
-        url:url,
-        beforeSend: function (XMLHttpRequest) {
+        type: "get",
+        url: url,
+        beforeSend: function () {
             $(".loading").show();
         },
         success: function (data) {
@@ -3797,68 +3890,138 @@ function toggleSettingSubGroup(group) {
     $('.subGroup_' + group).toggle();
 }
 
-function runHoverLookup(type, id) {
-    $.ajax({
-        success:function (html) {
-            ajaxResults["hover"][type + "_" + id] = html;
-            var element = $('#' + type + '_' + id + '_container');
-            element.popover({
-                title: attributeHoverTitle(id, type),
-                content: html,
-                placement: attributeHoverPlacement(element),
-                html: true,
-                trigger: 'manual',
-                container: 'body'
-            }).popover('show');
-            if (currentPopover !== undefined && currentPopover !== '') {
-                $('#' + currentPopover).popover('destroy');
-            }
-            currentPopover = type + '_' + id + '_container'
-        },
-        cache: false,
-        url: baseurl + "/attributes/hoverEnrichment/" + id,
-    });
+// Hover enrichment
+var hoverEnrichmentPopoverTimer;
+
+function attributeHoverTitle(id, type) {
+    return '<span>Lookup results:</span>\
+		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"\
+				style="float: right;"\
+				data-object-id="' + id + '"\
+				data-object-type="' +  type + '">\
+	</i>';
 }
 
-$(".cortex-json").click(function() {
-    var cortex_data = $(this).data('cortex-json');
-    cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-    var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-    popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+function attributeHoverPlacement(element) {
+    var offset = element.offset(),
+        topOffset = offset.top - $(window).scrollTop(),
+        left = offset.left - $(window).scrollLeft(),
+        viewportHeight = window.innerHeight,
+        viewportWidth = window.innerWidth,
+        horiz = 0.5 * viewportWidth - left,
+        horizPlacement = horiz > 0 ? 'right' : 'left',
+        popoverMaxHeight = .75 * viewportHeight;
 
+    // default to top placement
+    var placement = topOffset - popoverMaxHeight > 0 ? 'top' : horizPlacement;
+
+    // more space on bottom
+    if (topOffset < .5 * viewportHeight) {
+        // will popup fit on bottom
+        placement = popoverMaxHeight < topOffset ? 'bottom' : horizPlacement;
+    }
+
+    return placement;
+}
+
+function showHoverEnrichmentPopover(type, id) {
+    var html = ajaxResults["hover"][type + "_" + id];
+    var element = $('#' + type + '_' + id + '_container');
+    element.popover({
+        title: attributeHoverTitle(id, type),
+        content: html,
+        placement: attributeHoverPlacement(element),
+        html: true,
+        trigger: 'manual',
+        container: 'body'
+    }).popover('show');
+    if (currentPopover !== undefined && currentPopover !== '') {
+        $('#' + currentPopover).popover('destroy');
+    }
+    currentPopover = type + '_' + id + '_container'
+}
+
+$(document.body).on('mouseenter', '.eventViewAttributeHover', function () {
+    if (currentPopover !== undefined && currentPopover !== '') {
+        $('#' + currentPopover).popover('destroy');
+        currentPopover = '';
+    }
+    var type = $(this).attr('data-object-type');
+    var id = $(this).attr('data-object-id');
+
+    if (type + "_" + id in ajaxResults["hover"]) {
+        showHoverEnrichmentPopover(type, id);
+    } else {
+        hoverEnrichmentPopoverTimer = setTimeout(function () {
+                $.ajax({
+                    success: function (html) {
+                        ajaxResults["hover"][type + "_" + id] = html;
+                        showHoverEnrichmentPopover(type, id);
+                    },
+                    cache: false,
+                    url: baseurl + "/attributes/hoverEnrichment/" + id,
+                });
+            },
+            500
+        );
+    }
+}).on('mouseout', '.eventViewAttributeHover', function () {
+    clearTimeout(hoverEnrichmentPopoverTimer);
 });
 
+function showEnrichmentPopover(type, id) {
+    var $popoverBox = $('#popover_box');
+    $popoverBox.empty();
+    var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
+    enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
+    $popoverBox.html(enrichment_popover);
+    $popoverBox.show();
+    $("#gray_out").fadeIn();
+
+    let maxWidth = ($(window).width() * 0.9 | 0);
+    if (maxWidth > 1400) { // limit popover width to 1400 px
+        maxWidth = 1400;
+    }
+    $popoverBox.css({
+        'padding': '5px',
+        'max-width': maxWidth + "px",
+        'min-width': '700px',
+        'height': ($(window).height() - 300 | 0) + "px",
+        'background-color': 'white',
+    });
+
+    var left = ($(window).width() / 2) - ($popoverBox.width() / 2);
+    $popoverBox.css({'left': left + 'px'});
+
+    if (currentPopover !== undefined && currentPopover !== '') {
+        $('#' + currentPopover).popover('destroy');
+    }
+}
+
 // add the same as below for click popup
-$(document).on( "click", ".eventViewAttributePopup", function() {
-    $('#popover_box').empty();
-    type = $(this).attr('data-object-type');
-    id = $(this).attr('data-object-id');
-    if (!(type + "_" + id in ajaxResults["persistent"])) {
+$(document).on("click", ".eventViewAttributePopup", function() {
+    clearTimeout(hoverEnrichmentPopoverTimer); // stop potentional popover loading
+
+    var type = $(this).attr('data-object-type');
+    var id = $(this).attr('data-object-id');
+    if (!(type + "_" + id in ajaxResults["persistent"])) { // not in cache
         $.ajax({
-            success:function (html) {
-                ajaxResults["persistent"][type + "_" + id] = html;
+            beforeSend: function() {
+                $(".loading").show();
             },
-            async: false,
+            success: function (html) {
+                ajaxResults["persistent"][type + "_" + id] = html; // save to cache
+                showEnrichmentPopover(type, id);
+            },
+            error: xhrFailCallback,
+            complete: function() {
+                $(".loading").hide();
+            },
             cache: false,
             url: baseurl + "/attributes/hoverEnrichment/" + id + "/1",
         });
-    }
-    if (type + "_" + id in ajaxResults["persistent"]) {
-        var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
-        enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
-        $('#popover_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
-        $('#popover_box').show();
-        $("#gray_out").fadeIn();
-        $('#popover_box').css({'padding': '5px'});
-        $('#popover_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
-        $('#popover_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
-        $('#popover_box').css( "overflow-y", "auto");
-
-        var left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
-        $('#popover_box').css({'left': left + 'px'});
-    }
-    if (currentPopover !== undefined && currentPopover !== '') {
-        $('#' + currentPopover).popover('destroy');
+    } else {
+        showEnrichmentPopover(type, id);
     }
 });
 
@@ -3869,37 +4032,6 @@ function flashErrorPopover() {
     var left = ($(window).width() / 2) - ($('#popover_form').width() / 2);
     $('#popover_form').css({'left': left + 'px'});
     $("#gray_out").fadeIn();
-}
-
-function attributeHoverTitle(id, type) {
-  return '<span>Lookup results:</span>\
-		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"\
-				style="float: right;"\
-				data-object-id="${id}"\
-				data-object-type="${type}">\
-	</i>';
-}
-
-function attributeHoverPlacement(element) {
-  var offset = element.offset(),
-    topOffset = offset.top - $(window).scrollTop(),
-    left = offset.left - $(window).scrollLeft(),
-    viewportHeight = window.innerHeight,
-    viewportWidth = window.innerWidth,
-    horiz = 0.5 * viewportWidth - left,
-    horizPlacement = horiz > 0 ? 'right' : 'left',
-    popoverMaxHeight = .75 * viewportHeight;
-
-  // default to top placement
-  var placement = topOffset - popoverMaxHeight > 0 ? 'top' : horizPlacement;
-
-  // more space on bottom
-  if (topOffset < .5 * viewportHeight) {
-    // will popup fit on bottom
-    placement = popoverMaxHeight < topOffset ? 'bottom' : horizPlacement;
-  }
-
-  return placement;
 }
 
 $('body').on('click', function (e) {
@@ -3977,10 +4109,24 @@ function formCategoryChanged(id) {
     var alreadySelected = $type.val();
     var options = $type.prop('options');
     $('option', $type).remove();
-    $.each(category_type_mapping[$('#' + id + 'Category').val()], function(val, text) {
+
+    var selectedCategory = $('#' + id + 'Category').val();
+    var optionsToPush;
+    if (selectedCategory === "") { // if no category is selected, insert all attribute types
+        optionsToPush = {};
+        for (var category in category_type_mapping) {
+            for (var type in category_type_mapping[category]) {
+                optionsToPush[type] = category_type_mapping[category][type];
+            }
+        }
+    } else {
+        optionsToPush = category_type_mapping[selectedCategory];
+    }
+
+    $.each(optionsToPush, function (val, text) {
         options[options.length] = new Option(text, val);
         if (val === alreadySelected) {
-            options[options.length-1].selected = true;
+            options[options.length - 1].selected = true;
         }
     });
     // enable the form element
@@ -4239,15 +4385,19 @@ function checkAndSetPublishedInfo(skip_reload) {
     }
 }
 
+$(function() {
+    $('#gray_out').click(function() {
+        cancelPopoverForm();
+        $("#popover_matrix").fadeOut();
+        $(".loading").hide();
+        resetForms();
+    })
+});
+
 $(document).keyup(function(e){
     if (e.keyCode === 27) {
-    $("#gray_out").fadeOut();
-        $("#popover_form").fadeOut();
-        $("#popover_form_large").fadeOut();
+        cancelPopoverForm();
         $("#popover_matrix").fadeOut();
-        $("#screenshot_box").fadeOut();
-        $("#popover_box").fadeOut();
-        $("#confirmation_box").fadeOut();
         $(".loading").hide();
         resetForms();
     }
@@ -4551,15 +4701,6 @@ $(document).ready(function() {
             return $(this).data('disabled-reason');
         }
     });
-
-    $('#quickFilterField').bind("enterKey",function(e){
-        $('#quickFilterButton').trigger("click");
-    });
-    $('#quickFilterField').keyup(function(e){
-        if (e.keyCode == 13) {
-            $('#quickFilterButton').trigger("click");
-        }
-    });
     $(".queryPopover").click(function() {
         url = $(this).data('url');
         id = $(this).data('id');
@@ -4592,23 +4733,6 @@ $(document).ready(function() {
     $('.quickSelect').click(function() {
         quickSelect(this);
     });
-    $(".cortex-json").click(function() {
-        var cortex_data = $(this).data('cortex-json');
-        cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
-        var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
-        popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-        $('#popover_box').html(popupHtml);
-        $('#popover_box').show();
-        $('#popover_box').css({'padding': '5px'});
-        left = ($(window).width() / 2) - ($('#popover_box').width() / 2);
-        if (($('#popover_box').height() + 250) > $(window).height()) {
-            $('#popover_box').height($(window).height() - 250);
-            $('#popover_box').css("overflow-y", "scroll");
-            $('#popover_box').css("overflow-x", "hidden");
-        }
-        $('#popover_box').css({'left': left + 'px'});
-        $("#gray_out").fadeIn();
-    });
     $('.add_object_attribute_row').click(function() {
         var template_id = $(this).data('template-id');
         var object_relation = $(this).data('object-relation');
@@ -4625,9 +4749,32 @@ $(document).ready(function() {
     $('.quickToggleCheckbox').toggle(function() {
         var url = $(this).data('checkbox-url');
     });
+
+    $('#setHomePage').click(function(event) {
+        event.preventDefault();
+        setHomePage();
+    });
+
+    $(document.body).on('click', '.privacy-toggle', function() {
+        var $this = $(this);
+        var $privacy_target = $this.parent().find('.privacy-value');
+        if ($this.hasClass('fa-eye')) {
+            $privacy_target.text($privacy_target.data('hidden-value'));
+            $this.removeClass('fa-eye');
+            $this.addClass('fa-eye-slash');
+
+            if ($privacy_target.hasClass('quickSelect')) {
+                $privacy_target.click();
+            }
+        } else {
+            $privacy_target.text('****************************************');
+            $this.removeClass('fa-eye-slash');
+            $this.addClass('fa-eye');
+        }
+    });
 });
 
-$("body").on("click", ".correlation-expand-button", function() {
+$(document.body).on("click", ".correlation-expand-button", function() {
     $(this).parent().children(".correlation-expanded-area").show();
     $(this).parent().children(".correlation-collapse-button").show();
     $(this).hide();
@@ -4635,6 +4782,54 @@ $("body").on("click", ".correlation-expand-button", function() {
     $(this).parent().children(".correlation-expanded-area").hide();
     $(this).parent().children(".correlation-expand-button").show();
     $(this).hide();
+});
+
+// Show full attribute value when value is truncated
+$(document.body).on('click', 'span[data-full] a', function(e) {
+    e.preventDefault();
+
+    var $parent = $(this).parent();
+    var data = $parent.attr('data-full');
+    var type = $parent.attr('data-full-type');
+    var $box;
+    if (type === 'raw' || type === 'cortex') {
+        if (type === 'cortex') {
+            data = JSON.stringify(JSON.parse(data), null, 2); // make JSON nicer
+        }
+
+        $box = $('<pre>').css({
+            'background': 'white',
+            'border': '0',
+            'margin': '0',
+        }).text(data);
+    } else {
+        $box = $('<div>').css({
+            'background': 'white',
+            'white-space': 'pre-wrap',
+            'word-wrap': 'break-word',
+            'padding': '1em',
+        }).text(data);
+    }
+
+    var $popoverFormLarge = $('#popover_form_large');
+    $popoverFormLarge.html($box[0].outerHTML);
+    openPopup($popoverFormLarge);
+})
+
+// Submit quick filter form when user press enter in input field
+$(document.body).on('keyup', '#quickFilterField', function(e) {
+    if (e.keyCode === 13) { // ENTER key
+        $('#quickFilterButton').trigger("click");
+    }
+});
+
+// Send textarea form on CMD+ENTER or CTRL+ENTER
+$(document.body).on('keydown', 'textarea', function(e) {
+    if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) { // CMD+ENTER or CTRL+ENTER key
+        if (e.target.form) {
+            $(e.target.form).submit();
+        }
+    }
 });
 
 function queryEventLock(event_id, user_org_id) {
@@ -5140,3 +5335,59 @@ function loadClusterRelations(clusterId) {
         );
     }
 }
+
+function openIdSelection(clicked, scope, action) {
+    var onclick = 'redirectIdSelection(\'' + scope + '\', \'' + action + '\')'
+    var html = '<div class="input-append">'
+                + '<input class="span2" id="eventIdSelectionInput" type="number" min="1" step="1" placeholder="42">'
+                + '<button class="btn btn-primary" type="button" onclick="' + onclick + '">Submit</button>'
+            + '</div>';
+    openPopover(clicked, html, false, 'right')
+}
+
+function redirectIdSelection(scope, action) {
+    var id = $('#eventIdSelectionInput').val()
+    if (id.length > 0) {
+        window.location = baseurl + '/' + scope + '/' + action + '/' + id
+    } else {
+        showMessage('fail', 'Not an valid event id');
+    }
+}
+
+$('body').on('click', '.hex-value-convert', function() {
+    var $hexValueSpan = $(this).parent().children(':first-child');
+    var val = $hexValueSpan.text().trim();
+    if (!$hexValueSpan.hasClass('binary-representation')) {
+        var bin = [];
+        val.split('').forEach(function (entry) {
+            var temp = parseInt(entry, 16).toString(2);
+            bin.push(Array(5 - (temp.length)).join('0') + temp);
+        });
+        bin = bin.join(' ');
+        $hexValueSpan
+            .text(bin)
+            .attr('data-original-title', 'Binary representation')
+            .addClass('binary-representation');
+        if ($hexValueSpan.attr('title')) {
+            $hexValueSpan.attr('title', 'Binary representation');
+        }
+        $(this)
+            .attr('data-original-title', 'Switch to hexadecimal representation')
+            .attr('aria-label', 'Switch to hexadecimal representation');
+    } else {
+        var hex = '';
+        val.split(' ').forEach(function (entry) {
+            hex += parseInt(entry, 2).toString(16).toUpperCase();
+        });
+        $hexValueSpan
+            .text(hex)
+            .attr('data-original-title', 'Hexadecimal representation')
+            .removeClass('binary-representation');
+        if ($hexValueSpan.attr('title')) {
+            $hexValueSpan.attr('title', 'Hexadecimal representation');
+        }
+        $(this)
+            .attr('data-original-title', 'Switch to binary representation')
+            .attr('aria-label', 'Switch to binary representation');
+    }
+});

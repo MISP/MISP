@@ -1,19 +1,16 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language')  ?>">
 <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <?php echo $this->Html->charset(); ?>
-    <meta name="viewport" content="width=device-width" />
-    <title>
-        <?php echo $title_for_layout, ' - '. h(Configure::read('MISP.title_text') ? Configure::read('MISP.title_text') : 'MISP'); ?>
-    </title>
+    <meta name="viewport" content="width=device-width">
+    <title><?= $title_for_layout, ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
         $css_collection = array(
             'bootstrap',
             //'bootstrap4',
             'bootstrap-datepicker',
             'bootstrap-colorpicker',
-            'famfamfam-flags',
             'font-awesome',
             'jquery-ui',
             'chosen.min',
@@ -36,7 +33,6 @@
             'meta' => 'icon'
         ));
     ?>
-
 </head>
 <body>
     <div id="popover_form" class="ajax_popover_form"></div>
@@ -57,7 +53,7 @@
         ?>
     </div>
     <div id="flashContainer" style="padding-top:<?php echo $topPadding; ?>px; !important;">
-        <div id="main-view-container" class="container-fluid ">
+        <div id="main-view-container" class="container-fluid">
             <?php
                 echo $this->Flash->render();
             ?>
@@ -82,13 +78,13 @@
     echo $this->element('footer');
     echo $this->element('sql_dump');
     ?>
-    <div id = "ajax_success_container" class="ajax_container">
+    <div id="ajax_success_container" class="ajax_container">
         <div id="ajax_success" class="ajax_result ajax_success"></div>
     </div>
-    <div id = "ajax_fail_container" class="ajax_container">
+    <div id="ajax_fail_container" class="ajax_container">
         <div id="ajax_fail" class="ajax_result ajax_fail"></div>
     </div>
-    <div id = "ajax_hidden_container" class="hidden"></div>
+    <div id="ajax_hidden_container" class="hidden"></div>
     <div class="loading">
         <div class="spinner"></div>
         <div class="loadingText"><?php echo __('Loading');?></div>
@@ -97,7 +93,7 @@
     <?php
         if (!isset($debugMode)):
     ?>
-        $(window).scroll(function(e) {
+        $(window).scroll(function() {
             $('.actions').css('left',-$(window).scrollLeft());
         });
     <?php
@@ -112,11 +108,10 @@
                     echo $baseurl . '/' . h($this->params['controller']) . '/' . h($this->params['action']);
                 }
             ?>';
-        $(document).ready(function(){
+        $(function(){
             $(window).blur(function() {
                 tabIsActive = false;
-            });
-            $(window).focus(function() {
+            }).focus(function() {
                 tabIsActive = true;
             });
         <?php

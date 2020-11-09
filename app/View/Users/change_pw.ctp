@@ -3,8 +3,8 @@
     <fieldset>
         <legend><?php echo __('Change Password'); ?></legend>
     <?php
-        $passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
-        $passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
+        $passwordPopover = '<span class="blue bold">' . __('Minimal length') . '</span>: ' . h($length) . '<br>';
+        $passwordPopover .= '<span class="blue bold">' . __('Complexity') . '</span>: ' . h($complexity);
         echo $this->Form->input('password', array(
             'label' => __('Password') . ' <span id="PasswordPopover" class="fas fa-info-circle"></span>', 'autofocus'
         ));
@@ -25,12 +25,12 @@ echo $this->Form->end();
 ?>
 </div>
 <script type="text/javascript">
-    $(document).ready(function() {
+    $(function() {
         $('#PasswordPopover').popover("destroy").popover({
             placement: 'right',
             html: 'true',
             trigger: 'hover',
-            content: '<?php echo $passwordPopover; ?>'
+            content: <?= json_encode($passwordPopover) ?>
         });
     });
 </script>

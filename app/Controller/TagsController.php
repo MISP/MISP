@@ -2,9 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * @property Tag $Tag
- */
 class TagsController extends AppController
 {
     public $components = array('Security' ,'RequestHandler');
@@ -30,6 +27,12 @@ class TagsController extends AppController
 
     public $helpers = array('TextColour');
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        $this->Security->unlockedActions[] = 'search';
+    }
+
     public function index($favouritesOnly = false)
     {
         $this->loadModel('Attribute');
@@ -38,6 +41,14 @@ class TagsController extends AppController
         if ($this->_isSiteAdmin()) {
             $this->paginate['contain']['User'] = array('fields' => array('id', 'email'));
         }
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => ['favouritesOnly', 'filter', 'searchall', 'name', 'search', 'exclude_statistics'],
+            'ordered_url_params' => @compact($paramArray)
+        );
+        $exception = false;
+        $passedArgsArray = $this->_harvestParameters($filterData, $exception);
         $taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
         $taxonomyNamespaces = array();
         if (!empty($taxonomies)) {
@@ -46,9 +57,8 @@ class TagsController extends AppController
             }
         }
         $taxonomyTags = array();
-        $passedArgsArray = array();
         $this->Event->recursive = -1;
-        if ($favouritesOnly) {
+        if (!empty($passedArgsArray['favouritesOnly'])) {
             $tag_id_list = $this->Tag->FavouriteTag->find('list', array(
                     'conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id')),
                     'fields' => array('FavouriteTag.tag_id')
@@ -58,47 +68,48 @@ class TagsController extends AppController
             }
             $this->paginate['conditions']['AND']['Tag.id'] = $tag_id_list;
         }
-        if (isset($this->params['named']['searchall'])) {
-            $passedArgsArray['all'] = $this->params['named']['searchall'];
-        } elseif ($this->request->is('post')) {
-            $validNames = array('filter', 'searchall', 'name', 'search');
-            foreach ($validNames as $vn) {
-                if (!empty($this->request->data[$vn])) {
-                    $passedArgsArray['all'] = $this->request->data[$vn];
-                    continue;
-                }
-            }
+        if (!empty($passedArgsArray['searchall'])) {
+            $this->paginate['conditions']['AND'][] = ['LOWER(Tag.name) LIKE' => '%' . strtolower($passedArgsArray['searchall']) . '%'];
         }
-        if (!empty($passedArgsArray['all'])) {
-            $this->paginate['conditions']['AND']['LOWER(Tag.name) LIKE'] = '%' . strtolower($passedArgsArray['all']) . '%';
+        foreach (['name', 'filter', 'search'] as $f) {
+            if (!empty($passedArgsArray['name'])) {
+                $this->paginate['conditions']['AND'][] = ['LOWER(Tag.name)' => strtolower($passedArgsArray[$f])];
+            }
         }
         if ($this->_isRest()) {
             unset($this->paginate['limit']);
+            unset($this->paginate['contain']['EventTag']);
+            unset($this->paginate['contain']['AttributeTag']);
             $paginated = $this->Tag->find('all', $this->paginate);
         } else {
+            if (!empty($passedArgsArray['exclude_statistics'])) {
+                unset($this->paginate['contain']['EventTag']);
+                unset($this->paginate['contain']['AttributeTag']);
+                $this->set('exclude_statistics', true);
+            }
             $paginated = $this->paginate();
         }
         $tagList = array();
         $csv = array();
+        $sgs = $this->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
         foreach ($paginated as $k => $tag) {
             $tagList[] = $tag['Tag']['id'];
-            $paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag, $this->Auth->user());
-            $paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag, $this->Auth->user());
-
-            if (!$this->_isRest()) {
-                $paginated[$k]['event_ids'] = array();
-                foreach ($paginated[$k]['EventTag'] as $et) {
-                    $paginated[$k]['event_ids'][] = $et['event_id'];
+            if (empty($passedArgsArray['exclude_statistics'])) {
+                $paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
+                if (!$this->_isRest()) {
+                    $paginated[$k]['event_ids'] = array();
+                    $paginated[$k]['attribute_ids'] = array();
+                    foreach ($paginated[$k]['EventTag'] as $et) {
+                        $paginated[$k]['event_ids'][] = $et['event_id'];
+                    }
+                    unset($paginated[$k]['EventTag']);
+                    foreach ($paginated[$k]['AttributeTag'] as $at) {
+                        $paginated[$k]['attribute_ids'][] = $at['attribute_id'];
+                    }
+                    unset($paginated[$k]['AttributeTag']);
                 }
-                $paginated[$k]['attribute_ids'] = array();
-                foreach ($paginated[$k]['AttributeTag'] as $at) {
-                    $paginated[$k]['attribute_ids'][] = $at['attribute_id'];
-                }
+                $paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
             }
-
-            unset($paginated[$k]['EventTag']);
-            unset($paginated[$k]['AttributeTag']);
-
             if (!empty($tag['FavouriteTag'])) {
                 foreach ($tag['FavouriteTag'] as $ft) {
                     if ($ft['user_id'] == $this->Auth->user('id')) {
@@ -125,7 +136,7 @@ class TagsController extends AppController
                 }
             }
         }
-        if (!$this->_isRest()) {
+        if (!$this->_isRest() && empty($passedArgsArray['exclude_statistics'])) {
             $this->loadModel('Sighting');
             $sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList);
             $sightings['attribute'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList, 'attribute');
@@ -149,13 +160,13 @@ class TagsController extends AppController
                     $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
                     $to = date('Y-m-d', time());
                     for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
-                        if (!isset($csv[$k])) {
-                            $csv[$k] = 'Date,Close\n';
+                        if (!isset($paginated[$k]['Tag']['csv'])) {
+                            $paginated[$k]['Tag']['csv'] = 'Date,Close\n';
                         }
                         if (isset($tag['sightings'][$date])) {
-                            $csv[$k] .= $date . ',' . $tag['sightings'][$date] . '\n';
+                            $paginated[$k]['Tag']['csv'] .= $date . ',' . $tag['sightings'][$date] . '\n';
                         } else {
-                            $csv[$k] .= $date . ',0\n';
+                            $paginated[$k]['Tag']['csv'] .= $date . ',0\n';
                         }
                     }
                 }
@@ -398,13 +409,58 @@ class TagsController extends AppController
             if (empty($tag['EventTag'])) {
                 $tag['Tag']['count'] = 0;
             } else {
-                $tag['Tag']['count'] = $this->Tag->EventTag->countForTag($tag, $this->Auth->user());
+                $eventIDs = array();
+                foreach ($tag['EventTag'] as $eventTag) {
+                    $eventIDs[] = $eventTag['event_id'];
+                }
+                $conditions = array('Event.id' => $eventIDs);
+                if (!$this->_isSiteAdmin()) {
+                    $conditions = array_merge(
+                        $conditions,
+                        array('OR' => array(
+                                array('AND' => array(
+                                        array('Event.distribution >' => 0),
+                                        array('Event.published =' => 1)
+                                )),
+                                array('Event.orgc_id' => $this->Auth->user('org_id'))
+                        ))
+                );
+                }
+                $events = $this->Tag->EventTag->Event->find('all', array(
+                        'fields' => array('Event.id', 'Event.distribution', 'Event.orgc_id'),
+                        'conditions' => $conditions
+                ));
+                $tag['Tag']['count'] = count($events);
             }
             unset($tag['EventTag']);
             if (empty($tag['AttributeTag'])) {
                 $tag['Tag']['attribute_count'] = 0;
             } else {
-                $tag['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag, $this->Auth->user());;
+                $attributeIDs = array();
+                foreach ($tag['AttributeTag'] as $attributeTag) {
+                    $attributeIDs[] = $attributeTag['attribute_id'];
+                }
+                $conditions = array('Attribute.id' => $attributeIDs);
+                if (!$this->_isSiteAdmin()) {
+                    $conditions = array_merge(
+                        $conditions,
+                        array('OR' => array(
+                            array('AND' => array(
+                                array('Attribute.deleted =' => 0),
+                                array('Attribute.distribution >' => 0),
+                                array('Event.distribution >' => 0),
+                                array('Event.published =' => 1)
+                            )),
+                            array('Event.orgc_id' => $this->Auth->user('org_id'))
+                        ))
+                    );
+                }
+                $attributes = $this->Tag->AttributeTag->Attribute->find('all', array(
+                    'fields'     => array('Attribute.id', 'Attribute.deleted', 'Attribute.distribution', 'Event.id', 'Event.distribution', 'Event.orgc_id'),
+                    'contain'    => array('Event' => array('fields' => array('id', 'distribution', 'orgc_id'))),
+                    'conditions' => $conditions
+                ));
+                $tag['Tag']['attribute_count'] = count($attributes);
             }
             unset($tag['AttributeTag']);
             $this->set('Tag', $tag['Tag']);
@@ -885,7 +941,7 @@ class TagsController extends AppController
             if (is_numeric($tag)) {
                 $conditions = array('Tag.id' => $tag);
             } else {
-                $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
+                $conditions = array('Tag.name LIKE' => trim($tag));
             }
             if (empty($local)) {
                 if (!empty($this->request->data['local'])) {
@@ -1067,7 +1123,7 @@ class TagsController extends AppController
         $this->render('/Events/view_graph');
     }
 
-    public function search($tag = false)
+    public function search($tag = false, $strictTagNameOnly = false, $searchIfTagExists = true)
     {
         if (isset($this->request->data['Tag'])) {
             $this->request->data = $this->request->data['Tag'];
@@ -1080,40 +1136,59 @@ class TagsController extends AppController
         if (!is_array($tag)) {
             $tag = array($tag);
         }
-        $conditions = array();
-        foreach ($tag as $k => $t) {
-            $tag[$k] = strtolower($t);
-            $conditions['OR'][] = array('LOWER(GalaxyCluster.value)' => $tag[$k]);
-        }
-        foreach ($tag as $k => $t) {
-            $conditions['OR'][] = array('AND' => array('GalaxyElement.key' => 'synonyms', 'LOWER(GalaxyElement.value) LIKE' => $t));
-        }
         $this->loadModel('GalaxyCluster');
-        $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'contain' => array('GalaxyCluster.tag_name')
-        ));
-        foreach ($elements as $element) {
-            $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
-        }
         $conditions = array();
-        foreach ($tag as $k => $t) {
-            $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
+        if (!$strictTagNameOnly) {
+            $conditionsCluster = [];
+            foreach ($tag as $k => $t) {
+                $tag[$k] = strtolower($t);
+                $conditionsCluster['OR'][] = array('LOWER(GalaxyCluster.value)' => $tag[$k]);
+            }
+            foreach ($tag as $k => $t) {
+                $conditionsCluster['OR'][] = array('AND' => array('GalaxyElement.key' => 'synonyms', 'LOWER(GalaxyElement.value) LIKE' => $t));
+            }
+            $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
+                'recursive' => -1,
+                'conditions' => $conditionsCluster,
+                'contain' => array('GalaxyCluster.tag_name')
+            ));
+            foreach ($elements as $element) {
+                $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
+            }
+            foreach ($tag as $k => $t) {
+                $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
+            }
+        } else {
+            foreach ($tag as $k => $t) {
+                $conditions['OR'][] = array('Tag.name' => $t);
+            }
         }
         $tags = $this->Tag->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1
         ));
+        if (!$searchIfTagExists && empty($tags)) {
+            $tags = [];
+            foreach ($tag as $i => $tagName) {
+                $tags[] = ['Tag' => ['name' => $tagName], 'simulatedTag' => true];
+            }
+        }
         $this->loadModel('Taxonomy');
         foreach ($tags as $k => $t) {
-            $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name'], true);
-            if (!empty($taxonomy)) {
+            $dataFound = false;
+            $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name'], false);
+            if (!empty($taxonomy) && !empty($taxonomy['TaxonomyPredicate'][0])) {
+                $dataFound = true;
                 $tags[$k]['Taxonomy'] = $taxonomy['Taxonomy'];
+                $tags[$k]['TaxonomyPredicate'] = $taxonomy['TaxonomyPredicate'][0];
             }
             $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name'], $this->Auth->user);
             if (!empty($cluster)) {
+                $dataFound = true;
                 $tags[$k]['GalaxyCluster'] = $cluster['GalaxyCluster'];
+            }
+            if (!$searchIfTagExists && !$dataFound && !empty($t['simulatedTag'])) {
+                unset($tags[$k]);
             }
         }
         return $this->RestResponse->viewData($tags, $this->response->type());

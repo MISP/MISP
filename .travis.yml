@@ -146,6 +146,7 @@ before_script:
     - popd
 
 script:
+    - ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
     - ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
     - pushd tests
     - ./curl_tests.sh $AUTH
@@ -153,7 +154,7 @@ script:
     - pushd PyMISP
     - git submodule init
     - git submodule update
-    - poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport
+    - travis_retry poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport
     - poetry run python tests/testlive_comprehensive.py
     - poetry run python tests/test_mispevent.py
     - popd
@@ -161,12 +162,9 @@ script:
     - pushd PyMISP/examples/events/
     - poetry run python ./create_massive_dummy_events.py -l 5 -a 30
     - popd
-    - pushd app/files/feed-metadata
-    - jsonschema -i defaults.json schema.json
-    - popd
+    - python3 tools/misp-feed/validate.py
 
 after_failure:
-    - ls -aRl `pwd`
     - curl http://misp.local
     - cat /etc/apache2/sites-available/misp.local.conf
     - sudo tail -n +1 `pwd`/app/tmp/logs/*

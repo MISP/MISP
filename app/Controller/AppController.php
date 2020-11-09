@@ -37,6 +37,8 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @link http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  *
  * @throws ForbiddenException // TODO Exception
+ * @property ACLComponent $ACL
+ * @property RestResponseComponent $RestResponse
  */
 class AppController extends Controller
 {
@@ -46,8 +48,8 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '111';
-    public $pyMispVersion = '2.4.131';
+    private $__queryVersion = '117';
+    public $pyMispVersion = '2.4.134';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $pythonmin = '3.6';
@@ -462,15 +464,10 @@ class AppController extends Controller
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
             $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->set('isAclDecaying', isset($role['perm_decaying']) ? $role['perm_decaying'] : false);
+            $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 
             $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
-            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
-            } else {
-                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
-            }
-            $this->set('notifications', $notifications);
 
             if (
                 Configure::read('MISP.log_paranoid') ||
@@ -541,17 +538,28 @@ class AppController extends Controller
             }
         }
         $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
-        $this->loadModel('UserSetting');
-        $homepage = $this->UserSetting->find('first', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'UserSetting.user_id' => $this->Auth->user('id'),
-                'UserSetting.setting' => 'homepage'
-            ),
-            'contain' => array('User.id', 'User.org_id')
-        ));
-        if (!empty($homepage)) {
-            $this->set('homepage', $homepage['UserSetting']['value']);
+
+        // Notifications and homepage is not necessary for AJAX or REST requests
+        if ($this->Auth->user() && !$this->_isRest() && !$this->request->is('ajax')) {
+            if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+            } else {
+                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+            }
+            $this->set('notifications', $notifications);
+
+            $this->loadModel('UserSetting');
+            $homepage = $this->UserSetting->find('first', array(
+                'recursive' => -1,
+                'conditions' => array(
+                    'UserSetting.user_id' => $this->Auth->user('id'),
+                    'UserSetting.setting' => 'homepage'
+                ),
+                'contain' => array('User.id', 'User.org_id')
+            ));
+            if (!empty($homepage)) {
+                $this->set('homepage', $homepage['UserSetting']['value']);
+            }
         }
     }
 
@@ -1094,6 +1102,7 @@ class AppController extends Controller
                 if ($user['User']) {
                     unset($user['User']['gpgkey']);
                     unset($user['User']['certif_public']);
+                    $this->User->updateLoginTimes($user['User']);
                     $this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user['User']);
                     if (Configure::read('MISP.log_auth')) {
@@ -1182,6 +1191,7 @@ class AppController extends Controller
         if ($this->Auth->startup($this)) {
             $user = $this->Auth->user();
             if ($user) {
+                $this->User->updateLoginTimes($user);
                 // User found in the db, add the user info to the session
                 $this->Session->renew();
                 $this->Session->write(AuthComponent::$sessionKey, $user);

@@ -153,17 +153,29 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
-        $server = $this->Server->find('first', array('conditions' => array('Server.id' => $serverId), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url', 'Server.name')));
+        $server = $this->Server->find('first', array(
+            'conditions' => array('Server.id' => $serverId),
+            'recursive' => -1,
+            'fields' => array('Server.id', 'Server.url', 'Server.name'))
+        );
         if (empty($server)) {
             throw new NotFoundException('Invalid server ID.');
         }
         try {
             $event = $this->Server->previewEvent($serverId, $eventId);
         } catch (NotFoundException $e) {
-            throw new NotFoundException(__("Event '$eventId' not found."));
+            throw new NotFoundException(__("Event '%s' not found.", $eventId));
         } catch (Exception $e) {
-            $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
+            $this->Flash->error(__('Download failed. %s', $e->getMessage()));
             $this->redirect(array('action' => 'previewIndex', $serverId));
+        }
+
+        $this->loadModel('Warninglist');
+        if (isset($event['Event']['Attribute'])) {
+            $this->Warninglist->attachWarninglistToAttributes($event['Event']['Attribute']);
+        }
+        if (isset($event['Event']['ShadowAttribute'])) {
+            $this->Warninglist->attachWarninglistToAttributes($event['Event']['ShadowAttribute']);
         }
 
         $this->loadModel('Event');
@@ -171,7 +183,6 @@ class ServersController extends AppController
         $this->params->params['paging'] = array('Server' => $params);
         $this->set('event', $event);
         $this->set('server', $server);
-        $this->loadModel('Event');
         $dataForView = array(
                 'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
                 'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels'),
@@ -796,7 +807,7 @@ class ServersController extends AppController
                 }
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', sprintf(__('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1]))), $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', __('Push complete. %s events pushed, %s events could not be pushed.', count($result[0]), count($result[1])), $this->response->type());
             } else {
                 $this->set('successes', $result[0]);
                 $this->set('fails', $result[1]);
@@ -1115,7 +1126,14 @@ class ServersController extends AppController
                 $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
                 $this->set('sessionCount', $sessionCount);
 
-                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo');
+                $this->loadModel('AttachmentScan');
+                try {
+                    $attachmentScan = ['status' => true, 'software' => $this->AttachmentScan->diagnostic()];
+                } catch (Exception $e) {
+                    $attachmentScan = ['status' => false, 'error' => $e->getMessage()];
+                }
+
+                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan');
             }
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
@@ -1240,8 +1258,12 @@ class ServersController extends AppController
 
     public function getWorkers()
     {
-        $issues = 0;
-        $worker_array = $this->Server->workerDiagnostics($issues);
+        if (Configure::read('MISP.background_jobs')) {
+            $workerIssueCount = 0;
+            $worker_array = $this->Server->workerDiagnostics($workerIssueCount);
+        } else {
+            $worker_array = [__('Background jobs not enabled')];
+        }
         return $this->RestResponse->viewData($worker_array);
     }
 
@@ -1649,34 +1671,33 @@ class ServersController extends AppController
         if (!$this->Auth->user('Role')['perm_sync'] && !$this->Auth->user('Role')['perm_site_admin']) {
             throw new MethodNotAllowedException('You don\'t have permission to do that.');
         }
-        $this->Server->id = $id;
-        if (!$this->Server->exists()) {
+
+        $server = $this->Server->find('first', ['Server.id' => $id]);
+        if (!$server) {
             throw new NotFoundException(__('Invalid server'));
         }
-        $result = $this->Server->runConnectionTest($id);
+        $result = $this->Server->runConnectionTest($server);
         if ($result['status'] == 1) {
-            $version = json_decode($result['message'], true);
-            if (isset($version['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $version['version'])) {
+            if (isset($result['info']['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $result['info']['version'])) {
                 $perm_sync = false;
-                if (isset($version['perm_sync'])) {
-                    $perm_sync = $version['perm_sync'];
+                if (isset($result['info']['perm_sync'])) {
+                    $perm_sync = $result['info']['perm_sync'];
                 }
                 $perm_sighting = false;
-                if (isset($version['perm_sighting'])) {
-                    $perm_sighting = $version['perm_sighting'];
+                if (isset($result['info']['perm_sighting'])) {
+                    $perm_sighting = $result['info']['perm_sighting'];
                 }
                 App::uses('Folder', 'Utility');
                 $file = new File(ROOT . DS . 'VERSION.json', true);
                 $local_version = json_decode($file->read(), true);
                 $file->close();
-                $version = explode('.', $version['version']);
+                $version = explode('.', $result['info']['version']);
                 $mismatch = false;
                 $newer = false;
                 $parts = array('major', 'minor', 'hotfix');
                 if ($version[0] == 2 && $version[1] == 4 && $version[2] > 68) {
-                    $post = $this->Server->runPOSTTest($id);
+                    $post = $this->Server->runPOSTTest($server);
                 }
-                $testPost = false;
                 foreach ($parts as $k => $v) {
                     if (!$mismatch) {
                         if ($version[$k] > $local_version[$v]) {
@@ -1708,7 +1729,8 @@ class ServersController extends AppController
                                 'version' => implode('.', $version),
                                 'mismatch' => $mismatch,
                                 'newer' => $newer,
-                                'post' => isset($post) ? $post : 'too old'
+                                'post' => isset($post) ? $post : 'too old',
+                                'client_certificate' => $result['client_certificate'],
                                 )
                             ),
                             'type' => 'json'
@@ -1990,7 +2012,7 @@ class ServersController extends AppController
             'body' => empty($request['body']) ? '' : $request['body'],
             'url' => $request['url'],
             'http_method' => $request['method'],
-            'use_full_path' => $request['use_full_path'],
+            'use_full_path' => empty($request['use_full_path']) ? false : $request['use_full_path'],
             'show_result' => $request['show_result'],
             'skip_ssl' => $request['skip_ssl_validation'],
             'bookmark' => $request['bookmark'],
@@ -1998,9 +2020,9 @@ class ServersController extends AppController
             'timestamp' => $date->getTimestamp()
         );
         if (!empty($request['url'])) {
-            if (empty($request['use_full_path'])) {
+            if (empty($request['use_full_path']) || empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
                 $path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
-                $url = Configure::read('MISP.baseurl') . $path;
+                $url = empty(Configure::read('Security.rest_client_baseurl')) ? (Configure::read('MISP.baseurl') . $path) : (Configure::read('Security.rest_client_baseurl') . $path);
                 unset($request['url']);
             } else {
                 $url = $request['url'];
@@ -2070,6 +2092,7 @@ class ServersController extends AppController
         }
         $view_data['duration'] = microtime(true) - $start;
         $view_data['duration'] = round($view_data['duration'] * 1000, 2) . 'ms';
+        $view_data['url'] = $url;
         $view_data['code'] =  $response->code;
         $view_data['headers'] = $response->headers;
         if (!empty($request['show_result'])) {

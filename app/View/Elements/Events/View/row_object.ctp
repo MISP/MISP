@@ -1,5 +1,4 @@
 <?php
-  $tr_class = '';
   $linkClass = 'white';
   $currentType = 'Object';
   $tr_class = 'tableHighlightBorderTop borderBlue';
@@ -18,24 +17,14 @@
   <?php
     if ($mayModify || $extended):
   ?>
-    <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-      <?php
-        if ($mayModify):
-      ?>
-        <input id="select_object_<?php echo $object['id']; ?>" class="select_object row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
-      <?php
-        endif;
-      ?>
-    </td>
+    <td style="width:10px;"></td>
   <?php
     endif;
   ?>
   <td class="short context hidden">
     <?php echo h($object['id']); ?>
   </td>
-  <td class="short context hidden">
-    <?php echo h($object['uuid']); ?>
-  </td>
+  <td class="short context hidden uuid quickSelect"><?php echo h($object['uuid']); ?></td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
   </td>
@@ -99,12 +88,11 @@
   <td class="shortish" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
     <?php
       $turnRed = '';
-      if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
+      if ($object['distribution'] == 0) $turnRed = 'style="color:red"';
     ?>
     <div id="<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class="inline-field-placeholder"></div>
     <div id="<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid">
       <?php
-        if ($object['objectType'] == 0) {
           if ($object['distribution'] == 4):
       ?>
         <a href="<?php echo $baseurl; ?>/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
@@ -112,7 +100,6 @@
           else:
             echo h($shortDist[$object['distribution']]);
           endif;
-        }
       ?>&nbsp;
     </div>
   </td>
@@ -130,9 +117,11 @@
     <?php
       if ($mayModify && empty($object['deleted'])) {
         echo sprintf(
-          '<a href="%s/objects/edit/%s" title="Edit" aria-label="Edit" class="fa fa-edit white useCursorPointer"></a>',
+          '<a href="%s/objects/edit/%s" title="%s" aria-label="%s" class="fa fa-edit white useCursorPointer"></a> ',
           $baseurl,
-          h($object['id'])
+          h($object['id']),
+          __('Edit'),
+          __('Edit')
         );
         echo sprintf(
           '<span class="fa fa-trash white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
@@ -156,7 +145,6 @@
         'object' => $attribute,
         'mayModify' => $mayModify,
         'mayChangeCorrelation' => $mayChangeCorrelation,
-        'page' => $page,
         'fieldCount' => $fieldCount,
         'child' => $attrKey == $lastElement ? 'last' : true
       ));

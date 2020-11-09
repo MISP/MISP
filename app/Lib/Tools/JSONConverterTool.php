@@ -53,23 +53,23 @@ class JSONConverterTool
 
     public function convert($event, $isSiteAdmin=false, $raw = false)
     {
-        $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object');
+        $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object', 'EventReport');
         foreach ($toRearrange as $object) {
             if (isset($event[$object])) {
                 $event['Event'][$object] = $event[$object];
                 unset($event[$object]);
             }
-            if ($object == 'SharingGroup' && isset($event['Event']['SharingGroup']) && empty($event['Event']['SharingGroup'])) {
-                unset($event['Event']['SharingGroup']);
-            }
-            if ($object == 'Galaxy') {
-                if (!empty($event['Event']['Galaxy'])) {
-                    foreach ($event['Event']['Galaxy'] as $k => $galaxy) {
-                        foreach ($galaxy['GalaxyCluster'] as $k2 => $cluster) {
-                            if (empty($cluster['meta'])) {
-                                $event['Event']['Galaxy'][$k]['GalaxyCluster'][$k2]['meta'] = new stdclass();
-                            }
-                        }
+        }
+
+        if (isset($event['Event']['SharingGroup']) && empty($event['Event']['SharingGroup'])) {
+            unset($event['Event']['SharingGroup']);
+        }
+
+        if (!empty($event['Event']['Galaxy'])) {
+            foreach ($event['Event']['Galaxy'] as $k => $galaxy) {
+                foreach ($galaxy['GalaxyCluster'] as $k2 => $cluster) {
+                    if (empty($cluster['meta'])) {
+                        $event['Event']['Galaxy'][$k]['GalaxyCluster'][$k2]['meta'] = new stdclass();
                     }
                 }
             }
@@ -82,9 +82,7 @@ class JSONConverterTool
             }
         }
 
-        //
         // cleanup the array from things we do not want to expose
-        //
         $tempSightings = array();
         if (!empty($event['Sighting'])) {
             foreach ($event['Sighting'] as $sighting) {
@@ -99,10 +97,7 @@ class JSONConverterTool
         if (isset($event['Event']['Object'])) {
             $event['Event']['Object'] = $this->__cleanObjects($event['Event']['Object'], $tempSightings);
         }
-        if (!empty($event['Sighting'])) {
-            unset($event['Sighting']);
-        }
-
+        unset($tempSightings);
         unset($event['Event']['RelatedAttribute']);
         if (isset($event['Event']['RelatedEvent'])) {
             foreach ($event['Event']['RelatedEvent'] as $key => $value) {
@@ -128,21 +123,14 @@ class JSONConverterTool
             }
             unset($attributes[$key]['value1']);
             unset($attributes[$key]['value2']);
-            unset($attributes[$key]['category_order']);
-            if (isset($event['RelatedAttribute'][$attribute['id']])) {
-                $attributes[$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$attribute['id']];
-                foreach ($attributes[$key]['RelatedAttribute'] as &$ra) {
-                    $ra = array('Attribute' => $ra);
-                }
-            }
             if (isset($attributes[$key]['AttributeTag'])) {
-                foreach ($attributes[$key]['AttributeTag'] as $atk => $tag) {
+                foreach ($attribute['AttributeTag'] as $atk => $tag) {
                     unset($tag['Tag']['org_id']);
                     $attributes[$key]['Tag'][$atk] = $tag['Tag'];
                 }
                 unset($attributes[$key]['AttributeTag']);
             }
-            if (!empty($tempSightings[$attribute['id']])) {
+            if (isset($tempSightings[$attribute['id']])) {
                 $attributes[$key]['Sighting'] = $tempSightings[$attribute['id']];
             }
         }

@@ -1,4 +1,12 @@
 <?php
+$canAccess = function ($controller, $action) use ($me, $aclComponent) {
+    $response = $aclComponent->checkAccess($me, $controller, $action, true);
+    if ($response === 404) {
+        throw new Exception("Invalid controller '$controller' specified for menu requirements.");
+    }
+    return $response === true;
+};
+
 $this->set('menuItem', $menuItem);
 $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
 ?>
@@ -125,14 +133,21 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Add Attachment')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add',
+                            'url' => '/eventReports/add/' . h($event['Event']['id']),
+                            'text' => __('Add Event Report')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'populateFrom',
                             'onClick' => array(
                                 'function' => 'getPopup',
                                 'params' => array($eventId, 'events', 'importChoice')
                             ),
-                            'text' => __('Populate from...')
+                            'text' => __('Populate from…')
                         ));
                         if ($menuItem === 'populateFromtemplate') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'populateFromtemplate',
                                 'url' => $baseurl . '/templates/populateEventFromTemplate/' . $template_id . '/' . $eventId,
                                 'text' => __('Populate From Template')
                             ));
@@ -147,7 +162,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'merge',
                             'url' => $baseurl . '/events/merge/' . $eventId,
-                            'text' => __('Merge attributes from...')
+                            'text' => __('Merge attributes from…')
                         ));
                     }
                     if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)) {
@@ -260,7 +275,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'function' => 'getPopup',
                             'params' => array($eventId, 'events', 'exportChoice')
                         ),
-                        'text' => __('Download as...')
+                        'text' => __('Download as…')
                     ));
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -285,7 +300,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'url' => $baseurl . '/tag_collections/add',
                             'text' => __('Add Tag Collection')
                         ));
-                        if (($menuItem === 'edit')) {
+                        if ($menuItem === 'edit') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => $baseurl . '/tag_collections/edit/' . $id,
                                 'text' => __('Add Tag Collection')
@@ -297,11 +312,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         $baseurl,
                         __('Export Tag Collections')
                     );
-                    echo sprintf(
-                        '<li id="liimport"><a href="%s/tag_collections/import">%s</a></li>',
-                        $baseurl,
-                        __('Import Tag Collections')
-                    );
+                    if ($canAccess('tagCollections', 'import')) {
+                        echo sprintf(
+                            '<li id="liimport"><a href="%s/tag_collections/import">%s</a></li>',
+                            $baseurl,
+                            __('Import Tag Collections')
+                        );
+                    }
                     break;
 
                 case 'event-collection':
@@ -347,7 +364,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'function' => 'getPopup',
                                 'params' => array(0, 'attributes', 'exportSearch')
                             ),
-                            'text' => __('Download as...')
+                            'text' => __('Download as…')
                         ));
                     }
                     echo $divider;
@@ -378,7 +395,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Automation')
                         ));
                     }
-                    if (!$isSiteAdmin && (int)$me['org_id'] === Configure::read('MISP.host_org_id')) {
+                    if (!$isSiteAdmin && $hostOrgUser) {
                         echo $divider;
                         if (Configure::read('MISP.enableEventBlocklisting') !== false) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -394,6 +411,37 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         }
                     }
                 break;
+
+                case 'eventReports':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => '/eventReports/index',
+                        'text' => __('List Event Reports')
+                    ));
+                    if ($isAclAdd) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add',
+                            'text' => __('Add Event Report'),
+                            'title' => __('Add Event Report'),
+                            'onClick' => array(
+                                'function' => 'openIdSelection',
+                                'params' => array('this', 'eventReports', 'add')
+                            ),
+                        ));
+                    }
+                    if ($menuItem === 'view' || $menuItem === 'edit') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => '/eventReports/view/' . h($id),
+                            'text' => __('View Event Report')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'edit',
+                            'url' => '/eventReports/edit/' . h($id),
+                            'text' => __('Edit Event Report')
+                        ));
+                    }
+                    break;
 
                 case 'regexp':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -424,7 +472,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'url' => $baseurl . '/admin/regexp/delete/' . h($id),
                             'text' => __('Delete Regexp'),
-                            'message' => __('Are you sure you want to delete # %s?', h($id))
+                            'message' => __('Are you sure you want to delete #%s?', h($id))
                         ));
                     }
                 break;
@@ -453,6 +501,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 case 'noticelist':
                     if ($menuItem === 'view') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
                             'text' => __('View Noticelist')
                         ));
                     }
@@ -461,11 +510,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/noticelists/index',
                         'text' => __('List Noticelist')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                        'url' => $baseurl . '/noticelists/update',
-                        'text' => __('Update Noticelists'),
-                        'message' => __('Do you wish to continue and update all noticelists?')
-                    ));
+                    if ($canAccess('noticelists', 'update')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'url' => $baseurl . '/noticelists/update',
+                            'text' => __('Update Noticelists'),
+                            'message' => __('Do you wish to continue and update all noticelists?')
+                        ));
+                    }
                     break;
 
                 case 'allowedlist':
@@ -492,7 +543,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'url' => $baseurl . '/admin/allowedlists/delete/' . h($id),
                             'text' => __('Delete Allowedlist'),
-                            'message' => __('Are you sure you want to delete # %s?', h($id))
+                            'message' => __('Are you sure you want to delete #%s?', h($id))
                         ));
                     }
                     break;
@@ -664,13 +715,15 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 $this->Form->value('Server.id')
                             ),
                             'text' => __('Delete'),
-                            'message' => __('Are you sure you want to delete # %s?', $this->Form->value('Server.id'))
+                            'message' => __('Are you sure you want to delete #%s?', $this->Form->value('Server.id'))
                         ));
                     }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/servers/index',
-                        'text' => __('List Servers')
-                    ));
+                    if ($canAccess('servers', 'index')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/servers/index',
+                            'text' => __('List Servers')
+                        ));
+                    }
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/servers/add',
@@ -740,7 +793,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'event_id' => 'deleteUser',
                             'url' => $baseurl . '/admin/users/delete/' . h($id),
                             'text' => __('Delete User'),
-                            'message' => __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id))
+                            'message' => __('Are you sure you want to delete #%s? It is highly recommended to never delete users but to disable them instead.', h($id))
                         ));
                         echo $divider;
                     }
@@ -754,21 +807,25 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'event_id' => 'deleteRole',
                             'url' => $baseurl . '/admin/roles/delete/' . h($id),
                             'text' => __('Delete Role'),
-                            'message' => __('Are you sure you want to delete # %s?', h($id))
+                            'message' => __('Are you sure you want to delete #%s?', h($id))
                         ));
                         echo $divider;
                     }
-                    if ($isSiteAdmin) {
+                    if ($canAccess('users', 'admin_add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addUser',
                             'url' => $baseurl . '/admin/users/add',
                             'text' => __('Add User')
                         ));
+                    }
+                    if ($canAccess('users', 'admin_index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'indexUser',
                             'url' => $baseurl . '/admin/users/index',
                             'text' => __('List Users')
                         ));
+                    }
+                    if ($canAccess('users', 'registrations')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'registrations',
                             'url' => $baseurl . '/users/registrations',
@@ -821,7 +878,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                                 'url' => $baseurl . '/admin/organisations/delete/' . h($id),
                                 'text' => __('Delete Organisation'),
-                                'message' => __('Are you sure you want to delete # %s?', h($id))
+                                'message' => __('Are you sure you want to delete #%s?', h($id))
                             ));
                         }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(

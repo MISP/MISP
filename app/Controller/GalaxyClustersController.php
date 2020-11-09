@@ -1,9 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
 
-/**
- * @property GalaxyCluster $GalaxyCluster
- */
 class GalaxyClustersController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -18,6 +15,14 @@ class GalaxyClustersController extends AppController
             'contain' => array(
                 'Tag' => array(
                     'fields' => array('Tag.id'),
+                    /*
+                    'EventTag' => array(
+                        'fields' => array('EventTag.event_id')
+                    ),
+                    'AttributeTag' => array(
+                        'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
+                    )
+                    */
                 ),
                 'GalaxyElement' => array(
                     'conditions' => array('GalaxyElement.key' => 'synonyms'),

@@ -222,7 +222,7 @@ class User extends AppModel
         'Containable'
     );
 
-    /** @var Crypt_GPG|null|false */
+    /** @var CryptGpgExtended|null|false */
     private $gpg;
 
     public function beforeValidate($options = array())
@@ -302,9 +302,11 @@ class User extends AppModel
         return true;
     }
 
-    // Checks if the GnuPG key is a valid key, but also import it in the keychain.
-    // this will NOT fail on keys that can only be used for signing but not encryption!
-    // the method in verifyUsers will fail in that case.
+    /**
+     * Checks if the GnuPG key is a valid key.
+     * @param array $check
+     * @return bool
+     */
     public function validateGpgkey($check)
     {
         // LATER first remove the old gpgkey from the keychain
@@ -319,12 +321,11 @@ class User extends AppModel
             return true;
         }
         try {
-            $keyImportOutput = $gpg->importKey($check['gpgkey']);
-            if (!empty($keyImportOutput['fingerprint'])) {
-                return true;
-            }
+            $gpgTool = new GpgTool($gpg);
+            $gpgTool->validateGpgKey($check['gpgkey']);
+            return true;
         } catch (Exception $e) {
-            $this->logException("Exception during importing GPG key", $e);
+            $this->logException("Exception during validating GPG key", $e, LOG_NOTICE);
             return false;
         }
     }
@@ -452,25 +453,40 @@ class User extends AppModel
                 )));
     }
 
-    public function verifySingleGPG($user, $gpg = null)
+    /**
+     * 0 - true if key is valid
+     * 1 - User e-mail
+     * 2 - Error message
+     * 3 - Not used
+     * 4 - Key fingerprint
+     * 5 - Key fingerprint
+     * @param array $user
+     * @return array
+     */
+    public function verifySingleGPG(array $user)
     {
-        if ($gpg === null) {
-            $gpg = $this->initializeGpg();
-            if (!$gpg) {
-                $result[2] = 'GnuPG is not configured on this system.';
-                $result[0] = true;
-                return $result;
-            }
+        $result = [0 => false, 1 => $user['User']['email']];
+
+        $gpg = $this->initializeGpg();
+        if (!$gpg) {
+            $result[2] = 'GnuPG is not configured on this system.';
+            return $result;
         }
-        $result = array();
+
         try {
             $currentTimestamp = time();
-            $temp = $gpg->importKey($user['User']['gpgkey']);
-            $key = $gpg->getKeys($temp['fingerprint']);
-            $result[5] = $temp['fingerprint'];
-            $subKeys = $key[0]->getSubKeys();
-            $sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
-            foreach ($subKeys as $subKey) {
+            $keys = $gpg->keyInfo($user['User']['gpgkey']);
+            if (count($keys) !== 1) {
+                $result[2] = 'Multiple or no key found';
+                return $result;
+            }
+
+            $key = $keys[0];
+            $result[4] = $key->getPrimaryKey()->getFingerprint();
+            $result[5] = $result[4];
+
+            $sortedKeys = ['valid' => 0, 'expired' => 0, 'noEncrypt' => 0];
+            foreach ($key->getSubKeys() as $subKey) {
                 $expiration = $subKey->getExpirationDate();
                 if ($expiration != 0 && $currentTimestamp > $expiration) {
                     $sortedKeys['expired']++;
@@ -490,14 +506,12 @@ class User extends AppModel
                 if ($sortedKeys['noEncrypt']) {
                     $result[2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
                 }
+            } else {
                 $result[0] = true;
             }
         } catch (Exception $e) {
             $result[2] = $e->getMessage();
-            $result[0] = true;
         }
-        $result[1] = $user['User']['email'];
-        $result[4] = $temp['fingerprint'];
         return $result;
     }
 
@@ -521,7 +535,7 @@ class User extends AppModel
         }
         $results = [];
         foreach ($users as $k => $user) {
-            $results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
+            $results[$user['User']['id']] = $this->verifySingleGPG($user);
         }
         return $results;
     }
@@ -817,7 +831,7 @@ class User extends AppModel
      */
     public function searchGpgKey($email)
     {
-        $gpgTool = new GpgTool();
+        $gpgTool = new GpgTool(null);
         return $gpgTool->searchGpgKey($email);
     }
 
@@ -828,7 +842,7 @@ class User extends AppModel
      */
     public function fetchGpgKey($fingerprint)
     {
-        $gpgTool = new GpgTool();
+        $gpgTool = new GpgTool($this->initializeGpg());
         return $gpgTool->fetchGpgKey($fingerprint);
     }
 
@@ -1311,9 +1325,27 @@ class User extends AppModel
     }
 
     /**
+     * Updates `current_login` and `last_login` time in database.
+     *
+     * @param array $user
+     * @return array|bool
+     * @throws Exception
+     */
+    public function updateLoginTimes(array $user)
+    {
+        if (!isset($user['id'])) {
+            throw new InvalidArgumentException("Invalid user object provided.");
+        }
+        $user['action'] = 'login'; // for afterSave callbacks
+        $user['last_login'] = $user['current_login'];
+        $user['current_login'] = time();
+        return $this->save($user, true, array('id', 'last_login', 'current_login'));
+    }
+
+    /**
      * Initialize GPG. Returns `null` if initialization failed.
      *
-     * @return null|Crypt_GPG
+     * @return null|CryptGpgExtended
      */
     private function initializeGpg()
     {
@@ -1326,8 +1358,7 @@ class User extends AppModel
         }
 
         try {
-            $gpgTool = new GpgTool();
-            $this->gpg = $gpgTool->initializeGpg();
+            $this->gpg = GpgTool::initializeGpg();
             return $this->gpg;
         } catch (Exception $e) {
             $this->logException("GPG couldn't be initialized, GPG encryption and signing will be not available.", $e, LOG_NOTICE);

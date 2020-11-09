@@ -351,13 +351,14 @@ class AdminShell extends AppShell
     {
         $this->ConfigLoad->execute();
         $whoami = exec('whoami');
-        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis' || $whoami === 'www') {
+        $osuser = Configure::read('MISP.osuser');
+        if ($whoami === 'httpd' || $whoami === 'www-data' || $whoami === 'apache' || $whoami === 'wwwrun' || $whoami === 'travis' || $whoami === 'www' || $whoami === $osuser) {
             echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
             $processId = empty($this->args[0]) ? false : $this->args[0];
             $this->Server->runUpdates(true, false, $processId);
             echo 'All updates completed.' . PHP_EOL;
         } else {
-            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd` or `apache` or `wwwrun`.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
+            die('This OS user is not allowed to run this command.'. PHP_EOL. 'Run it under `www-data` or `httpd` or `apache` or `wwwrun` or set MISP.osuser in the configuration.' . PHP_EOL . 'You tried to run this command as: ' . $whoami . PHP_EOL);
         }
     }
 
@@ -582,7 +583,7 @@ class AdminShell extends AppShell
                 'db_version' => $dbVersion
             );
             $file = new File(ROOT . DS . 'db_schema.json', true);
-            $file->write(json_encode($data, JSON_PRETTY_PRINT));
+            $file->write(json_encode($data, JSON_PRETTY_PRINT) . "\n");
             $file->close();
             echo __("> Database schema dumped on disk") . PHP_EOL;
         } else {
@@ -638,5 +639,20 @@ class AdminShell extends AppShell
             '%s==============================%sIP: %s%s==============================%sUser #%s: %s%s==============================%s',
             PHP_EOL, PHP_EOL, $ip, PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL
         );
+    }
+
+    public function scanAttachment()
+    {
+        $input = $this->args[0];
+        $attributeId = isset($this->args[1]) ? $this->args[1] : null;
+        $jobId = isset($this->args[2]) ? $this->args[2] : null;
+
+        $this->loadModel('AttachmentScan');
+        $result = $this->AttachmentScan->scan($input, $attributeId, $jobId);
+        if ($result === false) {
+            echo 'Job failed' . PHP_EOL;
+        } else {
+            echo $result . PHP_EOL;
+        }
     }
 }

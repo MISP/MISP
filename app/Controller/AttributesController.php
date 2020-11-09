@@ -158,7 +158,6 @@ class AttributesController extends AppController
             if (!isset($attributes[0])) {
                 $attributes = array(0 => $attributes);
             }
-            $this->Warninglist = ClassRegistry::init('Warninglist');
             $fails = array();
             $successes = 0;
             $attributeCount = count($attributes);
@@ -957,6 +956,14 @@ class AttributesController extends AppController
 
     public function view($id)
     {
+        if ($this->request->is('head')) { // Just check if attribute exists
+            $attribute = $this->Attribute->fetchAttributesSimple($this->Auth->user(), [
+                'conditions' => $this->__idToConditions($id),
+                'fields' => ['Attribute.id'],
+            ]);
+            return new CakeResponse(['status' => $attribute ? 200 : 404]);
+        }
+
         $attribute = $this->__fetchAttribute($id);
         if (empty($attribute)) {
             throw new MethodNotAllowedException(__('Invalid attribute'));
@@ -1622,6 +1629,7 @@ class AttributesController extends AppController
         $this->Feed = ClassRegistry::init('Feed');
 
         $this->loadModel('Sighting');
+        $this->loadModel('AttachmentScan');
         $user = $this->Auth->user();
         foreach ($attributes as $k => $attribute) {
             $attributeId = $attribute['Attribute']['id'];
@@ -1633,6 +1641,10 @@ class AttributesController extends AppController
                     $attribute['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
                 }
                 $attributes[$k] = $attribute;
+            }
+            if ($attribute['Attribute']['type'] === 'attachment' && $this->AttachmentScan->isEnabled()) {
+                $infected = $this->AttachmentScan->isInfected(AttachmentScan::TYPE_ATTRIBUTE, $attribute['Attribute']['id']);
+                $attributes[$k]['Attribute']['infected'] = $infected;
             }
 
             if ($attribute['Attribute']['distribution'] == 4) {
@@ -1947,15 +1959,19 @@ class AttributesController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
         }
+
+        $fieldsToFetch = ['id', $field];
+        if ($field === 'value') {
+            $fieldsToFetch[] = 'to_ids'; // for warninglist
+            $fieldsToFetch[] = 'type'; // for view
+            $fieldsToFetch[] = 'category'; // for view
+        }
+
         $params = array(
-                'conditions' => array('Attribute.id' => $id),
-                'fields' => array('id', 'distribution', 'event_id', $field),
-                'contain' => array(
-                        'Event' => array(
-                                'fields' => array('distribution', 'id', 'org_id'),
-                        )
-                ),
-                'flatten' => 1
+            'conditions' => array('Attribute.id' => $id),
+            'fields' => $fieldsToFetch,
+            'contain' => ['Event'],
+            'flatten' => 1,
         );
         $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
         if (empty($attribute)) {
@@ -1973,8 +1989,14 @@ class AttributesController extends AppController
             } else {
                 echo '&nbsp';
             }
+        } elseif ($field === 'value') {
+            $this->loadModel('Warninglist');
+            $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);
         }
+
         $this->set('value', $result);
+        $this->set('object', $attribute);
+        $this->set('field', $field);
         $this->layout = 'ajax';
         $this->render('ajax/attributeViewFieldForm');
     }
@@ -2403,23 +2425,20 @@ class AttributesController extends AppController
         if (empty($attribute)) {
             throw new NotFoundException(__('Invalid Attribute'));
         }
-        $this->loadModel('Server');
         $this->loadModel('Module');
         $modules = $this->Module->getEnabledModules($this->Auth->user());
         $validTypes = array();
         if (isset($modules['hover_type'][$attribute[0]['Attribute']['type']])) {
             $validTypes = $modules['hover_type'][$attribute[0]['Attribute']['type']];
         }
-        $url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
-        $port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
         $resultArray = array();
         foreach ($validTypes as $type) {
             $options = array();
             $found = false;
             foreach ($modules['modules'] as $temp) {
-                if ($temp['name'] == $type) {
+                if ($temp['name'] === $type) {
                     $found = true;
-                    $format = (isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
+                    $format = isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
@@ -2443,33 +2462,35 @@ class AttributesController extends AppController
             } else {
                 $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
             }
-            $data = json_encode($data);
-            $result = $this->Module->queryModuleServer('/query', $data, true);
+            $result = $this->Module->queryModuleServer($data, true);
             if ($result) {
                 if (!is_array($result)) {
-                    $resultArray[$type][] = array($type => $result);
+                    $resultArray[$type] = ['error' => $result];
+                    continue;
                 }
             } else {
                 // TODO: i18n?
-                $resultArray[$type][] = array($type => 'Enrichment service not reachable.');
+                $resultArray[$type] = ['error' => 'Enrichment service not reachable.'];
                 continue;
             }
             $current_result = array();
             if (isset($result['results']['Object'])) {
                 if (!empty($result['results']['Object'])) {
                     $objects = array();
-                    foreach($result['results']['Object'] as $object) {
+                    foreach ($result['results']['Object'] as $object) {
                         if (isset($object['Attribute']) && !empty($object['Attribute'])) {
                             $object_attributes = array();
                             foreach($object['Attribute'] as $object_attribute) {
-                                array_push($object_attributes, array('object_relation' => $object_attribute['object_relation'], 'value' => $object_attribute['value']));
+                                $object_attributes[] = [
+                                    'object_relation' => $object_attribute['object_relation'],
+                                    'value' => $object_attribute['value'],
+                                    'type' => $object_attribute['type'],
+                                ];
                             }
-                            array_push($objects, array('name' => $object['name'], 'Attribute' => $object_attributes));
+                            $objects[] = array('name' => $object['name'], 'Attribute' => $object_attributes);
                         }
                     }
-                    if (!empty($objects)) {
-                        $current_result['Object'] = $objects;
-                    }
+                    $current_result['Object'] = $objects;
                 }
                 unset($result['results']['Object']);
             }
@@ -2503,6 +2524,7 @@ class AttributesController extends AppController
                 }
             }
         }
+        $this->set('persistent', $persistent);
         $this->set('results', $resultArray);
         $this->layout = 'ajax';
         $this->render('ajax/hover_enrichment');
@@ -2935,17 +2957,37 @@ class AttributesController extends AppController
                 'all',
                 array(
                     'conditions' => array('Attribute.type' => array('attachment', 'malware-sample')),
-                    'recursive' => -1)
+                    'contain' => ['Event.orgc_id', 'Event.org_id'],
+                    'recursive' => -1
+                )
             );
         $counter = 0;
         $attachmentTool = new AttachmentTool();
+        $results = [];
         foreach ($attributes as $attribute) {
             $exists = $attachmentTool->exists($attribute['Attribute']['event_id'], $attribute['Attribute']['id']);
             if (!$exists) {
+                $results['affectedEvents'][$attribute['Attribute']['event_id']] = $attribute['Attribute']['event_id'];
+                $results['affectedAttributes'][] = $attribute['Attribute']['id'];
+                foreach (['orgc', 'org'] as $type) {
+                    if (empty($results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']])) {
+                        $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] = 0;
+                    } else {
+                        $results['affectedOrgs'][$type][$attribute['Event'][$type . '_id']] += 1;
+                    }
+                }
                 $counter++;
             }
         }
-
+        if (!empty($results)) {
+            $results['affectedEvents'] = array_values($results['affectedEvents']);
+            rsort($results['affectedEvents']);
+            rsort($results['affectedAttributes']);
+            foreach (['orgc', 'org'] as $type) {
+                arsort($results['affectedOrgs'][$type]);
+            }
+        }
+        file_put_contents(APP . '/tmp/logs/missing_attachments.log', json_encode($results, JSON_PRETTY_PRINT));
         return new CakeResponse(array('body' => $counter, 'status' => 200));
     }
 
