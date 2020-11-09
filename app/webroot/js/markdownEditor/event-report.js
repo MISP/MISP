@@ -44,6 +44,7 @@ var renderingRules = {
 }
 var galaxyMatrixTimer, tagTimers = {};
 var cache_matrix = {}, cache_tag = {};
+var firstCustomPostRenderCall = true;
 var contentBeforeSuggestions
 var typeToCategoryMapping
 var entitiesFromComplexTool
@@ -603,32 +604,8 @@ function renderTemplateBasedOnRenderingOptions(scope, templateToRender, template
 }
 
 function setupMISPElementMarkdownListeners() {
-    $('.misp-element-wrapper').filter('.attribute:not(\'.suggestion\')').popover({
-        trigger: 'click',
-        html: true,
-        container: isInsideModal() ? 'body' : '#viewer-container',
-        placement: 'top',
-        title: getTitleFromMISPElementDOM,
-        content: getContentFromMISPElementDOM
-    })
-    $('.misp-picture-wrapper > img').popover({
-        trigger: 'click',
-        html: true,
-        container: isInsideModal() ? 'body' : '#viewer-container',
-        placement: 'top',
-        title: getTitleFromMISPElementDOM,
-        content: getContentFromMISPElementDOM,
-        placement: 'top'
-    })
-    $('.misp-element-wrapper').filter('.object').popover({
-        trigger: 'click',
-        html: true,
-        container: isInsideModal() ? 'body' : '#viewer-container',
-        placement: 'top',
-        title: getTitleFromMISPElementDOM,
-        content: getContentFromMISPElementDOM
-    })
-    $('.embeddedTag').popover({
+    var $elements = $('.misp-element-wrapper.attribute:not(".suggestion"), .misp-element-wrapper.object, .misp-picture-wrapper > img, .embeddedTag');
+    $elements.popover({
         trigger: 'click',
         html: true,
         container: isInsideModal() ? 'body' : '#viewer-container',
@@ -669,7 +646,7 @@ function attachRemoteMISPElements() {
         if (cache_matrix[cacheKey] === undefined) {
             galaxyMatrixTimer = setTimeout(function() {
                 attachGalaxyMatrix($div, eventID, elementID)
-            }, slowDebounceDelay);
+            }, firstCustomPostRenderCall ? 0 : slowDebounceDelay);
         } else {
             $div.html(cache_matrix[cacheKey])
         }
@@ -686,11 +663,17 @@ function attachRemoteMISPElements() {
                 fetchTagInfo(eventID, elementID, function() {
                     attachTagInfo($div, eventID, elementID, true)
                 })
-            }, slowDebounceDelay);
+            }, firstCustomPostRenderCall ? 0 : slowDebounceDelay);
         } else {
             $div.html(cache_tag[cacheKey])
         }
     })
+    if (firstCustomPostRenderCall) {
+        // Wait, because .each calls are asynchronous
+        setTimeout(function() {
+            firstCustomPostRenderCall = false;
+        }, 1000)
+    }
 }
 
 function attachGalaxyMatrix($elem, eventid, elementID) {
@@ -900,14 +883,14 @@ function reloadRenderingRuleEnabledUI() {
 
 
 /**
-   _____                             _   _             
-  / ____|                           | | (_)            
- | (___  _   _  __ _  __ _  ___  ___| |_ _  ___  _ __  
-  \___ \| | | |/ _` |/ _` |/ _ \/ __| __| |/ _ \| '_ \ 
+   _____                             _   _
+  / ____|                           | | (_)
+ | (___  _   _  __ _  __ _  ___  ___| |_ _  ___  _ __
+  \___ \| | | |/ _` |/ _` |/ _ \/ __| __| |/ _ \| '_ \
   ____) | |_| | (_| | (_| |  __/\__ \ |_| | (_) | | | |
  |_____/ \__,_|\__, |\__, |\___||___/\__|_|\___/|_| |_|
-                __/ | __/ |                            
-               |___/ |___/                             
+                __/ | __/ |
+               |___/ |___/
  */
 
 function automaticEntitiesExtraction() {
@@ -1299,8 +1282,8 @@ function buildTitleForMISPElement(data) {
     var title = invalidMessage
     var dismissButton = ''
     if (data !== false) {
-        var templateVariables =  sanitizeObject(data)
-        var dismissButton = dotCloseButtonTemplate(templateVariables)
+        var templateVariables = sanitizeObject(data)
+        dismissButton = dotCloseButtonTemplate(templateVariables)
         title = data.scope.charAt(0).toUpperCase() + templateVariables.scope.slice(1) + ' ' + templateVariables.elementID
     }
     return title + dismissButton
@@ -1318,8 +1301,7 @@ function closeThePopover(closeButton) {
     }
 }
 
-function constructAttributeRow(attribute, fromObject)
-{
+function constructAttributeRow(attribute, fromObject) {
     fromObject = fromObject !== undefined ? fromObject : false
     var attributeFieldsToRender = ['id', 'category', 'type'].concat(fromObject ? ['object_relation'] : [], ['value', 'comment'])
     var $tr = $('<tr/>')
@@ -1529,6 +1511,9 @@ function constructGalaxyInfo(tagData) {
     if (tagData.GalaxyCluster.meta !== undefined) {
         Object.keys(tagData.GalaxyCluster.meta).forEach(function(metaKey) {
             var metaValue = tagData.GalaxyCluster.meta[metaKey]
+            if (Array.isArray(metaValue)) {
+                metaValue = metaValue.join(', ')
+            }
             $clusterMeta.append(
                 $('<div/>').append(
                     $('<strong/>').addClass('blue').text(metaKey + ': '),
