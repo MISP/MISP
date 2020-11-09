@@ -692,12 +692,28 @@ class Attribute extends AppModel
         return true;
     }
 
+    /**
+     * @param int $event_id
+     * @param bool $increment True for increment, false for decrement,
+     * @return bool
+     */
     private function __alterAttributeCount($event_id, $increment = true)
     {
-        return $this->Event->updateAll(
-            array('Event.attribute_count' => $increment ? 'Event.attribute_count+1' : 'GREATEST(Event.attribute_count, 1) - 1'),
-            array('Event.id' => $event_id)
-        );
+        // Temporary unbind models that we don't need to prevent deadlocks
+        $this->Event->unbindModel([
+            'belongsTo' => array_keys($this->Event->belongsTo),
+        ]);
+        try {
+            return $this->Event->updateAll(
+                array('Event.attribute_count' => $increment ? 'Event.attribute_count+1' : 'GREATEST(Event.attribute_count, 1) - 1'),
+                array('Event.id' => $event_id)
+            );
+        } catch (Exception $e) {
+            $this->logException('Exception when updating event attribute count', $e);
+            return false;
+        } finally {
+            $this->Event->resetAssociations();
+        }
     }
 
     public function afterSave($created, $options = array())
