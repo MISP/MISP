@@ -159,7 +159,8 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
             );
         }
     ?>
-    <td class="short" id="<?= sprintf('attribute_%s_galaxy', h($objectId)) ?>">
+    <?php $rowId = sprintf('attribute_%s_galaxy', h($objectId)); ?>
+    <td class="short" id="<?= $rowId ?>">
       <?php
         echo $this->element('galaxyQuickViewMini', array(
           'mayModify' => $mayModify,

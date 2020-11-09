@@ -110,8 +110,8 @@ class GalaxyClustersController extends AppController
                     'recursive' => -1,
                     'contain' => array('EventTag.event_id')
                 ));
-                if ($tag) {
-                    $clusters[$k]['GalaxyCluster']['event_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag, $this->Auth->user());
+                if (!empty($tag['Tag']['id'])) {
+                    $clusters[$k]['GalaxyCluster']['event_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user());
                 } else {
                     $clusters[$k]['GalaxyCluster']['event_count'] = 0;
                 }
@@ -158,6 +158,7 @@ class GalaxyClustersController extends AppController
                     } else {
                         $csv[$k] .= $date . ',0\n';
                     }
+                    $clusters[$k]['csv'] = $csv[$k];
                 }
             }
             $this->loadModel('Attribute');
@@ -189,7 +190,7 @@ class GalaxyClustersController extends AppController
             'contain' => array('EventTag.event_id')
         ));
         if (!empty($tag)) {
-            $cluster['GalaxyCluster']['tag_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag, $this->Auth->user());
+            $cluster['GalaxyCluster']['tag_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user());
             $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
         }
         if ($this->_isRest()) {

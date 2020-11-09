@@ -115,8 +115,9 @@
                     'name' => __('Activity'),
                     'class' => 'short',
                     'data_path' => 'GalaxyCluster.id',
-                    'csv' => array('scope' => 'cluster', 'data' => $csv),
-                    'element' => 'sparkline'
+                    'csv_data_path' => 'csv',
+                    'csv' => array('scope' => 'cluster'),
+                    'element' => 'sparkline',
                 ),
                 array(
                     'name' => __('#Events'),
