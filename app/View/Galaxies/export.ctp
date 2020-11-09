@@ -25,12 +25,21 @@ echo $this->element('genericElements/Form/genericForm', array(
                 'label' => __("Include Default Clusters"),
                 'checked' => true
             ),
+            array(
+                'field' => 'format',
+                'type' => 'radio',
+                'legend' => __('Export format'),
+                'options' => array(
+                    'misp' => sprintf('<b>%s</b>: %s', __('MISP Format'), __('To re-import to another MISP')),
+                    'misp-galaxy' => sprintf('<b>%s</b>: %s', __('misp-galaxy format'), __('Usable to be integrated into the official repository')),
+                ),
+                'default' => 'raw',
+            ),
             '<br />',
             array(
                 'field' => 'download',
                 'type' => 'radio',
-                'label' => __('Export type'),
-                'legend' => false,
+                'legend' => __('Export type'),
                 'options' => array(
                     'download' => __('Download'),
                     'raw' => __('Raw'),
