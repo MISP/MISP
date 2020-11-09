@@ -1530,7 +1530,7 @@ class EventsController extends AppController
             $conditions['includeAllTags'] = true;
             $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
         }
-        $deleted = 0;
+        $deleted = 2;
         if (isset($this->params['named']['deleted'])) {
             $deleted = $this->params['named']['deleted'];
         }
@@ -1542,7 +1542,13 @@ class EventsController extends AppController
             if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
                 $conditions['deleted'] = array(0,1);
             } else {
-                $conditions['deleted'] = $deleted == 2 ? array(0,1) : $deleted;
+                if ($deleted == 2) { // not-deleted only
+                    $conditions['deleted'] = 0;
+                } elseif ($deleted == 1) { // deleted only
+                    $conditions['deleted'] = 1;
+                } else { // both
+                    $conditions['deleted'] = [0, 1];
+                }
             }
         }
         if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
@@ -1628,7 +1634,7 @@ class EventsController extends AppController
         if ($this->_isRest()) {
             $this->set('event', $event);
         } else {
-            $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
+            $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 2);
             $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
             $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
 
