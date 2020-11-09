@@ -1231,13 +1231,7 @@ class UsersController extends AppController
       ));
       $lastUserLogin = $user['User']['last_login'];
       unset($user['User']['password']);
-      $user['User']['action'] = 'login';
-      $user['User']['last_login'] = $this->Auth->user('current_login');
-      $user['User']['current_login'] = time();
-      $this->User->save($user['User'], true, array('id', 'last_login', 'current_login'));
-      if (empty($this->Auth->authenticate['Form']['passwordHasher']) && !empty($passwordToSave)) {
-          $this->User->saveField('password', $passwordToSave);
-      }
+      $this->User->updateLoginTimes($user['User']);
       $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
       if ($lastUserLogin) {
           $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
