@@ -248,6 +248,9 @@ class GalaxiesController extends AppController
             );
             $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), $options, $full=true);
             $clusters = $this->Galaxy->GalaxyCluster->unsetFieldsForExport($clusters);
+            if ($this->request->data['format'] == 'misp-galaxy') {
+                $clusters = $this->Galaxy->convertToMISPGalaxyFormat($galaxy, $clusters);
+            }
             $content = json_encode($clusters, JSON_PRETTY_PRINT);
             $this->response->body($content);
             $this->response->type('json');

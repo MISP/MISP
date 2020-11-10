@@ -30,10 +30,10 @@ echo $this->element('genericElements/Form/genericForm', array(
                 'type' => 'radio',
                 'legend' => __('Export format'),
                 'options' => array(
-                    'misp' => sprintf('<b>%s</b>: %s', __('MISP Format'), __('To re-import to another MISP')),
+                    'misp' => sprintf('<b>%s</b>: %s', __('MISP Format'), __('To re-import in another MISP')),
                     'misp-galaxy' => sprintf('<b>%s</b>: %s', __('misp-galaxy format'), __('Usable to be integrated into the official repository')),
                 ),
-                'default' => 'raw',
+                'default' => 'misp',
             ),
             '<br />',
             array(

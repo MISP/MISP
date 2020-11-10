@@ -689,4 +689,64 @@ class Galaxy extends AppModel
         ));
         return $tree;
     }
+    
+    /**
+     * convertToMISPGalaxyFormat
+     *
+     * @param  array $galaxy
+     * @param  array $clusters
+     * @return array the converted clusters into the misp-galaxy format
+     * 
+     * Omitted keys in root JSON key as useless:
+     *  - authors (since all clusters have their own)
+     *  - category (not used)
+     *  - description (not used as the description in the galaxy.json is used instead)
+     *  - source (since all clusters have their own)
+     *  - uuid (root level uuid key seems to be the collection_uuid in each clusters)
+     *  - version (root level version is not in sync with galaxy version)
+     * 
+     * Should the values be sorted?
+     */
+    public function convertToMISPGalaxyFormat($galaxy, $clusters)
+    {
+        $converted = [];
+        // $converted['category'] = $galaxy['Galaxy'];
+        // $converted['description'] = $galaxy['Galaxy'];
+        // $converted['source'] = $galaxy['Galaxy'][''];
+        // $converted['uuid'] = $galaxy['Galaxy'][''];
+        // $converted['version'] = $galaxy['Galaxy'][''];
+        $converted['name'] = $galaxy['Galaxy']['name'];
+        $converted['type'] = $galaxy['Galaxy']['type'];
+        $values = [];
+        $fieldsToSave = ['description', 'uuid', 'value'];
+        foreach ($clusters as $i => $cluster) {
+            foreach ($fieldsToSave as $field) {
+                $values[$i][$field] = $cluster['GalaxyCluster'][$field];
+            }
+            foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) {
+                if (isset($values[$i]['meta'][$element['key']])) {
+                    if (is_array($values[$i]['meta'][$element['key']])) {
+                        $values[$i]['meta'][$element['key']][] = $element['value'];
+                    } else {
+                        $values[$i]['meta'][$element['key']] = [$values[$i]['meta'][$element['key']], $element['value']];
+                    }
+                } else {
+                    $values[$i]['meta'][$element['key']] = $element['value'];
+                }
+            }
+            foreach ($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $j => $relation) {
+                $values[$i]['related'][$j] = [
+                    'dest-uuid' => $relation['referenced_galaxy_cluster_uuid'],
+                    'type' => $relation['referenced_galaxy_cluster_type'],
+                ];
+                if (!empty($relation['Tag'])) {
+                    foreach ($relation['Tag'] as $tag) {
+                        $values[$i]['related'][$j]['tags'][] = $tag['name'];
+                    }
+                }
+            }
+        }
+        $converted['values'] = $values;
+        return $converted;
+    }
 }
