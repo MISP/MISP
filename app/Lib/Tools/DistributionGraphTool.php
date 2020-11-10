@@ -110,6 +110,7 @@ class DistributionGraphTool
             'noShadowAttributes' => true,
             'noEventReports' => true,
             'noSightings' => true,
+            'includeEventCorrelations' => false,
             'extended' => $this->__extended_view,
         ));
         $event = array();
