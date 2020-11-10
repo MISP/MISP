@@ -101,9 +101,9 @@ function triggerEventFilteringTool(hide) {
                 "id": "deleted",
                 "label": "Deleted",
                 "values": {
-                    0: "Both",
-                    1: "Deleted only",
-                    2: "Exclude deleted"
+                    0: "Exclude deleted",
+                    1: "Both",
+                    2: "Deleted only"
                 }
             },
             {
@@ -314,7 +314,7 @@ function triggerEventFilteringTool(hide) {
                 {
                     field: 'deleted',
                     id: 'deleted',
-                    value: <?php echo isset($filters['deleted']) ? h($filters['deleted']) : 2; ?>
+                    value: <?php echo isset($filters['deleted']) ? h($filters['deleted']) : 0; ?>
                 },
                 <?php endif; ?>
                 <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['includeRelatedTags'])): ?>
