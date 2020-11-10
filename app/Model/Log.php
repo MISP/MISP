@@ -100,6 +100,8 @@ class Log extends AppModel
         'errors' => array('values' => array('warning', 'error', 'version_warning'), 'name' => 'Warnings and errors'),
         'email' => array('values' => array('admin_email'))
     );
+    /** @var Syslog|null */
+    private $syslog;
 
     public function beforeSave($options = array())
     {
@@ -331,7 +333,11 @@ class Log extends AppModel
         }
         if (Configure::read('Security.syslog')) {
             // write to syslogd as well
-            $syslog = new SysLog();
+            if (!$this->syslog) {
+                $syslogToStdErr = Configure::read('Security.syslog_to_stderr');
+                $syslogToStdErr = $syslogToStdErr === null ? true : $syslogToStdErr; // default value is true
+                $this->syslog = new SysLog(['to_stderr' => $syslogToStdErr]);
+            }
             $action = 'info';
             if (isset($data['Log']['action'])) {
                 if (in_array($data['Log']['action'], $this->errorActions)) {
@@ -344,18 +350,12 @@ class Log extends AppModel
 
             $entry = $data['Log']['action'];
             if (!empty($data['Log']['title'])) {
-                $entry .= sprintf(
-                    ' -- %s',
-                    $data['Log']['title']
-                );
+                $entry .= " -- {$data['Log']['title']}";
             }
             if (!empty($data['Log']['description'])) {
-                $entry .= sprintf(
-                    ' -- %s',
-                    $data['Log']['description']
-                );
+                $entry .= " -- {$data['Log']['description']}";
             }
-            $syslog->write($action, $entry);
+            $this->syslog->write($action, $entry);
         }
         return true;
     }
