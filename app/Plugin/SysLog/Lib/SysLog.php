@@ -21,19 +21,8 @@
  * @subpackage sunshine.cake.libs.log
  */
 class SysLog {
-	/**
-	 * Ident to send with the log files.
-	 *
-	 * @var string
-	 */
-	var $_ident = null;
-
-	/**
-	 * The facility to use for storing log files.
-	 *
-	 * @var string
-	*/
-	var $_facility = null;
+    /** @var bool */
+    private $_log;
 
 	/**
 	 * Constructs a new SysLog Logger.
@@ -42,15 +31,19 @@ class SysLog {
 	 *
 	 * - `ident` the ident to be added to each message.
 	 * - `facility` what type of application is recording a message. Default: LOG_LOCAL0. LOG_USER if Windows.
+     * - `to_stderr` if true, print log message also to standard error
 	 *
 	 * @param array $options Options for the SysLog, see above.
 	 * @return void
 	 */
-	function SysLog($options = array()) {
-		$default_facility = LOG_LOCAL0;
-		$options += array('ident' => LOGS, 'facility' => $default_facility);
-		$this->_ident = $options['ident'];
-		$this->_facility = $options['facility'];
+	public function __construct($options = array())
+    {
+		$options += array('ident' => LOGS, 'facility' => LOG_LOCAL0, 'to_stderr' => true);
+		$option = LOG_PID; // include PID with each message
+		if ($options['to_stderr']) {
+		    $option |= LOG_PERROR; // print log message also to standard error
+        }
+		$this->_log = openlog($options['ident'], $option, $options['facility']);
 	}
 
 	/**
@@ -60,7 +53,11 @@ class SysLog {
 	 * @param string $message The message you want to log.
 	 * @return boolean success of write.
 	 */
-	function write($type, $message) {
+	public function write($type, $message)
+    {
+	    if (!$this->_log) {
+	        return false;
+        }
 		$debugTypes = array('notice', 'info', 'debug');
 		$priority = LOG_INFO;
 		if ($type == 'error' || $type == 'warning') {
@@ -68,12 +65,7 @@ class SysLog {
 		} else if (in_array($type, $debugTypes)) {
 			$priority = LOG_DEBUG;
 		}
-		if (!openlog($this->_ident, LOG_PID | LOG_PERROR, $this->_facility)) {
-			return false;
-		}
 		$output = date('Y-m-d H:i:s') . ' ' . ucfirst($type) . ': ' . $message;
-		$result = syslog($priority, $output);
-		closelog();
-		return $result;
+		return syslog($priority, $output);
 	}
 }
