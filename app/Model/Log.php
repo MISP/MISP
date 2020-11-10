@@ -100,7 +100,11 @@ class Log extends AppModel
         'errors' => array('values' => array('warning', 'error', 'version_warning'), 'name' => 'Warnings and errors'),
         'email' => array('values' => array('admin_email'))
     );
-    /** @var Syslog|null */
+
+    /**
+     * Null when not defined, false when not enabled
+     * @var Syslog|null|false
+     */
     private $syslog;
 
     public function beforeSave($options = array())
@@ -331,13 +335,25 @@ class Log extends AppModel
             $elasticSearchClient = $this->getElasticSearchTool();
             $elasticSearchClient->pushDocument($logIndex, "log", $data);
         }
-        if (Configure::read('Security.syslog')) {
-            // write to syslogd as well
-            if (!$this->syslog) {
+
+        // write to syslogd as well if enabled
+        if ($this->syslog === null) {
+            if (Configure::read('Security.syslog')) {
+                $options = [];
                 $syslogToStdErr = Configure::read('Security.syslog_to_stderr');
-                $syslogToStdErr = $syslogToStdErr === null ? true : $syslogToStdErr; // default value is true
-                $this->syslog = new SysLog(['to_stderr' => $syslogToStdErr]);
+                if ($syslogToStdErr !== null) {
+                    $options['to_stderr'] = $syslogToStdErr;
+                }
+                $syslogIdent = Configure::read('Security.syslog_ident');
+                if ($syslogIdent) {
+                    $options['ident'] = $syslogIdent;
+                }
+                $this->syslog = new SysLog($options);
+            } else {
+                $this->syslog = false;
             }
+        }
+        if ($this->syslog) {
             $action = 'info';
             if (isset($data['Log']['action'])) {
                 if (in_array($data['Log']['action'], $this->errorActions)) {
