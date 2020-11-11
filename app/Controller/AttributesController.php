@@ -956,6 +956,14 @@ class AttributesController extends AppController
 
     public function view($id)
     {
+        if ($this->request->is('head')) { // Just check if attribute exists
+            $attribute = $this->Attribute->fetchAttributesSimple($this->Auth->user(), [
+                'conditions' => $this->__idToConditions($id),
+                'fields' => ['Attribute.id'],
+            ]);
+            return new CakeResponse(['status' => $attribute ? 200 : 404]);
+        }
+
         $attribute = $this->__fetchAttribute($id);
         if (empty($attribute)) {
             throw new MethodNotAllowedException(__('Invalid attribute'));
@@ -1623,6 +1631,7 @@ class AttributesController extends AppController
         $this->Feed = ClassRegistry::init('Feed');
 
         $this->loadModel('Sighting');
+        $this->loadModel('AttachmentScan');
         $user = $this->Auth->user();
         foreach ($attributes as $k => $attribute) {
             $attributeId = $attribute['Attribute']['id'];
@@ -1634,6 +1643,10 @@ class AttributesController extends AppController
                     $attribute['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
                 }
                 $attributes[$k] = $attribute;
+            }
+            if ($attribute['Attribute']['type'] === 'attachment' && $this->AttachmentScan->isEnabled()) {
+                $infected = $this->AttachmentScan->isInfected(AttachmentScan::TYPE_ATTRIBUTE, $attribute['Attribute']['id']);
+                $attributes[$k]['Attribute']['infected'] = $infected;
             }
 
             if ($attribute['Attribute']['distribution'] == 4) {
@@ -1948,9 +1961,17 @@ class AttributesController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
         }
+
+        $fieldsToFetch = ['id', $field];
+        if ($field === 'value') {
+            $fieldsToFetch[] = 'to_ids'; // for warninglist
+            $fieldsToFetch[] = 'type'; // for view
+            $fieldsToFetch[] = 'category'; // for view
+        }
+
         $params = array(
             'conditions' => array('Attribute.id' => $id),
-            'fields' => array('id', 'category', 'type', $field),
+            'fields' => $fieldsToFetch,
             'contain' => ['Event'],
             'flatten' => 1,
         );
@@ -1970,7 +1991,11 @@ class AttributesController extends AppController
             } else {
                 echo '&nbsp';
             }
+        } elseif ($field === 'value') {
+            $this->loadModel('Warninglist');
+            $attribute['Attribute'] = $this->Warninglist->checkForWarning($attribute['Attribute']);
         }
+
         $this->set('value', $result);
         $this->set('object', $attribute);
         $this->set('field', $field);
@@ -2439,8 +2464,7 @@ class AttributesController extends AppController
             } else {
                 $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
             }
-            $data = json_encode($data);
-            $result = $this->Module->queryModuleServer('/query', $data, true);
+            $result = $this->Module->queryModuleServer($data, true);
             if ($result) {
                 if (!is_array($result)) {
                     $resultArray[$type] = ['error' => $result];

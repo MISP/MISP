@@ -4054,12 +4054,14 @@ class Event extends AppModel
 
         // reposition to get the event.id with given uuid
         if (isset($data['Event']['uuid'])) {
-            $existingEvent = $this->findByUuid($data['Event']['uuid']);
+            $conditions = ['Event.uuid' => $data['Event']['uuid']];
         } elseif ($id) {
-            $existingEvent = $this->findById($id);
+            $conditions = ['Event.id' => $id];
         } else {
             throw new InvalidArgumentException("No event UUID or ID provided.");
         }
+        $existingEvent = $this->find('first', ['conditions' => $conditions, 'recursive' => -1]);
+
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
             $server = $this->Server->find('first', array(
@@ -5371,6 +5373,10 @@ class Event extends AppModel
                 }
             }
         }
+        if ($object['type'] === 'attachment' && $this->loadAttachmentScan()->isEnabled()) {
+            $type = $object['objectType'] === 'attribute' ? AttachmentScan::TYPE_ATTRIBUTE : AttachmentScan::TYPE_SHADOW_ATTRIBUTE;
+            $object['infected'] = $this->loadAttachmentScan()->isInfected($type, $object['id']);;
+        }
         return $object;
     }
 
@@ -5751,7 +5757,7 @@ class Event extends AppModel
             }
         }
         $modulePayload['data'] = $events;
-        $result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, 'Export');
+        $result = $this->Module->queryModuleServer($modulePayload, false, 'Export');
         return array(
                 'data' => $result['data'],
                 'extension' => $module['mispattributes']['outputFileExtension'],
@@ -6135,8 +6141,7 @@ class Event extends AppModel
                         } else {
                             $data[$attribute['type']] = $attribute['value'];
                         }
-                        $data = json_encode($data);
-                        $result = $this->Module->queryModuleServer('/query', $data, false, 'Enrichment');
+                        $result = $this->Module->queryModuleServer($data, false, 'Enrichment');
                         if (!$result) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
                         }

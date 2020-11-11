@@ -166,6 +166,10 @@ class ACLComponent extends Component
                 'restore' => array('perm_add'),
                 'index' => array('*'),
                 'getProxyMISPElements' => array('*'),
+                'extractAllFromReport' => array('*'),
+                'extractFromReport' => array('*'),
+                'replaceSuggestionInReport' => array('*'),
+                'importReportFromUrl' => array('*'),
             ),
             'events' => array(
                     'add' => array('perm_add'),
@@ -226,6 +230,7 @@ class ACLComponent extends Component
                     'reportValidationIssuesEvents' => array(),
                     'restoreDeletedEvents' => array('perm_site_admin'),
                     'restSearch' => array('*'),
+                    'runTaxonomyExclusivityCheck' => array('*'),
                     'saveFreeText' => array('perm_add'),
                     'stix' => array('*'),
                     'stix2' => array('*'),

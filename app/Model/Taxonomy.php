@@ -156,6 +156,7 @@ class Taxonomy extends AppModel
                     if (isset($entry['numerical_value']) && $entry['numerical_value'] !== null) {
                         $temp['numerical_value'] = $entry['numerical_value'];
                     }
+                    $temp['exclusive_predicate'] = $predicate['exclusive'];
                     $entries[] = $temp;
                 }
             } else {

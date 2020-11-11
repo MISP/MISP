@@ -374,7 +374,7 @@
                 endif;
                 if (!empty($event['Feed']) || !empty($event['Event']['FeedCount'])):
             ?>
-                    <h3>Related Feeds</h3>
+                    <h3><?= __('Related Feeds') ?> <a href="#attributeList" title="<?= __('Show just attributes that has feed hits') ?>" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'feed')"><?= __('(show)') ?></a></h3>
             <?php
                     if (!empty($event['Feed'])):
             ?>
@@ -382,10 +382,9 @@
                 <?php
                         foreach ($event['Feed'] as $relatedFeed):
                             $relatedData = array(
-                                'Name' => $relatedFeed['name'],
-                                'URL' => $relatedFeed['url'],
-                                'Provider' => $relatedFeed['provider'],
-                                'Source Format' => $relatedFeed['source_format'] === 'misp' ? 'MISP' : $relatedFeed['source_format'],
+                                __('Name') => $relatedFeed['name'],
+                                __('URL') => $relatedFeed['url'],
+                                __('Provider') => $relatedFeed['provider'],
                             );
                             $popover = '';
                             foreach ($relatedData as $k => $v) {
@@ -397,13 +396,13 @@
                                         if ($relatedFeed ['source_format'] === 'misp'):
                                     ?>
                                             <form action="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" method="post" style="margin:0px;">
-                                                <input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'], true)); ?>">
-                                                <input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" />
+                                                <input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'])); ?>">
+                                                <input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
                                             </form>
                                     <?php
                                         else:
                                     ?>
-                                            <a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a><br />
+                                            <a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a><br>
                                     <?php
                                         endif;
                                     ?>
@@ -458,7 +457,10 @@
             ?>
             <?php if (!empty($event['warnings'])): ?>
                 <div class="warning_container">
-                    <h4 class="red"><?= __('Warning: Potential false positives') ?> <a href="#attributeList" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'warning')"><?= __('(show)') ?></a></h4>
+                    <h4 class="red">
+                        <?= __('Warning: Potential false positives') ?>
+                        <a href="#attributeList" title="<?= __('Show just attributes that has warning') ?>" onclick="toggleBoolFilter('<?= $baseurl ?>/events/view/<?= h($event['Event']['id']) ?>', 'warning')"><?= __('(show)') ?></a>
+                    </h4>
                     <?php
                         $links = [];
                         foreach ($event['warnings'] as $id => $name) {
@@ -517,7 +519,7 @@
     </div>
     <div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>
-    <div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false" data-mitre-attack-galaxy-id="<?php echo h($mitreAttackGalaxyId)?>">
+    <div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>
     <div id="eventreport_div" style="display: none;">
         <span class="report-title-section"><?php echo __('Event Reports');?></span>
@@ -560,7 +562,7 @@ function enable_correlation_graph() {
 }
 
 function enable_attack_matrix() {
-    $.get("<?php echo $baseurl; ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
+    $.get("<?php echo $baseurl; ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/mitre-attack/event/1", function(data) {
         $("#attackmatrix_div").html(data);
     });
 }

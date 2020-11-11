@@ -1,6 +1,8 @@
 <?php
 class StatisticsShell extends AppShell {
 
+    public $uses = array('Event', 'User', 'Organisation', 'Log');
+
     public function contributors()
     {
         $from = empty($this->args[0]) ? null : $this->args[0];
@@ -132,5 +134,121 @@ class StatisticsShell extends AppShell {
             );
         }
         echo "==================================\n\n";
+    }
+
+    public function orgEngagement()
+    {
+        $orgs = $this->Organisation->find('list', [
+            'recursive' => -1,
+            'fields' => ['Organisation.id', 'Organisation.id'],
+            'conditions' => ['Organisation.local' => 1]
+        ]);
+        $orgs = array_values($orgs);
+        $total_orgs = count($orgs);
+        $data = [];
+        $orgCreations = $this->Log->find('list', [
+            'conditions' => [
+                'model' => 'Organisation',
+                'action' => 'add'
+            ],
+            'fields' => ['Log.model_id', 'Log.created']
+        ]);
+        $localOrgs = $this->Organisation->find('count', [
+            'conditions' => [
+                'Organisation.local' => 1
+            ]
+        ]);
+        foreach ($orgs as $k => $org) {
+            echo sprintf(__('Processing organisation %s / %s.%s', $k+1, $total_orgs, PHP_EOL));
+            $temp = [
+                'org_id' => $org
+            ];
+            if (empty($orgCreations[$org])) {
+                continue;
+            } else {
+                $temp['org_creation_timestamp'] = strtotime($orgCreations[$org]);
+            }
+            $first_event = $this->Event->find('first', [
+                'recursive' => -1,
+                'conditions' => [
+                    'orgc_id' => $org
+                ],
+                'order' => ['Event.id ASC'],
+                'fields' => ['Event.id']
+            ]);
+            if (empty($first_event)) {
+                continue;
+            }
+            $first_event_creation = $this->Log->find('first', [
+                'recursive' => -1,
+                'conditions' => [
+                    'model_id' => $first_event['Event']['id'],
+                    'model' => 'Event',
+                    'action' => 'add'
+                ]
+            ]);
+            if (empty($first_event_creation)) {
+                continue;
+            }
+            $temp['first_event_creation'] = strtotime($first_event_creation['Log']['created']);
+            $temp['time_until_first_event'] = $temp['first_event_creation'] - $temp['org_creation_timestamp'];
+            $data[] = $temp;
+        }
+        $average_time_to_first_event = 0;
+        foreach ($data as $org_data) {
+            $average_time_to_first_event += (int)$org_data['time_until_first_event'] / 60 / 60 / 24;
+        }
+        echo PHP_EOL . str_repeat('-', 63) . PHP_EOL;
+        echo __('Total local orgs: %s%s', $localOrgs, PHP_EOL);
+        echo __('Local orgs with event creations: %s%s', count($data), PHP_EOL);
+        echo __('Average days until first event: %s', (int)($average_time_to_first_event / count($data)));
+        echo PHP_EOL . str_repeat('-', 63) . PHP_EOL;
+    }
+
+    public function yearlyOrgGrowth()
+    {
+        $orgCreations = $this->Log->find('list', [
+            'conditions' => [
+                'model' => 'Organisation',
+                'action' => 'add'
+            ],
+            'fields' => ['Log.model_id', 'Log.created']
+        ]);
+        $localOnly = empty($this->args[0]) ? false : true;
+        if ($localOnly) {
+            $orgs = $this->Organisation->find('list', [
+                'recursive' => -1,
+                'fields' => ['Organisation.id', 'Organisation.local']
+            ]);
+            foreach ($orgs as $org_id => $local) {
+                if (!$local && isset($orgCreations[$org_id])) {
+                    unset($orgCreations[$org_id]);
+                }
+            }
+        }
+        $years = [];
+        foreach ($orgCreations as $orgCreation) {
+            $year = substr($orgCreation, 0, 4);
+            if (empty($years[$year])) {
+                $years[$year] = 0;
+            }
+            $years[$year] += 1;
+        }
+        ksort($years);
+        $yearOverYear = [];
+        $previous = 0;
+        echo PHP_EOL . str_repeat('-', 63) . PHP_EOL;
+        echo __('Year over year growth of organisation count.');
+        echo PHP_EOL . str_repeat('-', 63) . PHP_EOL;
+        $currentYear = date("Y");
+        foreach ($years as $year => $count) {
+            $prognosis = '';
+            if ($year == $currentYear) {
+                $percentage_passed = (strtotime(($year +1) . '-01-01') - strtotime(($year) . '-01-01')) / (time() - (strtotime($year . '-01-01')));
+                $prognosis = sprintf(' (%s by the end of the year at current rate)', round($percentage_passed * $count));
+            }
+            echo __('%s: %s %s%s', $year, $count - $previous, $prognosis, PHP_EOL);
+        }
+        echo str_repeat('-', 63) . PHP_EOL;
     }
 }

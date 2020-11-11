@@ -86,7 +86,7 @@ class AppModel extends Model
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
-        57 => false, 58 => false, 59 => false, 60 => false
+        57 => false, 58 => false, 59 => false, 60 => false, 61 => false
     );
 
     public $advanced_updates_description = array(
@@ -1437,6 +1437,18 @@ class AppModel extends Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
                 break;
             case 60:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `attachment_scans` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `type` varchar(40) COLLATE utf8_bin NOT NULL,
+                    `attribute_id` int(11) NOT NULL,
+                    `infected` tinyint(1) NOT NULL,
+                    `malware_name`  varchar(191) NULL,
+                    `timestamp` int(11) NOT NULL,
+                    PRIMARY KEY (`id`),
+                    INDEX `index` (`type`, `attribute_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                break;
+            case 61:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `auth_keys` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -2444,6 +2456,19 @@ class AppModel extends Model
         $this->elasticSearchClient = $client;
     }
 
+    public function checkVersionRequirements($versionString, $minVersion)
+    {
+        $version = explode('.', $versionString);
+        $minVersion = explode('.', $minVersion);
+        if (count($version) > $minVersion) {
+            return true;
+        }
+        if (count($version) == 1) {
+            return $minVersion <= $version;
+        }
+        return ($version[0] >= $minVersion[0] && $version[1] >= $minVersion[1] && $version[2] >= $minVersion[2]);
+    }
+
     // generate a generic subquery - options needs to include conditions
     public function subQueryGenerator($model, $options, $lookupKey, $negation = false)
     {
@@ -2709,6 +2734,7 @@ class AppModel extends Model
             $temp = explode('&&', $filter);
             $filter = array();
             foreach ($temp as $f) {
+                $f = strval($f);
                 if ($f[0] === '!') {
                     $filter['NOT'][] = substr($f, 1);
                 } else {
@@ -2720,6 +2746,7 @@ class AppModel extends Model
         if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
             $temp = array();
             foreach ($filter as $param) {
+                $param = strval($param);
                 if (!empty($param)) {
                     if ($param[0] === '!') {
                         $temp['NOT'][] = substr($param, 1);
@@ -2984,5 +3011,28 @@ class AppModel extends Model
         }
 
         return $this->attachmentTool;
+    }
+
+    /**
+     * @return AttachmentScan
+     */
+    protected function loadAttachmentScan()
+    {
+        if ($this->AttachmentScan === null) {
+            $this->AttachmentScan = ClassRegistry::init('AttachmentScan');
+        }
+
+        return $this->AttachmentScan;
+    }
+
+    /**
+     * @return Log
+     */
+    protected function loadLog()
+    {
+        if (!isset($this->Log)) {
+            $this->Log = ClassRegistry::init('Log');
+        }
+        return $this->Log;
     }
 }

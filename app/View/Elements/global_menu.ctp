@@ -472,11 +472,11 @@
                     h($me['email']),
                     $this->UserName->prepend($me['email']),
                     h($loggedInUserName),
-                    sprintf(
+                    isset($notifications) ? sprintf(
                         '<i class="fa fa-envelope %s" role="img" aria-label="%s"></i>',
                         (($notifications['total'] == 0) ? 'white' : 'red'),
                         __('Notifications') . ': ' . $notifications['total']
-                    )
+                    ) : ''
                 )
             ),
             array(

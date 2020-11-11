@@ -240,6 +240,10 @@ class RestResponseComponent extends Component
             'attachTagToObject' => array(
                 'description' => "Attach a Tag to an object, refenced by an UUID. Tag can either be a tag id or a tag name.",
                 'mandatory' => array('uuid', 'tag'),
+            ),
+            'search' => array(
+                'description' => "GET or POST the tags to search for as a raw string or as a list. The strict_tag_name_only parameter only returns tags matching exactly the tag name (thus, skipping synonyms and cluster's value)",
+                'params' => array('tag_name', 'strict_tag_name_only')
             )
         ),
         'User' => array(
@@ -1426,6 +1430,12 @@ class RestResponseComponent extends Component
                 'type' => 'string',
                 'operators' => array('equal'),
                 'values' => array( 'misp' => 'MISP Feed', 'freetext' => 'Freetext Parsed Feed', 'csv' => 'CSV Parsed Feed')
+            ),
+            'strict_tag_name_only' => array(
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => array(1 => 'True', 0 => 'False' ),
+                'help' => __('Only returns tags matching exactly the tag name (thus skipping synonyms and cluster\'s value)')
             ),
             'subject' => array(
                 'input' => 'text',

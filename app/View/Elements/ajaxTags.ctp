@@ -67,7 +67,7 @@
             }
         }
         $aText = h($aText);
-        $span_scope = sprintf(
+        $span_scope = !empty($hide_global_scope) ? '' : sprintf(
             '<span class="%s" title="%s" aria-label="%s"><i class="fas fa-%s"></i></span>',
             'black-white tag',
             !empty($tag['local']) ? __('Local tag') : __('Global tag'),

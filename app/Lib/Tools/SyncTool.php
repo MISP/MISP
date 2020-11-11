@@ -60,4 +60,115 @@ class SyncTool
         }
         return $HttpSocket;
     }
+
+    /**
+     * @param array $server
+     * @return array|void
+     * @throws Exception
+     */
+    public static function getServerClientCertificateInfo(array $server)
+    {
+        if (!$server['Server']['client_cert_file']) {
+            return;
+        }
+
+        $clientCertificate = new File(APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '_client.pem');
+        if (!$clientCertificate->exists()) {
+            throw new Exception("Certificate file '{$clientCertificate->pwd()}' doesn't exists.");
+        }
+
+        $certificateContent = $clientCertificate->read();
+        if ($certificateContent === false) {
+            throw new Exception("Could not read '{$clientCertificate->pwd()}' file with client certificate.");
+        }
+
+        return self::getClientCertificateInfo($certificateContent);
+    }
+
+    /**
+     * @param string $certificateContent PEM encoded certificate and private key.
+     * @return array
+     * @throws Exception
+     */
+    private static function getClientCertificateInfo($certificateContent)
+    {
+        $certificate = openssl_x509_read($certificateContent);
+        if (!$certificate) {
+            throw new Exception("Could't parse certificate: " . openssl_error_string());
+        }
+        $privateKey = openssl_pkey_get_private($certificateContent);
+        if (!$privateKey) {
+            throw new Exception("Could't get private key from certificate: " . openssl_error_string());
+        }
+        $verify = openssl_x509_check_private_key($certificate, $privateKey);
+        if (!$verify) {
+            throw new Exception('Public and private key do not match.');
+        }
+        return self::parseCertificate($certificate);
+    }
+
+    /**
+     * @param mixed $certificate
+     * @return array
+     * @throws Exception
+     */
+    private static function parseCertificate($certificate)
+    {
+        $parsed = openssl_x509_parse($certificate);
+        if (!$parsed) {
+            throw new Exception("Could't get parse X.509 certificate: " . openssl_error_string());
+        }
+        $currentTime = new DateTime();
+        $output = [
+            'serial_number' => $parsed['serialNumberHex'],
+            'signature_type' => $parsed['signatureTypeSN'],
+            'valid_from' => isset($parsed['validFrom_time_t']) ? new DateTime("@{$parsed['validFrom_time_t']}") : null,
+            'valid_to' => isset($parsed['validTo_time_t']) ? new DateTime("@{$parsed['validTo_time_t']}") : null,
+            'public_key_size' => null,
+            'public_key_type' => null,
+            'public_key_size_ok' => null,
+        ];
+
+        $output['valid_from_ok'] = $output['valid_from'] ? ($output['valid_from'] <= $currentTime) : null;
+        $output['valid_to_ok'] = $output['valid_to'] ? ($output['valid_to'] >= $currentTime) : null;
+
+        $subject = [];
+        foreach ($parsed['subject'] as $type => $value) {
+            $subject[] = "$type=$value";
+        }
+        $output['subject'] = implode(', ', $subject);
+
+        $issuer = [];
+        foreach ($parsed['issuer'] as $type => $value) {
+            $issuer[] = "$type=$value";
+        }
+        $output['issuer'] = implode(', ', $issuer);
+
+        $publicKey = openssl_pkey_get_public($certificate);
+        if ($publicKey) {
+            $publicKeyDetails = openssl_pkey_get_details($publicKey);
+            if ($publicKeyDetails) {
+                $output['public_key_size'] = $publicKeyDetails['bits'];
+                switch ($publicKeyDetails['type']) {
+                    case OPENSSL_KEYTYPE_RSA:
+                        $output['public_key_type'] = 'RSA';
+                        $output['public_key_size_ok'] = $output['public_key_size'] >= 2048;
+                        break;
+                    case OPENSSL_KEYTYPE_DSA:
+                        $output['public_key_type'] = 'DSA';
+                        $output['public_key_size_ok'] = $output['public_key_size'] >= 2048;
+                        break;
+                    case OPENSSL_KEYTYPE_DH:
+                        $output['public_key_type'] = 'DH';
+                        break;
+                    case OPENSSL_KEYTYPE_EC:
+                        $output['public_key_type'] = "EC ({$publicKeyDetails['ec']['curve_name']})";
+                        $output['public_key_size_ok'] = $output['public_key_size'] >= 224;
+                        break;
+                }
+            }
+        }
+
+        return $output;
+    }
 }

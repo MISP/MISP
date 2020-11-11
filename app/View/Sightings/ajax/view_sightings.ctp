@@ -15,7 +15,7 @@
             top: 20,
             right: 60,
             bottom: 30,
-            left: 25
+            left: 40
         },
         width = 980 - margin.left - margin.right,
         height = 300 - margin.top - margin.bottom;

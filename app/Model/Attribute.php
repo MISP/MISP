@@ -1194,7 +1194,7 @@ class Attribute extends AppModel
                 }
                 break;
             case 'filename|vhash':
-                if (preg_match('#^.+\|[a-zA-Z0-9&!="]+$#', $value)) {
+                if (preg_match('#^.+\|[a-zA-Z0-9&!=\"]+$#', $value)) {
                     $returnValue = true;
                 } else {
                     $returnValue = __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
@@ -1820,7 +1820,11 @@ class Attribute extends AppModel
 
     public function saveAttachment($attribute, $path_suffix='')
     {
-        return $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
+        $result = $this->loadAttachmentTool()->save($attribute['event_id'], $attribute['id'], $attribute['data'], $path_suffix);
+        if ($result) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_ATTRIBUTE, $attribute);
+        }
+        return $result;
     }
 
     /**
@@ -3245,13 +3249,20 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function fetchAttributesSimple($user, $options = array())
+    /**
+     * Fetches attributes that $user can see.
+     *
+     * @param array $user
+     * @param array $options
+     * @return array
+     */
+    public function fetchAttributesSimple(array $user, array $options = array())
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
             'fields' => array(),
             'recursive' => -1,
-            'contain' => array()
+            'contain' => ['Event', 'Object'], // by default include Event and Object, because it is required for conditions
         );
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
@@ -3262,14 +3273,13 @@ class Attribute extends AppModel
         if (isset($options['contain'])) {
             $params['contain'] = $options['contain'];
         }
-        $results = $this->find('all', array(
+        return $this->find('all', array(
             'conditions' => $params['conditions'],
             'recursive' => -1,
             'fields' => $params['fields'],
             'contain' => $params['contain'],
             'sort' => false
         ));
-        return $results;
     }
 
     // Method that fetches all attributes for the various exports
@@ -3479,7 +3489,6 @@ class Attribute extends AppModel
             $params['page'] = 0;
         } else {
             $loop = false;
-            $pagesToFetch = 1;
         }
         $attributes = array();
         if (!empty($options['includeEventTags'])) {
@@ -3703,7 +3712,7 @@ class Attribute extends AppModel
     }
 
     /**
-     * @param $attribute
+     * @param array $attribute
      * @param bool $context
      * @return array|true
      */
@@ -3713,6 +3722,7 @@ class Attribute extends AppModel
         if (!$context) {
             unset($this->validate['event_id']);
             unset($this->validate['value']['uniqueValue']);
+            unset($this->validate['uuid']['unique']);
         }
         if ($this->validates()) {
             return true;
@@ -3936,7 +3946,7 @@ class Attribute extends AppModel
                 'value1 LIKE' => '%/%'
             ),
             'fields' => array('value1'),
-            'group' => 'value1', // return just unique value
+            'group' => array('value1', 'id'), // return just unique value
             'order' => false
         ));
     }
@@ -4643,46 +4653,49 @@ class Attribute extends AppModel
             $params['page'] = 1;
         }
         if (empty($exportTool->mock_query_only)) {
-            $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
+            $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams);
         }
         $tmpfile->write($exportTool->footer($exportToolParams));
         return $tmpfile->finish();
     }
 
-    private function __iteratedFetch($user, &$params, &$loop, TmpFileTool $tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)
+    /**
+     * @param array $user
+     * @param array $params
+     * @param bool $loop If true, data are fetched in loop to keep memory usage low
+     * @param TmpFileTool $tmpfile
+     * @param $exportTool
+     * @param array $exportToolParams
+     * @return int
+     * @throws Exception
+     */
+    private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams)
     {
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
+        $separator = $exportTool->separator($exportToolParams);
+        $elementCounter = 0;
         $continue = true;
-        while ($continue) {
+        do {
             $results = $this->fetchAttributes($user, $params, $continue);
+            if (empty($results)) {
+                break; // nothing found, skip rest
+            }
             if ($params['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
-            $params['page'] += 1;
             $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
-            $i = 0;
-            $temp = '';
+            $elementCounter += count($results);
             foreach ($results as $attribute) {
-                $elementCounter++;
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
-                $temp .= $handlerResult;
                 if ($handlerResult !== '') {
-                    if ($i != count($results) -1) {
-                        $temp .= $exportTool->separator($exportToolParams);
-                    }
+                    $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
-                $i++;
             }
-            if (!$loop) {
-                $continue = false;
-            }
-            if ($continue) {
-                $temp .= $exportTool->separator($exportToolParams);
-            }
-            $tmpfile->write($temp);
-        }
-        return true;
+            $params['page'] += 1;
+        } while ($loop && $continue);
+
+        return $elementCounter;
     }
 
     public function set_filter_uuid(&$params, $conditions, $options)
@@ -4773,5 +4786,19 @@ class Attribute extends AppModel
     private function isPositiveInteger($value)
     {
         return (is_int($value) && $value >= 0) || ctype_digit($value);
+    }
+
+    public function typeToCategoryMapping()
+    {
+        $typeCategoryMapping = array();
+        foreach ($this->categoryDefinitions as $k => $cat) {
+            foreach ($cat['types'] as $type) {
+                $typeCategoryMapping[$type][$k] = $k;
+            }
+        }
+        foreach ($typeCategoryMapping as $k => $v) {
+            $typeCategoryMapping[$k] = array_values($v);
+        }
+        return $typeCategoryMapping;
     }
 }

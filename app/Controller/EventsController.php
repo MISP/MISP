@@ -1505,14 +1505,17 @@ class EventsController extends AppController
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('defaultFilteringRules', $this->defaultFilteringRules);
-        $this->loadModel('Galaxy');
-        $this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
         $this->set('modificationMapCSV', $modificationMapCSV);
         $this->set('title_for_layout', __('Event #%s', $event['Event']['id']));
     }
 
     public function view($id = null, $continue = false, $fromEvent = null)
     {
+        if ($this->request->is('head')) { // Just check if event exists
+            $exists = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['fields' => ['id']]);
+            return new CakeResponse(['status' => $exists ? 200 : 404]);
+        }
+
         if (is_numeric($id)) {
             $conditions = array('eventid' => $id);
         } else if (Validation::uuid($id)) {
@@ -1919,7 +1922,8 @@ class EventsController extends AppController
                             throw new ForbiddenException(__('Event blocked by local blocklist.'));
                         }
                         // REST users want to see the newly created event
-                        $results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $created_id));
+                        $metadata = $this->request->param('named.metadata');
+                        $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $created_id, 'metadata' => $metadata]);
                         $event = $results[0];
                         if (!empty($validationErrors)) {
                             $event['errors'] = $validationErrors;
@@ -2250,22 +2254,13 @@ class EventsController extends AppController
         if ($this->request->is('get') && $this->_isRest()) {
             return $this->RestResponse->describe('Events', 'edit', false, $this->response->type());
         }
-        if (Validation::uuid($id)) {
-            $temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $id)));
-            if (empty($temp)) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            $id = $temp['Event']['id'];
-        } elseif (!is_numeric($id)) {
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+        if (!$event) {
             throw new NotFoundException(__('Invalid event'));
         }
-        $this->Event->id = $id;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-        $this->Event->read(null, $id);
+        $id = $event['Event']['id']; // change possible event UUID with real ID
         // check if private and user not authorised to edit
-        if (!$this->__canModifyEvent($this->Event->data) && !($this->userRole['perm_sync'] && $this->_isRest())) {
+        if (!$this->__canModifyEvent($event) && !($this->userRole['perm_sync'] && $this->_isRest())) {
             $message = __('You are not authorised to do that.');
             if ($this->_isRest()) {
                 throw new ForbiddenException($message);
@@ -2278,6 +2273,7 @@ class EventsController extends AppController
             $this->Event->insertLock($this->Auth->user(), $id);
         }
         if ($this->request->is('post') || $this->request->is('put')) {
+            $this->Event->set($event);
             if ($this->_isRest()) {
                 if (isset($this->request->data['response'])) {
                     $this->request->data = $this->Event->updateXMLArray($this->request->data, true);
@@ -2294,7 +2290,8 @@ class EventsController extends AppController
                 $result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id);
                 if ($result === true) {
                     // REST users want to see the newly created event
-                    $results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+                    $metadata = $this->request->param('named.metadata');
+                    $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id, 'metadata' => $metadata]);
                     $event = $results[0];
                     $this->set('event', $event);
                     $this->render('view');
@@ -2302,8 +2299,6 @@ class EventsController extends AppController
                 } else {
                     $message = 'Error';
                     if ($this->_isRest()) {
-                        App::uses('JSONConverterTool', 'Tools');
-                        $converter = new JSONConverterTool();
                         if (isset($result['error'])) {
                             $errors = $result['error'];
                         } else {
@@ -2320,11 +2315,10 @@ class EventsController extends AppController
             // say what fields are to be updated
             $fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp', 'sharing_group_id', 'extends_uuid');
 
-            $this->Event->read();
             // always force the org, but do not force it for admins
             if (!$this->_isSiteAdmin()) {
                 // set the same org as existed before
-                $this->request->data['Event']['org_id'] = $this->Event->data['Event']['org_id'];
+                $this->request->data['Event']['org_id'] = $event['Event']['org_id'];
             }
             // we probably also want to remove the published flag
             $this->request->data['Event']['published'] = 0;
@@ -2337,10 +2331,7 @@ class EventsController extends AppController
                 $this->Flash->error(__('The event could not be saved. Please, try again.'));
             }
         } else {
-            if (!$this->userRole['perm_modify']) {
-                $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-            }
-            $this->request->data = $this->Event->read(null, $id);
+            $this->request->data = $event;
         }
 
         // combobox for distribution
@@ -2378,7 +2369,7 @@ class EventsController extends AppController
         $this->set('analysisLevels', $analysisLevels);
         $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
-        $this->set('event', $this->Event->data);
+        $this->set('event', $event);
         $this->render('add');
     }
 
@@ -4518,11 +4509,16 @@ class EventsController extends AppController
 
     public function viewGalaxyMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
     {
-        $local = !empty($this->params['named']['local']);
-        $this->set('local', $local);
         $this->loadModel('Galaxy');
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
-        $matrixData = $this->Galaxy->getMatrix($galaxy_id);
+        if ($galaxy_id === 'mitre-attack') { // specific case for MITRE ATTACK matrix
+            $galaxy_id = $mitreAttackGalaxyId;
+        }
+
+        $matrixData = $this->Galaxy->getMatrix($galaxy_id); // throws exception if matrix not found
+
+        $local = !empty($this->params['named']['local']);
+        $this->set('local', $local);
 
         $tabs = $matrixData['tabs'];
         $matrixTags = $matrixData['matrixTags'];
@@ -4759,8 +4755,7 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $data = json_encode($data);
-        $result = $this->Module->queryModuleServer('/query', $data, false, $type);
+        $result = $this->Module->queryModuleServer($data, false, $type);
         if (!$result) {
             throw new MethodNotAllowedException(__('%s service not reachable.', $type));
         }
@@ -4805,8 +4800,7 @@ class EventsController extends AppController
         if (!empty($options)) {
             $data['config'] = $options;
         }
-        $data = json_encode($data);
-        $result = $this->Module->queryModuleServer('/query', $data, false, $type);
+        $result = $this->Module->queryModuleServer($data, false, $type);
         if (!$result) {
             throw new MethodNotAllowedException(__('%s service not reachable.', $type));
         }
@@ -4996,7 +4990,7 @@ class EventsController extends AppController
                     if (!empty($filename)) {
                         $modulePayload['filename'] = $filename;
                     }
-                    $result = $this->Module->queryModuleServer('/query', json_encode($modulePayload), false, $moduleFamily = 'Import');
+                    $result = $this->Module->queryModuleServer($modulePayload, false, $moduleFamily = 'Import');
                     if (!$result) {
                         throw new Exception(__('Import service not reachable.'));
                     }
@@ -5626,5 +5620,54 @@ class EventsController extends AppController
             }
             $this->redirect(['action' => 'restoreDeletedEvents']);
         }
+    }
+
+    public function runTaxonomyExclusivityCheck($id)
+    {
+        $conditions = [];
+        if (is_numeric($id)) {
+            $conditions = array('eventid' => $id);
+        } else if (Validation::uuid($id)) {
+            $conditions = array('event_uuid' => $id);
+        } else {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $conditions['excludeLocalTags'] = false;
+        $conditions['excludeGalaxy'] = true;
+        $event = $this->Event->fetchEvent($this->Auth->user(), $conditions);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $event = $event[0];
+        $this->loadModel('Taxonomy');
+        $allConflicts = [];
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
+        if (!empty($tagConflicts['global']) || !empty($tagConflicts['local'])) {
+            $tagConflicts['Event'] = $event['Event'];
+            $allConflicts[] = $tagConflicts;
+        }
+        foreach ($event['Object'] as $k => $object) {
+            if (isset($object['Attribute'])) {
+                foreach ($object['Attribute'] as $k2 => $attribute) {
+                    $this->Event->Attribute->removeGalaxyClusterTags($event['Object'][$k]['Attribute'][$k2]);
+                    $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+                    if (!empty($tagConflicts['global']) || !empty($tagConflicts['local'])) {
+                        $tagConflicts['Attribute'] = $event['Object'][$k]['Attribute'][$k2];
+                        unset($tagConflicts['Attribute']['AttributeTag'], $tagConflicts['Attribute']['Galaxy'], $tagConflicts['Attribute']['ShadowAttribute']);
+                        $allConflicts[] = $tagConflicts;
+                    }
+                }
+            }
+        }
+        foreach ($event['Attribute'] as $k => $attribute) {
+            $this->Event->Attribute->removeGalaxyClusterTags($event['Attribute'][$k]);
+            $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($attribute['AttributeTag']);
+            if (!empty($tagConflicts['global']) || !empty($tagConflicts['local'])) {
+                $tagConflicts['Attribute'] = $event['Attribute'][$k];
+                unset($tagConflicts['Attribute']['AttributeTag'], $tagConflicts['Attribute']['Galaxy'], $tagConflicts['Attribute']['ShadowAttribute']);
+                $allConflicts[] = $tagConflicts;
+            }
+        }
+        return $this->RestResponse->viewData($allConflicts);
     }
 }

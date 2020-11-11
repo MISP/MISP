@@ -643,8 +643,10 @@ class MispObject extends AppModel
         return $template;
     }
 
-    /*
+    /**
      * Clean the attribute list up from artifacts introduced by the object form
+     * @param array $attributes
+     * @return string|array
      */
     public function attributeCleanup($attributes)
     {
@@ -791,22 +793,7 @@ class MispObject extends AppModel
                                     if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
                                         $newAttribute[$f] = 0;
                                     }
-                                    if (isset($newAttribute[$f]) && $newAttribute[$f] != $originalAttribute[$f]) {
-                                        $different = true;
-                                    }
-                                    // Set seen of object at attribute level
-                                    if (isset($forcedSeenOnElements['first_seen'])) {
-                                        $newAttribute['first_seen'] = $forcedSeenOnElements['first_seen'];
-                                        if ($newAttribute['object_relation'] == 'first-seen') {
-                                            // $newAttribute['value'] = $forcedSeenOnElements['first_seen'];
-                                        }
-                                        $different = true;
-                                    }
-                                    if (isset($forcedSeenOnElements['last_seen'])) {
-                                        $newAttribute['last_seen'] = $forcedSeenOnElements['last_seen'];
-                                        if ($newAttribute['object_relation'] == 'last-seen') {
-                                            // $newAttribute['value'] = $forcedSeenOnElements['last_seen'];
-                                        }
+                                    if (isset($newAttribute[$f]) && $this->attributeValueDifferent($originalAttribute[$f], $newAttribute[$f], $f)) {
                                         $different = true;
                                     }
                                 }
@@ -830,13 +817,13 @@ class MispObject extends AppModel
                     $newAttribute['object_id'] = $object['Object']['id'];
                     // Set seen of object at attribute level
                     if (isset($forcedSeenOnElements['first_seen'])) {
-                        $newAttribute['first_seen'] = $forcedSeenOnElements['first_seen'];
+                        $newAttribute['first_seen'] = empty($newAttribute['first_seen']) ? $forcedSeenOnElements['first_seen'] : $newAttribute['first_seen'];
                         if ($newAttribute['object_relation'] == 'first-seen') {
                             $newAttribute['value'] = $forcedSeenOnElements['first_seen'];
                         }
                     }
                     if (isset($forcedSeenOnElements['last_seen'])) {
-                        $newAttribute['last_seen'] = $forcedSeenOnElements['last_seen'];
+                        $newAttribute['last_seen'] = empty($newAttribute['last_seen']) ? $forcedSeenOnElements['last_seen'] : $newAttribute['last_seen'];
                         if ($newAttribute['object_relation'] == 'last-seen') {
                             $newAttribute['value'] = $forcedSeenOnElements['last_seen'];
                         }
@@ -1498,5 +1485,14 @@ class MispObject extends AppModel
             $tmpfile->write($temp);
         }
         return true;
+    }
+
+    private function attributeValueDifferent($newValue, $originalValue, $field)
+    {
+        if (in_array($field, ['first_seen', 'last_seen'])) {
+            return new DateTime($newValue) != new DateTime($originalValue);
+        } else {
+            return $newValue != $originalValue;
+        }
     }
 }

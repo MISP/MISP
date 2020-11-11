@@ -1297,7 +1297,8 @@ span.success {
     bottom:-17px;
     background-color: #fff;
     position:absolute;
-    z-index:100;
+    z-index:10;
+    color: #333;
 }
 
 .inline-input-active {
@@ -2379,7 +2380,7 @@ table tr:hover .down-expand-button {
 }
 
 .strikethrough {
-    text-decoration: line-through;
+    text-decoration: line-through !important;
 }
 
 .highlighted_node {
@@ -2601,7 +2602,7 @@ table tr:hover .down-expand-button {
 }
 
 /* Threat levels */
-.threat-level-high::before, .threat-level-medium::before, .threat-level-low::before {
+.threat-level-high::before, .threat-level-medium::before, .threat-level-low::before, .threat-level-undefined::before {
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     -moz-osx-font-smoothing: grayscale;
@@ -2627,6 +2628,11 @@ table tr:hover .down-expand-button {
 .threat-level-low::before {
     content: "\f103";
     color: rgb(35,120,40);
+}
+
+.threat-level-undefined::before {
+    content: "\f128";
+    color: gray;
 }
 
 #UserGpgkey, #UserCertifPublic {

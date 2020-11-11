@@ -403,7 +403,11 @@ class ShadowAttribute extends AppModel
     public function saveBase64EncodedAttachment($attribute)
     {
         $data = base64_decode($attribute['data']);
-        return $this->loadAttachmentTool()->saveShadow($attribute['event_id'], $attribute['id'], $data);
+        $result = $this->loadAttachmentTool()->saveShadow($attribute['event_id'], $attribute['id'], $data);
+        if ($result) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_SHADOW_ATTRIBUTE, $attribute);
+        }
+        return $result;
     }
 
     /**
