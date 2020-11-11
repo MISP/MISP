@@ -164,19 +164,17 @@ class Sighting extends AppModel
             $event = array('Event' => $sighting['Event']);
         }
 
-        $ownEvent = false;
-        if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) {
-            $ownEvent = true;
-        }
+        $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
         if (!$ownEvent) {
+            $sightingPolicy = $this->sightingsPolicy();
             // if sighting policy == 0 then return false if the sighting doesn't belong to the user
-            if (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0) {
+            if ($sightingPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
                 if ($sighting['Sighting']['org_id'] != $user['org_id']) {
                     return array();
                 }
             }
             // if sighting policy == 1, the user can only see the sighting if they've sighted something in the event once
-            if (Configure::read('Plugin.Sightings_policy') == 1) {
+            else if ($sightingPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
                 if (!$this->isReporter($sighting['Sighting']['event_id'], $user['org_id'])) {
                     return array();
                 }
@@ -689,7 +687,7 @@ class Sighting extends AppModel
         $objectIds = [];
         $eventOwnerOrgIdList = [];
         if ($context === 'attribute') {
-            $objects = $this->Event->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $ids, 'Attribute.deleted' => 0), 'flatten' => 1));
+            $objects = $this->Event->Attribute->fetchAttributes($user, ['conditions' => ['Attribute.id' => $ids, 'Attribute.deleted' => 0], 'flatten' => 1]);
             foreach ($objects as $object) {
                 $objectIds[] = $object['Attribute']['id'];
                 $eventOwnerOrgIdList[$object['Event']['id']] = $object['Event']['orgc_id'];
@@ -697,7 +695,7 @@ class Sighting extends AppModel
         } elseif ($context === 'event') {
             // let's set the context to event here, since we reuse the variable later on for some additional lookups.
             // Passing $context = 'org' could have interesting results otherwise...
-            $objects = $this->Event->fetchEvent($user, ['eventid' => $ids, 'metadata' => true]);
+            $objects = $this->Event->fetchSimpleEvents($user, ['conditions' => ['Event.id' => $ids]]);
             foreach ($objects as $object) {
                 $objectIds[] = $object['Event']['id'];
                 $eventOwnerOrgIdList[$object['Event']['id']] = $object['Event']['orgc_id'];
@@ -745,13 +743,12 @@ class Sighting extends AppModel
             foreach ($sightings as $k => $sighting) {
                 $eventId = $sighting['Sighting']['event_id'];
                 if (!isset($eventsWithOwnSightings[$eventId])) {
-                    $eventsWithOwnSightings[$eventId] = false;
                     $isReporter = $this->isReporter($eventId, $user['org_id']);
-                    if (!$isReporter) {
-                        $ownEvent = $eventOwnerOrgIdList[$eventId] == $user['org_id'];;
-                        $eventsWithOwnSightings[$eventId] = $ownEvent;
-                    } else {
+                    if ($isReporter) {
                         $eventsWithOwnSightings[$eventId] = true;
+                    } else {
+                        $ownEvent = $eventOwnerOrgIdList[$eventId] == $user['org_id'];
+                        $eventsWithOwnSightings[$eventId] = $ownEvent;
                     }
                 }
                 if (!$eventsWithOwnSightings[$eventId]) {
