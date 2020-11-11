@@ -48,10 +48,11 @@
                     }
                     $params['class'] = $class;
                 } else {
-                    $params['class'] = '';
+                    if (!empty($fieldData['type']) && $fieldData['type'] != 'checkbox') {
+                        $params['class'] = 'span6';
+                    }
                 }
-                $params['class'] .= ' span6';
-                foreach ($simpleFieldWhitelist as $f) {
+                foreach ($simpleFieldAllowedlist as $f) {
                     if (!empty($fieldData[$f])) {
                         $params[$f] = $fieldData[$f];
                     }
