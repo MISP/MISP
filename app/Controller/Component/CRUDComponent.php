@@ -35,11 +35,20 @@ class CRUDComponent extends Component
             $query['conditions']['AND'][] = $options['conditions'];
         }
         if ($this->Controller->IndexFilter->isRest()) {
+            if (!empty($this->Controller->paginate['fields'])) {
+                $query['fields'] = $this->Controller->paginate['fields'];
+            }
             $data = $this->Controller->{$this->Controller->defaultModel}->find('all', $query);
+            if (isset($options['afterFind'])) {
+                $data = $options['afterFind']($data);
+            }
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
         } else {
             $this->Controller->paginate = $query;
             $data = $this->Controller->paginate();
+            if (isset($options['afterFind'])) {
+                $data = $options['afterFind']($data);
+            }
             $this->Controller->set('data', $data);
         }
     }
@@ -195,7 +204,12 @@ class CRUDComponent extends Component
             throw new NotFoundException(__('Invalid %s.', $modelname));
         }
         if ($this->Controller->request->is('post') || $this->Controller->request->is('delete')) {
-            if ($this->Controller->{$modelName}->delete($id)) {
+            if (!empty($params['modelFunction'])) {
+                $result = $this->Controller->$modelName->{$params['modelFunction']}($id);
+            } else {
+                $result = $this->Controller->{$modelName}->delete($id);
+            }
+            if ($result) {
                 $message = __('%s deleted.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $data = $this->Controller->{$modelName}->find('first', [
