@@ -87,6 +87,7 @@ class UsersController extends AppController
             return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         } else {
             $this->set('user', $user);
+            $this->set('admin_view', false);
         }
     }
 
@@ -616,6 +617,8 @@ class UsersController extends AppController
             $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
             $this->set('id', $id);
             $this->set('user2', $user2);
+            $this->set('admin_view', true);
+            $this->render('view');
         }
     }
 

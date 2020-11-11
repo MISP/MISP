@@ -42,16 +42,17 @@ class AuthKeysController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
-        $this->set('metaGroup', 'admin');
+        $this->set('metaGroup', $this->_isAdmin ? 'admin' : 'globalActions');
         $this->set('metaAction', 'authkeys_index');
     }
 
     public function delete($id)
     {
+        $params = [];
         if (!$isAdmin()) {
             $params['conditions'] = ['user_id' => $this->Auth->user('id')];
         }
-        $this->CRUD->delete($id);
+        $this->CRUD->delete($id, $params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
