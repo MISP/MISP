@@ -11,7 +11,7 @@
     <div class="modal-footer">
         <?= $this->Form->postLink(
             'Delete',
-            ['action' => 'delete', $id],
+            $this->request->here(),
             ['class' => 'btn btn-primary button-execute']
             )
         ?>
