@@ -638,8 +638,6 @@ class DecayingModelController extends AppController
             );
             $attributes = $this->paginate($this->User->Event->Attribute);
 
-            // attach sightings and massage tags
-            $sightingsData = array();
             if (!empty($options['overrideLimit'])) {
                 $overrideLimit = true;
             } else {
@@ -658,10 +656,6 @@ class DecayingModelController extends AppController
                         unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
                     }
                 }
-                $sightingsData = array_merge(
-                    $sightingsData,
-                    $this->Sighting->attachToEvent($attribute, $this->Auth->user(), $attributes[$k]['Attribute']['id'], $extraConditions = false)
-                );
                 if (!empty($params['includeEventTags'])) {
                     $tagConditions = array('EventTag.event_id' => $attribute['Event']['id']);
                     if (empty($params['includeAllTags'])) {
@@ -694,8 +688,7 @@ class DecayingModelController extends AppController
                     }
                 }
             }
-            $sightingsData = $this->User->Event->getSightingData(array('Sighting' => $sightingsData));
-            $this->set('sightingsData', $sightingsData);
+            $this->set('sightingsData', $this->Sighting->attributesStatistics($attributes, $this->Auth->user()));
             $this->set('attributes', $attributes);
             $this->set('attrDescriptions', $this->User->Event->Attribute->fieldDescriptions);
             $this->set('typeDefinitions', $this->User->Event->Attribute->typeDefinitions);

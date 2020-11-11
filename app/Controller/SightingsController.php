@@ -321,65 +321,21 @@ class SightingsController extends AppController
         $this->loadModel('Event');
         $id = $this->Sighting->explodeIdList($id);
         if ($context === 'attribute') {
-            $attribute_id = $id;
-            $object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
-            if (empty($object)) {
+            $objects = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
+            if (empty($objects)) {
                 throw new MethodNotAllowedException('Invalid object.');
             }
-            $eventIds = array();
-            foreach ($object as $v) {
-                $eventIds[] = $v['Attribute']['event_id'];
-            }
-            $events = $this->Event->fetchSimpleEvents($this->Auth->user(), ['conditions' => ['id' => $eventIds]]);
-        } else {
-            $attribute_id = false;
+            $statistics = $this->Sighting->attributesStatistics($objects, $this->Auth->user(), true);
+        } elseif ($context === 'event') {
             // let's set the context to event here, since we reuse the variable later on for some additional lookups.
             // Passing $context = 'org' could have interesting results otherwise...
             $events = $this->Event->fetchSimpleEvents($this->Auth->user(), ['conditions' => ['id' => $id]]);
+            $statistics = $this->Sighting->eventsStatistic($events, $this->Auth->user(), true);
+        } else {
+            throw new MethodNotAllowedException('Invalid context');
         }
-        if (empty($events)) {
-            throw new MethodNotAllowedException('Invalid object.');
-        }
-        $raw = array();
-        foreach ($events as $event) {
-            $raw = array_merge($raw, $this->Sighting->attachToEvent($event, $this->Auth->user(), $attribute_id));
-        }
-        $results = array();
-        foreach ($raw as $sighting) {
-            $results[$sighting['type']][date('Ymd', $sighting['date_sighting'])][] = $sighting;
-        }
-        unset($raw);
-        $dataPoints = array();
-        $startDate = date('Ymd');
-        $range = date('Ymd', $this->Sighting->getMaximumRange());
-        foreach ($results as $type => $data) {
-            foreach ($data as $date => $sighting) {
-                if ($date < $startDate) {
-                    if ($date >= $range) {
-                        $startDate = $date;
-                    }
-                }
-                $temp = array();
-                foreach ($sighting as $sightingInstance) {
-                    if (!isset($sightingInstance['Organisation']['name'])) {
-                        $org = 'Anonymised';
-                    } else {
-                        $org = $sightingInstance['Organisation']['name'];
-                    }
-                    $temp[$org] = isset($temp[$org]) ? $temp[$org] + 1 : 1;
-                }
-                $dataPoints[$date][$type] = array('count' => count($sighting), 'details' => $temp);
-            }
-        }
-        $startDate = date('Ymd', strtotime("-3 days", strtotime($startDate)));
-        $tsv = 'date\tSighting\tFalse-positive\n';
-        for ($i = $startDate; $i < date('Ymd') + 1; $i++) {
-            if (checkdate(substr($i, 4, 2), substr($i, 6, 2), substr($i, 0, 4))) {
-                $tsv .= $i . '\t' . (isset($dataPoints[$i][0]['count']) ? $dataPoints[$i][0]['count'] : 0) . '\t' . (isset($dataPoints[$i][1]['count']) ? $dataPoints[$i][1]['count'] : 0) . '\n';
-            }
-        }
-        $this->set('tsv', $tsv);
-        $this->set('results', $results);
+
+        $this->set('csv', $statistics['csv']['all']);
         $this->layout = 'ajax';
         $this->render('ajax/view_sightings');
     }
