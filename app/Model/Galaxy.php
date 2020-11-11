@@ -697,32 +697,37 @@ class Galaxy extends AppModel
      * @param  array $clusters
      * @return array the converted clusters into the misp-galaxy format
      * 
-     * Omitted keys in root JSON key as useless:
-     *  - authors (since all clusters have their own)
-     *  - category (not used)
+     * Special cases:
+     *  - authors: (since all clusters have their own, takes all of them)
+     *  - version: Takes the higher version number of all clusters
+     *  - uuid: Is actually the collection_uuid. Takes the last one
+     *  - source (since all clusters have their own, takes the last one)
+     *  - category (not saved in MISP nor used)
      *  - description (not used as the description in the galaxy.json is used instead)
-     *  - source (since all clusters have their own)
-     *  - uuid (root level uuid key seems to be the collection_uuid in each clusters)
-     *  - version (root level version is not in sync with galaxy version)
-     * 
-     * Should the values be sorted?
      */
     public function convertToMISPGalaxyFormat($galaxy, $clusters)
     {
         $converted = [];
-        // $converted['category'] = $galaxy['Galaxy'];
-        // $converted['description'] = $galaxy['Galaxy'];
-        // $converted['source'] = $galaxy['Galaxy'][''];
-        // $converted['uuid'] = $galaxy['Galaxy'][''];
-        // $converted['version'] = $galaxy['Galaxy'][''];
         $converted['name'] = $galaxy['Galaxy']['name'];
         $converted['type'] = $galaxy['Galaxy']['type'];
+        $converted['authors'] = [];
+        $converted['version'] = 0;
         $values = [];
-        $fieldsToSave = ['description', 'uuid', 'value'];
+        $fieldsToSave = ['description', 'uuid', 'value', 'extends_uuid', 'extends_version'];
         foreach ($clusters as $i => $cluster) {
             foreach ($fieldsToSave as $field) {
                 $values[$i][$field] = $cluster['GalaxyCluster'][$field];
             }
+            $converted['uuid'] = $cluster['GalaxyCluster']['collection_uuid'];
+            $converted['source'] = $cluster['GalaxyCluster']['source'];
+            if (!empty($cluster['GalaxyCluster']['authors'])) {
+                foreach ($cluster['GalaxyCluster']['authors'] as $author) {
+                    if (!is_null($author) && $author != 'null') {
+                        $converted['authors'][$author] = $author;
+                    }
+                }
+            }
+            $converted['version'] = $converted['version'] > $cluster['GalaxyCluster']['version'];
             foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) {
                 if (isset($values[$i]['meta'][$element['key']])) {
                     if (is_array($values[$i]['meta'][$element['key']])) {
@@ -746,6 +751,7 @@ class Galaxy extends AppModel
                 }
             }
         }
+        $converted['authors'] = array_values($converted['authors']);
         $converted['values'] = $values;
         return $converted;
     }

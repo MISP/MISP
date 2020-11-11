@@ -35,7 +35,7 @@ echo $this->element('genericElements/Form/genericForm', array(
                 ),
                 'default' => 'misp',
             ),
-            '<br />',
+            sprintf('<div id="misp-format-notice" class="alert hidden"><strong>%s</strong> %s</div>',__('Warning!'), __('The exported JSON will not contain the `category` key. Also, other keys such as `authors` and `version` may need to be adjusted manually.')),
             array(
                 'field' => 'download',
                 'type' => 'radio',
@@ -51,3 +51,14 @@ echo $this->element('genericElements/Form/genericForm', array(
 ));
 
 echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'export'));
+?>
+
+<script>
+$('#GalaxyFormatMispGalaxy').parent().find('input[type="radio"]').change(function() {
+    if(this.checked && this.id == 'GalaxyFormatMispGalaxy') {
+        $('#misp-format-notice').show()
+    } else {
+        $('#misp-format-notice').hide()
+    }
+})
+</script>
