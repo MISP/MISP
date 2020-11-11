@@ -11,12 +11,13 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'dropdown'
             ],
             [
-                'field' => 'comment'
+                'field' => 'comment',
+                'class' => 'span6'
             ],
             [
                 'field' => 'expiration',
                 'label' => 'Expiration',
-                'class' => 'datepicker',
+                'class' => 'datepicker span6',
                 'placeholder' => "YYYY-MM-DD",
                 'type' => 'text'
             ]
