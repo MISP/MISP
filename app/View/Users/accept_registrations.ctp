@@ -85,7 +85,6 @@
         )
     ));
 ?>
-</div>
 <script type="text/javascript">
     var role_perms = <?= json_encode($role_perms) ?>;
     function checkPermConditions() {
