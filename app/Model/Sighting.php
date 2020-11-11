@@ -671,86 +671,102 @@ class Sighting extends AppModel
         return $sightingsRearranged;
     }
 
-    public function listSightings($user, $id, $context, $org_id = false, $sightings_type = false, $order_desc = true)
+    /**
+     * @param array $user
+     * @param $ids
+     * @param string $context
+     * @param int|false $orgId
+     * @param int|false $sightingsType
+     * @param bool $orderDesc
+     * @return array|int|null
+     * @throws Exception
+     */
+    public function listSightings(array $user, $ids, $context, $orgId = false, $sightingsType = false, $orderDesc = true)
     {
         $this->Event = ClassRegistry::init('Event');
-        $id = is_array($id) ? $id : $this->explodeIdList($id);
+        $ids = is_array($ids) ? $ids : $this->explodeIdList($ids);
+
+        $objectIds = [];
+        $eventOwnerOrgIdList = [];
         if ($context === 'attribute') {
-            $object = $this->Event->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
-        } else {
+            $objects = $this->Event->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $ids, 'Attribute.deleted' => 0), 'flatten' => 1));
+            foreach ($objects as $object) {
+                $objectIds[] = $object['Attribute']['id'];
+                $eventOwnerOrgIdList[$object['Event']['id']] = $object['Event']['orgc_id'];
+            }
+        } elseif ($context === 'event') {
             // let's set the context to event here, since we reuse the variable later on for some additional lookups.
             // Passing $context = 'org' could have interesting results otherwise...
-            $context = 'event';
-            $object = $this->Event->fetchEvent($user, $options = array('eventid' => $id, 'metadata' => true));
+            $objects = $this->Event->fetchEvent($user, ['eventid' => $ids, 'metadata' => true]);
+            foreach ($objects as $object) {
+                $objectIds[] = $object['Event']['id'];
+                $eventOwnerOrgIdList[$object['Event']['id']] = $object['Event']['orgc_id'];
+            }
+        } else {
+            throw new InvalidArgumentException("Invalid context '$context'.");
         }
-        if (empty($object)) {
+        unset($objects);
+        if (empty($objectIds)) {
             throw new MethodNotAllowedException('Invalid object.');
         }
         $conditions = array(
-            'Sighting.' . $context . '_id' => $id
+            'Sighting.' . $context . '_id' => $objectIds
         );
-        if ($org_id) {
-            $conditions[] = array('Sighting.org_id' => $org_id);
+        if ($orgId) {
+            $conditions[] = array('Sighting.org_id' => $orgId);
         }
-        if ($sightings_type !== false) {
-            $conditions[] = array('Sighting.type' => $sightings_type);
+        if ($sightingsType !== false) {
+            $conditions[] = array('Sighting.type' => $sightingsType);
         }
         $sightings = $this->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1,
             'contain' => array('Organisation.name'),
-            'order' => array(sprintf('Sighting.date_sighting %s', $order_desc ? 'DESC' : ''))
+            'order' => array(sprintf('Sighting.date_sighting %s', $orderDesc ? 'DESC' : ''))
         ));
-        if (!empty($sightings) && empty(Configure::read('Plugin.Sightings_policy')) && !$user['Role']['perm_site_admin']) {
-            $eventOwnerOrgIdList = array();
+        if (empty($sightings)) {
+            return [];
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return $sightings; // site admin can see all sightings, do not limit him
+        }
+        $sightingsPolicy = $this->sightingsPolicy();
+        if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+            $userOrgId = $user['org_id'];
             foreach ($sightings as $k => $sighting) {
-                if (empty($eventOwnerOrgIdList[$sighting['Sighting']['event_id']])) {
-                    $temp_event = $this->Event->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('Event.id' => $sighting['Sighting']['event_id']),
-                        'fields' => array('Event.id', 'Event.orgc_id')
-                    ));
-                    $eventOwnerOrgIdList[$temp_event['Event']['id']] = $temp_event['Event']['orgc_id'];
-                }
-                if (
-                    empty($eventOwnerOrgIdList[$sighting['Sighting']['event_id']]) ||
-                    ($eventOwnerOrgIdList[$sighting['Sighting']['event_id']] !== $user['org_id'] && $sighting['Sighting']['org_id'] !== $user['org_id'])
-                ) {
+                if ($eventOwnerOrgIdList[$sighting['Sighting']['event_id']] !== $userOrgId && $sighting['Sighting']['org_id'] !== $userOrgId) {
                     unset($sightings[$k]);
                 }
             }
             $sightings = array_values($sightings);
-        } else if (!empty($sightings) && Configure::read('Plugin.Sightings_policy') == 1 && !$user['Role']['perm_site_admin']) {
+
+        } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
             $eventsWithOwnSightings = array();
             foreach ($sightings as $k => $sighting) {
-                if (empty($eventsWithOwnSightings[$sighting['Sighting']['event_id']])) {
-                    $eventsWithOwnSightings[$sighting['Sighting']['event_id']] = false;
-                    $sighting_temp = $this->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array(
-                            'Sighting.event_id' => $sighting['Sighting']['event_id'],
-                            'Sighting.org_id' => $user['org_id']
-                        )
-                    ));
-                    if (empty($sighting_temp)) {
-                        $temp_event = $this->Event->find('first', array(
-                            'recursive' => -1,
-                            'conditions' => array(
-                                'Event.id' => $sighting['Sighting']['event_id'],
-                                'Event.orgc_id' => $user['org_id']
-                            ),
-                            'fields' => array('Event.id', 'Event.orgc_id')
-                        ));
-                        $eventsWithOwnSightings[$sighting['Sighting']['event_id']] = !empty($temp_event);
+                $eventId = $sighting['Sighting']['event_id'];
+                if (!isset($eventsWithOwnSightings[$eventId])) {
+                    $eventsWithOwnSightings[$eventId] = false;
+                    $isReporter = $this->isReporter($eventId, $user['org_id']);
+                    if (!$isReporter) {
+                        $ownEvent = $eventOwnerOrgIdList[$eventId] == $user['org_id'];;
+                        $eventsWithOwnSightings[$eventId] = $ownEvent;
                     } else {
-                        $eventsWithOwnSightings[$sighting['Sighting']['event_id']] = true;
+                        $eventsWithOwnSightings[$eventId] = true;
                     }
                 }
-                if (!$eventsWithOwnSightings[$sighting['Sighting']['event_id']]) {
+                if (!$eventsWithOwnSightings[$eventId]) {
                     unset($sightings[$k]);
                 }
             }
             $sightings = array_values($sightings);
+        }
+        if (Configure::read('Plugin.Sightings_anonymise')) {
+            foreach ($sightings as $k => $v) {
+                if ($v['Sighting']['org_id'] != $user['org_id']) {
+                    $sightings[$k]['Organisation']['name'] = '';
+                    $sightings[$k]['Sighting']['org_id'] = 0;
+                }
+            }
         }
         return $sightings;
     }

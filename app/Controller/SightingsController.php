@@ -294,24 +294,15 @@ class SightingsController extends AppController
             $org_id = $this->Toolbox->findIdByUuid($this->Organisation, $org_id);
         }
         $sightings = $this->Sighting->listSightings($this->Auth->user(), $id, $context, $org_id);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($sightings, $this->response->type());
+        }
+
         $this->set('org_id', $org_id);
         $this->set('rawId', $rawId);
         $this->set('context', $context);
         $this->set('types', array('Sighting', 'False-positive', 'Expiration'));
-        if (Configure::read('Plugin.Sightings_anonymise') && !$this->_isSiteAdmin()) {
-            if (!empty($sightings)) {
-                foreach ($sightings as $k => $v) {
-                    if ($v['Sighting']['org_id'] != $this->Auth->user('org_id')) {
-                        $sightings[$k]['Organisation']['name'] = '';
-                        $sightings[$k]['Sighting']['org_id'] = 0;
-                    }
-                }
-            }
-        }
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($sightings, $this->response->type());
-        }
-        $this->set('sightings', empty($sightings) ? array() : $sightings);
+        $this->set('sightings', $sightings);
         $this->layout = false;
         $this->render('ajax/list_sightings');
     }
