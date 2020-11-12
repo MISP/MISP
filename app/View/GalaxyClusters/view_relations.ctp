@@ -172,7 +172,8 @@ function pickerTarget() {
     $(this).data('popover-callback-function', setTargetUUIDAfterSelect);
     var target_id = 0;
     var target_type = 'galaxyClusterRelation';
-    popoverPopup(this, target_id + '/' + target_type, 'galaxies', 'selectGalaxyNamespace');
+    var noGalaxyMatrix = 1;
+    popoverPopup(this, target_id + '/' + target_type + '/' + noGalaxyMatrix, 'galaxies', 'selectGalaxyNamespace');
 }
 function setTargetUUIDAfterSelect(selected, additionalData){
     selectedUUID = additionalData.itemOptions[selected].uuid;
