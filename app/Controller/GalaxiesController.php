@@ -401,7 +401,7 @@ class GalaxiesController extends AppController
             }
             $cluster['GalaxyCluster']['synonyms_string'] = implode(', ', $cluster['GalaxyCluster']['synonyms_string']);
             unset($cluster['GalaxyElement']);
-            $clusters[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['value']] = $cluster['GalaxyCluster'];
+            $clusters[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['uuid']] = $cluster['GalaxyCluster'];
         }
         ksort($clusters);
         $this->set('target_id', $target_id);
