@@ -1964,13 +1964,17 @@ class ServersController extends AppController
             }
             $curl = '';
             $python = '';
-            $result = $this->__doRestQuery($request, $curl, $python);
-            $this->set('curl', $curl);
-            $this->set('python', $python);
-            if (!$result) {
-                $this->Flash->error('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.');
-            } else {
-                $this->set('data', $result);
+            try {
+                $result = $this->__doRestQuery($request, $curl, $python);
+                $this->set('curl', $curl);
+                $this->set('python', $python);
+                if (!$result) {
+                    $this->Flash->error('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.');
+                } else {
+                    $this->set('data', $result);
+                }
+            } catch (Exception $e) {
+                $this->Flash->error(__('Something went wrong. %s', $e->getMessage()));
             }
         }
         $header =
@@ -1988,7 +1992,13 @@ class ServersController extends AppController
         $this->set('allValidApisFieldsContraint', $allValidApisFieldsContraint);
     }
 
-    private function __doRestQuery($request, &$curl = false, &$python = false)
+    /**
+     * @param array $request
+     * @param string $curl
+     * @param string $python
+     * @return array|false
+     */
+    private function __doRestQuery(array $request, &$curl = false, &$python = false)
     {
         App::uses('SyncTool', 'Tools');
         $params = array();
@@ -2018,7 +2028,7 @@ class ServersController extends AppController
                 $url = $request['url'];
             }
         } else {
-            throw new InvalidArgumentException('Url not set.');
+            throw new InvalidArgumentException('URL not set.');
         }
         if (!empty($request['skip_ssl_validation'])) {
             $params['ssl_verify_peer'] = false;
@@ -2081,7 +2091,7 @@ class ServersController extends AppController
             return false;
         }
         $view_data['duration'] = microtime(true) - $start;
-        $view_data['duration'] = round($view_data['duration'] * 1000, 2) . 'ms';
+        $view_data['duration'] = round($view_data['duration'] * 1000, 2) . ' ms';
         $view_data['url'] = $url;
         $view_data['code'] =  $response->code;
         $view_data['headers'] = $response->headers;
@@ -2160,7 +2170,7 @@ misp.direct_call(relative_path, body)
             $curl = sprintf(
                 'curl \%s -d \'%s\' \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s -X POST %s',
                 PHP_EOL,
-                json_encode(json_decode($request['body']), true),
+                json_encode(json_decode($request['body'])),
                 PHP_EOL,
                 $request['header']['Authorization'],
                 PHP_EOL,
@@ -2179,9 +2189,11 @@ misp.direct_call(relative_path, body)
         $relative_path = $this->request->data['url'];
         $result = $this->RestResponse->getApiInfo($relative_path);
         if ($this->_isRest()) {
-            return $this->RestResponse->viewData($result, $this->response->type(), false, true);
+            if (!empty($result)) {
+                $result['api_info'] = $result;
+            }
+            return $this->RestResponse->viewData($result, $this->response->type());
         } else {
-            $result = json_decode($result, true);
             if (empty($result)) {
                 return $this->RestResponse->viewData('&nbsp;', $this->response->type());
             }
