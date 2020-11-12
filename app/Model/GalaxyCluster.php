@@ -381,7 +381,7 @@ class GalaxyCluster extends AppModel
                 if (!isset($cluster['GalaxyCluster']['published'])) {
                     $cluster['GalaxyCluster']['published'] = false;
                 }
-                if ($cluster['GalaxyCluster']['distribution'] != 4) {
+                if (isset($cluster['GalaxyCluster']['distribution']) && $cluster['GalaxyCluster']['distribution'] != 4) {
                     $cluster['GalaxyCluster']['sharing_group_id'] = null;
                 }
                 if (empty($fieldList)) {
