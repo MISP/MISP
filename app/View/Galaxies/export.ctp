@@ -7,7 +7,7 @@ echo $this->element('genericElements/Form/genericForm', array(
         'fields' => array(
             array(
                 'field' => 'distribution',
-                'label' => '<strong>' . __("Cluster's distribution:") . '</strong>',
+                'label' => '<strong>' . __("Clusters' distribution:") . '</strong>',
                 'options' => $distributionLevels,
                 'selected' => array(1, 2, 3),
                 'multiple' => 'checkbox', 
