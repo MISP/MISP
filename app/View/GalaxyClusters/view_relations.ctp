@@ -38,7 +38,8 @@
                     'element' => 'tags',
                     'elementParams' => array(
                         'searchScope' => 'taxonomy'
-                    )
+                    ),
+                    'scope' => 'taxonomy'
                 ),
                 array(
                     'name' => __('Distribution'),
@@ -83,9 +84,6 @@
 
 <form class="form-inline">
     <button type="button" class="btn btn-inverse" onclick="toggleClusterRelations()"><span class="fa fa-eye-slash"> <?php echo __('Toggle Cluster relationships'); ?></span></button>
-    <label class="checkbox">
-        <input type="checkbox" onclick="toggleRelationTable()"> <?= __('Show relation table') ?>
-    </label>
 </form>
 
 </div>
@@ -133,26 +131,38 @@
             </form>
         </div>
     </div>
-    <div style="min-height: 600px; position: relative;">
-        <?php echo $this->element('GalaxyClusters/view_relation_tree'); ?>
+
+
+    <ul class="nav nav-tabs" id="clusterTabs">
+        <li class="active"><a href="#treeView">Tree view</a></li>
+        <li><a href="#tabularView">Tabular view</a></li>
+    </ul>
+    
+    <div class="tab-content">
+        <div class="tab-pane active" id="treeView">
+            <div style="min-height: 600px; position: relative;">
+                <?php echo $this->element('GalaxyClusters/view_relation_tree'); ?>
+            </div>
+        </div>
+        <div class="tab-pane" id="tabularView">
+            <div id="referencesTable_div" style="position: relative; padding: 5px;" class="statistics_attack_matrix">
+                <?= $relationTable ?>
+            </div>
+        </div>
     </div>
 </div>
-<div id="referencesTable_div" style="position: relative;" class="statistics_attack_matrix hidden">
-    <?= $relationTable ?>
-</div>
+
 <script>
+$('#clusterTabs a').click(function (e) {
+    e.preventDefault();
+    $(this).tab('show');
+})
+
 function toggleClusterRelations() {
     $('#references_div').toggle({
         effect: 'blind',
         duration: 300,
         complete: buildTree
-    });
-}
-
-function toggleRelationTable() {
-    $('#referencesTable_div').toggle({
-        effect: 'blind',
-        duration: 300,
     });
 }
 
