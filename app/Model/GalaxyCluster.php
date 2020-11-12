@@ -475,9 +475,9 @@ class GalaxyCluster extends AppModel
         }
         $this->id = $clusterId;
         $saved = $this->saveField('published', True);
-        if ($saved) {
-            $uploaded = $this->uploadClusterToServersRouter($clusterId);
-            return $uploaded;
+        if ($saved['GalaxyCluster']['published']) {
+            $this->uploadClusterToServersRouter($clusterId);
+            return true;
         }
         return false;
     }
