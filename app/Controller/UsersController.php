@@ -182,7 +182,7 @@ class UsersController extends AppController
             }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
-                $fieldList = array('autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
+                $fieldList = array('autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled', 'date_modified');
                 if ($this->__canChangeLogin()) {
                     $fieldList[] = 'email';
                 }
@@ -217,7 +217,6 @@ class UsersController extends AppController
                         return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
                     } else {
                         $this->Flash->success(__('The profile has been updated'));
-                        $this->_refreshAuth();
                         $this->redirect(array('action' => 'view', $id));
                     }
                 } else {
@@ -305,7 +304,6 @@ class UsersController extends AppController
                         return $this->RestResponse->saveSuccessResponse('User', 'change_pw', false, $this->response->type(), $message);
                     }
                     $this->Flash->success($message);
-                    $this->_refreshAuth();
                     $this->redirect(array('action' => 'view', $id));
                 } else {
                     $message = __('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.');
@@ -915,8 +913,8 @@ class UsersController extends AppController
                 if (isset($this->request->data['User']['role_id']) && !array_key_exists($this->request->data['User']['role_id'], $syncRoles)) {
                     $this->request->data['User']['server_id'] = 0;
                 }
-                $fields = array();
-                $blockedFields = array('id', 'invited_by');
+                $fields = [];
+                $blockedFields = array('id', 'invited_by', 'date_modified');
                 if (!$this->_isSiteAdmin()) {
                     $blockedFields[] = 'org_id';
                 }
@@ -967,11 +965,15 @@ class UsersController extends AppController
                         throw new Exception('You are not authorised to assign that role to a user.');
                     }
                 }
-                if (!empty($fields) && $this->User->save($this->request->data, true, $fields)) {
+                $fields[] = 'date_modified'; // time will be inserted in `beforeSave` action
+                if ($this->User->save($this->request->data, true, $fields)) {
                     // newValues to array
                     $fieldsNewValues = array();
                     foreach ($fields as $field) {
-                        if ($field != 'confirm_password') {
+                        if ($field === 'date_modified') {
+                            continue;
+                        }
+                        if ($field !== 'confirm_password') {
                             $newValue = $this->data['User'][$field];
                             if (gettype($newValue) == 'array') {
                                 $newValueStr = '';
@@ -1014,7 +1016,6 @@ class UsersController extends AppController
                         return $this->RestResponse->viewData($user, $this->response->type());
                     } else {
                         $this->Flash->success(__('The user has been saved'));
-                        $this->_refreshAuth(); // in case we modify ourselves
                         $this->redirect(array('action' => 'index'));
                     }
                 } else {
@@ -1309,7 +1310,6 @@ class UsersController extends AppController
         }
         if (!$this->_isRest()) {
             $this->Flash->success(__('New authkey generated.', true));
-            $this->_refreshAuth();
             $this->redirect($this->referer());
         } else {
             return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'Authkey updated: ' . $newkey);
@@ -1436,9 +1436,7 @@ class UsersController extends AppController
     public function terms()
     {
         if ($this->request->is('post') || $this->request->is('put')) {
-            $this->User->id = $this->Auth->user('id');
-            $this->User->saveField('termsaccepted', true);
-            $this->_refreshAuth(); // refresh auth info
+            $this->User->updateField($this->Auth->user(), 'termsaccepted', true);
             $this->Flash->success(__('You accepted the Terms and Conditions.'));
             $this->redirect(array('action' => 'routeafterlogin'));
         }
@@ -2276,18 +2274,6 @@ class UsersController extends AppController
     {
         $user_results = $this->User->verifyCertificate();
         $this->set('users', $user_results);
-    }
-
-    // Refreshes the Auth session with new/updated data
-    protected function _refreshAuth()
-    {
-        $oldUser = $this->Auth->user();
-        $newUser = $this->User->find('first', array('conditions' => array('User.id' => $oldUser['id']), 'recursive' => -1,'contain' => array('Organisation', 'Role')));
-        // Rearrange it a bit to match the Auth object created during the login
-        $newUser['User']['Role'] = $newUser['Role'];
-        $newUser['User']['Organisation'] = $newUser['Organisation'];
-        unset($newUser['Organisation'], $newUser['Role']);
-        $this->Auth->login($newUser['User']);
     }
 
     public function searchGpgKey($email = false)

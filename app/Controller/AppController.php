@@ -333,33 +333,11 @@ class AppController extends Controller
             if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->{$this->modelClass}->runUpdates();
             }
-            $user = $this->Auth->user();
-            if (!isset($user['force_logout']) || $user['force_logout']) {
-                $this->loadModel('User');
-                $this->User->id = $this->Auth->user('id');
-                $this->User->saveField('force_logout', false);
+
+            if (!$this->__verifyUser($this->User, $this->Auth->user()))  {
+                $this->_stop(); // just for sure
             }
-            if ($this->Auth->user('disabled')) {
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $log = array(
-                        'org' => $this->Auth->user('Organisation')['name'],
-                        'model' => 'User',
-                        'model_id' => $this->Auth->user('id'),
-                        'email' => $this->Auth->user('email'),
-                        'action' => 'auth_fail',
-                        'title' => 'Login attempt by disabled user.',
-                        'change' => null,
-                );
-                $this->Log->save($log);
-                $this->Auth->logout();
-                if ($this->_isRest()) {
-                    throw new ForbiddenException('Authentication failed. Your user account has been disabled.');
-                } else {
-                    $this->Flash->error('Your user account has been disabled.', array('key' => 'error'));
-                    $this->_redirectToLogin();
-                }
-            }
+
             $this->set('default_memory_limit', ini_get('memory_limit'));
             if (isset($this->Auth->user('Role')['memory_limit'])) {
                 if ($this->Auth->user('Role')['memory_limit'] !== '') {
@@ -385,62 +363,6 @@ class AppController extends Controller
             }
         }
 
-        // check if MISP is live
-        if ($this->Auth->user() && !Configure::read('MISP.live')) {
-            $role = $this->getActions();
-            if (!$role['perm_site_admin']) {
-                $message = Configure::read('MISP.maintenance_message');
-                if (empty($message)) {
-                    $this->loadModel('Server');
-                    $message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];
-                }
-                if (strpos($message, '$email') && Configure::read('MISP.email')) {
-                    $email = Configure::read('MISP.email');
-                    $message = str_replace('$email', $email, $message);
-                }
-                $this->Flash->info($message);
-                $this->Auth->logout();
-                throw new MethodNotAllowedException($message);//todo this should pb be removed?
-            } else {
-                $this->Flash->error(__('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ') , array('params' => array('url' => $this->baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
-            }
-        }
-        if ($this->Session->check(AuthComponent::$sessionKey)) {
-            if ($this->action !== 'checkIfLoggedIn' || $this->request->params['controller'] !== 'users') {
-                $this->User->id = $this->Auth->user('id');
-                if (!$this->User->exists()) {
-                    $message = __('Something went wrong. Your user account that you are authenticated with doesn\'t exist anymore.');
-                    if ($this->_isRest) {
-                        echo $this->RestResponse->throwException(
-                            401,
-                            $message
-                        );
-                    } else {
-                        $this->Flash->info($message);
-                    }
-                    $this->Auth->logout();
-                    $this->_redirectToLogin();
-                }
-                if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login', $base_dir.'/users/downloadTerms')))) {
-                    //if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
-                    if (!$this->_isRest()) {
-                        $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
-                    }
-                } elseif ($this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
-                    //if ($this->_isRest()) throw new MethodNotAllowedException('Your user account is expecting a password change, please log in via the web interface and change it before proceeding.');
-                    if (!$this->_isRest()) {
-                        $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
-                    }
-                } elseif (!$this->_isRest() && !($this->params['controller'] == 'news' && $this->params['action'] == 'index') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
-                    $newsread = $this->User->field('newsread', array('User.id' => $this->Auth->user('id')));
-                    $this->loadModel('News');
-                    $latest_news = $this->News->field('date_created', array(), 'date_created DESC');
-                    if ($latest_news && $newsread < $latest_news) {
-                        $this->redirect(array('controller' => 'news', 'action' => 'index', 'admin' => false));
-                    }
-                }
-            }
-        }
         unset($base_dir);
         // We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
         // instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
@@ -569,6 +491,143 @@ class AppController extends Controller
                 $this->set('homepage', $homepage['UserSetting']['value']);
             }
         }
+    }
+
+    /**
+     * Check if:
+     *  - user exists in database
+     *  - is not disabled
+     *  - need to force logout
+     *  - accepted terms and conditions
+     *  - must change password
+     *  - reads latest news
+     *
+     * @param User $userModel
+     * @param array $user
+     * @return bool
+     */
+    private function __verifyUser(User $userModel, array $user)
+    {
+        // Skip these checks for 'checkIfLoggedIn' action to make that call fast
+        if ($this->_isControllerAction(['users' => ['checkIfLoggedIn']])) {
+            return true;
+        }
+
+        // Load last user profile modification from database
+        $userFromDb = $userModel->find('first', [
+            'conditions' => ['id' => $user['id']],
+            'recursive' =>  -1,
+            'fields' => ['date_modified'],
+        ]);
+
+        // Check if user with given ID exists
+        if (!$userFromDb) {
+            $message = __('Something went wrong. Your user account that you are authenticated with doesn\'t exist anymore.');
+            if ($this->_isRest()) {
+                // TODO: Why not exception?
+                $response = $this->RestResponse->throwException(401, $message);
+                $response->send();
+                $this->_stop();
+            } else {
+                $this->Flash->info($message);
+                $this->Auth->logout();
+                $this->_redirectToLogin();
+            }
+            return false;
+        }
+
+        // Check if session data contain latest changes from db
+        if ((int)$user['date_modified'] < (int)$userFromDb['User']['date_modified']) {
+            $user = $this->_refreshAuth(); // session data are old, reload from database
+        }
+
+        // Check if MISP access is enabled
+        if (!Configure::read('MISP.live')) {
+            if (!$user['Role']['perm_site_admin']) {
+                $message = Configure::read('MISP.maintenance_message');
+                if (empty($message)) {
+                    $this->loadModel('Server');
+                    $message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];
+                }
+                if (strpos($message, '$email') && Configure::read('MISP.email')) {
+                    $email = Configure::read('MISP.email');
+                    $message = str_replace('$email', $email, $message);
+                }
+                $this->Flash->info($message);
+                $this->Auth->logout();
+                throw new MethodNotAllowedException($message);//todo this should pb be removed?
+            } else {
+                $this->Flash->error(__('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live). An update might also be in progress, you can see the progress in ') , array('params' => array('url' => $this->baseurl . '/servers/updateProgress/', 'urlName' => __('Update Progress')), 'clear' => 1));
+            }
+        }
+
+        // Force logout doesn't make sense for API key authentication
+        if (!$this->isApiAuthed && $user['force_logout']) {
+            $userModel->id = $user['id'];
+            $userModel->saveField('force_logout', false);
+            $this->Auth->logout();
+            $this->_redirectToLogin();
+            return false;
+        }
+
+        if ($user['disabled']) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by disabled user.');
+
+            $this->Auth->logout();
+            if ($this->_isRest()) {
+                throw new ForbiddenException('Authentication failed. Your user account has been disabled.');
+            } else {
+                $this->Flash->error(__('Your user account has been disabled.'));
+                $this->_redirectToLogin();
+            }
+            return false;
+        }
+
+        $isUserRequest = !$this->_isRest() && !$this->request->is('ajax');
+        // Next checks makes sense just for user direct HTTP request, so skip REST and AJAX calls
+        if (!$isUserRequest) {
+            return true;
+        }
+
+        // Check if user accepted terms and conditions
+        if (!$user['termsaccepted'] && !empty(Configure::read('MISP.terms_file')) && !$this->_isControllerAction(['users' => ['terms', 'logout', 'login', 'downloadTerms']])) {
+            //if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
+            $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
+            return false;
+        }
+
+        // Check if user must change password
+        if ($user['change_pw'] && !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login']])) {
+            //if ($this->_isRest()) throw new MethodNotAllowedException('Your user account is expecting a password change, please log in via the web interface and change it before proceeding.');
+            $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+            return false;
+        }
+
+        // Check if user must read news
+        if (!$this->_isControllerAction(['news' => ['index'], 'users' => ['terms', 'change_pw', 'login', 'logout']])) {
+            $this->loadModel('News');
+            $latestNewsCreated = $this->News->field('date_created', array(), 'date_created DESC');
+            if ($latestNewsCreated && $user['newsread'] < $latestNewsCreated) {
+                $this->redirect(array('controller' => 'news', 'action' => 'index', 'admin' => false));
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array $actionsToCheck
+     * @return bool
+     */
+    private function _isControllerAction($actionsToCheck = [])
+    {
+        $controller = Inflector::variable($this->request->params['controller']);
+        if (!isset($actionsToCheck[$controller])) {
+            return false;
+        }
+        return in_array($this->action, $actionsToCheck[$controller]);
     }
 
     private function __rateLimitCheck()
@@ -1330,5 +1389,20 @@ class AppController extends Controller
             return true;
         }
         return false;
+    }
+
+    /**
+     * Refresh user data in session.
+     * @return array User data in auth format
+     */
+    protected function _refreshAuth()
+    {
+        $userId = $this->Auth->user('id');
+        $user = $this->User->getAuthUser($userId);
+        if (!$user){
+            throw new RuntimeException("User with ID $userId not exists.");
+        }
+        $this->Auth->login($user);
+        return $user;
     }
 }

@@ -967,7 +967,7 @@ class User extends AppModel
         if ($result) {
             $this->id = $user['User']['id'];
             $this->saveField('password', $password);
-            $this->saveField('change_pw', '1');
+            $this->updateField($user['User'], 'change_pw', 1);
             if ($simpleReturn) {
                 return true;
             } else {
@@ -1142,7 +1142,7 @@ class User extends AppModel
         if (empty(Configure::read('Security.advanced_authkeys'))) {
             $oldKey = $this->data['User']['authkey'];
             $newkey = $this->generateAuthKey();
-            $this->saveField('authkey', $newkey);
+            $this->updateField($updatedUser['User'], 'authkey', $newkey);
             $this->extralog(
                     $user,
                     'reset_auth_key',
@@ -1403,7 +1403,7 @@ class User extends AppModel
             $name => $value,
         ], true, ['id', $name, 'date_modified']);
         if (!$success) {
-            throw new RuntimeException("Could not save field `$name` with value `$value` for user `{$user['id']}`.");
+            throw new RuntimeException("Could not save setting $name for user {$user['id']}.");
         }
     }
 
