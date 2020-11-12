@@ -77,8 +77,9 @@
                     'data_path' => 'GalaxyClusterRelationTag.{n}.Tag',
                     'element' => 'tags',
                     'elementParams' => array(
-                        'searchScope' => 'taxonomy'
-                    )
+                        'searchScope' => 'taxonomy',
+                    ),
+                    'scope' => 'taxonomy'
                 ),
                 array(
                     'name' => __('Owner Org'),
@@ -114,7 +115,7 @@
             'actions' => array(
                 array(
                     'title' => 'Edit',
-                    'url' => '/galaxy_cluster_relations/edit',
+                    'url' => $baseurl . '/galaxy_cluster_relations/edit',
                     'url_params_data_paths' => array(
                         'GalaxyClusterRelation.id'
                     ),
@@ -134,7 +135,7 @@
                 ),
                 array(
                     'title' => 'Delete',
-                    'url' => '/galaxy_cluster_relations/delete',
+                    'url' => $baseurl . '/galaxy_cluster_relations/delete',
                     'url_params_data_paths' => array(
                         'GalaxyClusterRelation.id'
                     ),
