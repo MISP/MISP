@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property EventReport $EventReport
+ */
 class EventReportsController extends AppController
 {
     public $components = array(
@@ -67,6 +69,7 @@ class EventReportsController extends AppController
         $this->set('ajax', $ajax);
         $this->set('id', $reportId);
         $this->set('report', $report);
+        $this->set('title_for_layout', __('Event report %s', $report['EventReport']['name']));
         $this->__injectDistributionLevelToViewContext();
         $this->__injectPermissionsToViewContext($this->Auth->user(), $report);
     }
@@ -184,6 +187,16 @@ class EventReportsController extends AppController
             $this->set('reports', $reports);
             $this->__injectIndexVariablesToViewContext($filters);
             if (!empty($filters['index_for_event'])) {
+                if (empty($filters['event_id'])) {
+                    throw new MethodNotAllowedException("When requesting index for event, event ID must be provided.");
+                }
+                try {
+                    $this->__canModifyReport($filters['event_id']);
+                    $canModify = true;
+                } catch (Exception $e) {
+                    $canModify = false;
+                }
+                $this->set('canModify', $canModify);
                 $this->set('extendedEvent', !empty($filters['extended_event']));
                 $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
                 $this->set('importModuleEnabled', is_array($fetcherModule));
@@ -447,9 +460,15 @@ class EventReportsController extends AppController
         $this->set('canEdit', $canEdit);
     }
 
+    /**
+     * @param int $eventId
+     * @return array
+     * @throws NotFoundException
+     * @throws ForbiddenException
+     */
     private function __canModifyReport($eventId)
     {
-        $event = $this->EventReport->Event->fetchSimpleEvent($this->Auth->user(), $eventId, array());
+        $event = $this->EventReport->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
         }

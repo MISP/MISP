@@ -229,6 +229,16 @@ function toggleSetting(e, setting, id) {
             dataDiv = '#WarninglistData';
             replacementForm = baseurl + '/warninglists/getToggleField/';
             searchString = 'enabled';
+            var successCallback = function(setting) {
+                var icon = $(e.target).closest('tr').find('[data-path="Warninglist.enabled"] .fa')
+                if (setting) {
+                    icon.removeClass('fa-times').addClass('fa-check')
+                    $(e.target).removeClass('fa-play').addClass('fa-stop')
+                } else {
+                    icon.removeClass('fa-check').addClass('fa-times')
+                    $(e.target).removeClass('fa-stop').addClass('fa-play')
+                }
+            }
             break;
         case 'favourite_tag':
             formID = '#FavouriteTagIndexForm';
@@ -261,7 +271,11 @@ function toggleSetting(e, setting, id) {
             if (result.success) {
                 var setting = false;
                 if (result.success.indexOf(searchString) > -1) setting = true;
-                $('#' + e.target.id).prop('checked', setting);
+                if (typeof successCallback === 'function') {
+                    successCallback(setting)
+                } else {
+                    $('#' + e.target.id).prop('checked', setting);
+                }
             }
             handleGenericAjaxResponse(data);
         },

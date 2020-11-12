@@ -13,7 +13,7 @@
             }
             $onClickParams = implode(',', $onClickParams);
             $onClick = sprintf(
-                'onClick = "%s%s"',
+                'onClick="%s%s"',
                 (empty($data['url'])) ? 'event.preventDefault();' : '',
                 (!empty($data['onClick']) ? sprintf(
                     '%s(%s)',

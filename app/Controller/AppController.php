@@ -48,7 +48,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '116';
+    private $__queryVersion = '118';
     public $pyMispVersion = '2.4.134';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -1101,6 +1101,7 @@ class AppController extends Controller
                 if ($user['User']) {
                     unset($user['User']['gpgkey']);
                     unset($user['User']['certif_public']);
+                    $this->User->updateLoginTimes($user['User']);
                     $this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user['User']);
                     if (Configure::read('MISP.log_auth')) {
@@ -1189,6 +1190,7 @@ class AppController extends Controller
         if ($this->Auth->startup($this)) {
             $user = $this->Auth->user();
             if ($user) {
+                $this->User->updateLoginTimes($user);
                 // User found in the db, add the user info to the session
                 $this->Session->renew();
                 $this->Session->write(AuthComponent::$sessionKey, $user);

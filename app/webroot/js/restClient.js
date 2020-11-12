@@ -145,16 +145,18 @@ function removeRestClientHistoryItem(id) {
             $('#TemplateSelect').val($(this).val()).trigger("chosen:updated").trigger("change");
         });
 
-        $('#TemplateSelect').change(function() {
+        $('#TemplateSelect').change(function(e) {
             var selected_template = $('#TemplateSelect').val();
+            var previously_selected_template = $('#ServerUrl').data('urlWithoutParam')
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
                 $('#template_description').show();
                 $('#ServerMethod').val('POST');
                 var server_url_changed = $('#ServerUrl').val() != allValidApis[selected_template].url;
                 $('#ServerUrl').val(allValidApis[selected_template].url);
                 $('#ServerUrl').data('urlWithoutParam', selected_template);
-                var body_value = $('#ServerBody').val();
-                var refreshBody = (body_value === '' || server_url_changed)
+                var body_value = cm.getValue();
+                var body_changed = allValidApis[previously_selected_template] !== undefined ? allValidApis[previously_selected_template].body != body_value : true;
+                var refreshBody = (body_value === '' || (server_url_changed && !body_changed))
                 if (refreshBody) {
                     $('#ServerBody').val(allValidApis[selected_template].body);
                     cm.setValue(allValidApis[selected_template].body)
@@ -231,7 +233,11 @@ function updateQueryTool(url, isEmpty) {
     isEmpty = isEmpty === undefined ? false : isEmpty;
     var body = cm.getValue();
     if (!isEmpty && body !== undefined && body.length > 0) {
-        body = JSON.parse(body);
+        try {
+            body = JSON.parse(body);
+        } catch(e) {
+            body = {};
+        }
     } else {
         body = {};
     }

@@ -887,21 +887,31 @@ class ObjectsController extends AppController
 
     public function view($id)
     {
-        if ($this->_isRest()) {
-            $objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
+        if ($this->request->is('head')) { // Just check if object exists
+            $exists = $this->MispObject->fetchObjects($this->Auth->user(), [
                 'conditions' => $this->__objectIdToConditions($id),
-            ));
-            if (!empty($objects)) {
-                $object = $objects[0];
-                if (!empty($object['Event'])) {
-                    $object['Object']['Event'] = $object['Event'];
-                }
-                if (!empty($object['Attribute'])) {
-                    $object['Object']['Attribute'] = $object['Attribute'];
-                }
-                return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
-            }
+                'metadata' => true,
+            ]);
+            return new CakeResponse(['status' => $exists ? 200 : 404]);
+        }
+
+        $objects = $this->MispObject->fetchObjects($this->Auth->user(), array(
+            'conditions' => $this->__objectIdToConditions($id),
+        ));
+        if (empty($objects)) {
             throw new NotFoundException(__('Invalid object.'));
+        }
+        $object = $objects[0];
+        if ($this->_isRest()) {
+            if (!empty($object['Event'])) {
+                $object['Object']['Event'] = $object['Event'];
+            }
+            if (!empty($object['Attribute'])) {
+                $object['Object']['Attribute'] = $object['Attribute'];
+            }
+            return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
+        } else {
+            $this->redirect('/events/view/' . $object['Object']['event_id']);
         }
     }
 

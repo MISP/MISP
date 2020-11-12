@@ -21,7 +21,17 @@ class WarninglistsController extends AppController
 
     public function index()
     {
+        $filters = $this->IndexFilter->harvestParameters(['value']);
         $this->paginate['recursive'] = -1;
+        if (!empty($filters['value'])) {
+            $this->paginate['conditions'] = [
+                'OR' => [
+                    'LOWER(Warninglist.name) LIKE' => '%' . strtolower($filters['value']) . '%',
+                    'LOWER(Warninglist.description) LIKE' => '%' . strtolower($filters['value']) . '%',
+                    'LOWER(Warninglist.type)' => strtolower($filters['value']),
+                    ]
+                ];
+        }
         $warninglists = $this->paginate();
         foreach ($warninglists as &$warninglist) {
             $warninglist['Warninglist']['valid_attributes'] = array();
