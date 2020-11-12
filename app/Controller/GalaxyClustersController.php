@@ -443,7 +443,7 @@ class GalaxyClustersController extends AppController
         } else {
             $this->GalaxyCluster->data['GalaxyCluster']['elements'] = json_encode($this->GalaxyCluster->data['GalaxyElement']);
             $this->GalaxyCluster->data['GalaxyCluster']['elementsDict'] = $this->GalaxyCluster->data['GalaxyElement'];
-            $this->GalaxyCluster->data['GalaxyCluster']['authors'] = json_encode($this->GalaxyCluster->data['GalaxyCluster']['authors']);
+            $this->GalaxyCluster->data['GalaxyCluster']['authors'] = !empty($this->GalaxyCluster->data['GalaxyCluster']['authors']) ? json_encode($this->GalaxyCluster->data['GalaxyCluster']['authors']) : '';
             $this->request->data = $this->GalaxyCluster->data;
         }
         $fieldDesc = array(
