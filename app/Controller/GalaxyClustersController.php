@@ -325,8 +325,11 @@ class GalaxyClustersController extends AppController
                 }
             } else {
                 $message = __('Galaxy cluster saved');
-                if ($this->_isRest()) {
+                if ($this->request->is('ajax')) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'add', $this->GalaxyCluster->id, $this->response->type());
+                } else if ($this->_isRest()) {
+                    $saved_cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $this->GalaxyCluster->id, 'view', $throwErrors=true, $full=true);
+                    return $this->RestResponse->viewData($saved_cluster);
                 } else {
                     $this->Flash->success($message);
                     $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $this->GalaxyCluster->id));
@@ -432,8 +435,11 @@ class GalaxyClustersController extends AppController
                     }
                 } else {
                     $message = __('Galaxy cluster saved');
-                    if ($this->_isRest()) {
+                    if ($this->request->is('ajax')) {
                         return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'edit', $cluster['GalaxyCluster']['id'], $this->response->type());
+                    } else if ($this->_isRest()) {
+                        $saved_cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
+                        return $this->RestResponse->viewData($saved_cluster);
                     } else {
                         $this->Flash->success($message);
                         $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $this->GalaxyCluster->id));
