@@ -212,7 +212,7 @@
                             return !$options['datapath']['published'] &&
                                 (
                                     $options['me']['Role']['perm_site_admin'] ||
-                                    ($options['me']['org_id'] == $options['datapath']['orgc'] && $options['me']['Role']['perm_site_admin'])
+                                    ($options['me']['org_id'] == $options['datapath']['orgc'] && $options['me']['Role']['perm_galaxy_editor'] && $options['me']['Role']['perm_publish'])
                                 );
                         },
                         'options' => array(
