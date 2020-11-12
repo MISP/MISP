@@ -62,6 +62,15 @@
             ),
             'fields' => array(
                 array(
+                    'name' => __('ID'),
+                    'sort' => 'GalaxyCluster.id',
+                    'element' => 'links',
+                    'class' => 'short',
+                    'data_path' => 'GalaxyCluster.id',
+                    'url_params_data_paths' => 'GalaxyCluster.id',
+                    'url' => $baseurl . '/galaxy_clusters/view'
+                ),
+                array(
                     'name' => __('Published'),
                     'sort' => 'GalaxyCluster.published',
                     'element' => 'booleanOrNA',
