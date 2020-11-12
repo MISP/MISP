@@ -793,7 +793,7 @@ class MispObject extends AppModel
                                     if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
                                         $newAttribute[$f] = 0;
                                     }
-                                    if (isset($newAttribute[$f]) && $newAttribute[$f] != $originalAttribute[$f]) {
+                                    if (isset($newAttribute[$f]) && $this->attributeValueDifferent($originalAttribute[$f], $newAttribute[$f], $f)) {
                                         $different = true;
                                     }
                                 }
@@ -1485,5 +1485,14 @@ class MispObject extends AppModel
             $tmpfile->write($temp);
         }
         return true;
+    }
+
+    private function attributeValueDifferent($newValue, $originalValue, $field)
+    {
+        if (in_array($field, ['first_seen', 'last_seen'])) {
+            return new DateTime($newValue) != new DateTime($originalValue);
+        } else {
+            return $newValue != $originalValue;
+        }
     }
 }

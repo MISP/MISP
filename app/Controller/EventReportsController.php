@@ -190,7 +190,13 @@ class EventReportsController extends AppController
                 if (empty($filters['event_id'])) {
                     throw new MethodNotAllowedException("When requesting index for event, event ID must be provided.");
                 }
-                $this->set('canModify', $this->__canModifyReport($filters['event_id']));
+                try {
+                    $this->__canModifyReport($filters['event_id']);
+                    $canModify = true;
+                } catch (Exception $e) {
+                    $canModify = false;
+                }
+                $this->set('canModify', $canModify);
                 $this->set('extendedEvent', !empty($filters['extended_event']));
                 $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
                 $this->set('importModuleEnabled', is_array($fetcherModule));
@@ -454,9 +460,15 @@ class EventReportsController extends AppController
         $this->set('canEdit', $canEdit);
     }
 
+    /**
+     * @param int $eventId
+     * @return array
+     * @throws NotFoundException
+     * @throws ForbiddenException
+     */
     private function __canModifyReport($eventId)
     {
-        $event = $this->EventReport->Event->fetchSimpleEvent($this->Auth->user(), $eventId, array());
+        $event = $this->EventReport->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
         }

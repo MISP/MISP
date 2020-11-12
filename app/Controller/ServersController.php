@@ -1672,7 +1672,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('You don\'t have permission to do that.');
         }
 
-        $server = $this->Server->find('first', ['Server.id' => $id]);
+        $server = $this->Server->find('first', ['conditions' => ['Server.id' => $id]]);
         if (!$server) {
             throw new NotFoundException(__('Invalid server'));
         }
