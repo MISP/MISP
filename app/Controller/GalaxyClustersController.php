@@ -83,7 +83,7 @@ class GalaxyClustersController extends AppController
         $searchConditions['GalaxyCluster.galaxy_id'] = $galaxyId;
 
         if ($this->_isRest()) {
-            $clusters = $this->Galaxy->find(
+            $clusters = $this->GalaxyCluster->find(
                 'all',
                 array(
                     'conditions' => array(
@@ -91,7 +91,7 @@ class GalaxyClustersController extends AppController
                     ),
                 )
             );
-            return $this->RestResponse->viewData($galaxies, $this->response->type());
+            return $this->RestResponse->viewData($clusters, $this->response->type());
         } else {
             $this->paginate['conditions']['AND'][] = $contextConditions;
             $this->paginate['conditions']['AND'][] = $searchConditions;
