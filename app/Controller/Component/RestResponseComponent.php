@@ -134,7 +134,7 @@ class RestResponseComponent extends Component
             ),
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. This API allows pagination via the page and limit parameters.",
-                'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org', 'orgc', 'tag', 'custom', 'minimal',),
+                'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org_id', 'orgc_id', 'tag_name', 'custom', 'minimal', 'published', 'value', 'extends_uuid'),
                 'params' => array()
             ),
         ),
