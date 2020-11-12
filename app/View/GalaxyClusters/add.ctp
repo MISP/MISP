@@ -15,7 +15,11 @@
     echo $this->element('genericElements/Form/genericForm', array(
         'form' => $this->Form,
         'data' => array(
-            'title' => $action == 'add' ? __('Add Galaxy Cluster') : __('Edit Galaxy Cluster'),
+            'title' => (
+                $action == 'add' ?
+                    (isset($forkedClusterMeta) ? __('Fork Galaxy Cluster') : __('Add Galaxy Cluster')) :
+                    __('Edit Galaxy Cluster')
+            ),
             'model' => $modelForForm,
             'fields' => array(
                 array(
