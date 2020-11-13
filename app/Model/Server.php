@@ -1310,8 +1310,8 @@ class Server extends AppModel
                                 'redacted' => true
                         ),
                         'advanced_authkeys' => array(
-                                'level' => 1,
-                                'description' => __('Advanced authkeys will allow each user to create and manage a set of authkeys for themselves, each with individual expirations and comments. API keys are stored in a hashed state and can no longer be recovered from MISP. Users will be prompted to note down their key when creating a new authkey. You can generate a new set of API keys for all users on demand in the diagnostics page, or by triggering /admin/users/updateToAdvancedAuthKeys.'),
+                                'level' => 0,
+                                'description' => __('Advanced authkeys will allow each user to create and manage a set of authkeys for themselves, each with individual expirations and comments. API keys are stored in a hashed state and can no longer be recovered from MISP. Users will be prompted to note down their key when creating a new authkey. You can generate a new set of API keys for all users on demand in the diagnostics page, or by triggering %s.', sprintf('<a href="%s/servers/serverSettings/diagnostics#advanced_authkey_update">%s</a>', $this->baseurl, __('the advanced upgrade'))),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',

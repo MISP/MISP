@@ -16,8 +16,9 @@
                                 'onClick' => 'openGenericModal',
                                 'onClickParams' => [
                                     sprintf(
-                                        '%s/auth_keys/add',
-                                        $baseurl
+                                        '%s/auth_keys/add%s',
+                                        $baseurl,
+                                        empty($user_id) ? '' : ('/' . $user_id)
                                     )
                                 ]
                             ]
