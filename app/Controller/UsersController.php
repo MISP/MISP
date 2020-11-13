@@ -71,6 +71,9 @@ class UsersController extends AppController
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
         }
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            unset($user['User']['authkey']);
+        }
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
@@ -87,12 +90,16 @@ class UsersController extends AppController
             return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         } else {
             $this->set('user', $user);
+            $this->set('admin_view', false);
         }
     }
 
     private function __massageUserObject($user)
     {
         unset($user['User']['server_id']);
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            unset($user['User']['authkey']);
+        }
         $user['User']['password'] = '*****';
         $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
         foreach ($objectsToInclude as $objectToInclude) {
@@ -563,14 +570,25 @@ class UsersController extends AppController
 
     public function admin_view($id = null)
     {
+        $contain = [
+            'UserSetting',
+            'Role',
+            'Organisation'
+        ];
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            $contain['AuthKey'] = [
+                'conditions' => [
+                    'OR' => [
+                        'AuthKey.expiration' => 0,
+                        'AuthKey.expiration <' => time()
+                    ]
+                ]
+            ];
+        }
         $user = $this->User->find('first', array(
             'recursive' => -1,
             'conditions' => array('User.id' => $id),
-            'contain' => array(
-                'UserSetting',
-                'Role',
-                'Organisation'
-            )
+            'contain' => $contain
         ));
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
@@ -583,6 +601,9 @@ class UsersController extends AppController
         $user['User']['orgAdmins'] = $this->User->getOrgAdminsForOrg($user['User']['org_id'], $user['User']['id']);
         if (empty($this->Auth->user('Role')['perm_site_admin']) && !(empty($user['Role']['perm_site_admin']))) {
             $user['User']['authkey'] = __('Redacted');
+        }
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            unset($user['User']['authkey']);
         }
         $this->set('user', $user);
         if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $user['User']['org_id'])) {
@@ -605,6 +626,8 @@ class UsersController extends AppController
             $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
             $this->set('id', $id);
             $this->set('user2', $user2);
+            $this->set('admin_view', true);
+            $this->render('view');
         }
     }
 
@@ -660,7 +683,7 @@ class UsersController extends AppController
                         'disabled' => 0,
                         'newsread' => 0,
                         'change_pw' => 1,
-                        'authkey' => $this->User->generateAuthKey(),
+                        'authkey' => (new RandomTool())->random_str(true, 40),
                         'termsaccepted' => 0,
                         'org_id' => $this->Auth->user('org_id')
                 );
@@ -756,12 +779,19 @@ class UsersController extends AppController
                                 $notification_message .= ' ' . __('User notification of new credentials could not be send.');
                             }
                         }
+                        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                            $this->loadModel('AuthKey');
+                            $newKey = $this->AuthKey->createnewkey($this->User->id);
+                        }
                         if ($this->_isRest()) {
                             $user = $this->User->find('first', array(
                                     'conditions' => array('User.id' => $this->User->id),
                                     'recursive' => -1
                             ));
                             $user['User']['password'] = '******';
+                            if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                                $user['User']['authkey'] = $newKey;
+                            }
                             return $this->RestResponse->viewData($user, $this->response->type());
                         } else {
                             $this->Flash->success(__('The user has been saved.') . $notification_message);
@@ -994,6 +1024,9 @@ class UsersController extends AppController
                     $this->User->extralog($this->Auth->user(), "edit", "user", $fieldsResult, $user);
                     if ($this->_isRest()) {
                         $user['User']['password'] = '******';
+                        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                            unset($user['User']['authkey']);
+                        }
                         return $this->RestResponse->viewData($user, $this->response->type());
                     } else {
                         $this->Flash->success(__('The user has been saved'));
@@ -2662,6 +2695,44 @@ class UsersController extends AppController
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
                 }
             }
+        }
+    }
+
+    public function updateToAdvancedAuthKeys()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint can only be triggered via POST requests.'));
+        }
+        $users = $this->User->find('all', [
+            'recursive' => -1,
+            'contain' => ['AuthKey'],
+            'fields' => ['id', 'authkey']
+        ]);
+        $updated = 0;
+        foreach ($users as $user) {
+            if (!empty($user['AuthKey'])) {
+                $currentKeyStart = substr($user['User']['authkey'], 0, 4);
+                $currentKeyEnd = substr($user['User']['authkey'], -4);
+                foreach ($user['AuthKey'] as $authkey) {
+                    if ($authkey['authkey_start'] === $currentKeyStart && $authkey['authkey_end'] === $currentKeyEnd) {
+                        continue 2;
+                    }
+                }
+            }
+            $this->User->AuthKey->create();
+            $this->User->AuthKey->save([
+                'authkey' => $user['User']['authkey'],
+                'expiration' => 0,
+                'user_id' => $user['User']['id']
+            ]);
+            $updated += 1;
+        }
+        $message = __('The upgrade process is complete, %s authkey(s) generated.', $updated);
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('User', 'acceptRegistrations', false, $this->response->type(), $message);
+        } else {
+            $this->Flash->success($message);
+            $this->redirect($this->referer());
         }
     }
 }

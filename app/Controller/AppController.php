@@ -60,6 +60,7 @@ class AppController extends Controller
     public $sql_dump = false;
 
     private $isRest = null;
+    public $restResponsePayload = null;
 
     // Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
     // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -102,17 +103,10 @@ class AppController extends Controller
             'RateLimit',
             'IndexFilter',
             'Deprecation',
-            'RestSearch'
+            'RestSearch',
+            'CRUD'
             //,'DebugKit.Toolbar'
     );
-
-    private function __isApiFunction($controller, $action)
-    {
-        if (isset($this->automationArray[$controller]) && in_array($action, $this->automationArray[$controller])) {
-            return true;
-        }
-        return false;
-    }
 
     public function beforeFilter()
     {
@@ -696,24 +690,7 @@ class AppController extends Controller
 
     protected function _isRest()
     {
-        // This method is surprisingly slow and called many times for one request, so it make sense to cache the result.
-        if ($this->isRest !== null) {
-            return $this->isRest;
-        }
-
-        $api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
-        if (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson() || $this->_isCsv())) {
-            if ($this->_isJson()) {
-                if (!empty($this->request->input()) && empty($this->request->input('json_decode'))) {
-                    throw new MethodNotAllowedException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.');
-                }
-            }
-            $this->isRest = true;
-            return true;
-        } else {
-            $this->isRest = false;
-            return false;
-        }
+        return $this->IndexFilter->isRest();
     }
 
     protected function _isAutomation()
@@ -883,8 +860,14 @@ class AppController extends Controller
 
     public function checkAuthUser($authkey)
     {
-        $this->loadModel('User');
-        $user = $this->User->getAuthUserByAuthkey($authkey);
+        if (Configure::read('Security.advanced_authkeys')) {
+            $this->loadModel('AuthKey');
+            $user = $this->AuthKey->getAuthUserByAuthKey($authkey);
+        } else {
+            $this->loadModel('User');
+            $user = $this->User->getAuthUserByAuthKey($authkey);
+        }
+
         if (empty($user)) {
             return false;
         }
@@ -1276,7 +1259,7 @@ class AppController extends Controller
         if ($returnFormat === 'download') {
             $returnFormat = 'json';
         }
-        if ($returnFormat === 'stix' && $this->_isJson()) {
+        if ($returnFormat === 'stix' && $this->IndexFilter->isJson()) {
             $returnFormat = 'stix-json';
         }
         $elementCounter = 0;

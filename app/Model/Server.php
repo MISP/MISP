@@ -1309,6 +1309,14 @@ class Server extends AppModel
                                 'editable' => false,
                                 'redacted' => true
                         ),
+                        'advanced_authkeys' => array(
+                                'level' => 0,
+                                'description' => __('Advanced authkeys will allow each user to create and manage a set of authkeys for themselves, each with individual expirations and comments. API keys are stored in a hashed state and can no longer be recovered from MISP. Users will be prompted to note down their key when creating a new authkey. You can generate a new set of API keys for all users on demand in the diagnostics page, or by triggering %s.', sprintf('<a href="%s/servers/serverSettings/diagnostics#advanced_authkey_update">%s</a>', $this->baseurl, __('the advanced upgrade'))),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                        ),
                         'rest_client_enable_arbitrary_urls' => array(
                             'level' => 0,
                             'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via the rest client. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable.'),
@@ -1324,7 +1332,7 @@ class Server extends AppModel
                             'value' => false,
                             'errorMessage' => '',
                             'test' => null,
-                            'type' => 'string',
+                            'type' => 'string'
                         ),
                         'syslog' => array(
                             'level' => 0,

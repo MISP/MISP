@@ -5350,6 +5350,20 @@ function loadClusterRelations(clusterId) {
     }
 }
 
+function submitGenericFormInPlace() {
+    $.ajax({
+        type: "POST",
+        url: $('.genericForm').attr('action'),
+        data: $('.genericForm').serialize(), // serializes the form's elements.
+        success: function(data)
+        {
+            $('#genericModal').remove();
+            $('body').append(data);
+            $('#genericModal').modal();
+        }
+    });
+}
+
 function openIdSelection(clicked, scope, action) {
     var onclick = 'redirectIdSelection(\'' + scope + '\', \'' + action + '\')'
     var html = '<div class="input-append">'
