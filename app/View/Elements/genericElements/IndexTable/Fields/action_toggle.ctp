@@ -9,12 +9,10 @@
     $data = Hash::extract($row, $field['data_path']);
     $seed = rand();
     $checkboxId = 'GenericToggle-' . $seed;
-    $checkboxClass = empty($field['checkbox_class']) ? 'genericCheckbox' : h($field['checkbox_class']);
     $tempboxId = 'TempBox-' . $seed;
     echo sprintf(
-        '<input type="checkbox" id="%s" class="%s" %s><span id="%s" class="hidden">',
+        '<input type="checkbox" id="%s" %s><span id="%s" class="hidden">',
         $checkboxId,
-        $checkboxClass,
         empty($data[0]) ? '' : 'checked',
         $tempboxId
     );
@@ -29,11 +27,6 @@ $(document).ready(function() {
         }
     ?>
     $('#<?= $checkboxId ?>').on('click', function() {
-        <?php
-            if (!empty($field['beforeHook'])) {
-                echo $field['beforeHook'];
-            }
-        ?>
         $.ajax({
             type:"get",
             url: url,
@@ -57,11 +50,6 @@ $(document).ready(function() {
                     },
                     complete:function() {
                         $('#<?= $tempboxId ?>').empty();
-                        <?php
-                            if (!empty($field['afterHook'])) {
-                                echo $field['afterHook'];
-                            }
-                        ?>
                     }
                 });
             }

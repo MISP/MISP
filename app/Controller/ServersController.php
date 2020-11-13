@@ -1977,10 +1977,10 @@ class ServersController extends AppController
                 $this->Flash->error(__('Something went wrong. %s', $e->getMessage()));
             }
         }
-        $header =
-            'Authorization: ' . $this->Auth->user('authkey') . PHP_EOL .
-            'Accept: application/json' . PHP_EOL .
-            'Content-Type: application/json';
+        $header = sprintf(
+            "Authorization: %s \nAccept: application/json\nContent-type: application/json",
+            empty(Configure::read('Security.advanced_authkeys')) ? $this->Auth->user('authkey') : __('YOUR_API_KEY')
+        );
         $this->set('header', $header);
         $this->set('allValidApis', $allValidApis);
         // formating for optgroup
@@ -2005,6 +2005,15 @@ class ServersController extends AppController
         $this->loadModel('RestClientHistory');
         $this->RestClientHistory->create();
         $date = new DateTime();
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            $request['header'] = explode("\n", $request['header']);
+            foreach ($request['header'] as $k => $header) {
+                if (strpos($header, 'Authorization') !== false) {
+                    $request['header'][$k] = 'Authorization: ' . __('YOUR_API_KEY');
+                }
+            }
+            $request['header'] = implode("\n", $request['header']);
+        }
         $rest_history_item = array(
             'org_id' => $this->Auth->user('org_id'),
             'user_id' => $this->Auth->user('id'),

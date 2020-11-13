@@ -72,6 +72,13 @@ class ACLComponent extends Component
                     'view' => array('*'),
                     'viewPicture' => array('*'),
             ),
+            'authKeys' => [
+                'add' => ['perm_auth'],
+                'delete' => ['perm_auth'],
+                'edit' => ['perm_auth'],
+                'index' => ['perm_auth'],
+                'view' => ['perm_auth']
+            ],
             'dashboards' => array(
                 'getForm' => array('*'),
                 'index' => array('*'),
@@ -636,6 +643,7 @@ class ACLComponent extends Component
                     'tagStatisticsGraph' => array('*'),
                     'terms' => array('*'),
                     'updateLoginTime' => array('*'),
+                    'updateToAdvancedAuthKeys' => array(),
                     'verifyCertificate' => array(),
                     'verifyGPG' => array(),
                     'view' => array('*'),

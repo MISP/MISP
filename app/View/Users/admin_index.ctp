@@ -69,7 +69,9 @@
                     'sort' => 'User.authkey',
                     'class' => 'bold',
                     'data_path' => 'User.authkey',
-                    'privacy' => 1
+                    'onClick' => 'quickSelect(this);',
+                    'privacy' => 1,
+                    'requirement' => empty(Configure::read('Security.advanced_authkeys'))
                 ),
                 array(
                     'name' => __('Autoalert'),

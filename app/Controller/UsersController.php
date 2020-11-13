@@ -87,6 +87,7 @@ class UsersController extends AppController
             return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         } else {
             $this->set('user', $user);
+            $this->set('admin_view', false);
         }
     }
 
@@ -563,14 +564,25 @@ class UsersController extends AppController
 
     public function admin_view($id = null)
     {
+        $contain = [
+            'UserSetting',
+            'Role',
+            'Organisation'
+        ];
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            $contain['AuthKey'] = [
+                'conditions' => [
+                    'OR' => [
+                        'AuthKey.expiration' => 0,
+                        'AuthKey.expiration <' => time()
+                    ]
+                ]
+            ];
+        }
         $user = $this->User->find('first', array(
             'recursive' => -1,
             'conditions' => array('User.id' => $id),
-            'contain' => array(
-                'UserSetting',
-                'Role',
-                'Organisation'
-            )
+            'contain' => $contain
         ));
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
@@ -605,6 +617,8 @@ class UsersController extends AppController
             $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
             $this->set('id', $id);
             $this->set('user2', $user2);
+            $this->set('admin_view', true);
+            $this->render('view');
         }
     }
 
@@ -2662,6 +2676,44 @@ class UsersController extends AppController
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
                 }
             }
+        }
+    }
+
+    public function updateToAdvancedAuthKeys()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint can only be triggered via POST requests.'));
+        }
+        $users = $this->User->find('all', [
+            'recursive' => -1,
+            'contain' => ['AuthKey'],
+            'fields' => ['id', 'authkey']
+        ]);
+        $updated = 0;
+        foreach ($users as $user) {
+            if (!empty($user['AuthKey'])) {
+                $currentKeyStart = substr($user['User']['authkey'], 0, 4);
+                $currentKeyEnd = substr($user['User']['authkey'], -4);
+                foreach ($user['AuthKey'] as $authkey) {
+                    if ($authkey['authkey_start'] === $currentKeyStart && $authkey['authkey_end'] === $currentKeyEnd) {
+                        continue 2;
+                    }
+                }
+            }
+            $this->User->AuthKey->create();
+            $this->User->AuthKey->save([
+                'authkey' => $user['User']['authkey'],
+                'expiration' => 0,
+                'user_id' => $user['User']['id']
+            ]);
+            $updated += 1;
+        }
+        $message = __('The upgrade process is complete, %s authkey(s) generated.', $updated);
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('User', 'acceptRegistrations', false, $this->response->type(), $message);
+        } else {
+            $this->Flash->success($message);
+            $this->redirect($this->referer());
         }
     }
 }
