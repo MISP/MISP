@@ -59,23 +59,55 @@ class AuthKey extends AppModel
         return true;
     }
 
-    public function getAuthUserByAuthKey($authKey)
+    public function getAuthUserByAuthKey($authkey)
     {
-        $start = substr($authKey, 0, 4);
-        $end = substr($authKey, -4);
-        $existing_authKeys = $this->find('all', [
+        $start = substr($authkey, 0, 4);
+        $end = substr($authkey, -4);
+        $existing_authkeys = $this->find('all', [
             'recursive' => -1,
             'conditions' => [
-                'expiration >' => time(),
+                'OR' => [
+                    'expiration >' => time(),
+                    'expiration' => 0
+                ],
                 'authkey_start' => $start,
                 'authkey_end' => $end,
             ]
         ]);
-        foreach ($existing_authKeys as $existing_authKey) {
-            if (Security::hash($authKey, 'blowfish', $existing_authKey['AuthKey']['authkey'])) {
-                return $this->User->getAuthUser($existing_authKey['AuthKey']['user_id']);
+        foreach ($existing_authkeys as $existing_authkey) {
+            if (Security::hash($authkey, 'blowfish', $existing_authkey['AuthKey']['authkey'])) {
+                return $this->User->getAuthUser($existing_authkey['AuthKey']['user_id']);
             }
         }
         return false;
+    }
+
+    public function resetauthkey($id)
+    {
+        $existing_authkeys = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'user_id' => $id
+            ]
+        ]);
+        foreach ($existing_authkeys as $key) {
+            $key['AuthKey']['expiration'] = time();
+            $this->save($key);
+        }
+        return $this->createnewkey($id);
+    }
+
+    public function createnewkey($id)
+    {
+        $newKey = [
+            'authkey' => (new RandomTool())->random_str(true, 40),
+            'user_id' => $id
+        ];
+        $this->create();
+        if ($this->save($newKey)) {
+            return $newKey['authkey'];
+        } else {
+            return false;
+        }
     }
 }
