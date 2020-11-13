@@ -30,6 +30,7 @@ class AuthKeysController extends AppController
             $conditions['AND'][] = ['AuthKey.user_id' => array_values($userIds)];
         }
         if ($id !== false) {
+            $this->set('user_id', $id);
             $conditions['AND'][] = ['AuthKey.user_id' => $id];
         }
         $this->CRUD->index([
@@ -49,7 +50,7 @@ class AuthKeysController extends AppController
     public function delete($id)
     {
         $params = [];
-        if (!$isAdmin()) {
+        if (!$this->_isAdmin()) {
             $params['conditions'] = ['user_id' => $this->Auth->user('id')];
         }
         $this->CRUD->delete($id, $params);
@@ -75,6 +76,9 @@ class AuthKeysController extends AppController
         if (!$this->_isSiteAdmin()) {
             $selectConditions['AND'][] = ['User.id' => $this->Auth->user('id')];
             $params['override'] = ['user_id' => $this->Auth->user('id')];
+        } else if ($user_id) {
+            $selectConditions['AND'][] = ['User.id' => $user_id];
+            $params['override'] = ['user_id' => $user_id];
         }
         $this->CRUD->add($params);
         if ($this->IndexFilter->isRest()) {
