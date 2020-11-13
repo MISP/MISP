@@ -20,6 +20,7 @@
         {
             $options = [
                 'eventid' => $this->__options['event_id'],
+                'metadata' => true,
             ];
             $this->event = $this->__eventModel->fetchEvent($this->__user, $options);
             if (empty($this->event)) {
@@ -29,9 +30,41 @@
             $this->__eventModel->removeGalaxyClusterTags($this->event);
         }
 
+        private function getAttributes()
+        {
+            $options = [
+                'includeWarninglistHits' => true,
+                'includeSightings' => true,
+                'includeCorrelations' => true,
+                'conditions' => [
+                    'Attribute.event_id' => $this->__options['event_id'],
+                    $this->__options['conditions']
+                ]
+            ];
+            $this->attributes = $this->__eventModel->Attribute->fetchAttributes($this->__user, $options);
+        }
+
+        private function getObjects()
+        {
+            $options = [
+                'includeWarninglistHits' => true,
+                'includeSightings' => true,
+                'includeCorrelations' => true,
+            ];
+            $filters = [
+                'eventid' => $this->__options['event_id'],
+            ];
+            $filters = array_merge($filters, $this->__options['conditions']);
+            $conditions = $this->__eventModel->Object->buildFilterConditions($filters);
+            $options['conditions'] = $conditions;
+            $this->objects = $this->__eventModel->Object->fetchObjects($this->__user, $options);
+        }
+
         public function generate()
         {
             $this->getEvent();
+            $this->getAttributes();
+            $this->getObjects();
             $report = '';
             if ($this->__options['include_event_metadata']) {
                 $report .= $this->getMarkdownForEventMetadata();
@@ -106,7 +139,7 @@
         {
             $markdown = $this->mdList(array_map(function ($uuid) {
                 return sprintf('@[object](%s)', $uuid);
-            }, Hash::extract($this->event['Object'], '{n}.uuid')), false);
+            }, Hash::extract($this->objects, '{n}.Object.uuid')), false);
             return $markdown;
         }
 
@@ -114,14 +147,14 @@
         {
             $markdown = $this->mdList(array_map(function ($uuid) {
                 return sprintf('@[attribute](%s)', $uuid);
-            }, Hash::extract($this->event['Attribute'], '{n}.uuid')), false);
+            }, Hash::extract($this->attributes, '{n}.Attribute.uuid')), false);
             return $markdown;
         }
 
         private function getMarkdownForEventCorrelations()
         {
             $correlations = !empty($this->event['RelatedEvent']) ? $this->event['RelatedEvent'] : [];
-            $markdown = $this->mdList(Hash::extract($correlations, '{n}.Event.info'), false, 2);
+            $markdown = $this->mdList(Hash::extract($correlations, '{n}.Event.info'), false, 1);
             return $markdown;
         }
 

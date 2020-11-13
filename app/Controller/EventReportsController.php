@@ -340,8 +340,8 @@ class EventReportsController extends AppController
             App::uses('ReportFromEvent', 'EventReport');
             $optionFields = array_keys((new ReportFromEvent())->acceptedOptions);
             foreach ($optionFields as $field) {
-                if (isset($this->data[$field])) {
-                    $options[$field] = $this->data[$field];
+                if (isset($this->data['EventReport'][$field])) {
+                    $options[$field] = $this->data['EventReport'][$field];
                 }
             }
             $markdown = $this->EventReport->getReportFromEvent($this->Auth->user(), $options);
