@@ -2005,19 +2005,20 @@ class ServersController extends AppController
         $this->loadModel('RestClientHistory');
         $this->RestClientHistory->create();
         $date = new DateTime();
+        $logHeaders = $request['header'];
         if (!empty(Configure::read('Security.advanced_authkeys'))) {
-            $request['header'] = explode("\n", $request['header']);
-            foreach ($request['header'] as $k => $header) {
+            $logHeaders = explode("\n", $request['header']);
+            foreach ($logHeaders as $k => $header) {
                 if (strpos($header, 'Authorization') !== false) {
-                    $request['header'][$k] = 'Authorization: ' . __('YOUR_API_KEY');
+                    $logHeaders[$k] = 'Authorization: ' . __('YOUR_API_KEY');
                 }
             }
-            $request['header'] = implode("\n", $request['header']);
+            $logHeaders = implode("\n", $logHeaders);
         }
         $rest_history_item = array(
             'org_id' => $this->Auth->user('org_id'),
             'user_id' => $this->Auth->user('id'),
-            'headers' => $request['header'],
+            'headers' => $logHeaders,
             'body' => empty($request['body']) ? '' : $request['body'],
             'url' => $request['url'],
             'http_method' => $request['method'],
