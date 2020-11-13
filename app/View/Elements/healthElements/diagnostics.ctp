@@ -428,7 +428,7 @@
     <?php
         endif;
     ?>
-    <h3><?php echo __('Upgrade authkeys keys to the advanced keys format'); ?></h3>
+    <h3><?php echo __('Upgrade authkeys keys to the advanced keys format'); ?><a id="advanced_authkey_update">&nbsp</a></h3>
     <p>
         <?php
             echo __('MISP can store the user API keys either in the clear directly attached to the users, or as of recently, it can generate a list of hashed keys for different purposes. If the latter feature is enabled, it might be useful to move all existing keys over to the new format so that users do not lose access to the system. In order to do so, run the following functionality.');
