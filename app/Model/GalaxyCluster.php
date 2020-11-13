@@ -756,7 +756,7 @@ class GalaxyCluster extends AppModel
                 'recursive' => -1
             ));
             if (!empty($cluster['GalaxyCluster']['GalaxyElement'])) {
-                $this->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $savedCluster['GalaxyCluster']['id']));
+                $this->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $savedCluster['GalaxyCluster']['id']));
                 $this->GalaxyElement->captureElements($user, $cluster['GalaxyCluster']['GalaxyElement'], $savedCluster['GalaxyCluster']['id']);
             }
             if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
