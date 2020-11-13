@@ -1796,12 +1796,9 @@ class GalaxyCluster extends AppModel
      */
     public function pullGalaxyClusters(array $user, array $server, $technique = 'full')
     {
-        if (!isset($server['Server']['version'])) {
-            $this->Server = ClassRegistry::init('Server');
-            $server['Server']['version'] = $this->Server->getRemoteVersion($server['Server']['id']);
-        }
-        $remoteSupportsGalaxyEdition = isset($server['Server']['version']['perm_galaxy_editor']);
-        if (!$remoteSupportsGalaxyEdition) {
+        $this->Server = ClassRegistry::init('Server');
+        $compatible = $this->Server->checkVersionCompatibility($server['Server']['id'], $user)['supportEditOfGalaxyCluster'];
+        if (!$compatible) {
             return 0;
         }
         $clusterIds = $this->getClusterIdListBasedOnPullTechnique($user, $technique, $server);
