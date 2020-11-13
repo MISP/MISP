@@ -365,12 +365,10 @@ class AppController extends Controller
 
         unset($base_dir);
         // We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
-        // instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
-        // getActions returns all the flags in a single SQL query
         if ($this->Auth->user()) {
             $this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
             $this->set('mispVersionFull', $this->mispVersion);
-            $role = $this->getActions();
+            $role = $this->Auth->user('Role');
             $this->set('me', $this->Auth->user());
             $this->set('isAdmin', $role['perm_admin']);
             $this->set('isSiteAdmin', $role['perm_site_admin']);
@@ -886,27 +884,6 @@ class AppController extends Controller
             }
         }
         return $data;
-    }
-
-    // pass an action to this method for it to check the active user's access to the action
-    public function checkAction($action = 'perm_sync')
-    {
-        $this->loadModel('Role');
-        $this->Role->recursive = -1;
-        $role = $this->Role->findById($this->Auth->user('role_id'));
-        if ($role['Role'][$action]) {
-            return true;
-        }
-        return false;
-    }
-
-    // returns the role of the currently authenticated user as an array, used to set the permission variables for views in the AppController's beforeFilter() method
-    public function getActions()
-    {
-        $this->loadModel('Role');
-        $this->Role->recursive = -1;
-        $role = $this->Role->findById($this->Auth->user('role_id'));
-        return $role['Role'];
     }
 
     public function checkAuthUser($authkey)
