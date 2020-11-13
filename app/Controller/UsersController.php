@@ -71,6 +71,9 @@ class UsersController extends AppController
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
         }
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            unset($user['User']['authkey']);
+        }
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
@@ -94,6 +97,9 @@ class UsersController extends AppController
     private function __massageUserObject($user)
     {
         unset($user['User']['server_id']);
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            unset($user['User']['authkey']);
+        }
         $user['User']['password'] = '*****';
         $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
         foreach ($objectsToInclude as $objectToInclude) {
@@ -596,6 +602,9 @@ class UsersController extends AppController
         if (empty($this->Auth->user('Role')['perm_site_admin']) && !(empty($user['Role']['perm_site_admin']))) {
             $user['User']['authkey'] = __('Redacted');
         }
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            unset($user['User']['authkey']);
+        }
         $this->set('user', $user);
         if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $user['User']['org_id'])) {
             throw new MethodNotAllowedException();
@@ -674,7 +683,7 @@ class UsersController extends AppController
                         'disabled' => 0,
                         'newsread' => 0,
                         'change_pw' => 1,
-                        'authkey' => $this->User->generateAuthKey(),
+                        'authkey' => (new RandomTool())->random_str(true, 40),
                         'termsaccepted' => 0,
                         'org_id' => $this->Auth->user('org_id')
                 );
@@ -770,12 +779,19 @@ class UsersController extends AppController
                                 $notification_message .= ' ' . __('User notification of new credentials could not be send.');
                             }
                         }
+                        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                            $this->loadModel('AuthKey');
+                            $newKey = $this->AuthKey->createnewkey($this->User->id);
+                        }
                         if ($this->_isRest()) {
                             $user = $this->User->find('first', array(
                                     'conditions' => array('User.id' => $this->User->id),
                                     'recursive' => -1
                             ));
                             $user['User']['password'] = '******';
+                            if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                                $user['User']['authkey'] = $newKey;
+                            }
                             return $this->RestResponse->viewData($user, $this->response->type());
                         } else {
                             $this->Flash->success(__('The user has been saved.') . $notification_message);
@@ -1008,6 +1024,9 @@ class UsersController extends AppController
                     $this->User->extralog($this->Auth->user(), "edit", "user", $fieldsResult, $user);
                     if ($this->_isRest()) {
                         $user['User']['password'] = '******';
+                        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                            unset($user['User']['authkey']);
+                        }
                         return $this->RestResponse->viewData($user, $this->response->type());
                     } else {
                         $this->Flash->success(__('The user has been saved'));
