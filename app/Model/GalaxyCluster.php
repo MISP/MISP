@@ -522,21 +522,25 @@ class GalaxyCluster extends AppModel
             $deleteResult = $this->delete($id, true);
             return $deleteResult;
         } else {
+            $version = (new DateTime())->getTimestamp();
             return $this->save(array(
                 'id' => $id,
                 'published' => false,
+                'version' => $version,
                 'deleted' => true,
-            ), array('fieldList' => array('published', 'deleted')));
+            ), array('fieldList' => array('published', 'deleted', 'version')));
         }
     }
 
     public function restoreCluster($id)
     {
+        $version = (new DateTime())->getTimestamp();
         return $this->save(array(
             'id' => $id,
             'published' => false,
+            'version' => $version,
             'deleted' => false,
-        ), array('fieldList' => array('published', 'deleted')));
+        ), array('fieldList' => array('published', 'deleted', 'version')));
     }
 
     /**
