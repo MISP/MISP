@@ -201,34 +201,33 @@ class UserSetting extends AppModel
 
      public function getDefaulRestSearchParameters($user)
      {
-        $setting = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'UserSetting.user_id' => $user['id'],
-                'UserSetting.setting' => 'default_restsearch_parameters'
-            )
-        ));
-        $parameters = array();
-        if (!empty($setting)) {
-            $parameters = $setting['UserSetting']['value'];
-        }
-        return $parameters;
+         return $this->getValueForUser($user['id'], 'default_restsearch_parameters') ?: [];
      }
 
      public function getTagNumericalValueOverride($userId)
      {
-        $setting = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'UserSetting.user_id' => $userId,
-                'UserSetting.setting' => 'tag_numerical_value_override'
-            )
-        ));
-        $parameters = array();
-        if (!empty($setting)) {
-            $parameters = $setting['UserSetting']['value'];
-        }
-        return $parameters;
+         return $this->getValueForUser($userId, 'tag_numerical_value_override') ?: [];
+     }
+
+    /**
+     * @param int $userId
+     * @param string $setting
+     * @return mixed|null
+     */
+     public function getValueForUser($userId, $setting)
+     {
+         $output = $this->find('first', array(
+             'recursive' => -1,
+             'fields' => ['value'],
+             'conditions' => array(
+                 'UserSetting.user_id' => $userId,
+                 'UserSetting.setting' => $setting,
+             )
+         ));
+         if ($output) {
+             return $output['UserSetting']['value'];
+         }
+         return null;
      }
 
     /*

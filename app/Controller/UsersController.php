@@ -1253,16 +1253,9 @@ class UsersController extends AppController
         // Events list
         $url = $this->Session->consume('pre_login_requested_url');
         if (empty($url)) {
-            $homepage = $this->User->UserSetting->find('first', array(
-                'recursive' => -1,
-                'conditions' => array(
-                    'UserSetting.user_id' => $this->Auth->user('id'),
-                    'UserSetting.setting' => 'homepage'
-                ),
-                'contain' => array('User.id', 'User.org_id')
-            ));
+            $homepage = $this->User->UserSetting->getValueForUser($this->Auth->user('id'), 'homepage');
             if (!empty($homepage)) {
-                $url = $homepage['UserSetting']['value']['path'];
+                $url = $homepage['path'];
             } else {
                 $url = array('controller' => 'events', 'action' => 'index');
             }

@@ -477,16 +477,9 @@ class AppController extends Controller
             $this->set('notifications', $notifications);
 
             $this->loadModel('UserSetting');
-            $homepage = $this->UserSetting->find('first', array(
-                'recursive' => -1,
-                'conditions' => array(
-                    'UserSetting.user_id' => $this->Auth->user('id'),
-                    'UserSetting.setting' => 'homepage'
-                ),
-                'contain' => array('User.id', 'User.org_id')
-            ));
+            $homepage = $this->UserSetting->getValueForUser($this->Auth->user('id'), 'homepage');
             if (!empty($homepage)) {
-                $this->set('homepage', $homepage['UserSetting']['value']);
+                $this->set('homepage', $homepage);
             }
         }
     }
