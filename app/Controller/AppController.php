@@ -36,10 +36,10 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @package       app.Controller
  * @link http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  *
- * @throws ForbiddenException // TODO Exception
  * @property ACLComponent $ACL
  * @property RestResponseComponent $RestResponse
  * @property CRUDComponent $CRUD
+ * @property IndexFilterComponent $IndexFilter
  */
 class AppController extends Controller
 {
@@ -60,7 +60,6 @@ class AppController extends Controller
     public $baseurl = '';
     public $sql_dump = false;
 
-    private $isRest = null;
     public $restResponsePayload = null;
 
     // Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
@@ -895,9 +894,6 @@ class AppController extends Controller
         if (!$user['Role']['perm_auth']) {
             return false;
         }
-        if ($user['Role']['perm_site_admin']) {
-            $user['siteadmin'] = true;
-        }
         return $user;
     }
 
@@ -907,9 +903,6 @@ class AppController extends Controller
         $user = $this->User->getAuthUserByExternalAuth($authkey);
         if (empty($user)) {
             return false;
-        }
-        if ($user['Role']['perm_site_admin']) {
-            $user['siteadmin'] = true;
         }
         return $user;
     }
