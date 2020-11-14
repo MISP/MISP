@@ -267,7 +267,6 @@ CREATE TABLE IF NOT EXISTS `events` (
   `threat_level_id` int(11) NOT NULL,
   `publish_timestamp` int(11) NOT NULL DEFAULT 0,
   `sighting_timestamp` int(11) NOT NULL DEFAULT 0,
-  `sighting_timestamp` int(11) NOT NULL DEFAULT 0,
   `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '',
   PRIMARY KEY (`id`),
