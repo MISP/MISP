@@ -1,24 +1,20 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
+
+/**
+ * @property User $User
+ */
 class AuthKey extends AppModel
 {
     public $recursive = -1;
 
     public $actsAs = array(
-            'SysLogLogable.SysLogLogable' => array(
-                    'userModel' => 'User',
-                    'userKey' => 'user_id',
-                    'change' => 'full'),
-            'Containable',
-    );
-
-    public $validate = array(
-        'json' => array(
-            'isValidJson' => array(
-                'rule' => array('isValidJson'),
-            )
-        )
+        'SysLogLogable.SysLogLogable' => array(
+                'userModel' => 'User',
+                'userKey' => 'user_id',
+                'change' => 'full'),
+        'Containable',
     );
 
     public $belongsTo = array(
@@ -44,7 +40,7 @@ class AuthKey extends AppModel
             } else {
                 $authkey = $this->data['AuthKey']['authkey'];
             }
-            $passwordHasher = new BlowfishPasswordHasher();
+            $passwordHasher = $this->getHasher();
             $this->data['AuthKey']['authkey'] = $passwordHasher->hash($authkey);
             $this->data['AuthKey']['authkey_start'] = substr($authkey, 0, 4);
             $this->data['AuthKey']['authkey_end'] = substr($authkey, -4);
@@ -65,6 +61,7 @@ class AuthKey extends AppModel
         $end = substr($authkey, -4);
         $existing_authkeys = $this->find('all', [
             'recursive' => -1,
+            'fields' => ['authkey', 'user_id'],
             'conditions' => [
                 'OR' => [
                     'expiration >' => time(),
@@ -74,8 +71,9 @@ class AuthKey extends AppModel
                 'authkey_end' => $end,
             ]
         ]);
+        $passwordHasher = $this->getHasher();
         foreach ($existing_authkeys as $existing_authkey) {
-            if (Security::hash($authkey, 'blowfish', $existing_authkey['AuthKey']['authkey'])) {
+            if ($passwordHasher->check($authkey, $existing_authkey['AuthKey']['authkey'])) {
                 return $this->User->getAuthUser($existing_authkey['AuthKey']['user_id']);
             }
         }
@@ -109,5 +107,13 @@ class AuthKey extends AppModel
         } else {
             return false;
         }
+    }
+
+    /**
+     * @return AbstractPasswordHasher
+     */
+    private function getHasher()
+    {
+        return new BlowfishPasswordHasher();
     }
 }
