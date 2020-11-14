@@ -92,8 +92,8 @@ install:
     - sudo chmod -R 770 `pwd`/.gnupg
     # Get authkey
     - sudo usermod -a -G www-data $USER
-    - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
     - sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
+    - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.timeout" 600'
     - sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.cookieTimeout" 3600'
