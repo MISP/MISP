@@ -19,16 +19,7 @@ class AuthKeysController extends AppController
 
     public function index($id = false)
     {
-        $conditions = [];
-        if (!$this->_isAdmin()) {
-            $conditions['AND'][] = ['AuthKey.user_id' => $this->Auth->user('id')];
-        } else if (!$this->_isSiteAdmin()) {
-            $userIds = $this->AuthKey->User->find('list', [
-                'conditions' => ['User.org_id' => $this->Auth->user('org_id')],
-                'fields' => ['User.id', 'User.id']
-            ]);
-            $conditions['AND'][] = ['AuthKey.user_id' => array_values($userIds)];
-        }
+        $conditions = $this->__prepareConditions();
         if ($id !== false) {
             $this->set('user_id', $id);
             $conditions['AND'][] = ['AuthKey.user_id' => $id];
@@ -38,7 +29,7 @@ class AuthKeysController extends AppController
             'quickFilters' => ['authkey', 'comment'],
             'contain' => ['User'],
             'exclude_fields' => ['authkey'],
-            'conditions' => $conditions
+            'conditions' => $conditions,
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -49,11 +40,10 @@ class AuthKeysController extends AppController
 
     public function delete($id)
     {
-        $params = [];
-        if (!$this->_isAdmin()) {
-            $params['conditions'] = ['user_id' => $this->Auth->user('id')];
-        }
-        $this->CRUD->delete($id, $params);
+        $this->CRUD->delete($id, [
+            'conditions' => $this->__prepareConditions(),
+            'contain' => ['User'],
+        ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
@@ -97,9 +87,29 @@ class AuthKeysController extends AppController
     public function view($id = false)
     {
         $this->set('menuData', array('menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions', 'menuItem' => 'authKeyView'));
-        $this->CRUD->view($id, ['contain' => ['User.id', 'User.email']]);
+        $this->CRUD->view($id, [
+            'contain' => ['User.id', 'User.email'],
+            'conditions' => $this->__prepareConditions(),
+        ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    /**
+     * Return conditions according to current user permission.
+     * @return array
+     */
+    private function __prepareConditions()
+    {
+        $user = $this->Auth->user();
+        if ($user['Role']['perm_site_admin']) {
+            $conditions = []; // site admin can see all keys
+        } else if ($user['Role']['perm_admin']) {
+            $conditions['AND'][]['User.org_id'] = $user['org_id']; // org admin can see his/her user org auth keys
+        } else {
+            $conditions['AND'][]['User.id'] = $user['id'];
+        }
+        return $conditions;
     }
 }
