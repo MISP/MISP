@@ -4697,14 +4697,6 @@ function checkNoticeList(type) {
 
 }
 
-function quickSelect(target) {
-    var range = document.createRange();
-    var selection = window.getSelection();
-    range.selectNodeContents(target);
-    selection.removeAllRanges();
-    selection.addRange(range);
-}
-
 $(document).ready(function() {
     // Show popover for disabled input that contains `data-disabled-reason`.
     $('input:disabled[data-disabled-reason]').popover("destroy").popover({
@@ -4749,11 +4741,6 @@ $(document).ready(function() {
             cache: false,
             url: baseurl + '/admin/roles/set_default/' + (state ? id : ""),
         });
-    });
-    // clicking on an element with this class will select all of its contents in a
-    // single click
-    $('.quickSelect').click(function() {
-        quickSelect(this);
     });
     $('.add_object_attribute_row').click(function() {
         var template_id = $(this).data('template-id');
@@ -4852,6 +4839,15 @@ $(document.body).on('keydown', 'textarea', function(e) {
             $(e.target.form).submit();
         }
     }
+});
+
+// Clicking on an element with this class will select all of its contents in a single click
+$(document.body).on('click', '.quickSelect', function() {
+    var range = document.createRange();
+    var selection = window.getSelection();
+    range.selectNodeContents(this);
+    selection.removeAllRanges();
+    selection.addRange(range);
 });
 
 function queryEventLock(event_id, user_org_id) {
