@@ -1,5 +1,5 @@
 <?php
-    echo sprintf('<div %s>', empty($ajax) ? 'class="index"' : '');
+    echo sprintf('<div%s>', empty($ajax) ? ' class="index"' : '');
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
             'data' => $data,
@@ -49,7 +49,6 @@
                     'sort' => 'AuthKey.authkey_start',
                     'element' => 'authkey',
                     'data_path' => 'AuthKey',
-                    'privacy' => 1
                 ],
                 [
                     'name' => __('Expiration'),
@@ -79,7 +78,8 @@
                         $baseurl
                     ),
                     'onclick_params_data_path' => 'AuthKey.id',
-                    'icon' => 'trash'
+                    'icon' => 'trash',
+                    'title' => __('Delete auth key'),
                 ]
             ]
         ]
