@@ -17,7 +17,8 @@
             $data = '<span class="text-primary font-weight-bold">' . __('Indefinite') . '</span>';
         } else {
             if ($data <= time()) {
-                $data = '<span class="text-danger font-weight-bold">' . __('Expired') . '</span>';
+                $title = __('Expired at %s', date('Y-m-d H:i:s', $data));
+                $data = '<span class="text-danger font-weight-bold" title="' . $title . '">' . __('Expired') . '</span>';
             } else {
                 $data = '<span class="text-success font-weight-bold">' . date('Y-m-d H:i:s', $data) . '</span>';
             }
@@ -25,10 +26,9 @@
     }
     if (!empty($field['onClick'])) {
         $data = sprintf(
-            '<span onClick="%s">%s</span>',
+            '<span onclick="%s">%s</span>',
             $field['onClick'],
             $data
         );
     }
     echo $data;
-?>
