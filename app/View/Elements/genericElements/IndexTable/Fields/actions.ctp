@@ -79,7 +79,6 @@
                     h(Hash::extract($row, $action['onclick_params_data_path'])[0]),
                     $action['onclick']
                 );
-
             }
             echo sprintf(
                 '<a href="%s" title="%s" aria-label="%s" %s %s><i class="black %s"></i></a> ',
@@ -87,7 +86,7 @@
                 empty($action['title']) ? '' : h($action['title']),
                 empty($action['title']) ? '' : h($action['title']),
                 empty($action['dbclickAction']) ? '' : 'class="dblclickActionElement"',
-                empty($action['onclick']) ? '' : sprintf('onClick="%s"', $action['onclick']),
+                empty($action['onclick']) ? '' : sprintf('onclick="event.preventDefault();%s"', $action['onclick']),
                 $this->FontAwesome->getClass($action['icon'])
             );
         }
