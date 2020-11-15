@@ -13,21 +13,20 @@
     );
     $table_data[] = array(
         'key' => __('Organisation'),
-        'html' => sprintf(
-            '<a href="%s/organisations/view/%s">%s</a>',
-            $baseurl,
-            h($user['Organisation']['id']),
-            h($user['Organisation']['name'])
-        )
+        'html' => $this->OrgImg->getNameWithImg($user),
     );
     $table_data[] = array('key' => __('Role'), 'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])));
     $table_data[] = array('key' => __('Autoalert'), 'boolean' => $user['User']['autoalert']);
     $table_data[] = array('key' => __('Contactalert'), 'boolean' => $user['User']['contactalert']);
-    $authkey_data = sprintf(
-        '<a onclick="requestAPIAccess();" style="cursor:pointer;"></a>',
-        __('Request API access')
-    );
-    if (empty(Configure::read('Security.advanced_authkeys'))) {
+
+    if (!$admin_view && !$user['Role']['perm_auth']) {
+        $table_data[] = array(
+            'key' => __('Auth key'),
+            'html' => sprintf('<a onclick="requestAPIAccess();" class="useCursorPointer">%s</a>', __('Request API access')),
+        );
+    }
+
+    if (empty(Configure::read('Security.advanced_authkeys')) && $user['Role']['perm_auth']) {
         $authkey_data = sprintf(
             '<span class="privacy-value quickSelect authkey" data-hidden-value="%s">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="%s"></i>%s',
             h($user['User']['authkey']),
@@ -38,7 +37,7 @@
             )
         );
         $table_data[] = array(
-            'key' => __('Authkey'),
+            'key' => __('Auth key'),
             'html' => $authkey_data
         );
     }
@@ -137,24 +136,3 @@
         $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => '/events/index/searchemail:' . urlencode(h($user['User']['email'])))),
         $this->element('/genericElements/SideMenu/side_menu', $current_menu[$admin_view ? 'admin_view' : 'view'])
     );
-?>
-<script type="text/javascript">
-    $(function () {
-        $.ajax({
-            url: '<?php echo $baseurl . "/events/index/searchemail:" . urlencode(h($user['User']['email'])); ?>',
-            type:'GET',
-            beforeSend: function () {
-                $(".loading").show();
-            },
-            error: function(){
-                $('#userEvents').html('An error has occurred, please reload the page.');
-            },
-            success: function(response){
-                $('#userEvents').html(response);
-            },
-            complete: function() {
-                $(".loading").hide();
-            }
-        });
-    });
-</script>
