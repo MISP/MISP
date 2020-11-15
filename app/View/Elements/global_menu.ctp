@@ -3,11 +3,7 @@
         // New approach how to define menu requirements. It takes ACLs from ACLComponent.
         // TODO: Use for every menu item
         $canAccess = function ($controller, $action) use ($me, $aclComponent) {
-            $response = $aclComponent->checkAccess($me, $controller, $action, true);
-            if ($response === 404) {
-                throw new Exception("Invalid controller '$controller' specified for menu requirements.");
-            }
-            return $response === true;
+            return $aclComponent->canUserAccess($me, $controller, $action);
         };
 
         $menu = array(
@@ -334,7 +330,8 @@
                     ),
                     array(
                         'text' => __('Add User'),
-                        'url' => $baseurl . '/admin/users/add'
+                        'url' => $baseurl . '/admin/users/add',
+                        'requirement' => $canAccess('users', 'admin_add'),
                     ),
                     array(
                         'text' => __('Contact Users'),

@@ -310,7 +310,7 @@ class RestResponseComponent extends Component
         foreach ($this->__scopedFieldsConstraint as $controller => $actions) {
             $controller = Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
-                if ($this->ACL->checkAccess($user, $controller, $action, true) === true) {
+                if ($this->ACL->canUserAccess($user, $controller, $action)) {
                     $admin_routing = '';
                     if (substr($action, 0, 6) === 'admin_') {
                         $action = substr($action, 6);
@@ -331,7 +331,7 @@ class RestResponseComponent extends Component
         foreach ($this->__descriptions as $controller => $actions) {
             $controller = Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
-                if ($this->ACL->checkAccess($user, $controller, $action, true) === true) {
+                if ($this->ACL->canUserAccess($user, $controller, $action)) {
                     $admin_routing = '';
                     if (substr($action, 0, 6) === 'admin_') {
                         $action = substr($action, 6);

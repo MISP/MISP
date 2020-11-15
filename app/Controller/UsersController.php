@@ -131,9 +131,6 @@ class UsersController extends AppController
 
     public function edit()
     {
-        if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
-            throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
-        }
         $currentUser = $this->User->find('first', array(
             'conditions' => array('User.id' => $this->Auth->user('id')),
             'recursive' => -1
@@ -185,8 +182,11 @@ class UsersController extends AppController
             }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
-                $fieldList = array('email', 'autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
-                if (!empty($this->request->data['User']['password'])) {
+                $fieldList = array('autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
+                if ($this->__canChangeLogin()) {
+                    $fieldList[] = 'email';
+                }
+                if ($this->__canChangePassword() && !empty($this->request->data['User']['password'])) {
                     $fieldList[] = 'password';
                     $fieldList[] = 'confirm_password';
                 }
@@ -243,15 +243,14 @@ class UsersController extends AppController
         $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
         $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
         $roles = $this->User->Role->find('list');
-        $this->set(compact('roles'));
+        $this->set('roles', $roles);
         $this->set('id', $id);
+        $this->set('canChangePassword', $this->__canChangePassword());
+        $this->set('canChangeLogin', $this->__canChangeLogin());
     }
 
     public function change_pw()
     {
-        if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
-            throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
-        }
         $id = $this->Auth->user('id');
         $user = $this->User->find('first', array(
             'conditions' => array('User.id' => $id),
@@ -334,14 +333,11 @@ class UsersController extends AppController
         $this->User->set('password', '');
         $this->request->data = $this->User->data;
         $roles = $this->User->Role->find('list');
-        $this->set(compact('roles'));
+        $this->set('roles', $roles);
     }
 
     public function admin_index()
     {
-        if (!$this->_isAdmin()) {
-            throw new NotFoundException(__('Invalid user or not authorised.'));
-        }
         $this->User->virtualFields['org_ci'] = 'UPPER(Organisation.name)';
         $urlParams = "";
         $passedArgsArray = array();
@@ -497,9 +493,6 @@ class UsersController extends AppController
 
     public function admin_filterUserIndex()
     {
-        if (!$this->_isAdmin() && !$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         $passedArgsArray = array();
         $booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
         $textFields = array('role', 'email', 'authkey');
@@ -633,9 +626,6 @@ class UsersController extends AppController
 
     public function admin_add()
     {
-        if (!$this->_isAdmin()) {
-            throw new Exception('Administrators only.');
-        }
         $params = null;
         if (!$this->_isSiteAdmin()) {
             $params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
@@ -908,7 +898,6 @@ class UsersController extends AppController
                     }
                 }
             }
-            $fail = false;
             if (!$this->_isSiteAdmin() && !$abortPost) {
                 $organisation = $this->User->Organisation->find('first', array(
                     'conditions' => array('Organisation.id' => $userToEdit['User']['org_id']),
@@ -942,6 +931,13 @@ class UsersController extends AppController
                 $blockedFields = array('id', 'invited_by');
                 if (!$this->_isSiteAdmin()) {
                     $blockedFields[] = 'org_id';
+                }
+                if (!$this->__canChangeLogin()) {
+                    $blockedFields[] = 'email';
+                }
+                if (!$this->__canChangePassword()) {
+                    $blockedFields[] = 'enable_password';
+                    $blockedFields[] = 'change_pw';
                 }
                 foreach (array_keys($this->request->data['User']) as $field) {
                     if (in_array($field, $blockedFields)) {
@@ -1081,6 +1077,8 @@ class UsersController extends AppController
         $this->set('id', $id);
         $this->set(compact('roles'));
         $this->set(compact('syncRoles'));
+        $this->set('canChangeLogin', $this->__canChangeLogin());
+        $this->set('canChangePassword', $this->__canChangePassword());
     }
 
     public function admin_delete($id = null)
@@ -2734,5 +2732,18 @@ class UsersController extends AppController
             $this->Flash->success($message);
             $this->redirect($this->referer());
         }
+    }
+
+    private function __canChangePassword()
+    {
+        return $this->ACL->canUserAccess($this->Auth->user(), 'users', 'change_pw');
+    }
+
+    private function __canChangeLogin()
+    {
+        if ($this->_isSiteAdmin()) {
+            return true;
+        }
+        return !Configure::read('MISP.disable_user_login_change');
     }
 }
