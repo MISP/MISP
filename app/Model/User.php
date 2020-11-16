@@ -641,39 +641,50 @@ class User extends AppModel
     // get the current user and rearrange it to be in the same format as in the auth component
     public function getAuthUser($id)
     {
-        $user = $this->getUserById($id);
-        if (empty($user)) {
-            return $user;
+        if (empty($id)) {
+            throw new InvalidArgumentException('Invalid user ID.');
         }
-        return $this->rearrangeToAuthForm($user);
+        $conditions = ['User.id' => $id];
+        return $this->getAuthUserByConditions($conditions);
     }
 
     // get the current user and rearrange it to be in the same format as in the auth component
-    public function getAuthUserByAuthkey($id)
+    public function getAuthUserByAuthkey($authkey)
     {
-        $conditions = array('User.authkey' => $id);
-        $user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
-        if (empty($user)) {
-            return $user;
+        if (empty($authkey)) {
+            throw new InvalidArgumentException('Invalid user auth key.');
         }
-        return $this->rearrangeToAuthForm($user);
+        $conditions = array('User.authkey' => $authkey);
+        return $this->getAuthUserByConditions($conditions);
     }
 
     public function getAuthUserByExternalAuth($auth_key)
     {
+        if (empty($auth_key)) {
+            throw new InvalidArgumentException('Invalid user external auth key.');
+        }
         $conditions = array(
             'User.external_auth_key' => $auth_key,
             'User.external_auth_required' => true
         );
-        $user = $this->find('first', array(
+        return $this->getAuthUserByConditions($conditions);
+    }
+
+    /**
+     * @param array $conditions
+     * @return array|null
+     */
+    private function getAuthUserByConditions(array $conditions)
+    {
+        $user = $this->find('first', [
             'conditions' => $conditions,
             'recursive' => -1,
-            'contain' => array(
+            'contain' => [
                 'Organisation',
                 'Role',
-                'Server'
-            )
-        ));
+                'Server',
+            ],
+        ]);
         if (empty($user)) {
             return $user;
         }
@@ -696,9 +707,6 @@ class User extends AppModel
         $user['User']['Role'] = $user['Role'];
         $user['User']['Organisation'] = $user['Organisation'];
         $user['User']['Server'] = $user['Server'];
-        if (isset($user['UserSetting'])) {
-            $user['User']['UserSetting'] = $user['UserSetting'];
-        }
         return $user['User'];
     }
 
