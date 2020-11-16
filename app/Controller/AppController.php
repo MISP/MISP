@@ -586,7 +586,7 @@ class AppController extends Controller
 
     public function afterFilter()
     {
-        if ($this->isApiAuthed && $this->_isRest()) {
+        if ($this->isApiAuthed && $this->_isRest() && $this->Session->started()) {
             $this->Session->destroy();
         }
     }
