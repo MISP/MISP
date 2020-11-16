@@ -351,12 +351,12 @@
     <p><?php echo __('This tool tests whether your GnuPG is set up correctly or not.');?></p>
     <div style="background-color:#f7f7f9;width:400px;">
         <?php
-            $colour = 'green';
-            $message = $gpgErrors[$gpgStatus];
-            if ($gpgStatus > 0) {
-                $colour = 'red';
+            $message = $gpgErrors[$gpgStatus['status']];
+            $color = $gpgStatus['status'] === 0 ? 'green' : 'red';
+            echo __('GnuPG installation and settings') . '…<span style="color:' . $color . '">' . $message . '</span><br>';
+            if ($gpgStatus['version']) {
+                echo __('GnuPG version: %s', $gpgStatus['version'] ?: __('N/A'));
             }
-            echo __('GnuPG installation and settings') . '…<span style="color:' . $colour . ';">' . $message . '</span>';
         ?>
     </div>
     <h3><?php echo __('ZeroMQ');?></h3>

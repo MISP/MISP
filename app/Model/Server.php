@@ -5258,43 +5258,49 @@ class Server extends AppModel
         return $result;
     }
 
+    /**
+     * @param int $diagnostic_errors
+     * @return array
+     */
     public function gpgDiagnostics(&$diagnostic_errors)
     {
-        $gpgStatus = 0;
+        $output = ['status' => 0, 'version' => null];
         if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
-            $continue = true;
             try {
                 $gpg = GpgTool::initializeGpg();
             } catch (Exception $e) {
                 $this->logException("Error during initializing GPG.", $e, LOG_NOTICE);
-                $gpgStatus = 2;
-                $continue = false;
+                $output['status'] = 2;
             }
-            if ($continue) {
+            if ($output['status'] === 0) {
                 try {
-                    $key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+                    $output['version'] = $gpg->getVersion();
+                } catch (Exception $e) {
+                    // ingore
+                }
+
+                try {
+                    $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
                 } catch (Exception $e) {
                     $this->logException("Error during adding GPG signing key.", $e, LOG_NOTICE);
-                    $gpgStatus = 3;
-                    $continue = false;
+                    $output['status'] = 3;
                 }
             }
-            if ($continue) {
+            if ($output['status'] === 0) {
                 try {
-                    $gpgStatus = 0;
-                    $signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
+                    $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
                 } catch (Exception $e) {
                     $this->logException("Error during GPG signing.", $e, LOG_NOTICE);
-                    $gpgStatus = 4;
+                    $output['status'] = 4;
                 }
             }
         } else {
-            $gpgStatus = 1;
+            $output['status'] = 1;
         }
-        if ($gpgStatus != 0) {
+        if ($output['status'] !== 0) {
             $diagnostic_errors++;
         }
-        return $gpgStatus;
+        return $output;
     }
 
     public function zmqDiagnostics(&$diagnostic_errors)
