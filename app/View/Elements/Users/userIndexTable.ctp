@@ -7,12 +7,12 @@
         <th><?php echo $this->Paginator->sort('authkey');?></th>
         <th><?php echo $this->Paginator->sort('autoalert');?></th>
         <th><?php echo $this->Paginator->sort('contactalert');?></th>
-        <th><?php echo $this->Paginator->sort('gpgkey');?></th>
+        <th><?php echo $this->Paginator->sort('gpgkey', __('PGP key'));?></th>
         <?php if (Configure::read('SMIME.enabled')): ?>
-            <th><?php echo $this->Paginator->sort('certif_public', 'SMIME');?></th>
+            <th><?php echo $this->Paginator->sort('certif_public', 'S/MIME');?></th>
         <?php endif; ?>
-        <th><?php echo $this->Paginator->sort('nids_sid');?></th>
-        <th><?php echo $this->Paginator->sort('termsaccepted');?></th>
+        <th><?php echo $this->Paginator->sort('nids_sid', __('NIDS SID'));?></th>
+        <th><?php echo $this->Paginator->sort('termsaccepted', __('Terms accepted'));?></th>
         <th><?php echo $this->Paginator->sort('current_login', __('Last login'));?></th>
         <th><?php echo $this->Paginator->sort('date_created', __('Created'));?></th>
         <?php
@@ -40,7 +40,7 @@
                 <td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
                     <?php echo h($user['User']['email']); ?>&nbsp;
                 </td>
-                <td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" class="<?php echo $user['Role']['perm_auth'] ? 'bold' : 'grey'; ?>">
+                <td class="bold<?= $user['Role']['perm_auth'] ? '' : ' grey'; ?>">
                     <span class="privacy-value quickSelect" data-hidden-value="<?= h($user['User']['authkey']) ?>">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="<?= __('Reveal hidden value') ?>"></i>
                 </td>
                 <td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
@@ -64,10 +64,10 @@
                     <?php echo ($user['User']['termsaccepted'] == 1) ? __("Yes") : __("No"); ?>
                 </td>
                 <td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" title="<?php echo !$user['User']['current_login'] ? __('N/A') : h(date("Y-m-d H:i:s",$user['User']['current_login']));?>">
-                    <?php echo !$user['User']['current_login'] ? __('N/A') : h(date("Y-m-d",$user['User']['current_login'])); ?>&nbsp;
+                    <?php echo !$user['User']['current_login'] ? __('N/A') : h(date("Y-m-d", $user['User']['current_login'])); ?>&nbsp;
                 </td>
                 <td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" title="<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d H:i:s",$user['User']['current_login']));?>">
-                    <?php echo !$user['User']['date_created'] ? __('N/A') : h(date("Y-m-d",$user['User']['date_created'])); ?>&nbsp;
+                    <?php echo !$user['User']['date_created'] ? __('N/A') : h(date("Y-m-d", $user['User']['date_created'])); ?>&nbsp;
                 </td>
                 <?php
                     if (Configure::read('Plugin.CustomAuth_enable') && !Configure::read('Plugin.CustomAuth_required')):

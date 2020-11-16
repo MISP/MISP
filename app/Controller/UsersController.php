@@ -71,6 +71,9 @@ class UsersController extends AppController
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
         }
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            unset($user['User']['authkey']);
+        }
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
             $user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
@@ -87,12 +90,16 @@ class UsersController extends AppController
             return $this->RestResponse->viewData($this->__massageUserObject($user), $this->response->type());
         } else {
             $this->set('user', $user);
+            $this->set('admin_view', false);
         }
     }
 
     private function __massageUserObject($user)
     {
         unset($user['User']['server_id']);
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            unset($user['User']['authkey']);
+        }
         $user['User']['password'] = '*****';
         $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
         foreach ($objectsToInclude as $objectToInclude) {
@@ -124,9 +131,6 @@ class UsersController extends AppController
 
     public function edit()
     {
-        if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
-            throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
-        }
         $currentUser = $this->User->find('first', array(
             'conditions' => array('User.id' => $this->Auth->user('id')),
             'recursive' => -1
@@ -178,8 +182,11 @@ class UsersController extends AppController
             }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
-                $fieldList = array('email', 'autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
-                if (!empty($this->request->data['User']['password'])) {
+                $fieldList = array('autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
+                if ($this->__canChangeLogin()) {
+                    $fieldList[] = 'email';
+                }
+                if ($this->__canChangePassword() && !empty($this->request->data['User']['password'])) {
                     $fieldList[] = 'password';
                     $fieldList[] = 'confirm_password';
                 }
@@ -236,15 +243,14 @@ class UsersController extends AppController
         $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
         $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
         $roles = $this->User->Role->find('list');
-        $this->set(compact('roles'));
+        $this->set('roles', $roles);
         $this->set('id', $id);
+        $this->set('canChangePassword', $this->__canChangePassword());
+        $this->set('canChangeLogin', $this->__canChangeLogin());
     }
 
     public function change_pw()
     {
-        if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
-            throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
-        }
         $id = $this->Auth->user('id');
         $user = $this->User->find('first', array(
             'conditions' => array('User.id' => $id),
@@ -327,14 +333,11 @@ class UsersController extends AppController
         $this->User->set('password', '');
         $this->request->data = $this->User->data;
         $roles = $this->User->Role->find('list');
-        $this->set(compact('roles'));
+        $this->set('roles', $roles);
     }
 
     public function admin_index()
     {
-        if (!$this->_isAdmin()) {
-            throw new NotFoundException(__('Invalid user or not authorised.'));
-        }
         $this->User->virtualFields['org_ci'] = 'UPPER(Organisation.name)';
         $urlParams = "";
         $passedArgsArray = array();
@@ -490,9 +493,6 @@ class UsersController extends AppController
 
     public function admin_filterUserIndex()
     {
-        if (!$this->_isAdmin() && !$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         $passedArgsArray = array();
         $booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
         $textFields = array('role', 'email', 'authkey');
@@ -563,14 +563,25 @@ class UsersController extends AppController
 
     public function admin_view($id = null)
     {
+        $contain = [
+            'UserSetting',
+            'Role',
+            'Organisation'
+        ];
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            $contain['AuthKey'] = [
+                'conditions' => [
+                    'OR' => [
+                        'AuthKey.expiration' => 0,
+                        'AuthKey.expiration <' => time()
+                    ]
+                ]
+            ];
+        }
         $user = $this->User->find('first', array(
             'recursive' => -1,
             'conditions' => array('User.id' => $id),
-            'contain' => array(
-                'UserSetting',
-                'Role',
-                'Organisation'
-            )
+            'contain' => $contain
         ));
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
@@ -583,6 +594,9 @@ class UsersController extends AppController
         $user['User']['orgAdmins'] = $this->User->getOrgAdminsForOrg($user['User']['org_id'], $user['User']['id']);
         if (empty($this->Auth->user('Role')['perm_site_admin']) && !(empty($user['Role']['perm_site_admin']))) {
             $user['User']['authkey'] = __('Redacted');
+        }
+        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+            unset($user['User']['authkey']);
         }
         $this->set('user', $user);
         if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $user['User']['org_id'])) {
@@ -605,14 +619,13 @@ class UsersController extends AppController
             $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
             $this->set('id', $id);
             $this->set('user2', $user2);
+            $this->set('admin_view', true);
+            $this->render('view');
         }
     }
 
     public function admin_add()
     {
-        if (!$this->_isAdmin()) {
-            throw new Exception('Administrators only.');
-        }
         $params = null;
         if (!$this->_isSiteAdmin()) {
             $params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
@@ -660,7 +673,7 @@ class UsersController extends AppController
                         'disabled' => 0,
                         'newsread' => 0,
                         'change_pw' => 1,
-                        'authkey' => $this->User->generateAuthKey(),
+                        'authkey' => (new RandomTool())->random_str(true, 40),
                         'termsaccepted' => 0,
                         'org_id' => $this->Auth->user('org_id')
                 );
@@ -756,12 +769,19 @@ class UsersController extends AppController
                                 $notification_message .= ' ' . __('User notification of new credentials could not be send.');
                             }
                         }
+                        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                            $this->loadModel('AuthKey');
+                            $newKey = $this->AuthKey->createnewkey($this->User->id);
+                        }
                         if ($this->_isRest()) {
                             $user = $this->User->find('first', array(
                                     'conditions' => array('User.id' => $this->User->id),
                                     'recursive' => -1
                             ));
                             $user['User']['password'] = '******';
+                            if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                                $user['User']['authkey'] = $newKey;
+                            }
                             return $this->RestResponse->viewData($user, $this->response->type());
                         } else {
                             $this->Flash->success(__('The user has been saved.') . $notification_message);
@@ -878,7 +898,6 @@ class UsersController extends AppController
                     }
                 }
             }
-            $fail = false;
             if (!$this->_isSiteAdmin() && !$abortPost) {
                 $organisation = $this->User->Organisation->find('first', array(
                     'conditions' => array('Organisation.id' => $userToEdit['User']['org_id']),
@@ -912,6 +931,13 @@ class UsersController extends AppController
                 $blockedFields = array('id', 'invited_by');
                 if (!$this->_isSiteAdmin()) {
                     $blockedFields[] = 'org_id';
+                }
+                if (!$this->__canChangeLogin()) {
+                    $blockedFields[] = 'email';
+                }
+                if (!$this->__canChangePassword()) {
+                    $blockedFields[] = 'enable_password';
+                    $blockedFields[] = 'change_pw';
                 }
                 foreach (array_keys($this->request->data['User']) as $field) {
                     if (in_array($field, $blockedFields)) {
@@ -994,6 +1020,9 @@ class UsersController extends AppController
                     $this->User->extralog($this->Auth->user(), "edit", "user", $fieldsResult, $user);
                     if ($this->_isRest()) {
                         $user['User']['password'] = '******';
+                        if (!empty(Configure::read('Security.advanced_authkeys'))) {
+                            unset($user['User']['authkey']);
+                        }
                         return $this->RestResponse->viewData($user, $this->response->type());
                     } else {
                         $this->Flash->success(__('The user has been saved'));
@@ -1048,6 +1077,8 @@ class UsersController extends AppController
         $this->set('id', $id);
         $this->set(compact('roles'));
         $this->set(compact('syncRoles'));
+        $this->set('canChangeLogin', $this->__canChangeLogin());
+        $this->set('canChangePassword', $this->__canChangePassword());
     }
 
     public function admin_delete($id = null)
@@ -2663,5 +2694,56 @@ class UsersController extends AppController
                 }
             }
         }
+    }
+
+    public function updateToAdvancedAuthKeys()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint can only be triggered via POST requests.'));
+        }
+        $users = $this->User->find('all', [
+            'recursive' => -1,
+            'contain' => ['AuthKey'],
+            'fields' => ['id', 'authkey']
+        ]);
+        $updated = 0;
+        foreach ($users as $user) {
+            if (!empty($user['AuthKey'])) {
+                $currentKeyStart = substr($user['User']['authkey'], 0, 4);
+                $currentKeyEnd = substr($user['User']['authkey'], -4);
+                foreach ($user['AuthKey'] as $authkey) {
+                    if ($authkey['authkey_start'] === $currentKeyStart && $authkey['authkey_end'] === $currentKeyEnd) {
+                        continue 2;
+                    }
+                }
+            }
+            $this->User->AuthKey->create();
+            $this->User->AuthKey->save([
+                'authkey' => $user['User']['authkey'],
+                'expiration' => 0,
+                'user_id' => $user['User']['id']
+            ]);
+            $updated += 1;
+        }
+        $message = __('The upgrade process is complete, %s authkey(s) generated.', $updated);
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('User', 'acceptRegistrations', false, $this->response->type(), $message);
+        } else {
+            $this->Flash->success($message);
+            $this->redirect($this->referer());
+        }
+    }
+
+    private function __canChangePassword()
+    {
+        return $this->ACL->canUserAccess($this->Auth->user(), 'users', 'change_pw');
+    }
+
+    private function __canChangeLogin()
+    {
+        if ($this->_isSiteAdmin()) {
+            return true;
+        }
+        return !Configure::read('MISP.disable_user_login_change');
     }
 }

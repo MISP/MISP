@@ -208,7 +208,8 @@ class User extends AppModel
             'counterQuery' => ''
         ),
         'Post',
-        'UserSetting'
+        'UserSetting',
+        'AuthKey'
     );
 
     public $actsAs = array(
@@ -1119,23 +1120,28 @@ class User extends AppModel
             return false;
         }
         $updatedUser = $this->read();
-        $oldKey = $this->data['User']['authkey'];
         if (empty($user['Role']['perm_site_admin']) && !($user['Role']['perm_admin'] && $user['org_id'] == $updatedUser['User']['org_id']) && ($user['id'] != $id)) {
             return false;
         }
-        $newkey = $this->generateAuthKey();
-        $this->saveField('authkey', $newkey);
-        $this->extralog(
-                $user,
-                'reset_auth_key',
-                sprintf(
-                    __('Authentication key for user %s (%s) updated.'),
-                    $updatedUser['User']['id'],
-                    $updatedUser['User']['email']
-                ),
-                $fieldsResult = ['authkey' =>  [$oldKey, $newkey]],
-                $updatedUser
-        );
+        if (empty(Configure::read('Security.advanced_authkeys'))) {
+            $oldKey = $this->data['User']['authkey'];
+            $newkey = $this->generateAuthKey();
+            $this->saveField('authkey', $newkey);
+            $this->extralog(
+                    $user,
+                    'reset_auth_key',
+                    sprintf(
+                        __('Authentication key for user %s (%s) updated.'),
+                        $updatedUser['User']['id'],
+                        $updatedUser['User']['email']
+                    ),
+                    $fieldsResult = ['authkey' =>  [$oldKey, $newkey]],
+                    $updatedUser
+            );
+        } else {
+            $this->AuthKey = ClassRegistry::init('AuthKey');
+            $newkey = $this->AuthKey->resetauthkey($id);
+        }
         if ($alert) {
             $baseurl = Configure::read('MISP.external_baseurl');
             if (empty($baseurl)) {

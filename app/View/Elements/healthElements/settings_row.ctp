@@ -63,7 +63,7 @@
                 'html' => sprintf(
                     '%s%s',
                     !empty($setting['cli_only']) ? sprintf('<span class="bold">[<span class="red">%s</span>]</span> ', __('CLI only')) : '',
-                    h($setting['description'])
+                    $setting['description']
                 ),
                 'class' => 'live_filter_target'
             ),

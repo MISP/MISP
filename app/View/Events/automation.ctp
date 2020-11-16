@@ -1,3 +1,6 @@
+<?php
+    $api_key = empty(Configure::read('Security.advanced_authkeys')) ? $me['authkey'] : 'YOUR_API_KEY';
+?>
 <div class="event index">
     <h2><?php echo __('Automation');?></h2>
     <p><?php echo __('Automation functionality is designed to automatically feed other tools and systems with the data in your MISP repository.
@@ -8,15 +11,26 @@
     </p>
     <span>
         <?php
-            echo __(
-                'Your current key is: <code>%s</code>. You can %s this key.',
-                $me['authkey'],
-                $this->Form->postLink(
-                    __('reset'),
-                    array('controller' => 'users', 'action' => 'resetauthkey', 'me'),
-                    array('div' => false)
-                )
-            );
+            if (empty(Configure::read('Security.advanced_authkeys'))) {
+                echo __(
+                    'Your current key is: <code>%s</code>. You can %s this key.',
+                    $me['authkey'],
+                    $this->Form->postLink(
+                        __('reset'),
+                        array('controller' => 'users', 'action' => 'resetauthkey', 'me'),
+                        array('div' => false)
+                    )
+                );
+            } else {
+                echo __(
+                    'You can view and manage your API keys under your profile, found %s',
+                    sprintf(
+                        '<a href="%s/users/view/me">%s</a>',
+                        $baseurl,
+                        __('here')
+                    )
+                );
+            }
         ?>
     </span>
     <?php
@@ -73,7 +87,7 @@
         $headers = array(
             'Accept: application/json',
             'Content-type: application/json',
-            'Authorization: ' . $me['authkey']
+            'Authorization: ' . $api_key
         );
         $headers = implode("\n", $headers);
         $body = json_encode(
@@ -130,7 +144,7 @@
     <p>JSON:</p>
     <pre><?php
         echo 'Headers' . PHP_EOL;
-        echo 'Authorization: ' . h($me['authkey']) . PHP_EOL;
+        echo 'Authorization: ' . h($api_key) . PHP_EOL;
         echo 'Accept: application/json' . PHP_EOL;
         echo 'Content-type: application/json';
     ?></pre>
@@ -138,7 +152,7 @@
     <p>XML:</p>
     <pre><?php
         echo 'Headers' . PHP_EOL;
-        echo 'Authorization: ' . h($me['authkey']) . PHP_EOL;
+        echo 'Authorization: ' . h($api_key) . PHP_EOL;
         echo 'Accept: application/json' . PHP_EOL;
         echo 'Content-type: application/json';
     ?></pre>
@@ -303,7 +317,7 @@
     <b>URL</b>: <?php echo $baseurl.'/events/index'; ?><br />
     <b>Headers</b>:<br />
     <pre><?php
-        echo 'Authorization: ' . $me['authkey'] . PHP_EOL;
+        echo 'Authorization: ' . $api_key . PHP_EOL;
         echo 'Accept: application/json' . PHP_EOL;
         echo 'Content-type: application/json';
     ?></pre>

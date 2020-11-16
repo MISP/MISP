@@ -3,20 +3,22 @@
     <fieldset>
         <legend><?php echo __('Edit My Profile'); ?></legend>
     <?php
-        echo $this->Form->input('email');
+        echo $this->Form->input('email', ['disabled' => $canChangeLogin ? false : 'disabled']);
     ?>
         <div class="input clear"></div>
     <?php
+    if ($canChangePassword) {
         $passwordPopover = '<span class="blue bold">' . __('Minimal length') . '</span>: ' . h($length) . '<br>';
         $passwordPopover .= '<span class="blue bold">' . __('Complexity') . '</span>: ' . h($complexity);
         echo $this->Form->input('password', array(
-            'label' => __('Password') . ' <span id="PasswordPopover" class="fas fa-info-circle"></span>'
+            'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) . '" class="fas fa-info-circle"></span>'
         ));
         echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
+    }
     ?>
         <div class="input clear"></div>
     <?php
-        echo $this->Form->input('nids_sid');
+        echo $this->Form->input('nids_sid', ['label' => __('NIDS SID')]);
     ?>
         <div class="input clear"></div>
     <?php
@@ -24,9 +26,13 @@
         ?>
             <div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch GnuPG key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GnuPG key');?></span></div>
         <?php
-        if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge'));
+        if (Configure::read('SMIME.enabled')) {
+            echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge'));
+        }
+        echo '<div class="user-edit-checkboxes">';
         echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
         echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
+        echo '</div>';
     ?>
     </fieldset>
     <div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>
@@ -38,7 +44,7 @@
 ?>
     </div>
 <?php
-    echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+    echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
     echo $this->Form->end();
 ?>
 </div>
@@ -46,14 +52,4 @@
     $user['User']['id'] = $id;
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'edit', 'user' => $user));
 ?>
-<script type="text/javascript">
-    $(function() {
-        $('#PasswordPopover').popover("destroy").popover({
-            placement: 'right',
-            html: 'true',
-            trigger: 'hover',
-            content: <?= json_encode($passwordPopover) ?>
-        });
-    });
-</script>
 <?php echo $this->Js->writeBuffer();
