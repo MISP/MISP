@@ -36,6 +36,8 @@ jobs:
           mysql user: 'misp'
           mysql password: 'blah'
 
+      - uses: getong/redis-action@v1
+
       # prepare php stuff
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -142,7 +144,7 @@ jobs:
               sleep 10
               # Dirty install python stuff
               virtualenv -p python3.6 ./venv
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$TRAVIS_BUILD_DIR/venv/bin/python"'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
               pushd cti-python-stix2
               pip install .
