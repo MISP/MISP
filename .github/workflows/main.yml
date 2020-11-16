@@ -106,9 +106,6 @@ jobs:
               sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
               # change perms
               sudo chown -R $USER:www-data `pwd`
-              sudo chmod +x /home/travis/build
-              sudo chmod +x /home/travis
-              sudo chmod +x /home
               sudo chmod -R 770 `pwd`/.gnupg
               # Get authkey
               sudo usermod -a -G www-data $USER
