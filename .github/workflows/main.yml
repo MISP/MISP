@@ -60,6 +60,7 @@ jobs:
               sudo pip3 install --upgrade pip setuptools requests pyzmq
               sudo pip3 install --upgrade -r requirements.txt
               sudo pip3 install poetry
+              USER=`id -u -n`
               sudo chown $USER:www-data $HOME/.composer
               pushd app
               sudo -H -u $USER php composer.phar install --no-progress
@@ -121,6 +122,7 @@ jobs:
 
       - name: Configure MISP
         run: |
+              USER=`id -u -n`
               sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
               sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
@@ -146,6 +148,7 @@ jobs:
 
       - name: Configure ZMQ
         run: |
+              USER=`id -u -n`
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1"'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1'
@@ -153,10 +156,13 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1'
 
       - name: Turn MISP live
-        run: sudo -E su $USER -c 'app/Console/cake Live 1'
+        run: |
+              USER=`id -u -n`
+              sudo -E su $USER -c 'app/Console/cake Live 1'
 
       - name: Start workers
         run: |
+              USER=`id -u -n`
               sudo chmod +x app/Console/worker/start.sh
               sudo -E su $USER -c 'app/Console/worker/start.sh &'
               sleep 10
@@ -168,6 +174,7 @@ jobs:
               # Start workers
               # Dirty install python stuff
               virtualenv -p python3 ./venv
+              USER=`id -u -n`
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
               pushd cti-python-stix2
