@@ -584,12 +584,12 @@ class AppController extends Controller
         return true;
     }
 
-    public function afterFilter()
+ /*public function afterFilter()
     {
         if ($this->isApiAuthed && $this->_isRest() && $this->Session->started()) {
             $this->Session->destroy();
         }
-    }
+    }*/
 
     public function queryACL($debugType='findMissingFunctionNames', $content = false)
     {
