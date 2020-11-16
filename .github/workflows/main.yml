@@ -93,7 +93,7 @@ jobs:
               sudo a2dissite 000-default
               sudo a2ensite misp.conf
               sudo a2enmod rewrite
-              sudo systemctl apache2 restart
+              sudo systemctl restart apache2
               # MISP configuration
               sudo chmod -R 777 `pwd`/travis
               sudo cp app/Config/bootstrap.default.php app/Config/bootstrap.php
