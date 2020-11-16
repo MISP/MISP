@@ -53,6 +53,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Install deps
         run: |
+              hostname
               git submodule update --init --recursive
               date
               sudo apt-get -y update
