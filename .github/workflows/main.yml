@@ -115,6 +115,9 @@ jobs:
               sudo chmod -R 770 `pwd`/.gnupg
               # Get authkey
               sudo usermod -a -G www-data $USER
+
+      - name: Configure MISP
+        run: |
               sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
               sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
@@ -137,18 +140,29 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
               sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
               sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates 1'
+
+      - name: Configure ZMQ
+        run: |
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1"'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" false'
-              sudo -E su $USER -c 'app/Console/cake Live 1'
-              sudo chmod 777 ./key.txt
-              sudo chmod -R 777 ./tests
-              # Start workers
+
+      - name: Turn MISP live
+        run: sudo -E su $USER -c 'app/Console/cake Live 1'
+
+      - name: Start workers
+        run: |
               sudo chmod +x app/Console/worker/start.sh
               sudo -E su $USER -c 'app/Console/worker/start.sh &'
               sleep 10
+
+      - name: Python setup
+        run: |
+              sudo chmod 777 ./key.txt
+              sudo chmod -R 777 ./tests
+              # Start workers
               # Dirty install python stuff
               virtualenv -p python3.6 ./venv
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
@@ -161,6 +175,7 @@ jobs:
               popd
               pip install stix zmq redis plyara
               deactivate
+
       - name: Test if apache is working
         run: |
               curl http://misp.local
@@ -171,6 +186,7 @@ jobs:
               echo 'key = "'${AUTH}'"' >> tests/keys.py
               cat tests/keys.py
               popd
+
       - name: Run tests
         run: |
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
