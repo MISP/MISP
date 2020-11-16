@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: misp.local
+name: misp
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the 2.4 branch
@@ -55,9 +55,6 @@ jobs:
         run: |
               git submodule update --init --recursive
               date
-              cat /etc/hosts
-              echo "127.0.0.1 misp.local" >> /etc/hosts
-              cat /etc/hosts
               sudo apt-get -y update
               sudo apt-get -y install python3 python3-venv virtualenv python3-pip python3-dev python3-nose python3-redis python3-lxml python3-dateutil python3-msgpack libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php7.4-dev php7.4-cli libapache2-mod-php libfuzzy-dev libonig4
               sudo pip3 install --upgrade pip setuptools requests pyzmq
@@ -91,10 +88,10 @@ jobs:
               # configure apache virtual hosts
               sudo chmod -R 777 `pwd`/build
               sudo mkdir -p /etc/apache2/sites-available
-              sudo cp -f build/github-action-ci-apache /etc/apache2/sites-available/misp.local.conf
-              sudo sed -e "s?%GITHUB_WORKSPACE%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.local.conf
+              sudo cp -f build/github-action-ci-apache /etc/apache2/sites-available/misp.conf
+              sudo sed -e "s?%GITHUB_WORKSPACE%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.conf
               sudo a2dissite 000-default
-              sudo a2ensite misp.local.conf
+              sudo a2ensite misp.conf
               sudo a2enmod rewrite
               sudo systemctl apache2 restart
               # MISP configuration
@@ -181,11 +178,11 @@ jobs:
 
       - name: Test if apache is working
         run: |
-              curl http://misp.local
+              curl http://misp
               AUTH=`cat key.txt`
               sudo chmod -R 777 PyMISP
               pushd PyMISP
-              echo 'url = "http://misp.local"' >> tests/keys.py
+              echo 'url = "http://misp"' >> tests/keys.py
               echo 'key = "'${AUTH}'"' >> tests/keys.py
               cat tests/keys.py
               popd
