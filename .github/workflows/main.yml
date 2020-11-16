@@ -53,7 +53,6 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Install deps
         run: |
-              hostname
               git submodule update --init --recursive
               date
               sudo apt-get -y update
@@ -89,8 +88,10 @@ jobs:
               # configure apache virtual hosts
               sudo chmod -R 777 `pwd`/build
               sudo mkdir -p /etc/apache2/sites-available
+              HOST=`hostname`
               sudo cp -f build/github-action-ci-apache /etc/apache2/sites-available/misp.conf
               sudo sed -e "s?%GITHUB_WORKSPACE%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.conf
+              sudo sed -e "s?%HOST%?${HOST}?g" --in-place /etc/apache2/sites-available/misp.conf
               sudo a2dissite 000-default
               sudo a2ensite misp.conf
               sudo a2enmod rewrite
@@ -179,11 +180,12 @@ jobs:
 
       - name: Test if apache is working
         run: |
-              curl http://misp
+              HOST=`hostname`
+              curl http://`hostname`
               AUTH=`cat key.txt`
               sudo chmod -R 777 PyMISP
               pushd PyMISP
-              echo 'url = "http://misp"' >> tests/keys.py
+              echo 'url = "http://'${HOST}'"' >> tests/keys.py
               echo 'key = "'${AUTH}'"' >> tests/keys.py
               cat tests/keys.py
               popd

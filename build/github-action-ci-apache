@@ -1,6 +1,6 @@
 <VirtualHost misp.local>
         ServerAdmin me@me.local
-        ServerName misp.local
+        ServerName %HOST%
         DocumentRoot %GITHUB_WORKSPACE%/app/webroot
         <Directory %GITHUB_WORKSPACE%/app/webroot>
                 Options -Indexes
