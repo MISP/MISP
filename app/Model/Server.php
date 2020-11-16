@@ -3978,18 +3978,17 @@ class Server extends AppModel
 
     public function zmqAfterHook($setting, $value)
     {
-        $pubSubTool = $this->getPubSubTool();
         // If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
-        if ($setting == 'Plugin.ZeroMQ_enable') {
+        if ($setting === 'Plugin.ZeroMQ_enable') {
             if ($value == false || $value == 0) {
-                $pubSubTool->killService();
+                $this->getPubSubTool()->killService();
                 return true;
             }
         } elseif (!Configure::read('Plugin.ZeroMQ_enable')) {
             // If we are changing any other ZeroMQ settings but the feature is disabled, don't reload the service
             return true;
         }
-        $pubSubTool->reloadServer();
+        $this->getPubSubTool()->reloadServer();
         return true;
     }
 
