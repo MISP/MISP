@@ -3348,23 +3348,8 @@ class Attribute extends AppModel
             $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
         if (!empty($options['includeContext'])) {
-            $params['contain']['Event'] = array(
-                'fields' => array(
-                    'id','orgc_id','org_id','date','threat_level_id','info','published','uuid','analysis','timestamp','distribution','publish_timestamp','sharing_group_id','extends_uuid'
-                ),
-                'EventTag' => array(
-                    'Tag' => array(
-                        'fields' => array(
-                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
-                        )
-                    )
-                ),
-                'Orgc' => array(
-                    'fields' => array(
-                        'Orgc.id', 'Orgc.uuid', 'Orgc.name'
-                    )
-                )
-            );
+            // include just event id for conditions, rest event data will be fetched later
+            $params['contain']['Event']['fields'] = ['id'];
         }
         if (isset($options['contain'])) {
             // We may use a string instead of an array to ask for everything
@@ -3503,6 +3488,19 @@ class Attribute extends AppModel
                 }
             }
             $results = $this->find('all', $params);
+
+            if (!empty($options['includeContext']) && !empty($results)) {
+                $eventIds = [];
+                foreach ($results as $result) {
+                    $eventIds[$result['Attribute']['event_id']] = true; // deduplicate
+                }
+                $eventsById = $this->__fetchEventsForAttributeContext($user, array_keys($eventIds), !empty($options['includeAllTags']));
+                foreach ($results as &$result) {
+                    $result['Event'] = $eventsById[$result['Attribute']['event_id']];
+                }
+                unset($eventsById, $result); // unset result is important, because it is reference
+            }
+
             foreach ($results as $k => $result) {
                 if (!empty($result['AttributeTag'])) {
                     $tagCulled = false;
@@ -3517,14 +3515,6 @@ class Attribute extends AppModel
                     if ($tagCulled) {
                         $results[$k]['AttributeTag'] = array_values($results[$k]['AttributeTag']);
                     }
-                }
-                if (isset($result['Event']['EventTag'])) {
-                    $results[$k]['Event']['Tag'] = array();
-                    foreach ($result['Event']['EventTag'] as $et) {
-                        $et['Tag']['local'] = $et['local'];
-                        $results[$k]['Event']['Tag'][] = $et['Tag'];
-                    }
-                    unset($results[$k]['Event']['EventTag']);
                 }
                 if (!empty($options['includeSightings'])) {
                     $temp = $result['Attribute'];
@@ -3606,6 +3596,50 @@ class Attribute extends AppModel
             }
         }
         return $attributes;
+    }
+
+    /**
+     * @param array $user
+     * @param array $eventIds
+     * @param bool $includeAllTags
+     * @return array
+     * @throws Exception
+     */
+    private function __fetchEventsForAttributeContext(array $user, array $eventIds, $includeAllTags)
+    {
+        if (empty($eventIds)) {
+            return [];
+        }
+        $events = $this->Event->fetchEvent($user, [
+            'eventid' => $eventIds,
+            'metadata' => true,
+            'sgReferenceOnly' => true,
+            'includeEventCorrelations' => false,
+            'includeAllTags' => $includeAllTags,
+        ]);
+        $eventFields = ['id', 'orgc_id', 'org_id', 'date', 'threat_level_id', 'info', 'published', 'uuid', 'analysis', 'timestamp', 'distribution', 'publish_timestamp', 'sharing_group_id', 'extends_uuid'];
+        $tagFields = ['id', 'name', 'colour', 'numerical_value'];
+
+        $eventsById = [];
+        // Reformat to required format
+        foreach ($events as $event) {
+            $newEvent = [];
+            foreach ($eventFields as $eventField) {
+                $newEvent[$eventField] = $event['Event'][$eventField];
+            }
+            $tags = [];
+            foreach ($event['EventTag'] as $et) {
+                $tag = ['local' => $et['local']];
+                foreach ($tagFields as $tagField) {
+                    $tag[$tagField] = $et['Tag'][$tagField];
+                }
+                $tags[] = $tag;
+            }
+            $newEvent['Tag'] = $tags;
+            $newEvent['Orgc'] = $event['Orgc'];
+            $eventsById[$newEvent['id']] = $newEvent;
+        }
+        return $eventsById;
     }
 
     private function __attachEventTagsToAttributes($eventTags, &$results, $key, $options)
@@ -4645,10 +4679,10 @@ class Attribute extends AppModel
         $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
         if (empty($params['limit'])) {
-            $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+            $memoryInMb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
             $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
-            $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
-            $params['limit'] = $memory_in_mb * $memory_scaling_factor;
+            $memoryScalingFactor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
+            $params['limit'] = $memoryInMb * $memoryScalingFactor;
             $loop = true;
             $params['page'] = 1;
         }
@@ -4664,9 +4698,9 @@ class Attribute extends AppModel
      * @param array $params
      * @param bool $loop If true, data are fetched in loop to keep memory usage low
      * @param TmpFileTool $tmpfile
-     * @param $exportTool
+     * @param object $exportTool
      * @param array $exportToolParams
-     * @return int
+     * @return int Number of attributes
      * @throws Exception
      */
     private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams)

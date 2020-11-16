@@ -37,7 +37,7 @@
                 $passwordPopover = '<span class="blue bold">' . __('Minimal length') . '</span>: ' . h($length) . '<br>';
                 $passwordPopover .= '<span class="blue bold">' . __('Complexity') . '</span>: ' . h($complexity);
                 echo $this->Form->input('password', array(
-                    'label' => __('Password') . ' <span id="PasswordPopover" class="fas fa-info-circle"></span>'
+                    'label' => __('Password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) . '" class="fas fa-info-circle"></span>'
                 ));
                 echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
             ?>
@@ -59,9 +59,9 @@
         }
         echo $this->Form->input('role_id', $roleOptions);
         echo $this->Form->input('authkey', array('value' => $authkey, 'readonly' => 'readonly', 'div' => 'input clear'));
-        echo $this->Form->input('nids_sid');
+        echo $this->Form->input('nids_sid', ['label' => __('NIDS SID')]);
     ?>
-        <div id = "syncServers" class="hidden">
+        <div id="syncServers" class="hidden">
     <?php
             echo $this->Form->input('server_id', array('label' => __('Sync user for'), 'div' => 'clear', 'options' => $servers));
     ?>
@@ -70,6 +70,7 @@
         echo $this->Form->input('gpgkey', array('label' => __('GnuPG key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s GnuPG key here or try to retrieve it from the CIRCL key server by clicking on "Fetch GnuPG key" below.')));
     ?>
         <div class="clear"><span  role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s GnuPG key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GnuPG key');?></span></div>
+        <div class="user-edit-checkboxes" style="margin-bottom: 1em">
     <?php
         if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s S/MIME public key in PEM format here.')));
         $default_publish_alert = Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : true;
@@ -83,9 +84,6 @@
             'type' => 'checkbox',
             'checked' => isset($this->request->data['User']['contactalert']) ? $this->request->data['User']['contactalert'] : true
         ));
-    ?>
-        <div class="clear"></div>
-    <?php
         echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Disable this user account')));
         echo $this->Form->input('notify', array(
             'label' => __('Send credentials automatically'),
@@ -93,9 +91,10 @@
             'checked' => isset($this->request->data['User']['notify']) ? $this->request->data['User']['notify'] : true
         ));
     ?>
+        </div>
     </fieldset>
 <?php
-    echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+    echo $this->Form->button(__('Create user'), array('class' => 'btn btn-primary'));
     echo $this->Form->end();?>
 </div>
 <?php
@@ -115,12 +114,6 @@ $(function() {
     });
     $('#UserExternalAuthRequired').change(function() {
         checkUserExternalAuth();
-    });
-    $('#PasswordPopover').popover("destroy").popover({
-        placement: 'right',
-        html: 'true',
-        trigger: 'hover',
-        content: <?= json_encode($passwordPopover); ?>
     });
 });
 </script>

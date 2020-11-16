@@ -2658,3 +2658,28 @@ table tr:hover .down-expand-button {
     font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
     font-size: 11px;
 }
+
+/*
+ Make user edit checkboxes nicer
+ */
+.user-edit-checkboxes div.input {
+    float: none;
+    width: inherit;
+    margin-top: 3px;
+}
+
+.user-edit-checkboxes .checkbox input[type="checkbox"] {
+    margin-top: 4px;
+}
+
+.user-edit-checkboxes label {
+    display: inline;
+}
+
+a.orgImg {
+    background-repeat: no-repeat;
+    background-size: 20px;
+    padding-left: 25px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}

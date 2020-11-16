@@ -402,31 +402,31 @@ class Organisation extends AppModel
         return (empty($org)) ? false : $org[$this->alias];
     }
 
+    /**
+     * @param array $event
+     * @param array $fields
+     * @return array
+     */
     public function attachOrgs($data, $fields, $scope = 'Event')
     {
-        if (empty($this->__orgCache[$data[$scope]['orgc_id']])) {
-            $temp = $this->find('first', array(
-                'conditions' => array('id' => $data[$scope]['orgc_id']),
+        $toFetch = [];
+        if (!isset($this->__orgCache[$data[$scope]['orgc_id']])) {
+            $toFetch[] = $data[$scope]['orgc_id'];
+        }
+        if (!isset($this->__orgCache[$data[$scope]['org_id']]) && $data[$scope]['org_id'] != $data[$scope]['orgc_id']) {
+            $toFetch[] = $data[$scope]['org_id'];
+        }
+        if (!empty($toFetch)) {
+            $orgs = $this->find('all', array(
+                'conditions' => array('id' => $toFetch),
                 'recursive' => -1,
                 'fields' => $fields
             ));
-            if (!empty($temp)) {
-                $temp = $temp[$this->alias];
+            foreach ($orgs as $org) {
+                $this->__orgCache[$org[$this->alias]['id']] = $org[$this->alias];
             }
-            $this->__orgCache[$data[$scope]['orgc_id']] = $temp;
         }
         $data['Orgc'] = $this->__orgCache[$data[$scope]['orgc_id']];
-        if (empty($this->__orgCache[$data[$scope]['org_id']])) {
-            $temp = $this->find('first', array(
-                'conditions' => array('id' => $data[$scope]['org_id']),
-                'recursive' => -1,
-                'fields' => $fields
-            ));
-            if (!empty($temp)) {
-                $temp = $temp[$this->alias];
-            }
-            $this->__orgCache[$data[$scope]['org_id']] = $temp;
-        }
         $data['Org'] = $this->__orgCache[$data[$scope]['org_id']];
         return $data;
     }

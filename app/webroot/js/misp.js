@@ -35,7 +35,7 @@ function rgb2hex(rgb) {
 }
 
 function xhrFailCallback(xhr) {
-    if (xhr.status === 403) {
+    if (xhr.status === 403 || xhr.status === 405) {
         showMessage('fail', 'Not allowed.');
     } else if (xhr.status === 404) {
         showMessage('fail', 'Resource not found.');
@@ -301,18 +301,18 @@ function initiatePasswordReset(id) {
     $.get(baseurl + "/users/initiatePasswordReset/" + id, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
-    });
+    }).fail(xhrFailCallback)
 }
 
 function submitPasswordReset(id) {
     var formData = $('#PromptForm').serialize();
     var url = baseurl + "/users/initiatePasswordReset/" + id;
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         data: formData,
-        success:function (data, textStatus) {
+        success: function (data) {
             handleGenericAjaxResponse(data);
         },
         complete:function() {
@@ -320,9 +320,9 @@ function submitPasswordReset(id) {
             $("#confirmation_box").fadeOut();
             $("#gray_out").fadeOut();
         },
-        type:"post",
+        type: "post",
         cache: false,
-        url:url,
+        url: url,
     });
 }
 
@@ -4713,6 +4713,14 @@ $(document).ready(function() {
         trigger: 'hover',
         content: function () {
             return $(this).data('disabled-reason');
+        }
+    });
+    $('#PasswordPopover').popover("destroy").popover({
+        placement: 'right',
+        html: 'true',
+        trigger: 'hover',
+        content: function () {
+            return $(this).data('content');
         }
     });
     $(".queryPopover").click(function() {
