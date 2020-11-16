@@ -109,8 +109,12 @@ class EventsController extends AppController
      */
     private function __filterOnAttributeValue($value)
     {
+        if (!is_array($value)) {
+            $pieces = explode('|', strtolower($value));
+        } else {
+            $pieces = $value;
+        }
         // dissect the value
-        $pieces = explode('|', strtolower($value));
         $include = array();
         $exclude = array();
 
