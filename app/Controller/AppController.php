@@ -165,11 +165,12 @@ class AppController extends Controller
             Configure::write('Config.language', 'eng');
         }
 
-        //if fresh installation (salt empty) generate a new salt
+        // For fresh installation (salt empty) generate a new salt
         if (!Configure::read('Security.salt')) {
             $this->loadModel('Server');
             $this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
         }
+
         // Check if the instance has a UUID, if not assign one.
         if (!Configure::read('MISP.uuid')) {
             $this->loadModel('Server');
@@ -884,7 +885,6 @@ class AppController extends Controller
             $this->loadModel('AuthKey');
             $user = $this->AuthKey->getAuthUserByAuthKey($authkey);
         } else {
-            $this->loadModel('User');
             $user = $this->User->getAuthUserByAuthKey($authkey);
         }
 
@@ -899,7 +899,6 @@ class AppController extends Controller
 
     public function checkExternalAuthUser($authkey)
     {
-        $this->loadModel('User');
         $user = $this->User->getAuthUserByExternalAuth($authkey);
         if (empty($user)) {
             return false;
