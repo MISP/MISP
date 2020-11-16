@@ -37,6 +37,9 @@ jobs:
           mysql password: 'blah'
 
       - uses: getong/redis-action@v1
+        with:
+          host port: 6379
+          container port: 6379
 
       # prepare php stuff
       - name: Setup PHP
