@@ -22,6 +22,9 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
+      # Run mariadb
+      - uses: getong/mariadb-action@v1.1
+
       # Runs a set of commands using the runners shell
       - name: Install deps
         run: |
