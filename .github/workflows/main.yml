@@ -94,6 +94,7 @@ jobs:
               sudo sed -e "s?%HOST%?${HOST}?g" --in-place /etc/apache2/sites-available/misp.conf
               sudo a2dissite 000-default
               sudo a2ensite misp.conf
+              cat /etc/apache2/sites-enabled/misp.conf
               sudo a2enmod rewrite
               sudo systemctl restart apache2
               # MISP configuration
