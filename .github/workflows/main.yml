@@ -1,0 +1,214 @@
+# This is a basic workflow to help you get started with Actions
+
+name: misp
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the 2.4 branch
+on:
+  push:
+    branches: [ 2.4 ]
+  pull_request:
+    branches: [ 2.4 ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Stop mysql
+      - name: Shutdown Ubuntu MySQL (SUDO)
+        run: sudo service mysql stop
+
+      # Run mariadb
+      - uses: getong/mariadb-action@v1.1
+        with:
+          host port: 3306
+          container port: 3306
+          mysql root password: 'bar'
+          mysql database: 'misp'
+          mysql user: 'misp'
+          mysql password: 'blah'
+
+      - uses: zhulik/redis-action@1.1.0
+        with:
+          redis version: '5'
+          number of databases: 100
+
+      # prepare php stuff
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: pecl, composer
+          extensions: mysql, mbstring, json, xml, opcache, readline, redis, gnupg, gd
+
+
+      # Runs a set of commands using the runners shell
+      - name: Install deps
+        run: |
+              git submodule update --init --recursive
+              date
+              sudo apt-get -y update
+              sudo apt-get -y install python3 python3-venv virtualenv python3-pip python3-dev python3-nose python3-redis python3-lxml python3-dateutil python3-msgpack libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php7.4-dev php7.4-cli libapache2-mod-php libfuzzy-dev libonig4
+              sudo pip3 install --upgrade pip setuptools requests pyzmq
+              sudo pip3 install --upgrade -r requirements.txt
+              sudo pip3 install poetry
+              sudo chown $USER:www-data $HOME/.composer
+              pushd app
+              sudo -H -u $USER php composer.phar install --no-progress
+              popd
+              cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
+              # Set perms
+              sudo chown -R $USER:www-data `pwd`
+              sudo chmod -R 775 `pwd`
+              sudo chmod -R g+ws `pwd`/app/tmp
+              sudo chmod -R g+ws `pwd`/app/tmp/cache
+              sudo chmod -R g+ws `pwd`/app/tmp/cache/persistent
+              sudo chmod -R g+ws `pwd`/app/tmp/cache/models
+              sudo chmod -R g+ws `pwd`/app/tmp/logs
+              sudo chmod -R g+ws `pwd`/app/files
+              sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
+              sudo chown -R $USER:www-data `pwd`
+              # Resque perms
+              sudo chown -R $USER:www-data `pwd`/app/Plugin/CakeResque/tmp
+              sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
+              # install MySQL
+              sudo chmod -R 777 `pwd`/INSTALL
+              mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
+              mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant usage on *.* to misp@'%' identified by 'blah';"
+              mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant all privileges on misp.* to misp@'%';"
+              mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp < INSTALL/MYSQL.sql
+              # configure apache virtual hosts
+              sudo chmod -R 777 `pwd`/build
+              sudo mkdir -p /etc/apache2/sites-available
+              HOST=`hostname`
+              sudo cp -f build/github-action-ci-apache /etc/apache2/sites-available/misp.conf
+              sudo sed -e "s?%GITHUB_WORKSPACE%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.conf
+              sudo sed -e "s?%HOST%?${HOST}?g" --in-place /etc/apache2/sites-available/misp.conf
+              sudo a2dissite 000-default
+              sudo a2ensite misp.conf
+              cat /etc/apache2/sites-enabled/misp.conf
+              sudo a2enmod rewrite
+              sudo systemctl restart apache2
+              # MISP configuration
+              sudo chmod -R 777 `pwd`/travis
+              sudo cp app/Config/bootstrap.default.php app/Config/bootstrap.php
+              sudo cp travis/database.php app/Config/database.php
+              sudo cp app/Config/core.default.php app/Config/core.php
+              sudo cp app/Config/config.default.php app/Config/config.php
+              sudo cp travis/email.php app/Config/email.php
+              # Ensure the perms
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 770 `pwd`/app/Config
+              # GPG setup
+              sudo mkdir `pwd`/.gnupg
+              # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
+              sudo cp -a /dev/urandom /dev/random
+              sudo gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir `pwd`/.gnupg --gen-key --batch `pwd`/travis/gpg
+              sudo gpg --list-secret-keys --homedir `pwd`/.gnupg
+              # change perms
+              sudo chown -R $USER:www-data `pwd`
+              sudo chmod -R 770 `pwd`/.gnupg
+              # Get authkey
+              sudo usermod -a -G www-data $USER
+
+      - name: Configure MISP
+        run: |
+              sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
+              sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.timeout" 600'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.cookieTimeout" 3600'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.host_org_id" 1'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.email" "info@admin.test"'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.disable_emailing" false'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "debug" true'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_port" 6379'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_database" 13'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.redis_password" ""'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.email" "info@admin.test"'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.homedir" "`pwd`/.gnupg"'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.password" "travistest"'
+              sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
+              sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
+              sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
+              sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
+              sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates 1'
+
+      - name: Configure ZMQ
+        run: |
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1"'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1'
+
+      - name: Turn MISP live
+        run: sudo -E su $USER -c 'app/Console/cake Live 1'
+
+      - name: Start workers
+        run: |
+              sudo chmod +x app/Console/worker/start.sh
+              sudo -E su $USER -c 'app/Console/worker/start.sh &'
+              sleep 10
+
+      - name: Python setup
+        run: |
+              sudo chmod 777 ./key.txt
+              sudo chmod -R 777 ./tests
+              # Start workers
+              # Dirty install python stuff
+              virtualenv -p python3 ./venv
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
+              . ./venv/bin/activate
+              pushd cti-python-stix2
+              pip install .
+              popd
+              pushd PyMISP
+              pip install .[fileobjects]
+              popd
+              pip install stix zmq redis plyara
+              deactivate
+
+      - name: Test if apache is working
+        run: |
+              HOST=`hostname`
+              curl http://`hostname`
+              AUTH=`cat key.txt`
+              sudo chmod -R 777 PyMISP
+              pushd PyMISP
+              echo 'url = "http://'${HOST}'"' >> tests/keys.py
+              echo 'key = "'${AUTH}'"' >> tests/keys.py
+              cat tests/keys.py
+              popd
+
+      - name: Run tests
+        run: |
+              ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
+              ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
+              AUTH=`cat key.txt`
+              HOST=`hostname`
+              pushd tests
+              ./curl_tests_GH.sh $AUTH $HOST
+              popd
+              pushd PyMISP
+              git submodule init
+              git submodule update
+              poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport
+              poetry run python tests/testlive_comprehensive.py
+              poetry run python tests/test_mispevent.py
+              popd
+              cp PyMISP/tests/keys.py PyMISP/examples/events/
+              pushd PyMISP/examples/events/
+              poetry run python ./create_massive_dummy_events.py -l 5 -a 30
+              popd
+              python3 tools/misp-feed/validate.py
