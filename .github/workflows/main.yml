@@ -195,7 +195,9 @@ jobs:
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
               pushd tests
-              ./curl_tests.sh $AUTH
+              AUTH=`cat key.txt`
+              HOST=`hostname`
+              ./curl_tests_GH.sh $AUTH $HOST
               popd
               pushd PyMISP
               git submodule init
