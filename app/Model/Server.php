@@ -5934,7 +5934,7 @@ class Server extends AppModel
         return implode('\n', $result);
     }
 
-    public function update($status, &$raw = array())
+    public function update(array $status, &$raw = array())
     {
         $final = '';
         $workingDirectoryPrefix = 'cd $(git rev-parse --show-toplevel) && ';
@@ -5944,34 +5944,34 @@ class Server extends AppModel
         );
         foreach ($cleanup_commands as $cleanup_command) {
             $final .= $cleanup_command . "\n\n";
-            $status = false;
-            exec($cleanup_command, $output, $status);
+            $returnCode = false;
+            exec($cleanup_command, $output, $returnCode);
             $raw[] = array(
                 'input' => $cleanup_command,
                 'output' => $output,
-                'status' => $status
+                'status' => $returnCode,
             );
             $final .= implode("\n", $output) . "\n\n";
         }
         $command1 = $workingDirectoryPrefix . 'git pull origin ' . $status['branch'] . ' 2>&1';
         $command2 = $workingDirectoryPrefix . 'git submodule update --init --recursive 2>&1';
         $final .= $command1 . "\n\n";
-        $status = false;
-        exec($command1, $output, $status);
+        $returnCode = false;
+        exec($command1, $output, $returnCode);
         $raw[] = array(
             'input' => $command1,
             'output' => $output,
-            'status' => $status
+            'status' => $returnCode,
         );
         $final .= implode("\n", $output) . "\n\n=================================\n\n";
         $output = array();
         $final .= $command2 . "\n\n";
-        $status = false;
-        exec($command2, $output, $status);
+        $returnCode = false;
+        exec($command2, $output, $returnCode);
         $raw[] = array(
             'input' => $command2,
             'output' => $output,
-            'status' => $status
+            'status' => $returnCode,
         );
         $final .= implode("\n", $output);
         return $final;
