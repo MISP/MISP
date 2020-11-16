@@ -147,7 +147,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""'
-              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 0'
+              # sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1'
 
       - name: Turn MISP live
         run: sudo -E su $USER -c 'app/Console/cake Live 1'
