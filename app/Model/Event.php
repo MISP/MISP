@@ -2252,7 +2252,7 @@ class Event extends AppModel
             return array();
         }
 
-        $sharingGroupData = $this->__cacheSharingGroupData($user, $useCache);
+        $sharingGroupData = $options['sgReferenceOnly'] ? [] : $this->__cacheSharingGroupData($user, $useCache);
 
         // Initialize classes that will be necessary during event fetching
         if ((empty($options['metadata']) && empty($options['noSightings'])) && !isset($this->Sighting)) {
