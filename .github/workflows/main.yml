@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
+name: misp.local
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the 2.4 branch
@@ -147,7 +147,7 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""'
-              # sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1'
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1'
 
       - name: Turn MISP live
         run: sudo -E su $USER -c 'app/Console/cake Live 1'
@@ -164,7 +164,7 @@ jobs:
               sudo chmod -R 777 ./tests
               # Start workers
               # Dirty install python stuff
-              virtualenv -p python3.6 ./venv
+              virtualenv -p python3 ./venv
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
               pushd cti-python-stix2
