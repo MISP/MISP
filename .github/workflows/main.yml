@@ -169,8 +169,7 @@ jobs:
         run: |
               USER=`id -u -n`
               sudo chmod +x app/Console/worker/start.sh
-              sudo -E su $USER -c 'app/Console/worker/start.sh &'
-              sleep 10
+              sudo -E su $USER -c 'app/Console/worker/start.sh'
 
       - name: Python setup
         run: |
