@@ -127,6 +127,7 @@ jobs:
       - name: Configure MISP
         run: |
               USER=`id -u -n`
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.osuser" $USER'
               sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
               sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
