@@ -109,53 +109,55 @@ class EventsController extends AppController
      */
     private function __filterOnAttributeValue($value)
     {
-        if (!is_array($value)) {
-            $pieces = explode('|', strtolower($value));
-        } else {
-            $pieces = $value;
-        }
         // dissect the value
         $include = array();
         $exclude = array();
-
-        foreach ($pieces as $piece) {
-            if ($piece[0] === '!') {
-                $exclude[] =  '%' . substr($piece, 1) . '%';
+        $includeIDs = [];
+        $excludeIDs = [];
+        if (!empty($value)) {
+            if (!is_array($value)) {
+                $pieces = explode('|', strtolower($value));
             } else {
-                $include[] = "%$piece%";
-            }
-        }
-
-        $includeIDs = array();
-        if (!empty($include)) {
-            $includeConditions = [];
-            foreach ($include as $i) {
-                $includeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
-                $includeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
+                $pieces = $value;
             }
 
-            $includeIDs = array_values($this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-                'conditions' => $includeConditions,
-                'flatten' => true,
-                'event_ids' => true,
-                'list' => true,
-            )));
-        }
-
-        $excludeIDs = array();
-        if (!empty($exclude)) {
-            $excludeConditions = [];
-            foreach ($exclude as $e) {
-                $excludeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
-                $excludeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
+            foreach ($pieces as $piece) {
+                if ($piece[0] === '!') {
+                    $exclude[] =  '%' . substr($piece, 1) . '%';
+                } else {
+                    $include[] = "%$piece%";
+                }
             }
 
-            $excludeIDs = array_values($this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-                'conditions' => $excludeConditions,
-                'flatten' => true,
-                'event_ids' => true,
-                'list' => true,
-            )));
+            if (!empty($include)) {
+                $includeConditions = [];
+                foreach ($include as $i) {
+                    $includeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
+                    $includeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
+                }
+
+                $includeIDs = array_values($this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                    'conditions' => $includeConditions,
+                    'flatten' => true,
+                    'event_ids' => true,
+                    'list' => true,
+                )));
+            }
+
+            if (!empty($exclude)) {
+                $excludeConditions = [];
+                foreach ($exclude as $e) {
+                    $excludeConditions['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
+                    $excludeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
+                }
+
+                $excludeIDs = array_values($this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                    'conditions' => $excludeConditions,
+                    'flatten' => true,
+                    'event_ids' => true,
+                    'list' => true,
+                )));
+            }
         }
         // return -1 as the only value in includedIDs if both arrays are empty. This will mean that no events will be shown if there was no hit
         if (empty($includeIDs) && empty($excludeIDs)) {

@@ -4156,18 +4156,17 @@ class Server extends AppModel
 
     public function zmqAfterHook($setting, $value)
     {
-        $pubSubTool = $this->getPubSubTool();
         // If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
-        if ($setting == 'Plugin.ZeroMQ_enable') {
+        if ($setting === 'Plugin.ZeroMQ_enable') {
             if ($value == false || $value == 0) {
-                $pubSubTool->killService();
+                $this->getPubSubTool()->killService();
                 return true;
             }
         } elseif (!Configure::read('Plugin.ZeroMQ_enable')) {
             // If we are changing any other ZeroMQ settings but the feature is disabled, don't reload the service
             return true;
         }
-        $pubSubTool->reloadServer();
+        $this->getPubSubTool()->reloadServer();
         return true;
     }
 
@@ -5438,43 +5437,49 @@ class Server extends AppModel
         return $result;
     }
 
+    /**
+     * @param int $diagnostic_errors
+     * @return array
+     */
     public function gpgDiagnostics(&$diagnostic_errors)
     {
-        $gpgStatus = 0;
+        $output = ['status' => 0, 'version' => null];
         if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
-            $continue = true;
             try {
                 $gpg = GpgTool::initializeGpg();
             } catch (Exception $e) {
                 $this->logException("Error during initializing GPG.", $e, LOG_NOTICE);
-                $gpgStatus = 2;
-                $continue = false;
+                $output['status'] = 2;
             }
-            if ($continue) {
+            if ($output['status'] === 0) {
                 try {
-                    $key = $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+                    $output['version'] = $gpg->getVersion();
+                } catch (Exception $e) {
+                    // ingore
+                }
+
+                try {
+                    $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
                 } catch (Exception $e) {
                     $this->logException("Error during adding GPG signing key.", $e, LOG_NOTICE);
-                    $gpgStatus = 3;
-                    $continue = false;
+                    $output['status'] = 3;
                 }
             }
-            if ($continue) {
+            if ($output['status'] === 0) {
                 try {
-                    $gpgStatus = 0;
-                    $signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
+                    $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
                 } catch (Exception $e) {
                     $this->logException("Error during GPG signing.", $e, LOG_NOTICE);
-                    $gpgStatus = 4;
+                    $output['status'] = 4;
                 }
             }
         } else {
-            $gpgStatus = 1;
+            $output['status'] = 1;
         }
-        if ($gpgStatus != 0) {
+        if ($output['status'] !== 0) {
             $diagnostic_errors++;
         }
-        return $gpgStatus;
+        return $output;
     }
 
     public function zmqDiagnostics(&$diagnostic_errors)
@@ -6109,7 +6114,7 @@ class Server extends AppModel
         return implode('\n', $result);
     }
 
-    public function update($status, &$raw = array())
+    public function update(array $status, &$raw = array())
     {
         $final = '';
         $workingDirectoryPrefix = 'cd $(git rev-parse --show-toplevel) && ';
@@ -6119,34 +6124,34 @@ class Server extends AppModel
         );
         foreach ($cleanup_commands as $cleanup_command) {
             $final .= $cleanup_command . "\n\n";
-            $status = false;
-            exec($cleanup_command, $output, $status);
+            $returnCode = false;
+            exec($cleanup_command, $output, $returnCode);
             $raw[] = array(
                 'input' => $cleanup_command,
                 'output' => $output,
-                'status' => $status
+                'status' => $returnCode,
             );
             $final .= implode("\n", $output) . "\n\n";
         }
         $command1 = $workingDirectoryPrefix . 'git pull origin ' . $status['branch'] . ' 2>&1';
         $command2 = $workingDirectoryPrefix . 'git submodule update --init --recursive 2>&1';
         $final .= $command1 . "\n\n";
-        $status = false;
-        exec($command1, $output, $status);
+        $returnCode = false;
+        exec($command1, $output, $returnCode);
         $raw[] = array(
             'input' => $command1,
             'output' => $output,
-            'status' => $status
+            'status' => $returnCode,
         );
         $final .= implode("\n", $output) . "\n\n=================================\n\n";
         $output = array();
         $final .= $command2 . "\n\n";
-        $status = false;
-        exec($command2, $output, $status);
+        $returnCode = false;
+        exec($command2, $output, $returnCode);
         $raw[] = array(
             'input' => $command2,
             'output' => $output,
-            'status' => $status
+            'status' => $returnCode,
         );
         $final .= implode("\n", $output);
         return $final;

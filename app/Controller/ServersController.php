@@ -1166,7 +1166,7 @@ class ServersController extends AppController
                 $dump = array(
                         'version' => $version,
                         'phpSettings' => $phpSettings,
-                        'gpgStatus' => $gpgErrors[$gpgStatus],
+                        'gpgStatus' => $gpgErrors[$gpgStatus['status']],
                         'proxyStatus' => $proxyErrors[$proxyStatus],
                         'zmqStatus' => $zmqStatus,
                         'stix' => $stix,
