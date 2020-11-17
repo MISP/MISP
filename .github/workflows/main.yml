@@ -217,7 +217,6 @@ jobs:
               ./curl_tests_GH.sh $AUTH $HOST
               popd
               pushd PyMISP
-              git pull origin main --tags -f
               poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport
               poetry run python tests/testlive_comprehensive.py
               poetry run python tests/test_mispevent.py
