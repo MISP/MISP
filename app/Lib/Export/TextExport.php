@@ -3,7 +3,8 @@
 class TextExport
 {
 	public $additional_params = array(
-		'flatten' => 1
+		'flatten' => 1,
+		'group' => 'Attribute.value'
 	);
 
 	public function handler($data, $options = array())
