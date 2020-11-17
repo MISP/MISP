@@ -2149,7 +2149,7 @@ class Server extends AppModel
                         ),
                         'Sightings_anonymise_as' => array(
                                 'level' => 1,
-                                'description' => __('When pushing sightings to another server, report all sightings from this instance as this orignisation. This effectively hides all sightings from this instance behind a single organisation to the outside world. Sightings pulled from this instance follow the Sightings_policy above.'),
+                                'description' => __('When pushing sightings to another server, report all sightings from this instance as this organisation. This effectively hides all sightings from this instance behind a single organisation to the outside world. Sightings pulled from this instance follow the Sightings_policy above.'),
                                 'value' => '0',
                                 'errorMessage' => '',
                                 'test' => 'testLocalOrg',
