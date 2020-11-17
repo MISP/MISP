@@ -361,7 +361,7 @@ class MispObject extends AppModel
         } else {
             foreach ($templateFields as $k => $v) {
                 if (!isset($object['Object'][$k])) {
-                    return 'No valid template found and object lacking template information. (' . $k . ')';
+                    return array('template' => array(__('No valid template found and object lacking template information. (%s)', $k)));
                 }
             }
         }
