@@ -31,6 +31,15 @@
                                     'fa-icon' => 'link',
                                     'requirement' => $canModify && $importModuleEnabled,
                                 ),
+                                array(
+                                    'onClick' => 'openGenericModal',
+                                    'onClickParams' => [$baseurl . '/eventReports/reportFromEvent/' . h($event_id)],
+                                    'active' => true,
+                                    'text' => __('Generate report from Event'),
+                                    'title' => __('Based on filters, create a report summarizing the event'),
+                                    'fa-icon' => 'list-alt',
+                                    'requirement' => $canModify,
+                                ),
                             )
                         ),
                         array(

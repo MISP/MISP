@@ -896,4 +896,13 @@ class EventReport extends AppModel
             $this->EventTag->attachTagToEvent($eventId, $tagId);
         }
     }
+
+    public function getReportFromEvent($user, $options)
+    {
+        App::uses('ReportFromEvent', 'EventReport');
+        $reportGenerator = new ReportFromEvent();
+        $reportGenerator->construct($this->Event, $user, $options);
+        $report = $reportGenerator->generate();
+        return $report;
+    }
 }
