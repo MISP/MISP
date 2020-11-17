@@ -121,7 +121,7 @@ class CRUDComponent extends Component
     {
         $modelName = $this->Controller->defaultModel;
         if (empty($id)) {
-            throw new NotFoundException(__('Invalid %s.', $modelname));
+            throw new NotFoundException(__('Invalid %s.', $modelName));
         }
         $data = $this->Controller->{$modelName}->find('first',
             isset($params['get']) ? $params['get'] : [
@@ -168,15 +168,22 @@ class CRUDComponent extends Component
 
     public function view(int $id, array $params = []): void
     {
-        if (empty($id)) {
-            throw new NotFoundException(__('Invalid {0}.', $this->ObjectAlias));
-        }
         $modelName = $this->Controller->defaultModel;
-        $data = $this->Controller->{$modelName}->find('first', [
+        if (empty($id)) {
+            throw new NotFoundException(__('Invalid %s.', $modelName));
+        }
+        $query = [
             'recursive' => -1,
-            'conditions' => array($modelName . '.id' => $id),
+            'conditions' => [$modelName . '.id' => $id],
             'contain' => empty($params['contain']) ? [] : $params['contain']
-        ]);
+        ];
+        if (!empty($params['conditions'])) {
+            $query['conditions']['AND'][] = $params['conditions'];
+        }
+        $data = $this->Controller->{$modelName}->find('first', $query);
+        if (empty($data)) {
+            throw new NotFoundException(__('Invalid %s.', $modelName));
+        }
         if ($this->Controller->IndexFilter->isRest()) {
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
         } else {
@@ -189,19 +196,20 @@ class CRUDComponent extends Component
         $this->prepareResponse();
         $modelName = $this->Controller->defaultModel;
         if (empty($id)) {
-            throw new NotFoundException(__('Invalid %s.', $modelname));
+            throw new NotFoundException(__('Invalid %s.', $modelName));
         }
         $conditions = [];
-        $conditions['AND'][] = ['id' => $id];
+        $conditions['AND'][] = [$modelName . '.id' => $id];
         if (!empty($params['conditions'])) {
             $conditions['AND'][] = $params['conditions'];
         }
         $data = $this->Controller->{$modelName}->find('first', [
             'recursive' => -1,
-            'conditions' => $conditions
+            'conditions' => $conditions,
+            'contain' => empty($params['contain']) ? [] : $params['contain'],
         ]);
         if (empty($data)) {
-            throw new NotFoundException(__('Invalid %s.', $modelname));
+            throw new NotFoundException(__('Invalid %s.', $modelName));
         }
         if ($this->Controller->request->is('post') || $this->Controller->request->is('delete')) {
             if (!empty($params['modelFunction'])) {
@@ -212,11 +220,7 @@ class CRUDComponent extends Component
             if ($result) {
                 $message = __('%s deleted.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
-                    $data = $this->Controller->{$modelName}->find('first', [
-                        'recursive' => -1,
-                        'conditions' => array('id' => $id)
-                    ]);
-                    $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveSuccessResponse($modelname, 'delete', $id, 'json', $message);
+                    $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveSuccessResponse($modelName, 'delete', $id, 'json', $message);
                 } else {
                     $this->Controller->Flash->success($message);
                     $this->Controller->redirect($this->Controller->referer());

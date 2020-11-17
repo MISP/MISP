@@ -39,6 +39,7 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @throws ForbiddenException // TODO Exception
  * @property ACLComponent $ACL
  * @property RestResponseComponent $RestResponse
+ * @property CRUDComponent $CRUD
  */
 class AppController extends Controller
 {
