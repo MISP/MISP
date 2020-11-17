@@ -206,6 +206,7 @@ jobs:
         run: |
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
+              ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
               # Ensure the perms
               USER=`id -u -n`
               sudo chown -R $USER:www-data `pwd`/app/Config

@@ -24,16 +24,29 @@ class TmpFileTool
 
     /**
      * Write data to stream with separator. Separator will be prepend to content for next call.
-     * @param string $content
+     * @param string|Generator $content
      * @param string $separator
      * @throws Exception
      */
     public function writeWithSeparator($content, $separator)
     {
         if (isset($this->separator)) {
-            $this->write($this->separator . $content);
+            if ($content instanceof Generator) {
+                $this->write($this->separator);
+                foreach ($content as $part) {
+                    $this->write($part);
+                }
+            } else {
+                $this->write($this->separator . $content);
+            }
         } else {
-            $this->write($content);
+            if ($content instanceof Generator) {
+                foreach ($content as $part) {
+                    $this->write($part);
+                }
+            } else {
+                $this->write($content);
+            }
         }
         $this->separator = $separator;
     }

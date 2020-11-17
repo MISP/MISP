@@ -198,15 +198,6 @@ class XMLConverterTool
         $field = str_replace($this->__toEscape, $this->__escapeWith, $field);
     }
 
-    public function eventCollection2Format($events, $isSiteAdmin=false)
-    {
-        $result = "";
-        foreach ($events as $event) {
-            $result .= $this->convert($event) . PHP_EOL;
-        }
-        return $result;
-    }
-
     public function frameCollection($input, $mispVersion = false)
     {
         $result = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
@@ -215,10 +206,5 @@ class XMLConverterTool
             $result .= '<xml_version>' . $mispVersion . '</xml_version>';
         }
         return $result . '</response>' . PHP_EOL;
-    }
-
-    private function __prepareAttributes($attributes)
-    {
-        return $attributes;
     }
 }
