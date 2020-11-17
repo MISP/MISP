@@ -237,64 +237,69 @@ class AppController extends Controller
                 }
                 // Authenticate user with authkey in Authorization HTTP header
                 if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($namedParamAuthkey)) {
-                    $found_misp_auth_key = false;
+                    $foundMispAuthKey = false;
                     $authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
                     if (!empty($namedParamAuthkey)) {
                         $authentication[] = $namedParamAuthkey;
                     }
                     $user = false;
-                    foreach ($authentication as $auth_key) {
-                        if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
-                            $found_misp_auth_key = true;
-                            $temp = $this->checkAuthUser(trim($auth_key));
+                    foreach ($authentication as $authKey) {
+                        $authKey = trim($authKey);
+                        if (preg_match('/^[a-zA-Z0-9]{40}$/', $authKey)) {
+                            $foundMispAuthKey = true;
+                            $temp = $this->checkAuthUser($authKey);
                             if ($temp) {
-                                $user['User'] = $temp;
+                                $user = $temp;
+                                break;
                             }
                         }
                     }
-                    if ($found_misp_auth_key) {
+                    if ($foundMispAuthKey) {
+                        $authKeyToStore = substr($authKey, 0, 4)
+                            . str_repeat('*', 32)
+                            . substr($authKey, -4);
                         if ($user) {
-                            unset($user['User']['gpgkey']);
-                            unset($user['User']['certif_public']);
+                            unset($user['gpgkey']);
+                            unset($user['certif_public']);
                             // User found in the db, add the user info to the session
                             if (Configure::read('MISP.log_auth')) {
                                 $this->Log = ClassRegistry::init('Log');
                                 $this->Log->create();
                                 $log = array(
-                                        'org' => $user['User']['Organisation']['name'],
-                                        'model' => 'User',
-                                        'model_id' => $user['User']['id'],
-                                        'email' => $user['User']['email'],
-                                        'action' => 'auth',
-                                        'title' => 'Successful authentication using API key',
-                                        'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+                                    'org' => $user['Organisation']['name'],
+                                    'model' => 'User',
+                                    'model_id' => $user['id'],
+                                    'email' => $user['email'],
+                                    'action' => 'auth',
+                                    'title' => "Successful authentication using API key ($authKeyToStore)",
+                                    'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
                                 );
                                 $this->Log->save($log);
                             }
                             $this->Session->renew();
-                            $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+                            $this->Session->write(AuthComponent::$sessionKey, $user);
                             $this->isApiAuthed = true;
                         } else {
                             // User not authenticated correctly
                             // reset the session information
                             $redis = $this->{$this->modelClass}->setupRedis();
-                            if ($redis && !$redis->exists('misp:auth_fail_throttling:' . trim($auth_key))) {
-                                $redis->set('misp:auth_fail_throttling:' . trim($auth_key), 1);
-                                $redis->expire('misp:auth_fail_throttling:' . trim($auth_key), 3600);
-                                $this->Session->destroy();
+                            // Do not log every fail, but just once per hour
+                            if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $authKeyToStore)) {
+                                $redis->setex('misp:auth_fail_throttling:' . $authKeyToStore, 3600, 1);
                                 $this->Log = ClassRegistry::init('Log');
                                 $this->Log->create();
                                 $log = array(
-                                        'org' => 'SYSTEM',
-                                        'model' => 'User',
-                                        'model_id' => 0,
-                                        'email' => 'SYSTEM',
-                                        'action' => 'auth_fail',
-                                        'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
-                                        'change' => null,
+                                    'org' => 'SYSTEM',
+                                    'model' => 'User',
+                                    'model_id' => 0,
+                                    'email' => 'SYSTEM',
+                                    'action' => 'auth_fail',
+                                    'title' => "Failed authentication using API key ($authKeyToStore)",
+                                    'change' => null,
                                 );
                                 $this->Log->save($log);
                             }
+                            $this->Session->destroy();
                             throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                         }
                         unset($user);
