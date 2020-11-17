@@ -1,0 +1,15 @@
+<VirtualHost %HOST%>
+        ServerAdmin me@me.local
+        ServerName %HOST%
+        DocumentRoot %GITHUB_WORKSPACE%/app/webroot
+        <Directory %GITHUB_WORKSPACE%/app/webroot>
+                Options -Indexes
+                AllowOverride all
+                Require all granted
+        </Directory>
+
+        LogLevel warn
+        ErrorLog /var/log/apache2/misp.local_error.log
+        CustomLog /var/log/apache2/misp.local_access.log combined
+        ServerSignature Off
+</VirtualHost>
