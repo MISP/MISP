@@ -5725,16 +5725,42 @@ class Server extends AppModel
 
     public function extensionDiagnostics()
     {
+        try {
+            $file = new File(APP . DS . 'composer.json');
+            $composer = $this->jsonDecode($file->read());
+            $extensions = [];
+            foreach ($composer['require'] as $require => $foo) {
+                if (substr($require, 0, 4) === 'ext-') {
+                    $extensions[substr($require, 4)] = true;
+                }
+            }
+            foreach ($composer['suggest'] as $suggest => $reason) {
+                if (substr($suggest, 0, 4) === 'ext-') {
+                    $extensions[substr($suggest, 4)] = $reason;
+                }
+            }
+        } catch (Exception $e) {
+            $extensions = ['redis' => '', 'gd' => '', 'ssdeep' => '', 'zip' => '', 'intl' => '']; // Default extensions
+        }
+
         $results = array();
-        $extensions = array('redis', 'gd', 'ssdeep', 'zip', 'intl');
-        foreach ($extensions as $extension) {
-            $results['web']['extensions'][$extension] = extension_loaded($extension);
+        foreach ($extensions as $extension => $reason) {
+            $results['extensions'][$extension] = [
+                'loaded_web' => phpversion($extension),
+                'loaded_cli' => false,
+                'required' => $reason === true,
+                'info' => $reason === true ? null : $reason,
+            ];
         }
         if (!is_readable(APP . '/files/scripts/selftest.php')) {
             $results['cli'] = false;
         } else {
-            $execResult = exec('php ' . APP . '/files/scripts/selftest.php');
-            $results['cli'] = json_decode($execResult, true);
+            $execResult = exec('php ' . APP . '/files/scripts/selftest.php ' . escapeshellarg(json_encode(array_keys($extensions))));
+            $execResult = $this->jsonDecode($execResult);
+            $results['cli']['phpversion'] = $execResult['phpversion'];
+            foreach ($execResult['extensions'] as $extension => $loaded) {
+                $results['extensions'][$extension]['loaded_cli'] = $loaded;
+            }
         }
         return $results;
     }
