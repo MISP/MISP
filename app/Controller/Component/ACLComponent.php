@@ -443,7 +443,6 @@ class ACLComponent extends Component
                     'fetchServersForSG' => array('perm_sharing_group'),
                     'filterEventIndex' => array(),
                     'getApiInfo' => array('*'),
-                    'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
                     'getRemoteUser' => array(),

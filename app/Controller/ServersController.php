@@ -1824,11 +1824,6 @@ class ServersController extends AppController
         $this->set('_serialize', 'response');
     }
 
-    public function getGit()
-    {
-        $status = $this->Server->getCurrentGitStatus();
-    }
-
     public function checkout()
     {
         $result = $this->Server->checkoutMain();
@@ -1839,11 +1834,17 @@ class ServersController extends AppController
         if ($this->request->is('post')) {
             $status = $this->Server->getCurrentGitStatus();
             $raw = array();
-            $update = $this->Server->update($status, $raw);
+            if (empty($status['branch'])) { // do not try to update if you are not on branch
+                $msg = 'Update failed, you are not on branch';
+                $raw[] = $msg;
+                $update = $msg;
+            } else {
+                $update = $this->Server->update($status, $raw);
+            }
             if ($this->_isRest()) {
                 return $this->RestResponse->viewData(array('results' => $raw), $this->response->type());
             } else {
-                return new CakeResponse(array('body'=> $update, 'type' => 'txt'));
+                return new CakeResponse(array('body' => $update, 'type' => 'txt'));
             }
         } else {
             $branch = $this->Server->getCurrentBranch();
