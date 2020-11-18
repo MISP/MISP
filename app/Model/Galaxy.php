@@ -97,17 +97,16 @@ class Galaxy extends AppModel
         $galaxies = $this->__load_galaxies($force);
         $dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters');
         $files = $dir->find('.*\.json');
-        $cluster_packages = array();
         foreach ($files as $file) {
             $file = new File($dir->pwd() . DS . $file);
-            $cluster_package = json_decode($file->read(), true);
+            $cluster_package = $this->jsonDecode($file->read());
             $file->close();
             if (!isset($galaxies[$cluster_package['type']])) {
                 continue;
             }
             $template = array(
                 'source' => isset($cluster_package['source']) ? $cluster_package['source'] : '',
-                'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : array(), true),
+                'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : array()),
                 'collection_uuid' => isset($cluster_package['uuid']) ? $cluster_package['uuid'] : '',
                 'galaxy_id' => $galaxies[$cluster_package['type']],
                 'type' => $cluster_package['type'],
@@ -204,15 +203,14 @@ class Galaxy extends AppModel
                 }
                 if (isset($cluster['related'])) {
                     $relations = array();
-                    foreach ($cluster['related'] as $key => $relation) {
-                        array('', 'referenced_galaxy_cluster_uuid');
+                    foreach ($cluster['related'] as $relation) {
                         $relations[] = array(
                             'galaxy_cluster_uuid' => $cluster['uuid'],
                             'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
                             'referenced_galaxy_cluster_type' => $relation['type'],
                             'default' => true,
                             'distribution' => 3,
-                            'tags' => $relation['tags'],
+                            'tags' => $relation['tags'] ?? [],
                         );
                     }
                     if (!empty($relations)) {
@@ -220,9 +218,9 @@ class Galaxy extends AppModel
                     }
                 }
             }
-            $db = $this->getDataSource();
-            $fields = array('galaxy_cluster_id', 'key', 'value');
             if (!empty($elements)) {
+                $db = $this->getDataSource();
+                $fields = array('galaxy_cluster_id', 'key', 'value');
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
         }
