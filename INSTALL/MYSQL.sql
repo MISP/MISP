@@ -89,9 +89,9 @@ CREATE TABLE IF NOT EXISTS `attribute_tags` (
 CREATE TABLE IF NOT EXISTS `auth_keys` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
-    `authkey` varchar(72) CHARACTER SET ascii DEFAULT NULL,
-    `authkey_start` varchar(4) CHARACTER SET ascii DEFAULT NULL,
-    `authkey_end` varchar(4) CHARACTER SET ascii DEFAULT NULL,
+    `authkey` varchar(72) CHARACTER SET ascii NOT NULL,
+    `authkey_start` varchar(4) CHARACTER SET ascii NOT NULL,
+    `authkey_end` varchar(4) CHARACTER SET ascii NOT NULL,
     `created` int(10) unsigned NOT NULL,
     `expiration` int(10) unsigned NOT NULL,
     `user_id` int(10) unsigned NOT NULL,
