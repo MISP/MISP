@@ -854,7 +854,7 @@ class EventsController extends AppController
             if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
                 $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
             }
-            $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true);
+            $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true, false);
             $this->set('events', $events);
         }
 
