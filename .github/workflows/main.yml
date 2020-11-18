@@ -212,6 +212,10 @@ jobs:
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
               ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
+
+              # Test test
+              cp tests/testlive_security.py PyMISP/tests/
+
               # Ensure the perms
               sudo chown -R $USER:www-data `pwd`/app/Config
               sudo chmod -R 777 `pwd`/app/Config
