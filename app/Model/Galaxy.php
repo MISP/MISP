@@ -154,7 +154,7 @@ class Galaxy extends AppModel
                 $this->GalaxyCluster->delete($cluster_ids_to_delete, false, false);
             }
 
-            $tempUser = array('Role' => array('perm_galaxy_editor' => 1, 'perm_tag_editor' => 1, 'perm_site_admin' => 1)); // only site-admin are authorized to update galaxies
+            $tempUser = array('Role' => array('perm_galaxy_editor' => 1, 'perm_tag_editor' => 1, 'perm_site_admin' => 1, 'perm_sync' => 1)); // only site-admin are authorized to update galaxies
             // create all clusters
             foreach ($cluster_package['values'] as $cluster) {
                 if (empty($cluster['version'])) {
