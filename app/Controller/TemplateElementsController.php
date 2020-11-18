@@ -15,11 +15,13 @@ class TemplateElementsController extends AppController
 
     public function index($id)
     {
-
+        if (!is_numeric($id)) {
+            throw new MethodNotAllowedException(__('No template with the provided ID exists, or you are not authorised to see it.'));
+        }
         //check permissions
         $template = $this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), false);
         if (!$this->_isSiteAdmin() && !$template) {
-            throw new MethodNotAllowedException('No template with the provided ID exists, or you are not authorised to see it.');
+            throw new MethodNotAllowedException(__('No template with the provided ID exists, or you are not authorised to see it.'));
         }
 
         $templateElements = $this->TemplateElement->find('all', array(
