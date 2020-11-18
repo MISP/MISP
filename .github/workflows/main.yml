@@ -15,7 +15,13 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        php: ['7.2', '7.3', '7.4']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -45,21 +51,19 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.4'
-          tools: pecl, composer
-          extensions: mysql, mbstring, json, xml, opcache, readline, redis, gnupg, gd
-
+          php-version: ${{ matrix.php }}
+          extensions: mysql, mbstring, json, xml, opcache, readline, redis, gd
 
       # Runs a set of commands using the runners shell
       - name: Install deps
+        env:
+          php_version: ${{ matrix.php }}
         run: |
               git submodule update --init --recursive
-              date
               sudo apt-get -y update
-              sudo apt-get -y install python3 python3-venv virtualenv python3-pip python3-dev python3-nose python3-redis python3-lxml python3-dateutil python3-msgpack libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php7.4-dev php7.4-cli libapache2-mod-php libfuzzy-dev libonig4
-              sudo pip3 install --upgrade pip setuptools requests pyzmq
+              sudo apt-get -y install python3 python3-venv virtualenv python3-pip python3-nose python3-redis python3-lxml apache2 curl libapache2-mod-php libfuzzy-dev
+              sudo pip3 install --upgrade pip setuptools requests pyzmq poetry
               sudo pip3 install --upgrade -r requirements.txt
-              sudo pip3 install poetry
               USER=`id -u -n`
               sudo chown $USER:www-data $HOME/.composer
               pushd app
@@ -123,6 +127,7 @@ jobs:
       - name: Configure MISP
         run: |
               USER=`id -u -n`
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.osuser" $USER'
               sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
               sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
@@ -164,8 +169,7 @@ jobs:
         run: |
               USER=`id -u -n`
               sudo chmod +x app/Console/worker/start.sh
-              sudo -E su $USER -c 'app/Console/worker/start.sh &'
-              sleep 10
+              sudo -E su $USER -c 'app/Console/worker/start.sh'
 
       - name: Python setup
         run: |
@@ -202,6 +206,7 @@ jobs:
         run: |
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
+              ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
               # Ensure the perms
               USER=`id -u -n`
               sudo chown -R $USER:www-data `pwd`/app/Config
@@ -213,7 +218,6 @@ jobs:
               ./curl_tests_GH.sh $AUTH $HOST
               popd
               pushd PyMISP
-              git pull origin main --tags -f
               poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport
               poetry run python tests/testlive_comprehensive.py
               poetry run python tests/test_mispevent.py

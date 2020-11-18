@@ -3439,7 +3439,7 @@ class Attribute extends AppModel
             $params['conditions']['AND']['(Attribute.deleted + 0)'] = $options['deleted'];
         }
         if (isset($options['group'])) {
-            $params['group'] = empty($options['group']) ? $options['group'] : false;
+            $params['group'] = !empty($options['group']) ? $options['group'] : false;
         }
         // Site admin can access even unpublished event attributes if `unpublishedprivate` option is enabled
         if (!$user['Role']['perm_site_admin'] && Configure::read('MISP.unpublishedprivate')) {

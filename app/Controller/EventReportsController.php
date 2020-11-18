@@ -330,6 +330,45 @@ class EventReportsController extends AppController
         $this->render('ajax/importReportFromUrl');
     }
 
+    public function reportFromEvent($eventId)
+    {
+        $event = $this->__canModifyReport($eventId);
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $filters = $this->EventReport->jsonDecode($this->data['EventReport']['filters']);
+            $options['conditions'] = $filters;
+            $options['event_id'] = $eventId;
+            App::uses('ReportFromEvent', 'EventReport');
+            $optionFields = array_keys((new ReportFromEvent())->acceptedOptions);
+            foreach ($optionFields as $field) {
+                if (isset($this->data['EventReport'][$field])) {
+                    $options[$field] = $this->data['EventReport'][$field];
+                }
+            }
+            $markdown = $this->EventReport->getReportFromEvent($this->Auth->user(), $options);
+            if (!empty($markdown)) {
+                $report = [
+                    'name' => __('Event report (%s)', time()),
+                    'distribution' => 5,
+                    'content' => $markdown
+                ];
+                $errors = $this->EventReport->addReport($this->Auth->user(), $report, $eventId);
+            } else {
+                $errors[] = __('Could not generate markdown from the event');
+            }
+            $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
+            if (!empty($errors)) {
+                return $this->__getFailResponseBasedOnContext($errors, array(), 'add', $this->EventReport->id, $redirectTarget);
+            } else {
+                $successMessage = __('Report saved.');
+                $report = $this->EventReport->simpleFetchById($this->Auth->user(), $this->EventReport->id);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, $report, 'add', false, $redirectTarget);
+            }
+        }
+        $this->set('event_id', $eventId);
+        $this->layout = 'ajax';
+        $this->render('ajax/reportFromEvent');
+    }
+
     private function __generateIndexConditions($filters = [])
     {
         $aclConditions = $this->EventReport->buildACLConditions($this->Auth->user());

@@ -1,4 +1,6 @@
 <?php
 App::uses('JSONConverterTool', 'Tools');
 $converter = new JSONConverterTool();
-echo $converter->convert($event);
+foreach ($converter->streamConvert($event) as $part) {
+    echo $part;
+}

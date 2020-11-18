@@ -7052,32 +7052,24 @@ class Event extends AppModel
             $filters['includeAttachments'] = 1;
         }
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
-        foreach ($eventids_chunked as $chunk_index => $chunk) {
+        $separator = $exportTool->separator($exportToolParams);
+        foreach ($eventids_chunked as $chunk) {
             $filters['eventid'] = $chunk;
             if (!empty($filters['tags']['NOT'])) {
                 $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
                 unset($filters['tags']['NOT']);
             }
-            $result = $this->fetchEvent(
-                $user,
-                $filters,
-                true
-            );
-            if (!empty($result)) {
-                foreach ($result as $event) {
-                    if ($jobId && $i%10 == 0) {
-                        $this->Job->saveField('progress', intval((100 * $i) / $eventCount));
-                        $this->Job->saveField('message', 'Converting Event ' . $i . '/' . $eventCount . '.');
-                    }
-                    $result = $this->Allowedlist->removeAllowedlistedFromArray($result, false);
-                    $temp = $exportTool->handler($event, $exportToolParams);
-                    if ($temp !== '') {
-                        if ($i !== 0) {
-                            $temp = $exportTool->separator($exportToolParams) . $temp;
-                        }
-                        $tmpfile->write($temp);
-                        $i++;
-                    }
+            $result = $this->fetchEvent($user, $filters,true);
+            $result = $this->Allowedlist->removeAllowedlistedFromArray($result, false);
+            foreach ($result as $event) {
+                if ($jobId && $i % 10 == 0) {
+                    $this->Job->saveField('progress', intval((100 * $i) / $eventCount));
+                    $this->Job->saveField('message', 'Converting Event ' . $i . '/' . $eventCount . '.');
+                }
+                $temp = $exportTool->handler($event, $exportToolParams);
+                if ($temp !== '') {
+                    $tmpfile->writeWithSeparator($temp, $separator);
+                    $i++;
                 }
             }
         }
