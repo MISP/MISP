@@ -86,7 +86,8 @@ class AppModel extends Model
         39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
-        57 => false, 58 => false, 59 => false, 60 => false, 61 => false
+        57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
+        63 => true,
     );
 
     public $advanced_updates_description = array(
@@ -1474,6 +1475,67 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `auth_keys` MODIFY COLUMN `comment` text COLLATE utf8mb4_unicode_ci";
                 $sqlArray[] = "ALTER TABLE `attachment_scans` MODIFY COLUMN `malware_name` varchar(191) NULL";
                 break;
+            case 63:
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `sharing_group_id` int(11);";
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `org_id` int(11) NOT NULL;";
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `orgc_id` int(11) NOT NULL;";
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `locked` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '';";
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `extends_version` int(11) DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `published` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` ADD `deleted` TINYINT(1) NOT NULL DEFAULT 0";
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_galaxy_editor` tinyint(1) NOT NULL DEFAULT 0;";
+
+                $sqlArray[] = "UPDATE `roles` SET `perm_galaxy_editor`=1 WHERE `perm_tag_editor`=1;";
+                $sqlArray[] = "UPDATE `galaxy_clusters` SET `distribution`=3, `default`=1 WHERE `org_id`=0;";
+
+                $sqlArray[] = "ALTER TABLE `galaxy_reference` RENAME `galaxy_cluster_relations`;";
+                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `galaxy_cluster_uuid` varchar(40) COLLATE utf8_bin NOT NULL;";
+                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `distribution` tinyint(4) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `sharing_group_id` int(11);";
+                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `galaxy_cluster_relations` DROP COLUMN `referenced_galaxy_cluster_value`;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_relation_tags` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `galaxy_cluster_relation_id` int(11) NOT NULL,
+                    `tag_id` int(11) NOT NULL,
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+
+                $sqlArray[] = "ALTER TABLE `tags` ADD `is_galaxy` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `tags` ADD `is_custom_galaxy` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "UPDATE `tags` SET `is_galaxy`=1 WHERE `name` LIKE 'misp-galaxy:%';";
+                $sqlArray[] = "UPDATE `tags` SET `is_custom_galaxy`=1 WHERE `name` REGEXP '^misp-galaxy:[^:=\"]+=\"[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\"$';";
+
+                $sqlArray[] = "ALTER TABLE `servers` ADD `push_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_sightings`;";
+                $sqlArray[] = "ALTER TABLE `servers` ADD `pull_galaxy_clusters` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_galaxy_clusters`;";
+
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `galaxy_cluster_blocklists` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `cluster_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                    `created` datetime NOT NULL,
+                    `cluster_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+                    `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `cluster_orgc` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+
+                $indexArray[] = array('galaxy_clusters', 'org_id');
+                $indexArray[] = array('galaxy_clusters', 'orgc_id');
+                $indexArray[] = array('galaxy_clusters', 'sharing_group_id');
+                $indexArray[] = array('galaxy_clusters', 'extends_uuid');
+                $indexArray[] = array('galaxy_clusters', 'extends_version');
+                $indexArray[] = array('galaxy_clusters', 'default');
+                $indexArray[] = array('galaxy_cluster_relations', 'galaxy_cluster_uuid');
+                $indexArray[] = array('galaxy_cluster_relations', 'sharing_group_id');
+                $indexArray[] = array('galaxy_cluster_relations', 'default');
+                $indexArray[] = array('galaxy_cluster_relation_tags', 'galaxy_cluster_relation_id');
+                $indexArray[] = array('galaxy_cluster_relation_tags', 'tag_id');
+                $indexArray[] = array('galaxy_cluster_blocklists', 'cluster_uuid');
+                $indexArray[] = array('galaxy_cluster_blocklists', 'cluster_orgc');
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1827,6 +1889,19 @@ class AppModel extends Model
         $json_decoded = json_decode($value[$field]);
         if ($json_decoded === null) {
             return __('Invalid JSON.');
+        }
+        return true;
+    }
+
+    public function valueIsJsonOrNull($value)
+    {
+        $field = array_keys($value);
+        $field = $field[0];
+        if (!is_null($value[$field])) {
+            $json_decoded = json_decode($value[$field]);
+            if ($json_decoded === null) {
+                return __('Invalid JSON.');
+            }
         }
         return true;
     }

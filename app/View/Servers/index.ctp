@@ -28,6 +28,8 @@
             <th><?php echo $this->Paginator->sort('push');?></th>
             <th><?php echo $this->Paginator->sort('pull');?></th>
             <th><?php echo $this->Paginator->sort('push_sightings', 'Push Sightings');?></th>
+            <th><?php echo $this->Paginator->sort('push_galaxy_clusters', 'Push Clusters');?></th>
+            <th><?php echo $this->Paginator->sort('pull_galaxy_clusters', 'Pull Clusters');?></th>
             <th><?php echo $this->Paginator->sort('caching_enabled', 'Cache');?></th>
             <th><?php echo $this->Paginator->sort('unpublish_event (push event)');?></th>
             <th><?php echo $this->Paginator->sort('publish_without_email (pull event)');?></th>
@@ -120,6 +122,8 @@ foreach ($servers as $row_pos => $server):
         <td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['push']? __('Yes') : __('No')); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (<?php echo __('Rules');?>)</span></td>
         <td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['pull']? __('Yes') : __('No')); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (<?php echo __('Rules');?>)</span></td>
         <td class="short"><span class="<?php echo ($server['Server']['push_sightings'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['push_sightings'] ? __('Yes') : __('No')); ?>"></span></td>
+        <td class="short"><span class="<?php echo ($server['Server']['push_galaxy_clusters'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['push_galaxy_clusters'] ? __('Yes') : __('No')); ?>"></span></td>
+        <td class="short"><span class="<?php echo ($server['Server']['pull_galaxy_clusters'] ? 'icon-ok' : 'icon-remove'); ?>" role="img" aria-label="<?php echo ($server['Server']['pull_galaxy_clusters'] ? __('Yes') : __('No')); ?>"></span></td>
         <td>
             <?php
                 if ($server['Server']['caching_enabled']) {
@@ -170,6 +174,9 @@ foreach ($servers as $row_pos => $server):
                 if ($server['Server']['pull']) {
                     echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/update', __('Pull updates to events that already exist locally'), __('Pull updates'), 'fa fa-sync');
                     echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/full', __('Pull all'), __('Pull all'), 'fa fa-arrow-circle-down');
+                }
+                if ($server['Server']['pull'] && $server['Server']['pull_galaxy_clusters']) {
+                    echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/pull/' . h($server['Server']['id']) . '/pull_relevant_clusters', __('Pull known relevant custom clusters'), __('Pull relevant clusters'), 'fa fa-tags');
                 }
                 if ($server['Server']['push'] || $server['Server']['push_sightings']) {
                     echo sprintf('<a href="%s" title="%s" aria-label="%s" class="%s"></a>', $baseurl . '/servers/push/' . h($server['Server']['id']) . '/full', __('Push all'), __('Push all'), 'fa fa-arrow-circle-up');

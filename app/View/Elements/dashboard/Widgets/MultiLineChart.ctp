@@ -420,7 +420,7 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
             .attr("fill", "none")
             .attr("stroke-width", 2.5);
         series
-            .style("stroke", function(d) { ;return colors(d.name); })
+            .style("stroke", function(d) { return colors(d.name); })
             .attr("d", function(d) { return value_line(d.values); });
         series.exit().remove();
 

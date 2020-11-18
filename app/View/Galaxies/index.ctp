@@ -12,12 +12,7 @@
                                 'active' => $context === 'all',
                                 'url' => $baseurl . '/galaxies/index/context:all',
                                 'text' => __('All'),
-                            ),
-                            // array(
-                            //     'active' => $context === 'altered',
-                            //     'url' => $baseurl . '/galaxies/index/context:altered',
-                            //     'text' => __('Altered Galaxies'),
-                            // )
+                            )
                         )
                     ),
                     array(
@@ -89,7 +84,7 @@
         )
     ));
     echo '</div>';
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'galaxy_index'));
 ?>
 <script type="text/javascript">
     var passedArgsArray = <?php echo $passedArgs; ?>;

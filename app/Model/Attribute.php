@@ -3583,8 +3583,8 @@ class Attribute extends AppModel
                 }
                 if (!empty($results[$key])) {
                     if (!empty($options['includeGalaxy'])) {
-                        $massaged_attribute = $this->Event->massageTags($results[$key], 'Attribute');
-                        $massaged_event = $this->Event->massageTags($results[$key], 'Event');
+                        $massaged_attribute = $this->Event->massageTags($user, $results[$key], 'Attribute');
+                        $massaged_event = $this->Event->massageTags($user, $results[$key], 'Event');
                         $massaged_attribute['Galaxy'] = array_merge_recursive($massaged_attribute['Galaxy'], $massaged_event['Galaxy']);
                         $results[$key] = $massaged_attribute;
                     }
@@ -4602,7 +4602,7 @@ class Attribute extends AppModel
         }
 
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
-        $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements);
+        $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(

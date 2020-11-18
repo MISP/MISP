@@ -92,7 +92,7 @@ class BlocklistComponent extends Component
                 ];
                 return $this->RestResponse->viewData($result);
             } else {
-                $this->controller->Session->setFlash($message);
+                $this->controller->Flash->success($message);
                 $this->controller->redirect(array('action' => 'index'));
             }
         }
@@ -110,7 +110,7 @@ class BlocklistComponent extends Component
             $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', array('conditions' => array('id' => $id)));
         }
         if (empty($blockEntry)) {
-            throw new NotFoundException('Blocklist item not found.');
+            throw new NotFoundException(__('Blocklist item not found.'));
         }
         $this->controller->set('blockEntry', $blockEntry);
         if ($this->controller->request->is('post')) {
@@ -150,14 +150,14 @@ class BlocklistComponent extends Component
                         ])
                     );
                 } else {
-                    $this->controller->Session->setFlash(__('Blocklist item added.'));
+                    $this->controller->Flash->success(__('Blocklist item added.'));
                     $this->controller->redirect(array('action' => 'index'));
                 }
             } else {
                 if ($rest) {
                     throw new MethodNotAllowedException('Could not save the blocklist item.');
                 } else {
-                    $this->controller->Session->setFlash(__('Could not save the blocklist item'));
+                    $this->controller->Flash->error(__('Could not save the blocklist item'));
                     $this->controller->redirect(array('action' => 'index'));
                 }
             }

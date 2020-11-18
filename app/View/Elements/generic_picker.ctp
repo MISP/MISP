@@ -53,6 +53,12 @@
     $options_additionalData = array();
 ?>
 
+<style>
+.popover[data-dismissid] {
+    max-width: 60%;
+}
+</style>
+
 <script>
 function execAndClose(elem, alreadyExecuted) {
     var dismissid = $(elem).closest('div.popover').attr('data-dismissid');
@@ -194,11 +200,20 @@ function submitFunction(clicked, callback) {
     } else {
         additionalData = {};
     }
-    additionalDataOption = options_additionalData[$select.attr('id')][selected];
+    additionalDataOption = options_additionalData[$select.attr('id')];
     if (additionalData !== undefined) {
-        $.extend(additionalData, additionalDataOption);
-        execAndClose(clicked);
-        callback(selected, additionalData);
+        additionalData['itemOptions'] = additionalDataOption;
+        // callback function defined in the controller can be overridden in the JS
+        var dismissId = $clicked.closest('.popover[data-dismissid]').data('dismissid');
+        var callingButton = $('button[data-dismissid="' + dismissId + '"]');
+        if (callingButton.data('popover-no-submit') && callingButton.data('popover-callback-function') !== undefined) {
+            callbackFunction = callingButton.data('popover-callback-function');
+            execAndClose(clicked);
+            callbackFunction(selected, additionalData);
+        } else {
+            execAndClose(clicked);
+            callback(selected, additionalData);
+        }
     }
 }
 </script>

@@ -126,7 +126,7 @@ class ServerShell extends AppShell
         try {
             $result = $this->Server->pull($user, $serverId, $technique, $server, $jobId, $force);
             if (is_array($result)) {
-                $message = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled.', count($result[0]), count($result[1]), $result[2], $result[3]);
+                $message = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 $this->Job->saveStatus($jobId, true, $message);
             } else {
                 $message = __('ERROR: %s', $result);

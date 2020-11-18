@@ -80,6 +80,23 @@ class Organisation extends AppModel
             'User' => array('table' => 'users', 'fields' => array('org_id'))
     );
 
+    public $genericMISPOrganisation = array(
+        'id' => '0',
+        'name' => 'MISP',
+        'date_created' => '',
+        'date_modified' => '',
+        'description' => 'Automatically generated MISP organisation',
+        'type' => '',
+        'nationality' => 'Not specified',
+        'sector' => '',
+        'created_by' => '0',
+        'uuid' => '0',
+        'contacts' => '',
+        'local' => true,
+        'restricted_to_domain' => '',
+        'landingpage' => null
+    );
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -390,14 +407,14 @@ class Organisation extends AppModel
      * @param array $fields
      * @return array
      */
-    public function attachOrgsToEvent($event, $fields)
+    public function attachOrgs($data, $fields, $scope = 'Event')
     {
         $toFetch = [];
-        if (!isset($this->__orgCache[$event['Event']['orgc_id']])) {
-            $toFetch[] = $event['Event']['orgc_id'];
+        if (!isset($this->__orgCache[$data[$scope]['orgc_id']])) {
+            $toFetch[] = $data[$scope]['orgc_id'];
         }
-        if (!isset($this->__orgCache[$event['Event']['org_id']]) && $event['Event']['org_id'] != $event['Event']['orgc_id']) {
-            $toFetch[] = $event['Event']['org_id'];
+        if (!isset($this->__orgCache[$data[$scope]['org_id']]) && $data[$scope]['org_id'] != $data[$scope]['orgc_id']) {
+            $toFetch[] = $data[$scope]['org_id'];
         }
         if (!empty($toFetch)) {
             $orgs = $this->find('all', array(
@@ -409,9 +426,9 @@ class Organisation extends AppModel
                 $this->__orgCache[$org[$this->alias]['id']] = $org[$this->alias];
             }
         }
-        $event['Orgc'] = $this->__orgCache[$event['Event']['orgc_id']];
-        $event['Org'] = $this->__orgCache[$event['Event']['org_id']];
-        return $event;
+        $data['Orgc'] = $this->__orgCache[$data[$scope]['orgc_id']];
+        $data['Org'] = $this->__orgCache[$data[$scope]['org_id']];
+        return $data;
     }
 
     public function getOrgIdsFromMeta($metaConditions)

@@ -1228,7 +1228,7 @@ class Event extends AppModel
     }
 
     // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
-    private function __removeNonExportableTags($data, $dataType, $server = [])
+    public function __removeNonExportableTags($data, $dataType, $server = [])
     {
         if (isset($data[$dataType . 'Tag'])) {
             if (!empty($data[$dataType . 'Tag'])) {
@@ -1354,7 +1354,7 @@ class Event extends AppModel
         return $object;
     }
 
-    private function __getAnnounceBaseurl()
+    public function __getAnnounceBaseurl()
     {
         $baseurl = '';
         if (!empty(Configure::read('MISP.external_baseurl'))) {
@@ -1954,6 +1954,7 @@ class Event extends AppModel
             'eventsExtendingUuid',
             'extended',
             'excludeGalaxy',
+            'includeCustomGalaxyCluster',
             'includeRelatedTags',
             'excludeLocalTags',
             'includeDecayScore',
@@ -2307,7 +2308,7 @@ class Event extends AppModel
             }
             $this->__attachReferences($event, $fields);
             $this->__attachTags($event, $justExportableTags);
-            $event = $this->Orgc->attachOrgsToEvent($event, $fieldsOrg);
+            $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
                 $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
             }
@@ -2328,8 +2329,7 @@ class Event extends AppModel
                 }
                 $event['User']['email'] = $userEmail;
             }
-
-            $event = $this->massageTags($event, 'Event', $options['excludeGalaxy']);
+            $event = $this->massageTags($user, $event, 'Event', $options['excludeGalaxy']);
             // Let's find all the related events and attach it to the event itself
             if ($options['includeEventCorrelations']) {
                 $results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
@@ -2378,7 +2378,7 @@ class Event extends AppModel
                         unset($event['Attribute'][$key]);
                         continue;
                     }
-                    $event['Attribute'][$key] = $this->massageTags($event['Attribute'][$key], 'Attribute', $options['excludeGalaxy']);
+                    $event['Attribute'][$key] = $this->massageTags($user, $event['Attribute'][$key], 'Attribute', $options['excludeGalaxy']);
                     if ($attribute['category'] === 'Financial fraud') {
                         $event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
                     }
@@ -4523,6 +4523,13 @@ class Event extends AppModel
                         $thisUploaded = true;
                     }
                 } else {
+                    $fakeSyncUser = array(
+                        'org_id' => $server['Server']['remote_org_id'],
+                        'Role' => array(
+                            'perm_site_admin' => 0
+                        )
+                    );
+                    $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
                     $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket, $scope);
                     if (isset($this->data['ShadowAttribute'])) {
                         $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
@@ -5863,7 +5870,7 @@ class Event extends AppModel
         }
     }
 
-    private function __cacheSharingGroupData($user, $useCache = false)
+    public function __cacheSharingGroupData($user, $useCache = false)
     {
         if ($useCache && isset($this->assetCache['sharingGroupData'])) {
             return $this->assetCache['sharingGroupData'];
@@ -6181,7 +6188,7 @@ class Event extends AppModel
         return $attributes_added;
     }
 
-    public function massageTags($data, $dataType = 'Event', $excludeGalaxy = false, $cullGalaxyTags = false)
+    public function massageTags($user, $data, $dataType = 'Event', $excludeGalaxy = false, $cullGalaxyTags = false)
     {
         $data['Galaxy'] = array();
 
@@ -6198,7 +6205,7 @@ class Event extends AppModel
                 $dataTag['Tag']['local'] = empty($dataTag['local']) ? 0 : 1;
                 if (!isset($excludeGalaxy) || !$excludeGalaxy) {
                     if (substr($dataTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
-                        $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name']);
+                        $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name'], $user);
                         if ($cluster) {
                             $found = false;
                             $cluster['GalaxyCluster']['local'] = isset($dataTag['local']) ? $dataTag['local'] : false;
@@ -7009,7 +7016,7 @@ class Event extends AppModel
             $filters['tags'] = $filters['tag'];
         }
         $subqueryElements = $this->harvestSubqueryElements($filters);
-        $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements);
+        $filters = $this->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->addFiltersFromUserSettings($user, $filters);
         if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
@@ -7249,11 +7256,11 @@ class Event extends AppModel
         return $subqueryElement;
     }
 
-    public function addFiltersFromSubqueryElements($filters, $subqueryElements)
+    public function addFiltersFromSubqueryElements($filters, $subqueryElements, $user)
     {
         if (!empty($subqueryElements['galaxy'])) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            $tagsFromGalaxyMeta = $this->GalaxyCluster->getClusterTagsFromMeta($subqueryElements['galaxy']);
+            $tagsFromGalaxyMeta = $this->GalaxyCluster->getClusterTagsFromMeta($subqueryElements['galaxy'], $user);
             if (empty($tagsFromGalaxyMeta)) {
                 $filters['eventid'] = -1;
             }
@@ -7304,6 +7311,50 @@ class Event extends AppModel
                 unset($event['EventTag'][$k]);
             }
         }
+    }
+    
+    /**
+     * extractAllTagNames Returns all tag names attached to any elements in an event
+     *
+     * @param  mixed $event
+     * @return array All tag names in the event
+     */
+    public function extractAllTagNames(array $event)
+    {
+        $tags = array();
+        if (!empty($event['EventTag'])) {
+            foreach ($event['EventTag'] as $eventTag) {
+                $tagName = $eventTag['Tag']['name'];
+                $tags[$tagName] = $tagName;
+            }
+        }
+        if (!empty($event['Attribute'])) {
+            foreach ($event['Attribute'] as $attribute) {
+                foreach ($attribute['AttributeTag'] as $attributeTag) {
+                    $tagName = $attributeTag['Tag']['name'];
+                    $tags[$tagName] = $tagName;
+                }
+            }
+        }
+        if (!empty($event['ShadowAttribute'])) {
+            foreach ($event['ShadowAttribute'] as $attribute) {
+                foreach ($attribute['AttributeTag'] as $attributeTag) {
+                    $tagName = $attributeTag['Tag']['name'];
+                    $tags[$tagName] = $tagName;
+                }
+            }
+        }
+        if (!empty($event['Object'])) {
+            foreach ($event['Object'] as $object) {
+                foreach ($object['Attribute'] as $attribute) {
+                    foreach ($attribute['AttributeTag'] as $attributeTag) {
+                        $tagName = $attributeTag['Tag']['name'];
+                        $tags[$tagName] = $tagName;
+                    }
+                }
+            }
+        }
+        return $tags;
     }
 
     public function recoverEvent($id)

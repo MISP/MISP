@@ -135,13 +135,18 @@ class Role extends AppModel
             'readonlyenabled' => false,
             'title' => 'Create or modify MISP Object templates'
         ),
+        'perm_galaxy_editor' => array(
+            'id' => 'RolePermGalaxyEditor',
+            'text' => 'Galaxy Editor',
+            'readonlyenabled' => false,
+            'title' => 'Create or modify MISP Galaxies and MISP Galaxies Clusters'
+        ),
         'perm_decaying' => array(
             'id' => 'RolePermDecaying',
             'text' => 'Decaying Model Editor',
             'readonlyenabled' => true,
             'title' => 'Create or modify MISP Decaying Models'
         ),
-        // Urgently needed permission flag to avoid waking up next to a decapitated horse head sent by Enrico
         'perm_publish_zmq' => array(
             'id' => 'RolePermPublishZmq',
             'text' => 'ZMQ publisher',

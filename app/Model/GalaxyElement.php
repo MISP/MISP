@@ -26,6 +26,32 @@ class GalaxyElement extends AppModel
         return true;
     }
 
+    public function updateElements($oldClusterId, $newClusterId, $elements, $delete=true)
+    {
+        if ($delete) {
+            $this->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $oldClusterId));
+        }
+        $tempElements = array();
+        foreach ($elements as $key => $value) {
+            if (is_array($value)) {
+                foreach ($value as $arrayElement) {
+                    $tempElements[] = array(
+                        'key' => $key,
+                        'value' => $arrayElement,
+                        'galaxy_cluster_id' => $newClusterId
+                    );
+                }
+            } else {
+                $tempElements[] = array(
+                    'key' => $key,
+                    'value' => $value,
+                    'galaxy_cluster_id' => $newClusterId
+                );
+            }
+        }
+        $this->saveMany($tempElements);
+    }
+
     public function update($galaxy_id, $oldClusters, $newClusters)
     {
         $elementsToSave = array();
@@ -55,5 +81,18 @@ class GalaxyElement extends AppModel
             $elementsToSave = array_merge($elementsToSave, $tempCluster);
         }
         $this->saveMany($elementsToSave);
+    }
+
+    public function captureElements($user, $elements, $clusterId)
+    {
+        $tempElements = array();
+        foreach ($elements as $k => $element) {
+            $tempElements[] = array(
+                'key' => $element['key'],
+                'value' => $element['value'],
+                'galaxy_cluster_id' => $clusterId,
+            );
+        }
+        $this->saveMany($tempElements);
     }
 }

@@ -205,12 +205,14 @@
 
       private function __addGalaxy($id)
       {
-          $temp = $this->__galaxyClusterModel->getCluster($id);
+        $temp = $this->__galaxyClusterModel->getCluster($id, $this->__user);
+        if (!empty($temp)) {
           // move stuff around to resemble the galaxies attached to events
           $galaxy = $temp['GalaxyCluster']['Galaxy'];
           unset($temp['GalaxyCluster']['Galaxy']);
           $galaxy['GalaxyCluster'][0] = $temp['GalaxyCluster'];
           return $this->__createNode('galaxy', $galaxy);
+        }
       }
 
       private function __addLink($from_id, $to_id, $linkDistance = 150)

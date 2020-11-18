@@ -20,6 +20,8 @@ class JsonExport
             return $this->__objectHandler($data, $options);
 		} else if($options['scope'] === 'Sighting') {
 			return $this->__sightingsHandler($data, $options);
+		} else if($options['scope'] === 'GalaxyCluster') {
+			return $this->__galaxyClusterHandler($data, $options);
 		}
     }
 
@@ -72,6 +74,10 @@ class JsonExport
     private function __sightingsHandler($sighting, $options = array())
     {
         return json_encode($sighting);
+    }
+    private function __galaxyClusterHandler($cluster, $options = array())
+    {
+        return json_encode($cluster);
     }
 
     public function header($options = array())

@@ -91,13 +91,14 @@ function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
     }, 1000);
 }
 
-function publishPopup(id, type) {
+function publishPopup(id, type, scope) {
+    scope = scope === undefined ? 'events' : scope;
     var action = "alert";
     if (type == "publish") action = "publish";
     if (type == "unpublish") action = "unpublish";
     if (type == "sighting") action = "publishSightings";
     var destination = 'attributes';
-    $.get(baseurl + "/events/" + action + "/" + id, function(data) {
+    $.get(baseurl + "/" + scope + "/" + action + "/" + id, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
     });
@@ -1205,14 +1206,45 @@ function clickCreateButton(event, type) {
     simplePopup(baseurl + "/" + destination + "/add/" + event);
 }
 
-function openGenericModal(url) {
+function openGenericModal(url, modalData, callback) {
     $.ajax({
         type: "get",
         url: url,
         success: function (data) {
             $('#genericModal').remove();
-            $('body').append(data);
-            $('#genericModal').modal();
+            var htmlData;
+            if (modalData !== undefined) {
+                var $modal = $('<div id="genericModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true"></div>');
+                if (modalData.classes !== undefined) {
+                    $modal.addClass(modalData.classes);
+                }
+                var $modalHeaderText = $('<h3 id="genericModalLabel"></h3>');
+                if (modalData.header !== undefined) {
+                    $modalHeaderText.text(modalData.header)
+                }
+                var $modalHeader = $('<div class="modal-header"></div>').append(
+                    $('<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>'),
+                    $modalHeaderText
+                );
+                var $modalBody = $('<div class="modal-body"></div>').html(data);
+                if (modalData.bodyStyle !== undefined) {
+                    $modalBody.css(modalData.bodyStyle);
+                }
+                $modal.append(
+                    $modalHeader,
+                    $modalBody
+                );
+                htmlData = $modal[0].outerHTML;
+            } else {
+                htmlData = data;
+            }
+            $('body').append(htmlData);
+            $('#genericModal').modal().on('shown', function() {
+                if (callback !== undefined) {
+                    callback();
+                }
+            });
+            
         },
         error: function (data, textStatus, errorThrown) {
             showMessage('fail', textStatus + ": " + errorThrown);
@@ -4296,7 +4328,6 @@ function addGalaxyListener(id) {
     var target_type = $(id).data('target-type');
     var target_id = $(id).data('target-id');
     var local = $(id).data('local');
-    console.log(local);
     if (local) {
         local = 1;
     } else {
@@ -5081,7 +5112,7 @@ function changeTaxonomyRequiredState(checkbox) {
     });
 }
 
-function fetchFormDataAjax(url, callback) {
+function fetchFormDataAjax(url, callback, errorCallback) {
     var formData = false;
     $.ajax({
         data: '[]',
@@ -5090,6 +5121,9 @@ function fetchFormDataAjax(url, callback) {
         },
         error:function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+            if (errorCallback !== undefined) {
+                errorCallback();
+            }
         },
         async: false,
         type:"get",
@@ -5304,6 +5338,24 @@ function setHomePage() {
 function changeLocationFromIndexDblclick(row_index) {
     var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
     window.location = href;
+}
+
+function loadClusterRelations(clusterId) {
+    if (clusterId !== undefined) {
+        openGenericModal(
+            baseurl + '/GalaxyClusters/viewRelationTree/' + clusterId,
+            {
+                header: "Cluster relation tree",
+                classes: "modal-xl",
+                bodyStyle: {"min-height": "700px"}
+            },
+            function() {
+                if (window.buildTree !== undefined) {
+                    buildTree();
+                }
+            }
+        );
+    }
 }
 
 function submitGenericFormInPlace() {

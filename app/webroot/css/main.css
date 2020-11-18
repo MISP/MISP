@@ -965,6 +965,11 @@ a.proposal_link_red:hover {
     max-height: 600px;
 }
 
+.modal-xl {
+    width: 1000px;
+    margin-left: -500px;
+}
+
 .modal-body-xl {
     max-height: 70vh;
 }
@@ -2580,6 +2585,14 @@ table tr:hover .down-expand-button {
     background-color: #3b3b3b;
     color: white;
     border-radius: 3px;
+}
+
+.fork-cluster-preview {
+    display: inline-block;
+    position: absolute;
+    right: 0px;
+    top: 100px;
+    max-width: 400px;
 }
 
 .widgetTitle {

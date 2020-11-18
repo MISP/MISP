@@ -17,10 +17,13 @@
         h($data['model']);
     $fieldsString = '';
     $simpleFieldAllowedlist = array(
-        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required'
+        'default', 'type', 'options', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'checked', 'multiple', 'selected', 'legend',
+        'disabled',
     );
     $fieldsArrayForPersistence = array();
-    $formCreate = $this->Form->create($modelForForm, ['class' => 'genericForm']);
+    $formOptions = isset($formOptions) ? $formOptions : array();
+    $formOptions = array_merge(['class' => 'genericForm'], $formOptions);
+    $formCreate = $this->Form->create($modelForForm, $formOptions);
     if (!empty($data['fields'])) {
         foreach ($data['fields'] as $fieldData) {
             if (isset($fieldData['requirements']) && !$fieldData['requirements']) {
@@ -56,6 +59,11 @@
                     if (!empty($fieldData[$f])) {
                         $params[$f] = $fieldData[$f];
                     }
+                }
+                if (!empty($fieldData['picker']) && isset($fieldData['picker']['function'])) {
+                    $fieldData['picker']['text'] = isset($fieldData['picker']['text']) ? $fieldData['picker']['text'] : __('Picker');
+                    $params['div'] = 'input text input-append';
+                    $params['after'] = sprintf('<button type="button" class="btn" onclick="%s.call(this);">%s</button>', $fieldData['picker']['function'], __($fieldData['picker']['text']));
                 }
                 if (!empty($params['type']) && $params['type'] === 'dropdown') {
                     $params['type'] = 'select';
