@@ -112,12 +112,8 @@
         'css' => array('vis', 'distribution-graph'),
         'js' => array('vis', 'network-distribution-graph')
     ));
-    $current_menu = [
-        'admin_view' => ['menuList' => 'admin', 'menuItem' => 'viewUser'],
-        'view' => ['menuList' => 'globalActions', 'menuItem' => 'view']
-    ];
     echo sprintf(
-        '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s<div style="margin-top:20px;">%s%s</div></div>%s',
+        '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s<div style="margin-top:20px;">%s%s</div></div>',
         sprintf(
             '<h2>%s</h2>%s',
             __('User %s', h($user['User']['email'])),
@@ -132,7 +128,11 @@
             ),
             __('Download user profile for data portability')
         ),
-        $me['Role']['perm_auth'] ? $this->element('/genericElements/accordion', array('title' => 'Authkeys', 'url' => '/auth_keys/index/' . h($user['User']['id']))) : '',
-        $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => '/events/index/searchemail:' . urlencode(h($user['User']['email'])))),
-        $this->element('/genericElements/SideMenu/side_menu', $current_menu[$admin_view ? 'admin_view' : 'view'])
+        $me['Role']['perm_auth'] ? $this->element('/genericElements/accordion', array('title' => __('Auth keys'), 'url' => '/auth_keys/index/' . h($user['User']['id']))) : '',
+        $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => '/events/index/searchemail:' . urlencode(h($user['User']['email']))))
     );
+    $current_menu = [
+        'admin_view' => ['menuList' => 'admin', 'menuItem' => 'viewUser'],
+        'view' => ['menuList' => 'globalActions', 'menuItem' => 'view']
+    ];
+    echo $this->element('/genericElements/SideMenu/side_menu', $current_menu[$admin_view ? 'admin_view' : 'view']);

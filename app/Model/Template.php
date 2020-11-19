@@ -52,7 +52,7 @@ class Template extends AppModel
             return false;
         }
 
-        //if the user is a site admin, return the template withoug question
+        //if the user is a site admin, return the template without question
         if ($user['Role']['perm_site_admin']) {
             return $template;
         }

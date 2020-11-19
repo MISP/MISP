@@ -908,10 +908,6 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Server Settings & Maintenance')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/inbox',
-                            'text' => __('Inbox')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/servers/updateProgress',
                             'text' => __('Update Progress')
                         ));

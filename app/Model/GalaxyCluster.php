@@ -981,6 +981,9 @@ class GalaxyCluster extends AppModel
         }
         if (isset($options['first']) && $options['first']) {
             $clusters = $this->find('first', $params);
+        } else if (isset($options['count']) && $options['count']) {
+            $clusterCount = $this->find('count', $params);
+            return $clusterCount;
         } else {
             $clusters = $this->find('all', $params);
         }

@@ -67,9 +67,8 @@
                 array(
                     'name' => __('Authkey'),
                     'sort' => 'User.authkey',
-                    'class' => 'bold',
+                    'class' => 'bold quickSelect',
                     'data_path' => 'User.authkey',
-                    'onClick' => 'quickSelect(this);',
                     'privacy' => 1,
                     'requirement' => empty(Configure::read('Security.advanced_authkeys'))
                 ),

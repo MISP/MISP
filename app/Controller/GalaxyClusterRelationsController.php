@@ -174,6 +174,8 @@ class GalaxyClusterRelationsController extends AppController
                 }
             }
         }
+        $existingRelations = $this->GalaxyClusterRelation->getExistingRelationships();
+        $this->set('existingRelations', $existingRelations);
         $this->set('distributionLevels', $distributionLevels);
         $this->set('initialDistribution', $initialDistribution);
         $this->set('sharingGroups', $sgs);
