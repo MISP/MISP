@@ -1976,9 +1976,13 @@ class AppModel extends Model
             }
             $db_version = $db_version[0];
             $updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
-            $job = $this->Job->find('first', array(
-                'conditions' => array('Job.id' => $processId)
-            ));
+            if ($processId) {
+                $job = $this->Job->find('first', array(
+                    'conditions' => array('Job.id' => $processId)
+                ));
+            } else {
+                $job = null;
+            }
             if (!empty($updates)) {
                 // Exit if updates are locked.
                 // This is not as reliable as a real lock implementation
