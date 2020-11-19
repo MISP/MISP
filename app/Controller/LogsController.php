@@ -29,37 +29,6 @@ class LogsController extends AppController
         }
     }
 
-    private function __resolveSpecial($data, $type, $fields)
-    {
-        if (!is_array($data)) {
-            $data = array($data);
-        }
-        foreach ($data as $k => $element) {
-            if (!is_numeric($data)) {
-                $this->loadModel($type);
-                $params = array(
-                    'conditions' => array(),
-                    'recursive' => -1,
-                    'fields' => array($type . '.id')
-                );
-                foreach ($fields as $field) {
-                    $params['conditions']['OR'][$type . '.' . $field] = $element;
-                }
-                $records = $this->$type->find('all', $params);
-                if (empty($records)) {
-                    $data[$k] = -1;
-                } else {
-                    $temp = array();
-                    foreach ($records as $record) {
-                        $temp[] = $record[$type]['id'];
-                    }
-                    $data = array_merge($data, $temp);
-                }
-            }
-        }
-        return $data;
-    }
-
     public function admin_index()
     {
         if ($this->_isRest()) {
@@ -404,7 +373,34 @@ class LogsController extends AppController
             $this->set('actions', $actions);
 
             // combobox for models
-            $models = array('Attribute', 'Event', 'EventBlocklist', 'EventTag', 'Feed', 'DecayingModel', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Allowedlist', 'Galaxy', 'GalaxyCluster', 'GalaxyClusterRelation');
+            $models = [
+                'Attribute',
+                'Allowedlist',
+                'AuthKey',
+                'Event',
+                'EventBlocklist',
+                'EventTag',
+                'Feed',
+                'DecayingModel',
+                'MispObject',
+                'Organisation',
+                'Post',
+                'Regexp',
+                'Role',
+                'Server',
+                'ShadowAttribute',
+                'SharingGroup',
+                'Tag',
+                'Task',
+                'Taxonomy',
+                'Template',
+                'Thread',
+                'User',
+                'Galaxy',
+                'GalaxyCluster',
+                'GalaxyClusterRelation',
+            ];
+            sort($models);
             $models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
             $this->set('models', $models);
             $this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
