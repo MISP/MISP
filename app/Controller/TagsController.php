@@ -487,7 +487,7 @@ class TagsController extends AppController
             throw new NotFoundException(__('Invalid event.'));
         }
         // Remove galaxy tags
-        $event = $this->Tag->EventTag->Event->massageTags($event, 'Event', false, true);
+        $event = $this->Tag->EventTag->Event->massageTags($this->Auth->user(), $event, 'Event', false, true);
 
         $this->set('tags', $event['EventTag']);
         $this->set('required_taxonomies', $this->Tag->EventTag->Event->getRequiredTaxonomies());
