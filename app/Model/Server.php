@@ -5929,8 +5929,10 @@ class Server extends AppModel
         $results = array();
         foreach ($extensions as $extension => $reason) {
             $results['extensions'][$extension] = [
-                'loaded_web' => phpversion($extension),
-                'loaded_cli' => false,
+                'web_version' => phpversion($extension),
+                'web_version_outdated' => false,
+                'cli_version' => false,
+                'cli_version_outdated' => false,
                 'required' => $reason === true,
                 'info' => $reason === true ? null : $reason,
             ];
@@ -5942,7 +5944,23 @@ class Server extends AppModel
             $execResult = $this->jsonDecode($execResult);
             $results['cli']['phpversion'] = $execResult['phpversion'];
             foreach ($execResult['extensions'] as $extension => $loaded) {
-                $results['extensions'][$extension]['loaded_cli'] = $loaded;
+                $results['extensions'][$extension]['cli_version'] = $loaded;
+            }
+        }
+
+        $minimalVersions = [
+            'redis' => '2.2.8', // because of sAddArray method
+        ];
+        foreach ($minimalVersions as $extension => $version) {
+            if (!isset($results['extensions'][$extension])) {
+                continue;
+            }
+            $results['extensions'][$extension]['required_version'] = $version;
+            foreach (['web', 'cli'] as $type) {
+                if ($results['extensions'][$extension][$type . '_version']) {
+                    $outdated = version_compare($results['extensions'][$extension][$type . '_version'], $version, '<');
+                    $results['extensions'][$extension][$type . '_version_outdated'] = $outdated;
+                }
             }
         }
         return $results;
