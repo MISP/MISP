@@ -57,12 +57,6 @@
                     'element' => 'expiration'
                 ],
                 [
-                    'name' => __('Disabled'),
-                    'sort' => 'AuthKey.disabled',
-                    'data_path' => 'AuthKey.disabled',
-                    'element' => 'boolean'
-                ],
-                [
                     'name' => __('Comment'),
                     'sort' => 'AuthKey.comment',
                     'data_path' => 'AuthKey.comment',
