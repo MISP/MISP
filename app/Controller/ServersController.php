@@ -1416,6 +1416,9 @@ class ServersController extends AppController
         }
 
         $setting = $this->Server->getSettingData($setting_name);
+        if ($setting === false) {
+            throw new NotFoundException(__('Setting %s is invalid.', $setting_name));
+        }
         if (!empty($setting['cli_only'])) {
             throw new MethodNotAllowedException(__('This setting can only be edited via the CLI.'));
         }
@@ -1430,7 +1433,6 @@ class ServersController extends AppController
             if (isset($setting['optionsSource']) && !empty($setting['optionsSource'])) {
                 $setting['options'] = $this->{'__load' . $setting['optionsSource']}();
             }
-            $subGroup = 'general';
             $subGroup = explode('.', $setting['name']);
             if ($subGroup[0] === 'Plugin') {
                 $subGroup = explode('_', $subGroup[1])[0];
