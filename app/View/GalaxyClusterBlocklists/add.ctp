@@ -15,7 +15,11 @@
                     'field' => 'uuids',
                     'label' => __('Cluster UUID'),
                     'type' => 'textarea',
-                    'default' => isset($blockEntry['GalaxyClusterBlocklist']['cluster_uuid']) ? $blockEntry['GalaxyClusterBlocklist']['cluster_uuid'] : ''
+                    'default' => isset($blockEntry['GalaxyClusterBlocklist']['cluster_uuid']) ? $blockEntry['GalaxyClusterBlocklist']['cluster_uuid'] : '',
+                    'picker' => array(
+                        'text' => __('Pick target cluster'),
+                        'function' => 'pickerTarget',
+                    ),
                 ),
                 array(
                     'field' => 'cluster_orgc',
@@ -46,5 +50,17 @@
 ?>
 
 <script type="text/javascript">
+    function pickerTarget() {
+        $(this).data('popover-no-submit', true);
+        $(this).data('popover-callback-function', setTargetUUIDAfterSelect);
+        var target_id = 0;
+        var target_type = 'galaxyClusterRelation';
+        var noGalaxyMatrix = 1;
+        popoverPopup(this, target_id + '/' + target_type + '/' + noGalaxyMatrix, 'galaxies', 'selectGalaxyNamespace');
+    }
+    function setTargetUUIDAfterSelect(selected, additionalData) {
+        selectedUUID = additionalData.itemOptions[selected].uuid;
+        $('#GalaxyClusterBlocklistUuids').val(selectedUUID);
+    }
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts
