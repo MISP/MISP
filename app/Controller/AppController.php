@@ -39,6 +39,7 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @throws ForbiddenException // TODO Exception
  * @property ACLComponent $ACL
  * @property RestResponseComponent $RestResponse
+ * @property CRUDComponent $CRUD
  */
 class AppController extends Controller
 {
@@ -452,6 +453,7 @@ class AppController extends Controller
             $this->set('isAclTagger', $role['perm_tagger']);
             $this->set('isAclTagEditor', $role['perm_tag_editor']);
             $this->set('isAclTemplate', $role['perm_template']);
+            $this->set('isAclGalaxyEditor', $role['perm_galaxy_editor']);
             $this->set('isAclSharingGroup', $role['perm_sharing_group']);
             $this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);

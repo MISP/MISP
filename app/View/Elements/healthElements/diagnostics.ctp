@@ -171,29 +171,42 @@
     <?php
         endforeach;
     ?>
-    <h4><?php echo __('PHP Extensions');?></h4>
-        <?php
-            foreach (array('web', 'cli') as $context):
-        ?>
-            <div style="background-color:#f7f7f9;width:400px;">
-                <b><?php echo ucfirst(h($context));?></b><br />
-                <?php
-                    if (isset($extensions[$context]['extensions'])):
-                        foreach ($extensions[$context]['extensions'] as $extension => $status):
-                ?>
-                            <?php echo h($extension); ?>:… <span style="color:<?php echo $status ? 'green' : 'red';?>;font-weight:bold;"><?php echo $status ? __('OK') : __('Not loaded'); ?></span><br />
-                <?php
-                        endforeach;
-                    else:
-                ?>
-                        <span class="red"><?php echo __('Issues reading PHP settings. This could be due to the test script not being readable.');?></span>
-                <?php
-                    endif;
-                ?>
-            </div><br />
-        <?php
-            endforeach;
-        ?>
+    <h4><?= __('PHP Extensions') ?></h4>
+    <table class="table table-condensed table-bordered" style="width: 40vw">
+        <thead>
+            <tr>
+                <th><?= __('Extension') ?></th>
+                <th><?= __('Required') ?></th>
+                <th><?= __('Why to install') ?></th>
+                <th><?= __('Web') ?></th>
+                <th><?= __('CLI') ?></th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($extensions['extensions'] as $extension => $info): ?>
+        <tr>
+            <td class="bold"><?= h($extension) ?></td>
+            <td><?= $info['required'] ? '<i class="black fa fa-check" role="img" aria-label="' .  __('Yes') . '"></i>' : '<i class="black fa fa-times" role="img" aria-label="' .  __('No') . '"></i>' ?></td>
+            <td><?= $info['info'] ?></td>
+            <?php foreach (['web', 'cli'] as $type): ?>
+            <td><?php
+                $version = $info["{$type}_version"];
+                $outdated = $info["{$type}_version_outdated"];
+                if ($version && !$outdated) {
+                    echo '<i class="green fa fa-check" role="img" aria-label="' .  __('Yes') . '"></i> (' . h($version) .')';
+                } else {
+                    echo '<i class="red fa fa-times" role="img" aria-label="' .  __('No') . '"></i>';
+                    if ($outdated) {
+                        echo '<br>' . __("Version %s installed, but required at least %s", h($version), h($info['required_version']));
+                    }
+                }
+            ?></td>
+            <?php endforeach; ?>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+
     <?php
         echo '<div style="width:400px;">';
         echo $this->element('/genericElements/IndexTable/index_table', array(

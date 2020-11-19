@@ -272,6 +272,8 @@ class ServersController extends AppController
                         'push' => 0,
                         'pull' => 0,
                         'push_sightings' => 0,
+                        'push_galaxy_clusters' => 0,
+                        'pull_galaxy_clusters' => 0,
                         'caching_enabled' => 0,
                         'json' => '[]',
                         'push_rules' => '[]',
@@ -460,7 +462,7 @@ class ServersController extends AppController
             }
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -711,11 +713,14 @@ class ServersController extends AppController
         if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
             $error = __('Pull setting not enabled for this server.');
         }
+        if (false == $this->Server->data['Server']['pull_galaxy_clusters'] && ($technique == 'pull_relevant_clusters')) {
+            $error = __('Pull setting not enabled for this server.');
+        }
         if (empty($error)) {
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
                 if (is_array($result)) {
-                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled.', count($result[0]), count($result[1]), $result[2], $result[3]));
+                    $success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]));
                 } else {
                     $error = $result;
                 }
@@ -1814,7 +1819,12 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('This action requires API access.');
         }
         $versionArray = $this->Server->checkMISPVersion();
-        $this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync'], 'perm_sighting' => $this->userRole['perm_sighting']));
+        $this->set('response', array(
+            'version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'],
+            'perm_sync' => $this->userRole['perm_sync'],
+            'perm_sighting' => $this->userRole['perm_sighting'],
+            'perm_galaxy_editor' => $this->userRole['perm_galaxy_editor'],
+        ));
         $this->set('_serialize', 'response');
     }
 
@@ -1822,11 +1832,6 @@ class ServersController extends AppController
     {
         $this->set('response', array('version' => $this->pyMispVersion));
         $this->set('_serialize', 'response');
-    }
-
-    public function getGit()
-    {
-        $status = $this->Server->getCurrentGitStatus();
     }
 
     public function checkout()
@@ -1839,11 +1844,17 @@ class ServersController extends AppController
         if ($this->request->is('post')) {
             $status = $this->Server->getCurrentGitStatus();
             $raw = array();
-            $update = $this->Server->update($status, $raw);
+            if (empty($status['branch'])) { // do not try to update if you are not on branch
+                $msg = 'Update failed, you are not on branch';
+                $raw[] = $msg;
+                $update = $msg;
+            } else {
+                $update = $this->Server->update($status, $raw);
+            }
             if ($this->_isRest()) {
                 return $this->RestResponse->viewData(array('results' => $raw), $this->response->type());
             } else {
-                return new CakeResponse(array('body'=> $update, 'type' => 'txt'));
+                return new CakeResponse(array('body' => $update, 'type' => 'txt'));
             }
         } else {
             $branch = $this->Server->getCurrentBranch();

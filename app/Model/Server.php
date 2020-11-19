@@ -2742,15 +2742,35 @@ class Server extends AppModel
 
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
     {
-        $this->Job = ClassRegistry::init('Job');
         if ($jobId) {
+            $job = ClassRegistry::init('Job');
+            $job->read(null, $jobId);
             $email = "Scheduled job";
         } else {
             $email = $user['email'];
         }
+        $server['Server']['version'] = $this->getRemoteVersion($id);
+        $pulledClusters = 0;
+        if (!empty($server['Server']['pull_galaxy_clusters'])) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            if ($jobId) {
+                $job->saveField('message', $technique == 'pull_relevant_clusters' ? __('Pulling relevant galaxy clusters.') : __('Pulling galaxy clusters.'));
+            }
+            $pulledClusters = $this->GalaxyCluster->pullGalaxyClusters($user, $server, $technique);
+            if ($technique == 'pull_relevant_clusters') {
+                if ($jobId) {
+                    $job->saveField('progress', 100);
+                    $job->saveField('message', 'Pulling complete.');
+                }
+                return array(array(), array(), 0, 0, $pulledClusters);
+            }
+            if ($jobId) {
+                $job->saveField('progress', 10);
+                $job->saveField('message', 'Pulling events.');
+            }
+        }
         $eventModel = ClassRegistry::init('Event');
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server, $force);
-        $server['Server']['version'] = $this->getRemoteVersion($id);
         if (!empty($eventIds['error'])) {
             $errors = array(
                 '1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
@@ -2777,11 +2797,15 @@ class Server extends AppModel
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
-            $this->Job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
+            if ($jobId) {
+                $job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
+            }
             foreach ($eventIds as $k => $eventId) {
                 $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId, $force);
-                if ($k % 10 == 0) {
-                    $this->Job->saveProgress($jobId, null, 50 * (($k + 1) / count($eventIds)));
+                if ($jobId) {
+                    if ($k % 10 == 0) {
+                        $job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
+                    }
                 }
             }
         }
@@ -2801,13 +2825,19 @@ class Server extends AppModel
                 ));
             }
         }
-        $this->Job->saveProgress($jobId, 'Pulling proposals.', 50);
+        if ($jobId) {
+            $job->saveProgress($jobId, 'Pulling proposals.', 50);
+        }
         $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
 
-        $this->Job->saveProgress($jobId, 'Pulling sightings.', 75);
+        if ($jobId) {
+            $job->saveProgress($jobId, 'Pulling sightings.', 75);
+        }
         $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
 
-        $this->Job->saveProgress($jobId, 'Pull completed.', 100);
+        if ($jobId) {
+            $job->saveProgress($jobId, 'Pull completed.', 100);
+        }
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
@@ -2819,14 +2849,15 @@ class Server extends AppModel
             'user_id' => $user['id'],
             'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
             'change' => sprintf(
-                '%s events, %s proposals and %s sightings pulled or updated. %s events failed or didn\'t need an update.',
+                '%s events, %s proposals, %s sightings and %s galaxyClusters pulled or updated. %s events failed or didn\'t need an update.',
                 count($successes),
                 $pulledProposals,
                 $pulledSightings,
+                $pulledClusters,
                 count($fails)
             )
         ));
-        return array($successes, $fails, $pulledProposals, $pulledSightings);
+        return array($successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters);
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -2867,20 +2898,110 @@ class Server extends AppModel
      * @param HttpSocket $HttpSocket
      * @param array $request
      * @param array $server
-     * @param array $filter_rules
+     * @param array $filterRules
      * @return array
      * @throws JsonException
      */
-    private function __orgRuleDowngrade(HttpSocket $HttpSocket, array $request, array $server, array $filter_rules)
+    private function __orgRuleDowngrade(HttpSocket $HttpSocket, array $request, array $server, array $filterRules)
     {
         $uri = $server['Server']['url'] . '/servers/getVersion';
         $version_response = $HttpSocket->get($uri, false, $request);
         $version = $this->jsonDecode($version_response->body)['version'];
         $version = explode('.', $version);
         if ($version[0] <= 2 && $version[1] <= 4 && $version[0] <= 123) {
-            $filter_rules['org'] = implode('|', $filter_rules['org']);
+            $filterRules['org'] = implode('|', $filterRules['org']);
         }
-        return $filter_rules;
+        return $filterRules;
+    }
+
+    /**
+     * fetchCustomClusterIdsFromServer Fetch custom-published remote clusters' UUIDs and versions
+     *
+     * @param  array $server
+     * @param  mixed $HttpSocket
+     * @param  array $conditions
+     * @return mixed The list of clusters or the error
+     */
+    public function fetchCustomClusterIdsFromServer(array $server, $HttpSocket=null, array $conditions=array())
+    {
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $uri = $url . '/galaxy_clusters/restSearch';
+        $filterRules['published'] = 1;
+        $filterRules['minimal'] = 1;
+        $filterRules['custom'] = 1;
+        $filterRules = array_merge($filterRules, $conditions);
+        try {
+            $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
+            if ($response->isOk()) {
+                $clusterArray = json_decode($response->body, true);
+                if (isset($clusterArray['response'])) {
+                    $clusterArray = $clusterArray['response'];
+                }
+                return $clusterArray;
+            }
+
+            if ($response->code == '403') {
+                return 403;
+            }
+        } catch (SocketException $e) {
+            return $e->getMessage();
+        }
+
+        // error, so return error message, since that is handled and everything is expecting an array
+        return __('Error: got response code %s', $response->code);
+    }
+
+    /**
+     * getElligibleClusterIdsFromServerForPull Get a list of cluster IDs that are present on the remote server and returns clusters that should be pulled
+     *
+     * @param  array $server
+     * @param  mixed $HttpSocket
+     * @param  bool  $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
+     * @param  array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster 
+     * @param  array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
+     * @return array List of cluster IDs to be pulled
+     */
+    public function getElligibleClusterIdsFromServerForPull(array $server, $HttpSocket=null, $onlyUpdateLocalCluster=true, array $elligibleClusters=array(), array $conditions=array())
+    {
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket=null, $conditions=$conditions);
+        if (!empty($clusterArray)) {
+            foreach ($clusterArray as $cluster) {
+                if (isset($elligibleClusters[$cluster['GalaxyCluster']['uuid']])) {
+                    $localVersion = $elligibleClusters[$cluster['GalaxyCluster']['uuid']];
+                    if ($localVersion >= $cluster['GalaxyCluster']['version']) {
+                        unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                    }
+                } else {
+                    if ($onlyUpdateLocalCluster) {
+                        unset($elligibleClusters[$cluster['GalaxyCluster']['uuid']]);
+                    } else {
+                        $elligibleClusters[$cluster['GalaxyCluster']['uuid']] = true;
+                    }
+                }
+            }
+            return array_keys($elligibleClusters);
+        }
+        return $clusterArray;
+    }
+
+    // Get an array of cluster_ids that are present on the remote server and returns clusters that should be pushed
+    public function getElligibleClusterIdsFromServerForPush($server, $HttpSocket=null, $localClusters=array(), $conditions=array())
+    {
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($server, $HttpSocket=null, $conditions=$conditions);
+        $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
+        if (!empty($localClusters)) {
+            foreach ($localClusters as $k => $localCluster) {
+                if (isset($keyedClusterArray[$localCluster['GalaxyCluster']['uuid']])) {
+                    $remoteVersion = $keyedClusterArray[$localCluster['GalaxyCluster']['uuid']];
+                    if ($localCluster['GalaxyCluster']['version'] <= $remoteVersion) {
+                        unset($localClusters[$k]);
+                    }
+                }
+            }
+        }
+        return $localClusters;
     }
 
     /**
@@ -3037,6 +3158,7 @@ class Server extends AppModel
 
         // sync events if user is capable and server is configured for push
         if ($push['canPush'] && $server['Server']['push']) {
+            $successes = array();
             if ("full" == $technique) {
                 $eventid_conditions_key = 'Event.id >';
                 $eventid_conditions_value = 0;
@@ -3049,6 +3171,15 @@ class Server extends AppModel
             } else {
                 throw new InvalidArgumentException("Technique parameter must be 'full', 'incremental' or event ID.");
             }
+
+            // sync custom galaxy clusters if user is capable
+            if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" == $technique) {
+                $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $technique='full');
+            } else {
+                $clustersSuccesses = array();
+            }
+            $successes = array_merge($successes, $clustersSuccesses);
+
             $sgs = $this->Event->SharingGroup->find('all', array(
                 'recursive' => -1,
                 'contain' => array('Organisation', 'SharingGroupOrg' => array('Organisation'), 'SharingGroupServer')
@@ -3096,7 +3227,6 @@ class Server extends AppModel
             if (!empty($eventUUIDsFiltered)) {
                 $eventCount = count($eventUUIDsFiltered);
                 // now process the $eventIds to push each of the events sequentially
-                $successes = array();
                 $fails = array();
                 foreach ($eventUUIDsFiltered as $k => $eventUuid) {
                     $params = array();
@@ -3121,6 +3251,11 @@ class Server extends AppModel
                     $event = $this->Event->fetchEvent($user, $params);
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
+                    if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" != $technique) {
+                        $clustersSuccesses = $this->syncGalaxyClusters($HttpSocket, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
+                    } else {
+                        $clustersSuccesses = array();
+                    }
                     $result = $this->Event->uploadEventToServer($event, $server, $HttpSocket);
                     if ('Success' === $result) {
                         $successes[] = $event['Event']['id'];
@@ -3160,6 +3295,7 @@ class Server extends AppModel
         if (!isset($fails)) {
             $fails = array();
         }
+
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
         $this->Log->save(array(
@@ -3203,6 +3339,48 @@ class Server extends AppModel
             return false;
         }
         return $uuidList;
+    }
+    
+    /**
+     * syncGalaxyClusters Push elligible clusters depending on the provided technique
+     *
+     * @param  mixed $HttpSocket
+     * @param  array $server
+     * @param  array $user
+     * @param  string|int $technique Either the 'full' string or the event id
+     * @param  bool  $event
+     * @return array List of successfully pushed clusters
+     */
+    public function syncGalaxyClusters($HttpSocket, array $server, array $user, $technique='full', $event=false)
+    {
+        $successes = array();
+        if (!$server['Server']['push_galaxy_clusters']) {
+            return $successes;
+        }
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $this->Event = ClassRegistry::init('Event');
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $clusters = array();
+        if ($technique == 'full') {
+            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
+        } else {
+            if ($event === false) { // The event from which the cluster should be taken must be provided
+                return $successes;
+            }
+            $tagNames = $this->Event->extractAllTagNames($event);
+            if (!empty($tagNames)) {
+                $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $tagNames), $full=true);
+            }
+        }
+        $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
+        $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($server, $HttpSocket=$HttpSocket, $localClusters=$clusters, $conditions=array('uuid' => $localClusterUUIDs));
+        foreach ($clustersToPush as $k => $cluster) {
+            $result = $this->GalaxyCluster->uploadClusterToServer($cluster, $server, $HttpSocket, $user);
+            if ($result === 'Success') {
+                $successes[] = __('GalaxyCluster %s', $cluster['GalaxyCluster']['uuid']);
+            }
+        }
+        return $successes;
     }
 
     public function syncSightings($HttpSocket, $server, $user, $eventModel)
@@ -4528,6 +4706,8 @@ class Server extends AppModel
         $remoteVersion = json_decode($response->body, true);
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
+        $supportEditOfGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']);
+        $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
             $this->Log = ClassRegistry::init('Log');
@@ -4589,7 +4769,7 @@ class Server extends AppModel
                     'title' => ucfirst($issueLevel) . ': ' . $response,
             ));
         }
-        return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'canSight' => $canSight, 'version' => $remoteVersion);
+        return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'canSight' => $canSight, 'canEditGalaxyCluster' => $canEditGalaxyCluster, 'supportEditOfGalaxyCluster' => $supportEditOfGalaxyCluster, 'version' => $remoteVersion);
     }
 
     public function isJson($string)
@@ -4760,11 +4940,12 @@ class Server extends AppModel
                 switch($field['error_type']) {
                     case 'missing_column':
                         $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s %s;',
+                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s %s %s;',
                             $table,
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
+                            strpos($field['expected']['column_type'], 'unsigned') != -1 ? 'UNSIGNED' : '',
                             isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                             empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
@@ -4773,11 +4954,12 @@ class Server extends AppModel
                         break;
                     case 'column_different':
                         $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` MODIFY COLUMN `%s` %s%s %s %s %s %s;',
+                            'ALTER TABLE `%s` MODIFY COLUMN `%s` %s%s %s %s %s %s %s;',
                             $table,
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
+                            strpos($field['expected']['column_type'], 'unsigned') != -1 ? 'UNSIGNED' : '',
                             isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                             empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
@@ -4798,10 +4980,11 @@ class Server extends AppModel
                     } elseif ($expectedField['data_type'] === 'text') {
                         $length = null;
                     }
-                    $fieldSql = sprintf('`%s` %s%s %s %s %s %s',
+                    $fieldSql = sprintf('`%s` %s%s %s %s %s %s %s',
                         $expectedField['column_name'],
                         $expectedField['data_type'],
                         $length !== null ? sprintf('(%d)', $length) : '',
+                        strpos($expectedField['column_type'], 'unsigned') != -1 ? 'UNSIGNED' : '',
                         isset($expectedField['column_default']) ? 'DEFAULT "' . $expectedField['column_default'] . '"' : '',
                         $expectedField['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                         empty($expectedField['collation_name']) ? '' : 'COLLATE ' . $expectedField['collation_name'],
@@ -5725,16 +5908,60 @@ class Server extends AppModel
 
     public function extensionDiagnostics()
     {
+        try {
+            $file = new File(APP . DS . 'composer.json');
+            $composer = $this->jsonDecode($file->read());
+            $extensions = [];
+            foreach ($composer['require'] as $require => $foo) {
+                if (substr($require, 0, 4) === 'ext-') {
+                    $extensions[substr($require, 4)] = true;
+                }
+            }
+            foreach ($composer['suggest'] as $suggest => $reason) {
+                if (substr($suggest, 0, 4) === 'ext-') {
+                    $extensions[substr($suggest, 4)] = $reason;
+                }
+            }
+        } catch (Exception $e) {
+            $extensions = ['redis' => '', 'gd' => '', 'ssdeep' => '', 'zip' => '', 'intl' => '']; // Default extensions
+        }
+
         $results = array();
-        $extensions = array('redis', 'gd', 'ssdeep', 'zip', 'intl');
-        foreach ($extensions as $extension) {
-            $results['web']['extensions'][$extension] = extension_loaded($extension);
+        foreach ($extensions as $extension => $reason) {
+            $results['extensions'][$extension] = [
+                'web_version' => phpversion($extension),
+                'web_version_outdated' => false,
+                'cli_version' => false,
+                'cli_version_outdated' => false,
+                'required' => $reason === true,
+                'info' => $reason === true ? null : $reason,
+            ];
         }
         if (!is_readable(APP . '/files/scripts/selftest.php')) {
             $results['cli'] = false;
         } else {
-            $execResult = exec('php ' . APP . '/files/scripts/selftest.php');
-            $results['cli'] = json_decode($execResult, true);
+            $execResult = exec('php ' . APP . '/files/scripts/selftest.php ' . escapeshellarg(json_encode(array_keys($extensions))));
+            $execResult = $this->jsonDecode($execResult);
+            $results['cli']['phpversion'] = $execResult['phpversion'];
+            foreach ($execResult['extensions'] as $extension => $loaded) {
+                $results['extensions'][$extension]['cli_version'] = $loaded;
+            }
+        }
+
+        $minimalVersions = [
+            'redis' => '2.2.8', // because of sAddArray method
+        ];
+        foreach ($minimalVersions as $extension => $version) {
+            if (!isset($results['extensions'][$extension])) {
+                continue;
+            }
+            $results['extensions'][$extension]['required_version'] = $version;
+            foreach (['web', 'cli'] as $type) {
+                if ($results['extensions'][$extension][$type . '_version']) {
+                    $outdated = version_compare($results['extensions'][$extension][$type . '_version'], $version, '<');
+                    $results['extensions'][$extension][$type . '_version_outdated'] = $outdated;
+                }
+            }
         }
         return $results;
     }

@@ -25,7 +25,6 @@
         }
     }
 ?>
-    <br />
     <div class="pagination">
         <ul>
         <?php
@@ -119,7 +118,7 @@
             ?>
             <th class="context hidden"><?php echo $this->Paginator->sort('id', 'ID');?></th>
             <th class="context hidden">UUID</th>
-            <th class="context hidden"><?php echo __('First seen') ?> <i class="fas fa-arrow-right"></i> <?php echo __('Last seen') ?></th>
+            <th class="context hidden"><?= $this->Paginator->sort('first_seen', __('First seen')) ?> <i class="fas fa-arrow-right"></i> <?= $this->Paginator->sort('last_seen', __('Last seen')) ?></th>
             <th><?php echo $this->Paginator->sort('timestamp', __('Date'), array('direction' => 'desc'));?></th>
             <?php if ($extended): ?>
                 <th class="event_id"><?php echo $this->Paginator->sort('event_id', __('Event'));?></th>

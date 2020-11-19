@@ -806,7 +806,7 @@ class EventsController extends AppController
                         }
                     }
                 }
-                $events = $this->GalaxyCluster->attachClustersToEventIndex($events);
+                $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events);
                 foreach ($events as $key => $event) {
                     $temp = $events[$key]['Event'];
                     $temp['Org'] = $event['Org'];
@@ -854,7 +854,7 @@ class EventsController extends AppController
             if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
                 $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
             }
-            $events = $this->GalaxyCluster->attachClustersToEventIndex($events, true);
+            $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true);
             $this->set('events', $events);
         }
 
@@ -1568,6 +1568,9 @@ class EventsController extends AppController
         }
         if (!empty($this->params['named']['excludeGalaxy'])) {
             $conditions['excludeGalaxy'] = 1;
+            if (!empty($this->params['named']['includeCustomGalaxyCluster'])) {
+                $conditions['includeCustomGalaxyCluster'] = 1;
+            }
         }
         if (!empty($this->params['named']['extended']) || !empty($this->request->data['extended'])) {
             $conditions['extended'] = 1;
@@ -4643,6 +4646,40 @@ class EventsController extends AppController
 
             $this->render('/Elements/view_galaxy_matrix');
         }
+    }
+    
+    // Displays all the cluster relations for the provided event
+    public function viewClusterRelations($eventId)
+    {
+        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'flatten' => true));
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid Event.'));
+        }
+        $event = $event[0];
+        $clusterIds = array();
+        foreach ($event['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                $clusterIds[$cluster['id']] = $cluster['id'];
+            }
+        }
+        foreach ($event['Attribute'] as $attribute) {
+            foreach ($attribute['Galaxy'] as $galaxy) {
+                foreach ($galaxy['GalaxyCluster'] as $cluster) {
+                    $clusterIds[$cluster['id']] = $cluster['id'];
+                }
+            }
+        }
+        $this->loadModel('GalaxyCluster');
+        $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.id' => $clusterIds)), $full=true);
+        App::uses('ClusterRelationsGraphTool', 'Tools');
+        $grapher = new ClusterRelationsGraphTool();
+        $grapher->construct($this->Auth->user(), $this->GalaxyCluster);
+        $relations = $grapher->getNetwork($clusters, $keepNotLinkedClusters=true, $includeReferencingRelation=true);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($relations, $this->response->type());
+        }
+        $this->set('relations', $relations);
+        $this->set('distributionLevels', $this->Event->distributionLevels);
     }
 
     public function delegation_index()

@@ -27,6 +27,9 @@ class RestSearchComponent extends Component
         ),
         'Sighting' => array(
             'context', 'returnFormat', 'id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'
+        ),
+        'GalaxyCluster' => array(
+            'page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org', 'orgc', 'tag', 'custom', 'sgReferenceOnly', 'minimal',
         )
     );
 

@@ -119,6 +119,39 @@ class RestResponseComponent extends Component
                 'http_method' => 'GET'
             )
         ),
+        'GalaxyCluster' => array(
+            'add' => array(
+                'description' => "POST a MISP GalaxyCluster JSON to this API to create a GalaxyCluster. Contained objects can also be included (such as relations, elements, tags, etc).",
+                'mandatory' => array('value', 'description'),
+                'optional' => array('distribution', 'sharing_group_id', 'uuid', 'version', 'extends_uuid', 'extends_version', 'elements', 'GalaxyClusterRelation'),
+                'params' => array('galaxy_id')
+            ),
+            'edit' => array(
+                'description' => "POST a MISP GalaxyCluster JSON to this API to edit a GalaxyCluster",
+                'mandatory' => array('value', 'description'),
+                'optional' => array('distribution', 'sharing_group_id', 'uuid', 'version', 'extends_uuid', 'extends_version', 'elements'),
+                'params' => array('cluster_id')
+            ),
+            'restSearch' => array(
+                'description' => "Search MISP using a list of filter parameters and return the data in the selected format. This API allows pagination via the page and limit parameters.",
+                'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org_id', 'orgc_id', 'tag_name', 'custom', 'minimal', 'published', 'value', 'extends_uuid'),
+                'params' => array()
+            ),
+        ),
+        'GalaxyClusterRelation' => array(
+            'add' => array(
+                'description' => "POST a MISP GalaxyClusterRelation JSON to this API to create a GalaxyCluster relation. Contained objects can also be included (such as tags).",
+                'mandatory' => array('galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type'),
+                'optional' => array('distribution', 'sharing_group_id', 'tags'),
+                'params' => array()
+            ),
+            'edit' => array(
+                'description' => "POST a MISP GalaxyClusterRelation JSON to this API to edit a GalaxyCluster relation. Contained objects can also be included (such as tags).",
+                'mandatory' => array('galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type'),
+                'optional' => array('distribution', 'sharing_group_id', 'tags'),
+                'params' => array('relation_id')
+            ),
+        ),
         'Log' => array(
             'admin_index' => array(
                 'description' => "POST a filter object to receive a JSON with the log entries matching the query. A simple get request will return the entire DB. You can use the filter parameters as url parameters with a GET request such as: https://path.to.my.misp/admin/logs/page:1/limit:200 - to run substring queries simply append/prepend/encapsulate the search term with %. All restSearch rules apply.",
@@ -153,6 +186,7 @@ class RestResponseComponent extends Component
                     'perm_site_admin',
                     'perm_regexp_access',
                     'perm_tagger',
+                    'perm_galaxy_editor',
                     'perm_template',
                     'perm_sharing_group',
                     'perm_tag_editor',
@@ -173,6 +207,7 @@ class RestResponseComponent extends Component
                     'perm_site_admin',
                     'perm_regexp_access',
                     'perm_tagger',
+                    'perm_galaxy_editor',
                     'perm_template',
                     'perm_sharing_group',
                     'perm_tag_editor',
@@ -972,7 +1007,13 @@ class RestResponseComponent extends Component
                     'autoclose' => true
                 ),
                 'help' => __('The date from which the event was published')
-             ),
+            ),
+            'galaxy_cluster_uuid' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => __('Source galaxy cluster UUID')
+            ),
             'gpgkey' => array(
                 'input' => 'text',
                 'type' => 'string',
@@ -1285,6 +1326,11 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' )
             ),
+            'perm_galaxy_editor' => array(
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => array(1 => 'True', 0 => 'False' )
+            ),
             'perm_template' => array(
                 'input' => 'radio',
                 'type' => 'integer',
@@ -1342,6 +1388,18 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('Allow the upload of sightings to the server')
+            ),
+            'referenced_galaxy_cluster_uuid' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('Destination galaxy cluster UUID')
+                ),
+            'referenced_galaxy_cluster_type' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('The type of the relation. Example: `is`, `related-to`, ...')
             ),
             'releasability' => array(
                 'input' => 'text',

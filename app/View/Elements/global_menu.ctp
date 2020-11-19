@@ -124,7 +124,11 @@
                     array(
                         'text' => __('List Galaxies'),
                         'url' => $baseurl . '/galaxies/index'
-                    )
+                    ),
+                    array(
+                        'text' => __('List Relationships'),
+                        'url' => $baseurl . '/galaxy_cluster_relations/index'
+                    ),
                 )
             ),
             array(

@@ -1225,24 +1225,29 @@ class Feed extends AppModel
             $values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
         } catch (Exception $e) {
             $this->logException("Could not get freetext feed $feedId", $e);
-            $this->jobProgress($jobId, __('Could not fetch freetext feed. See error log for more details.'));
+            $this->jobProgress($jobId, __('Could not fetch freetext feed %s. See error log for more details.', $feedId));
             return false;
         }
 
-        $pipe = $redis->multi(Redis::PIPELINE);
+        // Convert values to MD5 hashes
+        $md5Values = array_map('md5', array_column($values, 'value'));
+
         $redis->del('misp:feed_cache:' . $feedId);
-        foreach ($values as $k => $value) {
-            $md5Value = md5($value['value']);
-            $redis->sAdd('misp:feed_cache:' . $feedId, $md5Value);
-            $redis->sAdd('misp:feed_cache:combined', $md5Value);
-            if ($k % 1000 === 0) {
-                $this->jobProgress($jobId, "Feed $feedId: $k/" . count($values) . " values cached.");
-                $pipe->exec();
-                $pipe = $redis->multi(Redis::PIPELINE);
+        foreach (array_chunk($md5Values, 1000) as $k => $chunk) {
+            $pipe = $redis->multi(Redis::PIPELINE);
+            if (method_exists($redis, 'sAddArray')) {
+                $redis->sAddArray('misp:feed_cache:' . $feedId, $chunk);
+                $redis->sAddArray('misp:feed_cache:combined', $chunk);
+            } else {
+                foreach ($chunk as $value) {
+                    $redis->sAdd('misp:feed_cache:' . $feedId, $value);
+                    $redis->sAdd('misp:feed_cache:combined', $value);
+                }
             }
+            $pipe->exec();
+            $this->jobProgress($jobId, __('Feed %s: %s/%s values cached.', $feedId, $k * 1000, count($md5Values)));
         }
-        $pipe->set('misp:feed_cache_timestamp:' . $feedId, time());
-        $pipe->exec();
+        $redis->set('misp:feed_cache_timestamp:' . $feedId, time());
         return true;
     }
 

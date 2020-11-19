@@ -81,6 +81,8 @@
         echo $this->Form->input('push', array());
         echo $this->Form->input('pull', array());
         echo $this->Form->input('push_sightings', array());
+        echo $this->Form->input('push_galaxy_clusters', array());
+        echo $this->Form->input('pull_galaxy_clusters', array());
         echo $this->Form->input('caching_enabled', array());
         echo '<div class = "input clear" style="width:100%;"><hr /></div>';
         echo $this->Form->input('unpublish_event', array(

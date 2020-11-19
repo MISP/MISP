@@ -525,6 +525,8 @@
         <span class="report-title-section"><?php echo __('Event Reports');?></span>
         <div id="eventreport_index_div"></div>
     </div>
+    <div id="clusterrelation_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
+    </div>
     <div id="attributes_div">
         <?php echo $this->element('eventattribute'); ?>
     </div>
@@ -556,13 +558,13 @@ $(document).ready(function () {
 });
 
 function enable_correlation_graph() {
-    $.get("<?php echo $baseurl; ?>/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
+    $.get("<?= $baseurl ?>/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
         $("#correlationgraph_div").html(data);
     });
 }
 
 function enable_attack_matrix() {
-    $.get("<?php echo $baseurl; ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/mitre-attack/event/1", function(data) {
+    $.get("<?= $baseurl; ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/mitre-attack/event/1", function(data) {
         $("#attackmatrix_div").html(data);
     });
 }

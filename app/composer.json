@@ -16,11 +16,14 @@
         "php-parallel-lint/php-parallel-lint": "^1.2"
     },
     "suggest": {
-        "ext-openssl": "Enabling the openssl extension allows you to access https URLs",
-        "ext-redis": "For working background jobs and feed and warninglist chaches",
+        "ext-gd": "For creating image thumbnails",
+        "ext-openssl": "Enabling the openssl extension allows you to access HTTPS URLs",
+        "ext-redis": "For working background jobs and feed and warninglist caches",
         "ext-zip": "Enabling processing feeds that are ZIP compressed",
-        "ext-zlib": "Allow gzip compression of HTTP requests",
+        "ext-zlib": "Allow gzip compression of HTTP responses",
         "ext-intl": "For handling IDN domain names",
+        "ext-ssdeep": "For ssdeep hashes correlation",
+        "ext-bcmath": "For faster validating IBAN numbers",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3"
     },

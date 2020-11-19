@@ -148,6 +148,7 @@ before_script:
 script:
     - ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
     - ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
+    - ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
     # Ensure the perms
     - sudo chown -R $USER:www-data `pwd`/app/Config
     - sudo chmod -R 770 `pwd`/app/Config

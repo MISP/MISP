@@ -1292,17 +1292,15 @@ class AttributesController extends AppController
 
         // clusters to add
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-        $clusters = $this->GalaxyCluster->find('list', array(
-            'fields' => array('id', 'value', 'tag_name'),
-            'recursive' => -1
+        $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
+            'fields' => array('value', 'id'),
+            'conditions' => array('published' => true)
         ));
         $clusterItemsAdd = array();
-        foreach ($clusters as $tagName => $cluster) {
-            $value = reset($cluster);
-            $id = key($cluster);
+        foreach ($clusters as $k => $cluster) {
             $clusterItemsAdd[] = array(
-                'name' => $value,
-                'value' => $id
+                'name' => $cluster['GalaxyCluster']['value'],
+                'value' => $cluster['GalaxyCluster']['id']
             );
         }
 
@@ -1654,7 +1652,7 @@ class AttributesController extends AppController
             }
 
             $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
-            $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute', $excludeGalaxy = false, $cullGalaxyTags = true);
+            $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($this->Auth->user(), $attributes[$k]['Attribute'], 'Attribute', $excludeGalaxy = false, $cullGalaxyTags = true);
             unset($attributes[$k]['AttributeTag']);
 
             $sightingsData = array_merge(

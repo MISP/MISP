@@ -776,6 +776,9 @@ class TagsController extends AppController
                         )
                     ),
                     'infoExtra' => $expanded[$tag['id']]
+                ),
+                'additionalData' => array(
+                    'tag_name' => $tagName
                 )
             );
             if ($taxonomy_id === 'collections') {
@@ -1179,7 +1182,7 @@ class TagsController extends AppController
                 $tags[$k]['Taxonomy'] = $taxonomy['Taxonomy'];
                 $tags[$k]['TaxonomyPredicate'] = $taxonomy['TaxonomyPredicate'][0];
             }
-            $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name']);
+            $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name'], $this->Auth->user());
             if (!empty($cluster)) {
                 $dataFound = true;
                 $tags[$k]['GalaxyCluster'] = $cluster['GalaxyCluster'];

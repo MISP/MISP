@@ -64,8 +64,9 @@
             echo sprintf(
                 '<div class="large-left-margin">%s %s %s %s</div>',
                 sprintf(
-                    '<span class="bold blue expandable useCursorPointer" data-toggle="popover" data-content="%s">%s</span>',
+                    '<span class="bold blue expandable useCursorPointer" data-content="%s" data-clusterid="%s">%s</span>',
                     h($popover_data),
+                    h($cluster['id']),
                     sprintf(
                         '<span><i class="fas fa-%s"></i> %s</span>',
                         $cluster['local'] ? 'user' : 'globe-americas',
@@ -138,7 +139,11 @@
 
 <script type="text/javascript">
 $(document).ready(function () {
-    $('.expandable').popover({
+    $('<?= isset($rowId) ? '#'.$rowId : '' ?> .expandable')
+    .on('click', function() {
+        loadClusterRelations($(this).data('clusterid'));
+    })
+    .popover({
         html: true,
         trigger: 'hover'
     });

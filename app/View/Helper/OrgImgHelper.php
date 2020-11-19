@@ -50,7 +50,7 @@ class OrgImgHelper extends AppHelper
                 (int)$size
             );
 
-            if (!$raw) {
+            if (!$raw && !empty($options['id'])) {
                 $result = sprintf(
                     '<a href="%s/organisations/view/%s">%s</a>',
                     $baseurl,

@@ -281,7 +281,7 @@ class AttributeTag extends AppModel
 
             foreach ($attributeTags as $attributeTag) {
                 if (isset($cluster_names[$attributeTag['Tag']['name']])) {
-                    $cluster = $this->GalaxyCluster->find('first', array(
+                    $cluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array(
                             'conditions' => array('GalaxyCluster.tag_name' => $attributeTag['Tag']['name']),
                             'fields' => array('value', 'description', 'type'),
                             'contain' => array(
@@ -289,9 +289,11 @@ class AttributeTag extends AppModel
                                     'conditions' => array('GalaxyElement.key' => 'synonyms')
                                 )
                             ),
-                            'recursive' => -1
+                            'first' => true
                     ));
-
+                    if (empty($cluster)) {
+                        continue;
+                    }
                     // create synonym string
                     $cluster['GalaxyCluster']['synonyms_string'] = array();
                     foreach ($cluster['GalaxyElement'] as $element) {

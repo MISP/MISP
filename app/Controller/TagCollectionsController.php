@@ -133,7 +133,7 @@ class TagCollectionsController extends AppController
         }
         $collection = $this->TagCollection->cullBlockedTags($this->Auth->user(), $collection);
         $this->loadModel('Event');
-        $collection = $this->Event->massageTags($collection, 'TagCollection', false, true);
+        $collection = $this->Event->massageTags($this->Auth->user(), $collection, 'TagCollection', false, true);
         if (!$this->_isSiteAdmin() && $collection['TagCollection']['org_id'] !== $this->Auth->user('org_id')) {
             unset($collection['User']);
             unset($collection['TagCollection']['user_id']);
@@ -496,7 +496,7 @@ class TagCollectionsController extends AppController
         $this->loadModel('Event');
         foreach ($list as $k => $tag_collection) {
             $list[$k] = $this->TagCollection->cullBlockedTags($this->Auth->user(), $tag_collection);
-            $list[$k] = $this->Event->massageTags($list[$k], 'TagCollection', false, true);
+            $list[$k] = $this->Event->massageTags($this->Auth->user(), $list[$k], 'TagCollection', false, true);
             if (!$this->_isSiteAdmin() && $list[$k]['TagCollection']['org_id'] !== $this->Auth->user('org_id')) {
                 unset($list[$k]['User']);
                 unset($list[$k]['TagCollection']['user_id']);
@@ -534,7 +534,7 @@ class TagCollectionsController extends AppController
             unset($item['TagCollection']['user_id']);
         }
         $this->loadModel('Event');
-        $item = $this->Event->massageTags($item, 'TagCollection', false, true);
+        $item = $this->Event->massageTags($this->Auth->user(), $item, 'TagCollection', false, true);
         $this->layout = false;
         $this->set('item', $item);
     }

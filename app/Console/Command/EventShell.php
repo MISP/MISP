@@ -288,6 +288,30 @@ class EventShell extends AppShell
         $log->createLogEntry($user, 'publish_sightings', 'Event', $id, 'Sightings for event (' . $id . '): published.', 'publish_sightings updated');
     }
 
+    public function publish_galaxy_clusters()
+    {
+        $this->ConfigLoad->execute();
+        $clusterId = $this->args[0];
+        $jobId = $this->args[1];
+        $userId = $this->args[2];
+        $passAlong = $this->args[3];
+        $user = $this->User->getAuthUser($userId);
+        $job = $this->Job->read(null, $jobId);
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $result = $this->GalaxyCluster->publish($clusterId, $passAlong=$passAlong);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        if ($result) {
+            $job['Job']['message'] = 'Galaxy cluster published.';
+        } else {
+            $job['Job']['message'] = 'Galaxy cluster published, but the upload to other instances may have failed.';
+        }
+        $this->Job->save($job);
+        $log = ClassRegistry::init('Log');
+        $log->create();
+        $log->createLogEntry($user, 'publish', 'GalaxyCluster', $clusterId, 'GalaxyCluster (' . $clusterId . '): published.', 'published () => (1)');
+    }
+
     public function enrichment()
     {
         $this->ConfigLoad->execute();

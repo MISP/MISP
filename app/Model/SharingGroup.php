@@ -157,7 +157,7 @@ class SharingGroup extends AppModel
             $fieldsOrg = array('id', 'name', 'uuid');
             $fieldsServer = array('id', 'url', 'name');
             $fields = array();
-            $permissionTree = ($user['Role']['perm_sync'] || $user['Role']['perm_site_admin']) ? 1 : 0;
+            $permissionTree = ($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0;
             $fieldsSharingGroup = array(
                 array(
                     'fields' => array(
