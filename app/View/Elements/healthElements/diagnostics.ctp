@@ -188,8 +188,19 @@
             <td class="bold"><?= h($extension) ?></td>
             <td><?= $info['required'] ? '<i class="black fa fa-check" role="img" aria-label="' .  __('Yes') . '"></i>' : '<i class="black fa fa-times" role="img" aria-label="' .  __('No') . '"></i>' ?></td>
             <td><?= $info['info'] ?></td>
-            <?php foreach (['loaded_web', 'loaded_cli'] as $type): ?>
-            <td><?= $info[$type] ? '<i class="green fa fa-check" role="img" aria-label="' .  __('Yes') . '"></i> (' . h($info[$type]) .')' : '<i class="red fa fa-times" role="img" aria-label="' .  __('No') . '"></i>' ?></td>
+            <?php foreach (['web', 'cli'] as $type): ?>
+            <td><?php
+                $version = $info["{$type}_version"];
+                $outdated = $info["{$type}_version_outdated"];
+                if ($version && !$outdated) {
+                    echo '<i class="green fa fa-check" role="img" aria-label="' .  __('Yes') . '"></i> (' . h($version) .')';
+                } else {
+                    echo '<i class="red fa fa-times" role="img" aria-label="' .  __('No') . '"></i>';
+                    if ($outdated) {
+                        echo '<br>' . __("Version %s installed, but required at least %s", h($version), h($info['required_version']));
+                    }
+                }
+            ?></td>
             <?php endforeach; ?>
         </tr>
         <?php endforeach; ?>
