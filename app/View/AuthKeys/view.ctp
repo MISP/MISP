@@ -2,7 +2,7 @@
 echo $this->element(
     'genericElements/SingleViews/single_view',
     [
-        'title' => 'Authkey View',
+        'title' => 'Auth key view',
         'data' => $data,
         'fields' => [
             [
@@ -10,11 +10,11 @@ echo $this->element(
                 'path' => 'AuthKey.id'
             ],
             [
-                'key' => __('uuid'),
-                'path' => 'AuthKey.uuid'
+                'key' => __('UUID'),
+                'path' => 'AuthKey.uuid',
             ],
             [
-                'key' => __('Authkey'),
+                'key' => __('Auth key'),
                 'path' => 'AuthKey',
                 'type' => 'authkey'
             ],
@@ -26,7 +26,7 @@ echo $this->element(
             [
                 'key' => __('Expiration'),
                 'path' => 'AuthKey.expiration',
-                'type' => 'date'
+                'type' => 'expiration'
             ],
             [
                 'key' => __('User'),

@@ -1,5 +1,5 @@
 <?php
-    $data = Hash::extract($row, $field['data_path']);
+    $data = Hash::extract($data, $field['path']);
     if (is_array($data)) {
         if (count($data) > 1) {
             $data = implode(', ', $data);
