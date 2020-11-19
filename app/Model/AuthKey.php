@@ -31,10 +31,6 @@ class AuthKey extends AppModel
             if (empty($this->data['AuthKey']['uuid'])) {
                 $this->data['AuthKey']['uuid'] = CakeText::uuid();
             }
-            // add a timestamp if it is not set
-            if (empty($this->data['AuthKey']['timestamp'])) {
-                $this->data['AuthKey']['timestamp'] = time();
-            }
             if (empty($this->data['AuthKey']['authkey'])) {
                 $authkey = (new RandomTool())->random_str(true, 40);
             } else {
