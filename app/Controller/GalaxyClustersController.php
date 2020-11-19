@@ -162,6 +162,13 @@ class GalaxyClustersController extends AppController
                     $clusters[$k]['csv'] = $csv[$k];
                 }
             }
+            $customClusterCount = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), [
+                'count' => true,
+                'conditions' => [
+                    'AND' => [$searchConditions, $aclConditions],
+                    'GalaxyCluster.default' => 0,
+                ]
+            ]);
             $this->loadModel('Attribute');
             $distributionLevels = $this->Attribute->distributionLevels;
             unset($distributionLevels[5]);
@@ -169,6 +176,7 @@ class GalaxyClustersController extends AppController
             $this->set('csv', $csv);
             $this->set('list', $clusters);
             $this->set('galaxy_id', $galaxyId);
+            $this->set('custom_cluster_count', $customClusterCount);
         }
         if ($this->request->is('ajax')) {
             $this->layout = 'ajax';
