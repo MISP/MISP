@@ -345,7 +345,6 @@ class ACLComponent extends Component
                     'admin_index' => array('perm_audit'),
                     'admin_search' => array('perm_audit'),
                     'event_index' => array('*'),
-                    'maxDateActivity' => array('*'),
                     'returnDates' => array('*'),
                     'testForStolenAttributes' => array(),
                     'pruneUpdateLogs' => array()
