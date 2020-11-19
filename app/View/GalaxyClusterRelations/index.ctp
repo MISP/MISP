@@ -122,7 +122,10 @@
                     'icon' => 'edit',
                     'complex_requirement' => array(
                         'function' => function($row, $options) {
-                            return !$options['datapath']['default'] && ($options['me']['Role']['perm_site_admin'] || ($options['me']['org_id'] == $options['datapath']['org']));
+                            return !$options['datapath']['default'] && (
+                                    $options['me']['Role']['perm_site_admin'] ||
+                                    ($options['me']['org_id'] == $options['datapath']['org'] && $options['me']['Role']['perm_galaxy_editor'])
+                                );
                         },
                         'options' => array(
                             'me' => $me,
