@@ -4316,7 +4316,7 @@ class Server extends AppModel
         return $setting;
     }
 
-    public function serverSettingsEditValue($user, $setting, $value, $forceSave = false)
+    public function serverSettingsEditValue(array $user, array $setting, $value, $forceSave = false)
     {
         if (isset($setting['beforeHook'])) {
             $beforeResult = call_user_func_array(array($this, $setting['beforeHook']), array($setting['name'], $value));
