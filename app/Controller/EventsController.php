@@ -5326,7 +5326,7 @@ class EventsController extends AppController
         ));
         $locks = array();
         if (!empty($event) && ($event['Event']['orgc_id'] == $this->Auth->user('org_id') || $this->_isSiteAdmin())) {
-            $locks = $this->EventLock->checkLock($this->Auth->user(), $id);
+            $locks = $this->EventLock->checkLock($id);
         }
         if (!empty($locks)) {
             $temp = $locks;
@@ -5342,7 +5342,7 @@ class EventsController extends AppController
         }
         // TODO: i18n
         if (!empty($locks)) {
-            $message = sprintf('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
+            $message = __('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
             $this->set('message', $message);
             $this->layout = false;
             $this->render('/Events/ajax/event_lock');

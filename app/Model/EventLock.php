@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+
 class EventLock extends AppModel
 {
     public $useTable = 'event_locks';
@@ -7,42 +8,32 @@ class EventLock extends AppModel
     public $recursive = -1;
 
     public $actsAs = array(
-            'Containable',
+        'Containable',
     );
 
     public $belongsTo = array(
-            'User' => array(
-                'className' => 'User',
-                'foreignKey' => 'user_id',
-            )
+        'User' => array(
+            'className' => 'User',
+            'foreignKey' => 'user_id',
+        )
     );
 
-
-    public $validate = array(
-    );
-
-    public function beforeValidate($options = array())
+    public function insertLock(array $user, $eventId)
     {
-        parent::beforeValidate();
-        return true;
-    }
-
-    public function insertLock($user, $eventId)
-    {
+        $this->deleteAll(array('user_id' => $user['id']), false, false);
         $date = new DateTime();
         $lock = array(
             'timestamp' => $date->getTimestamp(),
             'user_id' => $user['id'],
-            'event_id' => $eventId
+            'event_id' => $eventId,
         );
-        $this->deleteAll(array('user_id' => $user['id']));
         $this->create();
         return $this->save($lock);
     }
 
-    public function checkLock($user, $eventId)
+    public function checkLock($eventId)
     {
-        $this->cleanupLock($user, $eventId);
+        $this->cleanupLock();
         $locks = $this->find('all', array(
             'recursive' => -1,
             'contain' => array('User.email', 'User.org_id', 'User.id'),
@@ -59,7 +50,7 @@ class EventLock extends AppModel
         $date = new DateTime();
         $timestamp = $date->getTimestamp();
         $timestamp -= 900;
-        $this->deleteAll(array('timestamp <' => $timestamp));
+        $this->deleteAll(array('timestamp <' => $timestamp), false, false);
         return true;
     }
 }
