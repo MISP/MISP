@@ -536,10 +536,11 @@ checkID () {
     clean > /dev/null 2>&1
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-    if [[ "$UNATTENDED" != "1" ]]; then 
+    if [[ "$UNATTENDED" != "1" ]]; then
       echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' (y) or continue as $USER (n)? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr '[:upper:]' '[:lower:]')
+      INSTALL_USER=${USER}
     else
       ANSWER="y"
     fi
