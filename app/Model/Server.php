@@ -2352,7 +2352,7 @@ class Server extends AppModel
                         ),
                         'Enrichment_hover_popover_only' => array(
                             'level' => 0,
-                            'description' => __('When enabled, user have to click on magnifier icon to show enrichment'),
+                            'description' => __('When enabled, users have to click on the magnifier icon to show the enrichment'),
                             'value' => false,
                             'errorMessage' => '',
                             'test' => 'testBool',
