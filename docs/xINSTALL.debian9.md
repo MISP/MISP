@@ -176,10 +176,13 @@ ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git
 # install mixbox to accommodate the new STIX dependencies:
 ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git
 cd ${PATH_TO_MISP}/app/files/scripts/mixbox
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-stix
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-maec
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .

@@ -157,10 +157,12 @@ cd ${PATH_TO_MISP}/app/files/scripts
 ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git
 ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git
 cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
+$SUDO_WWW git config core.filemode false
 # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
 cd ${PATH_TO_MISP}/app/files/scripts/python-stix
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install maec
@@ -182,6 +184,7 @@ ${SUDO_WWW} git clone --branch master --single-branch https://github.com/lief-pr
 
 # TODO: Fix static path with PATH_TO_MISP
 cd ${PATH_TO_MISP}/app/files/scripts/lief
+$SUDO_WWW git config core.filemode false
 ${SUDO_WWW} mkdir build
 cd build
 ${SUDO_WWW} scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
