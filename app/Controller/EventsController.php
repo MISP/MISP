@@ -781,7 +781,7 @@ class EventsController extends AppController
                         'contain' => array(
                             'Tag' => array(
                                 'conditions' => array('Tag.exportable' => 1),
-                                'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
+                                'fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy')
                             )
                         )
                     ));
