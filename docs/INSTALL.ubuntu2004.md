@@ -264,7 +264,7 @@ prepareDB () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     debug "Setting up database"
 
-    # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
+    # FIXME: If user 'misp' exists, and has a different password, the below WILL fail. Partially fixed with the Env-Var check in the beginning. (Need to implement pre-flight checks to exit gracefully if not set)
     # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
     if [[ "${PACKER}" == "1" ]]; then
       pw="Password1234"
@@ -272,10 +272,18 @@ prepareDB () {
       pw=${MISP_PASSWORD}
     fi
 
+    if [[ ! -z ${INSTALL_USER} ]]; then
+      SUDO_EXPECT="sudo mysql_secure_installation"
+      echo "Making sure sudo session is buffered"
+      sudo ls -la /tmp > /dev/null 2> /dev/null
+    else
+      SUDO_EXPECT="sudo -k mysql_secure_installation"
+    fi
+
     expect -f - <<-EOF
       set timeout 10
 
-      spawn sudo -k mysql_secure_installation
+      spawn ${SUDO_EXPECT}
       expect "*?assword*"
       send -- "${pw}\r"
       expect "Enter current password for root (enter for none):"

@@ -178,16 +178,20 @@ git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
 git clone https://github.com/MAECProject/python-maec.git
 cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
+$SUDO_WWW git config core.filemode false
 ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-stix
+$SUDO_WWW git config core.filemode false
 ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-maec
+$SUDO_WWW git config core.filemode false
 ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install mixbox to accommodate the new STIX dependencies:
 cd ${PATH_TO_MISP}/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
 cd ${PATH_TO_MISP}/app/files/scripts/mixbox
+$SUDO_WWW git config core.filemode false
 ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP

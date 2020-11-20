@@ -196,7 +196,7 @@ class GalaxyClusterRelation extends AppModel
         }
         return $errors;
     }
-    
+
     /**
      * saveRelation Respecting ACL saves a relation and set correct fields where applicable.
      * Contrary to its capture equivalent, trying to save a relation for a unknown target cluster will fail.
@@ -221,11 +221,15 @@ class GalaxyClusterRelation extends AppModel
         }
         $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $cluster['uuid'];
 
-        $existingRelation = $this->find('first', array('conditions' => array(
-            'GalaxyClusterRelation.galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'],
-            'GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
-            'GalaxyClusterRelation.referenced_galaxy_cluster_type' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_type'],
-        )));
+        $existingRelation = $this->find('first', [
+            'conditions' => [
+                'galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'],
+                'referenced_galaxy_cluster_uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'],
+                'referenced_galaxy_cluster_type' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_type'],
+            ],
+            'fields' => ['id'],
+            'recursive' => -1,
+        ]);
         if (!empty($existingRelation)) {
             if (!$force) {
                 $errors[] = __('Relation already exists');

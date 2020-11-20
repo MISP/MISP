@@ -1416,21 +1416,21 @@ class ServersController extends AppController
         }
 
         $setting = $this->Server->getSettingData($setting_name);
+        if ($setting === false) {
+            throw new NotFoundException(__('Setting %s is invalid.', $setting_name));
+        }
         if (!empty($setting['cli_only'])) {
             throw new MethodNotAllowedException(__('This setting can only be edited via the CLI.'));
         }
         if ($this->request->is('get')) {
-            if ($setting != null) {
-                $value = Configure::read($setting['name']);
-                if ($value) {
-                    $setting['value'] = $value;
-                }
-                $setting['setting'] = $setting['name'];
+            $value = Configure::read($setting['name']);
+            if (isset($value)) {
+                $setting['value'] = $value;
             }
+            $setting['setting'] = $setting['name'];
             if (isset($setting['optionsSource']) && !empty($setting['optionsSource'])) {
                 $setting['options'] = $this->{'__load' . $setting['optionsSource']}();
             }
-            $subGroup = 'general';
             $subGroup = explode('.', $setting['name']);
             if ($subGroup[0] === 'Plugin') {
                 $subGroup = explode('_', $subGroup[1])[0];
@@ -1444,8 +1444,7 @@ class ServersController extends AppController
                 $this->set('setting', $setting);
                 $this->render('ajax/server_settings_edit');
             }
-        }
-        if ($this->request->is('post')) {
+        } else if ($this->request->is('post')) {
             if (!isset($this->request->data['Server'])) {
                 $this->request->data = array('Server' => $this->request->data);
             }
@@ -1468,7 +1467,7 @@ class ServersController extends AppController
             $this->loadModel('Log');
             if (!is_writeable(APP . 'Config/config.php')) {
                 $this->Log->create();
-                $result = $this->Log->save(array(
+                $this->Log->save(array(
                         'org' => $this->Auth->user('Organisation')['name'],
                         'model' => 'Server',
                         'model_id' => 0,
