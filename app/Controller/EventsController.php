@@ -615,7 +615,11 @@ class EventsController extends AppController
                         } else {
                             $terms = $this->Event->distributionLevels;
                         }
-                        $pieces = explode('|', $v);
+                        if (is_array($v)) {
+                            $pieces = $v;
+                        } else {
+                            $pieces = explode('|', $v);
+                        }
                         $test = array();
                         foreach ($pieces as $piece) {
                             if ($filterString != "") {
