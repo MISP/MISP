@@ -5,6 +5,7 @@ App::uses('TmpFileTool', 'Tools');
 /**
  * @property Attribute $Attribute
  * @property Event $Event
+ * @property Organisation $Organisation
  */
 class Sighting extends AppModel
 {
@@ -204,6 +205,46 @@ class Sighting extends AppModel
     }
 
     /**
+     * @param array $tagIds
+     * @param array $user
+     * @param null|string $type
+     * @return array
+     */
+    public function tagsSparkline(array $tagIds, array $user, $type = null)
+    {
+        if (empty($tagIds)) {
+            return [];
+        }
+
+        $conditions = ['Sighting.date_sighting >' => $this->getMaximumRange()];
+        if ($type !== null) {
+            $conditions['Sighting.type'] = $type;
+        }
+        $sightingsPolicy = $this->sightingsPolicy();
+        if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+            $conditions['Sighting.org_id'] = $user['org_id'];
+        }
+        // TODO: Currently, we dont support `SIGHTING_POLICY_SIGHTING_REPORTER` for tags
+        $sparklineData = [];
+        foreach (['event', 'attribute'] as $context) {
+            $sightings = $this->fetchGroupedSightingsForTags($tagIds, $conditions, $context);
+            $objectElement = ucfirst($context) . 'Tag';
+            foreach ($sightings as $sighting) {
+                $tagId = $sighting[$objectElement]['tag_id'];
+                $date = $sighting['Sighting']['date_sighting'];
+                $count = (int)$sighting['Sighting']['sighting_count'];
+
+                if (isset($sparklineData[$tagId][$date]['sighting'])) {
+                    $sparklineData[$tagId][$date]['sighting'] += $count;
+                } else {
+                    $sparklineData[$tagId][$date]['sighting'] = $count;
+                }
+            }
+        }
+        return $this->generateSparkline($sparklineData, false);
+    }
+
+    /**
      * @param array $attributes Attribute must contain Event
      * @param array $user
      * @param bool $csvWithFalsePositive
@@ -282,7 +323,7 @@ class Sighting extends AppModel
             return [];
         }
 
-        // Returns data in `Y-m-d` format
+        // Returns date in `Y-m-d` format
         $this->virtualFields['date_sighting'] = 'DATE(FROM_UNIXTIME(date_sighting))'; // TODO: Probably just for MySQL
         $this->virtualFields['sighting_count'] = 'COUNT(id)';
         $groupedSightings = $this->find('all', array(
@@ -294,6 +335,39 @@ class Sighting extends AppModel
         ));
         unset($this->virtualFields['date_sighting'], $this->virtualFields['sighting_count']);
         return $this->attachOrgToSightings($groupedSightings, $user, false);
+    }
+
+    /**
+     * @param array $tagIds
+     * @param array $conditions
+     * @param string $context
+     * @return array
+     */
+    private function fetchGroupedSightingsForTags(array $tagIds, array $conditions, $context)
+    {
+        $conditions[ucfirst($context) . 'Tag.tag_id'] = $tagIds;
+        // Temporary bind EventTag or AttributeTag model
+        $this->bindModel([
+            'hasOne' => [
+                ucfirst($context) . 'Tag' => [
+                    'foreignKey' => false,
+                    'conditions' => ucfirst($context) . 'Tag.' . $context . '_id = Sighting.' . $context . '_id',
+                ]
+            ]
+        ]);
+        // Returns date in `Y-m-d` format
+        $this->virtualFields['date_sighting'] = 'DATE(FROM_UNIXTIME(Sighting.date_sighting))'; // TODO: Probably just for MySQL
+        $this->virtualFields['sighting_count'] = 'COUNT(Sighting.id)';
+        $sightings = $this->find('all', array(
+            'recursive' => -1,
+            'contain' => [ucfirst($context) . 'Tag'],
+            'conditions' => $conditions,
+            'fields' => [ucfirst($context) . 'Tag.tag_id', 'date_sighting', 'sighting_count'],
+            'group' => [ucfirst($context) . 'Tag.id', 'date_sighting'],
+            'order' => ['date_sighting'], // from oldest
+        ));
+        unset($this->virtualFields['date_sighting'], $this->virtualFields['sighting_count']);
+        return $sightings;
     }
 
     /**
@@ -336,6 +410,16 @@ class Sighting extends AppModel
                 }
             }
         }
+        return ['data' => $sightingsData, 'csv' => $this->generateSparkline($sparklineData, $csvWithFalsePositive)];
+    }
+
+    /**
+     * @param array $sparklineData
+     * @param bool $csvWithFalsePositive
+     * @return array
+     */
+    private function generateSparkline(array $sparklineData, $csvWithFalsePositive)
+    {
         $todayString = date('Y-m-d');
         $today = strtotime($todayString);
 
@@ -361,8 +445,7 @@ class Sighting extends AppModel
             }
             $csv[$object] = $csvForObject;
         }
-
-        return ['data' => $sightingsData, 'csv' => $csv];
+        return $csv;
     }
 
     /**
@@ -593,80 +676,6 @@ class Sighting extends AppModel
             $id = array_values($id);
         }
         return $id;
-    }
-
-    public function getSightingsForTag($user, $tag_id, $sgids = array(), $type = false)
-    {
-        $conditions = array(
-            'Sighting.date_sighting >' => $this->getMaximumRange(),
-            'EventTag.tag_id' => $tag_id
-        );
-        if ($type !== false) {
-            $conditions['Sighting.type'] = $type;
-        }
-        $this->bindModel(
-            array(
-                'hasOne' => array(
-                    'EventTag' => array(
-                        'className' => 'EventTag',
-                        'foreignKey' => false,
-                        'conditions' => 'EventTag.event_id = Sighting.event_id'
-                    )
-                )
-            )
-        );
-        $sightings = $this->find('all', array(
-            'recursive' => -1,
-            'contain' => array('EventTag'),
-            'conditions' => $conditions,
-            'fields' => array('Sighting.id', 'Sighting.event_id', 'Sighting.date_sighting', 'EventTag.tag_id')
-        ));
-        $sightingsRearranged = array();
-        foreach ($sightings as $sighting) {
-            $date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
-            if (isset($sightingsRearranged[$date])) {
-                $sightingsRearranged[$date]++;
-            } else {
-                $sightingsRearranged[$date] = 1;
-            }
-        }
-        return $sightingsRearranged;
-    }
-
-    /**
-     * @param $user - not used
-     * @param array $tagIds
-     * @param string $context 'event' or 'attribute'
-     * @param string|false $type
-     * @return array
-     */
-    public function getSightingsForObjectIds($user, array $tagIds, $context = 'event', $type = '0')
-    {
-        $conditions = array(
-            'Sighting.date_sighting >' => $this->getMaximumRange(),
-            ucfirst($context) . 'Tag.tag_id' => $tagIds
-        );
-        if ($type !== false) {
-            $conditions['Sighting.type'] = $type;
-        }
-        $this->bindModel(array('hasOne' => array(ucfirst($context) . 'Tag' => array('foreignKey' => false, 'conditions' => ucfirst($context) . 'Tag.' . $context . '_id = Sighting.' . $context . '_id'))));
-        $sightings = $this->find('all', array(
-            'recursive' => -1,
-            'contain' => array(ucfirst($context) . 'Tag'),
-            'conditions' => $conditions,
-            'fields' => array('Sighting.' . $context . '_id', 'Sighting.date_sighting')
-        ));
-        $sightingsRearranged = array();
-        foreach ($sightings as $sighting) {
-            $date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
-            $contextId = $sighting['Sighting'][$context . '_id'];
-            if (isset($sightingsRearranged[$contextId][$date])) {
-                $sightingsRearranged[$contextId][$date]++;
-            } else {
-                $sightingsRearranged[$contextId][$date] = 1;
-            }
-        }
-        return $sightingsRearranged;
     }
 
     /**
@@ -1024,9 +1033,6 @@ class Sighting extends AppModel
     {
         if (isset($this->orgCache[$orgId])) {
             return $this->orgCache[$orgId];
-        }
-        if (!isset($this->Organisation)) {
-            $this->Organisation = ClassRegistry::init('Organisation');
         }
         $org = $this->Organisation->find('first', [
             'recursive' => -1,

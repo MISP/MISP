@@ -99,7 +99,6 @@ class GalaxyClustersController extends AppController
             $this->paginate['conditions']['AND'][] = $aclConditions;
             $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup', 'GalaxyClusterRelation', 'TargetingClusterRelation'));
             $clusters = $this->paginate();
-            $sgs = $this->GalaxyCluster->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
             foreach ($clusters as $k => $cluster) {
                 $clusters[$k] = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
                 $clusters[$k] = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
@@ -122,9 +121,7 @@ class GalaxyClustersController extends AppController
                 );
             }
             $tagIds = array();
-            $sightings = array();
             if (!empty($clusters)) {
-                $galaxyType = $clusters[0]['GalaxyCluster']['type'];
                 foreach ($clusters as $k => $v) {
                     $clusters[$k]['event_ids'] = array();
                     if (!empty($v['Tag'])) {
@@ -138,28 +135,10 @@ class GalaxyClustersController extends AppController
                 }
             }
             $this->loadModel('Sighting');
-            $sightings['tags'] = array();
+            $csvForTags = $this->Sighting->tagsSparkline($tagIds, $this->Auth->user(), '0');
             foreach ($clusters as $k => $cluster) {
-                if (!empty($cluster['GalaxyCluster']['tag_id'])) {
-                    $temp = $this->Sighting->getSightingsForTag($this->Auth->user(), $cluster['GalaxyCluster']['tag_id']);
-                    $clusters[$k]['sightings'] = $temp;
-                }
-            }
-            $csv = array();
-            foreach ($clusters as $k => $cluster) {
-                $startDate = !empty($cluster['sightings']) ? min(array_keys($cluster['sightings'])) : date('Y-m-d');
-                $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
-                $to = date('Y-m-d', time());
-                for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
-                    if (!isset($csv[$k])) {
-                        $csv[$k] = 'Date,Close\n';
-                    }
-                    if (isset($cluster['sightings'][$date])) {
-                        $csv[$k] .= $date . ',' . $cluster['sightings'][$date] . '\n';
-                    } else {
-                        $csv[$k] .= $date . ',0\n';
-                    }
-                    $clusters[$k]['csv'] = $csv[$k];
+                if (!empty($cluster['GalaxyCluster']['tag_id']) && isset($csvForTags[$cluster['GalaxyCluster']['tag_id']])) {
+                    $clusters[$k]['csv'] = $csvForTags[$cluster['GalaxyCluster']['tag_id']];
                 }
             }
             $customClusterCount = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), [
@@ -173,7 +152,6 @@ class GalaxyClustersController extends AppController
             $distributionLevels = $this->Attribute->distributionLevels;
             unset($distributionLevels[5]);
             $this->set('distributionLevels', $distributionLevels);
-            $this->set('csv', $csv);
             $this->set('list', $clusters);
             $this->set('galaxy_id', $galaxyId);
             $this->set('custom_cluster_count', $customClusterCount);

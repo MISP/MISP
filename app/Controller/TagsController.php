@@ -1,5 +1,4 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
 class TagsController extends AppController
@@ -12,12 +11,6 @@ class TagsController extends AppController
                     'Tag.name' => 'asc'
             ),
             'contain' => array(
-                'EventTag' => array(
-                    'fields' => array('EventTag.event_id')
-                ),
-                'AttributeTag' => array(
-                    'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
-                ),
                 'FavouriteTag',
                 'Organisation' => array(
                     'fields' => array('id', 'name')
@@ -78,37 +71,19 @@ class TagsController extends AppController
         }
         if ($this->_isRest()) {
             unset($this->paginate['limit']);
-            unset($this->paginate['contain']['EventTag']);
-            unset($this->paginate['contain']['AttributeTag']);
             $paginated = $this->Tag->find('all', $this->paginate);
         } else {
             if (!empty($passedArgsArray['exclude_statistics'])) {
-                unset($this->paginate['contain']['EventTag']);
-                unset($this->paginate['contain']['AttributeTag']);
                 $this->set('exclude_statistics', true);
             }
             $paginated = $this->paginate();
         }
         $tagList = array();
-        $csv = array();
-        $sgs = $this->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
         foreach ($paginated as $k => $tag) {
             $tagList[] = $tag['Tag']['id'];
             if (empty($passedArgsArray['exclude_statistics'])) {
-                $paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
-                if (!$this->_isRest()) {
-                    $paginated[$k]['event_ids'] = array();
-                    $paginated[$k]['attribute_ids'] = array();
-                    foreach ($paginated[$k]['EventTag'] as $et) {
-                        $paginated[$k]['event_ids'][] = $et['event_id'];
-                    }
-                    unset($paginated[$k]['EventTag']);
-                    foreach ($paginated[$k]['AttributeTag'] as $at) {
-                        $paginated[$k]['attribute_ids'][] = $at['attribute_id'];
-                    }
-                    unset($paginated[$k]['AttributeTag']);
-                }
-                $paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
+                $paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id']);
+                $paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id']);
             }
             if (!empty($tag['FavouriteTag'])) {
                 foreach ($tag['FavouriteTag'] as $ft) {
@@ -138,39 +113,11 @@ class TagsController extends AppController
         }
         if (!$this->_isRest() && empty($passedArgsArray['exclude_statistics'])) {
             $this->loadModel('Sighting');
-            $sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList);
-            $sightings['attribute'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList, 'attribute');
+            $csvForTags = $this->Sighting->tagsSparkline($tagList, $this->Auth->user(), '0');
             foreach ($paginated as $k => $tag) {
-                $objects = array('event', 'attribute');
-                foreach ($objects as $object) {
-                    foreach ($tag[$object . '_ids'] as $objectid) {
-                        if (isset($sightings[$object][$objectid])) {
-                            foreach ($sightings[$object][$objectid] as $date => $sightingCount) {
-                                if (!isset($tag['sightings'][$date])) {
-                                    $tag['sightings'][$date] = $sightingCount;
-                                } else {
-                                    $tag['sightings'][$date] += $sightingCount;
-                                }
-                            }
-                        }
-                    }
+                if (isset($csvForTags[$tag['Tag']['id']])) {
+                    $paginated[$k]['Tag']['csv'] = $csvForTags[$tag['Tag']['id']];
                 }
-                if (!empty($tag['sightings'])) {
-                    $startDate = !empty($tag['sightings']) ? min(array_keys($tag['sightings'])) : date('Y-m-d');
-                    $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
-                    $to = date('Y-m-d', time());
-                    for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
-                        if (!isset($paginated[$k]['Tag']['csv'])) {
-                            $paginated[$k]['Tag']['csv'] = 'Date,Close\n';
-                        }
-                        if (isset($tag['sightings'][$date])) {
-                            $paginated[$k]['Tag']['csv'] .= $date . ',' . $tag['sightings'][$date] . '\n';
-                        } else {
-                            $paginated[$k]['Tag']['csv'] .= $date . ',0\n';
-                        }
-                    }
-                }
-                unset($paginated[$k]['event_ids']);
             }
         }
         if ($this->_isRest()) {
@@ -182,7 +129,6 @@ class TagsController extends AppController
         } else {
             $this->set('passedArgs', json_encode($this->passedArgs));
             $this->set('passedArgsArray', $passedArgsArray);
-            $this->set('csv', $csv);
             $this->set('list', $paginated);
             $this->set('favouritesOnly', $favouritesOnly);
         }
