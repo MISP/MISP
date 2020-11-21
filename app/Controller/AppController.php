@@ -40,6 +40,7 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @property RestResponseComponent $RestResponse
  * @property CRUDComponent $CRUD
  * @property IndexFilterComponent $IndexFilter
+ * @property User $User
  */
 class AppController extends Controller
 {
@@ -47,7 +48,7 @@ class AppController extends Controller
 
     public $debugMode = false;
 
-    public $helpers = array('Utility', 'OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
+    public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
     private $__queryVersion = '119';
     public $pyMispVersion = '2.4.135';
@@ -113,14 +114,12 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
-        $this->Auth->loginRedirect = Configure::read('MISP.baseurl') . '/users/routeafterlogin';
+        $this->_setupBaseurl();
+        $this->Auth->loginRedirect = $this->baseurl. '/users/routeafterlogin';
 
         $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
-        if ($customLogout) {
-            $this->Auth->logoutRedirect = $customLogout;
-        } else {
-            $this->Auth->logoutRedirect = Configure::read('MISP.baseurl') . '/users/login';
-        }
+        $this->Auth->logoutRedirect = $customLogout ?: ($this->baseurl . '/users/login');
+
         $this->__sessionMassage();
         if (Configure::read('Security.allow_cors')) {
             // Add CORS headers
@@ -199,7 +198,6 @@ class AppController extends Controller
         $versionArray = $this->{$this->modelClass}->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
-        $this->_setupBaseurl();
 
         // send users away that are using ancient versions of IE
         // Make sure to update this if IE 20 comes out :)
@@ -237,16 +235,6 @@ class AppController extends Controller
                 $this->_loadAuthenticationPlugins();
             }
         }
-        $this->set('externalAuthUser', $userLoggedIn);
-        // user must accept terms
-        //
-        // grab the base path from our base url for use in the following checks
-        $base_dir = parse_url($this->baseurl, PHP_URL_PATH);
-
-        // if MISP is running out of the web root already, just set this variable to blank so we don't wind up with '//' in the following if statements
-        if ($base_dir == '/') {
-            $base_dir = '';
-        }
 
         if ($this->Auth->user()) {
             $user = $this->Auth->user();
@@ -257,7 +245,7 @@ class AppController extends Controller
                 if ($redis) {
                     $remoteAddress = trim($_SERVER['REMOTE_ADDR']);
                     $redis->set('misp:ip_user:' . $remoteAddress, $user['id']);
-                    $redis->expire('misp:ip_user:' . $remoteAddress, 60*60*24*30);
+                    $redis->expire('misp:ip_user:' . $remoteAddress, 60 * 60 * 24 * 30); // 30 days
                     $redis->sadd('misp:user_ip:' . $user['id'], $remoteAddress);
 
                     // Allow to log key usage
@@ -294,7 +282,7 @@ class AppController extends Controller
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
                 $pre_auth_actions[] = 'email_otp';
             }
-            if ($this->params['controller'] !== 'users' || !in_array($this->params['action'], $pre_auth_actions)) {
+            if (!$this->_isControllerAction(['users' => $pre_auth_actions])) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
@@ -302,7 +290,6 @@ class AppController extends Controller
             }
         }
 
-        unset($base_dir);
         // We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
         if ($this->Auth->user()) {
             $this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
@@ -375,7 +362,7 @@ class AppController extends Controller
         }
 
         if ($this->Auth->user() && $this->_isSiteAdmin()) {
-            if (Configure::read('Session.defaults') == 'database') {
+            if (Configure::read('Session.defaults') === 'database') {
                 $db = ConnectionManager::getDataSource('default');
                 $sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
                 if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
@@ -415,8 +402,7 @@ class AppController extends Controller
             }
             $this->set('notifications', $notifications);
 
-            $this->loadModel('UserSetting');
-            $homepage = $this->UserSetting->getValueForUser($this->Auth->user('id'), 'homepage');
+            $homepage = $this->User->UserSetting->getValueForUser($this->Auth->user('id'), 'homepage');
             if (!empty($homepage)) {
                 $this->set('homepage', $homepage);
             }
@@ -646,7 +632,7 @@ class AppController extends Controller
         if (!isset($actionsToCheck[$controller])) {
             return false;
         }
-        return in_array($this->action, $actionsToCheck[$controller]);
+        return in_array($this->action, $actionsToCheck[$controller], true);
     }
 
     private function __rateLimitCheck()
@@ -726,16 +712,17 @@ class AppController extends Controller
     /*
      * Sanitize the configured `MISP.baseurl` and expose it to the view as `baseurl`.
      */
-    protected function _setupBaseurl() {
+    protected function _setupBaseurl()
+    {
         // Let us access $baseurl from all views
         $baseurl = Configure::read('MISP.baseurl');
-        if (substr($baseurl, -1) == '/') {
+        if (substr($baseurl, -1) === '/') {
             // if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
             $baseurl = rtrim($baseurl, '/');
             $this->loadModel('Server');
             $this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
         }
-        if (trim($baseurl) == 'http://') {
+        if (trim($baseurl) === 'http://') {
             $this->Server->serverSettingsSaveValue('MISP.baseurl', '');
         }
         $this->baseurl = $baseurl;
