@@ -55,7 +55,7 @@ class AppController extends Controller
     public $phprec = '7.4';
     public $pythonmin = '3.6';
     public $pythonrec = '3.7';
-    public $isApiAuthed = false;
+    private $isApiAuthed = false;
 
     public $baseurl = '';
     public $sql_dump = false;
@@ -230,7 +230,7 @@ class AppController extends Controller
                 if (array_key_exists('Security', $this->components)) {
                     $this->Security->csrfCheck = false;
                 }
-                if ($this->__logByAuthKey() === false ||$this->Auth->user() === null) {
+                if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
                     throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                 }
             } elseif (!$this->Session->read(AuthComponent::$sessionKey)) {
@@ -249,35 +249,44 @@ class AppController extends Controller
         }
 
         if ($this->Auth->user()) {
-            Configure::write('CurrentUserId', $this->Auth->user('id'));
-            $this->User->setMonitoring($this->Auth->user());
+            $user = $this->Auth->user();
+            Configure::write('CurrentUserId', $user['id']);
+            $this->User->setMonitoring($user);
             if (Configure::read('MISP.log_user_ips')) {
                 $redis = $this->{$this->modelClass}->setupRedis();
                 if ($redis) {
-                    $redis->set('misp:ip_user:' . trim($_SERVER['REMOTE_ADDR']), $this->Auth->user('id'));
-                    $redis->expire('misp:ip_user:' . trim($_SERVER['REMOTE_ADDR']), 60*60*24*30);
-                    $redis->sadd('misp:user_ip:' . $this->Auth->user('id'), trim($_SERVER['REMOTE_ADDR']));
+                    $remoteAddress = trim($_SERVER['REMOTE_ADDR']);
+                    $redis->set('misp:ip_user:' . $remoteAddress, $user['id']);
+                    $redis->expire('misp:ip_user:' . $remoteAddress, 60*60*24*30);
+                    $redis->sadd('misp:user_ip:' . $user['id'], $remoteAddress);
+
+                    // Allow to log key usage
+                    if (isset($user['authkey_id']) && Configure::read('MISP.log_user_ips_auth')) {
+                        $key = "misp:authkey:{$user['authkey_id']}";
+                        $hashKey = date("Y-m-d") . ":$remoteAddress";
+                        $redis->hIncrBy($key, $hashKey, 1);
+                    }
                 }
             }
             // update script
-            if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
+            if ($user['Role']['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->{$this->modelClass}->runUpdates();
             }
 
-            if (!$this->__verifyUser($this->User, $this->Auth->user()))  {
+            if (!$this->__verifyUser($this->User, $user))  {
                 $this->_stop(); // just for sure
             }
 
             $this->set('default_memory_limit', ini_get('memory_limit'));
-            if (isset($this->Auth->user('Role')['memory_limit'])) {
-                if ($this->Auth->user('Role')['memory_limit'] !== '') {
-                    ini_set('memory_limit', $this->Auth->user('Role')['memory_limit']);
+            if (isset($user['Role']['memory_limit'])) {
+                if ($user['Role']['memory_limit'] !== '') {
+                    ini_set('memory_limit', $user['Role']['memory_limit']);
                 }
             }
             $this->set('default_max_execution_time', ini_get('max_execution_time'));
-            if (isset($this->Auth->user('Role')['max_execution_time'])) {
-                if ($this->Auth->user('Role')['max_execution_time'] !== '') {
-                    ini_set('max_execution_time', $this->Auth->user('Role')['max_execution_time']);
+            if (isset($user['Role']['max_execution_time'])) {
+                if ($user['Role']['max_execution_time'] !== '') {
+                    ini_set('max_execution_time', $user['Role']['max_execution_time']);
                 }
             }
         } else {
@@ -418,8 +427,13 @@ class AppController extends Controller
      * @return null|bool True if authkey was correct, False if incorrect and Null if not provided
      * @throws Exception
      */
-    private function __logByAuthKey()
+    private function __loginByAuthKey()
     {
+        if (Configure::read('Security.authkey_keep_session') && $this->Auth->user()) {
+            // Do not check authkey if session is establish and correct
+            return true;
+        }
+
         // If enabled, allow passing the API key via a named parameter (for crappy legacy systems only)
         $namedParamAuthkey = false;
         if (Configure::read('Security.allow_unsafe_apikey_named_param') && !empty($this->params['named']['apikey'])) {
@@ -465,16 +479,6 @@ class AppController extends Controller
                             'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
                         );
                         $this->Log->save($log);
-                    }
-                    // Allow to log key usage
-                    if (isset($user['authkey_id']) && Configure::read('MISP.log_auth_redis')) {
-                        /** @var Redis $redis */
-                        $redis = $this->{$this->modelClass}->setupRedis();
-                        if ($redis) {
-                            $key = "misp:authkey:{$user['authkey_id']}";
-                            $hashKey = date("Y-m-d") . ":{$_SERVER['REMOTE_ADDR']}";
-                            $redis->hIncrBy($key, $hashKey, 1);
-                        }
                     }
                     $this->Session->renew();
                     $this->Session->write(AuthComponent::$sessionKey, $user);
@@ -675,7 +679,7 @@ class AppController extends Controller
 
     public function afterFilter()
     {
-        if ($this->isApiAuthed && $this->_isRest() && $this->Session->started()) {
+        if ($this->isApiAuthed && $this->_isRest() &&!Configure::read('Security.authkey_keep_session')) {
             $this->Session->destroy();
         }
     }
