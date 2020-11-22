@@ -67,8 +67,6 @@ class AttributesController extends AppController
         $this->paginate['contain'] = array(
             'Event' => array(
                 'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-                'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
-                'Org' => array('fields' => array('Org.id', 'Org.name'))
             ),
             'AttributeTag' => array('Tag'),
             'Object' => array(
@@ -85,11 +83,19 @@ class AttributesController extends AppController
             }
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
-        list($attributes, $sightingsData) = $this->__searchUI($attributes);
-        $this->set('sightingsData', $sightingsData);
         $orgTable = $this->Attribute->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        foreach ($attributes as &$attribute) {
+            if (isset($orgTable[$attribute['Event']['orgc_id']])) {
+                $attribute['Event']['Orgc'] = [
+                    'id' => $attribute['Event']['orgc_id'],
+                    'name' => $orgTable[$attribute['Event']['orgc_id']],
+                ];
+            }
+        }
+        list($attributes, $sightingsData) = $this->__searchUI($attributes);
+        $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', $orgTable);
         $this->set('shortDist', $this->Attribute->shortDist);
         $this->set('attributes', $attributes);
@@ -1576,8 +1582,6 @@ class AttributesController extends AppController
             $this->paginate['contain'] = array(
                 'Event' => array(
                     'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-                    'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
-                    'Org' => array('fields' => array('Org.id', 'Org.name'))
                 ),
                 'AttributeTag' => array('Tag'),
                 'Object' => array(
@@ -1586,12 +1590,31 @@ class AttributesController extends AppController
                 'SharingGroup' => ['fields' => ['SharingGroup.name']],
             );
             $attributes = $this->paginate();
-            if (!$this->_isRest()) {
-                list($attributes, $sightingsData) = $this->__searchUI($attributes);
-                $this->set('sightingsData', $sightingsData);
-            } else {
+
+            $orgTable = $this->Attribute->Event->Orgc->find('list', array(
+                'fields' => ['Orgc.id', 'Orgc.name'],
+            ));
+            foreach ($attributes as &$attribute) {
+                if (isset($orgTable[$attribute['Event']['orgc_id']])) {
+                    $attribute['Event']['Orgc'] = [
+                        'id' => $attribute['Event']['orgc_id'],
+                        'name' => $orgTable[$attribute['Event']['orgc_id']],
+                    ];
+                }
+                if (isset($orgTable[$attribute['Event']['org_id']])) {
+                    $attribute['Event']['Org'] = [
+                        'id' => $attribute['Event']['org_id'],
+                        'name' => $orgTable[$attribute['Event']['org_id']],
+                    ];
+                }
+            }
+            if ($this->_isRest()) {
                 return $this->RestResponse->viewData($attributes, $this->response->type());
             }
+
+            list($attributes, $sightingsData) = $this->__searchUI($attributes);
+            $this->set('sightingsData', $sightingsData);
+
             if (isset($filters['tags']) && !empty($filters['tags'])) {
                 // if the tag is passed by ID - show its name in the view
                 $this->loadModel('Tag');
@@ -1611,6 +1634,7 @@ class AttributesController extends AppController
                     }
                 }
             }
+            $this->set('orgTable', $orgTable);
             $this->set('filters', $filters);
             $this->set('attributes', $attributes);
             $this->set('isSearch', 1);
