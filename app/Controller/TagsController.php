@@ -45,14 +45,7 @@ class TagsController extends AppController
         );
         $exception = false;
         $passedArgsArray = $this->_harvestParameters($filterData, $exception);
-        $taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
-        $taxonomyNamespaces = array();
-        if (!empty($taxonomies)) {
-            foreach ($taxonomies as $taxonomy) {
-                $taxonomyNamespaces[$taxonomy['namespace']] = $taxonomy;
-            }
-        }
-        $taxonomyTags = array();
+
         $this->Event->recursive = -1;
         if (!empty($passedArgsArray['favouritesOnly'])) {
             $tag_id_list = $this->Tag->FavouriteTag->find('list', array(
@@ -82,6 +75,8 @@ class TagsController extends AppController
             $paginated = $this->paginate();
         }
         $tagList = array();
+        $taxonomyTags = array();
+        $taxonomyNamespaces = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
         foreach ($paginated as $k => $tag) {
             $tagList[] = $tag['Tag']['id'];
             if (!empty($tag['FavouriteTag'])) {
@@ -97,16 +92,15 @@ class TagsController extends AppController
                 $paginated[$k]['Tag']['favourite'] = false;
             }
             unset($paginated[$k]['FavouriteTag']);
-            if (!empty($taxonomyNamespaces)) {
-                $taxonomyNamespaceArrayKeys = array_keys($taxonomyNamespaces);
-                foreach ($taxonomyNamespaceArrayKeys as $tns) {
-                    if (substr(strtoupper($tag['Tag']['name']), 0, strlen($tns)) === strtoupper($tns)) {
-                        $paginated[$k]['Tag']['Taxonomy'] = $taxonomyNamespaces[$tns];
-                        if (!isset($taxonomyTags[$tns])) {
-                            $taxonomyTags[$tns] = $this->Taxonomy->getTaxonomyTags($taxonomyNamespaces[$tns]['id'], true);
-                        }
-                        $paginated[$k]['Tag']['Taxonomy']['expanded'] = isset($taxonomyTags[$tns][strtoupper($tag['Tag']['name'])]) ? $taxonomyTags[$tns][strtoupper($tag['Tag']['name'])] : $tag['Tag']['name'];
+
+            foreach ($taxonomyNamespaces as $namespace => $taxonomy) {
+                if (substr(strtoupper($tag['Tag']['name']), 0, strlen($namespace)) === strtoupper($namespace)) {
+                    $paginated[$k]['Tag']['Taxonomy'] = $taxonomy;
+                    if (!isset($taxonomyTags[$namespace])) {
+                        $taxonomyTags[$namespace] = $this->Taxonomy->getTaxonomyTags($taxonomy['id'], true);
                     }
+                    $paginated[$k]['Tag']['Taxonomy']['expanded'] = isset($taxonomyTags[$namespace][strtoupper($tag['Tag']['name'])]) ? $taxonomyTags[$namespace][strtoupper($tag['Tag']['name'])] : $tag['Tag']['name'];
+                    break;
                 }
             }
         }
