@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property GalaxyCluster $GalaxyCluster
+ */
 class GalaxyClustersController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -99,46 +102,39 @@ class GalaxyClustersController extends AppController
             $this->paginate['conditions']['AND'][] = $aclConditions;
             $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup', 'GalaxyClusterRelation', 'TargetingClusterRelation'));
             $clusters = $this->paginate();
+
+            $tagIds = array();
             foreach ($clusters as $k => $cluster) {
                 $clusters[$k] = $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
                 $clusters[$k] = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
-                $tag = $this->GalaxyCluster->Tag->find('first', array(
-                    'conditions' => array(
-                        'LOWER(name)' => strtolower($cluster['GalaxyCluster']['tag_name']),
-                    ),
-                    'fields' => array('id'),
-                    'recursive' => -1,
-                    'contain' => array('EventTag.event_id')
-                ));
-                if (!empty($tag['Tag']['id'])) {
-                    $clusters[$k]['GalaxyCluster']['event_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user());
-                } else {
-                    $clusters[$k]['GalaxyCluster']['event_count'] = 0;
-                }
                 $clusters[$k]['GalaxyCluster']['relation_counts'] = array(
                     'out' => count($clusters[$k]['GalaxyClusterRelation']),
                     'in' => count($clusters[$k]['TargetingClusterRelation']),
                 );
-            }
-            $tagIds = array();
-            if (!empty($clusters)) {
-                foreach ($clusters as $k => $v) {
-                    $clusters[$k]['event_ids'] = array();
-                    if (!empty($v['Tag'])) {
-                        $tagIds[] = $v['Tag']['id'];
-                        $clusters[$k]['GalaxyCluster']['tag_id'] = $v['Tag']['id'];
-                    }
-                    $clusters[$k]['GalaxyCluster']['synonyms'] = array();
-                    foreach ($v['GalaxyElement'] as $element) {
-                        $clusters[$k]['GalaxyCluster']['synonyms'][] = $element['value'];
-                    }
+
+                if (isset($cluster['Tag']['id'])) {
+                    $tagIds[] = $cluster['Tag']['id'];
+                    $clusters[$k]['GalaxyCluster']['tag_id'] = $cluster['Tag']['id'];
                 }
+                $clusters[$k]['GalaxyCluster']['synonyms'] = array();
+                foreach ($cluster['GalaxyElement'] as $element) {
+                    $clusters[$k]['GalaxyCluster']['synonyms'][] = $element['value'];
+                }
+                $clusters[$k]['GalaxyCluster']['event_count'] = 0; // real number is assigned later
             }
+
+            $eventCountsForTags = $this->GalaxyCluster->Tag->EventTag->countForTags($tagIds, $this->Auth->user());
+
             $this->loadModel('Sighting');
             $csvForTags = $this->Sighting->tagsSparkline($tagIds, $this->Auth->user(), '0');
             foreach ($clusters as $k => $cluster) {
-                if (!empty($cluster['GalaxyCluster']['tag_id']) && isset($csvForTags[$cluster['GalaxyCluster']['tag_id']])) {
-                    $clusters[$k]['csv'] = $csvForTags[$cluster['GalaxyCluster']['tag_id']];
+                if (isset($cluster['GalaxyCluster']['tag_id'])) {
+                    if (isset($csvForTags[$cluster['GalaxyCluster']['tag_id']])) {
+                        $clusters[$k]['csv'] = $csvForTags[$cluster['GalaxyCluster']['tag_id']];
+                    }
+                    if (isset($eventCountsForTags[$cluster['GalaxyCluster']['tag_id']])) {
+                        $clusters[$k]['GalaxyCluster']['event_count'] = $eventCountsForTags[$cluster['GalaxyCluster']['tag_id']];
+                    }
                 }
             }
             $customClusterCount = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), [

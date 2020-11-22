@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Tag $Tag
+ */
 class TagsController extends AppController
 {
     public $components = array('Security' ,'RequestHandler');
@@ -81,10 +84,6 @@ class TagsController extends AppController
         $tagList = array();
         foreach ($paginated as $k => $tag) {
             $tagList[] = $tag['Tag']['id'];
-            if (empty($passedArgsArray['exclude_statistics'])) {
-                $paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id']);
-                $paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id']);
-            }
             if (!empty($tag['FavouriteTag'])) {
                 foreach ($tag['FavouriteTag'] as $ft) {
                     if ($ft['user_id'] == $this->Auth->user('id')) {
@@ -111,13 +110,25 @@ class TagsController extends AppController
                 }
             }
         }
-        if (!$this->_isRest() && empty($passedArgsArray['exclude_statistics'])) {
-            $this->loadModel('Sighting');
-            $csvForTags = $this->Sighting->tagsSparkline($tagList, $this->Auth->user(), '0');
+
+        if (empty($passedArgsArray['exclude_statistics'])) {
+            $attributeCount = $this->Tag->AttributeTag->countForTags($tagList, $this->Auth->user());
+            // TODO: this must be called before `tagsSparkline`!
+            $eventCount = $this->Tag->EventTag->countForTags($tagList, $this->Auth->user());
+
+            if ($this->_isRest()) {
+                $csvForTags = []; // Sightings sparkline doesn't make sense for REST requests
+            } else {
+                $this->loadModel('Sighting');
+                $csvForTags = $this->Sighting->tagsSparkline($tagList, $this->Auth->user(), '0');
+            }
             foreach ($paginated as $k => $tag) {
-                if (isset($csvForTags[$tag['Tag']['id']])) {
-                    $paginated[$k]['Tag']['csv'] = $csvForTags[$tag['Tag']['id']];
+                $tagId = $tag['Tag']['id'];
+                if (isset($csvForTags[$tagId])) {
+                    $paginated[$k]['Tag']['csv'] = $csvForTags[$tagId];
                 }
+                $paginated[$k]['Tag']['count'] = isset($eventCount[$tagId]) ? (int)$eventCount[$tagId] : 0;
+                $paginated[$k]['Tag']['attribute_count'] = isset($attributeCount[$tagId]) ? (int)$attributeCount[$tagId] : 0;
             }
         }
         if ($this->_isRest()) {
