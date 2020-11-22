@@ -324,7 +324,7 @@ class Sighting extends AppModel
         }
 
         // Returns date in `Y-m-d` format
-        $this->virtualFields['date_sighting'] = 'DATE(FROM_UNIXTIME(date_sighting))'; // TODO: Probably just for MySQL
+        $this->virtualFields['date_sighting'] = $this->dateVirtualColumn();
         $this->virtualFields['sighting_count'] = 'COUNT(id)';
         $groupedSightings = $this->find('all', array(
             'conditions' => $conditions,
@@ -356,7 +356,7 @@ class Sighting extends AppModel
             ]
         ]);
         // Returns date in `Y-m-d` format
-        $this->virtualFields['date_sighting'] = 'DATE(FROM_UNIXTIME(Sighting.date_sighting))'; // TODO: Probably just for MySQL
+        $this->virtualFields['date_sighting'] = $this->dateVirtualColumn();
         $this->virtualFields['sighting_count'] = 'COUNT(Sighting.id)';
         $sightings = $this->find('all', array(
             'recursive' => -1,
@@ -1056,5 +1056,14 @@ class Sighting extends AppModel
             return self::SIGHTING_POLICY_EVENT_OWNER;
         }
         return (int)$policy;
+    }
+
+    private function dateVirtualColumn()
+    {
+        if (in_array($this->getDataSource()->config['datasource'], ['Database/Mysql', 'Database/MysqlObserver'], true)) {
+            return 'DATE(FROM_UNIXTIME(Sighting.date_sighting))';
+        } else {
+            return "to_char(date(to_timestamp(Sighting.date_sighting)), 'YYYY-MM-DD')"; // PostgreSQL
+        }
     }
 }
