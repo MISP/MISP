@@ -29,7 +29,7 @@ class TagsController extends AppController
         $this->Security->unlockedActions[] = 'search';
     }
 
-    public function index($favouritesOnly = false)
+    public function index()
     {
         $this->loadModel('Attribute');
         $this->loadModel('Event');
@@ -69,9 +69,6 @@ class TagsController extends AppController
             unset($this->paginate['limit']);
             $paginated = $this->Tag->find('all', $this->paginate);
         } else {
-            if (!empty($passedArgsArray['exclude_statistics'])) {
-                $this->set('exclude_statistics', true);
-            }
             $paginated = $this->paginate();
         }
         $tagList = array();
@@ -79,18 +76,16 @@ class TagsController extends AppController
         $taxonomyNamespaces = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
         foreach ($paginated as $k => $tag) {
             $tagList[] = $tag['Tag']['id'];
+            $favourite = false;
             if (!empty($tag['FavouriteTag'])) {
                 foreach ($tag['FavouriteTag'] as $ft) {
                     if ($ft['user_id'] == $this->Auth->user('id')) {
-                        $paginated[$k]['Tag']['favourite'] = true;
+                        $favourite = true;
+                        break;
                     }
                 }
-                if (!isset($paginated[$k]['Tag']['favourite'])) {
-                    $paginated[$k]['Tag']['favourite'] = false;
-                }
-            } else {
-                $paginated[$k]['Tag']['favourite'] = false;
             }
+            $paginated[$k]['Tag']['favourite'] = $favourite;
             unset($paginated[$k]['FavouriteTag']);
 
             foreach ($taxonomyNamespaces as $namespace => $taxonomy) {
@@ -124,7 +119,10 @@ class TagsController extends AppController
                 $paginated[$k]['Tag']['count'] = isset($eventCount[$tagId]) ? (int)$eventCount[$tagId] : 0;
                 $paginated[$k]['Tag']['attribute_count'] = isset($attributeCount[$tagId]) ? (int)$attributeCount[$tagId] : 0;
             }
+        } else {
+            $this->set('exclude_statistics', true);
         }
+
         if ($this->_isRest()) {
             foreach ($paginated as $key => $tag) {
                 $paginated[$key] = $tag['Tag'];
@@ -135,7 +133,7 @@ class TagsController extends AppController
             $this->set('passedArgs', json_encode($this->passedArgs));
             $this->set('passedArgsArray', $passedArgsArray);
             $this->set('list', $paginated);
-            $this->set('favouritesOnly', $favouritesOnly);
+            $this->set('favouritesOnly', !empty($passedArgsArray['favouritesOnly']));
         }
         // send perm_tagger to view for action buttons
     }

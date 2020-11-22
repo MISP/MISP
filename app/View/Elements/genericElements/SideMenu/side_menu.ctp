@@ -1009,7 +1009,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                 case 'tags':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'indexfav',
-                        'url' => $baseurl . '/tags/index/1',
+                        'url' => $baseurl . '/tags/index/favouritesOnly:1',
                         'text' => __('List Favourite Tags')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
