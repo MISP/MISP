@@ -1687,11 +1687,18 @@ class AttributesController extends AppController
             if (!empty($correlations)) {
                 $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attributeId];
             }
-            $temp = $this->Feed->attachFeedCorrelations(array($attributes[$k]['Attribute']), $user, $attributes[$k]['Event']);
-            if (!empty($temp)) {
-                $attributes[$k]['Attribute'] = $temp[0];
+        }
+
+        // `attachFeedCorrelations` method expects different attribute format, so we need to transform that, then process
+        // and then take information back to original attribute structure.
+        $fakeEventArray = [];
+        $attributesWithFeedCorrelations = $this->Feed->attachFeedCorrelations(array_column($attributes, 'Attribute'), $user, $fakeEventArray);
+        foreach ($attributesWithFeedCorrelations as $k => $attributeWithFeedCorrelation) {
+            if (isset($attributeWithFeedCorrelation['Feed'])) {
+                $attributes[$k]['Attribute']['Feed'] = $attributeWithFeedCorrelation['Feed'];
             }
         }
+
         $sightingsData = $this->Attribute->Event->getSightingData(array('Sighting' => $sightingsData));
         return array($attributes, $sightingsData);
     }
