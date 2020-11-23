@@ -221,6 +221,7 @@ class Galaxy extends AppModel
         $galaxies = $this->__load_galaxies($force);
         $dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters');
         $files = $dir->find('.*\.json');
+        $force = (bool)$force;
         foreach ($files as $file) {
             $file = new File($dir->pwd() . DS . $file);
             $cluster_package = json_decode($file->read(), true);
