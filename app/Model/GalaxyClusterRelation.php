@@ -386,7 +386,14 @@ class GalaxyClusterRelation extends AppModel
                         ]);
                         if (empty($existingTag)) {
                             $this->GalaxyClusterRelationTag->Tag->create();
-                            $this->GalaxyClusterRelationTag->Tag->save(['name' => $tag]);
+                            $this->GalaxyClusterRelationTag->Tag->save([
+                                'name' => $tag,
+                                'colour' => $this->GalaxyClusterRelationTag->Tag->random_color(),
+                                'exportable' => 1,
+                                'org_id' => 0,
+                                'user_id' => 0,
+                                'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
+                            ]);
                             $this->bulkCache['tag_ids'][$tag] = $this->GalaxyClusterRelationTag->Tag->id;
                         } else {
                             $this->bulkCache['tag_ids'][$tag] = $existingTag['Tag']['id'];
