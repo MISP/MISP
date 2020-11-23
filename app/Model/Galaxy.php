@@ -92,6 +92,130 @@ class Galaxy extends AppModel
         return $this->find('list', array('recursive' => -1, 'fields' => array('type', 'id')));
     }
 
+    private function __update_prepare_template(array $cluster_package, array $galaxies): array
+    {
+        return [
+            'source' => isset($cluster_package['source']) ? $cluster_package['source'] : '',
+            'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : array(), true),
+            'collection_uuid' => isset($cluster_package['uuid']) ? $cluster_package['uuid'] : '',
+            'galaxy_id' => $galaxies[$cluster_package['type']],
+            'type' => $cluster_package['type'],
+            'tag_name' => 'misp-galaxy:' . $cluster_package['type'] . '="'
+        ];
+    }
+
+    private function __getPreExistingClusters(array $galaxies, array $cluster_package): array
+    {
+        $temp = $this->GalaxyCluster->find('all', array(
+            'conditions' => array(
+                'GalaxyCluster.galaxy_id' => $galaxies[$cluster_package['type']]
+            ),
+            'recursive' => -1,
+            'fields' => array('version', 'id', 'value', 'uuid')
+        ));
+        $existingClusters = [];
+        foreach ($temp as $k => $v) {
+            $existingClusters[$v['GalaxyCluster']['value']] = $v;
+        }
+        return $existingClusters;
+    }
+
+    private function __deleteOutdated(bool $force, array $cluster_package, array $existingClusters): array
+    {
+        // Delete all existing outdated clusters
+        $cluster_ids_to_delete = array();
+        $cluster_uuids_to_delete = array();
+        foreach ($cluster_package['values'] as $k => $cluster) {
+            if (empty($cluster['value'])) {
+                continue;
+            }
+            if (isset($cluster['version'])) {
+            } elseif (!empty($cluster_package['version'])) {
+                $cluster_package['values'][$k]['version'] = $cluster_package['version'];
+            } else {
+                $cluster_package['values'][$k]['version'] = 0;
+            }
+            if (!empty($existingClusters[$cluster['value']])) {
+                if ($force || $existingClusters[$cluster['value']]['GalaxyCluster']['version'] < $cluster_package['values'][$k]['version']) {
+                    $cluster_ids_to_delete[] = $existingClusters[$cluster['value']]['GalaxyCluster']['id'];
+                    $cluster_uuids_to_delete[] = $existingClusters[$cluster['value']]['GalaxyCluster']['uuid'];
+                } else {
+                    unset($cluster_package['values'][$k]);
+                }
+            }
+        }
+        if (!empty($cluster_ids_to_delete)) {
+            $this->GalaxyCluster->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $cluster_ids_to_delete), false, false);
+            $this->GalaxyCluster->GalaxyClusterRelation->deleteRelations(array('GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster_uuids_to_delete));
+            $this->GalaxyCluster->deleteAll(array('GalaxyCluster.id' => $cluster_ids_to_delete), false, false);
+        }
+        return $cluster_package;
+    }
+
+    private function __createClusters($cluster_package, $template): array
+    {
+        $relations = [];
+        $elements = [];
+        $saved_tag_names = [];
+        $this->GalaxyCluster->bulkEntry = true;
+        foreach ($cluster_package['values'] as $cluster) {
+            if (empty($cluster['version'])) {
+                $cluster['version'] = 1;
+            }
+            $template['version'] = $cluster['version'];
+            $this->GalaxyCluster->create();
+            $cluster_to_save = $template;
+            if (isset($cluster['description'])) {
+                $cluster_to_save['description'] = $cluster['description'];
+                unset($cluster['description']);
+            }
+            $cluster_to_save['value'] = $cluster['value'];
+            $cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
+            if (!empty($cluster['uuid'])) {
+                $cluster_to_save['uuid'] = $cluster['uuid'];
+            }
+            unset($cluster['value']);
+            if (empty($cluster_to_save['description'])) {
+                $cluster_to_save['description'] = '';
+            }
+            $cluster_to_save['distribution'] = 3;
+            $cluster_to_save['default'] = true;
+            $cluster_to_save['published'] = false;
+            $cluster_to_save['org_id'] = 0;
+            $cluster_to_save['orgc_id'] = 0;
+            $result = $this->GalaxyCluster->save($cluster_to_save, false);
+            $galaxyClusterId = $this->GalaxyCluster->id;
+            if (isset($cluster['meta'])) {
+                foreach ($cluster['meta'] as $key => $value) {
+                    if (!is_array($value)) {
+                        $value = [$value];
+                    }
+                    foreach ($value as $v) {
+                        $elements[] = array(
+                            $galaxyClusterId,
+                            $key,
+                            strval($v)
+                        );
+                    }
+                }
+            }
+            if (isset($cluster['related'])) {
+                foreach ($cluster['related'] as $key => $relation) {
+                    $relations[] = [
+                        'galaxy_cluster_id' => $galaxyClusterId,
+                        'galaxy_cluster_uuid' => $cluster['uuid'],
+                        'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
+                        'referenced_galaxy_cluster_type' => $relation['type'],
+                        'default' => true,
+                        'distribution' => 3,
+                        'tags' => !empty($relation['tags']) ? $relation['tags'] : []
+                    ];
+                }
+            }
+        }
+        return [$elements, $relations];
+    }
+
     public function update($force = false)
     {
         $galaxies = $this->__load_galaxies($force);
@@ -105,127 +229,23 @@ class Galaxy extends AppModel
             if (!isset($galaxies[$cluster_package['type']])) {
                 continue;
             }
-            $template = array(
-                'source' => isset($cluster_package['source']) ? $cluster_package['source'] : '',
-                'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : array(), true),
-                'collection_uuid' => isset($cluster_package['uuid']) ? $cluster_package['uuid'] : '',
-                'galaxy_id' => $galaxies[$cluster_package['type']],
-                'type' => $cluster_package['type'],
-                'tag_name' => 'misp-galaxy:' . $cluster_package['type'] . '="'
-            );
-            $elements = array();
-            $temp = $this->GalaxyCluster->find('all', array(
-                'conditions' => array(
-                    'GalaxyCluster.galaxy_id' => $galaxies[$cluster_package['type']]
-                ),
-                'recursive' => -1,
-                'fields' => array('version', 'id', 'value', 'uuid')
-            ));
-            $existingClusters = array();
-            foreach ($temp as $k => $v) {
-                $existingClusters[$v['GalaxyCluster']['value']] = $v;
-            }
-            $cluster_ids_to_delete = array();
-            $cluster_uuids_to_delete = array();
+            $template = $this->__update_prepare_template($cluster_package, $galaxies);
+            $elements = [];
+            $existingClusters = $this->__getPreExistingClusters($galaxies, $cluster_package);
+            $cluster_package = $this->__deleteOutdated($force, $cluster_package, $existingClusters);
 
-            // Delete all existing outdated clusters
-            foreach ($cluster_package['values'] as $k => $cluster) {
-                if (empty($cluster['value'])) {
-                    continue;
-                }
-                if (isset($cluster['version'])) {
-                } elseif (!empty($cluster_package['version'])) {
-                    $cluster_package['values'][$k]['version'] = $cluster_package['version'];
-                } else {
-                    $cluster_package['values'][$k]['version'] = 0;
-                }
-                if (!empty($existingClusters[$cluster['value']])) {
-                    if ($force || $existingClusters[$cluster['value']]['GalaxyCluster']['version'] < $cluster_package['values'][$k]['version']) {
-                        $cluster_ids_to_delete[] = $existingClusters[$cluster['value']]['GalaxyCluster']['id'];
-                        $cluster_uuids_to_delete[] = $existingClusters[$cluster['value']]['GalaxyCluster']['uuid'];
-                    } else {
-                        unset($cluster_package['values'][$k]);
-                    }
-                }
-            }
-            if (!empty($cluster_ids_to_delete)) {
-                $this->GalaxyCluster->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $cluster_ids_to_delete), false, false);
-                $this->GalaxyCluster->GalaxyClusterRelation->deleteRelations(array('GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster_uuids_to_delete));
-                $this->GalaxyCluster->deleteAll(array('GalaxyCluster.id' => $cluster_ids_to_delete), false, false);
-            }
-
-            $tempUser = array('Role' => array('perm_galaxy_editor' => 1, 'perm_tag_editor' => 1, 'perm_site_admin' => 1, 'perm_sync' => 1)); // only site-admin are authorized to update galaxies
             // create all clusters
-            foreach ($cluster_package['values'] as $cluster) {
-                if (empty($cluster['version'])) {
-                    $cluster['version'] = 1;
-                }
-                $template['version'] = $cluster['version'];
-                $this->GalaxyCluster->create();
-                $cluster_to_save = $template;
-                if (isset($cluster['description'])) {
-                    $cluster_to_save['description'] = $cluster['description'];
-                    unset($cluster['description']);
-                }
-                $cluster_to_save['value'] = $cluster['value'];
-                $cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
-                if (!empty($cluster['uuid'])) {
-                    $cluster_to_save['uuid'] = $cluster['uuid'];
-                }
-                unset($cluster['value']);
-                if (empty($cluster_to_save['description'])) {
-                    $cluster_to_save['description'] = '';
-                }
-                $cluster_to_save['distribution'] = 3;
-                $cluster_to_save['default'] = true;
-                $cluster_to_save['published'] = false;
-                $cluster_to_save['org_id'] = 0;
-                $cluster_to_save['orgc_id'] = 0;
-                $result = $this->GalaxyCluster->save($cluster_to_save, false);
-                $galaxyClusterId = $this->GalaxyCluster->id;
-                if (isset($cluster['meta'])) {
-                    foreach ($cluster['meta'] as $key => $value) {
-                        if (is_array($value)) {
-                            foreach ($value as $v) {
-                                $elements[] = array(
-                                    $galaxyClusterId,
-                                    $key,
-                                    strval($v)
-                                );
-                            }
-                        } else {
-                            $elements[] = array(
-                                $this->GalaxyCluster->id,
-                                $key,
-                                strval($value)
-                            );
-                        }
-                    }
-                }
-                if (isset($cluster['related'])) {
-                    $relations = array();
-                    foreach ($cluster['related'] as $key => $relation) {
-                        array('', 'referenced_galaxy_cluster_uuid');
-                        $relations[] = array(
-                            'galaxy_cluster_uuid' => $cluster['uuid'],
-                            'referenced_galaxy_cluster_uuid' => $relation['dest-uuid'],
-                            'referenced_galaxy_cluster_type' => $relation['type'],
-                            'default' => true,
-                            'distribution' => 3,
-                            'tags' => !empty($relation['tags']) ? $relation['tags'] : []
-                        );
-                    }
-                    if (!empty($relations)) {
-                        $this->GalaxyCluster->GalaxyClusterRelation->saveRelations($tempUser, $cluster, $relations, $captureTag=true, $force=true);
-                    }
-                }
-            }
+            list($elements, $relations) = $this->__createClusters($cluster_package, $template);
             $db = $this->getDataSource();
             $fields = array('galaxy_cluster_id', 'key', 'value');
             if (!empty($elements)) {
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
+            if (!empty($relations)) {
+                $this->GalaxyCluster->GalaxyClusterRelation->bulkSaveRelations($relations);
+            }
         }
+        $this->GalaxyCluster->generateMissingRelations();
         return true;
     }
 
@@ -626,7 +646,7 @@ class Galaxy extends AppModel
             }
         }
     }
-    
+
     /**
      * generateForkTree
      *
@@ -693,14 +713,14 @@ class Galaxy extends AppModel
         ));
         return $tree;
     }
-    
+
     /**
      * convertToMISPGalaxyFormat
      *
      * @param  array $galaxy
      * @param  array $clusters
      * @return array the converted clusters into the misp-galaxy format
-     * 
+     *
      * Special cases:
      *  - authors: (since all clusters have their own, takes all of them)
      *  - version: Takes the higher version number of all clusters

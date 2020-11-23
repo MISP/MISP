@@ -180,7 +180,7 @@ class GalaxyClusterRelation extends AppModel
         }
         return $cluster;
     }
-    
+
     /**
      * saveRelations
      *
@@ -196,7 +196,7 @@ class GalaxyClusterRelation extends AppModel
         }
         return $errors;
     }
-    
+
     /**
      * saveRelation Respecting ACL saves a relation and set correct fields where applicable.
      * Contrary to its capture equivalent, trying to save a relation for a unknown target cluster will fail.
@@ -360,6 +360,61 @@ class GalaxyClusterRelation extends AppModel
         return $errors;
     }
 
+    public function bulkSaveRelations(array $relations): void
+    {
+        if (!isset($this->bulkCache)) {
+            $this->bulkCache = [
+                'tag_ids' => []
+            ];
+        }
+        $lookupSavedIds = [];
+        $relationTagsToSave = [];
+        foreach ($relations as $k => $relation) {
+            $relations[$k]['referenced_galaxy_cluster_id'] = 0;
+            $lookupSavedIds[$relation['galaxy_cluster_id']] = true;
+            if (!empty($relation['tags'])) {
+                foreach ($relation['tags'] as $tag) {
+                    if (!isset($this->bulkCache['tag_ids'][$tag])) {
+                        $existingTag = $this->GalaxyClusterRelationTag->Tag->find('first', [
+                            'recursive' => -1,
+                            'fields' => ['Tag.id'],
+                            'conditions' => ['Tag.name' => $tag]
+                        ]);
+                        if (empty($existingTag)) {
+                            $this->GalaxyClusterRelationTag->Tag->create();
+                            $this->GalaxyClusterRelationTag->Tag->save(['name' => $tag]);
+                            $this->bulkCache['tag_ids'][$tag] = $this->GalaxyClusterRelationTag->Tag->id;
+                        } else {
+                            $this->bulkCache['tag_ids'][$tag] = $existingTag['Tag']['id'];
+                        }
+                    }
+                    $relationTagsToSave[$relation['galaxy_cluster_uuid']][$relation['referenced_galaxy_cluster_uuid']][] = $this->bulkCache['tag_ids'][$tag];
+                }
+            }
+        }
+        $this->saveAll($relations);
+        $savedRelations = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ['galaxy_cluster_id' => array_keys($lookupSavedIds)],
+            'fields' => ['id', 'galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid']
+        ]);
+        $relation_tags = [];
+        foreach ($savedRelations as $savedRelation) {
+            $uuid1 = $savedRelation['GalaxyClusterRelation']['galaxy_cluster_uuid'];
+            $uuid2 = $savedRelation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'];
+            if (!empty($relationTagsToSave[$uuid1][$uuid2])) {
+                foreach ($relationTagsToSave[$uuid1][$uuid2] as $tag) {
+                    $relation_tags[] = [$savedRelation['GalaxyClusterRelation']['id'], $tag];
+                }
+            }
+        }
+        if (!empty($relation_tags)) {
+            $db = $this->getDataSource();
+            $fields = array('galaxy_cluster_relation_id', 'tag_id');
+            $db->insertMulti('galaxy_cluster_relation_tags', $fields, $relation_tags);
+        }
+    }
+
     /**
      * Gets a relation then save it.
      *
@@ -381,7 +436,7 @@ class GalaxyClusterRelation extends AppModel
             }
             $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $clusterUuid;
             $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $cluster['GalaxyCluster']['id'];
-            
+
             if (empty($relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'])) {
                 $this->Log->createLogEntry($user, 'captureRelations', 'GalaxyClusterRelation', 0, __('No referenced cluster UUID provided'), __('relation for cluster (%s)', $clusterUuid));
                 $results['failed']++;
@@ -468,7 +523,7 @@ class GalaxyClusterRelation extends AppModel
         }
         return $relations;
     }
-    
+
     /**
      * syncUUIDsAndIDs Adapt IDs of source and target cluster inside the relation based on the provided two UUIDs
      *
