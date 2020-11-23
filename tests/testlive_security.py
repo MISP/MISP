@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
+import os
 import sys
+import json
 import unittest
+from typing import Union
+
 import urllib3  # type: ignore
 import logging
 import uuid
 import warnings
 import requests
+import subprocess
 from lxml.html import fromstring
+from enum import Enum
 
 try:
     from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole
@@ -18,12 +24,20 @@ except ImportError:
     else:
         raise
 
-from keys import url, key  # type: ignore
+# Load access information for env variables
+url = "http://" + os.environ["HOST"]
+key = os.environ["AUTH"]
 
 # TODO?
 urllib3.disable_warnings()
 logging.disable(logging.CRITICAL)
 logger = logging.getLogger('pymisp')
+
+
+class ROLE(Enum):
+    USER = 3
+    ADMIN = 1
+    ORG_ADMIN = 2
 
 
 def check_response(response):
@@ -93,6 +107,25 @@ class MISPSetting:
             raise Exception(result)
 
 
+class MISPComplexSetting:
+    def __init__(self, new_setting: dict):
+        self.new_setting = new_setting
+
+    def __enter__(self):
+        self.original = self.__run("modify", json.dumps(self.new_setting))
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.__run("replace", self.original)
+
+    @staticmethod
+    def __run(command: str, data: str) -> str:
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        r = subprocess.run(["php", dir_path + "/modify_config.php", command, data], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if r.returncode != 0:
+            raise Exception([r.returncode, r.stdout, r.stderr])
+        return r.stdout.decode("utf-8")
+
+
 def send(api: PyMISP, request_type: str, url: str, data=None, check_errors: bool = True) -> dict:
     if data is None:
         data = {}
@@ -101,6 +134,10 @@ def send(api: PyMISP, request_type: str, url: str, data=None, check_errors: bool
     if check_errors:
         check_response(response)
     return response
+
+
+def random() -> str:
+    return str(uuid.uuid4()).split("-")[0]
 
 
 class TestSecurity(unittest.TestCase):
@@ -121,13 +158,13 @@ class TestSecurity(unittest.TestCase):
 
         # Creates an org
         organisation = MISPOrganisation()
-        organisation.name = 'Test Org ' + str(uuid.uuid4())  # make name always unique
+        organisation.name = 'Test Org ' + random()  # make name always unique
         cls.test_org = cls.admin_misp_connector.add_organisation(organisation)
         check_response(cls.test_org)
 
         # Creates org admin
         org_admin = MISPUser()
-        org_admin.email = 'testorgadmin@user' + str(uuid.uuid4()).split("-")[0] + '.local'  # make name always unique
+        org_admin.email = 'testorgadmin@user' + random() + '.local'  # make name always unique
         org_admin.org_id = cls.test_org.id
         org_admin.role_id = 2  # Org admin role
         cls.test_org_admin = cls.admin_misp_connector.add_user(org_admin)
@@ -141,8 +178,9 @@ class TestSecurity(unittest.TestCase):
         # Creates an user
         cls.test_usr_password = str(uuid.uuid4())
         user = MISPUser()
-        user.email = 'testusr@user' + str(uuid.uuid4()).split("-")[0] + '.local'  # make name always unique
+        user.email = 'testusr@user' + random() + '.local'  # make name always unique
         user.org_id = cls.test_org.id
+        user.role_id = 3  # User role
         user.password = cls.test_usr_password
         cls.test_usr = cls.admin_misp_connector.add_user(user)
         check_response(cls.test_usr)
@@ -424,7 +462,7 @@ class TestSecurity(unittest.TestCase):
             # TODO: Delete new key
 
     def test_change_login(self):
-        new_email = 'testusr@user' + str(uuid.uuid4()).split("-")[0] + '.local'
+        new_email = 'testusr@user' + random() + '.local'
 
         logged_in = PyMISP(url, self.test_usr.authkey)
         logged_in.global_pythonify = True
@@ -441,7 +479,7 @@ class TestSecurity(unittest.TestCase):
 
     def test_change_login_disabled(self):
         with MISPSetting(self.admin_misp_connector, "MISP.disable_user_login_change", True):
-            new_email = 'testusr@user' + str(uuid.uuid4()).split("-")[0] + '.local'
+            new_email = 'testusr@user' + random() + '.local'
 
             logged_in = PyMISP(url, self.test_usr.authkey)
             logged_in.global_pythonify = True
@@ -455,7 +493,7 @@ class TestSecurity(unittest.TestCase):
 
     def test_change_login_org_admin(self):
         # Try to change email as org admin
-        new_email = 'testusr@user' + str(uuid.uuid4()).split("-")[0] + '.local'
+        new_email = 'testusr@user' + random() + '.local'
         updated_user = self.org_admin_misp_connector.update_user({'email': new_email}, self.test_usr)
         check_response(updated_user)
 
@@ -470,7 +508,7 @@ class TestSecurity(unittest.TestCase):
     def test_change_login_disabled_org_admin(self):
         with MISPSetting(self.admin_misp_connector, "MISP.disable_user_login_change", True):
             # Try to change email as org admin
-            new_email = 'testusr@user' + str(uuid.uuid4()).split("-")[0] + '.local'
+            new_email = 'testusr@user' + random() + '.local'
             updated_user = self.org_admin_misp_connector.update_user({'email': new_email}, self.test_usr)
             assert_error_response(updated_user)
 
@@ -501,8 +539,9 @@ class TestSecurity(unittest.TestCase):
 
     def test_add_user_by_org_admin(self):
         user = MISPUser()
-        user.email = 'testusr@user' + str(uuid.uuid4()).split("-")[0] + '.local'  # make name always unique
+        user.email = 'testusr@user' + random() + '.local'  # make name always unique
         user.org_id = self.test_org.id
+        user.role_id = 3
         created_user = self.org_admin_misp_connector.add_user(user)
         check_response(created_user)
 
@@ -511,8 +550,9 @@ class TestSecurity(unittest.TestCase):
 
     def test_add_user_by_org_admin_to_different_org(self):
         user = MISPUser()
-        user.email = 'testusr@user' + str(uuid.uuid4()).split("-")[0] + '.local'  # make name always unique
+        user.email = 'testusr@user' + random() + '.local'  # make name always unique
         user.org_id = 1
+        user.role_id = 3
         created_user = self.org_admin_misp_connector.add_user(user)
         check_response(created_user)
 
@@ -525,8 +565,9 @@ class TestSecurity(unittest.TestCase):
     def test_add_user_by_org_admin_disabled(self):
         with MISPSetting(self.admin_misp_connector, "MISP.disable_user_add", True):
             user = MISPUser()
-            user.email = 'testusr@user' + str(uuid.uuid4()).split("-")[0] + '.local'  # make name always unique
+            user.email = 'testusr@user' + random() + '.local'  # make name always unique
             user.org_id = self.test_org.id
+            user.role_id = 3
             created_user = self.org_admin_misp_connector.add_user(user)
             assert_error_response(created_user)
 
@@ -545,11 +586,194 @@ class TestSecurity(unittest.TestCase):
         # Org should be silently keep to correct org
         self.assertEqual(updated_user.org_id, self.test_usr.org_id)
 
+    def test_shibb_existing_user(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            session = requests.Session()
+            session.headers["Email-Tag"] = self.test_usr.email
+            session.headers["Federation-Tag"] = self.test_org.name
+            session.headers["Group-Tag"] = "user"
+
+            session.get(url, allow_redirects=False)
+            r = session.get(url + "/users/view/me.json")
+            r.raise_for_status()
+            json_response = r.json()
+            self.assertEqual(self.test_usr.email, json_response["User"]["email"])
+            self.assertEqual(3, int(json_response["User"]["role_id"]))
+            self.assertEqual(session.headers["Federation-Tag"], json_response["Organisation"]["name"])
+
+    def test_shibb_new_user(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            session = requests.Session()
+            session.headers["Email-Tag"] = "external@user" + random() + ".local"
+            session.headers["Federation-Tag"] = self.test_org.name
+            session.headers["Group-Tag"] = "user"
+
+            session.get(url, allow_redirects=False)
+            r = session.get(url + "/users/view/me.json")
+            r.raise_for_status()
+            json_response = r.json()
+            self.assertEqual(session.headers["Email-Tag"], json_response["User"]["email"])
+            self.assertEqual(3, int(json_response["User"]["role_id"]))
+            self.assertEqual(session.headers["Federation-Tag"], json_response["Organisation"]["name"])
+
+            self.admin_misp_connector.delete_user(json_response["User"]["id"])
+
+    def test_shibb_new_user_multiple_groups(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            session = requests.Session()
+            session.headers["Email-Tag"] = "external@user" + random() + ".local"
+            session.headers["Federation-Tag"] = self.test_org.name
+            session.headers["Group-Tag"] = "user,invalid,admin"
+
+            session.get(url, allow_redirects=False)
+            r = session.get(url + "/users/view/me.json")
+            r.raise_for_status()
+            json_response = r.json()
+            self.assertEqual(session.headers["Email-Tag"], json_response["User"]["email"])
+            self.assertEqual(1, int(json_response["User"]["role_id"]))
+            self.assertEqual(session.headers["Federation-Tag"], json_response["Organisation"]["name"])
+
+            self.admin_misp_connector.delete_user(json_response["User"]["id"])
+
+    def test_shibb_new_user_non_exists_org(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            session = requests.Session()
+            session.headers["Email-Tag"] = "external@user" + random() + ".local"
+            session.headers["Federation-Tag"] = "Non exists org " + random()
+            session.headers["Group-Tag"] = "user"
+
+            session.get(url, allow_redirects=False)
+            r = session.get(url + "/users/view/me.json")
+            r.raise_for_status()
+            json_response = r.json()
+            self.assertEqual(session.headers["Email-Tag"], json_response["User"]["email"])
+            self.assertEqual(3, int(json_response["User"]["role_id"]))
+            self.assertEqual(session.headers["Federation-Tag"], json_response["Organisation"]["name"])
+
+            self.admin_misp_connector.delete_user(json_response["User"]["id"])
+            self.admin_misp_connector.delete_organisation(json_response["User"]["org_id"])
+
+    def test_shibb_new_user_no_org_provided(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            session = requests.Session()
+            session.headers["Email-Tag"] = "external@user" + random() + ".local"
+            session.headers["Group-Tag"] = "user"
+
+            session.get(url, allow_redirects=False)
+            r = session.get(url + "/users/view/me.json")
+            r.raise_for_status()
+            json_response = r.json()
+            self.assertEqual(3, int(json_response["User"]["role_id"]))
+            # Default org is used
+            self.assertEqual(self.test_org.name, json_response["Organisation"]["name"])
+
+            self.admin_misp_connector.delete_user(json_response["User"]["id"])
+
+    def test_shibb_invalid_group(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            session = requests.Session()
+            session.headers["Email-Tag"] = "external@user" + random() + ".local"
+            session.headers["Federation-Tag"] = self.test_org.name
+            session.headers["Group-Tag"] = "invalid"
+
+            session.get(url, allow_redirects=False)
+            r = session.get(url + "/users/view/me.json")
+            if r.status_code != 403:
+                print(r.text)
+                self.fail()
+
+    def test_shibb_invalid_email(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            session = requests.Session()
+            session.headers["Email-Tag"] = "external.user" + random() + ".local"
+            session.headers["Federation-Tag"] = self.test_org.name
+            session.headers["Group-Tag"] = "user"
+
+            session.get(url, allow_redirects=False)
+            r = session.get(url + "/users/view/me.json")
+            if r.status_code != 403:
+                print(r.text)
+                self.fail()
+
+    def test_shibb_change_role(self):
+        org_admin = self.__create_user(self.test_org.id, ROLE.ORG_ADMIN)
+
+        with MISPComplexSetting(self.__default_shibb_config()):
+            session = requests.Session()
+            session.headers["Email-Tag"] = org_admin.email
+            session.headers["Federation-Tag"] = self.test_org.name
+            session.headers["Group-Tag"] = "user"
+
+            session.get(url, allow_redirects=False)
+            r = session.get(url + "/users/view/me.json")
+            r.raise_for_status()
+            json_response = r.json()
+            # Change role back to user
+            self.assertEqual(3, int(json_response["User"]["role_id"]))
+
+        self.admin_misp_connector.delete_user(org_admin)
+
+    def test_shibb_change_org(self):
+        user = self.__create_user(self.test_org.id, ROLE.USER)
+
+        with MISPComplexSetting(self.__default_shibb_config()):
+            session = requests.Session()
+            session.headers["Email-Tag"] = user.email
+            session.headers["Federation-Tag"] = "Non exists org " + random()
+            session.headers["Group-Tag"] = "user"
+
+            session.get(url, allow_redirects=False)
+            r = session.get(url + "/users/view/me.json")
+            r.raise_for_status()
+            json_response = r.json()
+            # Change role back to user
+            self.assertEqual(session.headers["Federation-Tag"], json_response["Organisation"]["name"])
+
+            self.admin_misp_connector.delete_user(user)
+            self.admin_misp_connector.delete_organisation(json_response["User"]["org_id"])
+
+    def __create_user(self, org_id: int = None, role_id: Union[int, ROLE] = None) -> MISPUser:
+        if isinstance(role_id, ROLE):
+            role_id = role_id.value
+
+        user = MISPUser()
+        user.email = 'test@' + random() + '.local'  # make name always unique
+        if org_id:
+            user.org_id = org_id
+        if role_id:
+            user.role_id = role_id
+        user = self.admin_misp_connector.add_user(user)
+        check_response(user)
+        if org_id:
+            self.assertEqual(int(org_id), int(user.org_id))
+        if role_id:
+            self.assertEqual(int(role_id), int(user.role_id))
+        return user
+
     def __create_advanced_authkey(self, user_id: int, data=None):
         return send(self.admin_misp_connector, "POST", f'authKeys/add/{user_id}', data=data)["AuthKey"]
 
     def __delete_advanced_authkey(self, key_id: int):
         return send(self.admin_misp_connector, "POST", f'authKeys/delete/{key_id}')
+
+    def __default_shibb_config(self) -> dict:
+        return {
+            "ApacheShibbAuth": {
+                "DefaultOrg": self.test_org.name,
+                "UseDefaultOrg": False,
+                "MailTag": "HTTP_EMAIL_TAG",
+                "OrgTag": "HTTP_FEDERATION_TAG",
+                "GroupTag": "HTTP_GROUP_TAG",
+                "GroupSeparator": ",",
+                "GroupRoleMatching": {
+                    "admin": 1,
+                    "user": 3,
+                }
+            },
+            "Security":  {
+                "auth": ["ShibbAuth.ApacheShibb"],
+            }
+        }
 
 
 if __name__ == '__main__':
