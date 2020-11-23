@@ -1649,14 +1649,20 @@ class AttributesController extends AppController
 
     private function __searchUI($attributes)
     {
+        if (empty($attributes)) {
+            return [[], []];
+        }
+
         $sightingsData = array();
         $this->Feed = ClassRegistry::init('Feed');
 
         $this->loadModel('Sighting');
         $this->loadModel('AttachmentScan');
         $user = $this->Auth->user();
+        $attributeIds = [];
         foreach ($attributes as $k => $attribute) {
             $attributeId = $attribute['Attribute']['id'];
+            $attributeIds[] = $attributeId;
             if ($this->Attribute->isImage($attribute['Attribute'])) {
                 if (extension_loaded('gd')) {
                     // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
@@ -1683,19 +1689,23 @@ class AttributesController extends AppController
                 $sightingsData,
                 $this->Sighting->attachToEvent($attribute, $user, $attribute, $extraConditions = false)
             );
-            $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeId, false, false, 'attribute');
-            if (!empty($correlations)) {
-                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attributeId];
-            }
         }
+
+        // Fetch correlations in one query
+        $sgIds = $this->Attribute->Event->cacheSgids($user, true);
+        $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, $sgIds, false, 'attribute');
 
         // `attachFeedCorrelations` method expects different attribute format, so we need to transform that, then process
         // and then take information back to original attribute structure.
         $fakeEventArray = [];
         $attributesWithFeedCorrelations = $this->Feed->attachFeedCorrelations(array_column($attributes, 'Attribute'), $user, $fakeEventArray);
-        foreach ($attributesWithFeedCorrelations as $k => $attributeWithFeedCorrelation) {
-            if (isset($attributeWithFeedCorrelation['Feed'])) {
-                $attributes[$k]['Attribute']['Feed'] = $attributeWithFeedCorrelation['Feed'];
+
+        foreach ($attributes as $k => $attribute) {
+            if (isset($attributesWithFeedCorrelations[$k]['Feed'])) {
+                $attributes[$k]['Attribute']['Feed'] = $attributesWithFeedCorrelations[$k]['Feed'];
+            }
+            if (isset($correlations[$attribute['Attribute']['id']])) {
+                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attribute['Attribute']['id']];
             }
         }
 
