@@ -29,6 +29,10 @@
                                 'active' => $context === 'custom',
                                 'url' => sprintf('%s/galaxies/view/%s/context:custom', $baseurl, $galaxy_id),
                                 'text' => __('Custom'),
+                                'badge' => [
+                                    'type' => 'info',
+                                    'text' => $custom_cluster_count
+                                ]
                             ),
                             array(
                                 'active' => $context === 'org',

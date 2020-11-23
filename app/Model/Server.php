@@ -1369,6 +1369,24 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                    'syslog_to_stderr' => array(
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('Write syslog messages also to standard error output.'),
+                        'value' => true,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => true
+                    ),
+                    'syslog_ident' => array(
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('Syslog message identifier.'),
+                        'value' => '',
+                        'errorMessage' => '',
+                        'test' => 'testForEmpty',
+                        'type' => 'string',
+                        'null' => true
+                    ),
                         'do_not_log_authkeys' => array(
                             'level' => 0,
                             'description' => __('If enabled, any authkey will be replaced by asterisks in Audit log.'),
@@ -2334,7 +2352,7 @@ class Server extends AppModel
                         ),
                         'Enrichment_hover_popover_only' => array(
                             'level' => 0,
-                            'description' => __('When enabled, user have to click on magnifier icon to show enrichment'),
+                            'description' => __('When enabled, users have to click on the magnifier icon to show the enrichment'),
                             'value' => false,
                             'errorMessage' => '',
                             'test' => 'testBool',
@@ -4316,7 +4334,7 @@ class Server extends AppModel
         return $setting;
     }
 
-    public function serverSettingsEditValue($user, $setting, $value, $forceSave = false)
+    public function serverSettingsEditValue(array $user, array $setting, $value, $forceSave = false)
     {
         if (isset($setting['beforeHook'])) {
             $beforeResult = call_user_func_array(array($this, $setting['beforeHook']), array($setting['name'], $value));

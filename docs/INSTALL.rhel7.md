@@ -235,13 +235,16 @@ installCoreRHEL () {
   umask 0022
   
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW git config core.filemode false
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
   
   cd $PATH_TO_MISP/app/files/scripts/python-stix
+  $SUDO_WWW git config core.filemode false
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
   # install mixbox to accommodate the new STIX dependencies:
   cd $PATH_TO_MISP/app/files/scripts/mixbox
+  $SUDO_WWW git config core.filemode false
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
   # install STIX2.0 library to support STIX 2.0 export:
@@ -261,6 +264,7 @@ installCoreRHEL () {
   sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
 
   cd $PATH_TO_MISP/app/files/scripts/lief
+  $SUDO_WWW git config core.filemode false
   $SUDO_WWW mkdir build
   cd build
   $SUDO_WWW scl enable devtoolset-7 "bash -c 'cmake3 \

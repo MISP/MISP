@@ -892,13 +892,20 @@ class GalaxyCluster extends AppModel
         return $cluster;
     }
 
-    public function getClusters($names, $user, $postProcess=true)
+    /**
+     * @param array $namesOrIds Cluster tag names or cluster IDs
+     * @param array $user
+     * @param bool $postProcess If true, self::postprocess method will be called.
+     * @param bool $fetchFullCluster
+     * @return array
+     */
+    public function getClusters(array $namesOrIds, array $user, $postProcess = true)
     {
         $conditions = array();
-        if (count(array_filter($names, 'is_numeric')) === count($names)) { // all elements are numeric
-            $conditions[] = array('GalaxyCluster.id' => $names);
+        if (count(array_filter($namesOrIds, 'is_numeric')) === count($namesOrIds)) { // all elements are numeric
+            $conditions[] = array('GalaxyCluster.id' => $namesOrIds);
         } else {
-            $conditions[] = array('LOWER(GalaxyCluster.tag_name)' => array_map('strtolower', $names));
+            $conditions[] = array('LOWER(GalaxyCluster.tag_name)' => array_map('strtolower', $namesOrIds));
         }
         $clusters = $this->fetchGalaxyClusters($user, array(
             'conditions' => $conditions,
@@ -992,11 +999,16 @@ class GalaxyCluster extends AppModel
         if (isset($options['list']) && $options['list']) {
             return $this->find('list', $params);
         }
-        $clusters = array();
         if (isset($options['first']) && $options['first']) {
             $clusters = $this->find('first', $params);
+        } else if (isset($options['count']) && $options['count']) {
+            $clusterCount = $this->find('count', $params);
+            return $clusterCount;
         } else {
             $clusters = $this->find('all', $params);
+        }
+        if (empty($clusters)) {
+            return $clusters;
         }
         $this->Event = ClassRegistry::init('Event');
         $sharingGroupData = $this->Event->__cacheSharingGroupData($user, false);
@@ -1026,7 +1038,7 @@ class GalaxyCluster extends AppModel
                         $targetingClusterRelation['TargetingClusterRelation']['Tag'] = Hash::extract($targetingClusterRelation['GalaxyClusterRelationTag'], '{n}.Tag');
                     }
                     if (!empty($targetingClusterRelation['SharingGroup']['id'])) {
-                        $targetingClusterRelation['TargetingClusterRelation']['SharingGroup'] = $TargetingClusterRelation['SharingGroup'];
+                        $targetingClusterRelation['TargetingClusterRelation']['SharingGroup'] = $targetingClusterRelation['SharingGroup'];
                     }
                     $targetingClusterRelations[$k] = $targetingClusterRelation['TargetingClusterRelation'];
                 }
@@ -1385,17 +1397,19 @@ class GalaxyCluster extends AppModel
     }
 
     /**
+     * @param array $user
      * @param array $events
      * @param bool $replace
+     * @param bool $fetchFullCluster
      * @return array
      */
-    public function attachClustersToEventIndex($user, array $events, $replace = false)
+    public function attachClustersToEventIndex(array $user, array $events, $replace = false, $fetchFullCluster = true)
     {
-        $clusterTagNames = array();
+        $clusterTagNames = [];
         foreach ($events as $event) {
             foreach ($event['EventTag'] as $k2 => $eventTag) {
-                if (substr($eventTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
-                    $clusterTagNames[] = $eventTag['Tag']['name'];
+                if ($eventTag['Tag']['is_galaxy']) {
+                    $clusterTagNames[] = strtolower($eventTag['Tag']['name']);
                 }
             }
         }
@@ -1404,15 +1418,24 @@ class GalaxyCluster extends AppModel
             return $events;
         }
 
-        $clusters = $this->getClusters($clusterTagNames, $user, false);
+        $options = [
+            'conditions' => ['LOWER(GalaxyCluster.tag_name)' => $clusterTagNames],
+        ];
+        if (!$fetchFullCluster) {
+            $options['contain'] = ['Galaxy'];
+        }
+        $clusters = $this->fetchGalaxyClusters($user, $options, $fetchFullCluster);
 
-        $clustersByTagName = array();
+        $clustersByTagName = [];
         foreach ($clusters as $cluster) {
             $clustersByTagName[strtolower($cluster['GalaxyCluster']['tag_name'])] = $cluster;
         }
 
         foreach ($events as $k => $event) {
             foreach ($event['EventTag'] as $k2 => $eventTag) {
+                if (!$eventTag['Tag']['is_galaxy']) {
+                    continue;
+                }
                 $tagName = strtolower($eventTag['Tag']['name']);
                 if (isset($clustersByTagName[$tagName])) {
                     $cluster = $this->postprocess($clustersByTagName[$tagName], $eventTag['Tag']['id']);
@@ -1437,16 +1460,18 @@ class GalaxyCluster extends AppModel
     {
         $cluster = $this->arrangeData($cluster);
 
-        $elements = array();
-        foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) {
-            if (!isset($elements[$element['key']])) {
-                $elements[$element['key']] = array($element['value']);
-            } else {
-                $elements[$element['key']][] = $element['value'];
+        if (isset($cluster['GalaxyCluster']['GalaxyElement'])) {
+            $elements = array();
+            foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) {
+                if (!isset($elements[$element['key']])) {
+                    $elements[$element['key']] = array($element['value']);
+                } else {
+                    $elements[$element['key']][] = $element['value'];
+                }
             }
+            unset($cluster['GalaxyCluster']['GalaxyElement']);
+            $cluster['GalaxyCluster']['meta'] = $elements;
         }
-        unset($cluster['GalaxyCluster']['GalaxyElement']);
-        $cluster['GalaxyCluster']['meta'] = $elements;
 
         if ($tagId) {
             $cluster['GalaxyCluster']['tag_id'] = $tagId;

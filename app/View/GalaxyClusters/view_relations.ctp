@@ -98,10 +98,10 @@
                 <div class="input">
                     <label for="RelationshipType"><?= __('Relationship type') ?></label>
                     <select id="RelationshipType" name="referenced_galaxy_cluster_type">
+                        <option value="<?= __('custom') ?>"><?= __('-- Custom relationship --') ?></option>
                         <?php foreach ($existingRelations as $relation): ?>
                             <option value="<?= h($relation) ?>"><?= h($relation) ?></option>
                         <?php endforeach; ?>
-                        <option value="<?= __('custom') ?>"><?= __('Custom relationship') ?></option>
                         <input id="RelationshipTypeFreetext" type="text"></input>
                     </select>
                 </div>

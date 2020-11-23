@@ -615,7 +615,11 @@ class EventsController extends AppController
                         } else {
                             $terms = $this->Event->distributionLevels;
                         }
-                        $pieces = explode('|', $v);
+                        if (is_array($v)) {
+                            $pieces = $v;
+                        } else {
+                            $pieces = explode('|', $v);
+                        }
                         $test = array();
                         foreach ($pieces as $piece) {
                             if ($filterString != "") {
@@ -781,7 +785,7 @@ class EventsController extends AppController
                         'contain' => array(
                             'Tag' => array(
                                 'conditions' => array('Tag.exportable' => 1),
-                                'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
+                                'fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy')
                             )
                         )
                     ));
@@ -854,7 +858,7 @@ class EventsController extends AppController
             if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
                 $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
             }
-            $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true);
+            $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true, false);
             $this->set('events', $events);
         }
 

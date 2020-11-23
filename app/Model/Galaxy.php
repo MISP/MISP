@@ -71,7 +71,7 @@ class Galaxy extends AppModel
             'recursive' => -1
         ));
         $existingGalaxies = array();
-        foreach ($temp as $k => $v) {
+        foreach ($temp as $v) {
             $existingGalaxies[$v['Galaxy']['uuid']] = $v['Galaxy'];
         }
         foreach ($galaxies as $k => $galaxy) {
@@ -221,7 +221,6 @@ class Galaxy extends AppModel
         $galaxies = $this->__load_galaxies($force);
         $dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters');
         $files = $dir->find('.*\.json');
-        $cluster_packages = array();
         foreach ($files as $file) {
             $file = new File($dir->pwd() . DS . $file);
             $cluster_package = json_decode($file->read(), true);
@@ -239,6 +238,8 @@ class Galaxy extends AppModel
             $db = $this->getDataSource();
             $fields = array('galaxy_cluster_id', 'key', 'value');
             if (!empty($elements)) {
+                $db = $this->getDataSource();
+                $fields = array('galaxy_cluster_id', 'key', 'value');
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
             if (!empty($relations)) {

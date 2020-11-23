@@ -41,6 +41,10 @@
                     'label' => __('Relationship Type'),
                     'placeholder' => __('is-similar'),
                     'type' => 'text',
+                    'picker' => array(
+                        'text' => __('Pick type'),
+                        'function' => 'pickerTypes',
+                    )
                 ),
                 array(
                     'field' => 'tags',
@@ -66,6 +70,8 @@
     $('#GalaxyClusterRelationDistribution').change(function() {
         checkSharingGroup('GalaxyClusterRelation');
     });
+
+    existingRelationTypes = <?= json_encode(array_values($existingRelations)) ?> ;
 
     $(document).ready(function() {
         checkSharingGroup('GalaxyClusterRelation');
@@ -96,6 +102,25 @@
         var target_id = 0;
         var target_type = 'galaxyClusterRelation';
         popoverPopup(this, target_id + '/' + target_type, 'tags', 'selectTaxonomy')
+    }
+    function pickerTypes() {
+        var $select = $('<select id="pickerTypeSelect"/>');
+        existingRelationTypes.forEach(function(type) {
+            $select.append($('<option/>').val(type).text(type))
+        })
+        var html = '<div>' + $select[0].outerHTML + '</div>';
+        var that = this
+        openPopover(this, html, false, 'right', function($popover) {
+            $popover.find('select').chosen({
+                width: '300px',
+            }).on('change', function(evt, param) {
+                addPickedTypes()
+                $(that).popover('hide')
+            });
+        });
+    }
+    function addPickedTypes() {
+        $('#GalaxyClusterRelationReferencedGalaxyClusterType').val($('#pickerTypeSelect').val());
     }
     function setSourceUUIDAfterSelect(selected, additionalData) {
         selectedUUID = additionalData.itemOptions[selected].uuid;
