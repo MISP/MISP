@@ -54,6 +54,11 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mysql, mbstring, json, xml, opcache, readline, redis, gd
 
+      - name: Initialize variables
+        run: |
+          echo "USER=`id -u -n`" >> $GITHUB_ENV
+          echo "HOST=`hostname`" >> $GITHUB_ENV
+
       # Runs a set of commands using the runners shell
       - name: Install deps
         env:
@@ -61,10 +66,9 @@ jobs:
         run: |
               git submodule update --init --recursive
               sudo apt-get -y update
-              sudo apt-get -y install python3 python3-venv virtualenv python3-pip python3-nose python3-redis python3-lxml apache2 curl libapache2-mod-php libfuzzy-dev
+              sudo apt-get -y install python3 python3-venv virtualenv python3-pip python3-nose python3-redis python3-lxml apache2 curl libapache2-mod-php libfuzzy-dev libemail-address-perl libemail-outlook-message-perl
               sudo pip3 install --upgrade pip setuptools requests pyzmq poetry
               sudo pip3 install --upgrade -r requirements.txt
-              USER=`id -u -n`
               sudo chown $USER:www-data $HOME/.composer
               pushd app
               sudo -H -u $USER php composer.phar install --no-progress
@@ -93,7 +97,6 @@ jobs:
               # configure apache virtual hosts
               sudo chmod -R 777 `pwd`/build
               sudo mkdir -p /etc/apache2/sites-available
-              HOST=`hostname`
               sudo cp -f build/github-action-ci-apache /etc/apache2/sites-available/misp.conf
               sudo sed -e "s?%GITHUB_WORKSPACE%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.conf
               sudo sed -e "s?%HOST%?${HOST}?g" --in-place /etc/apache2/sites-available/misp.conf
@@ -124,12 +127,15 @@ jobs:
               # Get authkey
               sudo usermod -a -G www-data $USER
 
-      - name: Configure MISP
+      - name: DB Update
         run: |
-              USER=`id -u -n`
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.osuser" $USER'
               sudo -E su $USER -c 'app/Console/cake Admin runUpdates'
+
+      - name: Configure MISP
+        run: |
               sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
+              echo "AUTH=`cat key.txt`" >> $GITHUB_ENV
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.autoRegenerate" 0'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.timeout" 600'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Session.cookieTimeout" 3600'
@@ -145,29 +151,31 @@ jobs:
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.email" "info@admin.test"'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.homedir" "`pwd`/.gnupg"'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "GnuPG.password" "travistest"'
-              sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
-              sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
-              sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
-              sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
-              sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates 1'
 
       - name: Configure ZMQ
         run: |
-              USER=`id -u -n`
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1"'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""'
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1'
 
+      - name: Update Galaxies
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateGalaxies'
+      - name: Update Taxonomies
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateTaxonomies'
+      - name: Update Warninglists
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateWarningLists'
+      - name: Update Noticelists
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateNoticeLists'
+      - name: Update Object Templates
+        run: sudo -E su $USER -c 'app/Console/cake Admin updateObjectTemplates 1'
+
       - name: Turn MISP live
-        run: |
-              USER=`id -u -n`
-              sudo -E su $USER -c 'app/Console/cake Live 1'
+        run: sudo -E su $USER -c 'app/Console/cake Live 1'
 
       - name: Start workers
         run: |
-              USER=`id -u -n`
               sudo chmod +x app/Console/worker/start.sh
               sudo -E su $USER -c 'app/Console/worker/start.sh'
 
@@ -178,23 +186,20 @@ jobs:
               # Start workers
               # Dirty install python stuff
               virtualenv -p python3 ./venv
-              USER=`id -u -n`
               sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"'
               . ./venv/bin/activate
               pushd cti-python-stix2
               pip install .
               popd
               pushd PyMISP
-              pip install .[fileobjects]
+              pip install .[fileobjects,email]
               popd
               pip install stix zmq redis plyara
               deactivate
 
       - name: Test if apache is working
         run: |
-              HOST=`hostname`
-              curl http://`hostname`
-              AUTH=`cat key.txt`
+              curl http://${HOST}
               sudo chmod -R 777 PyMISP
               pushd PyMISP
               echo 'url = "http://'${HOST}'"' >> tests/keys.py
@@ -208,17 +213,14 @@ jobs:
               ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
               ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
               # Ensure the perms
-              USER=`id -u -n`
               sudo chown -R $USER:www-data `pwd`/app/Config
               sudo chmod -R 777 `pwd`/app/Config
 
-              AUTH=`cat key.txt`
-              HOST=`hostname`
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
               popd
               pushd PyMISP
-              poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport
+              poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
               poetry run python tests/testlive_comprehensive.py
               poetry run python tests/test_mispevent.py
               popd
