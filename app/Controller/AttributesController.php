@@ -67,8 +67,6 @@ class AttributesController extends AppController
         $this->paginate['contain'] = array(
             'Event' => array(
                 'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-                'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
-                'Org' => array('fields' => array('Org.id', 'Org.name'))
             ),
             'AttributeTag' => array('Tag'),
             'Object' => array(
@@ -85,11 +83,19 @@ class AttributesController extends AppController
             }
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
-        list($attributes, $sightingsData) = $this->__searchUI($attributes);
-        $this->set('sightingsData', $sightingsData);
         $orgTable = $this->Attribute->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        foreach ($attributes as &$attribute) {
+            if (isset($orgTable[$attribute['Event']['orgc_id']])) {
+                $attribute['Event']['Orgc'] = [
+                    'id' => $attribute['Event']['orgc_id'],
+                    'name' => $orgTable[$attribute['Event']['orgc_id']],
+                ];
+            }
+        }
+        list($attributes, $sightingsData) = $this->__searchUI($attributes);
+        $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', $orgTable);
         $this->set('shortDist', $this->Attribute->shortDist);
         $this->set('attributes', $attributes);
@@ -1576,8 +1582,6 @@ class AttributesController extends AppController
             $this->paginate['contain'] = array(
                 'Event' => array(
                     'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-                    'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
-                    'Org' => array('fields' => array('Org.id', 'Org.name'))
                 ),
                 'AttributeTag' => array('Tag'),
                 'Object' => array(
@@ -1586,12 +1590,31 @@ class AttributesController extends AppController
                 'SharingGroup' => ['fields' => ['SharingGroup.name']],
             );
             $attributes = $this->paginate();
-            if (!$this->_isRest()) {
-                list($attributes, $sightingsData) = $this->__searchUI($attributes);
-                $this->set('sightingsData', $sightingsData);
-            } else {
+
+            $orgTable = $this->Attribute->Event->Orgc->find('list', array(
+                'fields' => ['Orgc.id', 'Orgc.name'],
+            ));
+            foreach ($attributes as &$attribute) {
+                if (isset($orgTable[$attribute['Event']['orgc_id']])) {
+                    $attribute['Event']['Orgc'] = [
+                        'id' => $attribute['Event']['orgc_id'],
+                        'name' => $orgTable[$attribute['Event']['orgc_id']],
+                    ];
+                }
+                if (isset($orgTable[$attribute['Event']['org_id']])) {
+                    $attribute['Event']['Org'] = [
+                        'id' => $attribute['Event']['org_id'],
+                        'name' => $orgTable[$attribute['Event']['org_id']],
+                    ];
+                }
+            }
+            if ($this->_isRest()) {
                 return $this->RestResponse->viewData($attributes, $this->response->type());
             }
+
+            list($attributes, $sightingsData) = $this->__searchUI($attributes);
+            $this->set('sightingsData', $sightingsData);
+
             if (isset($filters['tags']) && !empty($filters['tags'])) {
                 // if the tag is passed by ID - show its name in the view
                 $this->loadModel('Tag');
@@ -1611,6 +1634,7 @@ class AttributesController extends AppController
                     }
                 }
             }
+            $this->set('orgTable', $orgTable);
             $this->set('filters', $filters);
             $this->set('attributes', $attributes);
             $this->set('isSearch', 1);
@@ -1625,14 +1649,20 @@ class AttributesController extends AppController
 
     private function __searchUI($attributes)
     {
+        if (empty($attributes)) {
+            return [[], []];
+        }
+
         $sightingsData = array();
         $this->Feed = ClassRegistry::init('Feed');
 
         $this->loadModel('Sighting');
         $this->loadModel('AttachmentScan');
         $user = $this->Auth->user();
+        $attributeIds = [];
         foreach ($attributes as $k => $attribute) {
             $attributeId = $attribute['Attribute']['id'];
+            $attributeIds[] = $attributeId;
             if ($this->Attribute->isImage($attribute['Attribute'])) {
                 if (extension_loaded('gd')) {
                     // if extension is loaded, the data is not passed to the view because it is asynchronously fetched
@@ -1659,15 +1689,26 @@ class AttributesController extends AppController
                 $sightingsData,
                 $this->Sighting->attachToEvent($attribute, $user, $attribute, $extraConditions = false)
             );
-            $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeId, false, false, 'attribute');
-            if (!empty($correlations)) {
-                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attributeId];
+        }
+
+        // Fetch correlations in one query
+        $sgIds = $this->Attribute->Event->cacheSgids($user, true);
+        $correlations = $this->Attribute->Event->getRelatedAttributes($user, $attributeIds, $sgIds, false, 'attribute');
+
+        // `attachFeedCorrelations` method expects different attribute format, so we need to transform that, then process
+        // and then take information back to original attribute structure.
+        $fakeEventArray = [];
+        $attributesWithFeedCorrelations = $this->Feed->attachFeedCorrelations(array_column($attributes, 'Attribute'), $user, $fakeEventArray);
+
+        foreach ($attributes as $k => $attribute) {
+            if (isset($attributesWithFeedCorrelations[$k]['Feed'])) {
+                $attributes[$k]['Attribute']['Feed'] = $attributesWithFeedCorrelations[$k]['Feed'];
             }
-            $temp = $this->Feed->attachFeedCorrelations(array($attributes[$k]['Attribute']), $user, $attributes[$k]['Event']);
-            if (!empty($temp)) {
-                $attributes[$k]['Attribute'] = $temp[0];
+            if (isset($correlations[$attribute['Attribute']['id']])) {
+                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attribute['Attribute']['id']];
             }
         }
+
         $sightingsData = $this->Attribute->Event->getSightingData(array('Sighting' => $sightingsData));
         return array($attributes, $sightingsData);
     }

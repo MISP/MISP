@@ -966,7 +966,7 @@ class Event extends AppModel
         }
 
         $conditions = $this->createEventConditions($user);
-        $conditions['AND']['Event.id'] = $eventIds;
+        $conditions['AND']['Event.id'] = array_unique($eventIds);
         $events = $this->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
