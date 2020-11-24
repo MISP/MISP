@@ -14,9 +14,11 @@ class GalaxyElementsController extends AppController
             )
     );
 
-    public function index($id)
+    public function index($clusterId)
     {
-        $this->paginate['conditions'] = array('GalaxyElement.galaxy_cluster_id' => $id);
+        $aclConditions = $this->GalaxyElement->buildClusterConditions($this->Auth->user(), $clusterId);
+        $this->paginate['conditions'] = [$aclConditions];
+        $this->paginate['contain'] = ['GalaxyCluster' => ['fields' => ['id', 'distribution', 'org_id']]];
         $clusters = $this->paginate();
         $this->set('list', $clusters);
         if ($this->request->is('ajax')) {
