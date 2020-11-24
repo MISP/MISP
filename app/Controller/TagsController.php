@@ -517,7 +517,7 @@ class TagsController extends AppController
         }
         $attribute = $attributes[0];
         // Remove galaxy tags
-        $attribute = $this->Tag->EventTag->Event->massageTags($attribute, 'Attribute', false, true);
+        $attribute = $this->Tag->EventTag->Event->massageTags($this->Auth->user(), $attribute, 'Attribute', false, true);
         $attributeTags = $attribute['AttributeTag'];
 
         $this->set('event', ['Event' => $attribute['Event']]);

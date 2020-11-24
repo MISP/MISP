@@ -148,12 +148,14 @@ class GalaxyCluster extends AppModel
     {
         // Update all relations IDs that are unknown but saved
         parent::afterSave($created, $options);
-        $cluster = $this->data[$this->alias];
-        $cluster = $this->fetchAndSetUUID($cluster);
-        $this->GalaxyClusterRelation->updateAll(
-            array('GalaxyClusterRelation.referenced_galaxy_cluster_id' => $cluster['id']),
-            array('GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $cluster['uuid'])
-        );
+        if (empty($this->bulkEntry)) {
+            $cluster = $this->data[$this->alias];
+            $cluster = $this->fetchAndSetUUID($cluster);
+            $this->GalaxyClusterRelation->updateAll(
+                array('GalaxyClusterRelation.referenced_galaxy_cluster_id' => $cluster['id']),
+                array('GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $cluster['uuid'])
+            );
+        }
     }
 
     public function afterDelete()
@@ -181,7 +183,7 @@ class GalaxyCluster extends AppModel
             $this->deletedClusterUUID = null;
         }
     }
-    
+
     /**
      * arrangeData Move linked data into the cluster model key
      *
@@ -197,6 +199,24 @@ class GalaxyCluster extends AppModel
             }
         }
         return $cluster;
+    }
+
+    public function generateMissingRelations(): void
+    {
+        $missingRelations = $this->GalaxyClusterRelation->find('list', [
+            'conditions' => ['referenced_galaxy_cluster_id' => 0],
+            'fields' => ['referenced_galaxy_cluster_uuid', 'id']
+        ]);
+        $ids = $this->find('list', [
+            'conditions' => ['uuid' => array_keys($missingRelations)],
+            'fields' => ['uuid', 'id']
+        ]);
+        foreach ($ids as $uuid => $id) {
+            $this->GalaxyClusterRelation->updateAll(
+                ['referenced_galaxy_cluster_id' => $id],
+                ['referenced_galaxy_cluster_uuid' => $uuid]
+            );
+        }
     }
 
     public function fetchAndSetUUID($cluster)
@@ -412,7 +432,7 @@ class GalaxyCluster extends AppModel
         }
         return $errors;
     }
-    
+
     /**
      * publishRouter
      *
@@ -495,7 +515,7 @@ class GalaxyCluster extends AppModel
         }
         return $this->saveField('published', False);
     }
-    
+
     /**
      * deleteCluster Delete the cluster. Also creates an entry in the cluster blocklist when hard-deleting
      *
@@ -1083,7 +1103,7 @@ class GalaxyCluster extends AppModel
                 $exportTool->additional_params
             );
         }
-        
+
         $tmpfile = tmpfile();
         fwrite($tmpfile, $exportTool->header($exportToolParams));
         $loop = false;
@@ -1214,7 +1234,7 @@ class GalaxyCluster extends AppModel
         }
         return $conditions;
     }
-    
+
     /**
      * getClusterUUIDsFromAttachedTags Extract UUIDs from clusters contained in the provided event
      *
@@ -1272,7 +1292,7 @@ class GalaxyCluster extends AppModel
         $clusterUUIDs = array_unique($clusterUUIDs);
         return $clusterUUIDs;
     }
-    
+
     /**
      * fetchClusterById Simple ACL-aware method to fetch a cluster by Id or UUID
      *
@@ -1308,7 +1328,7 @@ class GalaxyCluster extends AppModel
         return $cluster;
     }
 
-    
+
     /**
      * fetchIfAuthorized Fetches a cluster and checks if the user has the authorization to perform the requested operation
      *
@@ -1536,7 +1556,7 @@ class GalaxyCluster extends AppModel
         $clusters = $this->fetchGalaxyClusters($user, $options, $full=false);
         return $clusters;
     }
-    
+
     /**
      * @return string|bool The result of the upload. True if success, a string otherwise
      */
@@ -1613,7 +1633,7 @@ class GalaxyCluster extends AppModel
         $response = $HttpSocket->post($uri, $data, $request);
         return $this->__handleRestfulGalaxyClusterToServerResponse($response, $newLocation, $newTextBody);
     }
-    
+
     /**
      * __prepareForPushToServer Check distribution and alter the cluster for sync
      *
@@ -1646,7 +1666,7 @@ class GalaxyCluster extends AppModel
         }
         return $cluster;
     }
-    
+
     /**
      * __updateClusterForSync Cleanup the cluster and adapt data for sync
      *
@@ -1805,7 +1825,7 @@ class GalaxyCluster extends AppModel
         }
         return $error;
     }
-    
+
     /**
      * pullGalaxyClusters
      *
@@ -1838,7 +1858,7 @@ class GalaxyCluster extends AppModel
         }
         return count($successes);
     }
-    
+
     /**
      * getClusterIdListBasedOnPullTechnique Collect the list of remote cluster IDs to be pulled based on the technique
      *
