@@ -134,10 +134,10 @@ installCore () {
   debug "Installing ${LBLUE}MISP${NC} core"
   # Download MISP using git in the /var/www/ directory.
   sudo mkdir ${PATH_TO_MISP}
-  sudo chown $WWW_USER:$WWW_USER ${PATH_TO_MISP}
+  sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
   cd ${PATH_TO_MISP}
-  $SUDO_WWW git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}
-  $SUDO_WWW git submodule update --init --recursive
+  ${SUDO_WWW} git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}
+  ${SUDO_WWW} git submodule update --progress --init --recursive
   # Make git ignore filesystem permission differences for submodules
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
@@ -249,7 +249,7 @@ permissions () {
   sudo chmod -R 750 ${PATH_TO_MISP}
   sudo chmod -R g+ws ${PATH_TO_MISP}/app/tmp
   sudo chmod -R g+ws ${PATH_TO_MISP}/app/files
-  sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+  sudo chmod -R g+ws ${PATH_TO_MISP}/app/files/scripts/tmp
 }
 # <snippet-end 2_permissions.sh>
 ```
@@ -265,7 +265,7 @@ prepareDB () {
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     debug "Setting up database"
 
-    # FIXME: If user 'misp' exists, and has a different password, the below WILL fail.
+    # FIXME: If user 'misp' exists, and has a different password, the below WILL fail. Partially fixed with the Env-Var check in the beginning. (Need to implement pre-flight checks to exit gracefully if not set)
     # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
     if [[ "${PACKER}" == "1" ]]; then
       pw="Password1234"
@@ -273,10 +273,18 @@ prepareDB () {
       pw=${MISP_PASSWORD}
     fi
 
+    if [[ ! -z ${INSTALL_USER} ]]; then
+      SUDO_EXPECT="sudo mysql_secure_installation"
+      echo "Making sure sudo session is buffered"
+      sudo ls -la /tmp > /dev/null 2> /dev/null
+    else
+      SUDO_EXPECT="sudo -k mysql_secure_installation"
+    fi
+
     expect -f - <<-EOF
       set timeout 10
 
-      spawn sudo -k mysql_secure_installation
+      spawn ${SUDO_EXPECT}
       expect "*?assword*"
       send -- "${pw}\r"
       expect "Enter current password for root (enter for none):"
@@ -423,10 +431,10 @@ logRotation () {
 configMISP () {
   debug "Generating ${LBLUE}MISP${NC} config files"
   # There are 4 sample configuration files in ${PATH_TO_MISP}/app/Config that need to be copied
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
-  $SUDO_WWW cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
+  ${SUDO_WWW} cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
 
   echo "<?php
   class DATABASE_CONFIG {
@@ -443,7 +451,7 @@ configMISP () {
                   'prefix' => '',
                   'encoding' => 'utf8',
           );
-  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
+  }" | ${SUDO_WWW} tee ${PATH_TO_MISP}/app/Config/database.php
 
   # Important! Change the salt key in ${PATH_TO_MISP}/app/Config/config.php
   # The salt key must be a string at least 32 bytes long.
@@ -452,7 +460,7 @@ configMISP () {
   # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
   # and make sure the file permissions are still OK
-  sudo chown -R $WWW_USER:$WWW_USER ${PATH_TO_MISP}/app/Config
+  sudo chown -R ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}/app/Config
   sudo chmod -R 750 ${PATH_TO_MISP}/app/Config
 }
 # <snippet-end 2_configMISP.sh>
@@ -472,7 +480,7 @@ configMISP () {
 backgroundWorkers () {
   debug "Setting up background workers"
   # To make the background workers start on boot
-  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+  sudo chmod +x ${PATH_TO_MISP}/app/Console/worker/start.sh
 
   if [ ! -e /etc/rc.local ]
   then
@@ -524,7 +532,7 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 -----------------
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 ```bash
-$SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
+${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
 #### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
