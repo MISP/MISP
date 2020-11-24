@@ -1396,6 +1396,24 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                        'disable_browser_cache' => array(
+                            'level' => 0,
+                            'description' => __('If enabled, HTTP headers that block browser cache will be send. Static files (like images or JavaScripts) will still be cached, but not generated pages.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true,
+                        ),
+                        'check_sec_fetch_site_header' => [
+                            'level' => 0,
+                            'description' => __('If enabled, any POST, PUT or AJAX request will be allow just when Sec-Fetch-Site header is not defined or contains "same-origin".'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true,
+                        ],
                         'email_otp_enabled' => array(
                                 'level'=> 2,
                                 'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
