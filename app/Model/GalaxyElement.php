@@ -95,4 +95,37 @@ class GalaxyElement extends AppModel
         }
         $this->saveMany($tempElements);
     }
+
+    public function buildACLConditions($user)
+    {
+        $conditions = [];
+        if (!$user['Role']['perm_site_admin']) {
+            $conditions = $this->GalaxyCluster->buildConditions($user);
+        }
+        return $conditions;
+    }
+
+    public function buildClusterConditions($user, $clusterId)
+    {
+        return [
+            $this->buildACLConditions($user),
+            'GalaxyCluster.id' => $clusterId
+        ];
+    }
+
+    public function fetchElements(array $user, $clusterId)
+    {
+        $params = array(
+            'conditions' => $this->buildClusterConditions($user, $clusterId),
+            'contain' => ['GalaxyCluster' => ['fields' => ['id', 'distribution', 'org_id']]],
+            'recursive' => -1
+        );
+        $elements = $this->find('all', $params);
+        foreach ($elements as $i => $element) {
+            $elements[$i] = $elements[$i]['GalaxyElement'];
+            unset($elements[$i]['GalaxyCluster']);
+            unset($elements[$i]['GalaxyElement']);
+        }
+        return $elements;
+    }
 }
