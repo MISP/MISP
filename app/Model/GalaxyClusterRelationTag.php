@@ -42,7 +42,7 @@ class GalaxyClusterRelationTag extends AppModel
     {
         $this->delete($id);
     }
-    
+
     /**
      * attachTags
      *
