@@ -220,7 +220,7 @@ jobs:
               ./curl_tests_GH.sh $AUTH $HOST
               popd
               pushd PyMISP
-              poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport
+              poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
               poetry run python tests/testlive_comprehensive.py
               poetry run python tests/test_mispevent.py
               popd
