@@ -653,6 +653,34 @@ class TestSecurity(unittest.TestCase):
             self.admin_misp_connector.delete_user(json_response["User"]["id"])
             self.admin_misp_connector.delete_organisation(json_response["User"]["org_id"])
 
+    def test_shibb_new_user_org_uuid(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            r = self.__shibb_login({
+                "Email-Tag": "external@user" + random() + ".local",
+                "Federation-Tag": self.test_org.uuid,
+                "Group-Tag": "user",
+            })
+
+            r.raise_for_status()
+            json_response = r.json()
+            self.assertEqual(r.request.headers["Email-Tag"], json_response["User"]["email"])
+            self.assertEqual(3, int(json_response["User"]["role_id"]))
+            self.assertEqual(self.test_org.name, json_response["Organisation"]["name"])
+
+            self.admin_misp_connector.delete_user(json_response["User"]["id"])
+            self.admin_misp_connector.delete_organisation(json_response["User"]["org_id"])
+
+    def test_shibb_new_user_non_exists_org_uuid(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            r = self.__shibb_login({
+                "Email-Tag": "external@user" + random() + ".local",
+                "Federation-Tag": str(uuid.uuid4()),
+                "Group-Tag": "user",
+            })
+            if r.status_code != 403:
+                print(r.text)
+                self.fail()
+
     def test_shibb_new_user_no_org_provided(self):
         with MISPComplexSetting(self.__default_shibb_config()):
             session = requests.Session()
@@ -731,6 +759,16 @@ class TestSecurity(unittest.TestCase):
 
             self.admin_misp_connector.delete_user(user)
             self.admin_misp_connector.delete_organisation(json_response["User"]["org_id"])
+
+    def __shibb_login(self, headers: dict):
+        session = requests.Session()
+        session.headers.update(headers)
+
+        r = session.get(url, allow_redirects=False)
+        if 500 <= r.status_code < 600:
+            raise Exception(r)
+
+        return session.get(url + "/users/view/me.json")
 
     def __create_user(self, org_id: int = None, role_id: Union[int, ROLE] = None) -> MISPUser:
         if isinstance(role_id, ROLE):

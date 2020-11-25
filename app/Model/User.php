@@ -1364,6 +1364,28 @@ class User extends AppModel
     }
 
     /**
+     * Update field in user model and also set `date_modified`
+     *
+     * @param array $user
+     * @param string $name
+     * @param mixed $value
+     * @throws Exception
+     */
+    public function updateField(array $user, $name, $value)
+    {
+        if (!isset($user['id'])) {
+            throw new InvalidArgumentException("Invalid user object provided.");
+        }
+        $success = $this->save([
+            'id' => $user['id'],
+            $name => $value,
+        ], true, ['id', $name, 'date_modified']);
+        if (!$success) {
+            throw new RuntimeException("Could not save field `$name` with value `$value` for user `{$user['id']}`.");
+        }
+    }
+
+    /**
      * Initialize GPG. Returns `null` if initialization failed.
      *
      * @return null|CryptGpgExtended
