@@ -843,17 +843,17 @@ class UsersController extends AppController
     {
         $this->set('currentOrg', $this->Auth->user('org_id'));
         $this->User->id = $id;
-        if (!$this->User->exists()) {
-            throw new NotFoundException(__('Invalid user'));
-        }
         $params = array();
         $allowedRole = '';
         $userToEdit = $this->User->find('first', array(
-                'conditions' => array('User.id' => $id),
-                'recursive' => -1,
-                'fields' => array('User.id', 'User.role_id', 'User.email', 'User.org_id', 'Role.perm_site_admin'),
-                'contain' => array('Role')
+            'conditions' => array('User.id' => $id),
+            'recursive' => -1,
+            'fields' => array('User.id', 'User.role_id', 'User.email', 'User.org_id', 'Role.perm_site_admin'),
+            'contain' => array('Role')
         ));
+        if (empty($userToEdit)) {
+            throw new NotFoundException(__('Invalid user'));
+        }
         if (!$this->_isSiteAdmin()) {
             // Org admins should be able to select the role that is already assigned to an org user when editing them.
             // What happened previously:
@@ -971,7 +971,7 @@ class UsersController extends AppController
                 if (!$this->_isRest()) {
                     $fields[] = 'role_id';
                 }
-                if (!$this->_isSiteAdmin()) {
+                if (!$this->_isSiteAdmin() && isset($this->request->data['User']['role_id'])) {
                     $this->loadModel('Role');
                     $this->Role->recursive = -1;
                     $chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
@@ -979,7 +979,7 @@ class UsersController extends AppController
                         throw new Exception('You are not authorised to assign that role to a user.');
                     }
                 }
-                if ($this->User->save($this->request->data, true, $fields)) {
+                if (!empty($fields) && $this->User->save($this->request->data, true, $fields)) {
                     // newValues to array
                     $fieldsNewValues = array();
                     foreach ($fields as $field) {

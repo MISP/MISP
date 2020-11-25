@@ -212,9 +212,15 @@ jobs:
               ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ --exclude app/Lib/random_compat/ -e php,ctp app/
               ./app/Vendor/bin/phpunit app/Test/ComplexTypeToolTest.php
               ./app/Vendor/bin/phpunit app/Test/JSONConverterToolTest.php
-              # Ensure the perms
+
+              # Ensure the perms of config files
               sudo chown -R $USER:www-data `pwd`/app/Config
               sudo chmod -R 777 `pwd`/app/Config
+              sudo -E su $USER -c 'app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1'
+              sudo chown -R $USER:www-data `pwd`/app/Config
+              sudo chmod -R 777 `pwd`/app/Config
+
+              python3 tests/testlive_security.py
 
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
@@ -229,3 +235,8 @@ jobs:
               poetry run python ./create_massive_dummy_events.py -l 5 -a 30
               popd
               python3 tools/misp-feed/validate.py
+
+      - name: Logs
+        if: ${{ always() }}
+        run: |
+              tail -n +1 `pwd`/app/tmp/logs/*
