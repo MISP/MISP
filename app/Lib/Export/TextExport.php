@@ -3,21 +3,21 @@
 class TextExport
 {
 	public $additional_params = array(
-		'flatten' => 1,
-		'group' => 'Attribute.value'
+		'flatten' => 1
 	);
+
+    private $__resultSet = [];
 
 	public function handler($data, $options = array())
 	{
 		if ($options['scope'] === 'Attribute') {
-			return $data['Attribute']['value'];
+			$this->__resultSet[$data['Attribute']['value']] = true;
 		}
 		if ($options['scope'] === 'Event') {
 			$result = array();
 			foreach ($data['Attribute'] as $attribute) {
-				$result[] = $attribute['value'];
+				$this->__resultSet[$attribute['value']] = true;
 			}
-			return implode($this->separator(), $result);
 		}
 		return '';
 	}
@@ -29,11 +29,11 @@ class TextExport
 
 	public function footer()
 	{
-		return "\n";
+        return implode("\n", array_keys($this->__resultSet)) . "\n";
 	}
 
 	public function separator()
 	{
-		return "\n";
+		return '';
 	}
 }
