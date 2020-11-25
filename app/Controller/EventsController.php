@@ -1535,7 +1535,7 @@ class EventsController extends AppController
         }
 
         if ($this->_isRest()) {
-            $conditions['includeAttachments'] = true;
+            $conditions['includeAttachments'] = isset($this->params['named']['includeAttachments']) ? $this->params['named']['includeAttachments'] : true;
         } else {
             $conditions['includeAllTags'] = true;
             $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
