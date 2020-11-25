@@ -134,6 +134,15 @@ class AppController extends Controller
                 $this->_stop();
             }
         }
+        if (Configure::read('Security.check_sec_fetch_site_header')) {
+            $secFetchSite = $this->request->header('Sec-Fetch-Site');
+            if ($secFetchSite !== false && $secFetchSite !== 'same-origin' && ($this->request->is('post') || $this->request->is('put') || $this->request->is('ajax'))) {
+                throw new MethodNotAllowedException("POST, PUT and AJAX requests are allowed just from same origin.");
+            }
+        }
+        if (Configure::read('Security.disable_browser_cache')) {
+            $this->response->disableCache();
+        }
         $this->response->header('X-XSS-Protection', '1; mode=block');
 
         if (!empty($this->params['named']['sql'])) {

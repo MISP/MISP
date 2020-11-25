@@ -279,8 +279,10 @@ class Warninglist extends AppModel
             return false;
         }
 
-        if (method_exists($redis, 'unlink')) {
-            // Delete attributes cache non blocking way if available
+        // Unlink is non blocking way how to delete keys from Redis, but it must be supported by PHP extension and
+        // Redis itself
+        $unlinkSupported = method_exists($redis, 'unlink') && $redis->unlink(null) !== false;
+        if ($unlinkSupported) {
             $redis->unlink($redis->keys('misp:wlc:*'));
         } else {
             $redis->del($redis->keys('misp:wlc:*'));

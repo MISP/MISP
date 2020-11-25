@@ -209,7 +209,7 @@ class User extends AppModel
         ),
         'Post',
         'UserSetting',
-        'AuthKey'
+        // 'AuthKey' - readd once the initial update storm is over
     );
 
     public $actsAs = array(
@@ -222,6 +222,21 @@ class User extends AppModel
         'Trim',
         'Containable'
     );
+
+    public function __construct($id = false, $table = null, $ds = null) {
+        parent::__construct();
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $db_version = $this->AdminSetting->find('first', [
+            'recursive' => -1,
+            'conditions' => ['setting' => 'db_version'],
+            'fields' => ['value']
+        ]);
+        if ($db_version['AdminSetting']['value'] >= 62) {
+            $this->bindModel([
+                'hasMany' => ['AuthKey']
+            ]);
+        }
+    }
 
     /** @var CryptGpgExtended|null|false */
     private $gpg;

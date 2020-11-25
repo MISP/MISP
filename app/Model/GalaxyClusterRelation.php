@@ -364,7 +364,7 @@ class GalaxyClusterRelation extends AppModel
         return $errors;
     }
 
-    public function bulkSaveRelations(array $relations): void
+    public function bulkSaveRelations(array $relations)
     {
         if (!isset($this->bulkCache)) {
             $this->bulkCache = [
