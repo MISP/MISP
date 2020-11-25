@@ -95,9 +95,6 @@ class GpgTool
             throw new InvalidArgumentException("Valid CryptGpgExtended instance required.");
         }
         $fetchedKeyInfo = $this->gpg->keyInfo($keyData);
-        if (empty($fetchedKeyInfo)) {
-            throw new Exception("No key found");
-        }
         if (count($fetchedKeyInfo) !== 1) {
             throw new Exception("Multiple keys found");
         }
