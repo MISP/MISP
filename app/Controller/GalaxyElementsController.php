@@ -26,4 +26,15 @@ class GalaxyElementsController extends AppController
             $this->render('ajax/index');
         }
     }
+
+    public function indexTree($clusterId)
+    {
+        $elements = $this->GalaxyElement->fetchElements($this->Auth->user(), $clusterId);
+        $keyedValue = [];
+        foreach ($elements as $i => $element) {
+            $keyedValue[$element['key']][] = $element['value'];
+        }
+        $expanded = Hash::expand($keyedValue);
+        return $this->RestResponse->viewData($expanded);
+    }
 }

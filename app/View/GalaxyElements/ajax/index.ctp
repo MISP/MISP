@@ -1,4 +1,6 @@
 <div class="pagination">
+    <!-- // CONVERT IT INTO generic index
+    // Add panel (index & tree view for key.with.dotted.path) -->
     <ul>
     <?php
         $this->Paginator->options(array(
