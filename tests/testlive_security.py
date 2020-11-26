@@ -778,7 +778,45 @@ class TestSecurity(unittest.TestCase):
             self.admin_misp_connector.delete_user(user)
             self.admin_misp_connector.delete_organisation(json_response["User"]["org_id"])
 
-    def __shibb_login(self, headers: dict):
+    def test_shibb_form_login(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            # Form login should still works when no header provided
+            self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
+
+    def test_shibb_api_login(self):
+        with MISPComplexSetting(self.__default_shibb_config()):
+            PyMISP(url, self.test_usr.authkey)
+
+    def test_shibb_enforced_existing_user(self):
+        config = self.__default_shibb_config()
+        config["Security"]["auth_enforced"] = True
+        with MISPComplexSetting(config):
+            r = self.__shibb_login({
+                "Email-Tag": self.test_usr.email,
+                "Federation-Tag": self.test_org.name,
+                "Group-Tag": "user",
+            })
+            r.raise_for_status()
+            json_response = r.json()
+            self.assertEqual(self.test_usr.email, json_response["User"]["email"])
+            self.assertEqual(3, int(json_response["User"]["role_id"]))
+            self.assertEqual(self.test_org.name, json_response["Organisation"]["name"])
+
+    def test_shibb_enforced_form_login(self):
+        config = self.__default_shibb_config()
+        config["Security"]["auth_enforced"] = True
+        with MISPComplexSetting(config):
+            # Form login should not work when shibb is enforced, because form doesn't exists
+            with self.assertRaises(IndexError):
+                login(url, self.test_usr.email, self.test_usr_password)
+
+    def test_shibb_enforced_api_login(self):
+        config = self.__default_shibb_config()
+        config["Security"]["auth_enforced"] = True
+        with MISPComplexSetting(config):
+            PyMISP(url, self.test_usr.authkey)
+
+    def __shibb_login(self, headers: dict) -> requests.Response:
         session = requests.Session()
         session.headers.update(headers)
 
@@ -786,7 +824,11 @@ class TestSecurity(unittest.TestCase):
         if 500 <= r.status_code < 600:
             raise Exception(r)
 
-        return session.get(url + "/users/view/me.json")
+        r = session.get(url + "/users/view/me.json")
+        if 500 <= r.status_code < 600:
+            raise Exception(r)
+
+        return r
 
     def __create_user(self, org_id: int = None, role_id: Union[int, ROLE] = None) -> MISPUser:
         if isinstance(role_id, ROLE):

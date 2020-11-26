@@ -1343,6 +1343,14 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                    'auth_enforced' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('This optional can be enabled if external auth provider is used and when set to true, it will disable default form authentication.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                    ],
                         'rest_client_enable_arbitrary_urls' => array(
                             'level' => 0,
                             'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via the rest client. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable.'),

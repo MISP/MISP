@@ -32,6 +32,7 @@
                 </div>
         <?php
             endif;
+            if ($formLoginEnabled):
             echo $this->Form->create('User');
         ?>
         <legend><?php echo __('Login');?></legend>
@@ -52,6 +53,7 @@
             <?= $this->Form->button(__('Login'), array('class' => 'btn btn-primary')); ?>
         <?php
             echo $this->Form->end();
+            endif;
             if (Configure::read('ApacheShibbAuth') == true) {
                 echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
             }
@@ -65,7 +67,7 @@
 </div>
 
 <script>
-$(document).ready(function() {
+$(function() {
     $('#UserLoginForm').submit(function(event) {
         event.preventDefault()
         submitLoginForm()
