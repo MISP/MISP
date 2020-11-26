@@ -1,6 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property SharingGroupOrg $SharingGroupOrg
+ * @property SharingGroupServer $SharingGroupServer
+ * @property Organisation $Organisation
+ */
 class SharingGroup extends AppModel
 {
     public $actsAs = array(
@@ -53,7 +58,6 @@ class SharingGroup extends AppModel
         )
     );
 
-    private $__sgoCache = array();
     private $__sgAuthorisationCache = array(
         'save' => array(),
         'access' => array()
@@ -114,12 +118,22 @@ class SharingGroup extends AppModel
         return $sgs;
     }
 
-    // returns a list of all sharing groups that the user is allowed to see
-    // scope can be:
-    // full: Entire SG object with all organisations and servers attached
-    // name: array in ID => name key => value format
-    // false: array with all IDs
-    public function fetchAllAuthorised($user, $scope = false, $active = false, $id = false)
+    /**
+     * Returns a list of all sharing groups that the user is allowed to see.
+     * Scope can be:
+     *  - full: Entire SG object with all organisations and servers attached
+     *  - simplified: Just imporant fields from SG, organisations and servers
+     *  - name: array in ID => name key => value format
+     *  - uuid
+     *  - false: array with all IDs
+     *
+     * @param array $user
+     * @param string|false $scope
+     * @param bool $active
+     * @param int|false $id
+     * @return array
+     */
+    public function fetchAllAuthorised(array $user, $scope = false, $active = false, $id = false)
     {
         $conditions = array();
         if ($id) {
@@ -128,24 +142,25 @@ class SharingGroup extends AppModel
         if ($active !== false) {
             $conditions['AND']['SharingGroup.active'] = $active;
         }
+
         if ($user['Role']['perm_site_admin']) {
-            $sgs = $this->find('all', array(
+            $ids = array_values($this->find('list', array(
                 'recursive' => -1,
                 'fields' => array('id'),
                 'conditions' => $conditions
-            ));
-            $ids = array();
-            foreach ($sgs as $sg) {
-                $ids[] = $sg['SharingGroup']['id'];
-            }
+            )));
         } else {
-            $ids = array_unique(array_merge($this->SharingGroupServer->fetchAllAuthorised(), $this->SharingGroupOrg->fetchAllAuthorised($user['Organisation']['id'])));
+            $ids = array_unique(array_merge(
+                $this->SharingGroupServer->fetchAllAuthorised(),
+                $this->SharingGroupOrg->fetchAllAuthorised($user['Organisation']['id'])
+            ));
         }
         if (!empty($ids)) {
             $conditions['AND'][] = array('SharingGroup.id' => $ids);
         } else {
             return array();
         }
+
         if ($scope === 'full') {
             $sgs = $this->find('all', array(
                 'contain' => array('SharingGroupServer' => array('Server'), 'SharingGroupOrg' => array('Organisation'), 'Organisation'),
@@ -153,10 +168,9 @@ class SharingGroup extends AppModel
                 'order' => 'SharingGroup.name ASC'
             ));
             return $sgs;
-        } elseif ($scope == 'simplified') {
+        } elseif ($scope === 'simplified') {
             $fieldsOrg = array('id', 'name', 'uuid');
             $fieldsServer = array('id', 'url', 'name');
-            $fields = array();
             $permissionTree = ($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0;
             $fieldsSharingGroup = array(
                 array(
@@ -175,9 +189,7 @@ class SharingGroup extends AppModel
                     'fields' => array('SharingGroup.*'),
                     'contain' => array(
                         'SharingGroupOrg',
-                        'SharingGroupServer' => array(
-                            'Server' => array('fields' => $fieldsServer),
-                        )
+                        'SharingGroupServer',
                     )
                 )
             );
@@ -187,32 +199,8 @@ class SharingGroup extends AppModel
                 'fields' => $fieldsSharingGroup[$permissionTree]['fields'],
                 'order' => 'SharingGroup.name ASC'
             ));
-            if (empty($this->__sgoCache)) {
-                $temp = $this->Organisation->find('all', array(
-                    'recursive' => -1,
-                    'fields' => $fieldsOrg
-                ));
-                $this->__sgoCache = array();
-                foreach ($temp as $o) {
-                    $this->__sgoCache[$o['Organisation']['id']] = $o;
-                }
-            }
-            foreach ($sgs as &$sg) {
-                if(isset($this->__sgoCache[$sg['SharingGroup']['org_id']]['Organisation'])) {
-                        $sg['Organisation'] = $this->__sgoCache[$sg['SharingGroup']['org_id']]['Organisation'];
-                } else {
-                        $sg['Organisation'] = '';
-                }
-                if (!empty($sg['SharingGroupOrg'])) {
-                    foreach ($sg['SharingGroupOrg'] as &$sgo) {
-                        if (!empty($this->__sgoCache[$sgo['org_id']]['Organisation'])) {
-                            $sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']]['Organisation'];
-                        }
-                    }
-                }
-            }
-            return $sgs;
-        } elseif ($scope == 'name') {
+            return $this->appendOrgsAndServers($sgs, $fieldsOrg, $fieldsServer);
+        } elseif ($scope === 'name') {
             $sgs = $this->find('list', array(
                 'recursive' => -1,
                 'fields' => array('SharingGroup.id', 'SharingGroup.name'),
@@ -220,16 +208,91 @@ class SharingGroup extends AppModel
                 'conditions' => $conditions,
             ));
             return $sgs;
-        } elseif ($scope == 'uuid') {
+        } elseif ($scope === 'uuid') {
             $sgs = $this->find('list', array(
-                    'recursive' => -1,
-                    'fields' => array('SharingGroup.id', 'SharingGroup.uuid'),
-                    'conditions' => $conditions,
+                'recursive' => -1,
+                'fields' => array('SharingGroup.id', 'SharingGroup.uuid'),
+                'conditions' => $conditions,
             ));
             return $sgs;
         } else {
             return $ids;
         }
+    }
+
+    /**
+     * @param array $sharingGroups
+     * @param array|null $orgFields
+     * @param array|null $serverFields
+     * @return array
+     */
+    private function appendOrgsAndServers(array $sharingGroups, $orgFields = null, $serverFields = null)
+    {
+        $orgsToFetch = [];
+        $serverToFetch = [];
+        foreach($sharingGroups as $sg) {
+            $orgsToFetch[$sg['SharingGroup']['org_id']] = true;
+            if (isset($sg['SharingGroupOrg'])) {
+                foreach ($sg['SharingGroupOrg'] as $sgo) {
+                    $orgsToFetch[$sgo['org_id']] = true;
+                }
+            }
+            if (isset($sg['SharingGroupServer'])) {
+                foreach ($sg['SharingGroupServer'] as $sgs) {
+                    if ($sgs['server_id'] == 0) { // local server
+                        continue;
+                    }
+                    $serverToFetch[$sgs['server_id']] = true;
+                }
+            }
+        }
+
+        $orgsById = [];
+        if (!empty($orgsToFetch)) {
+            $orgs = $this->Organisation->find('all', [
+                'recursive' => -1,
+                'fields' => $orgFields,
+                'conditions' => ['id' => array_keys($orgsToFetch)],
+            ]);
+            foreach ($orgs as $org) {
+                $orgsById[$org['Organisation']['id']] = $org['Organisation'];
+            }
+        }
+
+        $serversById = [];
+        if (!empty($serverToFetch)) {
+            $servers = $this->SharingGroupServer->Server->find('all', [
+                'recursive' => -1,
+                'fields' => $serverFields,
+                'conditions' => ['id' => array_keys($serverToFetch)],
+            ]);
+            foreach ($servers as $server) {
+                $serversById[$server['Server']['id']] = $server['Server'];
+            }
+        }
+
+        foreach ($sharingGroups as &$sg) {
+            if (isset($orgsById[$sg['SharingGroup']['org_id']])) {
+                $sg['Organisation'] = $orgsById[$sg['SharingGroup']['org_id']];
+            }
+
+            if (isset($sg['SharingGroupOrg'])) {
+                foreach($sg['SharingGroupOrg'] as &$sgo) {
+                    if (isset($orgsById[$sgo['org_id']])) {
+                        $sgo['Organisation'] = $orgsById[$sgo['org_id']];
+                    }
+                }
+            }
+            if (isset($sg['SharingGroupServer'])) {
+                foreach($sg['SharingGroupServer'] as &$sgs) {
+                    if (isset($serversById[$sgs['server_id']])) {
+                        $sgs['Server'] = $serversById[$sgs['server_id']];
+                    }
+                }
+            }
+        }
+
+        return $sharingGroups;
     }
 
     // Who can create a new sharing group with the elements pre-defined (via REST for example)?
