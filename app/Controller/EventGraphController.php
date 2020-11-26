@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property EventGraph $EventGraph
+ */
 class EventGraphController extends AppController
 {
     public $components = array(
@@ -19,30 +22,16 @@ class EventGraphController extends AppController
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
 
-        // retrieve current org_id
-        $org_id = $this->_checkOrg();
-
-        // validate event
         $this->loadModel('Event');
-        if (Validation::uuid($event_id)) {
-            $temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $eventId)));
-            if (empty($temp)) {
-                throw new NotFoundException('Invalid event');
-            }
-            $event_id = $temp['Event']['id'];
-        } elseif (!is_numeric($event_id)) {
-            throw new NotFoundException(__('Invalid event'));
-        }
-
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id));
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $event_id);
         if (empty($event)) {
             throw new NotFoundException('Invalid event');
         }
 
         // fetch eventGraphs
         $conditions = [
-            'EventGraph.event_id' => $event_id,
-            'EventGraph.org_id' => $org_id
+            'EventGraph.event_id' => $event['Event']['id'],
+            'EventGraph.org_id' => $this->Auth->user('org_id'),
         ];
         if (!is_null($graph_id)) {
             $conditions['EventGraph.id'] = $graph_id;
@@ -82,7 +71,7 @@ class EventGraphController extends AppController
             }
 
             $this->loadModel('Event');
-            $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id));
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $event_id);
             if (empty($event)) {
                 throw new NotFoundException('Invalid event');
             }
@@ -91,7 +80,7 @@ class EventGraphController extends AppController
             if (!$this->_isSiteAdmin() && ($event['Event']['orgc_id'] != $this->Auth->user('org_id') && !$this->userRole['perm_modify'])) {
                 throw new UnauthorizedException(__('You do not have permission to do that.'));
             } else {
-                $eventGraph['EventGraph']['event_id'] = $event_id;
+                $eventGraph['EventGraph']['event_id'] = $event['Event']['id'];
             }
 
             if (!isset($this->request->data['EventGraph']['network_json'])) {
