@@ -98,8 +98,6 @@ installCoreDeps () {
 
   # install Mitre's STIX and its dependencies by running the following commands:
   sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
-
-  sudo apt install expect -qy
 }
 # <snippet-end 0_installCoreDeps.sh>
 
@@ -261,59 +259,40 @@ permissions () {
 ```bash
 # <snippet-begin 1_prepareDB.sh>
 prepareDB () {
-  if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
+  if sudo test ! -e "/var/lib/mysql/mysql/"; then
+    #Make sure initial tables are created in MySQL
+    debug "Install mysql tables"
+    sudo mysql_install_db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
+    sudo service mysql start
+  fi
+
+  if sudo test ! -e "/var/lib/mysql/misp/"; then
+    debug "Start mysql"
+    sudo service mysql start
+
     debug "Setting up database"
 
-    # FIXME: If user 'misp' exists, and has a different password, the below WILL fail. Partially fixed with the Env-Var check in the beginning. (Need to implement pre-flight checks to exit gracefully if not set)
-    # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-    if [[ "${PACKER}" == "1" ]]; then
-      pw="Password1234"
-    else
-      pw=${MISP_PASSWORD}
-    fi
+    # Kill the anonymous users
+    sudo mysql -e "DROP USER IF EXISTS ''@'localhost'"
+    # Because our hostname varies we'll use some Bash magic here.
+    sudo mysql -e "DROP USER IF EXISTS ''@'$(hostname)'"
+    # Kill off the demo database
+    sudo mysql -e "DROP DATABASE IF EXISTS test"
+    # No root remote logins
+    sudo mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+    # Make sure that NOBODY can access the server without a password
+    sudo mysqladmin -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+    # Make our changes take effect
+    sudo mysql -e "FLUSH PRIVILEGES"
 
-    if [[ ! -z ${INSTALL_USER} ]]; then
-      SUDO_EXPECT="sudo mysql_secure_installation"
-      echo "Making sure sudo session is buffered"
-      sudo ls -la /tmp > /dev/null 2> /dev/null
-    else
-      SUDO_EXPECT="sudo -k mysql_secure_installation"
-    fi
 
-    expect -f - <<-EOF
-      set timeout 10
-
-      spawn ${SUDO_EXPECT}
-      expect "*?assword*"
-      send -- "${pw}\r"
-      expect "Enter current password for root (enter for none):"
-      send -- "\r"
-      expect "Set root password?"
-      send -- "y\r"
-      expect "New password:"
-      send -- "${DBPASSWORD_ADMIN}\r"
-      expect "Re-enter new password:"
-      send -- "${DBPASSWORD_ADMIN}\r"
-      expect "Remove anonymous users?"
-      send -- "y\r"
-      expect "Disallow root login remotely?"
-      send -- "y\r"
-      expect "Remove test database and access to it?"
-      send -- "y\r"
-      expect "Reload privilege tables now?"
-      send -- "y\r"
-      expect eof
-EOF
-    sudo apt-get purge -y expect ; sudo apt autoremove -qy
-  fi 
-
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE DATABASE ${DBNAME};"
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT USAGE ON *.* to ${DBUSER_MISP}@localhost;"
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
-  sudo mysql -u ${DBUSER_ADMIN} -p${DBPASSWORD_ADMIN} -e "FLUSH PRIVILEGES;"
-  # Import the empty MISP database from MYSQL.sql
-  ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} ${DBNAME}
+    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
+    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
+    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES;"
+    # Import the empty MISP database from MYSQL.sql
+    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
 }
 # <snippet-end 1_prepareDB.sh>
 ```
