@@ -1653,7 +1653,6 @@ class AttributesController extends AppController
             return [[], []];
         }
 
-        $sightingsData = array();
         $this->Feed = ClassRegistry::init('Feed');
 
         $this->loadModel('Sighting');
@@ -1684,11 +1683,6 @@ class AttributesController extends AppController
             $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
             $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($this->Auth->user(), $attributes[$k]['Attribute'], 'Attribute', $excludeGalaxy = false, $cullGalaxyTags = true);
             unset($attributes[$k]['AttributeTag']);
-
-            $sightingsData = array_merge(
-                $sightingsData,
-                $this->Sighting->attachToEvent($attribute, $user, $attribute, $extraConditions = false)
-            );
         }
 
         // Fetch correlations in one query
@@ -1708,8 +1702,7 @@ class AttributesController extends AppController
                 $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attribute['Attribute']['id']];
             }
         }
-
-        $sightingsData = $this->Attribute->Event->getSightingData(array('Sighting' => $sightingsData));
+        $sightingsData = $this->Sighting->attributesStatistics($attributes, $user);
         return array($attributes, $sightingsData);
     }
 
