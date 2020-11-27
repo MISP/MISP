@@ -4,7 +4,7 @@ This plugin enables authentication with an Azure Active Directory server. Under 
 There are still a number of rough edges but in general the plugin works.
 
 It supports verification if a user has the proper 'MISP AD' groups.
-Users should already exist in MISP. TODO: autocreate users
+Users should already exist in MISP. Future enhancement could include autocreate users
 
 Azure authentication code inspired by https://www.sipponen.com/archives/4024
 
