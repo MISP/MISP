@@ -681,23 +681,6 @@ class AppController extends Controller
 
     public $userRole = null;
 
-    protected function _isJson($data=false)
-    {
-        if ($data) {
-            return (json_decode($data) != null) ? true : false;
-        }
-        return $this->request->header('Accept') === 'application/json' || $this->RequestHandler->prefers() === 'json';
-    }
-
-    protected function _isCsv($data=false)
-    {
-        if ($this->params['ext'] === 'csv' || $this->request->header('Accept') === 'application/csv' || $this->RequestHandler->prefers() === 'csv') {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     protected function _isRest()
     {
         return $this->IndexFilter->isRest();
@@ -738,11 +721,6 @@ class AppController extends Controller
     protected function _isSiteAdmin()
     {
         return $this->userRole['perm_site_admin'];
-    }
-
-    protected function _checkOrg()
-    {
-        return $this->Auth->user('org_id');
     }
 
     protected function _getApiAuthUser(&$key, &$exception)
