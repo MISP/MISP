@@ -1278,7 +1278,6 @@ prepareDB () {
     sudo service mysql start
 
     debug "Setting up database"
-
     # Kill the anonymous users
     sudo mysql -e "DROP USER IF EXISTS ''@'localhost'"
     # Because our hostname varies we'll use some Bash magic here.
@@ -1292,7 +1291,6 @@ prepareDB () {
     # Make our changes take effect
     sudo mysql -e "FLUSH PRIVILEGES"
 
-
     sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
     sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
     sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
@@ -1300,6 +1298,7 @@ prepareDB () {
     sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES;"
     # Import the empty MISP database from MYSQL.sql
     ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
+  fi
 }
 
 apacheConfig () {
