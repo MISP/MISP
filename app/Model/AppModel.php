@@ -1627,10 +1627,8 @@ class AppModel extends Model
                 break;
             default:
                 return false;
-                break;
         }
 
-        $now = new DateTime();
         // switch MISP instance live to false
         if ($liveOff) {
             $this->Server = Classregistry::init('Server');
@@ -1643,7 +1641,7 @@ class AppModel extends Model
         $this->__setUpdateProgress(0, $total_update_count, $command);
         $str_index_array = array();
         foreach($indexArray as $toIndex) {
-            $str_index_array[] = __('Indexing ') . sprintf('%s -> %s', $toIndex[0], $toIndex[1]);
+            $str_index_array[] = __('Indexing %s -> %s', $toIndex[0], $toIndex[1]);
         }
         $this->__setUpdateCmdMessages(array_merge($sqlArray, $str_index_array));
         $flagStop = false;
@@ -1679,10 +1677,10 @@ class AppModel extends Model
                         'email' => 'SYSTEM',
                         'action' => 'update_database',
                         'user_id' => 0,
-                        'title' => __('Successfuly executed the SQL query for ') . $command,
+                        'title' => __('Successfully executed the SQL query for ') . $command,
                         'change' => sprintf(__('The executed SQL query was: %s'), $sql)
                     ));
-                    $this->__setUpdateResMessages($i, sprintf(__('Successfuly executed the SQL query for %s'), $command));
+                    $this->__setUpdateResMessages($i, sprintf(__('Successfully executed the SQL query for %s'), $command));
                 } catch (Exception $e) {
                     $errorMessage = $e->getMessage();
                     $this->Log->create();
@@ -1736,14 +1734,13 @@ class AppModel extends Model
                     }
                 }
             }
-            $this->__setUpdateProgress(count($sqlArray)+count($indexArray), false);
+            $this->__setUpdateProgress(count($sqlArray) + count($indexArray), false);
          }
         if ($clean) {
             $this->cleanCacheFiles();
         }
         if ($liveOff) {
-            $liveSetting = 'MISP.live';
-            $this->Server->serverSettingsSaveValue($liveSetting, true);
+            $this->Server->serverSettingsSaveValue('MISP.live', true);
         }
         if (!$flagStop && $errorCount == 0) {
             $this->__postUpdate($command);
@@ -2132,9 +2129,18 @@ class AppModel extends Model
             }
         }
         if ($requiresLogout) {
-            $this->updateDatabase('destroyAllSessions');
+            $this->refreshSessions();
         }
         return true;
+    }
+
+    /**
+     * Update date_modified for all users, this will ensure that all users will refresh their session data.
+     */
+    private function refreshSessions()
+    {
+        $this->User = ClassRegistry::init('User');
+        $this->User->updateAll(['date_modified' => time()]);
     }
 
     private function __setUpdateProgress($current, $total=false, $toward_db_version=false)
