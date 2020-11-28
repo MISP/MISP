@@ -236,26 +236,11 @@ class AppController extends Controller
             }
         }
 
+        $userMonitoringEnabled = false;
         if ($this->Auth->user()) {
             $user = $this->Auth->user();
             Configure::write('CurrentUserId', $user['id']);
-            $this->User->setMonitoring($user);
-            if (Configure::read('MISP.log_user_ips')) {
-                $redis = $this->{$this->modelClass}->setupRedis();
-                if ($redis) {
-                    $remoteAddress = trim($_SERVER['REMOTE_ADDR']);
-                    $redis->set('misp:ip_user:' . $remoteAddress, $user['id']);
-                    $redis->expire('misp:ip_user:' . $remoteAddress, 60 * 60 * 24 * 30); // 30 days
-                    $redis->sadd('misp:user_ip:' . $user['id'], $remoteAddress);
-
-                    // Allow to log key usage
-                    if (isset($user['authkey_id']) && Configure::read('MISP.log_user_ips_auth')) {
-                        $key = "misp:authkey:{$user['authkey_id']}";
-                        $hashKey = date("Y-m-d") . ":$remoteAddress";
-                        $redis->hIncrBy($key, $hashKey, 1);
-                    }
-                }
-            }
+            $userMonitoringEnabled = $this->__accessMonitor($user);
             // update script
             if ($user['Role']['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->{$this->modelClass}->runUpdates();
@@ -325,7 +310,7 @@ class AppController extends Controller
 
             if (
                 Configure::read('MISP.log_paranoid') ||
-                !empty(Configure::read('Security.monitored'))
+                $userMonitoringEnabled
             ) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
@@ -337,7 +322,7 @@ class AppController extends Controller
                     ) &&
                     (
                         !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
-                        !empty(Configure::read('Security.monitored'))
+                        $userMonitoringEnabled
                     )
                 ) {
                     $payload = $this->request->input();
@@ -633,6 +618,53 @@ class AppController extends Controller
             return false;
         }
         return in_array($this->action, $actionsToCheck[$controller], true);
+    }
+
+    /**
+     * User access monitoring
+     * @param array $user
+     * @return bool True is user monitoring is enabled
+     */
+    private function __accessMonitor(array $user)
+    {
+        $userMonitoringEnabled = Configure::read('Security.user_monitoring_enabled');
+        $logUserIps = Configure::read('MISP.log_user_ips');
+
+        if (!$userMonitoringEnabled && !$logUserIps)  {
+            return false;
+        }
+
+        $redis = $this->User->setupRedis();
+        if (!$redis) {
+            return false;
+        }
+
+        if ($logUserIps) {
+            $remoteAddress = trim($_SERVER['REMOTE_ADDR']);
+
+            $pipe = $redis->multi(Redis::PIPELINE);
+            // keep for 30 days
+            $pipe->setex('misp:ip_user:' . $remoteAddress, 60 * 60 * 24 * 30, $user['id']);
+            $pipe->sadd('misp:user_ip:' . $user['id'], $remoteAddress);
+
+            // Log key usage if enabled
+            if (isset($user['authkey_id']) && Configure::read('MISP.log_user_ips_auth')) {
+                // Use request time if defined
+                $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
+                $hashKey = date("Y-m-d", $time) . ":$remoteAddress";
+                $pipe->hIncrBy("misp:authkey_usage:{$user['authkey_id']}", $hashKey, 1);
+                // delete after one year of inactivity
+                $pipe->expire("misp:authkey_usage:{$user['authkey_id']}", 3600 * 24 * 365);
+                $pipe->set("misp:authkey_last_usage:{$user['authkey_id']}", $time);
+            }
+            $pipe->exec();
+        }
+
+        // Return true for the current user if monitoring of this user is enabled in Redis.
+        if ($userMonitoringEnabled && $redis->sismember('misp:monitored_users', $user['id'])) {
+            return true;
+        }
+        return false;
     }
 
     private function __rateLimitCheck()

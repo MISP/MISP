@@ -1294,24 +1294,6 @@ class User extends AppModel
         return $data;
     }
 
-    /*
-     *  Set the monitoring flag in Configure for the current user
-     *  Reads the state from redis
-     */
-    public function setMonitoring($user)
-    {
-        if (
-            !empty(Configure::read('Security.user_monitoring_enabled'))
-        ) {
-            $redis = $this->setupRedis();
-            if (!empty($redis->sismember('misp:monitored_users', $user['id']))) {
-                Configure::write('Security.monitored', 1);
-                return true;
-            }
-        }
-        Configure::write('Security.monitored', 0);
-    }
-
     public function registerUser($added_by, $registration, $org_id, $role_id) {
         $user = array(
                 'email' => $registration['data']['email'],

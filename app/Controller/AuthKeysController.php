@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property AuthKey $AuthKey
+ */
 class AuthKeysController extends AppController
 {
     public $components = array(
@@ -26,10 +29,15 @@ class AuthKeysController extends AppController
         $this->CRUD->index([
             'filters' => ['User.username', 'authkey', 'comment', 'User.id'],
             'quickFilters' => ['authkey', 'comment'],
-            'contain' => ['User'],
+            'contain' => ['User.id', 'User.email'],
             'conditions' => $conditions,
             'afterFind' => function (array $authKeys) {
+                $keyUsageEnabled = Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_auth');
                 foreach ($authKeys as &$authKey) {
+                    if ($keyUsageEnabled) {
+                        $lastUsed = $this->AuthKey->getKeyUsage($authKey['AuthKey']['id'])[1];
+                        $key['AuthKey']['last_used'] = $lastUsed ? $lastUsed->format('c') : null;
+                    }
                     unset($authKey['AuthKey']['authkey']);
                 }
                 return $authKeys;
@@ -101,6 +109,13 @@ class AuthKeysController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+
+        if (Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_auth')) {
+            list($keyUsage, $lastUsed) = $this->AuthKey->getKeyUsage($id);
+            $this->set('keyUsage', $keyUsage);
+            $this->set('lastUsed', $lastUsed);
+        }
+
         $this->set('menuData', [
             'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
             'menuItem' => 'authKeyView',

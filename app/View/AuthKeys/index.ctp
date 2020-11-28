@@ -67,6 +67,14 @@
             'pull' => 'right',
             'actions' => [
                 [
+                    'url' => $baseurl . '/auth_keys/view',
+                    'url_params_data_paths' => array(
+                        'AuthKey.id'
+                    ),
+                    'icon' => 'eye',
+                    'dbclickAction' => true
+                ],
+                [
                     'onclick' => sprintf(
                         'openGenericModal(\'%s/authKeys/delete/[onclick_params_data_path]\');',
                         $baseurl

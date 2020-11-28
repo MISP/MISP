@@ -110,6 +110,34 @@ class AuthKey extends AppModel
     }
 
     /**
+     * @param int $id
+     * @return array
+     * @throws Exception
+     */
+    public function getKeyUsage($id)
+    {
+        $redis = $this->setupRedisWithException();
+        $data = $redis->hGetAll("misp:authkey_usage:$id");
+
+        $output = [];
+        foreach ($data as $key => $count) {
+            list($date, $ip) = explode(':', $key);
+            if (isset($output[$date])) {
+                $output[$date] += $count;
+            } else {
+                $output[$date] = $count;
+            }
+        }
+        // Data from redis are not sorted
+        ksort($output);
+
+        $lastUsage = $redis->get("misp:authkey_last_usage:$id");
+        $lastUsage = $lastUsage === false ? null : new DateTime("@$lastUsage");
+
+        return [$output, $lastUsage];
+    }
+
+    /**
      * @return AbstractPasswordHasher
      */
     private function getHasher()
