@@ -481,6 +481,12 @@ class TestSecurity(unittest.TestCase):
 
             self.__delete_advanced_authkey(auth_key["id"])
 
+    def test_authkey_keep_session(self):
+        with MISPSetting(self.admin_misp_connector, "Security.authkey_keep_session", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            check_response(logged_in.get_user())
+            check_response(logged_in.get_user())
+
     def test_change_login(self):
         new_email = 'testusr@user' + random() + '.local'
 
@@ -530,7 +536,7 @@ class TestSecurity(unittest.TestCase):
             # Try to change email as org admin
             new_email = 'testusr@user' + random() + '.local'
             updated_user = self.org_admin_misp_connector.update_user({'email': new_email}, self.test_usr)
-            self.__assertErrorResponse(updated_user)
+            self.assertEqual(self.test_usr.email, updated_user.email, "Email should be still same")
 
     def test_change_pw_disabled(self):
         with self.__setting("MISP.disable_user_password_change", True):

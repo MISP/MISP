@@ -1156,7 +1156,7 @@ class Server extends AppModel
                         'test' => 'testForPositiveInteger',
                         'type' => 'numeric',
                         'null' => true,
-                    ]
+                    ],
                 ),
                 'GnuPG' => array(
                         'branch' => 1,
@@ -1343,6 +1343,15 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                    'authkey_keep_session' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('When enabled, session is kept between API requests.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => true,
+                    ],
                     'auth_enforced' => [
                         'level' => self::SETTING_OPTIONAL,
                         'description' => __('This optional can be enabled if external auth provider is used and when set to true, it will disable default form authentication.'),
