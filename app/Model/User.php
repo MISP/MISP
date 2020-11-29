@@ -234,7 +234,7 @@ class User extends AppModel
         if ($db_version['AdminSetting']['value'] >= 62) {
             $this->bindModel([
                 'hasMany' => ['AuthKey']
-            ]);
+            ], false);
         }
     }
 
