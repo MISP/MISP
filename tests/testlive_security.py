@@ -461,6 +461,24 @@ class TestSecurity(unittest.TestCase):
             self.__delete_advanced_authkey(auth_key["id"])
             # TODO: Delete new key
 
+    def test_advanced_authkeys_view(self):
+        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id)
+            auth_key_id = auth_key["id"]
+            auth_key = send(self.admin_misp_connector, "GET", f'authKeys/view/{auth_key_id}')
+            self.__delete_advanced_authkey(auth_key_id)
+            self.assertNotIn("authkey", auth_key["AuthKey"], "Response should not contain hashed authkey")
+
+    def test_advanced_authkeys_index(self):
+        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+            auth_key_id = self.__create_advanced_authkey(self.test_usr.id)["id"]
+            auth_keys = send(self.admin_misp_connector, "GET", 'authKeys/index/')
+            self.__delete_advanced_authkey(auth_key_id)
+
+            self.assertGreaterEqual(len(auth_keys), 1, "Response should contains at least one key")
+            for auth_key in auth_keys:
+                self.assertNotIn("authkey", auth_key["AuthKey"], "Response should not contain hashed authkey")
+
     def test_change_login(self):
         new_email = 'testusr@user' + random() + '.local'
 
