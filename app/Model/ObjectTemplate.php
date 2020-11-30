@@ -316,4 +316,41 @@ class ObjectTemplate extends AppModel
         }
         return 1;
     }
+
+    public function getRawFromDisk($uuidOrName)
+    {
+        $templates = $this->readTemplatesFromDisk();
+        if (Validation::uuid($uuidOrName)) {
+            return $templates[$uuidOrName];
+        } else {
+            foreach ($templates as $uuid => $template) {
+                if ($template['name'] == $uuidOrName) {
+                    return $template;
+                }
+            }
+        }
+    }
+
+    private function readTemplatesFromDisk()
+    {
+        $objectsDir = APP . 'files/misp-objects/objects';
+        $directories = glob($objectsDir . '/*', GLOB_ONLYDIR);
+        foreach ($directories as $k => $dir) {
+            $dir = str_replace($objectsDir, '', $dir);
+            $directories[$k] = $dir;
+        }
+        $templates = [];
+        foreach ($directories as $dir) {
+            if (!file_exists($objectsDir . DS . $dir . DS . 'definition.json')) {
+                continue;
+            }
+            $file = new File($objectsDir . DS . $dir . DS . 'definition.json');
+            $template = json_decode($file->read(), true);
+            if (isset($template['uuid'])) {
+                $templates[$template['uuid']] = $template;
+            }
+            $file->close();
+        }
+        return $templates;
+    }
 }
