@@ -1351,78 +1351,89 @@ apacheConfig () {
 installCore () {
   debug "Installing ${LBLUE}MISP${NC} core"
   # Download MISP using git in the /var/www/ directory.
-  sudo mkdir ${PATH_TO_MISP}
-  sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
-  cd ${PATH_TO_MISP}
-  ${SUDO_WWW} git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}
-  ${SUDO_WWW} git submodule update --progress --init --recursive
-  # Make git ignore filesystem permission differences for submodules
-  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+  if [[ ! -d ${PATH_TO_MISP} ]]; then
+    sudo mkdir ${PATH_TO_MISP}
+    sudo chown ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}; done
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git -C ${PATH_TO_MISP} submodule update --progress --init --recursive; done
+    # Make git ignore filesystem permission differences for submodules
+    ${SUDO_WWW} git -C ${PATH_TO_MISP} submodule foreach --recursive git config core.filemode false
 
-  # Make git ignore filesystem permission differences
-  $SUDO_WWW git config core.filemode false
+    # Make git ignore filesystem permission differences
+    ${SUDO_WWW} git -C ${PATH_TO_MISP} config core.filemode false
 
-  # Create a python3 virtualenv
-  ${SUDO_WWW} virtualenv -p python3 ${PATH_TO_MISP}/venv
+    # Create a python3 virtualenv
+    ${SUDO_WWW} virtualenv -p python3 ${PATH_TO_MISP}/venv
 
-  # make pip happy
-  sudo mkdir /var/www/.cache/
-  sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
+    # make pip happy
+    sudo mkdir /var/www/.cache/
+    sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
 
-  cd ${PATH_TO_MISP}/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git
+    PATH_TO_MISP_SCRIPTS=${PATH_TO_MISP}/app/files/scripts
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git ${PATH_TO_MISP_SCRIPTS}/python-cybox; done
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git ${PATH_TO_MISP_SCRIPTS}/python-stix; done
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git ${PATH_TO_MISP_SCRIPTS}/python-maec; done
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git ${PATH_TO_MISP_SCRIPTS}/mixbox; done
 
-  # install mixbox to accommodate the new STIX dependencies:
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
-  cd ${PATH_TO_MISP}/app/files/scripts/mixbox
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-  cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-  cd ${PATH_TO_MISP}/app/files/scripts/python-stix
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-  cd ${PATH_TO_MISP}/app/files/scripts/python-maec
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-  # install STIX2.0 library to support STIX 2.0 export:
-  cd ${PATH_TO_MISP}/cti-python-stix2
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/mixbox
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/python-cybox
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/python-maec
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/python-stix
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/cti-python-stix2
 
-  # install PyMISP
-  cd ${PATH_TO_MISP}/PyMISP
-  ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
-  # FIXME: Remove libfaup etc once the egg has the library baked-in
-  sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
-  cd /tmp
-  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
-  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
-  sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
-  cd gtcaca
-  ${SUDO_CMD} mkdir -p build
-  cd build
-  ${SUDO_CMD} cmake .. && ${SUDO_CMD} make
-  sudo make install
-  cd ../../faup
-  ${SUDO_CMD} mkdir -p build
-  cd build
-  ${SUDO_CMD} cmake .. && ${SUDO_CMD} make
-  sudo make install
-  sudo ldconfig
+    debug "Install PyMISP"
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/PyMISP
+    # FIXME: Remove libfaup etc once the egg has the library baked-in
+    sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+    cd /tmp
+    false; while [[ $? -ne 0 ]]; do [[ ! -d "faup" ]] && ${SUDO_CMD} git clone git://github.com/stricaud/faup.git faup; done
+    false; while [[ $? -ne 0 ]]; do [[ ! -d "gtcaca" ]] && ${SUDO_CMD} git clone git://github.com/stricaud/gtcaca.git gtcaca; done
+    sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
+    cd gtcaca
+    ${SUDO_CMD} mkdir -p build
+    cd build
+    ${SUDO_CMD} cmake .. && ${SUDO_CMD} make
+    sudo make install
+    cd ../../faup
+    ${SUDO_CMD} mkdir -p build
+    cd build
+    ${SUDO_CMD} cmake .. && ${SUDO_CMD} make
+    sudo make install
+    sudo ldconfig
 
-  # install pydeep
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+    # install pydeep
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git; done
 
-  # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install lief
+    # install lief
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install lief
 
-  # install zmq needed by mispzmq
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install zmq redis
+    # install zmq needed by mispzmq
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install zmq redis
 
-  # install python-magic
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
+    # install python-magic
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install python-magic
 
-  # install plyara
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install plyara
+    # install plyara
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install plyara
+  else
+    debug "Trying to git pull existing install"
+    ${SUDO_WWW} git pull -C ${PATH_TO_MISP}
+    false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP} submodule update --progress --init --recursive; done
+    PATH_TO_MISP_SCRIPTS=${PATH_TO_MISP}/app/files/scripts
+    false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/python-cybox pull; done
+    false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/python-stix pull; done
+    false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/python-maec pull; done
+    false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/mixbox pull; done
+
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U setuptools pip lief zmq redis python-magic plyara
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/app/files/scripts/mixbox
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/app/files/scripts/python-cybox
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/app/files/scripts/python-maec
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/app/files/scripts/python-stix
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/cti-python-stix2
+    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/PyMISP
+    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U git+https://github.com/kbandla/pydeep.git; done
+fi
 }
 
 installCake () {
@@ -1721,8 +1732,14 @@ mispmodules () {
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   ## TODO: checkUsrLocalSrc in main doc
-  debug "Cloning misp-modules"
-  false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/MISP/misp-modules.git; done
+  if [[ ! -d /usr/local/src/misp-modules ]]; then
+    debug "Cloning misp-modules"
+    false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/MISP/misp-modules.git; done
+  else
+    false; while [[ $? -ne 0 ]]; do $SUDO_CMD git -C /usr/local/src/misp-modules pull; done
+  fi
+
+  # Install faup/gtcaca
   [[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/faup.git faup; done
   [[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca; done
   sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
@@ -1732,14 +1749,15 @@ mispmodules () {
   cd build
   $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
-  cd ../../faup
+  cd /usr/loca/src/faup
   # Install faup
   $SUDO_CMD mkdir -p build
   cd build
   $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
   sudo ldconfig
-  cd ../../misp-modules
+
+  cd /usr/local/src/misp-modules
   # some misp-modules dependencies
   sudo apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
   # If you build an egg, the user you build it as need write permissions in the CWD
@@ -1748,10 +1766,9 @@ mispmodules () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
-  ## sudo gem install asciidoctor-pdf --pre
 
   # Start misp-modules as a service
-  sudo cp etc/systemd/system/misp-modules.service /etc/systemd/system/
+  sudo cp /usr/local/src/misp-modules/etc/systemd/system/misp-modules.service /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now misp-modules
 
