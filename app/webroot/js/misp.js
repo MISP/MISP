@@ -2788,6 +2788,14 @@ function freetextImportResultsSubmit(id, count) {
 }
 
 function moduleResultsSubmit(id) {
+    var attributeValue = function ($attributeValue) {
+        if ($attributeValue.find("[data-full]").length) {
+            return $attributeValue.find("[data-full]").data('full');
+        } else {
+            return $attributeValue.text()
+        }
+    }
+
     var typesWithData = ['attachment', 'malware-sample'];
     var data_collected = {};
     var temp;
@@ -2802,7 +2810,7 @@ function moduleResultsSubmit(id) {
     }
     if ($('.MISPObject').length) {
         var objects = [];
-        $(".MISPObject").each(function(o) {
+        $(".MISPObject").each(function() {
             var object_uuid = $(this).find('.ObjectUUID').text();
             temp = {
                 uuid: object_uuid,
@@ -2845,14 +2853,14 @@ function moduleResultsSubmit(id) {
             }
             if ($(this).find('.ObjectAttribute').length) {
                 var object_attributes = [];
-                $(this).find('.ObjectAttribute').each(function(a) {
+                $(this).find('.ObjectAttribute').each(function() {
                     var attribute_type = $(this).find('.AttributeType').text();
-                    attribute = {
+                    var attribute = {
                         import_attribute: $(this).find('.ImportMISPObjectAttribute')[0].checked,
                         object_relation: $(this).find('.ObjectRelation').text(),
                         category: $(this).find('.AttributeCategory').text(),
                         type: attribute_type,
-                        value: $(this).find('.AttributeValue').text(),
+                        value: attributeValue($(this).find('.AttributeValue')),
                         uuid: $(this).find('.AttributeUuid').text(),
                         to_ids: $(this).find('.AttributeToIds')[0].checked,
                         disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
@@ -2911,7 +2919,7 @@ function moduleResultsSubmit(id) {
                 import_attribute: $(this).find('.ImportMISPAttribute')[0].checked,
                 category: category_value,
                 type: type_value,
-                value: $(this).find('.AttributeValue').text(),
+                value: attributeValue($(this).find('.AttributeValue')),
                 uuid: $(this).find('.AttributeUuid').text(),
                 to_ids: $(this).find('.AttributeToIds')[0].checked,
                 disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,

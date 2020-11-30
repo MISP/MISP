@@ -194,6 +194,9 @@ class CRUDComponent extends Component
         if (empty($data)) {
             throw new NotFoundException(__('Invalid %s.', $modelName));
         }
+        if (isset($params['afterFind'])) {
+            $data = $params['afterFind']($data);
+        }
         if ($this->Controller->IndexFilter->isRest()) {
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
         } else {
@@ -259,7 +262,6 @@ class CRUDComponent extends Component
     protected function setFilters($params, $query)
     {
         $params = $this->massageFilters($params);
-        $conditions = array();
         if (!empty($params['simpleFilters'])) {
             foreach ($params['simpleFilters'] as $filter => $filterValue) {
                 if ($filter === 'quickFilter') {

@@ -1,5 +1,4 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
 class AuthKeysController extends AppController
@@ -11,10 +10,10 @@ class AuthKeysController extends AppController
     );
 
     public $paginate = array(
-            'limit' => 60,
-            'order' => array(
-                'AuthKey.name' => 'ASC'
-            )
+        'limit' => 60,
+        'order' => array(
+            'AuthKey.name' => 'ASC',
+        )
     );
 
     public function index($id = false)
@@ -28,8 +27,13 @@ class AuthKeysController extends AppController
             'filters' => ['User.username', 'authkey', 'comment', 'User.id'],
             'quickFilters' => ['authkey', 'comment'],
             'contain' => ['User'],
-            'exclude_fields' => ['authkey'],
             'conditions' => $conditions,
+            'afterFind' => function (array $authKeys) {
+                foreach ($authKeys as &$authKey) {
+                    unset($authKey['AuthKey']['authkey']);
+                }
+                return $authKeys;
+            }
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -86,14 +90,21 @@ class AuthKeysController extends AppController
 
     public function view($id = false)
     {
-        $this->set('menuData', array('menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions', 'menuItem' => 'authKeyView'));
         $this->CRUD->view($id, [
             'contain' => ['User.id', 'User.email'],
             'conditions' => $this->__prepareConditions(),
+            'afterFind' => function (array $authKey) {
+                unset($authKey['AuthKey']['authkey']);
+                return $authKey;
+            }
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        $this->set('menuData', [
+            'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
+            'menuItem' => 'authKeyView',
+        ]);
     }
 
     /**

@@ -43,6 +43,19 @@ usage () {
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
   echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"
+  echo -e ""
+  echo -e ""
+  echo -e "Interesting environment variables that get considered are:"
+  echo -e ""
+  echo -e "MISP_USER/MISP_PASSWORD # Local username on machine, default: misp/opensslGeneratedPassword"
+  echo -e ""
+  echo -e "PATH_TO_MISP # Where MISP will be installed, default: /var/www/MISP (recommended)"
+  echo -e ""
+  echo -e "DBHOST/DBNAME # database hostname, MISP database name, default: localhost/misp"
+  echo -e "DBUSER_ADMIN/DBPASSWORD_ADMIN # MySQL admin user, default: root/opensslGeneratedPassword"
+  echo -e "DBUSER_MISP/DBPASSWORD_MISP # MISP database user, default: misp/opensslGeneratedPassword"
+  echo -e ""
+  echo -e "You need to export the variable(s) to be taken into account. (or specified in-line when invoking INSTALL.sh)"
   space
 }
 

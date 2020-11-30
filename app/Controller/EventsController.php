@@ -1093,6 +1093,7 @@ class EventsController extends AppController
         $conditions['includeGranularCorrelations'] = 1;
         $conditions['includeEventCorrelations'] = false;
         $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
+        $conditions['noSightings'] = true;
         if (!empty($filters['includeRelatedTags'])) {
             $this->set('includeRelatedTags', 1);
             $conditions['includeRelatedTags'] = 1;
@@ -1174,7 +1175,8 @@ class EventsController extends AppController
             $filters['sort'] = 'timestamp';
             $filters['direction'] = 'desc';
         }
-        $sightingsData = $this->Event->getSightingData($event);
+        $this->loadModel('Sighting');
+        $sightingsData = $this->Sighting->eventsStatistic([$event], $this->Auth->user());
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, $all, $sightingsData);
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
@@ -1430,7 +1432,8 @@ class EventsController extends AppController
             }
         }
         unset($modificationMap);
-        $sightingsData = $this->Event->getSightingData($event);
+        $this->loadModel('Sighting');
+        $sightingsData = $this->Sighting->eventsStatistic([$event], $this->Auth->user());
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
@@ -1535,10 +1538,11 @@ class EventsController extends AppController
         }
 
         if ($this->_isRest()) {
-            $conditions['includeAttachments'] = true;
+            $conditions['includeAttachments'] = isset($this->params['named']['includeAttachments']) ? $this->params['named']['includeAttachments'] : true;
         } else {
             $conditions['includeAllTags'] = true;
             $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
+            $conditions['noSightings'] = true;
         }
         $deleted = 0;
         if (isset($this->params['named']['deleted'])) {

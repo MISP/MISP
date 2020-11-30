@@ -20,6 +20,7 @@
          */
         public function getTree(array $cluster)
         {
+            $relationCache = []; // Needed as some default clusters have the same UUID
             $treeRight = array(array(
                 'GalaxyCluster' => $cluster['GalaxyCluster'],
                 'children' => array()
@@ -48,7 +49,8 @@
             ));
             if (!empty($cluster['GalaxyCluster']['TargetingClusterRelation'])) {
                 foreach ($cluster['GalaxyCluster']['TargetingClusterRelation'] as $relation) {
-                    if (isset($relation['GalaxyCluster'])) { // not set if cluster is unkown
+                    if (isset($relation['GalaxyCluster']) && !isset($relationCache[$relation['GalaxyCluster']['uuid']])) { // not set if cluster is unkown
+                        $relationCache[$relation['GalaxyCluster']['uuid']] = true;
                         $tmp = array(
                             'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),
                             'children' => array(

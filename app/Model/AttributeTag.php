@@ -180,12 +180,25 @@ class AttributeTag extends AppModel
         }
     }
 
-    public function countForTag($tag_id, $user)
+    /**
+     * @param array $tagIds
+     * @param array $user - Currently ignored for performance reasons
+     * @return array
+     */
+    public function countForTags(array $tagIds, array $user)
     {
-        return $this->find('count', array(
+        if (empty($tagIds)) {
+            return [];
+        }
+        $this->virtualFields['attribute_count'] = 'COUNT(AttributeTag.id)';
+        $counts = $this->find('list', [
             'recursive' => -1,
-            'conditions' => array('AttributeTag.tag_id' => $tag_id)
-        ));
+            'fields' => ['AttributeTag.tag_id', 'attribute_count'],
+            'conditions' => ['AttributeTag.tag_id' => $tagIds],
+            'group' => ['AttributeTag.tag_id'],
+        ]);
+        unset($this->virtualFields['attribute_count']);
+        return $counts;
     }
 
     // Fetch all tags attached to attribute belonging to supplied event. No ACL if user not provided

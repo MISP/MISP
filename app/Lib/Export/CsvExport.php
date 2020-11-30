@@ -32,6 +32,7 @@ class CsvExport
 		));
 		unset($params['fields']);
 		$params['withAttachments'] = 0;
+		$params['includeContext'] = 0; // Needed as fetchAttributes override the Event entry
 		return $params;
 	}
 
@@ -140,9 +141,9 @@ class CsvExport
 		$attribute['event_analysis'] = $attribute_raw['Event']['analysis'];
 		$attribute['event_date'] = $attribute_raw['Event']['date'];
 		$attribute['event_timestamp'] = $attribute_raw['Event']['timestamp'];
-		if (!empty($attribute_raw['EventTag'])) {
+		if (!empty($attribute_raw['Event']['EventTag'])) {
 			$tags = array();
-			foreach ($attribute_raw['EventTag'] as $et) {
+			foreach ($attribute_raw['Event']['EventTag'] as $et) {
 				$tags[] = $et['Tag']['name'];
 			}
 			$tags = implode(',', $tags);

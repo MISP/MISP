@@ -9,7 +9,7 @@
                             <div class="templateGlass"></div>
                             <div class ="templateElementHeaderText" style="width:100%;">
                                 <div style="float:left;width:83%;"><?php echo $newsItem['User']['email'] ? h($newsItem['User']['email']) : 'Administrator'; ?></div>
-                                <div style="float:left;width:17%;"><?php echo date('Y/m/d H:i:s', $newsItem['News']['date_created']); ?></div>
+                                <div style="float:left;width:17%;"><?php echo date('Y-m-d H:i:s', $newsItem['News']['date_created']); ?></div>
                             </div>
                         </div>
                         <div style="padding:6px;">
@@ -21,7 +21,7 @@
                             ?>
                                     <br /><a href="<?php echo $baseurl; ?>/news/edit/<?php echo h($newsItem['News']['id']);?>" class="fa fa-edit" title="<?php echo __('Edit news message');?>" aria-label="<?php echo __('Edit');?>"></a>
                             <?php
-                                    echo $this->Form->postLink('', array('action' => 'delete', $newsItem['News']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete news item # %s?', $newsItem['News']['id']));
+                                    echo $this->Form->postLink('', array('action' => 'delete', $newsItem['News']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete news item #%s?', $newsItem['News']['id']));
                                 endif;
                             ?>
                         </div>
