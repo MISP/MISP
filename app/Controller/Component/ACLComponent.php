@@ -79,6 +79,16 @@ class ACLComponent extends Component
                 'index' => ['perm_auth'],
                 'view' => ['perm_auth']
             ],
+            'cerebrates' => [
+                'add' => [],
+                'delete' => [],
+                'download_org' => [],
+                'edit' => [],
+                'index' => [],
+                'preview_orgs' => [],
+                'pull_orgs' => [],
+                'view' => []
+            ],
             'dashboards' => array(
                 'getForm' => array('*'),
                 'index' => array('*'),
@@ -709,7 +719,7 @@ class ACLComponent extends Component
     );
 
     private $dynamicChecks = [];
-    
+
     public function __construct(ComponentCollection $collection, $settings = array())
     {
         parent::__construct($collection, $settings);
