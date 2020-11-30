@@ -40,7 +40,7 @@ App::uses('RequestRearrangeTool', 'Tools');
  * @property RestResponseComponent $RestResponse
  * @property CRUDComponent $CRUD
  * @property IndexFilterComponent $IndexFilter
- * @property User $User
+ * @property RateLimitComponent $RateLimit
  */
 class AppController extends Controller
 {
@@ -236,16 +236,17 @@ class AppController extends Controller
             }
         }
 
-        if ($this->Auth->user()) {
-            $user = $this->Auth->user();
+        $user = $this->Auth->user();
+        if ($user) {
             Configure::write('CurrentUserId', $user['id']);
             $this->__logAccess($user);
+
             // update script
             if ($user['Role']['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
-                $this->{$this->modelClass}->runUpdates();
+                $this->User->runUpdates();
             }
 
-            if (!$this->__verifyUser($this->User, $user))  {
+            if (!$this->__verifyUser($user))  {
                 $this->_stop(); // just for sure
             }
 
@@ -261,29 +262,14 @@ class AppController extends Controller
                     ini_set('max_execution_time', $user['Role']['max_execution_time']);
                 }
             }
-        } else {
-            $pre_auth_actions = array('login', 'register', 'getGpgPublicKey');
-            if (!empty(Configure::read('Security.email_otp_enabled'))) {
-                $pre_auth_actions[] = 'email_otp';
-            }
-            if (!$this->_isControllerAction(['users' => $pre_auth_actions])) {
-                if (!$this->request->is('ajax')) {
-                    $this->Session->write('pre_login_requested_url', $this->here);
-                }
-                $this->_redirectToLogin();
-            }
-        }
 
-        // We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
-        if ($this->Auth->user()) {
-            $user = $this->Auth->user();
             $this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
             $this->set('mispVersionFull', $this->mispVersion);
-            $role = $user['Role'];
             $this->set('me', $user);
+            $role = $user['Role'];
             $this->set('isAdmin', $role['perm_admin']);
             $this->set('isSiteAdmin', $role['perm_site_admin']);
-            $this->set('hostOrgUser', $this->Auth->user('org_id') == Configure::read('MISP.host_org_id'));
+            $this->set('hostOrgUser', $user['org_id'] == Configure::read('MISP.host_org_id'));
             $this->set('isAclAdd', $role['perm_add']);
             $this->set('isAclModify', $role['perm_modify']);
             $this->set('isAclModifyOrg', $role['perm_modify_org']);
@@ -306,10 +292,21 @@ class AppController extends Controller
             $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 
-            $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
+            $this->set('loggedInUserName', $this->__convertEmailToName($user['email']));
             $this->__accessMonitor($user);
 
         } else {
+            $pre_auth_actions = array('login', 'register', 'getGpgPublicKey');
+            if (!empty(Configure::read('Security.email_otp_enabled'))) {
+                $pre_auth_actions[] = 'email_otp';
+            }
+            if (!$this->_isControllerAction(['users' => $pre_auth_actions])) {
+                if (!$this->request->is('ajax')) {
+                    $this->Session->write('pre_login_requested_url', $this->here);
+                }
+                $this->_redirectToLogin();
+            }
+
             $this->set('me', false);
         }
 
@@ -459,11 +456,10 @@ class AppController extends Controller
      *  - must change password
      *  - reads latest news
      *
-     * @param User $userModel
      * @param array $user
      * @return bool
      */
-    private function __verifyUser(User $userModel, array $user)
+    private function __verifyUser(array $user)
     {
         // Skip these checks for 'checkIfLoggedIn' action to make that call fast
         if ($this->_isControllerAction(['users' => ['checkIfLoggedIn']])) {
@@ -471,7 +467,7 @@ class AppController extends Controller
         }
 
         // Load last user profile modification from database
-        $userFromDb = $userModel->find('first', [
+        $userFromDb = $this->User->find('first', [
             'conditions' => ['id' => $user['id']],
             'recursive' =>  -1,
             'fields' => ['date_modified'],
@@ -520,8 +516,8 @@ class AppController extends Controller
 
         // Force logout doesn't make sense for API key authentication
         if (!$this->isApiAuthed && $user['force_logout']) {
-            $userModel->id = $user['id'];
-            $userModel->saveField('force_logout', false);
+            $this->User->id = $user['id'];
+            $this->User->saveField('force_logout', false);
             $this->Auth->logout();
             $this->_redirectToLogin();
             return false;
@@ -690,7 +686,7 @@ class AppController extends Controller
 
     public function afterFilter()
     {
-        if ($this->isApiAuthed && $this->_isRest() &&!Configure::read('Security.authkey_keep_session')) {
+        if ($this->isApiAuthed && $this->_isRest() && !Configure::read('Security.authkey_keep_session')) {
             $this->Session->destroy();
         }
     }
