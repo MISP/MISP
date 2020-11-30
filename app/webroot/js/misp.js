@@ -1244,7 +1244,7 @@ function openGenericModal(url, modalData, callback) {
                     callback();
                 }
             });
-            
+
         },
         error: function (data, textStatus, errorThrown) {
             showMessage('fail', textStatus + ": " + errorThrown);
@@ -2206,7 +2206,7 @@ function runIndexFilter(element) {
     window.location.href = url;
 }
 
-function runIndexQuickFilter(preserveParams) {
+function runIndexQuickFilter(preserveParams, url, target) {
     if (!passedArgsArray) {
         var passedArgsArray = [];
     }
@@ -2217,16 +2217,43 @@ function runIndexQuickFilter(preserveParams) {
     if ( $('#quickFilterField').val().trim().length > 0){
         passedArgsArray[searchKey] = encodeURIComponent($('#quickFilterField').val().trim());
     }
-    url = here;
+    if (typeof url === "undefined") {
+        url = here;
+    }
     if (typeof preserveParams !== "undefined") {
+        preserveParams = String(preserveParams);
+        if (!preserveParams.startsWith('/')) {
+            preserveParams = '/' + preserveParams;
+        }
         url += preserveParams;
     }
     for (var key in passedArgsArray) {
-        if (key !== 'page') {
+        if (typeof key == 'number') {
+            url += "/" + passedArgsArray[key];
+        } else if (key !== 'page') {
             url += "/" + key + ":" + passedArgsArray[key];
         }
     }
-    window.location.href = url;
+    if (target !== undefined) {
+        $.ajax({
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
+                $(target).html(data);
+            },
+            error: function() {
+                showMessage('fail', 'Could not fetch the requested data.');
+            },
+            complete: function() {
+                $(".loading").hide();
+            },
+            type: "get",
+            url: url
+        });
+    } else {
+        window.location.href = url;
+    }
 }
 
 function executeFilter(passedArgs, url) {
