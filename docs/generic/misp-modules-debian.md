@@ -7,8 +7,14 @@ mispmodules () {
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   ## TODO: checkUsrLocalSrc in main doc
-  debug "Cloning misp-modules"
-  false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/MISP/misp-modules.git; done
+  if [[ ! -d /usr/local/src/misp-modules ]]; then
+    debug "Cloning misp-modules"
+    false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/MISP/misp-modules.git; done
+  else
+    false; while [[ $? -ne 0 ]]; do $SUDO_CMD git -C /usr/local/src/misp-modules pull; done
+  fi
+
+  # Install faup/gtcaca
   [[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/faup.git faup; done
   [[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca; done
   sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
@@ -18,14 +24,15 @@ mispmodules () {
   cd build
   $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
-  cd ../../faup
+  cd /usr/loca/src/faup
   # Install faup
   $SUDO_CMD mkdir -p build
   cd build
   $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
   sudo ldconfig
-  cd ../../misp-modules
+
+  cd /usr/local/src/misp-modules
   # some misp-modules dependencies
   sudo apt install libpq5 libjpeg-dev tesseract-ocr libpoppler-cpp-dev imagemagick libopencv-dev zbar-tools libzbar0 libzbar-dev libfuzzy-dev -y
   # If you build an egg, the user you build it as need write permissions in the CWD
@@ -34,10 +41,9 @@ mispmodules () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
-  ## sudo gem install asciidoctor-pdf --pre
 
   # Start misp-modules as a service
-  sudo cp etc/systemd/system/misp-modules.service /etc/systemd/system/
+  sudo cp /usr/local/src/misp-modules/etc/systemd/system/misp-modules.service /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now misp-modules
 
