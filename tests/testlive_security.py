@@ -3,7 +3,7 @@ import os
 import sys
 import json
 import unittest
-from typing import Union
+from typing import Union, List
 import urllib3  # type: ignore
 import logging
 import uuid
@@ -14,7 +14,7 @@ from lxml.html import fromstring
 from enum import Enum
 
 try:
-    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent
+    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog
     from pymisp.exceptions import PyMISPError, NoKey, MISPServerError
 except ImportError:
     if sys.version_info < (3, 6):
@@ -825,6 +825,90 @@ class TestSecurity(unittest.TestCase):
         with self.__setting(config):
             PyMISP(url, self.test_usr.authkey)
 
+    def test_user_monitoring_enabled_no_user(self):
+        request_logs_before = self.__get_logs(action="request")
+
+        with MISPSetting(self.admin_misp_connector, "Security.user_monitoring_enabled", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            check_response(logged_in.get_user())
+
+        request_logs_after = self.__get_logs(action="request")
+        # Number of logs should be same, because user is not monitored
+        self.assertEqual(len(request_logs_after), len(request_logs_before))
+
+    def test_user_monitoring_enabled_add_user(self):
+        request_logs_before = self.__get_logs(action="request")
+
+        with MISPSetting(self.admin_misp_connector, "Security.user_monitoring_enabled", True):
+            # Enable monitoring of test user
+            send(self.admin_misp_connector, "POST", f"/admin/users/monitor/{self.test_usr.id}", {
+                "value": 1,
+            })
+
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            check_response(logged_in.get_user())
+
+            # Disable monitoring of test user
+            send(self.admin_misp_connector, "POST", f"/admin/users/monitor/{self.test_usr.id}", {
+                "value": 0,
+            })
+
+        request_logs_after = self.__get_logs(action="request")
+        self.assertGreater(len(request_logs_after), len(request_logs_before))
+
+    def test_log_paranoid(self):
+        request_logs_before = self.__get_logs(action="request")
+
+        with MISPSetting(self.admin_misp_connector, "MISP.log_paranoid", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            check_response(logged_in.get_user())
+
+        request_logs_after = self.__get_logs(action="request")
+        self.assertGreater(len(request_logs_after), len(request_logs_before), "Number of logs should be greater")
+
+    def test_log_paranoid_include_post_body(self):
+        request_logs_before = self.__get_logs(action="request")
+
+        with MISPComplexSetting({
+            "MISP": {
+                "log_paranoid": True,
+                "log_paranoid_include_post_body": True,
+            }
+        }):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            check_response(logged_in.get_user())
+
+        request_logs_after = self.__get_logs(action="request")
+        self.assertGreater(len(request_logs_after), len(request_logs_before), "Number of logs should be greater")
+
+    def test_log_paranoid_skip_db(self):
+        request_logs_before = self.__get_logs(action="request")
+
+        with MISPComplexSetting({
+            "MISP": {
+                "log_paranoid": True,
+                "log_paranoid_skip_db": True,
+            }
+        }):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            check_response(logged_in.get_user())
+
+        request_logs_after = self.__get_logs(action="request")
+        # Number of logs should be same, because saving to database is disabled
+        self.assertEqual(len(request_logs_after), len(request_logs_before))
+
+    def test_log_auth_fail_multiple(self):
+        request_logs_before = self.__get_logs(action="auth_fail")
+
+        with self.assertRaises(PyMISPError):
+            PyMISP(url, "JCZDbBr3wYPlY0DrlQzoD8EWrcClGc0Dqu2yMYyE")
+        with self.assertRaises(PyMISPError):
+            PyMISP(url, "JCZDbBr3wYPlY0DrlQzoD8EWrcClGc0Dqu2yMYyE")
+
+        request_logs_after = self.__get_logs(action="auth_fail")
+        # Just one new record should be logged for multiple tries with same key
+        self.assertEqual(len(request_logs_after), len(request_logs_before) + 1)
+
     def test_sg_index_user_cannot_see(self):
         org = self.__create_org()
         hidden_sg = self.__create_sharing_group()
@@ -1124,6 +1208,11 @@ class TestSecurity(unittest.TestCase):
 
     def __delete_advanced_authkey(self, key_id: int):
         return send(self.admin_misp_connector, "POST", f'authKeys/delete/{key_id}')
+
+    def __get_logs(self, action: str) -> List[MISPLog]:
+        response = self.admin_misp_connector.search_logs(action=action)
+        check_response(response)
+        return response
 
     def __setting(self, key, value=None) -> MISPSetting:
         if not isinstance(key, dict):

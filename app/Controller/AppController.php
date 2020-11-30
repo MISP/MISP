@@ -195,7 +195,7 @@ class AppController extends Controller
         }
         Configure::write('CurrentController', $this->params['controller']);
         Configure::write('CurrentAction', $this->params['action']);
-        $versionArray = $this->{$this->modelClass}->checkMISPVersion();
+        $versionArray = $this->User->checkMISPVersion();
         $this->mispVersion = implode('.', array_values($versionArray));
         $this->Security->blackHoleCallback = 'blackHole';
 
@@ -236,11 +236,10 @@ class AppController extends Controller
             }
         }
 
-        $userMonitoringEnabled = false;
         if ($this->Auth->user()) {
             $user = $this->Auth->user();
             Configure::write('CurrentUserId', $user['id']);
-            $userMonitoringEnabled = $this->__accessMonitor($user);
+            $this->__logAccess($user);
             // update script
             if ($user['Role']['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->{$this->modelClass}->runUpdates();
@@ -277,10 +276,11 @@ class AppController extends Controller
 
         // We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
         if ($this->Auth->user()) {
+            $user = $this->Auth->user();
             $this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
             $this->set('mispVersionFull', $this->mispVersion);
-            $role = $this->Auth->user('Role');
-            $this->set('me', $this->Auth->user());
+            $role = $user['Role'];
+            $this->set('me', $user);
             $this->set('isAdmin', $role['perm_admin']);
             $this->set('isSiteAdmin', $role['perm_site_admin']);
             $this->set('hostOrgUser', $this->Auth->user('org_id') == Configure::read('MISP.host_org_id'));
@@ -307,41 +307,8 @@ class AppController extends Controller
             $this->userRole = $role;
 
             $this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
+            $this->__accessMonitor($user);
 
-            if (
-                Configure::read('MISP.log_paranoid') ||
-                $userMonitoringEnabled
-            ) {
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
-                if (
-                    (
-                        $this->request->is('post') ||
-                        $this->request->is('put')
-                    ) &&
-                    (
-                        !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
-                        $userMonitoringEnabled
-                    )
-                ) {
-                    $payload = $this->request->input();
-                    if (!empty($payload['_Token'])) {
-                        unset($payload['_Token']);
-                    }
-                    $change .= PHP_EOL . 'Request body: ' . json_encode($payload);
-                }
-                $log = array(
-                        'org' => $this->Auth->user('Organisation')['name'],
-                        'model' => 'User',
-                        'model_id' => $this->Auth->user('id'),
-                        'email' => $this->Auth->user('email'),
-                        'action' => 'request',
-                        'title' => 'Paranoid log entry',
-                        'change' => $change,
-                );
-                $this->Log->save($log);
-            }
         } else {
             $this->set('me', false);
         }
@@ -381,9 +348,9 @@ class AppController extends Controller
         // Notifications and homepage is not necessary for AJAX or REST requests
         if ($this->Auth->user() && !$this->_isRest() && !$this->request->is('ajax')) {
             if ($this->request->params['controller'] === 'users' && $this->request->params['action'] === 'dashboard') {
-                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
+                $notifications = $this->User->populateNotifications($this->Auth->user());
             } else {
-                $notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user(), 'fast');
+                $notifications = $this->User->populateNotifications($this->Auth->user(), 'fast');
             }
             $this->set('notifications', $notifications);
 
@@ -458,7 +425,7 @@ class AppController extends Controller
                 } else {
                     // User not authenticated correctly
                     // reset the session information
-                    $redis = $this->{$this->modelClass}->setupRedis();
+                    $redis = $this->User->setupRedis();
                     // Do not log every fail, but just once per hour
                     if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $authKeyToStore)) {
                         $redis->setex('misp:auth_fail_throttling:' . $authKeyToStore, 3600, 1);
@@ -623,48 +590,74 @@ class AppController extends Controller
     /**
      * User access monitoring
      * @param array $user
-     * @return bool True is user monitoring is enabled
      */
-    private function __accessMonitor(array $user)
+    private function __logAccess(array $user)
     {
-        $userMonitoringEnabled = Configure::read('Security.user_monitoring_enabled');
         $logUserIps = Configure::read('MISP.log_user_ips');
-
-        if (!$userMonitoringEnabled && !$logUserIps)  {
-            return false;
+        if (!$logUserIps)  {
+            return;
         }
 
         $redis = $this->User->setupRedis();
         if (!$redis) {
-            return false;
+            return;
         }
 
-        if ($logUserIps) {
-            $remoteAddress = trim($_SERVER['REMOTE_ADDR']);
+        $remoteAddress = trim($_SERVER['REMOTE_ADDR']);
 
-            $pipe = $redis->multi(Redis::PIPELINE);
-            // keep for 30 days
-            $pipe->setex('misp:ip_user:' . $remoteAddress, 60 * 60 * 24 * 30, $user['id']);
-            $pipe->sadd('misp:user_ip:' . $user['id'], $remoteAddress);
+        $pipe = $redis->multi(Redis::PIPELINE);
+        // keep for 30 days
+        $pipe->setex('misp:ip_user:' . $remoteAddress, 60 * 60 * 24 * 30, $user['id']);
+        $pipe->sadd('misp:user_ip:' . $user['id'], $remoteAddress);
 
-            // Log key usage if enabled
-            if (isset($user['authkey_id']) && Configure::read('MISP.log_user_ips_auth')) {
-                // Use request time if defined
-                $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
-                $hashKey = date("Y-m-d", $time) . ":$remoteAddress";
-                $pipe->hIncrBy("misp:authkey_usage:{$user['authkey_id']}", $hashKey, 1);
-                // delete after one year of inactivity
-                $pipe->expire("misp:authkey_usage:{$user['authkey_id']}", 3600 * 24 * 365);
-                $pipe->set("misp:authkey_last_usage:{$user['authkey_id']}", $time);
+        // Log key usage if enabled
+        if (isset($user['authkey_id']) && Configure::read('MISP.log_user_ips_auth')) {
+            // Use request time if defined
+            $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
+            $hashKey = date("Y-m-d", $time) . ":$remoteAddress";
+            $pipe->hIncrBy("misp:authkey_usage:{$user['authkey_id']}", $hashKey, 1);
+            // delete after one year of inactivity
+            $pipe->expire("misp:authkey_usage:{$user['authkey_id']}", 3600 * 24 * 365);
+            $pipe->set("misp:authkey_last_usage:{$user['authkey_id']}", $time);
+        }
+        $pipe->exec();
+    }
+
+    /**
+     * @param array $user
+     * @throws Exception
+     */
+    private function __accessMonitor(array $user)
+    {
+        $userMonitoringEnabled = Configure::read('Security.user_monitoring_enabled');
+        if ($userMonitoringEnabled) {
+            $redis = $this->User->setupRedis();
+            $userMonitoringEnabled = $redis && $redis->sismember('misp:monitored_users', $user['id']);
+        }
+
+        if (Configure::read('MISP.log_paranoid') || $userMonitoringEnabled) {
+            $change = 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here;
+            if (
+                (
+                    $this->request->is('post') ||
+                    $this->request->is('put')
+                ) &&
+                (
+                    !empty(Configure::read('MISP.log_paranoid_include_post_body')) ||
+                    $userMonitoringEnabled
+                )
+            ) {
+                $payload = $this->request->input();
+                unset($payload['_Token']);
+                $change .= PHP_EOL . 'Request body: ' . json_encode($payload);
             }
-            $pipe->exec();
+            $this->Log = ClassRegistry::init('Log');
+            try {
+                $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
+            } catch (Exception $e) {
+                // When `MISP.log_skip_db_logs_completely` is enabled, Log::createLogEntry method throws exception
+            }
         }
-
-        // Return true for the current user if monitoring of this user is enabled in Redis.
-        if ($userMonitoringEnabled && $redis->sismember('misp:monitored_users', $user['id'])) {
-            return true;
-        }
-        return false;
     }
 
     private function __rateLimitCheck()
