@@ -326,14 +326,19 @@ class Sighting extends AppModel
         // Returns date in `Y-m-d` format
         $this->virtualFields['date_sighting'] = $this->dateVirtualColumn();
         $this->virtualFields['sighting_count'] = 'COUNT(id)';
+        $this->virtualFields['last_timestamp'] = 'MAX(date_sighting)';
         $groupedSightings = $this->find('all', array(
             'conditions' => $conditions,
-            'fields' => ['org_id', 'attribute_id', 'type', 'date_sighting', 'date_sighting as last_timestamp', 'sighting_count'],
+            'fields' => ['org_id', 'attribute_id', 'type', 'date_sighting', 'last_timestamp', 'sighting_count'],
             'recursive' => -1,
             'group' => ['org_id', 'attribute_id', 'type', 'date_sighting'],
             'order' => ['date_sighting'], // from oldest
         ));
-        unset($this->virtualFields['date_sighting'], $this->virtualFields['sighting_count']);
+        unset(
+            $this->virtualFields['date_sighting'],
+            $this->virtualFields['sighting_count'],
+            $this->virtualFields['last_timestamp']
+        );
         return $this->attachOrgToSightings($groupedSightings, $user, false);
     }
 
