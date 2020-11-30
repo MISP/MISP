@@ -762,6 +762,37 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'element_id' => 'id_translator'
                         ));
                     }
+                    echo $divider;
+                    if ($canAccess('cerebrates', 'index')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/cerebrates/index',
+                            'text' => __('List Cerebrates'),
+                            'element_id' => 'list_cerebrates'
+                        ));
+                    }
+                    if (in_array($menuItem, ['edit_cerebrate', 'view_cerebrate'])) {
+                        if ($canAccess('cerebrates', 'view')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => $baseurl . '/cerebrates/view/' . h($id),
+                                'text' => __('View Cerebrate'),
+                                'element_id' => 'view_cerebrate'
+                            ));
+                        }
+                        if ($canAccess('cerebrates', 'edit')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => $baseurl . '/cerebrates/edit/' . h($id),
+                                'text' => __('Edit Cerebrate'),
+                                'element_id' => 'edit_cerebrate'
+                            ));
+                        }
+                    }
+                    if (in_array($menuItem, ['add_cerebrate', 'edit_cerebrate', 'list_cerebrates', 'view_cerebrate'])  && $canAccess('cerebrates', 'add')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/cerebrates/add',
+                            'text' => __('Add Cerebrate'),
+                            'element_id' => 'add_cerebrates'
+                        ));
+                    }
                     break;
 
                 case 'admin':
@@ -1246,7 +1277,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'element_id' => 'index_blocklist',
                             'url' => $baseurl . '/galaxy_cluster_blocklists/index',
                             'text' => __('List Cluster Blocklists')
-                        )); 
+                        ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'relationship_index',
@@ -1410,14 +1441,14 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'element_id' => 'index_blocklist',
                             'url' => $baseurl . '/galaxy_cluster_blocklists/index',
                             'text' => __('List Cluster Blocklists')
-                        )); 
+                        ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'index',
                         'url' => $baseurl . '/galaxy_cluster_relations/index',
                         'text' => __('List Relationships')
                     ));
-                    if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) { 
+                    if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
