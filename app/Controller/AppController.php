@@ -73,6 +73,9 @@ class AppController extends Controller
 
     protected $_legacyParams = array();
 
+    /** @var User */
+    public $User;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -154,8 +157,8 @@ class AppController extends Controller
 
         $this->set('ajax', $this->request->is('ajax'));
         $this->set('queryVersion', $this->__queryVersion);
-        $this->loadModel('User');
-        $auth_user_fields = $this->User->describeAuthFields();
+        $this->User = ClassRegistry::init('User');
+
         $language = Configure::read('MISP.language');
         if (!empty($language) && $language !== 'eng') {
             Configure::write('Config.language', $language);
@@ -174,18 +177,19 @@ class AppController extends Controller
             $this->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
         }
         // check if Apache provides kerberos authentication data
+        $authUserFields = $this->User->describeAuthFields();
         $envvar = Configure::read('ApacheSecureAuth.apacheEnv');
-        if (isset($_SERVER[$envvar])) {
+        if ($envvar && isset($_SERVER[$envvar])) {
             $this->Auth->className = 'ApacheSecureAuth';
             $this->Auth->authenticate = array(
                 'Apache' => array(
                     // envvar = field returned by Apache if user is authenticated
                     'fields' => array('username' => 'email', 'envvar' => $envvar),
-                    'userFields' => $auth_user_fields
+                    'userFields' => $authUserFields,
                 )
             );
         } else {
-            $this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
+            $this->Auth->authenticate[AuthComponent::ALL]['userFields'] = $authUserFields;
         }
         if (!empty($this->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
@@ -1152,13 +1156,24 @@ class AppController extends Controller
         $this->redirect($targetRoute);
     }
 
-    protected function _loadAuthenticationPlugins() {
+    /**
+     * @throws Exception
+     */
+    protected function _loadAuthenticationPlugins()
+    {
         // load authentication plugins from Configure::read('Security.auth')
         $auth = Configure::read('Security.auth');
-
-        if (!$auth) return;
-
+        if (!$auth) {
+            return;
+        }
+        if (!is_array($auth)) {
+            throw new Exception("`Security.auth` config value must be array.");
+        }
         $this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+        // Disable Form authentication
+        if (Configure::read('Security.auth_enforced')) {
+            unset($this->Auth->authenticate['Form']);
+        }
         if ($this->Auth->startup($this)) {
             $user = $this->Auth->user();
             if ($user) {

@@ -1139,24 +1139,8 @@ class UsersController extends AppController
             if (!empty($this->request->data['User']['email'])) {
                 if ($this->Bruteforce->isBlocklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
                     $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
-                    throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . Configure::read('SecureAuth.expire') . ' seconds and try again.');
+                    throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
                 }
-            }
-            // Check the length of the user's authkey
-            $userPass = $this->User->find('first', array(
-                'conditions' => array('User.email' => $this->request->data['User']['email']),
-                'fields' => array('User.password'),
-                'recursive' => -1
-            ));
-            if (!empty($userPass) && strlen($userPass['User']['password']) == 40) {
-                $this->AdminSetting = ClassRegistry::init('AdminSetting');
-                $db_version = $this->AdminSetting->find('all', array('conditions' => array('setting' => 'db_version')));
-                $versionRequirementMet = $this->User->checkVersionRequirements($db_version[0]['AdminSetting']['value'], '2.4.77');
-                if ($versionRequirementMet) {
-                    $passwordToSave = $this->request->data['User']['password'];
-                }
-                unset($this->Auth->authenticate['Form']['passwordHasher']);
-                $this->Auth->constructAuthenticate();
             }
         }
         if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
@@ -1166,6 +1150,9 @@ class UsersController extends AppController
               return $this->redirect('email_otp');
             }
         }
+        $formLoginEnabled = isset($this->Auth->authenticate['Form']);
+        $this->set('formLoginEnabled', $formLoginEnabled);
+
         if ($this->Auth->login()) {
             $this->_postlogin();
         } else {

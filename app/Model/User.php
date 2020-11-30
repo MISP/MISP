@@ -862,18 +862,19 @@ class User extends AppModel
         return $gpgTool->fetchGpgKey($fingerprint);
     }
 
+    /**
+     * Returns fields that should be fetched from database.
+     * @return array
+     */
     public function describeAuthFields()
     {
-        $fields = array();
-        $fields = array_merge($fields, array_keys($this->getColumnTypes()));
-        foreach ($fields as $k => $field) {
-            if (in_array($field, array('gpgkey', 'certif_public'))) {
-                unset($fields[$k]);
-            }
-        }
-        $fields = array_values($fields);
-        $relatedModels = array_keys($this->belongsTo);
-        foreach ($relatedModels as $relatedModel) {
+        $fields = $this->schema();
+        // Do not include keys, because they are big and usually not necessary
+        unset($fields['gpgkey']);
+        unset($fields['certif_public']);
+        $fields = array_keys($fields);
+
+        foreach ($this->belongsTo as $relatedModel => $foo) {
             $fields[] = $relatedModel . '.*';
         }
         return $fields;
