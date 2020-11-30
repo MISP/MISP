@@ -32,7 +32,7 @@ class AuthKeysController extends AppController
             'contain' => ['User.id', 'User.email'],
             'conditions' => $conditions,
             'afterFind' => function (array $authKeys) {
-                $keyUsageEnabled = Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_auth');
+                $keyUsageEnabled = Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_authkeys');
                 foreach ($authKeys as &$authKey) {
                     if ($keyUsageEnabled) {
                         $lastUsed = $this->AuthKey->getKeyUsage($authKey['AuthKey']['id'])[1];
@@ -110,7 +110,7 @@ class AuthKeysController extends AppController
             return $this->restResponsePayload;
         }
 
-        if (Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_auth')) {
+        if (Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_authkeys')) {
             list($keyUsage, $lastUsed) = $this->AuthKey->getKeyUsage($id);
             $this->set('keyUsage', $keyUsage);
             $this->set('lastUsed', $lastUsed);

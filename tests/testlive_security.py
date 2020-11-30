@@ -909,6 +909,21 @@ class TestSecurity(unittest.TestCase):
         # Just one new record should be logged for multiple tries with same key
         self.assertEqual(len(request_logs_after), len(request_logs_before) + 1)
 
+    def test_log_user_ips(self):
+        with MISPSetting(self.admin_misp_connector, "MISP.log_user_ips", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            check_response(logged_in.get_user())
+
+    def test_log_user_ips_auth(self):
+        with MISPComplexSetting({
+            "MISP": {
+                "log_user_ips": True,
+                "log_user_ips_authkeys": True,
+            }
+        }):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            check_response(logged_in.get_user())
+
     def test_sg_index_user_cannot_see(self):
         org = self.__create_org()
         hidden_sg = self.__create_sharing_group()

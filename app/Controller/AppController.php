@@ -611,7 +611,7 @@ class AppController extends Controller
         $pipe->sadd('misp:user_ip:' . $user['id'], $remoteAddress);
 
         // Log key usage if enabled
-        if (isset($user['authkey_id']) && Configure::read('MISP.log_user_ips_auth')) {
+        if (isset($user['authkey_id']) && Configure::read('MISP.log_user_ips_authkeys')) {
             // Use request time if defined
             $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
             $hashKey = date("Y-m-d", $time) . ":$remoteAddress";

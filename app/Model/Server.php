@@ -865,6 +865,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'null' => true
                         ),
+                        'log_user_ips_authkeys' => [
+                            'level' => self::SETTING_RECOMMENDED,
+                            'description' => __('Log user IP and key usage on each API request. All logs for given keys are deleted after one year when this key is not used.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ],
                         'delegation' => array(
                                 'level' => 1,
                                 'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
