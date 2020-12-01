@@ -636,7 +636,7 @@ upgrade () {
   Autho="Authorization:"
   CT="Content-Type:"
   MISP_BASEURL="https://127.0.0.1"
-  cd $PATH_TO_MISP/app ; $SUDO_WWW php composer.phar update $SUDO_WWW php composer.phar self-update
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar update ; php composer.phar self-update"
 
   for URN in $(echo "galaxies warninglists noticelists objectTemplates taxonomies"); do
     curl --header "$Autho $AUTH_KEY" --header "$Acc $headerJSON" --header "$CT $headerJSON" -k -X POST $MISP_BASEURL/$URN/update
@@ -891,7 +891,7 @@ installDeps () {
   mariadb-server \
   apache2 apache2-doc apache2-utils \
   python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
-  libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools expect
+  libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 
   installRNG
 }
@@ -1017,7 +1017,7 @@ gitPullAllRCLOCAL () {
 
 # Main composer function
 composer () {
-  sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
   ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install"
 }
 
@@ -1185,8 +1185,6 @@ installCoreDeps () {
 
   # install Mitre's STIX and its dependencies by running the following commands:
   sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
-
-  sudo apt install expect -qy
 }
 
 # Install Php 7.4 dependencies
@@ -1371,20 +1369,18 @@ installCore () {
     sudo mkdir /var/www/.cache/
     sudo chown ${WWW_USER}:${WWW_USER} /var/www/.cache
 
-    PATH_TO_MISP_SCRIPTS=${PATH_TO_MISP}/app/files/scripts
-    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/CybOXProject/python-cybox.git ${PATH_TO_MISP_SCRIPTS}/python-cybox; done
-    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/STIXProject/python-stix.git ${PATH_TO_MISP_SCRIPTS}/python-stix; done
-    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/MAECProject/python-maec.git ${PATH_TO_MISP_SCRIPTS}/python-maec; done
-    false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/CybOXProject/mixbox.git ${PATH_TO_MISP_SCRIPTS}/mixbox; done
+    for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
+      false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/${dependency}.git ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}; done
+      ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} config core.filemode false
+      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP_SCRIPTS}/${dependency##/*}
+    done
 
-    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/mixbox
-    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/python-cybox
-    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/python-maec
-    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/app/files/scripts/python-stix
+    debug "Install python-stix2"
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/cti-python-stix2
 
     debug "Install PyMISP"
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP}/PyMISP
+
     # FIXME: Remove libfaup etc once the egg has the library baked-in
     sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
     cd /tmp
@@ -1421,17 +1417,13 @@ installCore () {
     debug "Trying to git pull existing install"
     ${SUDO_WWW} git pull -C ${PATH_TO_MISP}
     false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP} submodule update --progress --init --recursive; done
-    PATH_TO_MISP_SCRIPTS=${PATH_TO_MISP}/app/files/scripts
-    false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/python-cybox pull; done
-    false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/python-stix pull; done
-    false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/python-maec pull; done
-    false; while [[ $? -ne 0 ]]; do ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/mixbox pull; done
 
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U setuptools pip lief zmq redis python-magic plyara
-    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/app/files/scripts/mixbox
-    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/app/files/scripts/python-cybox
-    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/app/files/scripts/python-maec
-    ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/app/files/scripts/python-stix
+    for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
+      false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} pull; done
+      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP_SCRIPTS}/${dependency##/*}
+    done
+
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/cti-python-stix2
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/PyMISP
     false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U git+https://github.com/kbandla/pydeep.git; done
@@ -1440,13 +1432,10 @@ fi
 
 installCake () {
   debug "Installing CakePHP"
-  # Once done, install CakeResque along with its dependencies 
-  # if you intend to use the built in background jobs:
-  cd ${PATH_TO_MISP}/app
   # Make composer cache happy
   # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
-  sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
-  ${SUDO_WWW} php composer.phar install
+  sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ;php composer.phar install"
 
   # Enable CakeResque with php-redis
   sudo phpenmod redis
