@@ -1603,7 +1603,16 @@ class Server extends AppModel
                             'test' => 'testBool',
                             'type' => 'boolean',
                             'null' => true
-                        )
+                        ),
+                    'username_in_response_header' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('When enabled, logged in username will be included in X-Username HTTP response header. This is useful for request logging on webserver/proxy side.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => true
+                    ]
                 ),
                 'SecureAuth' => array(
                         'branch' => 1,
@@ -4934,6 +4943,7 @@ class Server extends AppModel
 
     public function dbSchemaDiagnostic()
     {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $actualDbVersion = $this->AdminSetting->find('first', array(
             'conditions' => array('setting' => 'db_version')
         ))['AdminSetting']['value'];

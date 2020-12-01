@@ -51,6 +51,10 @@ class AuthKey extends AppModel
         return true;
     }
 
+    /**
+     * @param string $authkey
+     * @return array|false
+     */
     public function getAuthUserByAuthKey($authkey)
     {
         $start = substr($authkey, 0, 4);

@@ -241,9 +241,19 @@ class AppController extends Controller
             Configure::write('CurrentUserId', $user['id']);
             $this->__logAccess($user);
 
-            // update script
+            // If user is site admin, try to run updates
             if ($user['Role']['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->User->runUpdates();
+            }
+
+            // Put username to response header for webserver or proxy logging
+            if (Configure::read('Security.username_in_response_header')) {
+                $headerValue = $user['email'];
+                if (isset($user['logged_by_authkey']) && $user['logged_by_authkey']) {
+                    $headerValue .= isset($user['authkey_id']) ? "/API/{$user['authkey_id']}" :  '/API/default';
+                }
+                $this->response->header('X-Username', $headerValue);
+                $this->RestResponse->setHeader('X-Username', $headerValue);
             }
 
             if (!$this->__verifyUser($user))  {
@@ -930,6 +940,7 @@ class AppController extends Controller
         if (!$user['Role']['perm_auth']) {
             return false;
         }
+        $user['logged_by_authkey'] = true;
         return $user;
     }
 

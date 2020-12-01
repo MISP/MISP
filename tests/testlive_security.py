@@ -45,7 +45,7 @@ def check_response(response):
         raise Exception(response["errors"])
 
 
-def login(url: str, email: str, password: str) -> bool:
+def login(url: str, email: str, password: str) -> requests.Session:
     session = requests.Session()
 
     r = session.get(url)
@@ -77,7 +77,7 @@ def login(url: str, email: str, password: str) -> bool:
     r = r.json()
     if email != r["User"]["email"]:
         raise Exception(r)  # logged in as different user
-    return True
+    return session
 
 
 class MISPSetting:
@@ -166,7 +166,7 @@ class TestSecurity(unittest.TestCase):
         # Try to connect as user to check if everything works
         PyMISP(url, cls.test_usr.authkey)
         # Check if user can login with given password
-        assert login(url, cls.test_usr.email, cls.test_usr_password)
+        assert login(url, cls.test_usr.email, cls.test_usr_password) is not False
 
     @classmethod
     def tearDownClass(cls):
@@ -302,7 +302,7 @@ class TestSecurity(unittest.TestCase):
         self.assertFalse(updated_user.disabled)
 
         # Try to login
-        self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
+        self.assertIsInstance(login(url, self.test_usr.email, self.test_usr_password), requests.Session)
 
     def test_disabled_user_api_access(self):
         # Disable user
@@ -327,7 +327,7 @@ class TestSecurity(unittest.TestCase):
             self.assertFalse(login(url, self.test_usr.email, self.test_usr_password))
 
         # Check if user can login with given password
-        self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
+        self.assertIsInstance(login(url, self.test_usr.email, self.test_usr_password), requests.Session)
 
     def test_disabled_misp_api_access(self):
         with self.__setting("MISP.live", False):
@@ -545,7 +545,7 @@ class TestSecurity(unittest.TestCase):
             logged_in.change_user_password(str(uuid.uuid4()))
 
         # Password should be still the same
-        self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
+        self.assertIsInstance(login(url, self.test_usr.email, self.test_usr_password), requests.Session)
 
     def test_change_pw_disabled_different_way(self):
         with self.__setting("MISP.disable_user_password_change", True):
@@ -554,14 +554,14 @@ class TestSecurity(unittest.TestCase):
             logged_in.update_user({"password": str(uuid.uuid4())}, self.test_usr.id)
 
         # Password should be still the same
-        self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
+        self.assertIsInstance(login(url, self.test_usr.email, self.test_usr_password), requests.Session)
 
     def test_change_pw_disabled_by_org_admin(self):
         with self.__setting("MISP.disable_user_password_change", True):
             self.org_admin_misp_connector.update_user({"password": str(uuid.uuid4())}, self.test_usr.id)
 
         # Password should be still the same
-        self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
+        self.assertIsInstance(login(url, self.test_usr.email, self.test_usr_password), requests.Session)
 
     def test_add_user_by_org_admin(self):
         user = MISPUser()
@@ -790,7 +790,7 @@ class TestSecurity(unittest.TestCase):
     def test_shibb_form_login(self):
         with self.__setting(self.__default_shibb_config()):
             # Form login should still works when no header provided
-            self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
+            self.assertIsInstance(login(url, self.test_usr.email, self.test_usr_password), requests.Session)
 
     def test_shibb_api_login(self):
         with self.__setting(self.__default_shibb_config()):
@@ -923,6 +923,40 @@ class TestSecurity(unittest.TestCase):
         }):
             logged_in = PyMISP(url, self.test_usr.authkey)
             check_response(logged_in.get_user())
+
+    def test_username_in_response_header(self):
+        with MISPSetting(self.admin_misp_connector, "Security.username_in_response_header", True):
+            logged_in = login(url, self.test_usr.email, self.test_usr_password)
+            self.assertIsInstance(logged_in, requests.Session)
+
+            response = logged_in.get(url + "/users/view/me.json")
+            self.assertIn("X-Username", response.headers)
+            self.assertEqual(self.test_usr.email, response.headers["X-Username"])
+
+    def test_username_in_response_header_api_access(self):
+        with MISPSetting(self.admin_misp_connector, "Security.username_in_response_header", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+
+            response = logged_in._prepare_request('GET', 'users/view/me')
+            self.assertIn("X-Username", response.headers)
+            self.assertEqual(self.test_usr.email + "/API/default", response.headers["X-Username"])
+
+    def test_username_in_response_header_advanced_api_access(self):
+        with MISPComplexSetting({
+            "Security": {
+                "advanced_authkeys": True,
+                "username_in_response_header": True,
+            }
+        }):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id)
+
+            logged_in = PyMISP(url, auth_key["authkey_raw"])
+            response = logged_in._prepare_request('GET', 'users/view/me')
+
+            self.__delete_advanced_authkey(auth_key["id"])
+
+            self.assertIn("X-Username", response.headers)
+            self.assertEqual(f"{self.test_usr.email}/API/{auth_key['id']}", response.headers["X-Username"])
 
     def test_sg_index_user_cannot_see(self):
         org = self.__create_org()
