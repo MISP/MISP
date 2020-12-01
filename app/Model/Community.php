@@ -34,7 +34,7 @@ class Community extends AppModel
         } catch (Exception $e) {
             throw new NotFoundException(__('Default community list not in the expected format.'));
         }
-        $fieldsToCheck = array('name', 'uuid', 'description', 'url', 'sector', 'nationality', 'type', 'org_uuid', 'org_name', 'rules');
+        $fieldsToCheck = array('name', 'uuid', 'description', 'url', 'sector', 'nationality', 'type', 'org_uuid', 'org_name');
         foreach ($community_list as $k => $v) {
             if ($v['misp_project_vetted'] === ($context === 'vetted')) {
                 $community_list[$k]['id'] = $k + 1;

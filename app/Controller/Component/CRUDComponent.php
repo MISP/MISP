@@ -40,14 +40,22 @@ class CRUDComponent extends Component
             }
             $data = $this->Controller->{$this->Controller->defaultModel}->find('all', $query);
             if (isset($options['afterFind'])) {
-                $data = $options['afterFind']($data);
+                if (is_callable($options['afterFind'])) {
+                    $data = $options['afterFind']($data);
+                } else {
+                    $data = $this->Controller->{$this->Controller->defaultModel}->{$options['afterFind']}($data);
+                }
             }
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
         } else {
             $this->Controller->paginate = $query;
             $data = $this->Controller->paginate();
             if (isset($options['afterFind'])) {
-                $data = $options['afterFind']($data);
+                if (is_callable($options['afterFind'])) {
+                    $data = $options['afterFind']($data);
+                } else {
+                    $data = $this->Controller->{$this->Controller->defaultModel}->{$options['afterFind']}($data);
+                }
             }
             $this->Controller->set('data', $data);
         }
@@ -142,11 +150,11 @@ class CRUDComponent extends Component
             }
             if (!empty($params['fields'])) {
                 foreach ($params['fields'] as $field) {
-                    $data[$field] = $input[$modelName][$field];
+                    $data[$modelName][$field] = $input[$modelName][$field];
                 }
             } else {
-                foreach ($input as $field => $fieldData) {
-                    $data[$field] = $fieldData;
+                foreach ($input[$modelName] as $field => $fieldData) {
+                    $data[$modelName][$field] = $fieldData;
                 }
             }
             if ($this->Controller->{$modelName}->save($data)) {
@@ -162,6 +170,8 @@ class CRUDComponent extends Component
 
                 }
             }
+        } else {
+            $this->Controller->request->data = $data;
         }
         $this->Controller->set('entity', $data);
     }

@@ -3,24 +3,24 @@
 class SyncTool
 {
     // take a server as parameter and return a HttpSocket object using the ssl options defined in the server settings
-    public function setupHttpSocket($server = null, $timeout = false)
+    public function setupHttpSocket($server = null, $timeout = false, $model = 'Server')
     {
         $params = array();
         if (!empty($server)) {
-            if ($server['Server']['cert_file']) {
-                $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '.pem';
+            if (!empty($server[$model]['cert_file'])) {
+                $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server[$model]['id'] . '.pem';
             }
-            if ($server['Server']['client_cert_file']) {
-                $params['ssl_local_cert'] = APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '_client.pem';
+            if (!empty($server[$model]['client_cert_file'])) {
+                $params['ssl_local_cert'] = APP . "files" . DS . "certs" . DS . $server[$model]['id'] . '_client.pem';
             }
-            if ($server['Server']['self_signed']) {
+            if (!empty($server[$model]['self_signed'])) {
                 $params['ssl_allow_self_signed'] = true;
                 $params['ssl_verify_peer_name'] = false;
-                if (!isset($server['Server']['cert_file'])) {
+                if (!isset($server[$model]['cert_file'])) {
                     $params['ssl_verify_peer'] = false;
                 }
             }
-            if (!empty($server['Server']['skip_proxy'])) {
+            if (!empty($server[$model]['skip_proxy'])) {
                 $params['skip_proxy'] = 1;
             }
             if (!empty($timeout)) {
