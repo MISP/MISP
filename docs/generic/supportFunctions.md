@@ -471,7 +471,7 @@ upgrade () {
   Autho="Authorization:"
   CT="Content-Type:"
   MISP_BASEURL="https://127.0.0.1"
-  cd $PATH_TO_MISP/app ; $SUDO_WWW php composer.phar update $SUDO_WWW php composer.phar self-update
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar update ; php composer.phar self-update"
 
   for URN in $(echo "galaxies warninglists noticelists objectTemplates taxonomies"); do
     curl --header "$Autho $AUTH_KEY" --header "$Acc $headerJSON" --header "$CT $headerJSON" -k -X POST $MISP_BASEURL/$URN/update
@@ -730,7 +730,7 @@ installDeps () {
   mariadb-server \
   apache2 apache2-doc apache2-utils \
   python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
-  libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools expect
+  libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 
   installRNG
 }
@@ -856,7 +856,7 @@ gitPullAllRCLOCAL () {
 
 # Main composer function
 composer () {
-  sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
   ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install"
 }
 

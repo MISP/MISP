@@ -38,6 +38,8 @@ MISPvars () {
 
   # MISP configuration variables
   PATH_TO_MISP="${PATH_TO_MISP:-/var/www/MISP}"
+  PATH_TO_MISP_SCRIPTS="${PATH_TO_MISP}/app/files/scripts"
+
 
   FQDN="${FQDN:-misp.local}"
 
