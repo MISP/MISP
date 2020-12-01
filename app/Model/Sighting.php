@@ -231,7 +231,7 @@ class Sighting extends AppModel
             $objectElement = ucfirst($context) . 'Tag';
             foreach ($sightings as $sighting) {
                 $tagId = $sighting[$objectElement]['tag_id'];
-                $date = $sighting['Sighting']['date_sighting'];
+                $date = $sighting['Sighting']['date'];
                 $count = (int)$sighting['Sighting']['sighting_count'];
 
                 if (isset($sparklineData[$tagId][$date]['sighting'])) {
@@ -324,18 +324,18 @@ class Sighting extends AppModel
         }
 
         // Returns date in `Y-m-d` format
-        $this->virtualFields['date_sighting'] = $this->dateVirtualColumn();
+        $this->virtualFields['date'] = $this->dateVirtualColumn();
         $this->virtualFields['sighting_count'] = 'COUNT(id)';
         $this->virtualFields['last_timestamp'] = 'MAX(date_sighting)';
         $groupedSightings = $this->find('all', array(
             'conditions' => $conditions,
-            'fields' => ['org_id', 'attribute_id', 'type', 'date_sighting', 'last_timestamp', 'sighting_count'],
+            'fields' => ['org_id', 'attribute_id', 'type', 'date', 'last_timestamp', 'sighting_count'],
             'recursive' => -1,
-            'group' => ['org_id', 'attribute_id', 'type', 'date_sighting'],
+            'group' => ['org_id', 'attribute_id', 'type', 'date'],
             'order' => ['date_sighting'], // from oldest
         ));
         unset(
-            $this->virtualFields['date_sighting'],
+            $this->virtualFields['date'],
             $this->virtualFields['sighting_count'],
             $this->virtualFields['last_timestamp']
         );
@@ -361,17 +361,17 @@ class Sighting extends AppModel
             ]
         ]);
         // Returns date in `Y-m-d` format
-        $this->virtualFields['date_sighting'] = $this->dateVirtualColumn();
+        $this->virtualFields['date'] = $this->dateVirtualColumn();
         $this->virtualFields['sighting_count'] = 'COUNT(Sighting.id)';
-        $sightings = $this->find('all', array(
+        $sightings = $this->find('all', [
             'recursive' => -1,
             'contain' => [ucfirst($context) . 'Tag'],
             'conditions' => $conditions,
-            'fields' => [ucfirst($context) . 'Tag.tag_id', 'date_sighting', 'sighting_count'],
-            'group' => [ucfirst($context) . 'Tag.id', 'date_sighting'],
+            'fields' => [ucfirst($context) . 'Tag.tag_id', 'date', 'sighting_count'],
+            'group' => [ucfirst($context) . 'Tag.id', 'date'],
             'order' => ['date_sighting'], // from oldest
-        ));
-        unset($this->virtualFields['date_sighting'], $this->virtualFields['sighting_count']);
+        ]);
+        unset($this->virtualFields['date'], $this->virtualFields['sighting_count']);
         return $sightings;
     }
 
@@ -389,7 +389,7 @@ class Sighting extends AppModel
             $type = $this->type[$sighting['type']];
             $orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : __('Others');
             $count = (int)$sighting['sighting_count'];
-            $inRange = strtotime($sighting['date_sighting']) >= $range;
+            $inRange = strtotime($sighting['date']) >= $range;
 
             foreach ([$sighting['attribute_id'], 'all'] as $needle) {
                 if (!isset($sightingsData[$needle][$type])) {
@@ -407,10 +407,10 @@ class Sighting extends AppModel
                 }
 
                 if ($inRange) {
-                    if (isset($sparklineData[$needle][$sighting['date_sighting']][$type])) {
-                        $sparklineData[$needle][$sighting['date_sighting']][$type] += $count;
+                    if (isset($sparklineData[$needle][$sighting['date']][$type])) {
+                        $sparklineData[$needle][$sighting['date']][$type] += $count;
                     } else {
-                        $sparklineData[$needle][$sighting['date_sighting']][$type] = $count;
+                        $sparklineData[$needle][$sighting['date']][$type] = $count;
                     }
                 }
             }
