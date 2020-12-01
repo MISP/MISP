@@ -333,6 +333,7 @@ class AppController extends Controller
             if ($this->Auth->user('Role')['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->{$this->modelClass}->runUpdates();
             }
+            header('X-Username: '.$this->Auth->user('email'));
             $user = $this->Auth->user();
             if (!isset($user['force_logout']) || $user['force_logout']) {
                 $this->loadModel('User');
