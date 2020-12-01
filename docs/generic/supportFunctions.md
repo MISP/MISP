@@ -43,6 +43,19 @@ usage () {
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
   echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"
+  echo -e ""
+  echo -e ""
+  echo -e "Interesting environment variables that get considered are:"
+  echo -e ""
+  echo -e "MISP_USER/MISP_PASSWORD # Local username on machine, default: misp/opensslGeneratedPassword"
+  echo -e ""
+  echo -e "PATH_TO_MISP # Where MISP will be installed, default: /var/www/MISP (recommended)"
+  echo -e ""
+  echo -e "DBHOST/DBNAME # database hostname, MISP database name, default: localhost/misp"
+  echo -e "DBUSER_ADMIN/DBPASSWORD_ADMIN # MySQL admin user, default: root/opensslGeneratedPassword"
+  echo -e "DBUSER_MISP/DBPASSWORD_MISP # MISP database user, default: misp/opensslGeneratedPassword"
+  echo -e ""
+  echo -e "You need to export the variable(s) to be taken into account. (or specified in-line when invoking INSTALL.sh)"
   space
 }
 
@@ -458,7 +471,7 @@ upgrade () {
   Autho="Authorization:"
   CT="Content-Type:"
   MISP_BASEURL="https://127.0.0.1"
-  cd $PATH_TO_MISP/app ; $SUDO_WWW php composer.phar update $SUDO_WWW php composer.phar self-update
+  ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar update ; php composer.phar self-update"
 
   for URN in $(echo "galaxies warninglists noticelists objectTemplates taxonomies"); do
     curl --header "$Autho $AUTH_KEY" --header "$Acc $headerJSON" --header "$CT $headerJSON" -k -X POST $MISP_BASEURL/$URN/update
@@ -717,7 +730,7 @@ installDeps () {
   mariadb-server \
   apache2 apache2-doc apache2-utils \
   python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
-  libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools expect
+  libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 
   installRNG
 }
@@ -843,7 +856,7 @@ gitPullAllRCLOCAL () {
 
 # Main composer function
 composer () {
-  sudo mkdir /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
+  sudo mkdir -p /var/www/.composer ; sudo chown ${WWW_USER}:${WWW_USER} /var/www/.composer
   ${SUDO_WWW} sh -c "cd ${PATH_TO_MISP}/app ; php composer.phar install"
 }
 

@@ -134,6 +134,8 @@ class CryptGpgExtended extends Crypt_GPG
         // add last key
         if ($key !== null) {
             $keys[] = $key;
+        } else {
+            throw new Crypt_GPG_Exception("Key data provided, but gpg process output could not be parsed: $output");
         }
 
         return $keys;

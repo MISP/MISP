@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Tag $Tag
+ */
 class TagsController extends AppController
 {
     public $components = array('Security' ,'RequestHandler');
@@ -12,12 +14,6 @@ class TagsController extends AppController
                     'Tag.name' => 'asc'
             ),
             'contain' => array(
-                'EventTag' => array(
-                    'fields' => array('EventTag.event_id')
-                ),
-                'AttributeTag' => array(
-                    'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
-                ),
                 'FavouriteTag',
                 'Organisation' => array(
                     'fields' => array('id', 'name')
@@ -33,7 +29,7 @@ class TagsController extends AppController
         $this->Security->unlockedActions[] = 'search';
     }
 
-    public function index($favouritesOnly = false)
+    public function index()
     {
         $this->loadModel('Attribute');
         $this->loadModel('Event');
@@ -49,14 +45,7 @@ class TagsController extends AppController
         );
         $exception = false;
         $passedArgsArray = $this->_harvestParameters($filterData, $exception);
-        $taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
-        $taxonomyNamespaces = array();
-        if (!empty($taxonomies)) {
-            foreach ($taxonomies as $taxonomy) {
-                $taxonomyNamespaces[$taxonomy['namespace']] = $taxonomy;
-            }
-        }
-        $taxonomyTags = array();
+
         $this->Event->recursive = -1;
         if (!empty($passedArgsArray['favouritesOnly'])) {
             $tag_id_list = $this->Tag->FavouriteTag->find('list', array(
@@ -78,101 +67,62 @@ class TagsController extends AppController
         }
         if ($this->_isRest()) {
             unset($this->paginate['limit']);
-            unset($this->paginate['contain']['EventTag']);
-            unset($this->paginate['contain']['AttributeTag']);
             $paginated = $this->Tag->find('all', $this->paginate);
         } else {
-            if (!empty($passedArgsArray['exclude_statistics'])) {
-                unset($this->paginate['contain']['EventTag']);
-                unset($this->paginate['contain']['AttributeTag']);
-                $this->set('exclude_statistics', true);
-            }
             $paginated = $this->paginate();
         }
         $tagList = array();
-        $csv = array();
-        $sgs = $this->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
+        $taxonomyTags = array();
+        $taxonomyNamespaces = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
         foreach ($paginated as $k => $tag) {
             $tagList[] = $tag['Tag']['id'];
-            if (empty($passedArgsArray['exclude_statistics'])) {
-                $paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
-                if (!$this->_isRest()) {
-                    $paginated[$k]['event_ids'] = array();
-                    $paginated[$k]['attribute_ids'] = array();
-                    foreach ($paginated[$k]['EventTag'] as $et) {
-                        $paginated[$k]['event_ids'][] = $et['event_id'];
-                    }
-                    unset($paginated[$k]['EventTag']);
-                    foreach ($paginated[$k]['AttributeTag'] as $at) {
-                        $paginated[$k]['attribute_ids'][] = $at['attribute_id'];
-                    }
-                    unset($paginated[$k]['AttributeTag']);
-                }
-                $paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
-            }
+            $favourite = false;
             if (!empty($tag['FavouriteTag'])) {
                 foreach ($tag['FavouriteTag'] as $ft) {
                     if ($ft['user_id'] == $this->Auth->user('id')) {
-                        $paginated[$k]['Tag']['favourite'] = true;
+                        $favourite = true;
+                        break;
                     }
                 }
-                if (!isset($paginated[$k]['Tag']['favourite'])) {
-                    $paginated[$k]['Tag']['favourite'] = false;
-                }
-            } else {
-                $paginated[$k]['Tag']['favourite'] = false;
             }
+            $paginated[$k]['Tag']['favourite'] = $favourite;
             unset($paginated[$k]['FavouriteTag']);
-            if (!empty($taxonomyNamespaces)) {
-                $taxonomyNamespaceArrayKeys = array_keys($taxonomyNamespaces);
-                foreach ($taxonomyNamespaceArrayKeys as $tns) {
-                    if (substr(strtoupper($tag['Tag']['name']), 0, strlen($tns)) === strtoupper($tns)) {
-                        $paginated[$k]['Tag']['Taxonomy'] = $taxonomyNamespaces[$tns];
-                        if (!isset($taxonomyTags[$tns])) {
-                            $taxonomyTags[$tns] = $this->Taxonomy->getTaxonomyTags($taxonomyNamespaces[$tns]['id'], true);
-                        }
-                        $paginated[$k]['Tag']['Taxonomy']['expanded'] = isset($taxonomyTags[$tns][strtoupper($tag['Tag']['name'])]) ? $taxonomyTags[$tns][strtoupper($tag['Tag']['name'])] : $tag['Tag']['name'];
+
+            foreach ($taxonomyNamespaces as $namespace => $taxonomy) {
+                if (substr(strtoupper($tag['Tag']['name']), 0, strlen($namespace)) === strtoupper($namespace)) {
+                    $paginated[$k]['Tag']['Taxonomy'] = $taxonomy;
+                    if (!isset($taxonomyTags[$namespace])) {
+                        $taxonomyTags[$namespace] = $this->Taxonomy->getTaxonomyTags($taxonomy['id'], true);
                     }
+                    $paginated[$k]['Tag']['Taxonomy']['expanded'] = isset($taxonomyTags[$namespace][strtoupper($tag['Tag']['name'])]) ? $taxonomyTags[$namespace][strtoupper($tag['Tag']['name'])] : $tag['Tag']['name'];
+                    break;
                 }
             }
         }
-        if (!$this->_isRest() && empty($passedArgsArray['exclude_statistics'])) {
-            $this->loadModel('Sighting');
-            $sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList);
-            $sightings['attribute'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList, 'attribute');
+
+        if (empty($passedArgsArray['exclude_statistics'])) {
+            $attributeCount = $this->Tag->AttributeTag->countForTags($tagList, $this->Auth->user());
+            // TODO: this must be called before `tagsSparkline`!
+            $eventCount = $this->Tag->EventTag->countForTags($tagList, $this->Auth->user());
+
+            if ($this->_isRest()) {
+                $csvForTags = []; // Sightings sparkline doesn't make sense for REST requests
+            } else {
+                $this->loadModel('Sighting');
+                $csvForTags = $this->Sighting->tagsSparkline($tagList, $this->Auth->user(), '0');
+            }
             foreach ($paginated as $k => $tag) {
-                $objects = array('event', 'attribute');
-                foreach ($objects as $object) {
-                    foreach ($tag[$object . '_ids'] as $objectid) {
-                        if (isset($sightings[$object][$objectid])) {
-                            foreach ($sightings[$object][$objectid] as $date => $sightingCount) {
-                                if (!isset($tag['sightings'][$date])) {
-                                    $tag['sightings'][$date] = $sightingCount;
-                                } else {
-                                    $tag['sightings'][$date] += $sightingCount;
-                                }
-                            }
-                        }
-                    }
+                $tagId = $tag['Tag']['id'];
+                if (isset($csvForTags[$tagId])) {
+                    $paginated[$k]['Tag']['csv'] = $csvForTags[$tagId];
                 }
-                if (!empty($tag['sightings'])) {
-                    $startDate = !empty($tag['sightings']) ? min(array_keys($tag['sightings'])) : date('Y-m-d');
-                    $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
-                    $to = date('Y-m-d', time());
-                    for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
-                        if (!isset($paginated[$k]['Tag']['csv'])) {
-                            $paginated[$k]['Tag']['csv'] = 'Date,Close\n';
-                        }
-                        if (isset($tag['sightings'][$date])) {
-                            $paginated[$k]['Tag']['csv'] .= $date . ',' . $tag['sightings'][$date] . '\n';
-                        } else {
-                            $paginated[$k]['Tag']['csv'] .= $date . ',0\n';
-                        }
-                    }
-                }
-                unset($paginated[$k]['event_ids']);
+                $paginated[$k]['Tag']['count'] = isset($eventCount[$tagId]) ? (int)$eventCount[$tagId] : 0;
+                $paginated[$k]['Tag']['attribute_count'] = isset($attributeCount[$tagId]) ? (int)$attributeCount[$tagId] : 0;
             }
+        } else {
+            $this->set('exclude_statistics', true);
         }
+
         if ($this->_isRest()) {
             foreach ($paginated as $key => $tag) {
                 $paginated[$key] = $tag['Tag'];
@@ -182,9 +132,8 @@ class TagsController extends AppController
         } else {
             $this->set('passedArgs', json_encode($this->passedArgs));
             $this->set('passedArgsArray', $passedArgsArray);
-            $this->set('csv', $csv);
             $this->set('list', $paginated);
-            $this->set('favouritesOnly', $favouritesOnly);
+            $this->set('favouritesOnly', !empty($passedArgsArray['favouritesOnly']));
         }
         // send perm_tagger to view for action buttons
     }

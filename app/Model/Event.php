@@ -966,7 +966,7 @@ class Event extends AppModel
         }
 
         $conditions = $this->createEventConditions($user);
-        $conditions['AND']['Event.id'] = $eventIds;
+        $conditions['AND']['Event.id'] = array_unique($eventIds);
         $events = $this->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
@@ -5769,88 +5769,6 @@ class Event extends AppModel
                 'data' => $result['data'],
                 'extension' => $module['mispattributes']['outputFileExtension'],
                 'response' => $module['mispattributes']['responseType']
-        );
-    }
-
-    public function getSightingData(array $event)
-    {
-        if (empty($event['Sighting'])) {
-            return ['data' => [], 'csv' => []];
-        }
-
-        $this->Sighting = ClassRegistry::init('Sighting');
-
-        $sightingsData = array();
-        $sparklineData = array();
-        $startDates = array();
-        $range = $this->Sighting->getMaximumRange();
-        foreach ($event['Sighting'] as $sighting) {
-            $type = $this->Sighting->type[$sighting['type']];
-            if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
-                $sightingsData[$sighting['attribute_id']][$type] = array('count' => 0);
-            }
-            $sightingsData[$sighting['attribute_id']][$type]['count']++;
-            $orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : 'Others';
-            if (!isset($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName])) {
-                $sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName] = array('count' => 1, 'date' => $sighting['date_sighting']);
-            } else {
-                $sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['count']++;
-                if ($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] < $sighting['date_sighting']) {
-                    $sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] = $sighting['date_sighting'];
-                }
-            }
-            if ($sighting['type'] !== '0') {
-                continue;
-            }
-            if (!isset($startDates[$sighting['attribute_id']]) || $startDates[$sighting['attribute_id']] > $sighting['date_sighting']) {
-                if ($sighting['date_sighting'] >= $range) {
-                    $startDates[$sighting['attribute_id']] = $sighting['date_sighting'];
-                }
-            }
-            if (!isset($startDates['event']) || $startDates['event'] > $sighting['date_sighting']) {
-                if ($sighting['date_sighting'] >= $range) {
-                    $startDates['event'] = $sighting['date_sighting'];
-                }
-            }
-            $date = date("Y-m-d", $sighting['date_sighting']);
-            if (!isset($sparklineData[$sighting['attribute_id']][$date])) {
-                $sparklineData[$sighting['attribute_id']][$date] = 1;
-            } else {
-                $sparklineData[$sighting['attribute_id']][$date]++;
-            }
-            if (!isset($sparklineData['event'][$date])) {
-                $sparklineData['event'][$date] = 1;
-            } else {
-                $sparklineData['event'][$date]++;
-            }
-        }
-        $csv = array();
-        $today = strtotime(date('Y-m-d', time()));
-        foreach ($startDates as $k => $v) {
-            $startDates[$k] = date('Y-m-d', $v);
-        }
-        foreach ($sparklineData as $aid => $data) {
-            if (!isset($startDates[$aid])) {
-                continue;
-            }
-            $startDate = $startDates[$aid];
-            if (strtotime($startDate) < $range) {
-                $startDate = date('Y-m-d');
-            }
-            $startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
-            $sighting = $data;
-            $csv[$aid] = 'Date,Close\n';
-            for ($date = $startDate; strtotime($date) <= $today; $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
-                if (isset($sighting[$date])) {
-                    $csv[$aid] .= $date . ',' . $sighting[$date] . '\n';
-                } else {
-                    $csv[$aid] .= $date . ',0\n';
-                }
-            }
-        }
-        return array(
-            'data' => $sightingsData,
-            'csv' => $csv
         );
     }
 

@@ -73,6 +73,9 @@ class AppController extends Controller
 
     protected $_legacyParams = array();
 
+    /** @var User */
+    public $User;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -134,6 +137,15 @@ class AppController extends Controller
                 $this->_stop();
             }
         }
+        if (Configure::read('Security.check_sec_fetch_site_header')) {
+            $secFetchSite = $this->request->header('Sec-Fetch-Site');
+            if ($secFetchSite !== false && $secFetchSite !== 'same-origin' && ($this->request->is('post') || $this->request->is('put') || $this->request->is('ajax'))) {
+                throw new MethodNotAllowedException("POST, PUT and AJAX requests are allowed just from same origin.");
+            }
+        }
+        if (Configure::read('Security.disable_browser_cache')) {
+            $this->response->disableCache();
+        }
         $this->response->header('X-XSS-Protection', '1; mode=block');
 
         if (!empty($this->params['named']['sql'])) {
@@ -145,8 +157,8 @@ class AppController extends Controller
 
         $this->set('ajax', $this->request->is('ajax'));
         $this->set('queryVersion', $this->__queryVersion);
-        $this->loadModel('User');
-        $auth_user_fields = $this->User->describeAuthFields();
+        $this->User = ClassRegistry::init('User');
+
         $language = Configure::read('MISP.language');
         if (!empty($language) && $language !== 'eng') {
             Configure::write('Config.language', $language);
@@ -165,18 +177,19 @@ class AppController extends Controller
             $this->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
         }
         // check if Apache provides kerberos authentication data
+        $authUserFields = $this->User->describeAuthFields();
         $envvar = Configure::read('ApacheSecureAuth.apacheEnv');
-        if (isset($_SERVER[$envvar])) {
+        if ($envvar && isset($_SERVER[$envvar])) {
             $this->Auth->className = 'ApacheSecureAuth';
             $this->Auth->authenticate = array(
                 'Apache' => array(
                     // envvar = field returned by Apache if user is authenticated
                     'fields' => array('username' => 'email', 'envvar' => $envvar),
-                    'userFields' => $auth_user_fields
+                    'userFields' => $authUserFields,
                 )
             );
         } else {
-            $this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
+            $this->Auth->authenticate[AuthComponent::ALL]['userFields'] = $authUserFields;
         }
         if (!empty($this->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
@@ -672,23 +685,6 @@ class AppController extends Controller
 
     public $userRole = null;
 
-    protected function _isJson($data=false)
-    {
-        if ($data) {
-            return (json_decode($data) != null) ? true : false;
-        }
-        return $this->request->header('Accept') === 'application/json' || $this->RequestHandler->prefers() === 'json';
-    }
-
-    protected function _isCsv($data=false)
-    {
-        if ($this->params['ext'] === 'csv' || $this->request->header('Accept') === 'application/csv' || $this->RequestHandler->prefers() === 'csv') {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     protected function _isRest()
     {
         return $this->IndexFilter->isRest();
@@ -729,11 +725,6 @@ class AppController extends Controller
     protected function _isSiteAdmin()
     {
         return $this->userRole['perm_site_admin'];
-    }
-
-    protected function _checkOrg()
-    {
-        return $this->Auth->user('org_id');
     }
 
     protected function _getApiAuthUser(&$key, &$exception)
@@ -1165,13 +1156,24 @@ class AppController extends Controller
         $this->redirect($targetRoute);
     }
 
-    protected function _loadAuthenticationPlugins() {
+    /**
+     * @throws Exception
+     */
+    protected function _loadAuthenticationPlugins()
+    {
         // load authentication plugins from Configure::read('Security.auth')
         $auth = Configure::read('Security.auth');
-
-        if (!$auth) return;
-
+        if (!$auth) {
+            return;
+        }
+        if (!is_array($auth)) {
+            throw new Exception("`Security.auth` config value must be array.");
+        }
         $this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+        // Disable Form authentication
+        if (Configure::read('Security.auth_enforced')) {
+            unset($this->Auth->authenticate['Form']);
+        }
         if ($this->Auth->startup($this)) {
             $user = $this->Auth->user();
             if ($user) {

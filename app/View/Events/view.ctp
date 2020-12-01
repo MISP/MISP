@@ -225,13 +225,14 @@
             'element' => '/Events/View/eventSightingValue',
             'element_params' => array(
                 'event' => $event,
+                'sightingsData' => isset($sightingsData['data']['all']) ? $sightingsData['data']['all'] : [],
             )
         );
-        if (!empty($sightingsData['csv']['event'])) {
+        if (isset($sightingsData['data']['all'])) {
             $table_data[] = array(
                 'key' => __('Activity'),
                 'element' => 'sparkline',
-                'element_params' => array('scope' => 'event', 'id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event'])
+                'element_params' => array('scope' => 'event', 'id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['all'])
             );
         }
         if (!empty($delegationRequest)) {

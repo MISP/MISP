@@ -201,7 +201,7 @@ class GalaxyCluster extends AppModel
         return $cluster;
     }
 
-    public function generateMissingRelations(): void
+    public function generateMissingRelations()
     {
         $missingRelations = $this->GalaxyClusterRelation->find('list', [
             'conditions' => ['referenced_galaxy_cluster_id' => 0],

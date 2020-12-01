@@ -511,13 +511,13 @@ function enable_timeline() {
         },
         success: function( data, textStatus, jQxhr ){
             if (data.items.length > hardThreshold) {
-                $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: To much data to show</div>');
+                $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: Too much data to show</div>');
                 timeline_disabled = true;
                 return;
             } else if (data.items.length > softThreshold) {
                 var res = confirm('You are about to draw a lot ('+data.items.length+') of items in the timeline. Do you wish to continue?');
                 if (!res) {
-                    $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: To much data to show</div>');
+                    $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: Too much data to show</div>');
                     timeline_disabled = true;
                     return;
                 }
@@ -673,8 +673,8 @@ function init_popover() {
     });
     menu_display_timeline.add_slider({
         id: 'slider_timeline_display_max_char_num',
-        label: "Charater to show",
-        title: "Maximum number of charater to display in the label",
+        label: "Characters to show",
+        title: "Maximum number of characters to display in the label",
         min: 8,
         max: 2048,
         value: max_displayed_char_timeline,
@@ -690,7 +690,7 @@ function init_popover() {
     menu_display_timeline.add_checkbox({
         id: 'checkbox_timeline_display_hide_not_seen_enabled',
         label: "Hide first seen not set",
-        title: "Hide items that does not have first seen sets",
+        title: "Hide items that do not have first seen set",
         event: function(value) {
             handle_not_seen_enabled(value)
         }
