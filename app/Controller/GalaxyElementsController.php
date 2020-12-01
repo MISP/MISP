@@ -39,6 +39,7 @@ class GalaxyElementsController extends AppController
         $this->set('elements', $elements);
         $this->set('clusterId', $clusterId);
         $this->set('context', $filters['context']);
+        $this->set('passedArgs', json_encode(array('context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : '')));
         $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, array('edit', 'delete'), false, false);
         $canModify = !empty($cluster['authorized']);
         $canModify = true;

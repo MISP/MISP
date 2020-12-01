@@ -48,7 +48,6 @@
                     'element' => 'distribution_levels',
                 ),
             ),
-            'title' => __('Galaxy Cluster Relationships'),
             'actions' => array(
                 array(
                     'title' => 'Edit',

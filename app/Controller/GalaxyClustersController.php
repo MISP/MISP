@@ -56,7 +56,7 @@ class GalaxyClustersController extends AppController
             $contextConditions['GalaxyCluster.deleted'] = true;
         }
 
-        $this->set('passedArgsArray', array('context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''));
+        $this->set('passedArgs', json_encode(array('context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : '')));
         $this->set('context', $filters['context']);
         $searchConditions = array();
         if (empty($filters['searchall'])) {
@@ -984,6 +984,7 @@ class GalaxyClustersController extends AppController
             ),
             'contain' => array('SharingGroup', 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'))
         ));
+        $this->set('passedArgs', json_encode([]));
         $this->set('relations', $relations);
         $this->set('tree', $tree);
         $this->loadModel('Attribute');
