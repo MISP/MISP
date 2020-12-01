@@ -17,10 +17,32 @@ class GalaxyElementsController extends AppController
     public function index($clusterId)
     {
         $aclConditions = $this->GalaxyElement->buildClusterConditions($this->Auth->user(), $clusterId);
-        $this->paginate['conditions'] = [$aclConditions];
+        if (empty($filters['context'])) {
+            $filters['context'] = 'all';
+        }
+        $searchConditions = array();
+        if (empty($filters['searchall'])) {
+            $filters['searchall'] = '';
+        }
+        if (strlen($filters['searchall']) > 0) {
+            $searchall = '%' . strtolower($filters['searchall']) . '%';
+            $searchConditions = array(
+                'OR' => array(
+                    'LOWER(GalaxyElement.key) LIKE' => $searchall,
+                    'LOWER(GalaxyElement.value) LIKE' => $searchall,
+                ),
+            );
+        }
+        $this->paginate['conditions'] = ['AND' => [$aclConditions, $searchConditions]];
         $this->paginate['contain'] = ['GalaxyCluster' => ['fields' => ['id', 'distribution', 'org_id']]];
-        $clusters = $this->paginate();
-        $this->set('list', $clusters);
+        $elements = $this->paginate();
+        $this->set('elements', $elements);
+        $this->set('clusterId', $clusterId);
+        $this->set('context', $filters['context']);
+        $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $clusterId, array('edit', 'delete'), false, false);
+        $canModify = !empty($cluster['authorized']);
+        $canModify = true;
+        $this->set('canModify', $canModify);
         if ($this->request->is('ajax')) {
             $this->layout = 'ajax';
             $this->render('ajax/index');
