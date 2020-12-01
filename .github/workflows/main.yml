@@ -3,12 +3,12 @@
 name: misp
 
 # Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the 2.4 branch
+# events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ 2.4 ]
+    branches: [ 2.4, develop ]
   pull_request:
-    branches: [ 2.4 ]
+    branches: [ 2.4, develop ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
