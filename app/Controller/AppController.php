@@ -260,6 +260,10 @@ class AppController extends Controller
                 $this->_stop(); // just for sure
             }
 
+            if (isset($user['logged_by_authkey']) && $user['logged_by_authkey'] && !($this->_isRest() || $this->_isAutomation())) {
+                throw new ForbiddenException("When user is authenticated by authkey, just REST request can be processed");
+            }
+
             $this->set('default_memory_limit', ini_get('memory_limit'));
             if (isset($user['Role']['memory_limit'])) {
                 if ($user['Role']['memory_limit'] !== '') {
@@ -788,12 +792,7 @@ class AppController extends Controller
 
     protected function _isAutomation()
     {
-        foreach ($this->automationArray as $controllerName => $controllerActions) {
-            if ($this->params['controller'] == $controllerName && in_array($this->params['action'], $controllerActions)) {
-                return true;
-            }
-        }
-        return false;
+        return $this->IndexFilter->isApiFunction($this->params['controller'], $this->params['action']);
     }
 
     /**
