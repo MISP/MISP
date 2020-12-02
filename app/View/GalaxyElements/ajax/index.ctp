@@ -1,5 +1,5 @@
 <?php
-echo $this->element('/genericElements/IndexTable/index_table', array(
+$indexOptions = array(
     'data' => array(
         'paginatorOptions' => array(
             'update' => '#elements_div',
@@ -8,41 +8,43 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
         'top_bar' => array(
             'children' => array(
                 array(
+                    'children' => array(
+                        array(
+                            'active' => $context === 'all',
+                            'text' => __('Tabular view'),
+                            'onClick' => 'runIndexQuickFilter',
+                            'onClickParams' => [
+                                h($clusterId) . '/context:all',
+                                $baseurl . '/galaxy_elements/index',
+                                '#elements_div'
+                            ],
+                        ),
+                        array(
+                            'active' => $context === 'JSONView',
+                            'text' => __('JSON view'),
+                            'onClick' => 'runIndexQuickFilter',
+                            'onClickParams' => [
+                                h($clusterId) . '/context:JSONView',
+                                $baseurl . '/galaxy_elements/index',
+                                '#elements_div'
+                            ],
+                        ),
+                    )
+                ),
+                array(
                     'type' => 'simple',
                     'children' => array(
                         array(
                             'onClick' => 'openGenericModal',
                             'onClickParams' => [$baseurl . '/galaxy_elements/flattenJson/' . h($clusterId)],
                             'active' => true,
-                            'text' => __('Add JSON'),
+                            'text' => __('Add JSON as cluster\'s elements'),
                             'title' => __('The provided JSON will be converted into Galaxy Cluster Elements'),
                             'fa-icon' => 'plus',
-                            'requirement' => $canModify,
+                            'requirement' => $canModify && ($context === 'JSONView'),
                         ),
                     )
                 ),
-                array(
-                    'type' => 'simple',
-                    'children' => array(
-                        array(
-                            'active' => $context === 'all',
-                            'url' => sprintf('%s/galaxy_elements/index/%s/context:all', $baseurl, $clusterId),
-                            'text' => __('Tabular view'),
-                        ),
-                        array(
-                            'active' => $context === 'treeView',
-                            'url' => sprintf('%s/galaxy_elements/index/%s/context:treeView', $baseurl, $clusterId),
-                            'text' => __('Tree view'),
-                        ),
-                    )
-                ),
-                array(
-                    'type' => 'search',
-                    'button' => __('Filter'),
-                    'placeholder' => __('Enter value to search'),
-                    'data' => '',
-                    'searchKey' => 'value'
-                )
             )
         ),
         'primary_id_path' => 'GalaxyElement.id',
@@ -72,5 +74,26 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
             )
         )
     )
-));
+);
+
+if ($context == 'JSONView') {
+    $indexOptions['data']['fields'] = [];
+    $indexOptions['data']['data'] = [];
+    $indexOptions['data']['skip_pagination'] = true;
+    $indexOptions['data']['actions'] = [];
+}
+
+echo $this->element('/genericElements/IndexTable/index_table', $indexOptions);
+if ($context == 'JSONView') {
+    echo sprintf('<div id="elementJSONDiv" class="well well-small">%s</div>', json_encode($JSONElements));
+}
+
 echo $this->Js->writeBuffer();
+?>
+
+<script>
+    var $jsondiv = $('#elementJSONDiv');
+    if ($jsondiv.length > 0) {
+        $jsondiv.html(syntaxHighlightJson($jsondiv.text(), 8));
+    }
+</script>
