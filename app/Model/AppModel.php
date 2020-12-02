@@ -2741,7 +2741,7 @@ class AppModel extends Model
     {
         static $versionArray;
         if ($versionArray === null) {
-            $file = new File(ROOT . DS . 'VERSION.json', true);
+            $file = new File(ROOT . DS . 'VERSION.json');
             $versionArray = $this->jsonDecode($file->read());
             $file->close();
         }

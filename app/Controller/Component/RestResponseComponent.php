@@ -519,11 +519,12 @@ class RestResponseComponent extends Component
             } else {
                 $type = $format;
             }
+            $dumpSql = !empty($this->Controller->sql_dump) && Configure::read('debug') > 1;
             if (!$raw) {
                 if (is_string($response)) {
                     $response = array('message' => $response);
                 }
-                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
                     if ($this->Controller->sql_dump === 2) {
                         $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
@@ -533,7 +534,7 @@ class RestResponseComponent extends Component
                 }
                 $response = json_encode($response, JSON_PRETTY_PRINT);
             } else {
-                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
                     if ($this->Controller->sql_dump === 2) {
                         $response = json_encode(array('sql_dump' => $this->Log->getDataSource()->getLog(false, false)));

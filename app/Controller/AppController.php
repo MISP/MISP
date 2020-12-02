@@ -46,8 +46,6 @@ class AppController extends Controller
 {
     public $defaultModel = '';
 
-    public $debugMode = false;
-
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
     private $__queryVersion = '119';
@@ -175,7 +173,8 @@ class AppController extends Controller
             $this->loadModel('Server');
             $this->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
         }
-        // check if Apache provides kerberos authentication data
+
+        // Check if Apache provides kerberos authentication data
         $authUserFields = $this->User->describeAuthFields();
         $envvar = Configure::read('ApacheSecureAuth.apacheEnv');
         if ($envvar && isset($_SERVER[$envvar])) {
@@ -265,19 +264,15 @@ class AppController extends Controller
             }
 
             $this->set('default_memory_limit', ini_get('memory_limit'));
-            if (isset($user['Role']['memory_limit'])) {
-                if ($user['Role']['memory_limit'] !== '') {
-                    ini_set('memory_limit', $user['Role']['memory_limit']);
-                }
+            if (isset($user['Role']['memory_limit']) && $user['Role']['memory_limit'] !== '') {
+                 ini_set('memory_limit', $user['Role']['memory_limit']);
             }
             $this->set('default_max_execution_time', ini_get('max_execution_time'));
-            if (isset($user['Role']['max_execution_time'])) {
-                if ($user['Role']['max_execution_time'] !== '') {
-                    ini_set('max_execution_time', $user['Role']['max_execution_time']);
-                }
+            if (isset($user['Role']['max_execution_time']) && $user['Role']['max_execution_time'] !== '') {
+                ini_set('max_execution_time', $user['Role']['max_execution_time']);
             }
 
-            $this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
+            $this->set('mispVersion', "{$versionArray['major']}.{$versionArray['minor']}.0");
             $this->set('mispVersionFull', $this->mispVersion);
             $this->set('me', $user);
             $role = $user['Role'];
@@ -354,7 +349,6 @@ class AppController extends Controller
                 }
             }
         }
-        $this->components['RestResponse']['sql_dump'] = $this->sql_dump;
 
         // Notifications and homepage is not necessary for AJAX or REST requests
         if ($this->Auth->user() && !$this->_isRest() && !$this->request->is('ajax')) {
