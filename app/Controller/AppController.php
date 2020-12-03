@@ -1,27 +1,4 @@
 <?php
-/**
- * Application level Controller
- *
- * This file is application-wide controller file. You can put all
- * application-wide controller-related methods here.
- *
- * PHP 5
- *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright 2005-2012, Cake Software Foundation, Inc. (http://cakefoundation.org)
- *
- * Licensed under The MIT License
- * Redistributions of files must retain the above copyright notice.
- *
- * @copyright     Copyright 2005-2012, Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
- * @package       app.Controller
- * @since         CakePHP(tm) v 0.2.9
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
- */
-
-// TODO GnuPG encryption has issues when keys are expired
-
 App::uses('ConnectionManager', 'Model');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
@@ -70,6 +47,8 @@ class AppController extends Controller
     );
 
     protected $_legacyParams = array();
+    /** @var array */
+    public $userRole;
 
     /** @var User */
     public $User;
@@ -224,7 +203,7 @@ class AppController extends Controller
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
                 // disable CSRF for REST access
-                if (array_key_exists('Security', $this->components)) {
+                if (isset($this->components['Security'])) {
                     $this->Security->csrfCheck = false;
                 }
                 if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
@@ -240,7 +219,7 @@ class AppController extends Controller
             Configure::write('CurrentUserId', $user['id']);
             $this->__logAccess($user);
 
-            // If user is site admin, try to run updates
+            // Try to run updates
             if ($user['Role']['perm_site_admin'] || (Configure::read('MISP.live') && !$this->_isRest())) {
                 $this->User->runUpdates();
             }
@@ -561,7 +540,7 @@ class AppController extends Controller
             }
         }
 
-        $isUserRequest = !$this->_isRest() && !$this->request->is('ajax');
+        $isUserRequest = !$this->_isRest() && !$this->request->is('ajax') && !$this->_isAutomation();
         // Next checks makes sense just for user direct HTTP request, so skip REST and AJAX calls
         if (!$isUserRequest) {
             return true;
@@ -792,8 +771,6 @@ class AppController extends Controller
         }
         throw new BadRequestException('The request has been black-holed');
     }
-
-    public $userRole = null;
 
     protected function _isRest()
     {
