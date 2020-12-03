@@ -75,8 +75,6 @@ class CRUDComponent extends Component
                     $input[$modelName][$field] = $value;
                 }
             }
-            if (isset($input[$modelName]['id'])) {
-            }
             unset($input[$modelName]['id']);
             if (!empty($params['fields'])) {
                 $data = [];

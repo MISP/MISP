@@ -375,6 +375,13 @@ class TestSecurity(unittest.TestCase):
 
             self.__delete_advanced_authkey(auth_key["id"])
 
+    def test_advanced_authkeys_own_key_not_possible(self):
+        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+            authkey = ("a" * 40)
+            auth_key = self.__create_advanced_authkey(self.test_usr.id, {"authkey": authkey})
+            self.__delete_advanced_authkey(auth_key["id"])
+            self.assertNotEqual(authkey, auth_key["authkey"])
+
     def test_advanced_authkeys_reset_own(self):
         with self.__setting("Security.advanced_authkeys", True):
             # Create advanced authkey

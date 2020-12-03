@@ -71,15 +71,16 @@ class AuthKeysController extends AppController
     {
         $params = [
             'displayOnSuccess' => 'authkey_display',
-            'saveModelVariable' => ['authkey_raw']
+            'saveModelVariable' => ['authkey_raw'],
+            'override' => ['authkey' => null], // do not allow to use own key, always generate random one
         ];
         $selectConditions = [];
         if (!$this->_isSiteAdmin()) {
             $selectConditions['AND'][] = ['User.id' => $this->Auth->user('id')];
-            $params['override'] = ['user_id' => $this->Auth->user('id')];
+            $params['override']['user_id'] = $this->Auth->user('id');
         } else if ($user_id) {
             $selectConditions['AND'][] = ['User.id' => $user_id];
-            $params['override'] = ['user_id' => $user_id];
+            $params['override']['user_id'] = $user_id;
         }
         $this->CRUD->add($params);
         if ($this->IndexFilter->isRest()) {
