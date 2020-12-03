@@ -6636,7 +6636,7 @@ class Server extends AppModel
         } catch (Exception $e) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $message = __('Could not reset fetch remote user account.');
+            $message = __('Could not fetch remote user account.');
             $this->Log->save(array(
                     'org' => 'SYSTEM',
                     'model' => 'Server',
@@ -6649,14 +6649,18 @@ class Server extends AppModel
             return $message;
         }
         if ($response->isOk()) {
-            $user = json_decode($response->body, true);
+            $user = $this->jsonDecode($response->body);
             if (!empty($user['User'])) {
-                $result = array(
-                    'Email' => $user['User']['email'],
-                    'Role name' => isset($user['Role']['name']) ? $user['Role']['name'] : 'Unknown, outdated instance',
-                    'Sync flag' => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? 1 : 0) : 'Unknown, outdated instance'
-                );
-                return $result;
+                $results = [
+                    __('User') => $user['User']['email'],
+                    __('Role name') => isset($user['Role']['name']) ? $user['Role']['name'] : __('Unknown, outdated instance'),
+                    __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
+                ];
+                if (isset($response->headers['X-Auth-Key-Expiration'])) {
+                    $date = new DateTime($response->headers['X-Auth-Key-Expiration']);
+                    $results[__('Auth key expiration')] = $date->format('Y-m-d H:i:s');
+                }
+                return $results;
             } else {
                 return __('No user object received in response.');
             }

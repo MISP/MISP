@@ -3371,15 +3371,15 @@ function getRemoteSyncUser(id) {
     $.ajax({
         url: baseurl + '/servers/getRemoteUser/' + id,
         type:'GET',
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             resultContainer.html('Running test...');
         },
-        error: function(){
+        error: function() {
             resultContainer.html('Internal error.');
         },
         success: function(response) {
+            resultContainer.empty();
             if (typeof(response.message) != 'undefined') {
-                resultContainer.empty();
                 resultContainer.append(
                     $('<span>')
                     .attr('class', 'red bold')
@@ -3389,7 +3389,6 @@ function getRemoteSyncUser(id) {
                     .text(': #' + response.message)
                 );
             } else {
-                resultContainer.empty();
                 Object.keys(response).forEach(function(key) {
                     var value = response[key];
                     resultContainer.append(
@@ -3404,7 +3403,6 @@ function getRemoteSyncUser(id) {
                     );
                 });
             }
-            var result = response;
         }
     });
 }
