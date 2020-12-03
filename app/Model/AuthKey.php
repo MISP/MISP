@@ -155,6 +155,18 @@ class AuthKey extends AppModel
     }
 
     /**
+     * When key is deleted, update after `date_modified` for user that was assigned to that key, so session data
+     * will be realoaded and canceled.
+     * @see AppController::_refreshAuth
+     */
+    public function afterDelete()
+    {
+        parent::afterDelete();
+        $userId = $this->data['AuthKey']['user_id'];
+        $this->User->updateAll(['date_modified' => time()], ['User.id' => $userId]);
+    }
+
+    /**
      * @return AbstractPasswordHasher
      */
     private function getHasher()

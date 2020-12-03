@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import time
 import json
 import datetime
 import unittest
@@ -374,6 +375,35 @@ class TestSecurity(unittest.TestCase):
                 PyMISP(url, authkey)
 
             self.__delete_advanced_authkey(auth_key["id"])
+
+    def test_advanced_authkeys_deleted(self):
+        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id)
+
+            logged_in = PyMISP(url, auth_key["authkey_raw"])
+            self.assertEqual(logged_in._current_user.id, self.test_usr.id)
+
+            self.__delete_advanced_authkey(auth_key["id"])
+
+            assert_error_response(logged_in.get_user())
+
+    def test_advanced_authkeys_deleted_keep_session(self):
+        with MISPComplexSetting({
+            "Security": {
+                "advanced_authkeys": True,
+                "authkey_keep_session": True,
+            }
+        }):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id)
+
+            logged_in = PyMISP(url, auth_key["authkey_raw"])
+            self.assertEqual(logged_in._current_user.id, self.test_usr.id)
+
+            self.__delete_advanced_authkey(auth_key["id"])
+            # Wait one second to really know that session will be reloaded
+            time.sleep(1)
+            with self.assertRaises(MISPServerError):
+                logged_in.get_user()
 
     def test_advanced_authkeys_own_key_not_possible(self):
         with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):

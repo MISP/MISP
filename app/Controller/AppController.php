@@ -1420,6 +1420,12 @@ class AppController extends Controller
         if (!$user) {
             throw new RuntimeException("User with ID {$sessionUser['id']} not exists.");
         }
+        if (isset($sessionUser['authkey_id'])) {
+            $this->loadModel('AuthKey');
+            if (!$this->AuthKey->exists($sessionUser['authkey_id'])) {
+                throw new RuntimeException("Auth key with ID {$sessionUser['authkey_id']} not exists.");
+            }
+        }
         foreach (['authkey_id', 'authkey_expiration', 'logged_by_authkey'] as $copy) {
             if (isset($sessionUser[$copy])) {
                 $user[$copy] = $sessionUser[$copy];
