@@ -69,7 +69,6 @@ class AuthKeysController extends AppController
 
     public function add($user_id = false)
     {
-        $this->set('menuData', array('menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions', 'menuItem' => 'authKeyAdd'));
         $params = [
             'displayOnSuccess' => 'authkey_display',
             'saveModelVariable' => ['authkey_raw']
@@ -94,6 +93,11 @@ class AuthKeysController extends AppController
             ])
         ];
         $this->set(compact('dropdownData'));
+        $this->set('menuData', [
+            'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
+            'menuItem' => 'authKeyAdd',
+        ]);
+        $this->set('validity', Configure::read('Security.advanced_authkeys_validity'));
     }
 
     public function view($id = false)

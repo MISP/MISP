@@ -42,10 +42,22 @@ class AuthKey extends AppModel
             $this->data['AuthKey']['authkey_end'] = substr($authkey, -4);
             $this->data['AuthKey']['authkey_raw'] = $authkey;
             $this->authkey_raw = $authkey;
+
+            $validity = Configure::read('Security.advanced_authkeys_validity');
             if (empty($this->data['AuthKey']['expiration'])) {
-                $this->data['AuthKey']['expiration'] = 0;
+                $this->data['AuthKey']['expiration'] = $validity ? strtotime("+$validity days") : 0;
             } else {
-                $this->data['AuthKey']['expiration'] = strtotime($this->data['AuthKey']['expiration']);
+                $expiration = is_numeric($this->data['AuthKey']['expiration']) ?
+                    (int)$this->data['AuthKey']['expiration'] :
+                    strtotime($this->data['AuthKey']['expiration']);
+
+                if ($expiration === false) {
+                    $this->invalidate('expiration', __('Expiration must be in YYYY-MM-DD format.'));
+                }
+                if ($validity && $expiration > strtotime("+$validity days")) {
+                    $this->invalidate('expiration', __('Maximal key validity is %s days.', $validity));
+                }
+                $this->data['AuthKey']['expiration'] = $expiration;
             }
         }
         return true;

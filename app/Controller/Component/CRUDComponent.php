@@ -86,17 +86,19 @@ class CRUDComponent extends Component
             } else {
                 $data = $input;
             }
-            if ($this->Controller->{$modelName}->save($data)) {
-                $data = $this->Controller->{$modelName}->find('first', [
+            /** @var Model $model */
+            $model = $this->Controller->{$modelName};
+            if ($model->save($data)) {
+                $data = $model->find('first', [
                     'recursive' => -1,
                     'conditions' => [
-                        'id' => $this->Controller->{$modelName}->id
+                        'id' => $model->id
                     ]
                 ]);
                 if (!empty($params['saveModelVariable'])) {
                     foreach ($params['saveModelVariable'] as $var) {
-                        if (isset($this->Controller->{$modelName}->$var)) {
-                            $data[$modelName][$var] = $this->Controller->{$modelName}->$var;
+                        if (isset($model->$var)) {
+                            $data[$modelName][$var] = $model->$var;
                         }
                     }
                 }
@@ -116,7 +118,9 @@ class CRUDComponent extends Component
             } else {
                 $message = __('%s could not be added.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
-
+                    $controllerName = $this->Controller->params['controller'];
+                    $actionName = $this->Controller->params['action'];
+                    $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($controllerName, $actionName, false, $model->validationErrors, 'json');
                 } else {
                     $this->Controller->Flash->error($message);
                 }

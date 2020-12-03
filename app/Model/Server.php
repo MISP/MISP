@@ -1352,6 +1352,15 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                    'advanced_authkeys_validity' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('Maximal key lifetime in days. Use can limit that validity even more. Just newly created keys will be affected. When not set, key validity is not limited.'),
+                        'value' => '',
+                        'errorMessage' => '',
+                        'type' => 'numeric',
+                        'test' => 'testForNumeric',
+                        'null' => true,
+                    ],
                     'authkey_keep_session' => [
                         'level' => self::SETTING_OPTIONAL,
                         'description' => __('When enabled, session is kept between API requests.'),

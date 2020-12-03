@@ -2,6 +2,7 @@
 import os
 import sys
 import json
+import datetime
 import unittest
 from typing import Union, List
 import urllib3  # type: ignore
@@ -440,6 +441,46 @@ class TestSecurity(unittest.TestCase):
 
             self.__delete_advanced_authkey(auth_key["id"])
             # TODO: Delete new key
+
+    def test_advanced_authkeys_expiration_invalid(self):
+        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+            with self.assertRaises(Exception) as cm:
+                self.__create_advanced_authkey(self.test_usr.id, {"expiration": "__nonsense__"})
+            self.assertIn("expiration", cm.exception.args[0][1]["errors"])
+
+    def test_advanced_authkeys_validity_autoset(self):
+        with MISPComplexSetting({
+            "Security": {
+                "advanced_authkeys": True,
+                "advanced_authkeys_validity": 365,
+            }
+        }):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id)
+            self.assertNotEqual(0, auth_key["expiration"])
+
+    def test_advanced_authkeys_validity_in_range(self):
+        with MISPComplexSetting({
+            "Security": {
+                "advanced_authkeys": True,
+                "advanced_authkeys_validity": 365,
+            }
+        }):
+            expiration = int((datetime.datetime.now() + datetime.timedelta(days=300)).timestamp())
+            auth_key = self.__create_advanced_authkey(self.test_usr.id, {"expiration": expiration})
+            self.__delete_advanced_authkey(auth_key["id"])
+            self.assertEqual(expiration, int(auth_key["expiration"]))
+
+    def test_advanced_authkeys_validity_not_in_range(self):
+        with MISPComplexSetting({
+            "Security": {
+                "advanced_authkeys": True,
+                "advanced_authkeys_validity": 365,
+            }
+        }):
+            expiration = int((datetime.datetime.now() + datetime.timedelta(days=400)).timestamp())
+            with self.assertRaises(Exception) as cm:
+                self.__create_advanced_authkey(self.test_usr.id, {"expiration": expiration})
+            self.assertIn("expiration", cm.exception.args[0][1]["errors"])
 
     def test_advanced_authkeys_view(self):
         with self.__setting("Security.advanced_authkeys", True):
