@@ -73,7 +73,7 @@ class AuthKey extends AppModel
         $end = substr($authkey, -4);
         $existing_authkeys = $this->find('all', [
             'recursive' => -1,
-            'fields' => ['id', 'authkey', 'user_id'],
+            'fields' => ['id', 'authkey', 'user_id', 'expiration'],
             'conditions' => [
                 'OR' => [
                     'expiration >' => time(),
@@ -89,6 +89,7 @@ class AuthKey extends AppModel
                 $user = $this->User->getAuthUser($existing_authkey['AuthKey']['user_id']);
                 if ($user) {
                     $user['authkey_id'] = $existing_authkey['AuthKey']['id'];
+                    $user['authkey_expiration'] = $existing_authkey['AuthKey']['expiration'];
                 }
                 return $user;
             }

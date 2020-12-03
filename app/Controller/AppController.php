@@ -263,6 +263,13 @@ class AppController extends Controller
                 throw new ForbiddenException("When user is authenticated by authkey, just REST request can be processed");
             }
 
+            // Put token expiration time to response header that can be processed by automation tool
+            if (isset($user['authkey_expiration']) && $user['authkey_expiration']) {
+                $expiration = date('c', $user['authkey_expiration']);
+                $this->response->header('X-Auth-Key-Expiration', $expiration);
+                $this->RestResponse->setHeader('X-Auth-Key-Expiration', $expiration);
+            }
+
             $this->set('default_memory_limit', ini_get('memory_limit'));
             if (isset($user['Role']['memory_limit']) && $user['Role']['memory_limit'] !== '') {
                  ini_set('memory_limit', $user['Role']['memory_limit']);
@@ -543,6 +550,15 @@ class AppController extends Controller
                 $this->_redirectToLogin();
             }
             return false;
+        }
+
+        // Check if auth key is not expired. Make sense when Security.authkey_keep_session is enabled.
+        if (isset($user['authkey_expiration']) && $user['authkey_expiration']) {
+            $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
+            if ($user['authkey_expiration'] < $time) {
+                $this->Auth->logout();
+                throw new ForbiddenException('Auth key is expired');
+            }
         }
 
         $isUserRequest = !$this->_isRest() && !$this->request->is('ajax');
@@ -1394,15 +1410,20 @@ class AppController extends Controller
     }
 
     /**
-     * Refresh user data in session.
+     * Refresh user data in session, but keep information about authkey.
      * @return array User data in auth format
      */
     protected function _refreshAuth()
     {
-        $userId = $this->Auth->user('id');
-        $user = $this->User->getAuthUser($userId);
-        if (!$user){
-            throw new RuntimeException("User with ID $userId not exists.");
+        $sessionUser = $this->Auth->user();
+        $user = $this->User->getAuthUser($sessionUser['id']);
+        if (!$user) {
+            throw new RuntimeException("User with ID {$sessionUser['id']} not exists.");
+        }
+        foreach (['authkey_id', 'authkey_expiration', 'logged_by_authkey'] as $copy) {
+            if (isset($sessionUser[$copy])) {
+                $user[$copy] = $sessionUser[$copy];
+            }
         }
         $this->Auth->login($user);
         return $user;
