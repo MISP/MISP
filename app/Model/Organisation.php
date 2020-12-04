@@ -233,20 +233,27 @@ class Organisation extends AppModel
         return $existingOrg[$this->alias]['id'];
     }
 
-    public function createOrgFromName($name, $user_id, $local)
+    /**
+     * @param string $name Organisation name
+     * @param int $userId Organisation creator
+     * @param bool $local True if organisation should be marked as local
+     * @return int Existing or newly created organisation ID
+     * @throws Exception
+     */
+    public function createOrgFromName($name, $userId, $local)
     {
-        $existingOrg = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('name' => $name)
-        ));
+        $existingOrg = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['name' => $name],
+            'fields' => ['id'],
+        ]);
         if (empty($existingOrg)) {
             $this->create();
-            $organisation = array(
-                    'uuid' =>CakeText::uuid(),
-                    'name' => $name,
-                    'local' => $local,
-                    'created_by' => $user_id
-            );
+            $organisation = [
+                'name' => $name,
+                'local' => $local,
+                'created_by' => $userId,
+            ];
             $this->save($organisation);
             return $this->id;
         }

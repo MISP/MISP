@@ -667,6 +667,7 @@ class TestSecurity(unittest.TestCase):
             self.assertEqual(session.headers["Email-Tag"], json_response["User"]["email"])
             self.assertEqual(3, int(json_response["User"]["role_id"]))
             self.assertEqual(session.headers["Federation-Tag"], json_response["Organisation"]["name"])
+            self.assertEqual(1, int(json_response["Organisation"]["local"]), "Newly created org should be local")
 
             self.admin_misp_connector.delete_user(json_response["User"]["id"])
             self.admin_misp_connector.delete_organisation(json_response["User"]["org_id"])
