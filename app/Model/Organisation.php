@@ -514,10 +514,9 @@ class Organisation extends AppModel
      */
     public function getCountries()
     {
-        $countries = ['International'];
-        foreach ($this->getCountryGalaxyCluster() as $country) {
-            $countries[] = $country['description'];
-        }
+        $countries = array_column($this->getCountryGalaxyCluster(), 'description');
+        sort($countries);
+        array_unshift($countries, 'Internation');
         return $countries;
     }
 }
