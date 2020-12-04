@@ -967,7 +967,7 @@ class GalaxyClustersController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be reached via AJAX.');
         }
-        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', true, true);
         $existingRelations = $this->GalaxyCluster->GalaxyClusterRelation->getExistingRelationships();
         $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
 
@@ -978,12 +978,7 @@ class GalaxyClustersController extends AppController
 
         $this->set('existingRelations', $existingRelations);
         $this->set('cluster', $cluster);
-        $relations = $this->GalaxyCluster->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array(
-            'conditions' => array(
-                'GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster['GalaxyCluster']['uuid']
-            ),
-            'contain' => array('SharingGroup', 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'))
-        ));
+        $relations = $cluster['GalaxyCluster']['GalaxyClusterRelation'];
         $this->set('passedArgs', json_encode([]));
         $this->set('relations', $relations);
         $this->set('tree', $tree);
