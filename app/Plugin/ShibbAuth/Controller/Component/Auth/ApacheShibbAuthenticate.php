@@ -166,7 +166,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
             if ($user) {
                 $orgUserId = $user['id'];
             }
-            $orgId = $orgModel->createOrgFromName($org, $orgUserId, 0); // Created with local set to 0 by default
+            $orgId = $orgModel->createOrgFromName($org, $orgUserId, true);
             CakeLog::info("User organisation `$org` created with ID $orgId.");
         } else {
             $orgId = $orgAux['Organisation']['id'];
