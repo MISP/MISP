@@ -73,6 +73,10 @@ class AuthKeysController extends AppController
             'displayOnSuccess' => 'authkey_display',
             'saveModelVariable' => ['authkey_raw'],
             'override' => ['authkey' => null], // do not allow to use own key, always generate random one
+            'afterFind' => function ($authKey) { // remove hashed key from response
+                unset($authKey['AuthKey']['authkey']);
+                return $authKey;
+            }
         ];
         $selectConditions = [];
         if (!$this->_isSiteAdmin()) {

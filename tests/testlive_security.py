@@ -349,6 +349,7 @@ class TestSecurity(unittest.TestCase):
         with self.__setting("Security.advanced_authkeys", True):
             # Create advanced authkey
             auth_key = self.__create_advanced_authkey(self.test_usr.id)
+            self.assertNotIn("authkey", auth_key)
 
             # Try to login
             logged_in = PyMISP(url, auth_key["authkey_raw"])

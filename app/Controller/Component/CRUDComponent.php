@@ -100,6 +100,9 @@ class CRUDComponent extends Component
                         }
                     }
                 }
+                if (isset($params['afterFind'])) {
+                    $data = $params['afterFind']($data);
+                }
                 $message = __('%s added.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
