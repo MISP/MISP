@@ -3,7 +3,7 @@ if (!empty($field['raw'])) {
     $string = $field['raw'];
 } else {
     $value = Hash::extract($data, $field['path']);
-    $string = empty($value[0]) ? '' : $value[0];
+    $string = empty($value[0]) ? '' : h($value[0]);
 }
 if (!empty($field['url'])) {
     if (!empty($field['url_vars'])) {
