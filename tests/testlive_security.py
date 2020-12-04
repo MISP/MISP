@@ -184,6 +184,11 @@ class TestSecurity(unittest.TestCase):
         # TODO: Try to reload config cache
         self.admin_misp_connector.get_server_setting("MISP.live")
 
+    def tearDown(self):
+        # Ensure correct config
+        setting = self.admin_misp_connector.get_server_setting("Security.advanced_authkeys")
+        self.assertEqual(setting["value"], False, "Security.advanced_authkeys should be False after test")
+
     def test_not_logged_in(self):
         session = requests.Session()
 
@@ -399,18 +404,22 @@ class TestSecurity(unittest.TestCase):
             logged_in = PyMISP(url, auth_key["authkey_raw"])
             self.assertEqual(logged_in._current_user.id, self.test_usr.id)
 
-            self.__delete_advanced_authkey(auth_key["id"])
             # Wait one second to really know that session will be reloaded
             time.sleep(1)
+
+            self.__delete_advanced_authkey(auth_key["id"])
+
             with self.assertRaises(MISPServerError):
                 logged_in.get_user()
+
+        time.sleep(1)
 
     def test_advanced_authkeys_own_key_not_possible(self):
         with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
             authkey = ("a" * 40)
             auth_key = self.__create_advanced_authkey(self.test_usr.id, {"authkey": authkey})
             self.__delete_advanced_authkey(auth_key["id"])
-            self.assertNotEqual(authkey, auth_key["authkey"])
+            self.assertNotEqual(authkey, auth_key["authkey_raw"])
 
     def test_advanced_authkeys_reset_own(self):
         with self.__setting("Security.advanced_authkeys", True):
