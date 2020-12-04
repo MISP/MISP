@@ -85,8 +85,8 @@
             'disabled' => !$canChangePassword,
             'data-disabled-reason' => !$canChangePassword ? __('User password change is disabled on this instance') : '',
         ]);
-        echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
-        echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
+        echo $this->Form->input('autoalert', array('label' => __('Receive email alerts when events are published'), 'type' => 'checkbox'));
+        echo $this->Form->input('contactalert', array('label' => __('Receive email alerts from "Contact reporter" requests'), 'type' => 'checkbox'));
         echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Disable this user account')));
         echo '</div>';
     ?>

@@ -77,12 +77,12 @@
     <?php
         $default_publish_alert = Configure::check('MISP.default_publish_alert') ? Configure::read('MISP.default_publish_alert') : true;
         echo $this->Form->input('autoalert', array(
-            'label' => __('Receive alerts when events are published'),
+            'label' => __('Receive email alerts when events are published'),
             'type' => 'checkbox',
             'checked' => isset($this->request->data['User']['autoalert']) ? $this->request->data['User']['autoalert'] : $default_publish_alert
         ));
         echo $this->Form->input('contactalert', array(
-            'label' => __('Receive alerts from "contact reporter" requests'),
+            'label' => __('Receive email alerts from "Contact reporter" requests'),
             'type' => 'checkbox',
             'checked' => isset($this->request->data['User']['contactalert']) ? $this->request->data['User']['contactalert'] : true
         ));

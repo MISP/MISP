@@ -30,8 +30,8 @@
             echo $this->Form->input('certif_public', array('label' => __('S/MIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge'));
         }
         echo '<div class="user-edit-checkboxes">';
-        echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
-        echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
+        echo $this->Form->input('autoalert', array('label' => __('Receive email alerts when events are published'), 'type' => 'checkbox'));
+        echo $this->Form->input('contactalert', array('label' => __('Receive email alerts from "Contact reporter" requests'), 'type' => 'checkbox'));
         echo '</div>';
     ?>
     </fieldset>

@@ -16,8 +16,8 @@
         'html' => $this->OrgImg->getNameWithImg($user),
     );
     $table_data[] = array('key' => __('Role'), 'html' => $this->Html->link($user['Role']['name'], array('controller' => 'roles', 'action' => 'view', $user['Role']['id'])));
-    $table_data[] = array('key' => __('Autoalert'), 'boolean' => $user['User']['autoalert']);
-    $table_data[] = array('key' => __('Contactalert'), 'boolean' => $user['User']['contactalert']);
+    $table_data[] = array('key' => __('Event alert enabled'), 'boolean' => $user['User']['autoalert']);
+    $table_data[] = array('key' => __('Contact alert enabled'), 'boolean' => $user['User']['contactalert']);
 
     if (!$admin_view && !$user['Role']['perm_auth']) {
         $table_data[] = array(
@@ -73,8 +73,10 @@
         $table_data[] = array('key' => __('Org admin'), 'html' => implode('<br>', $org_admin_data));
     }
     $table_data[] = array('key' => __('NIDS Start SID'), 'value' => $user['User']['nids_sid']);
-    $table_data[] = array('key' => __('Terms accepted'), 'boolean' => $user['User']['termsaccepted']);
-    $table_data[] = array('key' => __('Must change password'), 'boolean' => $user['User']['change_pw']);
+    if ($admin_view) {
+        $table_data[] = array('key' => __('Terms accepted'), 'boolean' => $user['User']['termsaccepted']);
+        $table_data[] = array('key' => __('Must change password'), 'boolean' => $user['User']['change_pw']);
+    }
     $table_data[] = array(
         'key' => __('PGP key'),
         'element' => 'genericElements/key',
@@ -100,14 +102,20 @@
         );
     }
     $table_data[] = array(
-        'key' => __('News read at'),
-        'value' => $user['User']['newsread'] ? date('Y-m-d H:i:s', $user['User']['newsread']) : __('N/A')
+        'key' => __('Created'),
+        'value' => $user['User']['date_created'] ? date('Y-m-d H:i:s', $user['User']['date_created']) : __('N/A')
     );
-    $table_data[] = array(
-        'key' => __('Disabled'),
-        'class' => empty($user['User']['disabled']) ? '' : 'background-red',
-        'boolean' => $user['User']['disabled']
-    );
+    if ($admin_view) {
+        $table_data[] = array(
+            'key' => __('News read at'),
+            'value' => $user['User']['newsread'] ? date('Y-m-d H:i:s', $user['User']['newsread']) : __('N/A')
+        );
+        $table_data[] = array(
+            'key' => __('Disabled'),
+            'class' => empty($user['User']['disabled']) ? '' : 'background-red',
+            'boolean' => $user['User']['disabled']
+        );
+    }
     echo $this->element('genericElements/assetLoader', array(
         'css' => array('vis', 'distribution-graph'),
         'js' => array('vis', 'network-distribution-graph')
