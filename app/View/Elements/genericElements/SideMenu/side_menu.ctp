@@ -1254,7 +1254,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'text' => __('List Relationships')
                     ));
                     if ($isSiteAdmin) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'element_id' => 'update',
                             'url' => $baseurl . '/galaxies/update',
@@ -1269,7 +1269,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                     }
                     if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/galaxies/import',
                             'text' => __('Import Galaxy Clusters')
@@ -1283,7 +1283,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                     }
                     if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster' || $menuItem === 'update_cluster' || $menuItem === 'add_cluster' || $menuItem === 'edit_cluster') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'url' => $baseurl . '/galaxies/view/' . h($galaxy_id),
@@ -1303,7 +1303,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'text' => __('Edit Cluster')
                             ));
                         }
-                        if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
+                        if ($canAccess('galaxyClusters', 'add')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'add_cluster',
                                 'url' => $baseurl . '/galaxy_clusters/add/' . h($galaxy_id),
@@ -1321,7 +1321,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                     $isSiteAdmin || (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id'])
                                 )
                             ) {
-                                echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                                echo $divider;
                                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                     'onClick' => array(
                                         'function' => 'publishPopup',
@@ -1333,7 +1333,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             }
                         }
                         if ($menuItem !== 'add_cluster') {
-                            echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                            echo $divider;
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'viewGraph',
                                 'url' => $baseurl . '/galaxies/viewGraph/' . h($id),
@@ -1342,17 +1342,19 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         }
                     }
                     if ($menuItem === 'view' || $menuItem === 'export') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'url' => $baseurl . '/galaxies/view/' . h($galaxy['Galaxy']['id']),
                             'text' => __('View Galaxy')
                         ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'add_cluster',
-                            'url' => $baseurl . '/galaxy_clusters/add/' . h($galaxy['Galaxy']['id']),
-                            'text' => __('Add Cluster')
-                        ));
+                        if ($canAccess('galaxyClusters', 'add')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'add_cluster',
+                                'url' => $baseurl . '/galaxy_clusters/add/' . h($galaxy['Galaxy']['id']),
+                                'text' => __('Add Cluster')
+                            ));
+                        }
                     }
                     break;
 
@@ -1361,7 +1363,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/galaxies/index',
                         'text' => __('List Galaxies')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                    echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',
                         'url' => $baseurl . '/galaxies/view/' . h($galaxy_id),
@@ -1380,7 +1382,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         ));
                     }
                     if ($menuItem === 'view') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                        echo $divider;
                         if (
                             isset($cluster['GalaxyCluster']['published']) && !$cluster['GalaxyCluster']['published'] &&
                             isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] == $me['org_id'] &&
@@ -1417,8 +1419,8 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/galaxy_cluster_relations/index',
                         'text' => __('List Relationships')
                     ));
-                    if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) { 
-                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                    if ($isSiteAdmin || $me['Role']['perm_galaxy_editor']) {
+                        echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
                             'url' => $baseurl . '/galaxy_cluster_relations/add/',
