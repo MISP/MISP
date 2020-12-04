@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * @property ACLComponent $ACL
+ */
 class RestResponseComponent extends Component
 {
     public $components = array('ACL');
@@ -343,7 +346,8 @@ class RestResponseComponent extends Component
         $this->__setup();
         $result = array();
         foreach ($this->__scopedFieldsConstraint as $controller => $actions) {
-            $controller = Inflector::tableize($controller);
+            // EventGraph controller has different rule
+            $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
                 if ($this->ACL->canUserAccess($user, $controller, $action)) {
                     $admin_routing = '';
@@ -364,7 +368,8 @@ class RestResponseComponent extends Component
         $this->__setup();
         $result = array();
         foreach ($this->__descriptions as $controller => $actions) {
-            $controller = Inflector::tableize($controller);
+            // EventGraph controller has different rule
+            $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
                 if ($this->ACL->canUserAccess($user, $controller, $action)) {
                     $admin_routing = '';
