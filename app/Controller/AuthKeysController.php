@@ -26,17 +26,21 @@ class AuthKeysController extends AppController
             $this->set('user_id', $id);
             $conditions['AND'][] = ['AuthKey.user_id' => $id];
         }
+        $keyUsageEnabled = Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_authkeys');
         $this->CRUD->index([
             'filters' => ['User.username', 'authkey', 'comment', 'User.id'],
             'quickFilters' => ['authkey', 'comment'],
             'contain' => ['User.id', 'User.email'],
             'conditions' => $conditions,
-            'afterFind' => function (array $authKeys) {
-                $keyUsageEnabled = Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_authkeys');
+            'afterFind' => function (array $authKeys) use ($keyUsageEnabled) {
+                if ($keyUsageEnabled) {
+                    $keyIds = Hash::extract($authKeys, "{n}.AuthKey.id");
+                    $lastUsedById = $this->AuthKey->getLastUsageForKeys($keyIds);
+                }
                 foreach ($authKeys as &$authKey) {
                     if ($keyUsageEnabled) {
-                        $lastUsed = $this->AuthKey->getKeyUsage($authKey['AuthKey']['id'])[1];
-                        $key['AuthKey']['last_used'] = $lastUsed ? $lastUsed->format('c') : null;
+                        $lastUsed = $lastUsedById[$authKey['AuthKey']['id']];
+                        $authKey['AuthKey']['last_used'] = $lastUsed;
                     }
                     unset($authKey['AuthKey']['authkey']);
                 }
@@ -46,6 +50,7 @@ class AuthKeysController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        $this->set('keyUsageEnabled', $keyUsageEnabled);
         $this->set('metaGroup', $this->_isAdmin ? 'admin' : 'globalActions');
         $this->set('metaAction', 'authkeys_index');
     }

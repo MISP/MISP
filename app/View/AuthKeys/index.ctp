@@ -57,6 +57,12 @@
                     'element' => 'expiration'
                 ],
                 [
+                    'name' => ('Last used'),
+                    'data_path' => 'AuthKey.last_used',
+                    'element' => 'datetime',
+                    'requirements' => $keyUsageEnabled,
+                ],
+                [
                     'name' => __('Comment'),
                     'sort' => 'AuthKey.comment',
                     'data_path' => 'AuthKey.comment',

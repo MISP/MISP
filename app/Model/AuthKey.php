@@ -155,6 +155,25 @@ class AuthKey extends AppModel
     }
 
     /**
+     * @param array $ids
+     * @return array<DateTime|null>
+     * @throws Exception
+     */
+    public function getLastUsageForKeys(array $ids)
+    {
+        $redis = $this->setupRedisWithException();
+        $keys = array_map(function($id) {
+            return "misp:authkey_last_usage:$id";
+        }, $ids);
+        $lastUsages = $redis->mget($keys);
+        $output = [];
+        foreach (array_values($ids) as $i => $id) {
+            $output[$id] = $lastUsages[$i] === false ? null : (int)$lastUsages[$i];
+        }
+        return $output;
+    }
+
+    /**
      * When key is deleted, update after `date_modified` for user that was assigned to that key, so session data
      * will be realoaded and canceled.
      * @see AppController::_refreshAuth
