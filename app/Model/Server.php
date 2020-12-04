@@ -3003,7 +3003,7 @@ class Server extends AppModel
      * @param  array $server
      * @param  mixed $HttpSocket
      * @param  bool  $onlyUpdateLocalCluster If set to true, only cluster present locally will be returned
-     * @param  array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster 
+     * @param  array $elligibleClusters Array of cluster present locally that could potentially be updated. Linked to $onlyUpdateLocalCluster
      * @param  array $conditions Conditions to be sent to the remote server while fetching accessible clusters IDs
      * @return array List of cluster IDs to be pulled
      */
@@ -3384,7 +3384,7 @@ class Server extends AppModel
         }
         return $uuidList;
     }
-    
+
     /**
      * syncGalaxyClusters Push elligible clusters depending on the provided technique
      *
@@ -3924,10 +3924,15 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        $regex = "%^(?<proto>https?)://(?<host>(?:(?:\w|-)+\.)+[a-z]{2,})(?::(?<port>[0-9]+))?(?<base>/[a-z0-9_\-\.]+)?$%i";
-	if ( !preg_match($regex, $value, $matches)
-                || strtolower($matches['proto']) != strtolower($this->getProto())
-                || strtolower($matches['host']) != strtolower($this->getHost()) ) {
+        $regex = "/^(?<proto>https?):\/\/(?<host>([\w,\.]+))(?::(?<port>[0-9]+))?(?<base>\/[a-z0-9_\-\.]+)?$/i";
+	if (
+            !preg_match($regex, $value, $matches) ||
+            strtolower($matches['proto']) != strtolower($this->getProto()) ||
+            (
+                strtolower($matches['host']) != strtolower($this->getHost()) &&
+                strtolower($matches['host']) . ':' . $matches['port'] != strtolower($this->getHost())
+            )
+        ) {
             return 'Invalid baseurl, it has to be in the "https://FQDN" format.';
         }
         return true;

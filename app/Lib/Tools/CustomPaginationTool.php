@@ -133,7 +133,7 @@ class CustomPaginationTool
         if (!empty($params['named']['searchall'])) {
             $this->truncateByQuickFilter($items, $params['named']['searchall']);
         }
-        $passedArgs = $this->applyRulesOnArray($items, $params['named'], 'Feed', 'id', 'uuid', $escapeReindex);
+        $passedArgs = $this->applyRulesOnArray($items, $params['named'], $model, 'id', 'uuid', $escapeReindex);
         $params->params['paging'] = array($model => $passedArgs);
     }
 

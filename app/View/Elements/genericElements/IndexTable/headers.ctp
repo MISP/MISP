@@ -22,7 +22,8 @@
 
             }
             $headersHtml .= sprintf(
-                '<th>%s</th>',
+                '<th%s>%s</th>',
+                !empty($header['sort']) ? ' class="pagination_link"' : '',
                 $header_data
             );
         }
