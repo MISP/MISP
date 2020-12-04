@@ -12,7 +12,7 @@ echo $this->element('genericElements/assetLoader', array(
     var hexagonPoints = '21,10.5 15.75,19.6 5.25,19.6 0,10.5 5.25,1.4 15.75,1.4'
     var hexagonTranslate = -10.5;
     var treeData = <?= json_encode($tree) ?>;
-    var margin = {top: 10, right: 10, bottom: 10, left: 20};
+    var margin = {top: 10, right: 10, bottom: 30, left: 20};
     var treeWidth, treeHeight;
     var colors = d3.scale.category10();
     var hasBeenBuilt = false;
@@ -22,13 +22,6 @@ echo $this->element('genericElements/assetLoader', array(
             return;
         }
         hasBeenBuilt = true;
-        var $tree = $('#treeSVG');
-        treeWidth = $tree.width() - margin.right - margin.left;
-        treeHeight = $tree.height() - margin.top - margin.bottom;
-        var leftShift;
-        var childrenBothSides, side;
-
-        var finalData = treeData.right;
         if (treeData.left[0].children === undefined || treeData.left[0].children.length == 0) {
             leftShift = 0;
             childrenBothSides = false;
@@ -44,6 +37,13 @@ echo $this->element('genericElements/assetLoader', array(
                 side = 'both';
             }
         }
+        adaptContainerHeightIfNeeded(side);
+        var $tree = $('#treeSVG');
+        treeWidth = $tree.width() - margin.right - margin.left;
+        treeHeight = $tree.height() - margin.top - margin.bottom;
+        var leftShift;
+        var childrenBothSides, side;
+
         var data = genHierarchy(treeData, leftShift, childrenBothSides, side);
         drawTree(data, leftShift, childrenBothSides);
     }
@@ -405,6 +405,26 @@ echo $this->element('genericElements/assetLoader', array(
     }
 
     function nodeHover(d) {
+    }
+
+    function adaptContainerHeightIfNeeded(side) {
+        var $upperContainer = $('#treeSVG').parent().parent();
+        var leftNodeNumber = 0
+        var rightNodeNumber = 0 
+        if (side == 'left') {
+            leftNodeNumber = treeData.left[0].children.length
+        } else if (side == 'right') {
+            rightNodeNumber = treeData.right[0].children.length
+        } else {
+            leftNodeNumber = treeData.left[0].children.length
+            rightNodeNumber = treeData.right[0].children.length
+        }
+        var maxChildrenNumber = leftNodeNumber > rightNodeNumber ? leftNodeNumber : rightNodeNumber;
+        var additionalHeightPerChildren = 60; // px
+        var originalHeight = $upperContainer.height();
+        var childrenOverflow = maxChildrenNumber - Math.round(originalHeight / additionalHeightPerChildren) > 0 ? maxChildrenNumber - Math.round(originalHeight / additionalHeightPerChildren) : 0;
+        var targetHeight = originalHeight + (childrenOverflow * additionalHeightPerChildren)
+        $upperContainer.height(targetHeight);
     }
 
     function getId(d) {
