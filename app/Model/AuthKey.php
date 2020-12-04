@@ -137,8 +137,10 @@ class AuthKey extends AppModel
         $data = $redis->hGetAll("misp:authkey_usage:$id");
 
         $output = [];
+        $uniqueIps = [];
         foreach ($data as $key => $count) {
             list($date, $ip) = explode(':', $key);
+            $uniqueIps[$ip] = true;
             if (isset($output[$date])) {
                 $output[$date] += $count;
             } else {
@@ -149,9 +151,9 @@ class AuthKey extends AppModel
         ksort($output);
 
         $lastUsage = $redis->get("misp:authkey_last_usage:$id");
-        $lastUsage = $lastUsage === false ? null : new DateTime("@$lastUsage");
+        $lastUsage = $lastUsage === false ? null : (int)$lastUsage;
 
-        return [$output, $lastUsage];
+        return [$output, $lastUsage, count($uniqueIps)];
     }
 
     /**

@@ -63,7 +63,12 @@ echo $this->element(
             ],
             [
                 'key' => __('Last used'),
-                'raw' => $lastUsed ? $lastUsed->format('Y-m-d H:i:s') : __('Not used yet'),
+                'raw' => $lastUsed ? date('Y-m-d H:i:s', $lastUsed) : __('Not used yet'),
+                'requirement' => isset($keyUsage),
+            ],
+            [
+                'key' => __('Unique IPs'),
+                'raw' => $uniqueIps,
                 'requirement' => isset($keyUsage),
             ]
         ],

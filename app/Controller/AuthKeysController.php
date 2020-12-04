@@ -125,9 +125,10 @@ class AuthKeysController extends AppController
         }
 
         if (Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_authkeys')) {
-            list($keyUsage, $lastUsed) = $this->AuthKey->getKeyUsage($id);
+            list($keyUsage, $lastUsed, $uniqueIps) = $this->AuthKey->getKeyUsage($id);
             $this->set('keyUsage', $keyUsage);
             $this->set('lastUsed', $lastUsed);
+            $this->set('uniqueIps', $uniqueIps);
         }
 
         $this->set('menuData', [
