@@ -1,7 +1,3 @@
-<?php
-$mayModify = (($isAclModify && $this->request->data['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $this->request->data['Event']['orgc_id'] == $me['org_id']));
-$mayPublish = ($isAclPublish && $this->request->data['Event']['orgc_id'] == $me['org_id']);
-?>
 <div class="events form">
 <?php echo $this->Form->create('Event');?>
     <fieldset>
@@ -32,7 +28,4 @@ $mayPublish = ($isAclPublish && $this->request->data['Event']['orgc_id'] == $me[
         </div>
     </fieldset>
 </div>
-<?php
-    $event = $this->data;
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'contact', 'event' => $event));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'contact', 'event' => $event));

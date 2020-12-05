@@ -62,21 +62,20 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         $mayModify = true;
                         if ($isAclPublish) $mayPublish = true;
                     }
-                    if (($menuItem === 'template_populate_results')) {
+
+                    if ($menuItem === 'template_populate_results') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'template_populate_results',
                             'url' => $baseurl . '/templates/index',
                             'text' => __('Populate From Template')
                         ));
-                    }
-                    if ($menuItem === 'enrichmentResults') {
+                    } else if ($menuItem === 'enrichmentResults') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'enrichmentResults',
                             'text' => __('Enrichment Module Result')
                         ));
                         echo $divider;
-                    }
-                    if ($menuItem === 'freetextResults') {
+                    } else if ($menuItem === 'freetextResults') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'freetextResults',
                             'text' => __('Freetext Import Result')
