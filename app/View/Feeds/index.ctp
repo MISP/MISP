@@ -211,8 +211,8 @@
             ),
             'title' => __('Feeds'),
             'description' => __('Generate feed lookup caches or fetch feed data (enabled feeds only)'),
-            'html' => sprintf(
-                '<div class="toggleButtons">%s%s%s%s%s</div><br />',
+            'html' => $isSiteAdmin ? sprintf(
+                '<div class="toggleButtons">%s%s%s%s%s</div><br>',
                 $this->Form->postButton(
                     __('Load default feed metadata'),
                     array('controller' => 'feeds', 'action' => 'loadDefaultFeeds'),
@@ -247,7 +247,7 @@
                     'margin-left:20px;',
                     __('Fetch and store all feed data')
                 )
-            ),
+            ) : '',
             'actions' => array(
                 array(
                     'url' => $baseurl . '/feeds/previewIndex',
