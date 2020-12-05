@@ -1091,13 +1091,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'element_id' => 'delete',
                                 'onClick' => array(
                                     'function' => 'deleteObject',
-                                    'params' => array('taxonomies', 'delete', h($id), h($id))
+                                    'params' => array('taxonomies', 'delete', h($id))
                                 ),
                                 'text' => __('Delete Taxonomy')
                             ));
                         }
                     }
-                    if ($isSiteAdmin) {
+                    if ($canAccess('taxonomies', 'update')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'update',
                             'url' => $baseurl . '/taxonomies/update',
