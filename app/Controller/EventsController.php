@@ -2179,7 +2179,7 @@ class EventsController extends AppController
                 }
             }
         }
-        $target_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $target_id, ['contain' => ['Orgc']);
+        $target_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $target_id, ['contain' => ['Orgc']]);
         if (empty($target_event)) {
             throw new NotFoundException(__('Invalid target event.'));
         }
@@ -5113,6 +5113,7 @@ class EventsController extends AppController
         $this->set('module', $module);
         $this->set('eventId', $eventId);
         $this->set('event', $event);
+        $this->set('mayModify', $this->__canModifyEvent($event));
     }
 
     public function exportModule($module, $id, $standard = false)
