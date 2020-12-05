@@ -46,12 +46,6 @@ class SharingGroupsController extends AppController
         if (!$this->userRole['perm_sharing_group']) {
             throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
         }
-        $orgs = $this->SharingGroup->Organisation->find('all', array(
-            'conditions' => array('local' => 1),
-            'recursive' => -1,
-            'fields' => array('id', 'name', 'uuid')
-        ));
-
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 if (isset($this->request->data['SharingGroup'])) {
@@ -132,6 +126,12 @@ class SharingGroupsController extends AppController
         } elseif ($this->_isRest()) {
             return $this->RestResponse->describe('SharingGroup', 'add', false, $this->response->type());
         }
+
+        $orgs = $this->SharingGroup->Organisation->find('all', array(
+            'conditions' => array('local' => 1),
+            'recursive' => -1,
+            'fields' => array('id', 'name', 'uuid')
+        ));
         $this->set('orgs', $orgs);
         $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
         // We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
