@@ -14,31 +14,29 @@ class SharingGroupsController extends AppController
         if (!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) {
             $this->redirect('/');
         }
-        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
-        $this->paginate = Set::merge($this->paginate, array('conditions' => array('SharingGroup.id' => $sgs)));
     }
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
-            'order' => array(
-                    'SharingGroup.name' => 'ASC'
+        'limit' => 60,
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'order' => array(
+            'SharingGroup.name' => 'ASC'
+        ),
+        'fields' => array('SharingGroup.id', 'SharingGroup.uuid', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active'),
+        'contain' => array(
+            'SharingGroupOrg' => array(
+                'Organisation' => array('fields' => array('Organisation.name', 'Organisation.id', 'Organisation.uuid'))
             ),
-            'fields' => array('SharingGroup.id', 'SharingGroup.uuid', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active'),
-            'contain' => array(
-                    'SharingGroupOrg' => array(
-                        'Organisation' => array('fields' => array('Organisation.name', 'Organisation.id', 'Organisation.uuid'))
-                    ),
-                    'Organisation' => array(
-                        'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'),
-                    ),
-                    'SharingGroupServer' => array(
-                        'fields' => array('SharingGroupServer.all_orgs'),
-                        'Server' => array(
-                            'fields' => array('Server.name', 'Server.id')
-                        )
-                    )
+            'Organisation' => array(
+                'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'),
             ),
+            'SharingGroupServer' => array(
+                'fields' => array('SharingGroupServer.all_orgs'),
+                'Server' => array(
+                    'fields' => array('Server.name', 'Server.id')
+                )
+            )
+        ),
     );
 
     public function add()
@@ -266,34 +264,43 @@ class SharingGroupsController extends AppController
         if ($passive === 'true') {
             $passive = true;
         }
-        if ($passive === true) {
-            $this->paginate['conditions'][] = array('SharingGroup.active' => 0);
-        } else {
-            $this->paginate['conditions'][] = array('SharingGroup.active' => 1);
-        }
+        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
+        $this->paginate['conditions'][] = array('SharingGroup.id' => $sgs);
+        $this->paginate['conditions'][] = array('SharingGroup.active' => $passive === true ? 0 : 1);
         $result = $this->paginate();
+
         // check if the current user can modify or delete the SG
+        $userOrganisationUuid = $this->Auth->user()['Organisation']['uuid'];
         foreach ($result as $k => $sg) {
-            if ($sg['Organisation']['uuid'] == $this->Auth->user('Organisation')['uuid'] && $this->userRole['perm_sharing_group']) {
+            if (!$this->userRole['perm_sharing_group']) {
+                $result[$k]['editable'] = false;
+                $result[$k]['deletable'] = false;
+                continue;
+            }
+            if ($sg['Organisation']['uuid'] === $userOrganisationUuid) {
                 $result[$k]['editable'] = true;
+                $result[$k]['deletable'] = true;
             } else {
                 $result[$k]['editable'] = false;
+                $result[$k]['deletable'] = false;
                 if (!empty($sg['SharingGroupOrg'])) {
                     foreach ($sg['SharingGroupOrg'] as $sgo) {
                         if ($sgo['org_id'] == $this->Auth->user('org_id') && $sgo['extend']) {
                             $result[$k]['editable'] = true;
+                            break;
                         }
                     }
                 }
             }
         }
-        $this->set('passive', $passive);
         if ($this->_isRest()) {
             $this->set('response', $result);
             $this->set('_serialize', array('response'));
         } else {
+            $this->set('passive', $passive);
             $this->set('sharingGroups', $result);
         }
+        $this->set('title', __('Sharing Groups'));
     }
 
     public function view($id)
@@ -349,6 +356,7 @@ class SharingGroupsController extends AppController
         $this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $sg['SharingGroup']['id']));
         $this->set('id', $sg['SharingGroup']['id']);
         $this->set('sg', $sg);
+        $this->set('title', __('Sharing Group %s', $sg['SharingGroup']['name']));
     }
 
     private function __initialiseSGQuickEdit($id, $request)

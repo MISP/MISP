@@ -84,9 +84,11 @@ foreach ($sharingGroups as $k => $sharingGroup):
             </span>
         </td>
         <td class="action">
-        <?php if ($isSiteAdmin || $sharingGroup['editable']): ?>
+        <?php if ($sharingGroup['editable']): ?>
             <?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit'))); ?>
-            <?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
+        <?php endif; ?>
+        <?php if ($sharingGroup['deletable']): ?>
+            <?= $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
         <?php endif; ?>
             <a href="<?php echo $baseurl; ?>/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="black fa fa-eye" title="<?php echo __('View');?>" aria-label="<?php echo __('View');?>"></a>
         </td>
