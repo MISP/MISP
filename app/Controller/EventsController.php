@@ -2143,11 +2143,11 @@ class EventsController extends AppController
                         $this->Flash->error(__('Could not import STIX document: ' . $result));
                     }
                 } else {
-                    $max_size = intval(ini_get('post_max_size'));
-                    if (intval(ini_get('upload_max_filesize')) < $max_size) {
-                        $max_size = intval(ini_get('upload_max_filesize'));
+                    $maxUploadSize = intval(ini_get('post_max_size'));
+                    if (intval(ini_get('upload_max_filesize')) < $maxUploadSize) {
+                        $maxUploadSize = intval(ini_get('upload_max_filesize'));
                     }
-                    $this->Flash->error(__('File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn\'t exceed the maximum file size of ' . $max_size . '.'));
+                    $this->Flash->error(__('File upload failed. Make sure that you select a STIX file to be uploaded and that the file doesn\'t exceed the maximum file size of %s MB.', $maxUploadSize));
                 }
             }
         }
