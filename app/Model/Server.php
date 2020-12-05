@@ -3834,6 +3834,9 @@ class Server extends AppModel
         if (substr($value, 0, 7) === "phar://") {
             return 'Phar protocol not allowed.';
         }
+        if (substr($value, 0, 5) === "s3://") {
+            return true;
+        }
         if (!is_dir($value)) {
             return 'Not a valid directory.';
         }
