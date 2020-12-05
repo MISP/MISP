@@ -329,6 +329,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Add Event')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'import_from',
                             'onClick' => array(
                                 'function' => 'getPopup',
                                 'params' => array('0', 'events', 'importChoice/event-collection')
