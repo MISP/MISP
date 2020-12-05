@@ -5,9 +5,9 @@
         <th><?php echo $this->Paginator->sort('role_id', __('Role'));?></th>
         <th><?php echo $this->Paginator->sort('email');?></th>
         <th><?php echo $this->Paginator->sort('authkey');?></th>
-        <th><?php echo $this->Paginator->sort('autoalert');?></th>
-        <th><?php echo $this->Paginator->sort('contactalert');?></th>
-        <th><?php echo $this->Paginator->sort('gpgkey', __('PGP key'));?></th>
+        <th><?php echo $this->Paginator->sort('autoalert', __('Event alert'));?></th>
+        <th><?php echo $this->Paginator->sort('contactalert', __('Contact alert'));?></th>
+        <th><?php echo $this->Paginator->sort('gpgkey', __('PGP Key'));?></th>
         <?php if (Configure::read('SMIME.enabled')): ?>
             <th><?php echo $this->Paginator->sort('certif_public', 'S/MIME');?></th>
         <?php endif; ?>
@@ -85,7 +85,7 @@
                     <?php
                         if (($isAclAdmin && (($user['User']['org_id'] == $me['org_id'])) || ('1' == $me['id'])) || ($isSiteAdmin)):
                     ?>
-                            <span role="button" tabindex="0" class="fa fa-sync useCursorPointer" onClick="initiatePasswordReset('<?php echo $user['User']['id']; ?>');" title="<?php echo __('Create new credentials and inform user');?>" role="button" tabindex="0" aria-label="<?php echo __('Create new credentials and inform user');?>"></span>
+                            <span role="button" tabindex="0" class="fa fa-sync useCursorPointer" onClick="initiatePasswordReset('<?php echo $user['User']['id']; ?>');" title="<?php echo __('Create new credentials and inform user');?>" aria-label="<?php echo __('Create new credentials and inform user');?>"></span>
                     <?php
                             echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit')));
                             echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', $user['User']['id']));
