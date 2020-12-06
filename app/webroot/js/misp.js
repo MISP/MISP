@@ -2206,10 +2206,9 @@ function runIndexFilter(element) {
     window.location.href = url;
 }
 
-function cancelSearch()
-{
+function cancelSearch() {
     $('#quickFilterField').val('');
-    runIndexQuickFilter();
+    $('#quickFilterButton').click();
 }
 
 function runIndexQuickFilter(preserveParams, url, target) {

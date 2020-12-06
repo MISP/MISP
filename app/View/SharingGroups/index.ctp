@@ -26,6 +26,11 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
                     'button' => __('Filter'),
                     'placeholder' => __('Enter value to search'),
                     'searchKey' => 'value',
+                    'cancel' => array(
+                        'fa-icon' => 'times',
+                        'title' => __('Remove filters'),
+                        'onClick' => 'cancelSearch',
+                    )
                 )
             )
         ),
