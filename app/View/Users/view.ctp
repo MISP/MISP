@@ -84,12 +84,12 @@
     );
     if (!empty($user['User']['gpgkey'])) {
         $table_data[] = array(
-            'key' => __('GnuPG fingerprint'),
+            'key' => __('PGP key fingerprint'),
             'class_value' => "quickSelect bold " . $user['User']['gpgkey'] ? 'green' : 'bold red',
             'value' => $user['User']['fingerprint'] ? chunk_split($user['User']['fingerprint'], 4, ' ') : 'N/A'
         );
         $table_data[] = array(
-            'key' => __('GnuPG status'),
+            'key' => __('PGP key status'),
             'class_value' => "bold" . (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] != 'OK') ? 'red': 'green',
             'value' => !empty($user['User']['pgp_status']) ? $user['User']['pgp_status'] : 'N/A'
         );
