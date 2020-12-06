@@ -220,11 +220,12 @@ jobs:
               sudo chown -R $USER:www-data `pwd`/app/Config
               sudo chmod -R 777 `pwd`/app/Config
 
-              python3 tests/testlive_security.py -v
-
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
               popd
+
+              python3 tests/testlive_security.py -v
+
               pushd PyMISP
               poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
               poetry run python tests/testlive_comprehensive.py
