@@ -261,50 +261,73 @@ class SharingGroupsController extends AppController
 
     public function index($passive = false)
     {
-        if ($passive === 'true') {
-            $passive = true;
-        }
-        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
-        $this->paginate['conditions'][] = array('SharingGroup.id' => $sgs);
+        $passive = $passive === 'true';
+        $authorizedSgIds = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
+        $this->paginate['conditions'][] = array('SharingGroup.id' => $authorizedSgIds);
         $this->paginate['conditions'][] = array('SharingGroup.active' => $passive === true ? 0 : 1);
+
+        if (isset($this->params['named']['value'])) {
+            $term = '%' . strtolower($this->params['named']['value']) . '%';
+            $sgIds = $this->SharingGroup->SharingGroupOrg->find('list', [
+                'conditions' => [
+                    'OR' => [
+                        'Organisation.uuid LIKE' => $term,
+                        'LOWER(Organisation.name) LIKE' => $term,
+                    ],
+                    'SharingGroupOrg.sharing_group_id' => $authorizedSgIds,
+                ],
+                'contain' => ['Organisation'],
+                'fields' => ['SharingGroupOrg.sharing_group_id'],
+            ]);
+            $this->paginate['conditions'][]['OR'] = [
+                'SharingGroup.id' => $sgIds,
+                'SharingGroup.uuid LIKE' => $term,
+                'LOWER(SharingGroup.name) LIKE' => $term,
+                'LOWER(SharingGroup.description) LIKE' => $term,
+                'LOWER(SharingGroup.releasability) LIKE' => $term,
+                'LOWER(Organisation.name) LIKE' => $term,
+            ];
+        }
         $result = $this->paginate();
 
         // check if the current user can modify or delete the SG
         $userOrganisationUuid = $this->Auth->user()['Organisation']['uuid'];
         foreach ($result as $k => $sg) {
-            if (!$this->userRole['perm_sharing_group']) {
-                $result[$k]['editable'] = false;
-                $result[$k]['deletable'] = false;
-                continue;
-            }
-            if ($sg['Organisation']['uuid'] === $userOrganisationUuid) {
-                $result[$k]['editable'] = true;
-                $result[$k]['deletable'] = true;
-            } else {
-                $result[$k]['editable'] = false;
-                $result[$k]['deletable'] = false;
+            $editable = false;
+            $deletable = false;
+
+            if ($this->userRole['perm_site_admin'] || ($this->userRole['perm_sharing_group'] && $sg['Organisation']['uuid'] === $userOrganisationUuid)) {
+                $editable = true;
+                $deletable = true;
+            } else if ($this->userRole['perm_sharing_group']) {
                 if (!empty($sg['SharingGroupOrg'])) {
                     foreach ($sg['SharingGroupOrg'] as $sgo) {
-                        if ($sgo['org_id'] == $this->Auth->user('org_id') && $sgo['extend']) {
-                            $result[$k]['editable'] = true;
+                        if ($sgo['extend'] && $sgo['org_id'] == $this->Auth->user('org_id')) {
+                            $editable = true;
                             break;
                         }
                     }
                 }
             }
+
+            $result[$k]['editable'] = $editable;
+            $result[$k]['deletable'] = $deletable;
         }
         if ($this->_isRest()) {
-            $this->set('response', $result);
-            $this->set('_serialize', array('response'));
-        } else {
-            $this->set('passive', $passive);
-            $this->set('sharingGroups', $result);
+            return $this->RestResponse->viewData(['response' => $result], $this->response->type()); // 'response' to keep BC
         }
-        $this->set('title', __('Sharing Groups'));
+        $this->set('passive', $passive);
+        $this->set('sharingGroups', $result);
+        $this->set('passedArgs', $passive ? 'true' : '[]');
+        $this->set('title_for_layout', __('Sharing Groups'));
     }
 
     public function view($id)
     {
+        if ($this->request->is('head')) { // Just check if sharing group exists and user can access it
+            $exists = $this->SharingGroup->checkIfAuthorised($this->Auth->user(), $id);
+            return new CakeResponse(['status' => $exists ? 200 : 404]);
+        }
         if (!$this->SharingGroup->checkIfAuthorised($this->Auth->user(), $id)) {
             throw new MethodNotAllowedException('Sharing group doesn\'t exist or you do not have permission to access it.');
         }
@@ -356,7 +379,7 @@ class SharingGroupsController extends AppController
         $this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $sg['SharingGroup']['id']));
         $this->set('id', $sg['SharingGroup']['id']);
         $this->set('sg', $sg);
-        $this->set('title', __('Sharing Group %s', $sg['SharingGroup']['name']));
+        $this->set('title_for_layout', __('Sharing Group %s', $sg['SharingGroup']['name']));
     }
 
     private function __initialiseSGQuickEdit($id, $request)
