@@ -426,22 +426,22 @@ class SharingGroup extends AppModel
             return $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id];
         }
         if (Validation::uuid($id)) {
-            $sgid = $this->SharingGroup->find('first', array(
+            $sgid = $this->find('first', array(
                 'conditions' => array('SharingGroup.uuid' => $id),
                 'recursive' => -1,
                 'fields' => array('SharingGroup.id')
             ));
             if (empty($sgid)) {
-                throw new MethodNotAllowedException('Invalid sharing group.');
+                return false;
             }
             $id = $sgid['SharingGroup']['id'];
+        } else {
+            if (!$this->exists($id)) {
+                return false;
+            }
         }
         if (!isset($user['id'])) {
             throw new MethodNotAllowedException('Invalid user.');
-        }
-        $this->id = $id;
-        if (!$this->exists()) {
-            return false;
         }
         if (($adminCheck && $user['Role']['perm_site_admin']) || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id'])) {
             $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id] = true;

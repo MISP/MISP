@@ -66,7 +66,7 @@ jobs:
         run: |
               git submodule update --init --recursive
               sudo apt-get -y update
-              sudo apt-get -y install python3 python3-venv virtualenv python3-pip python3-nose python3-redis python3-lxml apache2 curl libapache2-mod-php libfuzzy-dev libemail-address-perl libemail-outlook-message-perl
+              sudo apt-get -y install curl python3 python3-venv virtualenv python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version php$php_version-xml php$php_version-mbstring php$php_version-mysql libfuzzy-dev libemail-address-perl libemail-outlook-message-perl
               sudo pip3 install --upgrade pip setuptools requests pyzmq poetry
               sudo pip3 install --upgrade -r requirements.txt
               sudo chown $USER:www-data $HOME/.composer
@@ -220,7 +220,7 @@ jobs:
               sudo chown -R $USER:www-data `pwd`/app/Config
               sudo chmod -R 777 `pwd`/app/Config
 
-              python3 tests/testlive_security.py
+              python3 tests/testlive_security.py -v
 
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
