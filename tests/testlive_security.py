@@ -14,7 +14,7 @@ from lxml.html import fromstring
 from enum import Enum
 
 try:
-    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup
+    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent
     from pymisp.exceptions import PyMISPError, NoKey, MISPServerError
 except ImportError:
     if sys.version_info < (3, 6):
@@ -940,6 +940,101 @@ class TestSecurity(unittest.TestCase):
         self.admin_misp_connector.delete_user(sync_user)
         self.admin_misp_connector.delete_organisation(org)
 
+    def test_org_user_can_see(self):
+        org = self.__create_org()
+
+        logged_in = PyMISP(url, self.test_usr.authkey)
+        for key in (org.id, org.uuid, org.name):
+            fetched_org = logged_in.get_organisation(key)
+            check_response(fetched_org)
+            self.assertNotIn("created_by", fetched_org["Organisation"])
+            self.assertNotIn("created_by_email", fetched_org["Organisation"])
+
+        self.admin_misp_connector.delete_organisation(org)
+
+    def test_org_hide_org_cannot_set(self):
+        org = self.__create_org()
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            self.__assertErrorResponse(logged_in.get_organisation(org.id))
+            self.__assertErrorResponse(logged_in.get_organisation(org.uuid))
+
+            self.admin_misp_connector.delete_organisation(org)
+
+    def test_org_hide_org_can_see_after_contribution(self):
+        org = self.__create_org()
+        user = self.__create_user(org.id, ROLE.USER)
+        logged_in = PyMISP(url, user.authkey)
+        event = logged_in.add_event(self.__generate_event())
+        check_response(event)
+
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            for key in (org.id, org.uuid, org.name):
+                fetched_org = logged_in.get_organisation(key)
+                check_response(fetched_org)
+                self.assertNotIn("created_by", fetched_org["Organisation"])
+                self.assertNotIn("created_by_email", fetched_org["Organisation"])
+
+            self.admin_misp_connector.delete_event(event)
+            self.admin_misp_connector.delete_user(user)
+            self.admin_misp_connector.delete_organisation(org)
+
+    def test_get_org_as_site_admin(self):
+        org = self.admin_misp_connector.get_organisation(self.test_org)
+        check_response(org)
+        self.assertIn("created_by", org.to_dict())
+        self.assertIn("created_by_email", org.to_dict())
+
+    def test_get_org_as_org_admin(self):
+        org = self.org_admin_misp_connector.get_organisation(self.test_org)
+        check_response(org)
+        self.assertIn("created_by", org.to_dict())
+        self.assertIn("created_by_email", org.to_dict())
+
+    def test_get_org_as_org_admin_different_org(self):
+        org = self.__create_org()
+        org = self.org_admin_misp_connector.get_organisation(org)
+        check_response(org)
+        self.assertNotIn("created_by", org.to_dict())
+        self.assertNotIn("created_by_email", org.to_dict())
+        self.admin_misp_connector.delete_organisation(org)
+
+    def test_org_index_site_admin(self):
+        created_org = self.__create_org()
+        orgs = self.admin_misp_connector.organisations(created_org)
+        check_response(orgs)
+        contains = False
+        for org in orgs:
+            if org.id == created_org.id:
+                contains = True
+            self.assertIn("created_by", org.to_dict())
+            self.assertIn("created_by_email", org.to_dict())
+        self.assertTrue(contains)
+        self.admin_misp_connector.delete_organisation(created_org)
+
+    def test_org_index_org_admin(self):
+        created_org = self.__create_org()
+        orgs = self.org_admin_misp_connector.organisations(created_org)
+        check_response(orgs)
+        contains = False
+        for org in orgs:
+            if org.id == created_org.id:
+                contains = True
+            self.assertNotIn("created_by", org.to_dict())
+            self.assertNotIn("created_by_email", org.to_dict())
+        self.assertTrue(contains)
+        self.admin_misp_connector.delete_organisation(created_org)
+
+    def __generate_event(self) -> MISPEvent:
+        mispevent = MISPEvent()
+        mispevent.info = 'This is a super simple test'
+        mispevent.distribution = 1
+        mispevent.threat_level_id = 1
+        mispevent.analysis = 1
+        mispevent.add_attribute('text', "Ahoj")
+        return mispevent
+
     def __create_org(self) -> MISPOrganisation:
         organisation = MISPOrganisation()
         organisation.name = 'Test Org ' + random()  # make name always unique
@@ -969,7 +1064,7 @@ class TestSecurity(unittest.TestCase):
 
         return r
 
-    def __create_user(self, org_id: int = None, role_id: Union[int, ROLE] = None) -> MISPUser:
+    def __create_user(self, org_id: int, role_id: Union[int, ROLE]) -> MISPUser:
         if isinstance(role_id, ROLE):
             role_id = role_id.value
 
