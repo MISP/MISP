@@ -451,24 +451,28 @@ class SharingGroup extends AppModel
         return false;
     }
 
-    public function checkIfOwner($user, $id)
+    /**
+     * @param array $user
+     * @param string|int $id Sharing group ID or UUID
+     * @return bool False if sharing group doesn't exists or user org is not sharing group owner
+     */
+    public function checkIfOwner(array $user, $id)
     {
         if (!isset($user['id'])) {
             throw new MethodNotAllowedException('Invalid user.');
         }
-        $this->id = $id;
-        if (!$this->exists()) {
+        $sg = $this->find('first', array(
+            'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
+            'recursive' => -1,
+            'fields' => array('org_id'),
+        ));
+        if (empty($sg)) {
             return false;
         }
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
-        $sg = $this->find('first', array(
-                'conditions' => array('SharingGroup.id' => $id),
-                'recursive' => -1,
-                'fields' => array('id', 'org_id'),
-        ));
-        return ($sg['SharingGroup']['org_id'] == $user['org_id']);
+        return $sg['SharingGroup']['org_id'] == $user['org_id'];
     }
 
     // Get all organisation ids that can see a SG
