@@ -27,19 +27,9 @@ echo $this->element(
                 'path' => 'AuthKey.uuid',
             ],
             [
-                'key' => __('Auth key'),
+                'key' => __('Auth Key'),
                 'path' => 'AuthKey',
                 'type' => 'authkey'
-            ],
-            [
-                'key' => __('Created'),
-                'path' => 'AuthKey.created',
-                'type' => 'datetime'
-            ],
-            [
-                'key' => __('Expiration'),
-                'path' => 'AuthKey.expiration',
-                'type' => 'expiration'
             ],
             [
                 'key' => __('User'),
@@ -51,6 +41,16 @@ echo $this->element(
             [
                 'key' => __('Comment'),
                 'path' => 'AuthKey.comment'
+            ],
+            [
+                'key' => __('Created'),
+                'path' => 'AuthKey.created',
+                'type' => 'datetime'
+            ],
+            [
+                'key' => __('Expiration'),
+                'path' => 'AuthKey.expiration',
+                'type' => 'expiration'
             ],
             [
                 'key' => __('Key usage'),

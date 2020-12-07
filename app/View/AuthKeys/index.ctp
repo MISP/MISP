@@ -28,7 +28,6 @@
                         'type' => 'search',
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
-                        'data' => '',
                         'searchKey' => 'value'
                     ]
                 ]
@@ -43,9 +42,12 @@
                     'name' => __('User'),
                     'sort' => 'User.email',
                     'data_path' => 'User.email',
+                    'element' => empty($user_id) ? 'links' : 'generic_field',
+                    'url' => $baseurl . '/users/view',
+                    'url_params_data_paths' => ['User.id'],
                 ],
                 [
-                    'name' => __('Auth key'),
+                    'name' => __('Auth Key'),
                     'sort' => 'AuthKey.authkey_start',
                     'element' => 'authkey',
                     'data_path' => 'AuthKey',
@@ -94,19 +96,14 @@
     ]);
     echo '</div>';
     if (empty($ajax)) {
-        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => $metaGroup, 'menuItem' => $this->action));
+        echo $this->element('/genericElements/SideMenu/side_menu', $menuData);
     }
 ?>
 <script type="text/javascript">
     var passedArgsArray = <?php echo $passedArgs; ?>;
-    $(document).ready(function() {
+    $(function() {
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
-        });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter();
-            }
         });
     });
 </script>

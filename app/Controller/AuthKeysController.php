@@ -50,9 +50,12 @@ class AuthKeysController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        $this->set('title_for_layout', __('Auth Keys'));
         $this->set('keyUsageEnabled', $keyUsageEnabled);
-        $this->set('metaGroup', $this->_isAdmin ? 'admin' : 'globalActions');
-        $this->set('metaAction', 'authkeys_index');
+        $this->set('menuData', [
+            'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
+            'menuItem' => 'authkeys_index',
+        ]);
     }
 
     public function delete($id)
@@ -131,6 +134,7 @@ class AuthKeysController extends AppController
             $this->set('uniqueIps', $uniqueIps);
         }
 
+        $this->set('title_for_layout', __('Auth Key'));
         $this->set('menuData', [
             'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
             'menuItem' => 'authKeyView',
