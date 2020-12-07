@@ -168,7 +168,7 @@ class TestSecurity(unittest.TestCase):
         # Try to connect as user to check if everything works
         PyMISP(url, cls.test_usr.authkey)
         # Check if user can login with given password
-        assert login(url, cls.test_usr.email, cls.test_usr_password) is not False
+        assert isinstance(login(url, cls.test_usr.email, cls.test_usr_password), requests.Session)
 
     @classmethod
     def tearDownClass(cls):
@@ -181,13 +181,6 @@ class TestSecurity(unittest.TestCase):
     def setUp(self):
         # Do not show warning about not closed resources, because that something we want
         warnings.simplefilter("ignore", ResourceWarning)
-        # TODO: Try to reload config cache
-        self.admin_misp_connector.get_server_setting("MISP.live")
-
-    def tearDown(self):
-        # Ensure correct config
-        setting = self.admin_misp_connector.get_server_setting("Security.advanced_authkeys")
-        self.assertEqual(setting["value"], False, "Security.advanced_authkeys should be False after test")
 
     def test_not_logged_in(self):
         session = requests.Session()
@@ -383,7 +376,7 @@ class TestSecurity(unittest.TestCase):
             self.__delete_advanced_authkey(auth_key["id"])
 
     def test_advanced_authkeys_deleted(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             auth_key = self.__create_advanced_authkey(self.test_usr.id)
 
             logged_in = PyMISP(url, auth_key["authkey_raw"])
@@ -391,10 +384,10 @@ class TestSecurity(unittest.TestCase):
 
             self.__delete_advanced_authkey(auth_key["id"])
 
-            assert_error_response(logged_in.get_user())
+            self.__assertErrorResponse(logged_in.get_user())
 
     def test_advanced_authkeys_deleted_keep_session(self):
-        with MISPComplexSetting({
+        with self.__setting({
             "Security": {
                 "advanced_authkeys": True,
                 "authkey_keep_session": True,
@@ -416,7 +409,7 @@ class TestSecurity(unittest.TestCase):
         time.sleep(1)
 
     def test_advanced_authkeys_own_key_not_possible(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             authkey = ("a" * 40)
             auth_key = self.__create_advanced_authkey(self.test_usr.id, {"authkey": authkey})
             self.__delete_advanced_authkey(auth_key["id"])
@@ -490,13 +483,13 @@ class TestSecurity(unittest.TestCase):
             # TODO: Delete new key
 
     def test_advanced_authkeys_expiration_invalid(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             with self.assertRaises(Exception) as cm:
                 self.__create_advanced_authkey(self.test_usr.id, {"expiration": "__nonsense__"})
             self.assertIn("expiration", cm.exception.args[0][1]["errors"])
 
     def test_advanced_authkeys_validity_autoset(self):
-        with MISPComplexSetting({
+        with self.__setting({
             "Security": {
                 "advanced_authkeys": True,
                 "advanced_authkeys_validity": 365,
@@ -506,7 +499,7 @@ class TestSecurity(unittest.TestCase):
             self.assertNotEqual(0, auth_key["expiration"])
 
     def test_advanced_authkeys_validity_in_range(self):
-        with MISPComplexSetting({
+        with self.__setting({
             "Security": {
                 "advanced_authkeys": True,
                 "advanced_authkeys_validity": 365,
@@ -518,7 +511,7 @@ class TestSecurity(unittest.TestCase):
             self.assertEqual(expiration, int(auth_key["expiration"]))
 
     def test_advanced_authkeys_validity_not_in_range(self):
-        with MISPComplexSetting({
+        with self.__setting({
             "Security": {
                 "advanced_authkeys": True,
                 "advanced_authkeys_validity": 365,
@@ -570,7 +563,7 @@ class TestSecurity(unittest.TestCase):
             self.__delete_advanced_authkey(auth_key["id"])
 
     def test_authkey_keep_session(self):
-        with MISPSetting(self.admin_misp_connector, "Security.authkey_keep_session", True):
+        with self.__setting( "Security.authkey_keep_session", True):
             logged_in = PyMISP(url, self.test_usr.authkey)
             check_response(logged_in.get_user())
             check_response(logged_in.get_user())
@@ -916,7 +909,7 @@ class TestSecurity(unittest.TestCase):
     def test_user_monitoring_enabled_no_user(self):
         request_logs_before = self.__get_logs(action="request")
 
-        with MISPSetting(self.admin_misp_connector, "Security.user_monitoring_enabled", True):
+        with self.__setting("Security.user_monitoring_enabled", True):
             logged_in = PyMISP(url, self.test_usr.authkey)
             check_response(logged_in.get_user())
 
@@ -927,7 +920,7 @@ class TestSecurity(unittest.TestCase):
     def test_user_monitoring_enabled_add_user(self):
         request_logs_before = self.__get_logs(action="request")
 
-        with MISPSetting(self.admin_misp_connector, "Security.user_monitoring_enabled", True):
+        with self.__setting("Security.user_monitoring_enabled", True):
             # Enable monitoring of test user
             send(self.admin_misp_connector, "POST", f"/admin/users/monitor/{self.test_usr.id}", {
                 "value": 1,
@@ -947,7 +940,7 @@ class TestSecurity(unittest.TestCase):
     def test_log_paranoid(self):
         request_logs_before = self.__get_logs(action="request")
 
-        with MISPSetting(self.admin_misp_connector, "MISP.log_paranoid", True):
+        with self.__setting("MISP.log_paranoid", True):
             logged_in = PyMISP(url, self.test_usr.authkey)
             check_response(logged_in.get_user())
 
@@ -957,7 +950,7 @@ class TestSecurity(unittest.TestCase):
     def test_log_paranoid_include_post_body(self):
         request_logs_before = self.__get_logs(action="request")
 
-        with MISPComplexSetting({
+        with self.__setting({
             "MISP": {
                 "log_paranoid": True,
                 "log_paranoid_include_post_body": True,
@@ -972,7 +965,7 @@ class TestSecurity(unittest.TestCase):
     def test_log_paranoid_skip_db(self):
         request_logs_before = self.__get_logs(action="request")
 
-        with MISPComplexSetting({
+        with self.__setting({
             "MISP": {
                 "log_paranoid": True,
                 "log_paranoid_skip_db": True,
@@ -998,12 +991,12 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(len(request_logs_after), len(request_logs_before) + 1)
 
     def test_log_user_ips(self):
-        with MISPSetting(self.admin_misp_connector, "MISP.log_user_ips", True):
+        with self.__setting("MISP.log_user_ips", True):
             logged_in = PyMISP(url, self.test_usr.authkey)
             check_response(logged_in.get_user())
 
     def test_log_user_ips_auth(self):
-        with MISPComplexSetting({
+        with self.__setting({
             "MISP": {
                 "log_user_ips": True,
                 "log_user_ips_authkeys": True,
@@ -1013,7 +1006,7 @@ class TestSecurity(unittest.TestCase):
             check_response(logged_in.get_user())
 
     def test_username_in_response_header(self):
-        with MISPSetting(self.admin_misp_connector, "Security.username_in_response_header", True):
+        with self.__setting("Security.username_in_response_header", True):
             logged_in = login(url, self.test_usr.email, self.test_usr_password)
             self.assertIsInstance(logged_in, requests.Session)
 
@@ -1022,7 +1015,7 @@ class TestSecurity(unittest.TestCase):
             self.assertEqual(self.test_usr.email, response.headers["X-Username"])
 
     def test_username_in_response_header_api_access(self):
-        with MISPSetting(self.admin_misp_connector, "Security.username_in_response_header", True):
+        with self.__setting("Security.username_in_response_header", True):
             logged_in = PyMISP(url, self.test_usr.authkey)
 
             response = logged_in._prepare_request('GET', 'users/view/me')
@@ -1030,7 +1023,7 @@ class TestSecurity(unittest.TestCase):
             self.assertEqual(self.test_usr.email + "/API/default", response.headers["X-Username"])
 
     def test_username_in_response_header_advanced_api_access(self):
-        with MISPComplexSetting({
+        with self.__setting({
             "Security": {
                 "advanced_authkeys": True,
                 "username_in_response_header": True,
