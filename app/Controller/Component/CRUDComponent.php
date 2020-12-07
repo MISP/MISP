@@ -15,7 +15,7 @@ class CRUDComponent extends Component
         }
     }
 
-    public function index($options)
+    public function index(array $options)
     {
         $this->prepareResponse();
         if (!empty($options['quickFilters'])) {
@@ -251,24 +251,25 @@ class CRUDComponent extends Component
         $this->Controller->render('/genericTemplates/delete');
     }
 
-
-    protected function setQuickFilters($params, $query, $quickFilterFields)
+    protected function setQuickFilters($params, array $query, $quickFilterFields)
     {
-        $queryConditions = [];
         if (!empty($params['quickFilter']) && !empty($quickFilterFields)) {
+            $queryConditions = [];
+            $filter = '%' . strtolower($params['quickFilter']) . '%';
             foreach ($quickFilterFields as $filterField) {
-                $queryConditions[$filterField] = $params['quickFilter'];
+                $queryConditions["LOWER($filterField) LIKE"] = $filter;
             }
-            $query['conditions']['OR'][] = $queryConditions;
+            $query['conditions']['OR'] = $queryConditions;
         }
         return $query;
     }
 
-    protected function setFilters($params, $query)
+    protected function setFilters(array $params, array $query)
     {
-        $params = $this->massageFilters($params);
-        if (!empty($params['simpleFilters'])) {
-            foreach ($params['simpleFilters'] as $filter => $filterValue) {
+        // For CakePHP 2, we don't need to distinguish between simpleFilters and relatedFilters
+        //$params = $this->massageFilters($params);
+        if (!empty($params)) {
+            foreach ($params as $filter => $filterValue) {
                 if ($filter === 'quickFilter') {
                     continue;
                 }

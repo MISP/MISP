@@ -28,7 +28,7 @@
                         'type' => 'search',
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
-                        'searchKey' => 'value'
+                        'searchKey' => 'quickFilter',
                     ]
                 ]
             ],

@@ -28,8 +28,8 @@ class AuthKeysController extends AppController
         }
         $keyUsageEnabled = Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_authkeys');
         $this->CRUD->index([
-            'filters' => ['User.username', 'authkey', 'comment', 'User.id'],
-            'quickFilters' => ['authkey', 'comment'],
+            'filters' => ['User.email', 'authkey_start', 'authkey_end', 'comment', 'User.id'],
+            'quickFilters' => ['comment', 'authkey_start', 'authkey_end', 'User.email'],
             'contain' => ['User.id', 'User.email'],
             'conditions' => $conditions,
             'afterFind' => function (array $authKeys) use ($keyUsageEnabled) {
