@@ -1,7 +1,7 @@
 <?php
     $fields = [
         [
-            'name' => __('Id'),
+            'name' => __('ID'),
             'sort' => 'Role.id',
             'data_path' => 'Role.id'
         ],
@@ -44,7 +44,7 @@
         'sort' => 'Role.max_execution_time',
         'data_path' => 'Role.max_execution_time',
         'decorator' => function($value) use ($default_max_execution_time) {
-            return (empty($value) ? $default_max_execution_time : h($value)) . 's';
+            return (empty($value) ? $default_max_execution_time : h($value)) . '&nbsp;s';
         }
     ];
 
@@ -54,7 +54,7 @@
         'data_path' => 'Role.rate_limit_count',
         'decorator' => function($value)
         {
-            return (empty($value) ? __('N/A') : h($value));
+            return (empty($value) ? __('Unlimited') : h($value));
         }
     ];
 
@@ -86,7 +86,6 @@
                             'type' => 'search',
                             'button' => __('Filter'),
                             'placeholder' => __('Enter value to search'),
-                            'data' => '',
                             'searchKey' => 'quickFilter'
                         ]
                     ]
@@ -96,7 +95,7 @@
                 'description' => empty($ajax) ? __('Instance specific permission roles.') : false,
                 'actions' => [
                     [
-                        'url' => $baseurl . '/admin/roles/edit/',
+                        'url' => $baseurl . '/admin/roles/edit',
                         'url_params_data_paths' => array(
                             'Role.id'
                         ),
@@ -114,5 +113,3 @@
             ]
         ]
     ]);
-
-?>
