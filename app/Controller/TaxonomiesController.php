@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Taxonomy $Taxonomy
+ */
 class TaxonomiesController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -410,7 +413,7 @@ class TaxonomiesController extends AppController
         if ($this->request->is('post')) {
             $result = $this->Taxonomy->delete($id, true);
             if ($result) {
-                $this->Flash->success(__('Taxonomy successfuly deleted.'));
+                $this->Flash->success(__('Taxonomy successfully deleted.'));
                 $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
             } else {
                 $this->Flash->error(__('Taxonomy could not be deleted.'));
