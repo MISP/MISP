@@ -374,11 +374,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         'url' => $baseurl . '/events/proposalEventIndex',
                         'text' => __('Events with proposals')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'viewDelegations',
-                        'url' => $baseurl . '/event_delegations/index/context:pending',
-                        'text' => __('View delegation requests')
-                    ));
+                    if ($canAccess('eventDelegations', 'index')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'viewDelegations',
+                            'url' => $baseurl . '/event_delegations/index/context:pending',
+                            'text' => __('View delegation requests')
+                        ));
+                    }
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/events/export',

@@ -161,11 +161,11 @@ class ACLComponent extends Component
                     ]
             ),
             'eventDelegations' => array(
-                    'acceptDelegation' => array('perm_add'),
-                    'delegateEvent' => array('perm_delegate'),
-                    'deleteDelegation' => array('perm_add'),
-                    'index' => array('*'),
-                    'view' => array('*'),
+                'acceptDelegation' => array('AND' => ['delegation_enabled', 'perm_add']),
+                'delegateEvent' => array('AND' => ['delegation_enabled', 'perm_delegate']),
+                'deleteDelegation' => array('AND' => ['delegation_enabled', 'perm_add']),
+                'index' => array('delegation_enabled'),
+                'view' => array('delegation_enabled'),
             ),
             'eventReports' => array(
                 'add' => array('perm_add'),
@@ -745,6 +745,9 @@ class ACLComponent extends Component
                 throw new MethodNotAllowedException('Adding users has been disabled on this instance.');
             }
             return true;
+        };
+        $this->dynamicChecks['delegation_enabled'] = function (array $user) {
+            return (bool)Configure::read('MISP.delegation');
         };
     }
 

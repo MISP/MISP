@@ -2531,19 +2531,12 @@ class EventsController extends AppController
 
     public function publishSightings($id = null)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
-        $event = $this->Event->fetchEvent(
-            $this->Auth->user(),
-            array(
-                'eventid' => $id,
-                'metadata' => 1
-            )
-        );
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
         }
         if ($this->request->is('post') || $this->request->is('put')) {
-            $result = $this->Event->publishRouter($id, null, $this->Auth->user(), 'sightings');
+            $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user(), 'sightings');
             if (!Configure::read('MISP.background_jobs')) {
                 if (!is_array($result)) {
                     // redirect to the view event page
@@ -2568,12 +2561,12 @@ class EventsController extends AppController
                 if (!empty($errors)) {
                     $this->set('errors', $errors);
                 }
-                $this->set('url', $this->baseurl . '/events/publishSightings/' . $id);
-                $this->set('id', $id);
+                $this->set('url', $this->baseurl . '/events/publishSightings/' . $event['Event']['id']);
+                $this->set('id', $event['Event']['id']);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
             } else {
                 $this->Flash->success($message);
-                $this->redirect(array('action' => 'view', $id));
+                $this->redirect(array('action' => 'view', $event['Event']['id']));
             }
         } else {
             $this->set('id', $id);
