@@ -376,6 +376,16 @@ class SharingGroupsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($sg, $this->response->type());
         }
+
+        $this->loadModel('Event');
+        $conditions = $this->Event->createEventConditions($this->Auth->user());
+        $conditions['AND']['sharing_group_id'] = $sg['SharingGroup']['id'];
+        $sg['SharingGroup']['event_count'] = $this->Event->find('count', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
+
         $this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $sg['SharingGroup']['id']));
         $this->set('id', $sg['SharingGroup']['id']);
         $this->set('sg', $sg);
