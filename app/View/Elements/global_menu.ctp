@@ -50,7 +50,8 @@
                     ),
                     array(
                         'url' => $baseurl . '/event_delegations/index/context:pending',
-                        'text' => __('View delegation requests')
+                        'text' => __('View delegation requests'),
+                        'requirement' => $canAccess('event_delegations', 'index'),
                     ),
                     array(
                         'type' => 'separator'
