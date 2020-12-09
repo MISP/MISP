@@ -11,6 +11,11 @@ $tableData = [
     ['key' => __('Selectable'), 'boolean' => $sg['SharingGroup']['active']],
     ['key' => __('Created by'), 'html' => $this->OrgImg->getNameWithImg($sg)],
 ];
+$eventsLink = $baseurl . '/events/index/searchsharinggroup:' . $sg['SharingGroup']['id'];
+$tableData[] = [
+    'key' => __('Events'),
+    'html' => '<a href="' . $eventsLink . '">' . __n('%s event', '%s events', $sg['SharingGroup']['event_count'], $sg['SharingGroup']['event_count']) . '</a>',
+];
 if ($sg['SharingGroup']['sync_user_id']) {
     $tableData[] = [
         'key' => __('Synced by'),
