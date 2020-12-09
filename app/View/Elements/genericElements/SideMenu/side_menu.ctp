@@ -161,7 +161,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Merge attributes from…')
                         ));
                     }
-                    if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)) {
+                    if ($canAccess('shadowAttributes', 'add') && (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify))) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'proposeAttribute',
                             'url' => $baseurl . '/shadow_attributes/add/' . $eventId,
