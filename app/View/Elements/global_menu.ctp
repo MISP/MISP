@@ -35,7 +35,8 @@
                     ),
                     array(
                         'text' => __('REST client'),
-                        'url' => $baseurl . '/servers/rest'
+                        'url' => $baseurl . '/servers/rest',
+                        'requirement' => $canAccess('servers', 'rest'),
                     ),
                     array(
                         'type' => 'separator'
