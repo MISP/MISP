@@ -161,7 +161,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Merge attributes from…')
                         ));
                     }
-                    if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)) {
+                    if ($canAccess('shadowAttributes', 'add') && (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify))) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'proposeAttribute',
                             'url' => $baseurl . '/shadow_attributes/add/' . $eventId,
@@ -1087,14 +1087,16 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'element_id' => 'view',
                             'text' => __('View Taxonomy')
                         ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'delete',
-                            'onClick' => array(
-                                'function' => 'deleteObject',
-                                'params' => array('taxonomies', 'delete', h($id), h($id))
-                            ),
-                            'text' => __('Delete Taxonomy')
-                        ));
+                        if ($canAccess('taxonomies', 'delete')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'delete',
+                                'onClick' => array(
+                                    'function' => 'deleteObject',
+                                    'params' => array('taxonomies', 'delete', h($id), h($id))
+                                ),
+                                'text' => __('Delete Taxonomy')
+                            ));
+                        }
                     }
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
