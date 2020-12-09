@@ -13,7 +13,7 @@
             </tr>
         <?php foreach ($keys as $key): ?>
             <tr style="border-bottom:1px solid black;cursor:pointer;" class="templateChoiceButton" data-fingerprint="<?php echo h($key['fingerprint']); ?>">
-                <td role="button" tabindex="0" aria-label="<?php echo __('Select GnuPG key');?>" style="padding-left:10px; text-align:left;width:20%;" title="<?php echo h($key['fingerprint']); ?>"><?php echo h($key['key_id']); ?></td>
+                <td role="button" tabindex="0" aria-label="<?php echo __('Select PGP key');?>" style="padding-left:10px; text-align:left;width:20%;" title="<?php echo h($key['fingerprint']); ?>"><?php echo h($key['key_id']); ?></td>
                 <td style="text-align:left;width:20%;" title="<?php echo h($key['fingerprint']); ?>"><?php echo h($key['date']); ?></td>
                 <td style="padding-right:10px; text-align:left;width:60%;" title="<?php echo h($key['fingerprint']); ?>">
                     <b><?php echo h(chunk_split($key['fingerprint'], 4, ' ')); ?></b><br />
@@ -26,7 +26,7 @@
     <div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></div>
 </div>
 <script type="text/javascript">
-    $(document).ready(function() {
+    $(function() {
         resizePopoverBody();
 
         $('tr[data-fingerprint]').click(function () {
