@@ -26,6 +26,7 @@
         "ext-intl": "For handling IDN domain names",
         "ext-ssdeep": "For ssdeep hashes correlation",
         "ext-bcmath": "For faster validating IBAN numbers",
+        "ext-rdkafka": "Required for publishing events to Kafka broker",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3"
     },
