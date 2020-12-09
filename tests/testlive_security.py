@@ -961,6 +961,22 @@ class TestSecurity(unittest.TestCase):
 
             self.admin_misp_connector.delete_organisation(org)
 
+    def test_org_hide_org_cannot_see_event_after_contribution(self):
+        org = self.__create_org()
+        user = self.__create_user(org.id, ROLE.USER)
+        logged_in = PyMISP(url, user.authkey)
+        event = logged_in.add_event(self.__generate_event(distribution=0))
+        check_response(event)
+
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            for key in (org.id, org.uuid, org.name):
+                self.__assertErrorResponse(logged_in.get_organisation(key))
+
+            self.admin_misp_connector.delete_event(event)
+            self.admin_misp_connector.delete_user(user)
+            self.admin_misp_connector.delete_organisation(org)
+
     def test_org_hide_org_can_see_after_contribution(self):
         org = self.__create_org()
         user = self.__create_user(org.id, ROLE.USER)
@@ -1026,10 +1042,10 @@ class TestSecurity(unittest.TestCase):
         self.assertTrue(contains)
         self.admin_misp_connector.delete_organisation(created_org)
 
-    def __generate_event(self) -> MISPEvent:
+    def __generate_event(self, distribution: int = 1) -> MISPEvent:
         mispevent = MISPEvent()
         mispevent.info = 'This is a super simple test'
-        mispevent.distribution = 1
+        mispevent.distribution = distribution
         mispevent.threat_level_id = 1
         mispevent.analysis = 1
         mispevent.add_attribute('text', "Ahoj")
