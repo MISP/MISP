@@ -2621,7 +2621,6 @@ table tr:hover .down-expand-button {
     font-weight: 900;
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-smoothing: antialiased;
-    display: inline-block;
     font-style: normal;
     font-variant: normal;
     text-rendering: auto;
