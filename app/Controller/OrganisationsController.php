@@ -487,16 +487,22 @@ class OrganisationsController extends AppController
     {
         if (!$user['Role']['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
             $this->loadModel('Event');
+            // Check if there is event from given org that can current user see
+            $eventConditions = $this->Event->createEventConditions($user);
+            $eventConditions['AND']['Event.orgc_id'] = $orgId;
             $event = $this->Event->find('first', array(
                 'fields' => array('Event.id'),
                 'recursive' => -1,
-                'conditions' => array('Event.orgc_id' => $orgId)
+                'conditions' => $eventConditions,
             ));
             if (empty($event)) {
+                $proposalConditions = $this->Event->ShadowAttribute->buildConditions($user);
+                $proposalConditions['AND']['ShadowAttribute.org_id'] = $orgId;
                 $proposal = $this->Event->ShadowAttribute->find('first', array(
                     'fields' => array('ShadowAttribute.id'),
                     'recursive' => -1,
-                    'conditions' => array('ShadowAttribute.org_id' => $orgId)
+                    'conditions' => $proposalConditions,
+                    'contain' => ['Event', 'Attribute'],
                 ));
                 if (empty($proposal)) {
                     return false;
