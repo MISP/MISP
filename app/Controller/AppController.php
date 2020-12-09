@@ -647,8 +647,7 @@ class AppController extends Controller
                 )
             ) {
                 $payload = $this->request->input();
-                unset($payload['_Token']);
-                $change .= PHP_EOL . 'Request body: ' . json_encode($payload);
+                $change .= PHP_EOL . 'Request body: ' . $payload;
             }
             $this->Log = ClassRegistry::init('Log');
             try {
