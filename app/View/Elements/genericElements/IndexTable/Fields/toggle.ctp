@@ -20,8 +20,8 @@
     );
 ?>
 <script type="text/javascript">
-$(document).ready(function() {
-    var url = baseurl + "<?= h($field['url']) ?>";
+$(function() {
+    var url = "<?= h($field['url']) ?>";
     <?php
         if (!empty($field['url_params_data_paths'][0])) {
             $id = Hash::extract($row, $field['url_params_data_paths'][0]);
@@ -35,12 +35,13 @@ $(document).ready(function() {
             }
         ?>
         $.ajax({
-            type:"get",
+            type: "get",
             url: url,
-            error:function() {
-                showMessage('fail', '<?= __('Could not retrieve current state.') ?>.');
+            error: function() {
+                showMessage('fail', '<?= __('Could not retrieve current state.') ?>');
+                $('#<?= $checkboxId ?>').prop("checked", false);
             },
-            success: function (data, textStatus) {
+            success: function (data) {
                 $('#<?= $tempboxId ?>').html(data);
                 // Make @mokaddem aka Graphman happy
                 var $form = $('#<?= $tempboxId ?>').find('form');
@@ -49,13 +50,14 @@ $(document).ready(function() {
                     cache: false,
                     type:"post",
                     url: $form.attr('action'),
-                    success:function(data, textStatus) {
-                        showMessage('success', '<?= __('Field updated.') ?>.');
+                    success: function() {
+                        showMessage('success', '<?= __('Field updated.') ?>');
                     },
-                    error:function() {
-                        showMessage('fail', '<?= __('Could not update field.') ?>.');
+                    error: function() {
+                        showMessage('fail', '<?= __('Could not update field.') ?>');
+                        $('#<?= $checkboxId ?>').prop("checked", false);
                     },
-                    complete:function() {
+                    complete: function() {
                         $('#<?= $tempboxId ?>').empty();
                         <?php
                             if (!empty($field['afterHook'])) {
