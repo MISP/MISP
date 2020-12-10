@@ -328,7 +328,7 @@ class OrganisationsController extends AppController
                 'recursive' => -1,
                 'fields' => ['id'],
             ));
-            $exists = $org && $this->__canSeeOrg($this->Auth->user(), $org['Organisation']['id']);
+            $exists = $org && $this->Organisation->canSee($this->Auth->user(), $org['Organisation']['id']);
             return new CakeResponse(['status' => $exists ? 200 : 404]);
         }
 
@@ -337,7 +337,7 @@ class OrganisationsController extends AppController
             'recursive' => -1,
             'fields' => ['id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid', 'restricted_to_domain', 'created_by'],
         ));
-        if (!$org || !$this->__canSeeOrg($this->Auth->user(), $org['Organisation']['id'])) {
+        if (!$org || !$this->Organisation->canSee($this->Auth->user(), $org['Organisation']['id'])) {
             throw new NotFoundException(__('Invalid organisation'));
         }
 
@@ -474,44 +474,5 @@ class OrganisationsController extends AppController
             $this->autoRender = false;
             $this->render('ajax/merge');
         }
-    }
-
-    /**
-     * Hide organisation view from users if they haven't yet contributed data and Security.hide_organisation_index_from_users is enabled
-     *
-     * @param array $user
-     * @param int $orgId
-     * @return bool
-     */
-    private function __canSeeOrg(array $user, $orgId)
-    {
-        if ($user['org_id'] == $orgId) {
-            return true; // User can see his own org.
-        }
-        if (!$user['Role']['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
-            $this->loadModel('Event');
-            // Check if there is event from given org that can current user see
-            $eventConditions = $this->Event->createEventConditions($user);
-            $eventConditions['AND']['Event.orgc_id'] = $orgId;
-            $event = $this->Event->find('first', array(
-                'fields' => array('Event.id'),
-                'recursive' => -1,
-                'conditions' => $eventConditions,
-            ));
-            if (empty($event)) {
-                $proposalConditions = $this->Event->ShadowAttribute->buildConditions($user);
-                $proposalConditions['AND']['ShadowAttribute.org_id'] = $orgId;
-                $proposal = $this->Event->ShadowAttribute->find('first', array(
-                    'fields' => array('ShadowAttribute.id'),
-                    'recursive' => -1,
-                    'conditions' => $proposalConditions,
-                    'contain' => ['Event', 'Attribute'],
-                ));
-                if (empty($proposal)) {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 }

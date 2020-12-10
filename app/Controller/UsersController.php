@@ -1834,9 +1834,11 @@ class UsersController extends AppController
             $params['conditions'] = array('Organisation.id' => $this->Auth->user('org_id'));
         }
         $orgs = $this->User->Organisation->find('all', $params);
+
         $local_orgs_params = $params;
         $local_orgs_params['conditions']['Organisation.local'] = 1;
-        $local_orgs = $this->User->Organisation->find('all', $local_orgs_params);
+        $local_orgs_count = $this->User->Organisation->find('count', $local_orgs_params);
+
         $this->loadModel('Log');
         $year = date('Y');
         $month = date('n');
@@ -1864,7 +1866,7 @@ class UsersController extends AppController
         $stats['user_count'] = $this->User->find('count', array('recursive' => -1));
         $stats['user_count_pgp'] = $this->User->find('count', array('recursive' => -1, 'conditions' => array('User.gpgkey !=' => '')));
         $stats['org_count'] = count($orgs);
-        $stats['local_org_count'] = count($local_orgs);
+        $stats['local_org_count'] = $local_orgs_count;
         $stats['contributing_org_count'] = $this->User->Event->find('count', array('recursive' => -1, 'group' => array('Event.orgc_id')));
         $stats['average_user_per_org'] = round($stats['user_count'] / $stats['local_org_count'], 1);
 
@@ -1874,7 +1876,6 @@ class UsersController extends AppController
 
         $stats['post_count'] = $this->Thread->Post->find('count', array('recursive' => -1));
         $stats['post_count_month'] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s", $this_month)), 'recursive' => -1));
-
 
         if ($this->_isRest()) {
             $data = array(
@@ -1954,7 +1955,6 @@ class UsersController extends AppController
         } elseif ($params['scope'] == 'external') {
             $conditions['Organisation.local'] = 0;
         }
-        $orgs = array();
         $orgs = $this->Organisation->find('all', array(
                 'recursive' => -1,
                 'conditions' => $conditions,
@@ -2111,8 +2111,6 @@ class UsersController extends AppController
 
     private function __statisticsTags($params = array())
     {
-        $trending_tags = array();
-        $all_tags = array();
         if ($this->_isRest()) {
             return $this->tagStatisticsGraph();
         } else {
@@ -2130,25 +2128,27 @@ class UsersController extends AppController
         } else {
             $galaxy_id = $mitre_galaxy_id;
         }
-        $organisations = $this->User->Organisation->find('all', array(
-                'recursive' => -1,
+
+        $organisations = $this->User->Organisation->find('list', array(
+            'recursive' => -1,
+            'fields' => ['id', 'name'],
         ));
-        array_unshift($organisations, array('Organisation' => array('id' => 0, 'name' => 'All')));
+        foreach ($organisations as $id => $foo) {
+            if (!$this->User->Organisation->canSee($this->Auth->user(), $id)) {
+                unset($organisations[$id]);
+            }
+        }
+        $organisations = array_merge([0 => __('All')], $organisations);
         $this->set('organisations', $organisations);
-        $picked_organisation = 0;
+
         if (isset($params['organisation']) && $params['organisation'] != 0) {
-            $org = $this->User->Organisation->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('id' => $params['organisation']),
-            ));
-            if (!empty($org)) {
-                $picked_organisation = $org;
-                $this->set('picked_organisation', $picked_organisation);
+            if (isset($organisations[$params['organisation']])) {
+                $this->set('picked_organisation_id', $params['organisation']);
             } else {
-                $this->set('picked_organisation', array('Organisation' => array('id' => '')));
+                throw new NotFoundException(__("Invalid organisation"));
             }
         } else {
-            $this->set('picked_organisation', array('Organisation' => array('id' => '')));
+            $this->set('picked_organisation_id', -1);
         }
 
         $rest_response_empty = true;

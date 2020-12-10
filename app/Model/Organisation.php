@@ -1,6 +1,10 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ConnectionManager', 'Model');
+
+/**
+ * @property Event $Event
+ */
 class Organisation extends AppModel
 {
     public $useTable = 'organisations';
@@ -477,6 +481,44 @@ class Organisation extends AppModel
             }
         }
         return $suggestedOrg;
+    }
+
+    /**
+     * Hide organisation view from users if they haven't yet contributed data and Security.hide_organisation_index_from_users is enabled
+     *
+     * @param array $user
+     * @param int $orgId
+     * @return bool
+     */
+    public function canSee(array $user, $orgId)
+    {
+        if ($user['org_id'] == $orgId) {
+            return true; // User can see his own org.
+        }
+        if (!$user['Role']['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
+            // Check if there is event from given org that can current user see
+            $eventConditions = $this->Event->createEventConditions($user);
+            $eventConditions['AND']['Event.orgc_id'] = $orgId;
+            $event = $this->Event->find('first', array(
+                'fields' => array('Event.id'),
+                'recursive' => -1,
+                'conditions' => $eventConditions,
+            ));
+            if (empty($event)) {
+                $proposalConditions = $this->Event->ShadowAttribute->buildConditions($user);
+                $proposalConditions['AND']['ShadowAttribute.org_id'] = $orgId;
+                $proposal = $this->Event->ShadowAttribute->find('first', array(
+                    'fields' => array('ShadowAttribute.id'),
+                    'recursive' => -1,
+                    'conditions' => $proposalConditions,
+                    'contain' => ['Event', 'Attribute'],
+                ));
+                if (empty($proposal)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private function getCountryGalaxyCluster()
