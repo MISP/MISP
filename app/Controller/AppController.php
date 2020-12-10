@@ -127,8 +127,8 @@ class AppController extends Controller
             $this->sql_dump = intval($this->params['named']['sql']);
         }
 
-        $this->_setupDatabaseConnection();
         $this->_setupDebugMode();
+        $this->_setupDatabaseConnection();
 
         $this->set('ajax', $this->request->is('ajax'));
         $this->set('queryVersion', $this->__queryVersion);
