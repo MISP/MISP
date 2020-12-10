@@ -2683,3 +2683,7 @@ a.orgImg {
     padding-top: 3px;
     padding-bottom: 2px;
 }
+
+.misp-error-container {
+    margin: 0 20px;
+}
