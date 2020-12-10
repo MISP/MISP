@@ -4,7 +4,9 @@
         <th><?php echo $this->Paginator->sort('org_ci', __('Org'));?></th>
         <th><?php echo $this->Paginator->sort('role_id', __('Role'));?></th>
         <th><?php echo $this->Paginator->sort('email');?></th>
+        <?php if (empty(Configure::read('Security.advanced_authkeys'))): ?>
         <th><?php echo $this->Paginator->sort('authkey');?></th>
+        <?php endif; ?>
         <th><?php echo $this->Paginator->sort('autoalert', __('Event alert'));?></th>
         <th><?php echo $this->Paginator->sort('contactalert', __('Contact alert'));?></th>
         <th><?php echo $this->Paginator->sort('gpgkey', __('PGP Key'));?></th>
@@ -40,9 +42,11 @@
                 <td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
                     <?php echo h($user['User']['email']); ?>&nbsp;
                 </td>
+                <?php if (empty(Configure::read('Security.advanced_authkeys'))): ?>
                 <td class="bold<?= $user['Role']['perm_auth'] ? '' : ' grey'; ?>">
                     <span class="privacy-value quickSelect" data-hidden-value="<?= h($user['User']['authkey']) ?>">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="<?= __('Reveal hidden value') ?>"></i>
                 </td>
+                <?php endif; ?>
                 <td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
                     <?php echo $user['User']['autoalert']? __('Yes') : __('No'); ?>
                 </td>
