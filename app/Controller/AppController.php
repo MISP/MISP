@@ -359,7 +359,8 @@ class AppController extends Controller
     private function __loginByAuthKey()
     {
         if (Configure::read('Security.authkey_keep_session') && $this->Auth->user()) {
-            // Do not check authkey if session is establish and correct
+            // Do not check authkey if session is establish and correct, just close session to allow multiple requests
+            session_write_close();
             return true;
         }
 
