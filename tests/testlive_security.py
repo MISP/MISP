@@ -961,6 +961,21 @@ class TestSecurity(unittest.TestCase):
 
             self.admin_misp_connector.delete_organisation(org)
 
+    def test_org_hide_org_can_see_his_own(self):
+        org = self.__create_org()
+        user = self.__create_user(org.id, ROLE.USER)
+
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, user.authkey)
+            for key in (org.id, org.uuid, org.name):
+                fetched_org = logged_in.get_organisation(key)
+                check_response(fetched_org)
+                self.assertNotIn("created_by", fetched_org["Organisation"])
+                self.assertNotIn("created_by_email", fetched_org["Organisation"])
+
+            self.admin_misp_connector.delete_user(user)
+            self.admin_misp_connector.delete_organisation(org)
+
     def test_org_hide_org_cannot_see_event_after_contribution(self):
         org = self.__create_org()
         user = self.__create_user(org.id, ROLE.USER)
