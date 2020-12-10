@@ -45,7 +45,7 @@
         echo $this->Form->input('logo', array(
             'error' => array('escape' => false),
             'type' => 'file',
-            'label' => __('Logo (48x48 png)')
+            'label' => __('Logo (48×48 PNG or SVG)')
         ));
     ?>
         <div class="clear"></div>

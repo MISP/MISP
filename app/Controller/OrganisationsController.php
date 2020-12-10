@@ -128,14 +128,7 @@ class OrganisationsController extends AppController
                 }
             }
             if ($this->Organisation->save($this->request->data)) {
-                if (isset($this->request->data['Organisation']['logo']['size']) && $this->request->data['Organisation']['logo']['size'] > 0 && $this->request->data['Organisation']['logo']['error'] == 0) {
-                    $filename = basename($this->Organisation->id . '.png');
-                    if (preg_match("/^[0-9a-z\-\_\.]*\.(png)$/i", $filename)) {
-                        if (!empty($this->request->data['Organisation']['logo']['tmp_name']) && is_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'])) {
-                            $result = move_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
-                        }
-                    }
-                }
+                $this->__uploadLogo($this->Organisation->id);
                 if ($this->_isRest()) {
                     $org = $this->Organisation->find('first', array(
                             'conditions' => array('Organisation.id' => $this->Organisation->id),
@@ -204,14 +197,7 @@ class OrganisationsController extends AppController
             }
             $this->request->data['Organisation']['id'] = $id;
             if ($this->Organisation->save($this->request->data)) {
-                if (isset($this->request->data['Organisation']['logo']['size']) && $this->request->data['Organisation']['logo']['size'] > 0 && $this->request->data['Organisation']['logo']['error'] == 0) {
-                    $filename = basename($this->request->data['Organisation']['id'] . '.png');
-                    if (preg_match("/^[0-9a-z\-\_\.]*\.(png)$/i", $filename)) {
-                        if (!empty($this->request->data['Organisation']['logo']['tmp_name']) && is_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'])) {
-                            $result = move_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
-                        }
-                    }
-                }
+                $this->__uploadLogo($this->Organisation->id);
                 if ($this->_isRest()) {
                     $org = $this->Organisation->find('first', array(
                             'conditions' => array('Organisation.id' => $this->Organisation->id),
@@ -474,5 +460,26 @@ class OrganisationsController extends AppController
             $this->autoRender = false;
             $this->render('ajax/merge');
         }
+    }
+
+    /**
+     * @return bool
+     */
+    private function __uploadLogo($orgId)
+    {
+        if (!isset($this->request->data['Organisation']['logo']['size'])) {
+            return false;
+        }
+
+        $logo = $this->request->data['Organisation']['logo'];
+        if ($logo['size'] > 0 && $logo['error'] == 0) {
+            $extension = pathinfo($logo['name'], PATHINFO_EXTENSION);
+            $filename = $orgId . '.' . ($extension === 'svg' ? 'svg' : 'png');
+            if (!empty($logo['tmp_name']) && is_uploaded_file($logo['tmp_name'])) {
+                return move_uploaded_file($logo['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
+            }
+        }
+
+        return false;
     }
 }

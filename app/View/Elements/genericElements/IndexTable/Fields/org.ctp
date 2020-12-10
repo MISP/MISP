@@ -16,14 +16,7 @@
             $i++;
             if (!empty($org['id']) || !empty($org['name'])) {
                 if ($field['fields']['allow_picture']) {
-                    $orgLookupData = [];
-                    foreach (['name', 'id', 'uuid'] as $orgLookupField) {
-                        if (!empty($org[$orgLookupField])) {
-                            $orgLookupData[$orgLookupField] = $org[$orgLookupField];
-                        }
-                    }
-                    $orgLookupData['size'] = 24;
-                    echo $this->OrgImg->getOrgImg($orgLookupData);
+                    echo $this->OrgImg->getOrgLogo($org, 24);
                 } else {
                     echo sprintf(
                         '<a href="%s/organisations/view/%s">%s</a>',
@@ -33,13 +26,12 @@
                     );
                 }
                 if ($i < $count) {
-                    echo '<br />';
+                    echo '<br>';
                 }
             } else {
                 if ($field['fields']['allow_picture']) {
-                    echo $this->OrgImg->getOrgImg(array('name' =>  $field['fields']['default_org'], 'size' => 24), false, true);
+                    echo $this->OrgImg->getOrgLogo(['name' => $field['fields']['default_org']], 24, false);
                 }
             }
         }
     }
-?>

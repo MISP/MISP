@@ -29,13 +29,9 @@
                             <div>
                                 <table style="width:100%">
                                     <tr>
-                                        <td>
-            <?php
-                                            echo __('Date: ') . h($post['date_created']);
-            ?>
-                                        </td>
+                                        <td><?= __('Date: ') . h($post['date_created']) ?></td>
                                         <td style="text-align:right">
-                                            <a href="#top" class="whitelink">Top</a> |
+                                            <a href="#top" class="whitelink"><?= __('Top') ?></a> |
                                             <a href="#message_<?php echo h($post['id']); ?>" class="whitelink">#<?php echo h($post['id'])?></a>
                                         </td>
                                     </tr>
@@ -46,8 +42,8 @@
                         <tr>
                             <td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidLeft">
                                 <?php
-                                if (isset($post['org_name'])) {
-                                    echo $this->OrgImg->getOrgImg(array('name' => $post['org_name'], 'size' => 48));
+                                if (isset($post['org_id'])) {
+                                    echo $this->OrgImg->getOrgLogo(['id' => $post['org_id'], 'name' => $post['org_name'], 'uuid' => $post['org_uuid']], 48);
                                 } else {
                                     echo __('Deactivated user');
                                 }
