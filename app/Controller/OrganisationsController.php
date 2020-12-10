@@ -485,6 +485,9 @@ class OrganisationsController extends AppController
      */
     private function __canSeeOrg(array $user, $orgId)
     {
+        if ($user['org_id'] == $orgId) {
+            return true; // User can see his own org.
+        }
         if (!$user['Role']['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
             $this->loadModel('Event');
             // Check if there is event from given org that can current user see
