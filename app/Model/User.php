@@ -888,38 +888,6 @@ class User extends AppModel
         return $fields;
     }
 
-    public function getMembersCount($org_id = false)
-    {
-        // for Organizations List
-        $conditions = array();
-        $findType = 'all';
-        if ($org_id !== false) {
-            $findType = 'first';
-            $conditions = array('User.org_id' => $org_id);
-        }
-        $fields = array('org_id', 'COUNT(User.id) AS num_members');
-        $params = array(
-                'fields' => $fields,
-                'recursive' => -1,
-                'group' => array('org_id'),
-                'order' => array('org_id'),
-                'conditions' => $conditions
-        );
-        $orgs = $this->find($findType, $params);
-        if (empty($orgs)) {
-            return 0;
-        }
-        if ($org_id !== false) {
-            return $orgs[0]['num_members'];
-        } else {
-            $usersPerOrg = [];
-            foreach ($orgs as $key => $value) {
-                $usersPerOrg[$value['User']['org_id']] = $value[0]['num_members'];
-            }
-            return $usersPerOrg;
-        }
-    }
-
     public function findAdminsResponsibleForUser($user)
     {
         $admin = $this->find('first', array(
