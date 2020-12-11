@@ -341,7 +341,7 @@ class UsersController extends AppController
         $this->User->virtualFields['org_ci'] = 'UPPER(Organisation.name)';
         $urlParams = "";
         $passedArgsArray = array();
-        $booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
+        $booleanFields = array('autoalert', 'contactalert', 'termsaccepted', 'disabled');
         $textFields = array('role', 'email', 'all', 'authkey');
         // org admins can't see users of other orgs
         if ($this->_isSiteAdmin()) {
@@ -494,8 +494,11 @@ class UsersController extends AppController
     public function admin_filterUserIndex()
     {
         $passedArgsArray = array();
-        $booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
-        $textFields = array('role', 'email', 'authkey');
+        $booleanFields = array('autoalert', 'contactalert', 'termsaccepted', 'disabled');
+        $textFields = array('role', 'email');
+        if (empty(Configure::read('Security.advanced_authkeys'))) {
+            $textFields[] = 'authkey';
+        }
         $showOrg = 0;
         // org admins can't see users of other orgs
         if ($this->_isSiteAdmin()) {
@@ -542,17 +545,15 @@ class UsersController extends AppController
             $roleNames[$v['Role']['id']] = $v['Role']['name'];
             $roleJSON[] = array('id' => $v['Role']['id'], 'value' => $v['Role']['name']);
         }
-        $temp = $this->User->Organisation->find('all', array(
-            'conditions' => array('local' => 1),
-            'recursive' => -1,
-            'fields' => array('id', 'name'),
-            'order' => array('LOWER(name) ASC')
-        ));
-        $orgs = array();
-        foreach ($temp as $org) {
-            $orgs[$org['Organisation']['id']] = $org['Organisation']['name'];
+        if ($showOrg) {
+            $orgs = $this->User->Organisation->find('list', array(
+                'conditions' => array('local' => 1),
+                'recursive' => -1,
+                'fields' => array('id', 'name'),
+                'order' => array('LOWER(name) ASC')
+            ));
+            $this->set('orgs', $orgs);
         }
-        $this->set('orgs', $orgs);
         $this->set('roles', $roleNames);
         $this->set('roleJSON', json_encode($roleJSON));
         $rules = $this->_arrayToValuesIndexArray($rules);
@@ -563,28 +564,20 @@ class UsersController extends AppController
 
     public function admin_view($id = null)
     {
-        $contain = [
-            'UserSetting',
-            'Role',
-            'Organisation'
-        ];
-        if (!empty(Configure::read('Security.advanced_authkeys'))) {
-            $contain['AuthKey'] = [
-                'conditions' => [
-                    'OR' => [
-                        'AuthKey.expiration' => 0,
-                        'AuthKey.expiration <' => time()
-                    ]
-                ]
-            ];
-        }
         $user = $this->User->find('first', array(
             'recursive' => -1,
             'conditions' => array('User.id' => $id),
-            'contain' => $contain
+            'contain' => [
+                'UserSetting',
+                'Role',
+                'Organisation'
+            ]
         ));
         if (empty($user)) {
             throw new NotFoundException(__('Invalid user'));
+        }
+        if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $user['User']['org_id'])) {
+            throw new MethodNotAllowedException();
         }
         if (!empty($user['User']['gpgkey'])) {
             $pgpDetails = $this->User->verifySingleGPG($user);
@@ -598,10 +591,6 @@ class UsersController extends AppController
         if (!empty(Configure::read('Security.advanced_authkeys'))) {
             unset($user['User']['authkey']);
         }
-        $this->set('user', $user);
-        if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $user['User']['org_id'])) {
-            throw new MethodNotAllowedException();
-        }
         if ($this->_isRest()) {
             $user['User']['password'] = '*****';
             $temp = array();
@@ -614,14 +603,13 @@ class UsersController extends AppController
                 'Role' => $user['Role'],
                 'UserSetting' => $user['UserSetting']
             ), $this->response->type());
-            return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
-        } else {
-            $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
-            $this->set('id', $id);
-            $this->set('user2', $user2);
-            $this->set('admin_view', true);
-            $this->render('view');
         }
+        $this->set('user', $user);
+        $user2 = $this->User->find('first', array('conditions' => array('User.id' => $user['User']['invited_by']), 'recursive' => -1));
+        $this->set('id', $id);
+        $this->set('user2', $user2);
+        $this->set('admin_view', true);
+        $this->render('view');
     }
 
     public function admin_add()

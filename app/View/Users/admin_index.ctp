@@ -31,11 +31,30 @@
                         )
                     ),
                     array(
+                        'type' => 'simple',
+                        'children' => array(
+                            array(
+                                'url' => $baseurl . '/admin/users/index',
+                                'text' => __('All'),
+                                'active' => !isset($passedArgsArray['disabled']),
+                            ),
+                            array(
+                                'url' => $baseurl . '/admin/users/index/searchdisabled:0',
+                                'text' => __('Active'),
+                                'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "0",
+                            ),
+                            array(
+                                'url' => $baseurl . '/admin/users/index/searchdisabled:1',
+                                'text' => __('Disabled'),
+                                'active' => isset($passedArgsArray['disabled']) && $passedArgsArray['disabled'] === "1",
+                            )
+                        )
+                    ),
+                    array(
                         'type' => 'search',
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
-                        'data' => '',
-                        'searchKey' => 'value'
+                        'searchKey' => 'value',
                     )
                 )
             ),
@@ -118,6 +137,7 @@
                     'name' => __('Last Login'),
                     'sort' => 'User.current_login',
                     'element' => 'datetime',
+                    'empty' => __('Never'),
                     'class' => 'short',
                     'data_path' => 'User.current_login'
                 ),
@@ -216,15 +236,3 @@
     ));
     echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'indexUser'));
-?>
-<script type="text/javascript">
-    var passedArgsArray = <?php echo $passedArgs; ?>;
-    if (passedArgsArray['context'] === undefined) {
-        passedArgsArray['context'] = 'pending';
-    }
-    $(document).ready(function() {
-        $('#quickFilterButton').click(function() {
-            runIndexQuickFilter('/context:' + passedArgsArray['context']);
-        });
-    });
-</script>
