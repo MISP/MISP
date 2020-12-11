@@ -360,18 +360,20 @@ class SharingGroupsController extends AppController
         }
         if ($sg['SharingGroup']['sync_user_id']) {
             $this->loadModel('User');
-            $sync_user = $this->User->find('first', array(
-                    'conditions' => array('User.id' => $sg['SharingGroup']['sync_user_id']),
-                    'recursive' => -1,
-                    'fields' => array('User.id', 'User.org_id'),
-                    'contain' => array('Organisation' => array(
-                        'fields' => array('Organisation.name')
-                    ))
+            $syncUser = $this->User->find('first', array(
+                'conditions' => array('User.id' => $sg['SharingGroup']['sync_user_id']),
+                'recursive' => -1,
+                'fields' => array('User.id'),
+                'contain' => array('Organisation' => array(
+                    'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'),
+                ))
             ));
-            if (empty($sync_user)) {
+            if (empty($syncUser)) {
                 $sg['SharingGroup']['sync_org_name'] = 'N/A';
+            } else {
+                $sg['SharingGroup']['sync_org_name'] = $syncUser['Organisation']['name'];
+                $sg['SharingGroup']['sync_org'] = $syncUser['Organisation'];
             }
-            $sg['SharingGroup']['sync_org_name'] = $sync_user['Organisation']['name'];
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($sg, $this->response->type());
