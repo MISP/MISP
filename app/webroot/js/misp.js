@@ -2207,26 +2207,38 @@ function runIndexFilter(element) {
 }
 
 function runIndexQuickFilter(preserveParams, url, target) {
-    if (!passedArgsArray) {
+    if (typeof passedArgsArray === "undefined") {
         var passedArgsArray = [];
     }
-    var searchKey = 'searchall';
-    if ($('#quickFilterField').data('searchkey')) {
-        searchKey = $('#quickFilterField').data('searchkey');
+    var $quickFilterField = $('#quickFilterField');
+    var searchKey;
+    if ($quickFilterField.data('searchkey')) {
+        searchKey = $quickFilterField.data('searchkey');
+    } else {
+        searchKey = 'searchall';
     }
-    if ( $('#quickFilterField').val().trim().length > 0){
-        passedArgsArray[searchKey] = encodeURIComponent($('#quickFilterField').val().trim());
+    if ($quickFilterField.val().trim().length > 0) {
+        passedArgsArray[searchKey] = encodeURIComponent($quickFilterField.val().trim());
     }
     if (typeof url === "undefined") {
         url = here;
     }
-    if (typeof preserveParams !== "undefined") {
+    if (typeof preserveParams === "string") {
         preserveParams = String(preserveParams);
         if (!preserveParams.startsWith('/')) {
             preserveParams = '/' + preserveParams;
         }
         url += preserveParams;
+    } else if (typeof preserveParams === "object") {
+        for (var key in preserveParams) {
+            if (typeof key == 'number') {
+                url += "/" + preserveParams[key];
+            } else if (key !== 'page') {
+                url += "/" + key + ":" + preserveParams[key];
+            }
+        }
     }
+
     for (var key in passedArgsArray) {
         if (typeof key == 'number') {
             url += "/" + passedArgsArray[key];
@@ -2234,6 +2246,7 @@ function runIndexQuickFilter(preserveParams, url, target) {
             url += "/" + key + ":" + passedArgsArray[key];
         }
     }
+
     if (target !== undefined) {
         $.ajax({
             beforeSend: function () {

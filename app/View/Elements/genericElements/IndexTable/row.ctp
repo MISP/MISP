@@ -60,5 +60,4 @@
             )
         );
     }
-    echo ($rowHtml);
-?>
+    echo $rowHtml;
