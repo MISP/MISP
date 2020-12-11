@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
+App::uses('SecurityAudit', 'Tools');
 
 /**
  * @property Server $Server
@@ -1116,10 +1117,13 @@ class ServersController extends AppController
                     $attachmentScan = ['status' => false, 'error' => $e->getMessage()];
                 }
 
-                $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan');
+                $securityAudit = (new SecurityAudit())->run($this->Server);
+
+                $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
             } else {
                 $view = [];
             }
+
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
             $writeableFiles = $this->Server->writeableFilesDiagnostics($diagnostic_errors);
@@ -1139,27 +1143,27 @@ class ServersController extends AppController
                 $worker_array = $this->Server->workerDiagnostics($workerIssueCount);
             }
             $this->set('worker_array', $worker_array);
-            if ($tab == 'download' || $this->_isRest()) {
+            if ($tab === 'download' || $this->_isRest()) {
                 foreach ($dumpResults as $key => $dr) {
                     unset($dumpResults[$key]['description']);
                 }
                 $dump = array(
-                        'version' => $version,
-                        'phpSettings' => $phpSettings,
-                        'gpgStatus' => $gpgErrors[$gpgStatus['status']],
-                        'proxyStatus' => $proxyErrors[$proxyStatus],
-                        'zmqStatus' => $zmqStatus,
-                        'stix' => $stix,
-                        'moduleStatus' => $moduleStatus,
-                        'writeableDirs' => $writeableDirs,
-                        'writeableFiles' => $writeableFiles,
-                        'readableFiles' => $readableFiles,
-                        'dbDiagnostics' => $dbDiagnostics,
-                        'dbSchemaDiagnostics' => $dbSchemaDiagnostics,
-                        'redisInfo' => $redisInfo,
-                        'finalSettings' => $dumpResults,
-                        'extensions' => $extensions,
-                        'workers' => $worker_array
+                    'version' => $version,
+                    'phpSettings' => $phpSettings,
+                    'gpgStatus' => $gpgErrors[$gpgStatus['status']],
+                    'proxyStatus' => $proxyErrors[$proxyStatus],
+                    'zmqStatus' => $zmqStatus,
+                    'stix' => $stix,
+                    'moduleStatus' => $moduleStatus,
+                    'writeableDirs' => $writeableDirs,
+                    'writeableFiles' => $writeableFiles,
+                    'readableFiles' => $readableFiles,
+                    'dbDiagnostics' => $dbDiagnostics,
+                    'dbSchemaDiagnostics' => $dbSchemaDiagnostics,
+                    'redisInfo' => $redisInfo,
+                    'finalSettings' => $dumpResults,
+                    'extensions' => $extensions,
+                    'workers' => $worker_array
                 );
                 foreach ($dump['finalSettings'] as $k => $v) {
                     if (!empty($v['redacted'])) {
