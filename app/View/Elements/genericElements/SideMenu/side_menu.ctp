@@ -336,11 +336,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             ),
                             'text' => __('Import from…')
                         ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'rest',
-                            'url' => $baseurl . '/servers/rest',
-                            'text' => __('REST client')
-                        ));
+                        if ($canAccess('servers', 'rest')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'rest',
+                                'url' => $baseurl . '/servers/rest',
+                                'text' => __('REST client')
+                            ));
+                        }
                     }
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
