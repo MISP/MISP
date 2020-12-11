@@ -1,8 +1,10 @@
 <?php
-
 App::uses('AppModel', 'Model');
-App::uses('CakeEmail', 'Network/Email');
 
+/**
+ * @property Thread $Thread
+ * @property User $User
+ */
 class Post extends AppModel
 {
     public $actsAs = array(
@@ -25,7 +27,7 @@ class Post extends AppModel
             ),
     );
 
-    public function sendPostsEmailRouter($user_id, $post_id, $event_id, $title, $message, $JobId = false)
+    public function sendPostsEmailRouter($user_id, $post_id, $event_id, $title, $message)
     {
         if (Configure::read('MISP.background_jobs')) {
             $user = $this->User->findById($user_id);
@@ -38,7 +40,7 @@ class Post extends AppModel
                     'status' => 0,
                     'retries' => 0,
                     'org_id' => $user['User']['org_id'],
-                    'message' => 'Sending..',
+                    'message' => 'Sending...',
             );
             $job->save($data);
             $jobId = $job->id;
@@ -51,50 +53,90 @@ class Post extends AppModel
             $job->saveField('process_id', $process_id);
             return true;
         } else {
-            $result = $this->sendPostsEmail($user_id, $post_id, $event_id, $title, $message);
-            return $result;
+            return $this->sendPostsEmail($user_id, $post_id, $event_id, $title, $message);
         }
     }
 
-    public function sendPostsEmail($user_id, $post_id, $event_id, $title, $message)
+    /**
+     * @param int $userId
+     * @param int $postId
+     * @param int|null $eventId
+     * @param string $title
+     * @param string $message
+     * @return bool
+     * @throws Exception
+     */
+    public function sendPostsEmail($userId, $postId, $eventId, $title, $message)
     {
-        // fetch the post
-        $post = $this->read(null, $post_id);
-        $this->User = ClassRegistry::init('User');
+        $post = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['id' => $postId],
+            'fields' => ['id', 'thread_id'],
+        ]);
+        if (empty($post)) {
+            throw new Exception("Post with ID $postId not found.");
+        }
+
+        $userFields = ['id', 'email', 'gpgkey', 'certif_public', 'disabled'];
 
         // If the post belongs to an event, E-mail all users in the org that have contactalert set
-        if ($event_id) {
+        if ($eventId) {
             $this->Event = ClassRegistry::init('Event');
-            ;
-            $event = $this->Event->read(null, $event_id);
-            //Insert extra field here: alertOrg or something, then foreach all the org members
-            //limit this array to users with contactalerts turned on!
-            $orgMembers = array();
-            $this->User->recursive = -1;
-            $temp = $this->User->findAllByOrgId($event['Event']['org_id'], array('email', 'gpgkey', 'certif_public', 'contactalert', 'id'));
-            foreach ($temp as $tempElement) {
-                if ($tempElement['User']['id'] != $user_id && ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id'])) {
-                    array_push($orgMembers, $tempElement);
-                }
+            $event = $this->Event->find('first', [
+                'recursive' => -1,
+                'conditions' => ['id' => $eventId],
+                'fields' => ['id', 'org_id', 'user_id'],
+            ]);
+            if (empty($event)) {
+                throw new Exception("Event with ID $eventId not found.");
             }
+            // Insert extra field here: alertOrg or something, then foreach all the org members
+            // limit this array to users with contactalerts turned on!
+            $orgMembers = $this->User->find('all', [
+                'recursive' => -1,
+                'conditions' => [
+                    'org_id' => $event['Event']['org_id'],
+                    'disabled' => 0,
+                    'NOT' => ['id' => $userId], // do not send to post creator
+                    'OR' => [ // send just to users with contactalert or to event creator
+                       'contactalert' => 1,
+                       'id' => $event['Event']['user_id'],
+                    ],
+               ],
+               'fields' => $userFields,
+            ]);
         } else {
             // Not an event: E-mail the user that started the thread
             $thread = $this->Thread->read(null, $post['Post']['thread_id']);
-            if ($thread['Thread']['user_id'] == $user_id) {
+            if ($thread['Thread']['user_id'] == $userId) {
                 $orgMembers = array();
             } else {
-                $orgMembers = $this->User->findAllById($thread['Thread']['user_id'], array('email', 'gpgkey', 'certif_public', 'contactalert', 'id'));
+                $orgMembers = $this->User->find('all', [
+                    'recursive' => -1,
+                    'fields' => $userFields,
+                    'conditions' => [
+                        'id' => $thread['Thread']['user_id'],
+                        'disabled' => 0,
+                    ]
+                ]);
             }
         }
 
         // Add all users who posted in this thread
-        $temp = $this->findAllByThreadId($post['Post']['thread_id'], array('user_id'));
-        foreach ($temp as $tempElement) {
-            $user = $this->User->findById($tempElement['Post']['user_id'], array('email', 'gpgkey', 'certif_public', 'contactalert', 'id'));
-            if (!empty($user) && $user['User']['id'] != $user_id && !in_array($user, $orgMembers)) {
-                array_push($orgMembers, $user);
-            }
-        }
+        $excludeUsers = Hash::extract($orgMembers, '{n}.User.id');
+        $excludeUsers[] = $userId;
+        $temp = $this->find('all', [
+            'recursive' => -1,
+            'fields' => ['Post.id'],
+            'conditions' => [
+                'Post.thread_id' => $post['Post']['thread_id'],
+                'User.disabled' => 0,
+                'NOT' => ['User.id' => $excludeUsers]
+            ],
+            'contain' => ['User' => ['fields' => $userFields]],
+            'group' => ['User.id'], // remove duplicates
+        ]);
+        $orgMembers = array_merge($orgMembers, $temp);
 
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
@@ -118,11 +160,14 @@ class Post extends AppModel
         $bodyDetail .= "The following message was added: \n";
         $bodyDetail .= "\n";
         $bodyDetail .= $message . "\n";
+
         $tplColorString = Configure::read('MISP.email_subject_TLP_string') ?: "tlp:amber";
         $subject = "[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - " . strtoupper($tplColorString);
         foreach ($orgMembers as $recipient) {
             $this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
         }
+
+        return true;
     }
 
     public function findPageNr($id, $context = 'thread', $post_id = false)
