@@ -95,7 +95,7 @@
 ?>
 
 <script type="text/javascript">
-    var passedArgsArray = <?php echo $passedArgs; ?>;
+    var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '[]'; ?>;
     <?php
         if (isset($containerId)) {
             echo 'var target = "#' . $containerId . '_content";';
