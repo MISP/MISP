@@ -4200,12 +4200,18 @@ function initPopoverContent(context) {
 }
 
 function checkSharingGroup(context) {
+    var $sharingGroupSelect = $('#' + context + 'SharingGroupId');
     if ($('#' + context + 'Distribution').val() == 4) {
-        $('#' + context + 'SharingGroupId').show();
-        $('#' + context + 'SharingGroupId').closest("div").show();
+        $sharingGroupSelect.show();
+        $sharingGroupSelect.closest("div").show();
+
+        // For sharing group select with more than 10 items, use chosen
+        if ($sharingGroupSelect.find('option').length > 10) {
+            $sharingGroupSelect.chosen();
+        }
     } else {
-        $('#' + context + 'SharingGroupId').hide();
-        $('#' + context + 'SharingGroupId').closest("div").hide();
+        $sharingGroupSelect.hide();
+        $sharingGroupSelect.closest("div").hide();
     }
 }
 
