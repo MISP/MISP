@@ -3017,6 +3017,21 @@ class AppModel extends Model
         }
     }
 
+    public function addCountField($field, AppModel $model, array $conditions)
+    {
+        $db = $this->getDataSource();
+        $subQuery = $db->buildStatement(
+            array(
+                'fields'     => ['COUNT(*)'],
+                'table'      => $db->fullTableName($model),
+                'alias'      => $model->alias,
+                'conditions' => $conditions,
+            ),
+            $model
+        );
+        $this->virtualFields[$field] = $subQuery;
+    }
+
     /**
      * Log exception with backtrace and with nested exceptions.
      *
