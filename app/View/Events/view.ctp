@@ -15,7 +15,7 @@
     <?php
         if (Configure::read('MISP.showorg') || $isAdmin):
     ?>
-            <div style="float:right;"><?php echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 48)); ?></div>
+            <div style="float:right;"><?= $this->OrgImg->getOrgLogo($event['Orgc'], 48); ?></div>
     <?php
         endif;
         $title = h($event['Event']['info']);

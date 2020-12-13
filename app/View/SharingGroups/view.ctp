@@ -31,7 +31,7 @@ echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData
         if (isset($sg['SharingGroupOrg'])):
     ?>
         <div class="span6">
-        <b><?php echo __('Organisations');?></b>
+            <b><?php echo __('Organisations');?></b>
             <table class="table table-striped table-hover table-condensed">
                 <tr>
                     <th><?= __('Name') ?></th>
@@ -42,7 +42,7 @@ echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData
                     foreach ($sg['SharingGroupOrg'] as $sgo):
                 ?>
                 <tr>
-                    <td><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo h($sgo['Organisation']['id']); ?>"><?php echo h($sgo['Organisation']['name']); ?></a></td>
+                    <td><?= $this->OrgImg->getNameWithImg($sgo) ?></td>
                     <td><span class="<?= $sgo['Organisation']['local'] ? 'fas fa-check' : 'fas fa-times' ?>"></span></td>
                     <td><span class="<?= $sgo['extend'] ? 'fas fa-check' : 'fas fa-times' ?>"></span></td>
                 </tr>
@@ -56,7 +56,7 @@ echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData
         if (!$sg['SharingGroup']['roaming']):
     ?>
         <div class="span6">
-        <b>Instances</b>
+            <b>Instances</b>
             <table class="table table-striped table-hover table-condensed">
                 <tr>
                     <th><?= __('Name') ?></th>

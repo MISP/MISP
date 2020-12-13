@@ -83,20 +83,20 @@ class AttributesController extends AppController
             }
             return $this->RestResponse->viewData($attributes, $this->response->type());
         }
-        $orgTable = $this->Attribute->Event->Orgc->find('list', array(
-            'fields' => array('Orgc.id', 'Orgc.name')
-        ));
+
+        $orgTable = $this->Attribute->Event->Orgc->find('all', [
+            'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
+        ]);
+        $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
         foreach ($attributes as &$attribute) {
             if (isset($orgTable[$attribute['Event']['orgc_id']])) {
-                $attribute['Event']['Orgc'] = [
-                    'id' => $attribute['Event']['orgc_id'],
-                    'name' => $orgTable[$attribute['Event']['orgc_id']],
-                ];
+                $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
             }
         }
+
         list($attributes, $sightingsData) = $this->__searchUI($attributes);
         $this->set('sightingsData', $sightingsData);
-        $this->set('orgTable', $orgTable);
+        $this->set('orgTable', array_column($orgTable, 'name', 'id'));
         $this->set('shortDist', $this->Attribute->shortDist);
         $this->set('attributes', $attributes);
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
@@ -1591,21 +1591,16 @@ class AttributesController extends AppController
             );
             $attributes = $this->paginate();
 
-            $orgTable = $this->Attribute->Event->Orgc->find('list', array(
-                'fields' => ['Orgc.id', 'Orgc.name'],
-            ));
+            $orgTable = $this->Attribute->Event->Orgc->find('all', [
+                'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
+            ]);
+            $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
             foreach ($attributes as &$attribute) {
                 if (isset($orgTable[$attribute['Event']['orgc_id']])) {
-                    $attribute['Event']['Orgc'] = [
-                        'id' => $attribute['Event']['orgc_id'],
-                        'name' => $orgTable[$attribute['Event']['orgc_id']],
-                    ];
+                    $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
                 }
                 if (isset($orgTable[$attribute['Event']['org_id']])) {
-                    $attribute['Event']['Org'] = [
-                        'id' => $attribute['Event']['org_id'],
-                        'name' => $orgTable[$attribute['Event']['org_id']],
-                    ];
+                    $attribute['Event']['Org'] = $orgTable[$attribute['Event']['org_id']];
                 }
             }
             if ($this->_isRest()) {
@@ -1634,7 +1629,7 @@ class AttributesController extends AppController
                     }
                 }
             }
-            $this->set('orgTable', $orgTable);
+            $this->set('orgTable', array_column($orgTable, 'name', 'id'));
             $this->set('filters', $filters);
             $this->set('attributes', $attributes);
             $this->set('isSearch', 1);

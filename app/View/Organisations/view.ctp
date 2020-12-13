@@ -55,14 +55,7 @@
             ),
             sprintf(
                 '<div style="float:right;">%s</div>',
-                $this->OrgImg->getOrgImg(
-                    array(
-                        'name' => $org['Organisation']['name'],
-                        'id' => $org['Organisation']['id'],
-                        'size' => 48
-                    ),
-                    true
-                )
+                $this->OrgImg->getOrgLogo($org, 48)
             )
         );
     ?>

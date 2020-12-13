@@ -15,15 +15,15 @@ class UsersController extends AppController
     );
 
     public $paginate = array(
-            'limit' => 60,
-            'recursive' => -1,
-            'order' => array(
-                    'Organisation.name' => 'ASC'
-            ),
-            'contain' => array(
-                'Organisation' => array('id', 'name'),
-                'Role' => array('id', 'name', 'perm_auth', 'perm_site_admin')
-            )
+        'limit' => 60,
+        'recursive' => -1,
+        'order' => array(
+                'Organisation.name' => 'ASC'
+        ),
+        'contain' => array(
+            'Organisation' => array('id', 'uuid', 'name'),
+            'Role' => array('id', 'name', 'perm_auth', 'perm_site_admin')
+        )
     );
 
     public $helpers = array('Js' => array('Jquery'));
