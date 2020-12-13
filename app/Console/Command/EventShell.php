@@ -13,6 +13,70 @@ class EventShell extends AppShell
     public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation');
     public $tasks = array('ConfigLoad');
 
+    public function getOptionParser()
+    {
+        $parser = parent::getOptionParser();
+        $parser->addSubcommand('import', array(
+            'help' => __('Import event from file into MISP.'),
+            'parser' => array(
+                'arguments' => array(
+                    'user_id' => ['help' => __('User ID that will owner of uploaded event.'), 'required' => true],
+                    'file' => ['help' => __('Path to JSON MISP file, can be gzipped or bz2 compressed.'), 'required' => true],
+                ),
+                'options' => [
+                    'take-ownership' => ['boolean' => true],
+                    'publish' => ['boolean' => true],
+                ],
+            )
+        ));
+        return $parser;
+    }
+
+    public function import()
+    {
+        list($userId, $path) = $this->args;
+        $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            $this->error("User with ID $userId does not exists.");
+        }
+
+        if (!file_exists($path)) {
+            $this->error("File '$path' does not exists.");
+        }
+        if (!is_readable($path)) {
+            $this->error("File '$path' is not readable.");
+        }
+
+        $pathInfo = pathinfo($path);
+        if ($pathInfo['extension'] === 'gz') {
+            $content = file_get_contents("compress.zlib://$path");
+            $extension = pathinfo($pathInfo['filename'], PATHINFO_EXTENSION);
+        } else if ($pathInfo['extension'] === 'bz2') {
+            $content = file_get_contents("compress.bzip2://$path");
+            $extension = pathinfo($pathInfo['filename'], PATHINFO_EXTENSION);
+        } else {
+            $content = file_get_contents($path);
+            $extension = $pathInfo['extension'];
+        }
+
+        if ($content === false) {
+            $this->error("Could not read content from '$path'.");
+        }
+
+        $isXml = $extension === 'xml';
+        $takeOwnership = $this->param('take_ownership');
+        $publish = $this->param('publish');
+        $results = $this->Event->addMISPExportFile($user, $content, $isXml, $takeOwnership, $publish);
+
+        foreach ($results as $result) {
+            if (is_numeric($result['result'])) {
+                $this->out("Event #{$result['id']}: {$result['info']} imported.");
+            } else {
+                $this->out("Could not import event because of validation errors: " . json_encode($result['validationIssues']));
+            }
+        }
+    }
+
     public function doPublish()
     {
         $this->ConfigLoad->execute();
