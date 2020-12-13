@@ -122,15 +122,16 @@ class SharingGroup extends AppModel
      * Returns a list of all sharing groups that the user is allowed to see.
      * Scope can be:
      *  - full: Entire SG object with all organisations and servers attached
-     *  - simplified: Just imporant fields from SG, organisations and servers
-     *  - name: array in ID => name key => value format
-     *  - uuid
-     *  - false: array with all IDs
+     *  - simplified: Just important fields from SG, organisations and servers
+     *  - sharing_group: specific scope that fetch just necessary information for generating distribution graph
+     *  - name: array in ID => name format
+     *  - uuid: array in ID => uuid format
+     *  - false: array with all sharing group IDs
      *
      * @param array $user
      * @param string|false $scope
-     * @param bool $active
-     * @param int|false $id
+     * @param bool $active If true, return only active sharing groups
+     * @param int|array|false $id
      * @return array
      */
     public function fetchAllAuthorised(array $user, $scope = false, $active = false, $id = false)
@@ -200,6 +201,16 @@ class SharingGroup extends AppModel
                 'order' => 'SharingGroup.name ASC'
             ));
             return $this->appendOrgsAndServers($sgs, $fieldsOrg, $fieldsServer);
+        } elseif ($scope === 'distribution_graph') {
+            // Specific scope that fetch just necessary information for distribution graph
+            // @see DistributionGraphTool
+            $sgs = $this->find('all', array(
+                'contain' => ['SharingGroupOrg' => ['org_id']],
+                'conditions' => $conditions,
+                'fields' => ['SharingGroup.id', 'SharingGroup.name'],
+                'order' => 'SharingGroup.name ASC'
+            ));
+            return $this->appendOrgsAndServers($sgs, ['id', 'name'], []);
         } elseif ($scope === 'name') {
             $sgs = $this->find('list', array(
                 'recursive' => -1,
