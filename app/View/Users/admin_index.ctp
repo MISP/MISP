@@ -92,14 +92,14 @@
                     'requirement' => empty(Configure::read('Security.advanced_authkeys'))
                 ),
                 array(
-                    'name' => __('Autoalert'),
+                    'name' => __('Event alert'),
                     'element' => 'boolean',
                     'sort' => 'User.autoalert',
                     'class' => 'short',
                     'data_path' => 'User.autoalert'
                 ),
                 array(
-                    'name' => __('Contactalert'),
+                    'name' => __('Contact alert'),
                     'element' => 'boolean',
                     'sort' => 'User.contactalert',
                     'class' => 'short',
@@ -166,10 +166,7 @@
                     'sort' => 'User.disabled',
                     'class' => 'short',
                     'data_path' => 'User.monitored',
-                    'requirement' => (
-                        Configure::read('Security.user_monitoring_enabled') &&
-                        $isSiteAdmin
-                    )
+                    'requirement' => $isSiteAdmin && Configure::read('Security.user_monitoring_enabled')
                 ),
                 array(
                     'name' => __('Disabled'),

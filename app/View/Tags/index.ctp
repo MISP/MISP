@@ -31,7 +31,7 @@
             ],
             'fields' => [
                 [
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'Tag.id',
                     'class' => 'short',
                     'data_path' => 'Tag.id',
@@ -132,7 +132,8 @@
                         'Tag.id'
                     ],
                     'icon' => 'edit',
-                    'title' => __('Edit')
+                    'title' => __('Edit'),
+                    'requirement' => $isSiteAdmin,
                 ],
                 [
                     'url' => $baseurl . '/tags/delete',
@@ -142,7 +143,8 @@
                     'postLink' => '',
                     'postLinkConfirm' => __('Are you sure you want to delete the Tag?'),
                     'icon' => 'trash',
-                    'title' => __('View graph')
+                    'title' => __('Delete tag'),
+                    'requirement' => $isSiteAdmin,
                 ],
             ]
         ]
@@ -163,7 +165,7 @@
 ?>
 <script type="text/javascript">
     var passedArgsArray = <?php echo $passedArgs; ?>;
-    $(document).ready(function() {
+    $(function() {
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
         });

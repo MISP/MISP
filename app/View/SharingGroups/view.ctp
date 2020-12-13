@@ -9,19 +9,22 @@ $tableData = [
     ['key' => __('Releasability'), 'value' => $sg['SharingGroup']['releasability']],
     ['key' => __('Description'), 'value' => $sg['SharingGroup']['description']],
     ['key' => __('Selectable'), 'boolean' => $sg['SharingGroup']['active']],
-    ['key' => __('Created by'), 'html' => $this->OrgImg->getNameWithImg($sg)],
+    [
+        'key' => __('Created by'),
+        'html' => isset($sg['Organisation']['id']) ? $this->OrgImg->getNameWithImg($sg) : __('Unknown'),
+    ],
 ];
+if ($sg['SharingGroup']['sync_user_id']) {
+    $tableData[] = [
+        'key' => __('Synced by'),
+        'html' => isset($sg['SharingGroup']['sync_org']) ? $this->OrgImg->getNameWithImg($sg['SharingGroup']['sync_org']) : __('Unknown'),
+    ];
+}
 $eventsLink = $baseurl . '/events/index/searchsharinggroup:' . $sg['SharingGroup']['id'];
 $tableData[] = [
     'key' => __('Events'),
     'html' => '<a href="' . $eventsLink . '">' . __n('%s event', '%s events', $sg['SharingGroup']['event_count'], $sg['SharingGroup']['event_count']) . '</a>',
 ];
-if ($sg['SharingGroup']['sync_user_id']) {
-    $tableData[] = [
-        'key' => __('Synced by'),
-        'html' => $this->OrgImg->getNameWithImg($sg),
-    ];
-}
 echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData]);
 ?>
 </div></div>

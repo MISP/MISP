@@ -62,21 +62,20 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                         $mayModify = true;
                         if ($isAclPublish) $mayPublish = true;
                     }
-                    if (($menuItem === 'template_populate_results')) {
+
+                    if ($menuItem === 'template_populate_results') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'template_populate_results',
                             'url' => $baseurl . '/templates/index',
                             'text' => __('Populate From Template')
                         ));
-                    }
-                    if ($menuItem === 'enrichmentResults') {
+                    } else if ($menuItem === 'enrichmentResults') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'enrichmentResults',
                             'text' => __('Enrichment Module Result')
                         ));
                         echo $divider;
-                    }
-                    if ($menuItem === 'freetextResults') {
+                    } else if ($menuItem === 'freetextResults') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'freetextResults',
                             'text' => __('Freetext Import Result')
@@ -330,6 +329,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('Add Event')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'import_from',
                             'onClick' => array(
                                 'function' => 'getPopup',
                                 'params' => array('0', 'events', 'importChoice/event-collection')
@@ -1094,13 +1094,13 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                                 'element_id' => 'delete',
                                 'onClick' => array(
                                     'function' => 'deleteObject',
-                                    'params' => array('taxonomies', 'delete', h($id), h($id))
+                                    'params' => array('taxonomies', 'delete', h($id))
                                 ),
                                 'text' => __('Delete Taxonomy')
                             ));
                         }
                     }
-                    if ($isSiteAdmin) {
+                    if ($canAccess('taxonomies', 'update')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
                             'event_id' => 'update',
                             'url' => $baseurl . '/taxonomies/update',

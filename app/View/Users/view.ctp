@@ -3,13 +3,12 @@
     $table_data[] = array('key' => __('ID'), 'value' => $user['User']['id']);
     $table_data[] = array(
         'key' => __('Email'),
-        'html' => sprintf(
-            '%s <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s"></a>',
-            h($user['User']['email']),
+        'html' => h($user['User']['email']) . ($admin_view ? sprintf(
+            ' <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s"></a>',
             $baseurl,
             h($user['User']['id']),
             __('Send email to user')
-        )
+        ) : ''),
     );
     $table_data[] = array(
         'key' => __('Organisation'),

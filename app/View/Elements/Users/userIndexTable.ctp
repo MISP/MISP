@@ -4,10 +4,12 @@
         <th><?php echo $this->Paginator->sort('org_ci', __('Org'));?></th>
         <th><?php echo $this->Paginator->sort('role_id', __('Role'));?></th>
         <th><?php echo $this->Paginator->sort('email');?></th>
+        <?php if (empty(Configure::read('Security.advanced_authkeys'))): ?>
         <th><?php echo $this->Paginator->sort('authkey');?></th>
-        <th><?php echo $this->Paginator->sort('autoalert');?></th>
-        <th><?php echo $this->Paginator->sort('contactalert');?></th>
-        <th><?php echo $this->Paginator->sort('gpgkey', __('PGP key'));?></th>
+        <?php endif; ?>
+        <th><?php echo $this->Paginator->sort('autoalert', __('Event alert'));?></th>
+        <th><?php echo $this->Paginator->sort('contactalert', __('Contact alert'));?></th>
+        <th><?php echo $this->Paginator->sort('gpgkey', __('PGP Key'));?></th>
         <?php if (Configure::read('SMIME.enabled')): ?>
             <th><?php echo $this->Paginator->sort('certif_public', 'S/MIME');?></th>
         <?php endif; ?>
@@ -40,9 +42,11 @@
                 <td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
                     <?php echo h($user['User']['email']); ?>&nbsp;
                 </td>
+                <?php if (empty(Configure::read('Security.advanced_authkeys'))): ?>
                 <td class="bold<?= $user['Role']['perm_auth'] ? '' : ' grey'; ?>">
                     <span class="privacy-value quickSelect" data-hidden-value="<?= h($user['User']['authkey']) ?>">****************************************</span>&nbsp;<i class="privacy-toggle fas fa-eye useCursorPointer" title="<?= __('Reveal hidden value') ?>"></i>
                 </td>
+                <?php endif; ?>
                 <td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
                     <?php echo $user['User']['autoalert']? __('Yes') : __('No'); ?>
                 </td>
@@ -85,7 +89,7 @@
                     <?php
                         if (($isAclAdmin && (($user['User']['org_id'] == $me['org_id'])) || ('1' == $me['id'])) || ($isSiteAdmin)):
                     ?>
-                            <span role="button" tabindex="0" class="fa fa-sync useCursorPointer" onClick="initiatePasswordReset('<?php echo $user['User']['id']; ?>');" title="<?php echo __('Create new credentials and inform user');?>" role="button" tabindex="0" aria-label="<?php echo __('Create new credentials and inform user');?>"></span>
+                            <span role="button" tabindex="0" class="fa fa-sync useCursorPointer" onClick="initiatePasswordReset('<?php echo $user['User']['id']; ?>');" title="<?php echo __('Create new credentials and inform user');?>" aria-label="<?php echo __('Create new credentials and inform user');?>"></span>
                     <?php
                             echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit')));
                             echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', $user['User']['id']));

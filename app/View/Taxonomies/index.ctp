@@ -18,7 +18,7 @@
     </div>
     <table class="table table-striped table-hover table-condensed">
     <tr>
-            <th><?php echo $this->Paginator->sort('id');?></th>
+            <th><?php echo $this->Paginator->sort('id', __('ID'));?></th>
             <th><?php echo $this->Paginator->sort('namespace');?></th>
             <th><?php echo $this->Paginator->sort('description');?></th>
             <th><?php echo $this->Paginator->sort('version');?></th>
@@ -34,7 +34,7 @@ foreach ($taxonomies as $item): ?>
         <td ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['description']); ?>&nbsp;</td>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['version']); ?>&nbsp;</td>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo $item['Taxonomy']['enabled'] ? '<span class="green">Yes</span>' : '<span class="red">No</span>'; ?>&nbsp;</td>
-        <td class="short"><input type="checkbox" data-taxonomy-id="<?php echo h($item['Taxonomy']['id']); ?>" class="required-toggle" <?php echo $item['Taxonomy']['required'] ? 'checked' : '';?> id="TaxonomyRequired"></td>
+        <td class="short"><input type="checkbox" data-taxonomy-id="<?php echo h($item['Taxonomy']['id']); ?>" class="required-toggle" <?php echo $item['Taxonomy']['required'] ? 'checked' : '';?> id="TaxonomyRequired"<?= $isSiteAdmin ? '' : ' disabled' ?>></td>
         <td class="shortish"><span><span class="bold"><?php echo h($item['current_count']);?></span> / <?php echo h($item['total_count']);?> <?php if ($item['current_count'] != $item['total_count'] && $isSiteAdmin && $item['Taxonomy']['enabled']) echo '(' . $this->Form->postLink(__('enable all'), array('action' => 'addTag', h($item['Taxonomy']['id'])), array('title' => __('Enable all tags')), (__('Are you sure you want to enable every tag associated to this taxonomy?'))) . ')'; ?></span></td>
         <td class="short action-links">
             <?php
@@ -47,7 +47,9 @@ foreach ($taxonomies as $item): ?>
                 }
             ?>
             <a href='<?php echo $baseurl."/taxonomies/view/". h($item['Taxonomy']['id']);?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
+            <?php if ($isSiteAdmin): ?>
             <span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete taxonomy');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete taxonomy');?>" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($item['Taxonomy']['id']); ?>', '<?php echo h($item['Taxonomy']['id']); ?>');"></span>
+            <?php endif; ?>
         </td>
     </tr><?php
 endforeach; ?>

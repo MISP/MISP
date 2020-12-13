@@ -2206,6 +2206,11 @@ function runIndexFilter(element) {
     window.location.href = url;
 }
 
+function cancelSearch() {
+    $('#quickFilterField').val('');
+    $('#quickFilterButton').click();
+}
+
 function runIndexQuickFilter(preserveParams, url, target) {
     if (typeof passedArgsArray === "undefined") {
         var passedArgsArray = [];
