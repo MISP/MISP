@@ -10,6 +10,7 @@ App::uses('TmpFileTool', 'Tools');
  * @property Attribute $Attribute
  * @property ShadowAttribute $ShadowAttribute
  * @property EventTag $EventTag
+ * @property SharingGroup $SharingGroup
  */
 class Event extends AppModel
 {

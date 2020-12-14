@@ -18,12 +18,16 @@ class DistributionGraphTool
         $this->__extended_view = $extended_view;
 
         // construct distribution info
-        $this->__json['distributionInfo'] = array();
-        $sgs = $this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, 'simplified', 1);
+        $sgs = $this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, 'distribution_graph', true);
         $this->__json['allSharingGroup'] = h($sgs);
-        $distributionLevels = $this->__eventModel->distributionLevels;
-        foreach ($distributionLevels as $key => $value) {
-            $this->__json['distributionInfo'][$key] = array('key' => h($value), 'desc' => h($this->__eventModel->distributionDescriptions[$key]['formdesc']), 'value' => h($key));
+
+        $this->__json['distributionInfo'] = array();
+        foreach ($this->__eventModel->distributionLevels as $key => $value) {
+            $this->__json['distributionInfo'][$key] = [
+                'key' => h($value),
+                'desc' => h($this->__eventModel->distributionDescriptions[$key]['formdesc']),
+                'value' => h($key)
+            ];
         }
         $this->__json['distributionInfo'][5] = ""; // inherit event. Will be deleted afterward
 
