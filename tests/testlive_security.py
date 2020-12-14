@@ -1277,6 +1277,22 @@ class TestSecurity(unittest.TestCase):
         self.assertTrue(contains)
         self.admin_misp_connector.delete_organisation(created_org)
 
+    def test_org_hide_from_sharing_group(self):
+        secret_org = self.__create_org()
+        visible_sg = self.__create_sharing_group()
+        check_response(self.admin_misp_connector.add_org_to_sharing_group(visible_sg, self.test_org.uuid))
+        check_response(self.admin_misp_connector.add_org_to_sharing_group(visible_sg, secret_org.uuid))
+
+        logged_in = PyMISP(url, self.test_usr.authkey)
+        logged_in.global_pythonify = True
+
+        with self.__setting("Security.hide_organisations_in_sharing_groups", True):
+            sg = send(logged_in, "GET", f"/sharingGroups/view/{visible_sg.id}")
+            self.assertNotIn("SharingGroupOrg", sg)
+
+        self.admin_misp_connector.delete_organisation(secret_org)
+        self.admin_misp_connector.delete_sharing_group(visible_sg)
+
     def __generate_event(self, distribution: int = 1) -> MISPEvent:
         mispevent = MISPEvent()
         mispevent.info = 'This is a super simple test'
