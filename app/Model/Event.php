@@ -8,6 +8,7 @@ App::uses('TmpFileTool', 'Tools');
 /**
  * @property User $User
  * @property Attribute $Attribute
+ * @property MispObject $Object
  * @property ShadowAttribute $ShadowAttribute
  * @property EventTag $EventTag
  * @property SharingGroup $SharingGroup
@@ -1435,7 +1436,7 @@ class Event extends AppModel
         if (!$eventReportSupportedByRemote) {
             return [];
         }
-        
+
         // Downgrade the object from connected communities to community only
         if (!$server['Server']['internal'] && $report['distribution'] == 2) {
             $report['distribution'] = 1;
