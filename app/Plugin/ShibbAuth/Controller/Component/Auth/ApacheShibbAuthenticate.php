@@ -145,6 +145,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
      * @param string $org
      * @param array $user
      * @return int
+     * @throws Exception
      */
     private function checkOrganization($org, $user)
     {
@@ -192,13 +193,13 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
             foreach ($groupList as $group) {
                 // TODO: Can be optimized inverting the search group and using only array_key_exists
                 if (array_key_exists($group, $groupRoleMatching)) { //In case there is an group not defined in the config.php file
-                    CakeLog::write('info', "User group ${group} found.");
+                    CakeLog::write('info', "User group $group found.");
                     $roleVal = $groupRoleMatching[$group];
                     if ($roleVal <= $roleId || $roleId == -1) {
                         $roleId = $roleVal;
                         $roleChanged = true;
                     }
-                    CakeLog::write('info', "User role ${roleId} assigned.");
+                    CakeLog::write('info', "User role $roleId assigned.");
                 }
             }
             return array($roleChanged, $roleId);
@@ -217,7 +218,8 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
     private function updateUserRole($roleChanged, array $user, $roleId, User $userModel)
     {
         if ($roleChanged && $user['role_id'] != $roleId) {
-            CakeLog::write('warning', "User role changed from ${user['role_id']} to $roleId.");
+            $message = "User role changed from ${user['role_id']} to $roleId for user ${user['email']} (${user['id']}).";
+            CakeLog::write('warning', $message);
             $userModel->updateField($user, 'role_id', $roleId);
         }
         return $user;
@@ -233,7 +235,8 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
     private function updateUserOrg($orgId, array $user, User $userModel)
     {
         if ($user['org_id'] != $orgId) {
-            CakeLog::write('warning', "User organisation $orgId changed.");
+            $message = "User organisation changed from ${user['org_id']} to $orgId for user ${user['email']} (${user['id']}).";
+            CakeLog::write('warning', $message);
             $user['org_id'] = $orgId; // Different role either increase or decrease permissions
             $userModel->updateField($user, 'org_id', $orgId);
         }
