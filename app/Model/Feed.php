@@ -75,6 +75,14 @@ class Feed extends AppModel
         return $results;
     }
 
+    public function afterSave($created, $options = array())
+    {
+        if (isset($this->data['Feed']['caching_enabled']) && empty($this->data['Feed']['caching_enabled'])) {
+            $this->deleteCache($this->data['Feed']['id']);
+        }
+        return parent::afterSave($created, $options);
+    }
+
     public function validateInputSource($fields)
     {
         if (!empty($this->data['Feed']['input_source'])) {
@@ -1339,6 +1347,29 @@ class Feed extends AppModel
             $redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
         }
         return $result;
+    }
+
+    /**
+     * Delete feed from cache. For complete deletion, is is necessary to refresh all caches.
+     * @param $feedId
+     */
+    private function deleteCache($feedId)
+    {
+        $redis = $this->setupRedis();
+        if ($redis) {
+            $hashes = $redis->sMembers("misp:feed_cache:$feedId");
+            // We cannot delete hash from 'misp:feed_cache:combined', because the same hash can be used also for other feed,
+            // but we can at least delete feed from 'misp:feed_cache:event_uuid_lookup:'
+            foreach ($hashes as $hash) {
+                foreach ($redis->sMembers("misp:feed_cache:event_uuid_lookup:$hash") as $member) {
+                    $memberFeedId = strstr($member, '/', true);
+                    if ($memberFeedId == $feedId) {
+                        $redis->sRem("misp:feed_cache:event_uuid_lookup:$hash", $member);
+                    }
+                }
+            }
+            $redis->del("misp:feed_cache:$feedId", "misp:feed_cache_timestamp:$feedId");
+        }
     }
 
     public function compareFeeds($id = false)
