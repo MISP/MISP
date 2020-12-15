@@ -926,16 +926,56 @@ class Sighting extends AppModel
      * @param array $sightings
      * @param array $user
      * @param null $passAlong
-     * @return int|string Number of saved sightings or error message as string
+     * @return int Number of saved sightings
+     * @throws Exception
      */
-    public function bulkSaveSightings($eventId, $sightings, $user, $passAlong = null)
+    public function bulkSaveSightings($eventId, array $sightings, array $user, $passAlong = null)
     {
         $event = $this->Event->fetchSimpleEvent($user, $eventId);
         if (empty($event)) {
-            return 'Event not found or not accessible by this user.';
+            throw new NotFoundException('Event not found or not accessible by this user.');
         }
+
+        // Since sightings are immutable (it is not possible to change it from web interface), we can check
+        // if sighting with given uuid already exists and skip them
+        $existingSighting = $this->find('list', [
+            'fields' => ['uuid'],
+            'recursive' => -1,
+            'conditions' => ['uuid' => array_column($sightings, 'uuid')],
+            'callbacks' => false,
+        ]);
+        // Move UUID to array key
+        $existingSighting = array_flip($existingSighting);
+
+        // Fetch attributes IDs and event IDs
+        $attributesToTransform = $this->Attribute->fetchAttributesSimple($user, [
+            'conditions' => ['Attribute.uuid' => array_unique(array_column($sightings, 'attribute_uuid'))],
+            'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.event_id'],
+        ]);
+        $attributes = [];
+        foreach ($attributesToTransform as $attribute) {
+            $attributes[$attribute['Attribute']['uuid']] = [$attribute['Attribute']['id'], $attribute['Attribute']['event_id']];
+        }
+
         $saved = 0;
         foreach ($sightings as $s) {
+            if (isset($existingSighting[$s['uuid']])) {
+                continue; // sighting already exists
+            }
+            if (!isset($attributes[$s['attribute_uuid']])) {
+                continue; // attribute doesn't exists or user don't have permission to access it
+            }
+            list($attributeId, $eventId) = $attributes[$s['attribute_uuid']];
+
+            if ($s['type'] === '2') {
+                // remove existing expiration by the same org if it exists
+                $this->deleteAll(array(
+                    'Sighting.org_id' => $user['org_id'],
+                    'Sighting.type' => 2,
+                    'Sighting.attribute_id' => $attributeId,
+                ));
+            }
+
             $saveOnBehalfOf = false;
             if ($user['Role']['perm_sync']) {
                 if (isset($s['org_id'])) {
@@ -946,10 +986,19 @@ class Sighting extends AppModel
                     }
                 }
             }
-            $result = $this->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid'], false, $saveOnBehalfOf);
-            if (is_numeric($result)) {
-                $saved += $result;
-            }
+
+            $this->create();
+            // TODO: Ignoring possible validation errors
+            $this->save([
+                'attribute_id' => $attributeId,
+                'event_id' => $eventId,
+                'org_id' => $saveOnBehalfOf === false ? $user['org_id'] : $saveOnBehalfOf,
+                'date_sighting' => $s['date_sighting'],
+                'type' => $s['type'],
+                'source' => $s['source'],
+                'uuid' => $s['uuid'],
+            ]);
+            $saved++;
         }
         if ($saved > 0) {
             $this->Event->publishRouter($event['Event']['id'], $passAlong, $user, 'sightings');
