@@ -1060,11 +1060,23 @@ class Event extends AppModel
         return true;
     }
 
-    public function uploadSightingsToServer($sightings, $server, $event_uuid, $HttpSocket = null)
+    /**
+     * @param array $sightings
+     * @param array $server
+     * @param array $event
+     * @param HttpSocket|null $HttpSocket
+     * @return bool|int
+     * @throws JsonException
+     */
+    public function uploadSightingsToServer(array $sightings, array $server, array $event, $HttpSocket = null)
     {
+        if (!$this->checkIfEventCanBePushedToServer($event, $server)) {
+            return 403;
+        }
+
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/sightings/bulkSaveSightings/' . $event_uuid;
+        $uri = $server['Server']['url'] . '/sightings/bulkSaveSightings/' . $event['Event']['uuid'];
         foreach ($sightings as &$sighting) {
             if (!isset($sighting['org_id'])) {
                 $sighting['org_id'] = '0';
@@ -1075,7 +1087,7 @@ class Event extends AppModel
             $pushLogEntry = sprintf(
                 "==============================================================\n\n[%s] Pushing Sightings for Event #%s to Server #%d:\n\n%s\n\n",
                 date("Y-m-d H:i:s"),
-                $event_uuid,
+                $event['Event']['id'],
                 $server['Server']['id'],
                 $data
             );
@@ -1120,33 +1132,42 @@ class Event extends AppModel
 
     private function __prepareForPushToServer($event, $server)
     {
+        if ($this->checkIfEventCanBePushedToServer($event, $server)) {
+            return $this->__updateEventForSync($event, $server);
+        } else {
+            return 403;
+        }
+    }
+
+    /**
+     * Check if given event can be pushed to given according to event distribution and server push rules.
+     * @param array $event
+     * @param array $server
+     * @return bool
+     */
+    private function checkIfEventCanBePushedToServer(array $event, array $server)
+    {
         if ($event['Event']['distribution'] == 4) {
             if (!empty($event['SharingGroup']['SharingGroupServer'])) {
                 $found = false;
                 foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
                     if ($sgs['server_id'] == $server['Server']['id']) {
                         $found = true;
+                        break;
                     }
                 }
                 if (!$found) {
-                    return 403;
+                    return false;
                 }
             } else if (empty($event['SharingGroup']['roaming'])) {
-                return 403;
+                return false;
             }
         }
         $serverModel = ClassRegistry::init('Server');
-        $server = $serverModel->eventFilterPushableServers($event, array($server));
-        if (empty($server)) {
-            return 403;
+        if (empty($serverModel->eventFilterPushableServers($event, [$server]))) {
+            return false;
         }
-        $server = $server[0];
-        if ($this->checkDistributionForPush($event, $server, 'Event')) {
-            $event = $this->__updateEventForSync($event, $server);
-        } else {
-            return 403;
-        }
-        return $event;
+        return $this->checkDistributionForPush($event, $server, 'Event');
     }
 
     private function __getLastUrlPathComponent($urlPath)
@@ -4441,18 +4462,15 @@ class Event extends AppModel
         $elevatedUser = array(
             'Role' => array(
                 'perm_site_admin' => 1,
-                'perm_sync' => 1
+                'perm_sync' => 1,
+                'perm_audit' => 0,
             ),
             'org_id' => $eventOrgcId['Event']['orgc_id']
         );
-        $elevatedUser['Role']['perm_site_admin'] = 1;
-        $elevatedUser['Role']['perm_sync'] = 1;
-        $elevatedUser['Role']['perm_audit'] = 0;
-        $event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'metadata' => 1));
+        $event = $this->fetchSimpleEvent($elevatedUser, $id);
         if (empty($event)) {
             return true;
         }
-        $event = $event[0];
         $event['Event']['locked'] = 1;
         // get a list of the servers
         $this->Server = ClassRegistry::init('Server');
@@ -4475,7 +4493,8 @@ class Event extends AppModel
         $uploaded = true;
         $failedServers = array();
         App::uses('SyncTool', 'Tools');
-        foreach ($servers as &$server) {
+        $syncTool = new SyncTool();
+        foreach ($servers as $server) {
             if (
                 ($scope === 'events' &&
                     (!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2) ||
@@ -4484,7 +4503,6 @@ class Event extends AppModel
             ) {
                 continue;
             }
-            $syncTool = new SyncTool();
             $HttpSocket = $syncTool->setupHttpSocket($server);
             // Skip servers where the event has come from.
             if (($passAlong != $server['Server']['id'])) {
@@ -4519,7 +4537,7 @@ class Event extends AppModel
                     );
                     $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, false, true);
                     if (!empty($sightings)) {
-                        $thisUploaded = $this->uploadSightingsToServer($sightings, $server, $event['Event']['uuid'], $HttpSocket);
+                        $thisUploaded = $this->uploadSightingsToServer($sightings, $server, $event, $HttpSocket);
                     } else {
                         $thisUploaded = true;
                     }
