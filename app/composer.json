@@ -2,10 +2,12 @@
     "prefer-stable": true,
     "minimum-stability": "dev",
     "require": {
-        "php": ">=7.0.0",
+        "php": ">=7.2.0,<8.0.0",
         "ext-json": "*",
         "ext-mbstring": "*",
         "ext-xml": "*",
+        "ext-dom": "*",
+        "ext-simplexml": "*",
         "ext-pcre": "*",
         "kamisama/cake-resque": "4.1.2",
         "pear/crypt_gpg": "1.6.3",
@@ -24,6 +26,7 @@
         "ext-intl": "For handling IDN domain names",
         "ext-ssdeep": "For ssdeep hashes correlation",
         "ext-bcmath": "For faster validating IBAN numbers",
+        "ext-rdkafka": "Required for publishing events to Kafka broker",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3"
     },

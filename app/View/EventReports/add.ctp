@@ -3,7 +3,7 @@
     echo $this->element('genericElements/Form/genericForm', array(
         'form' => $this->Form,
         'data' => array(
-            'title' => $action == 'add' ? __('Add Event Report (event %s)', h($event_id)) : __('Edit Event Report %s (event %s)', h($id), h($event_id)),
+            'title' => $action == 'add' ? __('Add Event Report for Event #%s', h($event_id)) : __('Edit Event Report %s (event #%s)', h($id), h($event_id)),
             'model' => 'EventReport',
             'fields' => array(
                 array(
@@ -41,7 +41,6 @@
         )
     ));
 ?>
-</div>
 <?php
     if (empty($ajax)) {
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'eventReports', 'menuItem' => $this->request->params['action']));
@@ -49,7 +48,7 @@
 ?>
 
 <script type="text/javascript">
-    $(document).ready(function() {
+    $(function() {
         $('#EventReportDistribution').change(function() {
             checkSharingGroup('EventReport');
         });

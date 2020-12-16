@@ -3,6 +3,11 @@
     <?php
         $table_data = array();
         $table_data[] = array('key' => __('ID'), 'value' => $org['Organisation']['id']);
+        $table_data[] = array(
+            'key' => __('UUID'),
+            'value_class' => 'quickSelect',
+            'value' => isset($org['Organisation']['uuid']) ? $org['Organisation']['uuid'] : '',
+        );
         $table_data[] = array('key' => __('Organisation name'), 'value' => $org['Organisation']['name']);
         $table_data[] = array(
             'key' => __('Local or remote'),
@@ -18,13 +23,9 @@
             foreach ($domains as $k => $domain) {
                 $domains[$k] = h($domain);
             }
-            $domains = implode("<br />", $domains);
+            $domains = implode("<br>", $domains);
             $table_data[] = array('key' => __('Domain restrictions'), 'html' => $domains);
         }
-        $table_data[] = array(
-            'key' => __('UUID'),
-            'html' => !empty(trim($org['Organisation']['uuid'])) ? '<span class="quickSelect">' . $org['Organisation']['uuid'] . '</span>' : '',
-        );
         if ($isSiteAdmin) {
             $table_data[] = array('key' => __('Created by'), 'value' => isset($org['Organisation']['created_by_email']) ? $org['Organisation']['created_by_email'] : __("Unknown"));
             $table_data[] = array('key' => __('Creation time'), 'value' => $org['Organisation']['date_created']);
@@ -55,14 +56,7 @@
             ),
             sprintf(
                 '<div style="float:right;">%s</div>',
-                $this->OrgImg->getOrgImg(
-                    array(
-                        'name' => $org['Organisation']['name'],
-                        'id' => $org['Organisation']['id'],
-                        'size' => 48
-                    ),
-                    true
-                )
+                $this->OrgImg->getOrgLogo($org, 48)
             )
         );
     ?>

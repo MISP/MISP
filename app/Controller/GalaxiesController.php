@@ -19,11 +19,7 @@ class GalaxiesController extends AppController
     public function index()
     {
         $aclConditions = array();
-        $filters = $this->IndexFilter->harvestParameters(array('context', 'value'));
-        $contextConditions = array();
-        if (empty($filters['context'])) {
-            $filters['context'] = 'all';
-        }
+        $filters = $this->IndexFilter->harvestParameters(array('value'));
         $searchConditions = array();
         if (empty($filters['value'])) {
             $filters['value'] = '';
@@ -45,18 +41,16 @@ class GalaxiesController extends AppController
                 array(
                     'recursive' => -1,
                     'conditions' => array(
-                        'AND' => array($contextConditions, $searchConditions, $aclConditions)
+                        'AND' => array($searchConditions, $aclConditions)
                     )
                 )
             );
             return $this->RestResponse->viewData($galaxies, $this->response->type());
         } else {
-            $this->paginate['conditions']['AND'][] = $contextConditions;
             $this->paginate['conditions']['AND'][] = $searchConditions;
             $this->paginate['conditions']['AND'][] = $aclConditions;
             $galaxies = $this->paginate();
             $this->set('galaxyList', $galaxies);
-            $this->set('context', $filters['context']);
             $this->set('searchall', $filters['value']);
         }
     }

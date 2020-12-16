@@ -87,7 +87,7 @@ class AppModel extends Model
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-        63 => true,
+        63 => true, 64 => false
     );
 
     public $advanced_updates_description = array(
@@ -1536,6 +1536,27 @@ class AppModel extends Model
                 $indexArray[] = array('galaxy_cluster_blocklists', 'cluster_uuid');
                 $indexArray[] = array('galaxy_cluster_blocklists', 'cluster_orgc');
                 break;
+            case 64:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `cerebrates` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `name` varchar(191) NOT NULL,
+                    `url` varchar(255) NOT NULL,
+                    `authkey` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+                    `open` tinyint(1) DEFAULT 0,
+                    `org_id` int(11) NOT NULL,
+                    `pull_orgs` tinyint(1) DEFAULT 0,
+                    `pull_sharing_groups` tinyint(1) DEFAULT 0,
+                    `self_signed` tinyint(1) DEFAULT 0,
+                    `cert_file` varchar(255) DEFAULT NULL,
+                    `client_cert_file` varchar(255) DEFAULT NULL,
+                    `internal` tinyint(1) NOT NULL DEFAULT 0,
+                    `skip_proxy` tinyint(1) NOT NULL DEFAULT 0,
+                    `description` text,
+                    PRIMARY KEY (`id`),
+                    KEY `url` (`url`),
+                    KEY `org_id` (`org_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2684,12 +2705,12 @@ class AppModel extends Model
      * @return array[]
      * @throws JsonException
      */
-    protected function setupSyncRequest(array $server)
+    protected function setupSyncRequest(array $server, $model = 'Server')
     {
         $version = implode('.', $this->checkMISPVersion());
         $request = array(
             'header' => array(
-                'Authorization' => $server['Server']['authkey'],
+                'Authorization' => $server[$model]['authkey'],
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
                 'MISP-version' => $version,

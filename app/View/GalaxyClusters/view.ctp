@@ -15,12 +15,12 @@
         $extendFromLinks[] = sprintf('<li>%s</li>', $element);
     }
     $extendedFromHtml = sprintf('<ul>%s</ul>', implode('', $extendFromLinks));
-        if ($newVersionAvailable) {
-            $extendedFromHtml .= sprintf('<div class="alert alert-warning">%s</div>', sprintf(__('New version available! <a href="%s">Update cluster to version <b>%s</b></a>'), 
-                '/galaxy_clusters/updateCluster/' . $cluster['GalaxyCluster']['id'],
-                h($cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['version'])
-            ));
-        }
+    if ($newVersionAvailable) {
+        $extendedFromHtml .= sprintf('<div class="alert alert-warning">%s</div>', sprintf(__('New version available! <a href="%s">Update cluster to version <b>%s</b></a>'),
+            '/galaxy_clusters/updateCluster/' . $cluster['GalaxyCluster']['id'],
+            h($cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['version'])
+        ));
+    }
 
     $extendedByHtml = '';
     $extendByLinks = array();
@@ -44,9 +44,14 @@
     $table_data[] = array('key' => __('Published'), 'boolean' => $cluster['GalaxyCluster']['published'], 'class' => (!$cluster['GalaxyCluster']['published'] ? 'background-red bold': ''));
     $table_data[] = array('key' => __('Default'), 'boolean' => $cluster['GalaxyCluster']['default'], 'class' => (!$cluster['GalaxyCluster']['published'] ? 'black': 'black'));
     $table_data[] = array('key' => __('Version'), 'value' => $cluster['GalaxyCluster']['version']);
-    $table_data[] = array('key' => __('UUID'), 'value' => $cluster['GalaxyCluster']['uuid']);
-    $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid']);
-    $table_data[] = array('key' => __('Source'), 'value' => $cluster['GalaxyCluster']['source']);
+    $table_data[] = array('key' => __('UUID'), 'value' => $cluster['GalaxyCluster']['uuid'], 'value_class' => 'quickSelect');
+    $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid'], 'value_class' => 'quickSelect');
+    $table_data[] = array(
+        'key' => __('Source'),
+        'html' => filter_var($cluster['GalaxyCluster']['source'], FILTER_VALIDATE_URL) ?
+            '<a href="' . $cluster['GalaxyCluster']['source'] . '" rel="noreferrer noopener">' . h($cluster['GalaxyCluster']['source']) :
+            h($cluster['GalaxyCluster']['source']),
+    );
     $table_data[] = array('key' => __('Authors'), 'value' => !empty($cluster['GalaxyCluster']['authors']) ? implode(', ', $cluster['GalaxyCluster']['authors']) : __('N/A'));
     $table_data[] = array('key' => __('Distribution'), 'element' => 'genericElements/IndexTable/Fields/distribution_levels', 'element_params' => array(
         'row' => $cluster['GalaxyCluster'],
@@ -62,15 +67,18 @@
     );
     $table_data[] = array('key' => __('Connector tag'), 'value' => $cluster['GalaxyCluster']['tag_name']);
     $table_data[] = array('key' => __('Events'), 'html' => isset($cluster['GalaxyCluster']['tag_count']) ? 
-                        sprintf('<a href="%s">%s %s</a>', 
+                        sprintf('<a href="%s">%s</a>',
                             sprintf('%s/events/index/searchtag:%s', $baseurl, h($cluster['GalaxyCluster']['tag_id'])),
-                            h($cluster['GalaxyCluster']['tag_count']),
-                            __('event(s)')
+                            __n('%s event', '%s events', $cluster['GalaxyCluster']['tag_count'], h($cluster['GalaxyCluster']['tag_count']))
                         ):
-                        '<span>0</span>'
+                        '0'
                     );
-    $table_data[] = array('key' => __('Forked From'), 'html' => $extendedFromHtml);
-    $table_data[] = array('key' => __('Forked By'), 'html' => $extendedByHtml);
+    if (!empty($extendedFromHtml)) {
+        $table_data[] = array('key' => __('Forked From'), 'html' => $extendedFromHtml);
+    }
+    if (!empty($extendedByHtml)) {
+        $table_data[] = array('key' => __('Forked By'), 'html' => $extendedByHtml);
+    }
 ?>
 
 <div class='view'>
@@ -93,7 +101,7 @@
     </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function () {
+$(function () {
     $.get("<?php echo $baseurl; ?>/galaxy_elements/index/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#elements_div").html(data);
     });

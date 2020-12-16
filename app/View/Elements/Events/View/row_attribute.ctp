@@ -94,9 +94,9 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         if (!empty($extended)):
           if ($object['event_id'] != $event['Event']['id']):
             $extensionOrg = $event['extensionEvents'][$object['event_id']]['Orgc'];
-            echo $this->OrgImg->getOrgImg(array('name' => $extensionOrg['name'], 'id' => $extensionOrg['id'], 'size' => 24));
+            echo $this->OrgImg->getOrgLogo($extensionOrg['name'], 24);
           else:
-            echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 24));
+            echo $this->OrgImg->getOrgLogo($event['Orgc'], 24);
           endif;
         endif;
       ?>

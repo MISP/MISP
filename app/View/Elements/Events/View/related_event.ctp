@@ -12,7 +12,7 @@
             <tbody>
                 <tr>
                     <td rowspan="2" style="border-right: 1px solid #ddd; padding-right: 2px; min-width: 24px; max-width: 24px; overflow: hidden; font-size: xx-small; text-overflow: ellipsis;" title="<?php echo h($related['Orgc']['name']); ?>">
-                        <?php echo $this->OrgImg->getOrgImg(array('name' => $related['Orgc']['name'], 'id' => $related['Orgc']['id'], 'size' => 24)); ?>
+                        <?= $this->OrgImg->getOrgLogo($related['Orgc'], 24) ?>
                     </td>
                     <td style="padding-left: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; max-width: 410px;">
                         <a title="<?php echo h($related['info']); ?>" href="<?php echo h($href_url)?>">

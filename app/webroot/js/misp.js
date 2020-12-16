@@ -1244,7 +1244,7 @@ function openGenericModal(url, modalData, callback) {
                     callback();
                 }
             });
-            
+
         },
         error: function (data, textStatus, errorThrown) {
             showMessage('fail', textStatus + ": " + errorThrown);
@@ -2206,27 +2206,72 @@ function runIndexFilter(element) {
     window.location.href = url;
 }
 
-function runIndexQuickFilter(preserveParams) {
-    if (!passedArgsArray) {
+function cancelSearch() {
+    $('#quickFilterField').val('');
+    $('#quickFilterButton').click();
+}
+
+function runIndexQuickFilter(preserveParams, url, target) {
+    if (typeof passedArgsArray === "undefined") {
         var passedArgsArray = [];
     }
-    var searchKey = 'searchall';
-    if ($('#quickFilterField').data('searchkey')) {
-        searchKey = $('#quickFilterField').data('searchkey');
+    var $quickFilterField = $('#quickFilterField');
+    var searchKey;
+    if ($quickFilterField.data('searchkey')) {
+        searchKey = $quickFilterField.data('searchkey');
+    } else {
+        searchKey = 'searchall';
     }
-    if ( $('#quickFilterField').val().trim().length > 0){
-        passedArgsArray[searchKey] = encodeURIComponent($('#quickFilterField').val().trim());
+    if ($quickFilterField.val().trim().length > 0) {
+        passedArgsArray[searchKey] = encodeURIComponent($quickFilterField.val().trim());
     }
-    url = here;
-    if (typeof preserveParams !== "undefined") {
+    if (typeof url === "undefined") {
+        url = here;
+    }
+    if (typeof preserveParams === "string") {
+        preserveParams = String(preserveParams);
+        if (!preserveParams.startsWith('/')) {
+            preserveParams = '/' + preserveParams;
+        }
         url += preserveParams;
+    } else if (typeof preserveParams === "object") {
+        for (var key in preserveParams) {
+            if (typeof key == 'number') {
+                url += "/" + preserveParams[key];
+            } else if (key !== 'page') {
+                url += "/" + key + ":" + preserveParams[key];
+            }
+        }
     }
+
     for (var key in passedArgsArray) {
-        if (key !== 'page') {
+        if (typeof key == 'number') {
+            url += "/" + passedArgsArray[key];
+        } else if (key !== 'page') {
             url += "/" + key + ":" + passedArgsArray[key];
         }
     }
-    window.location.href = url;
+
+    if (target !== undefined) {
+        $.ajax({
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
+                $(target).html(data);
+            },
+            error: function() {
+                showMessage('fail', 'Could not fetch the requested data.');
+            },
+            complete: function() {
+                $(".loading").hide();
+            },
+            type: "get",
+            url: url
+        });
+    } else {
+        window.location.href = url;
+    }
 }
 
 function executeFilter(passedArgs, url) {

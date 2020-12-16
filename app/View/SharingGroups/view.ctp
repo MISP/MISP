@@ -1,55 +1,53 @@
 <div class="roles view">
-<h2><?php  echo __('Sharing Group');?></h2>
+<h2><?= __('Sharing Group %s', $sg['SharingGroup']['name']);?></h2>
+<div class="row-fluid"><div class="span8" style="margin:0">
 <?php
-    $fields = array('id', 'uuid', 'name', 'releasability', 'description', 'active');
+$tableData = [
+    ['key' => __('ID'), 'value' => $sg['SharingGroup']['id']],
+    ['key' => __('UUID'), 'value' => $sg['SharingGroup']['uuid'], 'value_class' => 'quickSelect'],
+    ['key' => __('Name'), 'value' => $sg['SharingGroup']['name']],
+    ['key' => __('Releasability'), 'value' => $sg['SharingGroup']['releasability']],
+    ['key' => __('Description'), 'value' => $sg['SharingGroup']['description']],
+    ['key' => __('Selectable'), 'boolean' => $sg['SharingGroup']['active']],
+    [
+        'key' => __('Created by'),
+        'html' => isset($sg['Organisation']['id']) ? $this->OrgImg->getNameWithImg($sg) : __('Unknown'),
+    ],
+];
+if ($sg['SharingGroup']['sync_user_id']) {
+    $tableData[] = [
+        'key' => __('Synced by'),
+        'html' => isset($sg['SharingGroup']['sync_org']) ? $this->OrgImg->getNameWithImg($sg['SharingGroup']['sync_org']) : __('Unknown'),
+    ];
+}
+$eventsLink = $baseurl . '/events/index/searchsharinggroup:' . $sg['SharingGroup']['id'];
+$tableData[] = [
+    'key' => __('Events'),
+    'html' => '<a href="' . $eventsLink . '">' . __n('%s event', '%s events', $sg['SharingGroup']['event_count'], $sg['SharingGroup']['event_count']) . '</a>',
+];
+echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData]);
 ?>
-    <dl>
-        <?php
-            foreach ($fields as $f):
-        ?>
-        <dt><?php
-            if ($f != 'active') echo ucfirst($f);
-            else echo __('Selectable');
-        ?></dt>
-        <dd>
-            <?php
-                if ($f !== 'active') echo h($sg['SharingGroup'][$f]);
-                else echo '<span class="' . ($sg['SharingGroup'][$f] ? 'icon-ok' : 'icon-remove') . '"></span>';
-            ?>&nbsp;
-        </dd>
-        <?php
-            endforeach;
-        ?>
-        <dt><?php echo __('Created by');?></dt>
-        <dd><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
-        <?php
-            if ($sg['SharingGroup']['sync_user_id']):
-        ?>
-            <dt><?php echo __('Synced by');?></dt>
-            <dd><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
-        <?php
-            endif;
-        ?>
-    </dl><br />
+</div></div>
+    <br />
     <div class="row" style="width:100%;">
     <?php
         if (isset($sg['SharingGroupOrg'])):
     ?>
         <div class="span6">
-        <b><?php echo __('Organisations');?></b>
+            <b><?php echo __('Organisations');?></b>
             <table class="table table-striped table-hover table-condensed">
                 <tr>
-                    <th><?php echo __('Name');?></th>
-                    <th><?php echo __('Local');?></th>
-                    <th><?php echo __('Extend');?></th>
+                    <th><?= __('Name') ?></th>
+                    <th><?= __('Is local') ?></th>
+                    <th><?= __('Can extend') ?></th>
                 </tr>
                 <?php
                     foreach ($sg['SharingGroupOrg'] as $sgo):
                 ?>
                 <tr>
-                    <td><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo h($sgo['Organisation']['id']); ?>"><?php echo h($sgo['Organisation']['name']); ?></a></td>
-                    <td><span class="<?php echo ($sgo['Organisation']['local'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-                    <td><span class="<?php echo ($sgo['extend'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+                    <td><?= $this->OrgImg->getNameWithImg($sgo) ?></td>
+                    <td><span class="<?= $sgo['Organisation']['local'] ? 'fas fa-check' : 'fas fa-times' ?>"></span></td>
+                    <td><span class="<?= $sgo['extend'] ? 'fas fa-check' : 'fas fa-times' ?>"></span></td>
                 </tr>
                 <?php
                     endforeach;
@@ -61,19 +59,19 @@
         if (!$sg['SharingGroup']['roaming']):
     ?>
         <div class="span6">
-        <b>Instances</b>
+            <b>Instances</b>
             <table class="table table-striped table-hover table-condensed">
                 <tr>
-                    <th><?php echo __('Name');?></th>
-                    <th><?php echo __('Url');?></th>
-                    <th><?php echo __('All orgs');?></th>
+                    <th><?= __('Name') ?></th>
+                    <th><?= __('URL') ?></th>
+                    <th><?= __('All orgs') ?></th>
                 </tr>
                 <?php
                         foreach ($sg['SharingGroupServer'] as $sgs): ?>
                 <tr>
-                    <td><?php echo h($sgs['Server']['name']); ?></td>
-                    <td><?php echo h($sgs['Server']['url']); ?></td>
-                    <td><span class="<?php echo ($sgs['all_orgs'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+                    <td><?= h($sgs['Server']['name']) ?></td>
+                    <td><?= h($sgs['Server']['url']) ?></td>
+                    <td><span class="<?= $sgs['all_orgs'] ? 'fas fa-check' : 'fas fa-times' ?>"></span></td>
                 </tr>
                 <?php
                         endforeach;
@@ -85,6 +83,4 @@
     ?>
     </div>
 </div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewSG'));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewSG'));

@@ -39,7 +39,7 @@ class ObjectsController extends AppController
                 'ObjectTemplateElement'
             )
         ));
-        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $event_id);
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $event_id, ['contain' => ['Orgc']]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
         }
@@ -169,7 +169,7 @@ class ObjectsController extends AppController
             }
         }
         // Find the event that is to be updated
-        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $eventId, ['contain' => ['Orgc']]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
         }

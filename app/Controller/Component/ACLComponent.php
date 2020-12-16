@@ -79,6 +79,16 @@ class ACLComponent extends Component
                 'index' => ['perm_auth'],
                 'view' => ['perm_auth']
             ],
+            'cerebrates' => [
+                'add' => [],
+                'delete' => [],
+                'download_org' => [],
+                'edit' => [],
+                'index' => [],
+                'preview_orgs' => [],
+                'pull_orgs' => [],
+                'view' => []
+            ],
             'dashboards' => array(
                 'getForm' => array('*'),
                 'index' => array('*'),
@@ -151,11 +161,11 @@ class ACLComponent extends Component
                     ]
             ),
             'eventDelegations' => array(
-                    'acceptDelegation' => array('perm_add'),
-                    'delegateEvent' => array('perm_delegate'),
-                    'deleteDelegation' => array('perm_add'),
-                    'index' => array('*'),
-                    'view' => array('*'),
+                'acceptDelegation' => array('AND' => ['delegation_enabled', 'perm_add']),
+                'delegateEvent' => array('AND' => ['delegation_enabled', 'perm_delegate']),
+                'deleteDelegation' => array('AND' => ['delegation_enabled', 'perm_add']),
+                'index' => array('delegation_enabled'),
+                'view' => array('delegation_enabled'),
             ),
             'eventReports' => array(
                 'add' => array('perm_add'),
@@ -709,7 +719,7 @@ class ACLComponent extends Component
     );
 
     private $dynamicChecks = [];
-    
+
     public function __construct(ComponentCollection $collection, $settings = array())
     {
         parent::__construct($collection, $settings);
@@ -735,6 +745,9 @@ class ACLComponent extends Component
                 throw new MethodNotAllowedException('Adding users has been disabled on this instance.');
             }
             return true;
+        };
+        $this->dynamicChecks['delegation_enabled'] = function (array $user) {
+            return (bool)Configure::read('MISP.delegation');
         };
     }
 

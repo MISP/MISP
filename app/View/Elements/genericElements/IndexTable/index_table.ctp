@@ -28,6 +28,13 @@
     if (!empty($data['html'])) {
         echo sprintf('<div>%s</div>', $data['html']);
     }
+    if (!empty($data['persistUrlParams'])) {
+        foreach ($data['persistUrlParams'] as $persistedParam) {
+            if (!empty($passedArgs[$persistedParam])) {
+                $data['paginatorOptions']['url'][] = $passedArgs[$persistedParam];
+            }
+        }
+    }
     $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
     if (!$skipPagination) {
         $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : array();
@@ -84,3 +91,46 @@
         echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
         echo $this->element('/genericElements/IndexTable/pagination_links');
     }
+    $url = $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
+?>
+
+<script type="text/javascript">
+    var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '[]'; ?>;
+    <?php
+        if (isset($containerId)) {
+            echo 'var target = "#' . $containerId . '_content";';
+        }
+    ?>
+    var url = "<?= $url ?>";
+    $(function() {
+        $('#quickFilterButton').click(function() {
+            if (typeof(target) !== 'undefined') {
+                runIndexQuickFilter(passedArgsArray, url, target);
+            } else {
+                runIndexQuickFilter(passedArgsArray, url);
+            }
+        });
+    });
+    var ajax = <?= $ajax ? 'true' : 'false' ?>;
+    if (ajax && typeof(target) !== 'undefined') {
+        $(target + ' .pagination_link a').on('click', function() {
+            $.ajax({
+                beforeSend: function () {
+                    $(".loading").show();
+                },
+                success: function (data) {
+                    $(target).html(data);
+                },
+                error: function() {
+                    showMessage('fail', 'Could not fetch the requested data.');
+                },
+                complete: function() {
+                    $(".loading").hide();
+                },
+                type: "get",
+                url: $(this).attr('href')
+            });
+            return false;
+        });
+    }
+</script>

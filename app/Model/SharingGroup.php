@@ -122,15 +122,16 @@ class SharingGroup extends AppModel
      * Returns a list of all sharing groups that the user is allowed to see.
      * Scope can be:
      *  - full: Entire SG object with all organisations and servers attached
-     *  - simplified: Just imporant fields from SG, organisations and servers
-     *  - name: array in ID => name key => value format
-     *  - uuid
-     *  - false: array with all IDs
+     *  - simplified: Just important fields from SG, organisations and servers
+     *  - sharing_group: specific scope that fetch just necessary information for generating distribution graph
+     *  - name: array in ID => name format
+     *  - uuid: array in ID => uuid format
+     *  - false: array with all sharing group IDs
      *
      * @param array $user
      * @param string|false $scope
-     * @param bool $active
-     * @param int|false $id
+     * @param bool $active If true, return only active sharing groups
+     * @param int|array|false $id
      * @return array
      */
     public function fetchAllAuthorised(array $user, $scope = false, $active = false, $id = false)
@@ -200,6 +201,16 @@ class SharingGroup extends AppModel
                 'order' => 'SharingGroup.name ASC'
             ));
             return $this->appendOrgsAndServers($sgs, $fieldsOrg, $fieldsServer);
+        } elseif ($scope === 'distribution_graph') {
+            // Specific scope that fetch just necessary information for distribution graph
+            // @see DistributionGraphTool
+            $sgs = $this->find('all', array(
+                'contain' => ['SharingGroupOrg' => ['org_id']],
+                'conditions' => $conditions,
+                'fields' => ['SharingGroup.id', 'SharingGroup.name'],
+                'order' => 'SharingGroup.name ASC'
+            ));
+            return $this->appendOrgsAndServers($sgs, ['id', 'name'], []);
         } elseif ($scope === 'name') {
             $sgs = $this->find('list', array(
                 'recursive' => -1,
@@ -426,22 +437,22 @@ class SharingGroup extends AppModel
             return $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id];
         }
         if (Validation::uuid($id)) {
-            $sgid = $this->SharingGroup->find('first', array(
+            $sgid = $this->find('first', array(
                 'conditions' => array('SharingGroup.uuid' => $id),
                 'recursive' => -1,
                 'fields' => array('SharingGroup.id')
             ));
             if (empty($sgid)) {
-                throw new MethodNotAllowedException('Invalid sharing group.');
+                return false;
             }
             $id = $sgid['SharingGroup']['id'];
+        } else {
+            if (!$this->exists($id)) {
+                return false;
+            }
         }
         if (!isset($user['id'])) {
             throw new MethodNotAllowedException('Invalid user.');
-        }
-        $this->id = $id;
-        if (!$this->exists()) {
-            return false;
         }
         if (($adminCheck && $user['Role']['perm_site_admin']) || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id'])) {
             $this->__sgAuthorisationCache['access'][boolval($adminCheck)][$id] = true;
@@ -451,24 +462,28 @@ class SharingGroup extends AppModel
         return false;
     }
 
-    public function checkIfOwner($user, $id)
+    /**
+     * @param array $user
+     * @param string|int $id Sharing group ID or UUID
+     * @return bool False if sharing group doesn't exists or user org is not sharing group owner
+     */
+    public function checkIfOwner(array $user, $id)
     {
         if (!isset($user['id'])) {
             throw new MethodNotAllowedException('Invalid user.');
         }
-        $this->id = $id;
-        if (!$this->exists()) {
+        $sg = $this->find('first', array(
+            'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
+            'recursive' => -1,
+            'fields' => array('org_id'),
+        ));
+        if (empty($sg)) {
             return false;
         }
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
-        $sg = $this->find('first', array(
-                'conditions' => array('SharingGroup.id' => $id),
-                'recursive' => -1,
-                'fields' => array('id', 'org_id'),
-        ));
-        return ($sg['SharingGroup']['org_id'] == $user['org_id']);
+        return $sg['SharingGroup']['org_id'] == $user['org_id'];
     }
 
     // Get all organisation ids that can see a SG

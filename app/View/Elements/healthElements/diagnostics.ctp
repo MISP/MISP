@@ -11,8 +11,8 @@
     <div style="background-color:#f7f7f9;width:100%;">
         <span><?php echo __('Currently installed version…');?>
             <?php
-
-                switch ($version['upToDate']) {
+                $upToDate = isset($version['upToDate']) ? $version['upToDate'] : null;
+                switch ($upToDate) {
                     case 'newer':
                         $fontColour = 'orange';
                         $versionText = __('Upcoming development version');
@@ -27,34 +27,27 @@
                         break;
                     default:
                         $fontColour = 'red';
-                        $versionText = __('Could not retrieve version from github');
+                        $versionText = __('Could not retrieve version from GitHub');
                 }
             ?>
             <span style="color:<?php echo $fontColour; ?>;">
-                <?php
-                    echo $version['current'] . ' (' . h($commit) . ')';
+                <?= (isset($version['current']) ? $version['current'] : __('Unknown')) . ' (' . h($commit) . ')';
                 ?>
                 <?php if ($commit === ''): ?>
-                    <br />
+                    <br>
                     <span class="red bold apply_css_arrow">
-                        <?php echo __('Unable to fetch current commit id, check apache user read privilege.'); ?>
+                        <?php echo __('Unable to fetch current commit ID, check apache user read privilege.'); ?>
                     </span>
                 <?php endif; ?>
             </span>
         </span><br />
         <span><?php echo __('Latest available version…');?>
             <span style="color:<?php echo $fontColour; ?>;">
-                <?php
-                    echo $version['newest'] . ' (' . $latestCommit . ')';
-                ?>
+                <?= (isset($version['newest']) ? $version['newest'] : __('Unknown')) . ' (' . (isset($latestCommit) ? $latestCommit : __('Unknown')) . ')' ?>
             </span>
         </span><br />
         <span><?php echo __('Status…');?>
-            <span style="color:<?php echo $fontColour; ?>;">
-                <?php
-                    echo $versionText;
-                ?>
-            </span>
+            <span style="color:<?php echo $fontColour; ?>;"><?= $versionText ?></span>
         </span><br />
         <span><?php echo __('Current branch…');?>
             <?php
@@ -65,7 +58,7 @@
             </span>
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
-        <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
+        <button title="<?php echo __('Pull the latest MISP version from GitHub');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
         <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" style="margin-left: 5px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><i class="fas fa-tasks"></i> <?php echo __('View Update Progress');?></a>
     </div>
     <h3><?php echo __('Submodules version');?>

@@ -4,7 +4,6 @@ import sys
 import json
 import unittest
 from typing import Union
-
 import urllib3  # type: ignore
 import logging
 import uuid
@@ -15,7 +14,7 @@ from lxml.html import fromstring
 from enum import Enum
 
 try:
-    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole
+    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent
     from pymisp.exceptions import PyMISPError, NoKey, MISPServerError
 except ImportError:
     if sys.version_info < (3, 6):
@@ -35,19 +34,15 @@ logger = logging.getLogger('pymisp')
 
 
 class ROLE(Enum):
-    USER = 3
     ADMIN = 1
     ORG_ADMIN = 2
+    USER = 3
+    SYNC_USER = 5
 
 
 def check_response(response):
     if isinstance(response, dict) and "errors" in response:
         raise Exception(response["errors"])
-
-
-def assert_error_response(response):
-    if "errors" not in response:
-        raise Exception(response)
 
 
 def login(url: str, email: str, password: str) -> bool:
@@ -86,36 +81,19 @@ def login(url: str, email: str, password: str) -> bool:
 
 
 class MISPSetting:
-    def __init__(self, connection: PyMISP, setting: str, value):
-        self.__connection = connection
-        self.__setting = setting
-        self.__value = value
-
-    def __enter__(self):
-        original = self.__connection.get_server_setting(self.__setting)
-        if "value" not in original:
-            raise Exception(original)
-        self.__original = original["value"]
-
-        result = self.__connection.set_server_setting(self.__setting, self.__value, force=True)
-        if "saved" not in result or not result["saved"]:
-            raise Exception(result)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        result = self.__connection.set_server_setting(self.__setting, self.__original, force=True)
-        if "saved" not in result or not result["saved"]:
-            raise Exception(result)
-
-
-class MISPComplexSetting:
-    def __init__(self, new_setting: dict):
+    def __init__(self, admin_connector: PyMISP, new_setting: dict):
+        self.admin_connector = admin_connector
         self.new_setting = new_setting
 
     def __enter__(self):
         self.original = self.__run("modify", json.dumps(self.new_setting))
+        # Try to reset config cache
+        self.admin_connector.get_server_setting("MISP.live")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.__run("replace", self.original)
+        # Try to reset config cache
+        self.admin_connector.get_server_setting("MISP.live")
 
     @staticmethod
     def __run(command: str, data: str) -> str:
@@ -201,6 +179,8 @@ class TestSecurity(unittest.TestCase):
     def setUp(self):
         # Do not show warning about not closed resources, because that something we want
         warnings.simplefilter("ignore", ResourceWarning)
+        # TODO: Try to reload config cache
+        self.admin_misp_connector.get_server_setting("MISP.live")
 
     def test_not_logged_in(self):
         session = requests.Session()
@@ -212,15 +192,15 @@ class TestSecurity(unittest.TestCase):
             self.assertEqual(url + "/users/login", r.headers['Location'], path)
 
         # Should be accessible without login
-        for path in ("/users/login", ):
+        for path in ("/users/login",):
             r = session.get(url + path, allow_redirects=False)
             self.assertEqual(200, r.status_code, path)
 
-        with MISPSetting(self.admin_misp_connector, "Security.allow_self_registration", True):
+        with self.__setting("Security.allow_self_registration", True):
             r = session.get(url + "/users/register", allow_redirects=False)
             self.assertEqual(200, r.status_code, path)
 
-        with MISPSetting(self.admin_misp_connector, "Security.allow_self_registration", False):
+        with self.__setting("Security.allow_self_registration", False):
             r = session.get(url + "/users/register", allow_redirects=False)
             self.assertEqual(302, r.status_code)
             self.assertEqual(url + "/users/login", r.headers['Location'])
@@ -343,14 +323,14 @@ class TestSecurity(unittest.TestCase):
         PyMISP(url, self.test_usr.authkey)
 
     def test_disabled_misp(self):
-        with MISPSetting(self.admin_misp_connector, "MISP.live", False):
+        with self.__setting("MISP.live", False):
             self.assertFalse(login(url, self.test_usr.email, self.test_usr_password))
 
         # Check if user can login with given password
         self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
 
     def test_disabled_misp_api_access(self):
-        with MISPSetting(self.admin_misp_connector, "MISP.live", False):
+        with self.__setting("MISP.live", False):
             # Try to login
             with self.assertRaises(PyMISPError):
                 PyMISP(url, self.test_usr.authkey)
@@ -359,7 +339,7 @@ class TestSecurity(unittest.TestCase):
         PyMISP(url, self.test_usr.authkey)
 
     def test_advanced_authkeys(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             # Create advanced authkey
             auth_key = self.__create_advanced_authkey(self.test_usr.id)
 
@@ -370,7 +350,7 @@ class TestSecurity(unittest.TestCase):
             self.__delete_advanced_authkey(auth_key["id"])
 
     def test_advanced_authkeys_expired(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             # Create expired advanced authkey
             auth_key = self.__create_advanced_authkey(self.test_usr.id, {
                 "expiration": "1990-01-05",
@@ -383,7 +363,7 @@ class TestSecurity(unittest.TestCase):
             self.__delete_advanced_authkey(auth_key["id"])
 
     def test_advanced_authkeys_invalid_start_end_correct(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             # Create advanced authkey
             auth_key = self.__create_advanced_authkey(self.test_usr.id)
 
@@ -395,7 +375,7 @@ class TestSecurity(unittest.TestCase):
             self.__delete_advanced_authkey(auth_key["id"])
 
     def test_advanced_authkeys_reset_own(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             # Create advanced authkey
             auth_key = self.__create_advanced_authkey(self.test_usr.id)
 
@@ -419,7 +399,7 @@ class TestSecurity(unittest.TestCase):
             # TODO: Delete new key
 
     def test_advanced_authkeys_reset_for_different_user(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             # Create advanced authkey
             auth_key = self.__create_advanced_authkey(self.test_usr.id)
 
@@ -429,7 +409,7 @@ class TestSecurity(unittest.TestCase):
 
             # Reset auth key for different user
             new_auth_key = send(logged_in, "POST", "users/resetauthkey/1", check_errors=False)
-            assert_error_response(new_auth_key)
+            self.__assertErrorResponse(new_auth_key)
 
             # Try to login again
             logged_in = PyMISP(url, auth_key["authkey_raw"])
@@ -438,7 +418,7 @@ class TestSecurity(unittest.TestCase):
             self.__delete_advanced_authkey(auth_key["id"])
 
     def test_advanced_authkeys_reset_org_admin(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             # Create advanced authkey
             auth_key = self.__create_advanced_authkey(self.test_usr.id)
 
@@ -462,7 +442,7 @@ class TestSecurity(unittest.TestCase):
             # TODO: Delete new key
 
     def test_advanced_authkeys_view(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             auth_key = self.__create_advanced_authkey(self.test_usr.id)
             auth_key_id = auth_key["id"]
             auth_key = send(self.admin_misp_connector, "GET", f'authKeys/view/{auth_key_id}')
@@ -470,7 +450,7 @@ class TestSecurity(unittest.TestCase):
             self.assertNotIn("authkey", auth_key["AuthKey"], "Response should not contain hashed authkey")
 
     def test_advanced_authkeys_index(self):
-        with MISPSetting(self.admin_misp_connector, "Security.advanced_authkeys", True):
+        with self.__setting("Security.advanced_authkeys", True):
             auth_key_id = self.__create_advanced_authkey(self.test_usr.id)["id"]
             auth_keys = send(self.admin_misp_connector, "GET", 'authKeys/index/')
             self.__delete_advanced_authkey(auth_key_id)
@@ -478,6 +458,28 @@ class TestSecurity(unittest.TestCase):
             self.assertGreaterEqual(len(auth_keys), 1, "Response should contains at least one key")
             for auth_key in auth_keys:
                 self.assertNotIn("authkey", auth_key["AuthKey"], "Response should not contain hashed authkey")
+
+    def test_advanced_authkeys_user_disabled(self):
+        with self.__setting("Security.advanced_authkeys", True):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id)
+
+            updated_user = self.admin_misp_connector.update_user({'disabled': True}, self.test_usr)
+            check_response(updated_user)
+            self.assertTrue(updated_user.disabled)
+
+            # Try to login
+            with self.assertRaises(PyMISPError):
+                PyMISP(url, auth_key["authkey_raw"])
+
+            # Enable user
+            updated_user = self.admin_misp_connector.update_user({'disabled': False}, self.test_usr)
+            check_response(updated_user)
+            self.assertFalse(updated_user.disabled)
+
+            # Try to login
+            PyMISP(url, auth_key["authkey_raw"])
+
+            self.__delete_advanced_authkey(auth_key["id"])
 
     def test_change_login(self):
         new_email = 'testusr@user' + random() + '.local'
@@ -496,7 +498,7 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(self.test_usr.email, updated_user.email)
 
     def test_change_login_disabled(self):
-        with MISPSetting(self.admin_misp_connector, "MISP.disable_user_login_change", True):
+        with self.__setting("MISP.disable_user_login_change", True):
             new_email = 'testusr@user' + random() + '.local'
 
             logged_in = PyMISP(url, self.test_usr.authkey)
@@ -524,14 +526,14 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(self.test_usr.email, updated_user.email)
 
     def test_change_login_disabled_org_admin(self):
-        with MISPSetting(self.admin_misp_connector, "MISP.disable_user_login_change", True):
+        with self.__setting("MISP.disable_user_login_change", True):
             # Try to change email as org admin
             new_email = 'testusr@user' + random() + '.local'
             updated_user = self.org_admin_misp_connector.update_user({'email': new_email}, self.test_usr)
-            assert_error_response(updated_user)
+            self.__assertErrorResponse(updated_user)
 
     def test_change_pw_disabled(self):
-        with MISPSetting(self.admin_misp_connector, "MISP.disable_user_password_change", True):
+        with self.__setting("MISP.disable_user_password_change", True):
             logged_in = PyMISP(url, self.test_usr.authkey)
             logged_in.global_pythonify = True
             logged_in.change_user_password(str(uuid.uuid4()))
@@ -540,7 +542,7 @@ class TestSecurity(unittest.TestCase):
         self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
 
     def test_change_pw_disabled_different_way(self):
-        with MISPSetting(self.admin_misp_connector, "MISP.disable_user_password_change", True):
+        with self.__setting("MISP.disable_user_password_change", True):
             logged_in = PyMISP(url, self.test_usr.authkey)
             logged_in.global_pythonify = True
             logged_in.update_user({"password": str(uuid.uuid4())}, self.test_usr.id)
@@ -549,7 +551,7 @@ class TestSecurity(unittest.TestCase):
         self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
 
     def test_change_pw_disabled_by_org_admin(self):
-        with MISPSetting(self.admin_misp_connector, "MISP.disable_user_password_change", True):
+        with self.__setting("MISP.disable_user_password_change", True):
             self.org_admin_misp_connector.update_user({"password": str(uuid.uuid4())}, self.test_usr.id)
 
         # Password should be still the same
@@ -581,13 +583,13 @@ class TestSecurity(unittest.TestCase):
         check_response(deleted)
 
     def test_add_user_by_org_admin_disabled(self):
-        with MISPSetting(self.admin_misp_connector, "MISP.disable_user_add", True):
+        with self.__setting("MISP.disable_user_add", True):
             user = MISPUser()
             user.email = 'testusr@user' + random() + '.local'  # make name always unique
             user.org_id = self.test_org.id
             user.role_id = 3
             created_user = self.org_admin_misp_connector.add_user(user)
-            assert_error_response(created_user)
+            self.__assertErrorResponse(created_user)
 
     def test_change_user_org_by_org_admin_different_org(self):
         updated_user = self.org_admin_misp_connector.update_user({'org_id': 1}, self.test_usr)
@@ -605,7 +607,7 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(updated_user.org_id, self.test_usr.org_id)
 
     def test_shibb_existing_user(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             session = requests.Session()
             session.headers["Email-Tag"] = self.test_usr.email
             session.headers["Federation-Tag"] = self.test_org.name
@@ -620,7 +622,7 @@ class TestSecurity(unittest.TestCase):
             self.assertEqual(session.headers["Federation-Tag"], json_response["Organisation"]["name"])
 
     def test_shibb_new_user(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             session = requests.Session()
             session.headers["Email-Tag"] = "external@user" + random() + ".local"
             session.headers["Federation-Tag"] = self.test_org.name
@@ -637,7 +639,7 @@ class TestSecurity(unittest.TestCase):
             self.admin_misp_connector.delete_user(json_response["User"]["id"])
 
     def test_shibb_new_user_multiple_groups(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             session = requests.Session()
             session.headers["Email-Tag"] = "external@user" + random() + ".local"
             session.headers["Federation-Tag"] = self.test_org.name
@@ -654,7 +656,7 @@ class TestSecurity(unittest.TestCase):
             self.admin_misp_connector.delete_user(json_response["User"]["id"])
 
     def test_shibb_new_user_non_exists_org(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             session = requests.Session()
             session.headers["Email-Tag"] = "external@user" + random() + ".local"
             session.headers["Federation-Tag"] = "Non exists org " + random()
@@ -667,12 +669,13 @@ class TestSecurity(unittest.TestCase):
             self.assertEqual(session.headers["Email-Tag"], json_response["User"]["email"])
             self.assertEqual(3, int(json_response["User"]["role_id"]))
             self.assertEqual(session.headers["Federation-Tag"], json_response["Organisation"]["name"])
+            self.assertEqual(1, int(json_response["Organisation"]["local"]), "Newly created org should be local")
 
             self.admin_misp_connector.delete_user(json_response["User"]["id"])
             self.admin_misp_connector.delete_organisation(json_response["User"]["org_id"])
 
     def test_shibb_new_user_org_uuid(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             r = self.__shibb_login({
                 "Email-Tag": "external@user" + random() + ".local",
                 "Federation-Tag": self.test_org.uuid,
@@ -689,7 +692,7 @@ class TestSecurity(unittest.TestCase):
             self.admin_misp_connector.delete_organisation(json_response["User"]["org_id"])
 
     def test_shibb_new_user_non_exists_org_uuid(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             r = self.__shibb_login({
                 "Email-Tag": "external@user" + random() + ".local",
                 "Federation-Tag": str(uuid.uuid4()),
@@ -700,7 +703,7 @@ class TestSecurity(unittest.TestCase):
                 self.fail()
 
     def test_shibb_new_user_no_org_provided(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             session = requests.Session()
             session.headers["Email-Tag"] = "external@user" + random() + ".local"
             session.headers["Group-Tag"] = "user"
@@ -716,7 +719,7 @@ class TestSecurity(unittest.TestCase):
             self.admin_misp_connector.delete_user(json_response["User"]["id"])
 
     def test_shibb_invalid_group(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             session = requests.Session()
             session.headers["Email-Tag"] = "external@user" + random() + ".local"
             session.headers["Federation-Tag"] = self.test_org.name
@@ -729,7 +732,7 @@ class TestSecurity(unittest.TestCase):
                 self.fail()
 
     def test_shibb_invalid_email(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             session = requests.Session()
             session.headers["Email-Tag"] = "external.user" + random() + ".local"
             session.headers["Federation-Tag"] = self.test_org.name
@@ -744,7 +747,7 @@ class TestSecurity(unittest.TestCase):
     def test_shibb_change_role(self):
         org_admin = self.__create_user(self.test_org.id, ROLE.ORG_ADMIN)
 
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             session = requests.Session()
             session.headers["Email-Tag"] = org_admin.email
             session.headers["Federation-Tag"] = self.test_org.name
@@ -762,7 +765,7 @@ class TestSecurity(unittest.TestCase):
     def test_shibb_change_org(self):
         user = self.__create_user(self.test_org.id, ROLE.USER)
 
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             session = requests.Session()
             session.headers["Email-Tag"] = user.email
             session.headers["Federation-Tag"] = "Non exists org " + random()
@@ -779,18 +782,18 @@ class TestSecurity(unittest.TestCase):
             self.admin_misp_connector.delete_organisation(json_response["User"]["org_id"])
 
     def test_shibb_form_login(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             # Form login should still works when no header provided
             self.assertTrue(login(url, self.test_usr.email, self.test_usr_password))
 
     def test_shibb_api_login(self):
-        with MISPComplexSetting(self.__default_shibb_config()):
+        with self.__setting(self.__default_shibb_config()):
             PyMISP(url, self.test_usr.authkey)
 
     def test_shibb_enforced_existing_user(self):
         config = self.__default_shibb_config()
         config["Security"]["auth_enforced"] = True
-        with MISPComplexSetting(config):
+        with self.__setting(config):
             r = self.__shibb_login({
                 "Email-Tag": self.test_usr.email,
                 "Federation-Tag": self.test_org.name,
@@ -805,7 +808,7 @@ class TestSecurity(unittest.TestCase):
     def test_shibb_enforced_form_login(self):
         config = self.__default_shibb_config()
         config["Security"]["auth_enforced"] = True
-        with MISPComplexSetting(config):
+        with self.__setting(config):
             # Form login should not work when shibb is enforced, because form doesn't exists
             with self.assertRaises(IndexError):
                 login(url, self.test_usr.email, self.test_usr_password)
@@ -813,8 +816,270 @@ class TestSecurity(unittest.TestCase):
     def test_shibb_enforced_api_login(self):
         config = self.__default_shibb_config()
         config["Security"]["auth_enforced"] = True
-        with MISPComplexSetting(config):
+        with self.__setting(config):
             PyMISP(url, self.test_usr.authkey)
+
+    def test_sg_index_user_cannot_see(self):
+        org = self.__create_org()
+        hidden_sg = self.__create_sharing_group()
+        check_response(self.admin_misp_connector.add_org_to_sharing_group(hidden_sg, org.uuid))
+
+        logged_in = PyMISP(url, self.test_usr.authkey)
+        logged_in.global_pythonify = True
+        sgs = logged_in.sharing_groups()
+        check_response(sgs)
+
+        self.admin_misp_connector.delete_sharing_group(hidden_sg)
+        self.admin_misp_connector.delete_organisation(org)
+
+        for sg in sgs:
+            self.failIf(sg.uuid == hidden_sg.uuid)
+
+    def test_sg_index_user_can_see(self):
+        visible_sg = self.__create_sharing_group()
+        check_response(self.admin_misp_connector.add_org_to_sharing_group(visible_sg, self.test_org.uuid))
+
+        logged_in = PyMISP(url, self.test_usr.authkey)
+        logged_in.global_pythonify = True
+        sgs = logged_in.sharing_groups()
+        check_response(sgs)
+
+        self.admin_misp_connector.delete_sharing_group(visible_sg)
+
+        sg_found = False
+        for sg in sgs:
+            if sg.uuid == visible_sg.uuid:
+                sg_found = True
+        self.assertTrue(sg_found)
+
+    def test_sg_view_user_cannot_see(self):
+        org = self.__create_org()
+        hidden_sg = self.__create_sharing_group()
+        check_response(self.admin_misp_connector.add_org_to_sharing_group(hidden_sg, org.uuid))
+
+        logged_in = PyMISP(url, self.test_usr.authkey)
+        logged_in.global_pythonify = True
+
+        with self.assertRaises(Exception):
+            send(logged_in, "GET", f"/sharingGroups/view/{hidden_sg.id}")
+
+        with self.assertRaises(Exception):
+            send(logged_in, "GET", f"/sharingGroups/view/{hidden_sg.uuid}")
+
+        with self.assertRaises(Exception):
+            send(logged_in, "POST", f"/sharingGroups/edit/{hidden_sg.id}", {"name": "New name1"})
+
+        with self.assertRaises(Exception):
+            send(logged_in, "POST", f"/sharingGroups/edit/{hidden_sg.uuid}", {"name": "New name2"})
+
+        self.__assertErrorResponse(logged_in.add_org_to_sharing_group(hidden_sg, self.test_org.uuid))
+        self.__assertErrorResponse(logged_in.remove_org_from_sharing_group(hidden_sg, org.uuid))
+        self.__assertErrorResponse(logged_in.delete_sharing_group(hidden_sg))
+
+        self.admin_misp_connector.delete_sharing_group(hidden_sg)
+        self.admin_misp_connector.delete_organisation(org)
+
+    def test_sg_view_user_can_see(self):
+        org1 = self.__create_org()
+        sg = self.__create_sharing_group()
+        check_response(self.admin_misp_connector.add_org_to_sharing_group(sg, org1.uuid))
+        check_response(self.admin_misp_connector.add_org_to_sharing_group(sg, self.test_org.uuid))
+
+        logged_in = PyMISP(url, self.test_usr.authkey)
+        send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")
+        send(logged_in, "GET", f"/sharingGroups/view/{sg.uuid}")
+
+        self.admin_misp_connector.delete_sharing_group(sg)
+        self.admin_misp_connector.delete_organisation(org1)
+
+    def test_sg_view_user_can_see_cannot_edit(self):
+        org = self.__create_org()
+        sync_user = self.__create_user(org.id, ROLE.SYNC_USER)
+        sg = self.__create_sharing_group()
+        check_response(self.admin_misp_connector.add_org_to_sharing_group(sg, org.uuid))
+
+        logged_in = PyMISP(url, sync_user.authkey)
+        self.assertTrue(logged_in._current_role.perm_sharing_group, "Sync user should have permission to edit sharing groups")
+
+        send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")
+
+        with self.assertRaises(Exception):
+            send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name1"})
+        self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
+
+        with self.assertRaises(Exception):
+            send(logged_in, "POST", f"/sharingGroups/edit/{sg.uuid}", {"name": "New name2"})
+        self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
+
+        self.__assertErrorResponse(logged_in.add_org_to_sharing_group(sg, self.test_org.uuid))
+        self.__assertErrorResponse(logged_in.remove_org_from_sharing_group(sg, org.uuid))
+        self.__assertErrorResponse(logged_in.delete_sharing_group(sg))
+
+        self.admin_misp_connector.delete_sharing_group(sg)
+        self.admin_misp_connector.delete_user(sync_user)
+        self.admin_misp_connector.delete_organisation(org)
+
+    def test_sg_view_user_can_see_can_edit(self):
+        org = self.__create_org()
+        sync_user = self.__create_user(org.id, ROLE.SYNC_USER)
+        sg = self.__create_sharing_group()
+        check_response(self.admin_misp_connector.add_org_to_sharing_group(sg, org.uuid, True))
+
+        logged_in = PyMISP(url, sync_user.authkey)
+        self.assertTrue(logged_in._current_role.perm_sharing_group, "Sync user should have permission to edit sharing groups")
+
+        send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")
+        after_edit = send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name1"})
+        self.assertEqual("New name1", after_edit["SharingGroup"]["name"])
+        after_edit = send(logged_in, "POST", f"/sharingGroups/edit/{sg.uuid}", {"name": "New name2"})
+        self.assertEqual("New name2", after_edit["SharingGroup"]["name"])
+
+        self.__assertErrorResponse(logged_in.delete_sharing_group(sg))
+
+        self.admin_misp_connector.delete_sharing_group(sg)
+        self.admin_misp_connector.delete_user(sync_user)
+        self.admin_misp_connector.delete_organisation(org)
+
+    def test_org_user_can_see(self):
+        org = self.__create_org()
+
+        logged_in = PyMISP(url, self.test_usr.authkey)
+        for key in (org.id, org.uuid, org.name):
+            fetched_org = logged_in.get_organisation(key)
+            check_response(fetched_org)
+            self.assertNotIn("created_by", fetched_org["Organisation"])
+            self.assertNotIn("created_by_email", fetched_org["Organisation"])
+
+        self.admin_misp_connector.delete_organisation(org)
+
+    def test_org_hide_org_cannot_set(self):
+        org = self.__create_org()
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            self.__assertErrorResponse(logged_in.get_organisation(org.id))
+            self.__assertErrorResponse(logged_in.get_organisation(org.uuid))
+
+            self.admin_misp_connector.delete_organisation(org)
+
+    def test_org_hide_org_can_see_his_own(self):
+        org = self.__create_org()
+        user = self.__create_user(org.id, ROLE.USER)
+
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, user.authkey)
+            for key in (org.id, org.uuid, org.name):
+                fetched_org = logged_in.get_organisation(key)
+                check_response(fetched_org)
+                self.assertNotIn("created_by", fetched_org["Organisation"])
+                self.assertNotIn("created_by_email", fetched_org["Organisation"])
+
+            self.admin_misp_connector.delete_user(user)
+            self.admin_misp_connector.delete_organisation(org)
+
+    def test_org_hide_org_cannot_see_event_after_contribution(self):
+        org = self.__create_org()
+        user = self.__create_user(org.id, ROLE.USER)
+        logged_in = PyMISP(url, user.authkey)
+        event = logged_in.add_event(self.__generate_event(distribution=0))
+        check_response(event)
+
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            for key in (org.id, org.uuid, org.name):
+                self.__assertErrorResponse(logged_in.get_organisation(key))
+
+            self.admin_misp_connector.delete_event(event)
+            self.admin_misp_connector.delete_user(user)
+            self.admin_misp_connector.delete_organisation(org)
+
+    def test_org_hide_org_can_see_after_contribution(self):
+        org = self.__create_org()
+        user = self.__create_user(org.id, ROLE.USER)
+        logged_in = PyMISP(url, user.authkey)
+        event = logged_in.add_event(self.__generate_event())
+        check_response(event)
+
+        with self.__setting("Security.hide_organisation_index_from_users", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            for key in (org.id, org.uuid, org.name):
+                fetched_org = logged_in.get_organisation(key)
+                check_response(fetched_org)
+                self.assertNotIn("created_by", fetched_org["Organisation"])
+                self.assertNotIn("created_by_email", fetched_org["Organisation"])
+
+            self.admin_misp_connector.delete_event(event)
+            self.admin_misp_connector.delete_user(user)
+            self.admin_misp_connector.delete_organisation(org)
+
+    def test_get_org_as_site_admin(self):
+        org = self.admin_misp_connector.get_organisation(self.test_org)
+        check_response(org)
+        self.assertIn("created_by", org.to_dict())
+        self.assertIn("created_by_email", org.to_dict())
+
+    def test_get_org_as_org_admin(self):
+        org = self.org_admin_misp_connector.get_organisation(self.test_org)
+        check_response(org)
+        self.assertIn("created_by", org.to_dict())
+        self.assertIn("created_by_email", org.to_dict())
+
+    def test_get_org_as_org_admin_different_org(self):
+        org = self.__create_org()
+        org = self.org_admin_misp_connector.get_organisation(org)
+        check_response(org)
+        self.assertNotIn("created_by", org.to_dict())
+        self.assertNotIn("created_by_email", org.to_dict())
+        self.admin_misp_connector.delete_organisation(org)
+
+    def test_org_index_site_admin(self):
+        created_org = self.__create_org()
+        orgs = self.admin_misp_connector.organisations(created_org)
+        check_response(orgs)
+        contains = False
+        for org in orgs:
+            if org.id == created_org.id:
+                contains = True
+            self.assertIn("created_by", org.to_dict())
+            self.assertIn("created_by_email", org.to_dict())
+        self.assertTrue(contains)
+        self.admin_misp_connector.delete_organisation(created_org)
+
+    def test_org_index_org_admin(self):
+        created_org = self.__create_org()
+        orgs = self.org_admin_misp_connector.organisations(created_org)
+        check_response(orgs)
+        contains = False
+        for org in orgs:
+            if org.id == created_org.id:
+                contains = True
+            self.assertNotIn("created_by", org.to_dict())
+            self.assertNotIn("created_by_email", org.to_dict())
+        self.assertTrue(contains)
+        self.admin_misp_connector.delete_organisation(created_org)
+
+    def __generate_event(self, distribution: int = 1) -> MISPEvent:
+        mispevent = MISPEvent()
+        mispevent.info = 'This is a super simple test'
+        mispevent.distribution = distribution
+        mispevent.threat_level_id = 1
+        mispevent.analysis = 1
+        mispevent.add_attribute('text', "Ahoj")
+        return mispevent
+
+    def __create_org(self) -> MISPOrganisation:
+        organisation = MISPOrganisation()
+        organisation.name = 'Test Org ' + random()  # make name always unique
+        org = self.admin_misp_connector.add_organisation(organisation)
+        check_response(org)
+        return org
+
+    def __create_sharing_group(self) -> MISPSharingGroup:
+        sg = MISPSharingGroup()
+        sg.name = 'Testcases SG ' + random()  # make name always unique
+        sg.releasability = 'Nic'
+        sg = self.admin_misp_connector.add_sharing_group(sg)
+        check_response(sg)
+        return sg
 
     def __shibb_login(self, headers: dict) -> requests.Response:
         session = requests.Session()
@@ -830,7 +1095,7 @@ class TestSecurity(unittest.TestCase):
 
         return r
 
-    def __create_user(self, org_id: int = None, role_id: Union[int, ROLE] = None) -> MISPUser:
+    def __create_user(self, org_id: int, role_id: Union[int, ROLE]) -> MISPUser:
         if isinstance(role_id, ROLE):
             role_id = role_id.value
 
@@ -854,6 +1119,17 @@ class TestSecurity(unittest.TestCase):
     def __delete_advanced_authkey(self, key_id: int):
         return send(self.admin_misp_connector, "POST", f'authKeys/delete/{key_id}')
 
+    def __setting(self, key, value=None) -> MISPSetting:
+        if not isinstance(key, dict):
+            new_setting = {key: value}
+        else:
+            new_setting = key
+        return MISPSetting(self.admin_misp_connector, new_setting)
+
+    def __assertErrorResponse(self, response):
+        if "errors" not in response:
+            self.fail(response)
+
     def __default_shibb_config(self) -> dict:
         return {
             "ApacheShibbAuth": {
@@ -868,7 +1144,7 @@ class TestSecurity(unittest.TestCase):
                     "user": 3,
                 }
             },
-            "Security":  {
+            "Security": {
                 "auth": ["ShibbAuth.ApacheShibb"],
             }
         }

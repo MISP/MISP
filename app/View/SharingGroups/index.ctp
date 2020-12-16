@@ -1,120 +1,155 @@
 <div class="sharing_groups index">
-<h2><?php echo __('Sharing Groups');?></h2>
-<div class="pagination">
-<ul>
 <?php
-    $this->Paginator->options(array(
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
-    ));
-
-    echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-    echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-    echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-?>
-        </ul>
-    </div>
-    <?php
-        $data = array(
+echo $this->element('/genericElements/IndexTable/index_table', array(
+    'data' => array(
+        'title' => __('Sharing Groups'),
+        'data' => $sharingGroups,
+        'top_bar' => array(
             'children' => array(
                 array(
+                    'type' => 'simple',
                     'children' => array(
                         array(
                             'url' => $baseurl . '/sharing_groups/index',
                             'text' => __('Active Sharing Groups'),
-                            'active' => !$passive
+                            'active' => !$passive,
                         ),
                         array(
                             'url' => $baseurl . '/sharing_groups/index/true',
                             'text' => __('Passive Sharing Groups'),
-                            'active' => $passive
+                            'active' => $passive,
                         )
+                    )
+                ),
+                array(
+                    'type' => 'search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
+                    'searchKey' => 'value',
+                    'cancel' => array(
+                        'fa-icon' => 'times',
+                        'title' => __('Remove filters'),
+                        'onClick' => 'cancelSearch',
                     )
                 )
             )
-        );
-        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
-    ?>
-    <table class="table table-striped table-hover table-condensed">
-    <tr>
-            <th><?php echo $this->Paginator->sort('id', __('ID'));?></th>
-            <th><?php echo __('UUID');?></th>
-            <th><?php echo $this->Paginator->sort('name');?></th>
-            <th><?php echo $this->Paginator->sort('Creator');?></th>
-            <th><?php echo __('Description');?></th>
-            <th><?php echo __('Releasable to');?></th>
-            <th class="actions"><?php echo __('Actions');?></th>
-    </tr>
-    <?php
-foreach ($sharingGroups as $k => $sharingGroup):
+        ),
+        'fields' => array(
+            array(
+                'name' => __('ID'),
+                'sort' => 'SharingGroup.id',
+                'element' => 'links',
+                'class' => 'short',
+                'data_path' => 'SharingGroup.id',
+                'url' => $baseurl . '/sharing_groups/view/%s'
+            ),
+            array(
+                'name' => __('UUID'),
+                'data_path' => 'SharingGroup.uuid',
+                'sort' => 'SharingGroup.uuid',
+                'class' => 'short quickSelect',
+            ),
+            array(
+                'name' => __('Name'),
+                'data_path' => 'SharingGroup.name',
+                'sort' => 'SharingGroup.name',
+                'class' => 'short',
+            ),
+            array(
+                'name' => __('Creator'),
+                'sort' => 'Organisation.name',
+                'element' => 'org',
+                'data_path' => 'Organisation',
+                'class' => 'short',
+            ),
+            array(
+                'name' => __('Description'),
+                'data_path' => 'SharingGroup.description',
+            ),
+            array(
+                'name' => __('Org count'),
+                'element' => 'custom',
+                'class' => 'short',
+                'function' => function (array $sharingGroup) {
+                    echo count($sharingGroup['SharingGroupOrg']);
+                }
+            ),
+            array(
+                'name' => __('Releasable to'),
+                'element' => 'custom',
+                'function' => function (array $sharingGroup) use ($baseurl) {
+                    $combined = __("Organisations:");
+                    if (empty($sharingGroup['SharingGroupOrg'])) $combined .= "<br>N/A";
+                    foreach ($sharingGroup['SharingGroupOrg'] as $sge) {
+                        if (!empty($sge['Organisation'])) {
+                            $combined .= "<br><a href='" . $baseurl . "/organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
+                            if ($sge['extend']) $combined .= ' (can extend)';
+                        }
+                    }
+                    $combined .= '<hr style="margin:5px 0;"><br>Instances:';
+                    if (empty($sharingGroup['SharingGroupServer'])) $combined .= "<br>N/A";
+                    foreach ($sharingGroup['SharingGroupServer'] as $sgs) {
+                        if ($sgs['server_id'] != 0) {
+                            $combined .= "<br><a href='" . $baseurl . "/server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
+                        } else {
+                            $combined .= "<br>This instance";
+                        }
+                        if ($sgs['all_orgs']) {
+                            $combined .= ' (all organisations)';
+                        } else {
+                            $combined .= ' (as defined above)';
+                        }
+                    } ?>
+                    <span data-toggle="popover" data-trigger="hover" title="<?= __('Distribution List') ?>" data-content="<?= h($combined) ?>">
+                        <?= empty($sharingGroup['SharingGroup']['releasability']) ?
+                            '<span style="color: gray">' . __('Not defined') . '</span>' :
+                            h($sharingGroup['SharingGroup']['releasability'])
+                        ?>
+                    </span>
+                    <?php
+                },
+            )
+        ),
+        'actions' => array(
+            array(
+                'url' => $baseurl . '/sharing_groups/view',
+                'url_params_data_paths' => ['SharingGroup.id'],
+                'icon' => 'eye',
+                'dbclickAction' => true,
+                'title' => __('View Sharing Group'),
+            ),
+            array(
+                'url' => '/sharing_groups/edit',
+                'url_params_data_paths' => ['SharingGroup.id'],
+                'icon' => 'edit',
+                'complex_requirement' => [
+                    'function' => function (array $sharingGroup) {
+                        return $sharingGroup['editable'];
+                    }
+                ],
+                'title' => __('Edit Sharing Group'),
+            ),
+            array(
+                'url' => '/sharing_groups/delete',
+                'url_params_data_paths' => ['SharingGroup.id'],
+                'postLink' => true,
+                'postLinkConfirm' => __('Are you sure you want to delete the sharing group?'),
+                'icon' => 'trash',
+                'complex_requirement' => [
+                    'function' => function (array $sharingGroup) {
+                        return $sharingGroup['deletable'];
+                    }
+                ],
+                'title' => __('Delete Sharing Group'),
+            ),
+        )
+    )
+));
 ?>
-    <tr>
-        <td class="short"><?php echo h($sharingGroup['SharingGroup']['id']); ?></td>
-        <td class="short quickSelect"><?php echo h($sharingGroup['SharingGroup']['uuid']); ?></td>
-        <td class="short"><?php echo h($sharingGroup['SharingGroup']['name']); ?></td>
-        <td class="short"><a href="<?php echo $baseurl; ?>/organisations/view/<?php echo h($sharingGroup['Organisation']['id']);?>"><?php echo h($sharingGroup['Organisation']['name']); ?></a></td>
-        <td><?php echo h($sharingGroup['SharingGroup']['description']); ?></td>
-        <?php
-            $combined = "";
-            $combined .= "Organisations:";
-            if (count($sharingGroup['SharingGroupOrg']) == 0) $combined .= "<br />N/A";
-            foreach ($sharingGroup['SharingGroupOrg'] as $k2 => $sge) {
-                if (!empty($sge['Organisation'])) {
-                    $combined .= "<br /><a href='" . $baseurl . "/Organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
-                    if ($sge['extend']) $combined .= (' (can extend)');
-                }
-            }
-            $combined .= "<hr style='margin:5px 0;'><br />Instances:";
-            if (count($sharingGroup['SharingGroupServer']) == 0) $combined .= "<br />N/A";
-            foreach ($sharingGroup['SharingGroupServer'] as $k3 => $sgs) {
-                if ($sgs['server_id'] != 0) {
-                    $combined .= "<br /><a href='" . $baseurl . "/Server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
-                } else {
-                    $combined .= "<br />This instance";
-                }
-                if ($sgs['all_orgs']) $combined .= (' (all organisations)');
-                else $combined .= (' (as defined above)');
-            }
-        ?>
-        <td>
-            <span data-toggle="popover" data-trigger="hover" title="<?php echo __('Distribution List');?>" data-content="<?php echo $combined; ?>">
-                <?php echo h($sharingGroup['SharingGroup']['releasability']); ?>
-            </span>
-        </td>
-        <td class="action">
-        <?php if ($isSiteAdmin || $sharingGroup['editable']): ?>
-            <?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit'))); ?>
-            <?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
-        <?php endif; ?>
-            <a href="<?php echo $baseurl; ?>/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="black fa fa-eye" title="<?php echo __('View');?>" aria-label="<?php echo __('View');?>"></a>
-        </td>
-    </tr>
-    <?php
-endforeach; ?>
-    </table>
-    <p>
-    <?php
-    echo $this->Paginator->counter(array(
-    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-    ));
-    ?>
-    </p>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
 </div>
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(function(){
         popoverStartup();
     });
 </script>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
