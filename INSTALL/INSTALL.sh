@@ -1372,7 +1372,7 @@ installCore () {
     for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
       false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/${dependency}.git ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}; done
       ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} config core.filemode false
-      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP_SCRIPTS}/${dependency##/*}
+      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}
     done
 
     debug "Install python-stix2"
@@ -1421,7 +1421,7 @@ installCore () {
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U setuptools pip lief zmq redis python-magic plyara
     for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
       false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} pull; done
-      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP_SCRIPTS}/${dependency##/*}
+      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}
     done
 
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/cti-python-stix2
