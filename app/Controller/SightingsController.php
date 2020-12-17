@@ -340,15 +340,15 @@ class SightingsController extends AppController
             } else {
                 $sightings = $this->request->data['Sighting'];
             }
-            $saved = $this->Sighting->bulkSaveSightings($eventId, $sightings, $this->Auth->user());
-            if (is_numeric($saved)) {
+            try {
+                $saved = $this->Sighting->bulkSaveSightings($eventId, $sightings, $this->Auth->user());
                 if ($saved > 0) {
-                   return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $saved . ' sightings added.')), 'status' => 200, 'type' => 'json'));
+                    return new CakeResponse(array('body' => json_encode(array('saved' => true, 'success' => $saved . ' sightings added.')), 'status' => 200, 'type' => 'json'));
                 } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'success' => 'No sightings added.')), 'status' => 200, 'type' => 'json'));
+                    return new CakeResponse(array('body' => json_encode(array('saved' => false, 'success' => 'No sightings added.')), 'status' => 200, 'type' => 'json'));
                 }
-            } else {
-                throw new MethodNotAllowedException($saved);
+            } catch (NotFoundException $e) {
+                throw new MethodNotAllowedException($e->getMessage());
             }
         } else {
             throw new MethodNotAllowedException('This method is only accessible via POST requests.');
