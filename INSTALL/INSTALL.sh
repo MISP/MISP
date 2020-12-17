@@ -1199,6 +1199,7 @@ installDepsPhp74 () {
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring php-zip \
   php-redis php-gnupg \
+  php-intl php-bcmath \
   php-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
@@ -1250,6 +1251,7 @@ installDepsPhp72 () {
   php-dev \
   php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring php-zip \
   php-redis php-gnupg \
+  php-intl php-bcmath \
   php-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
@@ -1372,7 +1374,7 @@ installCore () {
     for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
       false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/${dependency}.git ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}; done
       ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} config core.filemode false
-      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP_SCRIPTS}/${dependency##/*}
+      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}
     done
 
     debug "Install python-stix2"
@@ -1421,7 +1423,7 @@ installCore () {
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U setuptools pip lief zmq redis python-magic plyara
     for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
       false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} pull; done
-      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP_SCRIPTS}/${dependency##/*}
+      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}
     done
 
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/cti-python-stix2
@@ -1592,11 +1594,14 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.default_event_threat_level" 4
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.enableEventBlacklisting" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.enableOrgBlacklisting" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.enableEventBlocklisting" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.enableOrgBlocklisting" true
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_client_ip" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_auth" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disableUserSelfManagement" false
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disable_user_login_change" false
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disable_user_password_change" false
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disable_user_add" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_event_alert" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.block_old_event_alert" false
@@ -1617,6 +1622,10 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.event_view_filter_fields" "id, uuid, value, comment, type, category, Tag.name"
 
   # Force defaults to make MISP Server Settings less GREEN
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "debug" 0
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.auth_enforced" false
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.rest_client_baseurl" ""
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.advanced_authkeys" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_length" 12
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators."
@@ -1769,6 +1778,7 @@ mispmodules () {
   # Enable Enrichment, set better timeouts
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_popover_only" false
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
   # TODO:"Investigate why the next one fails"
