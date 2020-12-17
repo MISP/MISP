@@ -11,7 +11,9 @@
             <div class="pull-left footerText" style="float:left;position:absolute;padding-top:12px;z-index:2;">
                 <?php
                 $gpgpath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'gpg.asc';
-                if (file_exists($gpgpath) && (is_file($gpgpath) || is_link($gpgpath))){ ?>
+                if (Configure::read("MISP.download_gpg_from_homedir")) { ?>
+                    <span>Download: <?= $this->Html->link(__('GnuPG key'), array('controller' => 'users', 'action' => 'getGpgPublicKey')) ?></span>
+                <?php } else if (file_exists($gpgpath) && (is_file($gpgpath) || is_link($gpgpath))){ ?>
                     <span>Download: <?php echo $this->Html->link(__('GnuPG key'), $this->webroot.'gpg.asc');?></span>
                 <?php } else { ?>
                     <span><?php echo __('Could not locate the GnuPG public key.');?></span>

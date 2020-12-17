@@ -1212,6 +1212,27 @@ class User extends AppModel
         $syslog->write('notice', "$description -- $action" . (empty($fieldResult) ? '' : ' -- ' . $result['Log']['change']));
     }
 
+    /**
+     * @return array|null
+     * @throws Exception
+     */
+    public function getGpgPublicKey()
+    {
+        $email = Configure::read('GnuPG.email');
+        if (!$email) {
+            throw new Exception("Configuration option 'GnuPG.email' is not set, public key cannot be exported.");
+        }
+
+        $cryptGpg = $this->initializeGpg();
+        $fingerprint = $cryptGpg->getFingerprint($email);
+        if (!$fingerprint) {
+            return null;
+        }
+
+        $publicKey = $cryptGpg->exportPublicKey($fingerprint);
+        return array($fingerprint, $publicKey);
+    }
+
     public function getOrgActivity($orgId, $params=array())
     {
         $conditions = array();
