@@ -125,7 +125,7 @@ class CRUDComponent extends Component
         $this->Controller->set('entity', $data);
     }
 
-    public function edit(int $id, array $params = []): void
+    public function edit(int $id, array $params = [])
     {
         $modelName = $this->Controller->defaultModel;
         if (empty($id)) {
@@ -176,7 +176,7 @@ class CRUDComponent extends Component
         $this->Controller->set('entity', $data);
     }
 
-    public function view(int $id, array $params = []): void
+    public function view(int $id, array $params = [])
     {
         $modelName = $this->Controller->defaultModel;
         if (empty($id)) {
@@ -204,7 +204,7 @@ class CRUDComponent extends Component
         }
     }
 
-    public function delete(int $id, array $params = []): void
+    public function delete(int $id, array $params = [])
     {
         $this->prepareResponse();
         $modelName = $this->Controller->defaultModel;
@@ -291,7 +291,7 @@ class CRUDComponent extends Component
         return $query;
     }
 
-    protected function massageFilters(array $params): array
+    protected function massageFilters(array $params)
     {
         $massagedFilters = [
             'simpleFilters' => [],
