@@ -53,6 +53,7 @@ mispmodules () {
   # Enable Enrichment, set better timeouts
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_popover_only" false
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
   # TODO:"Investigate why the next one fails"
