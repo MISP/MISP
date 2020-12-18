@@ -268,7 +268,7 @@ class StatisticsShell extends AppShell {
                 ['conditions' => ['User.disabled' => 0], 'recursive' => -1]
             ),
             'local_organisations' => $this->Organisation->find('count',
-                ['conditions' => ['Organisation.local' => 0], 'recursive' => -1]
+                ['conditions' => ['Organisation.local' => 1], 'recursive' => -1]
             ),
             'external_organisations' => $this->Organisation->find('count',
                 ['conditions' => ['Organisation.local' => 0], 'recursive' => -1]
