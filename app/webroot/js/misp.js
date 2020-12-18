@@ -5483,3 +5483,101 @@ $('body').on('click', '.hex-value-convert', function() {
             .attr('aria-label', 'Switch to binary representation');
     }
 });
+
+(function() {
+    var tagDataCache = {};
+    function fetchTagInfo(tagId, callback) {
+        if (tagId in tagDataCache) {
+            callback(tagDataCache[tagId]);
+            return;
+        }
+
+        $.ajax({
+            success: function (data) {
+                data = $.parseJSON(data);
+                var tagData;
+                for (var i = 0; i < data.length; i++) {
+                    var tag = data[i];
+                    if (tag.Tag.id == tagId) {
+                        tagData = data[i]
+                        break;
+                    }
+                }
+                if (tagData !== undefined) {
+                    callback(tagData);
+                    tagDataCache[tagId] = tagData;
+                }
+            },
+            type: "get",
+            url: baseurl + "/tags/search/" + tagId + "/1/1"
+        })
+    }
+
+    function constructTaxonomyInfo(tagData) {
+        var predicateText = tagData.TaxonomyPredicate.expanded;
+        if (tagData.TaxonomyPredicate.TaxonomyEntry) {
+            predicateText += ": " + tagData.TaxonomyPredicate.TaxonomyEntry[0].expanded;
+        }
+
+        var $predicate = $('<div/>').append(
+            $('<h3/>').css("margin-top", "5px").text('Tag info'),
+            $('<p/>').css("margin-bottom", "5px").text(predicateText)
+        );
+        if (tagData.TaxonomyPredicate.description) {
+            $predicate.append($('<p/>').css("margin-bottom", "5px").append(
+                $('<strong/>').text('Description: '),
+                $('<span/>').text(tagData.TaxonomyPredicate.description),
+            ));
+        }
+        if (tagData.TaxonomyPredicate.TaxonomyEntry && tagData.TaxonomyPredicate.TaxonomyEntry[0].numerical_value) {
+            $predicate.append($('<p/>').css("margin-bottom", "5px").append(
+                $('<strong/>').text('Numerical value: '),
+                $('<span/>').text(tagData.TaxonomyPredicate.TaxonomyEntry[0].numerical_value),
+            ));
+        }
+        var $meta = $('<div/>').append(
+            $('<h3/>').text('Taxonomy: ' + tagData.Taxonomy.namespace.toUpperCase()),
+            $('<p/>').css("margin-bottom", "5px").append(
+                $('<span/>').text(tagData.Taxonomy.description),
+            )
+        )
+        return $('<div/>').append($predicate, $meta)
+    }
+
+    var popoverDebounce = null;
+    $(document.body).on({
+        mouseover: function() {
+            var $tag = $(this);
+            popoverDebounce = setTimeout(function() {
+                popoverDebounce = null;
+                var tagId = $tag.data('tag-id');
+
+                fetchTagInfo(tagId, function (tagData) {
+                    if (tagData.TaxonomyPredicate === undefined) {
+                        return;
+                    }
+                    // Check if user cursor is still on tag
+                    if ($(':hover').last()[0] !== $tag[0]) {
+                        return;
+                    }
+                    $tag.popover({
+                        html: true,
+                        container: 'body',
+                        placement: 'top',
+                        template: '<div class="popover"><div class="arrow"></div><div class="popover-content"></div></div>',
+                        content: function () {
+                            return constructTaxonomyInfo(tagData);
+                        }
+                    }).popover('show');
+                });
+            }, 200);
+        },
+        mouseout: function() {
+            if (popoverDebounce) {
+                clearTimeout(popoverDebounce);
+                popoverDebounce = null;
+            }
+            $(this).popover('destroy');
+        }
+    }, 'a.tag[data-tag-id]');
+})();
