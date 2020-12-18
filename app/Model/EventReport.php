@@ -700,6 +700,7 @@ class EventReport extends AppModel
      *
      * @param  array $user
      * @param  array $report
+     * @param  array $options
      * @return array
      */
     public function extractWithReplacements(array $user, array $report, array $options = [])
@@ -737,7 +738,7 @@ class EventReport extends AppModel
         if ($options['tags']) {
             $this->Tag = ClassRegistry::init('Tag');
             $tags = $this->Tag->fetchUsableTags($user);
-            foreach ($tags as $i => $tag) {
+            foreach ($tags as $tag) {
                 $tagName = $tag['Tag']['name'];
                 $found = $this->isValidReplacementTag($originalContent, $tagName);
                 if ($found) {
@@ -752,7 +753,7 @@ class EventReport extends AppModel
             }
         }
 
-        foreach ($clusters as $i => $cluster) {
+        foreach ($clusters as $cluster) {
             $cluster['GalaxyCluster']['colour'] = '#0088cc';
             $tagName = $cluster['GalaxyCluster']['tag_name'];
             $found = $this->isValidReplacementTag($originalContent, $tagName);
@@ -783,7 +784,7 @@ class EventReport extends AppModel
                 'conditions' => ['GalaxyCluster.galaxy_id' => $mitreAttackGalaxyId],
                 'contain' => $clusterContain
             ]);
-            foreach ($attackClusters as $i => $cluster) {
+            foreach ($attackClusters as $cluster) {
                 $cluster['GalaxyCluster']['colour'] = '#0088cc';
                 $tagName = $cluster['GalaxyCluster']['tag_name'];
                 $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
@@ -796,7 +797,7 @@ class EventReport extends AppModel
                     $found = strpos($originalContent, $toSearch) !== false;
                     if ($found) {
                         $replacedContext[$clusterParts[0]][$tagName] = $cluster['GalaxyCluster'];
-                    } else {
+                    } else if (isset($clusterParts[1])) {
                         $toSearch = ' ' . $clusterParts[1] . ' ';
                         $found = strpos($originalContent, $toSearch) !== false;
                         if ($found) {
