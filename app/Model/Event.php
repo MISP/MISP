@@ -1188,14 +1188,18 @@ class Event extends AppModel
         if (is_numeric($event)) {
             return $event;
         }
-        $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         if ($scope === 'sightings') {
             $scope .= '/bulkSaveSightings';
             $urlPath = $event['Event']['uuid'];
         }
+        $url = $server['Server']['url'];
         $uri = $url . '/' . $scope . $this->__getLastUrlPathComponent($urlPath);
+        if ($scope === 'event') {
+            // After creating or editing event, it is not necessary to fetch full event
+            $uri .= '/metadata:1';
+        }
         $data = json_encode($event);
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
