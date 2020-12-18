@@ -4365,17 +4365,24 @@ function selectAllInbetween(last, current) {
 
 $('.galaxy-toggle-button').click(function() {
     var element = $(this).data('toggle-type');
-    if ($(this).children('span').hasClass('icon-minus')) {
-        $(this).children('span').addClass('icon-plus');
-        $(this).children('span').removeClass('icon-minus');
+    var $button = $(this).children('span');
+    if ($button.hasClass('icon-minus')) {
+        $button.addClass('icon-plus');
+        $button.removeClass('icon-minus');
         $('#' + element + '_div').hide();
     } else {
-        $(this).children('span').removeClass('icon-plus');
-        $(this).children('span').addClass('icon-minus');
+        $button.removeClass('icon-plus');
+        $button.addClass('icon-minus');
         $('#' + element + '_div').show();
+
+        var loadUrl = $(this).data('load-url');
+        if (loadUrl) {
+            $.get(loadUrl, function(data) {
+                $('#' + element + '_div').html(data);
+            });
+        }
     }
 });
-
 
 function addGalaxyListener(id) {
     var target_type = $(id).data('target-type');
