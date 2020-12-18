@@ -19,24 +19,25 @@ class ObjectTemplatesController extends AppController
             'recursive' => -1
     );
 
-    public function objectMetaChoice($event_id) {
+    public function objectMetaChoice($event_id)
+    {
         $metas = $this->ObjectTemplate->find('list', array(
             'recursive' => -1,
             'conditions' => array('ObjectTemplate.active' => 1),
-            'fields' => array('meta-category', 'meta-category'),
+            'fields' => array('meta-category'),
             'group' => array('ObjectTemplate.meta-category'),
             'order' => array('ObjectTemplate.meta-category asc')
         ));
 
-        $items = array();
-        $items[] = array(
+        $eventId = h($event_id);
+        $items = [[
             'name' => __('All Objects'),
-            'value' => $this->baseurl . "/ObjectTemplates/objectChoice/" . h($event_id) . "/" . "0"
-        );
-        foreach($metas as $meta) {
+            'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/0"
+        ]];
+        foreach ($metas as $meta) {
             $items[] = array(
                 'name' => $meta,
-                'value' => $this->baseurl . "/ObjectTemplates/objectChoice/" . h($event_id) . "/" . h($meta)
+                'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/" . h($meta)
             );
         }
 
