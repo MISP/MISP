@@ -4841,6 +4841,16 @@ $(document).ready(function() {
             $this.addClass('fa-eye');
         }
     });
+
+    // For galaxyQuickViewMini.ctp
+    $('.expandable[data-clusterid]')
+        .on('click', function() {
+            loadClusterRelations($(this).data('clusterid'));
+        })
+        .popover({
+            html: true,
+            trigger: 'hover'
+        });
 });
 
 $(document.body).on("click", ".correlation-expand-button", function() {
@@ -5484,6 +5494,7 @@ $('body').on('click', '.hex-value-convert', function() {
     }
 });
 
+// Tag popover with taxonomy description
 (function() {
     var tagDataCache = {};
     function fetchTagInfo(tagId, callback) {
