@@ -252,7 +252,7 @@ class StatisticsShell extends AppShell {
         echo str_repeat('-', 63) . PHP_EOL;
     }
 
-    // (R)etrieval (o)f (m)etrics (m)atrix (e)xtended (f)or (s)tatistics
+    // (R)etrieval (o)f (m)ember (m)etrics (e)valuation (l)ist (f)or (s)tatistics
     public function rommelfs()
     {
         $this->out(json_encode([
