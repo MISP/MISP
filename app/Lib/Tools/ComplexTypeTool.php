@@ -234,6 +234,7 @@ class ComplexTypeTool
             if (isset($resultArray[$typeArray['value']])) {
                 continue;
             }
+            $typeArray['original_value'] = $ioc;
             $resultArray[$typeArray['value']] = $typeArray;
         }
         return array_values($resultArray);

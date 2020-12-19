@@ -633,14 +633,16 @@ function createRulesMenuItem(itemName, icon, ruleScope, ruleName) {
 
 function createMenuItem(itemName, icon, clickHandler) {
     return $('<li/>').append(
-            $('<a/>').attr('tabindex', '-1').attr('href', '#').click(clickHandler).append(
+            $('<a/>').attr('tabindex', '-1').attr('href', '#').click(function (event) {
+                event.preventDefault();
+                clickHandler();
+            }).append(
                 $('<span/>').addClass('icon').append(
                     icon instanceof jQuery ? icon : $('<i/>').addClass(icon)
                 ),
                 $('<span/>').text(' ' + itemName)
             )
-        )
-     
+    )
 }
 
 function createSubMenu(submenuConfig) {

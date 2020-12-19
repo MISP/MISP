@@ -1116,10 +1116,13 @@ class TagsController extends AppController
             'conditions' => $conditions,
             'recursive' => -1
         ));
-        if (!$searchIfTagExists && empty($tags)) {
-            $tags = [];
-            foreach ($tag as $i => $tagName) {
-                $tags[] = ['Tag' => ['name' => $tagName], 'simulatedTag' => true];
+        if (!$searchIfTagExists) {
+            $foundTagNames = Hash::extract($tags, "{n}.Tag.name");
+            foreach ($tag as $tagName) {
+                if (!in_array($tagName, $foundTagNames, true)) {
+                    // Tag not found, insert simulated tag
+                    $tags[] = ['Tag' => ['name' => $tagName], 'simulatedTag' => true];
+                }
             }
         }
         $this->loadModel('Taxonomy');
