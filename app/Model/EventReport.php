@@ -722,7 +722,6 @@ class EventReport extends AppModel
             'attack' => true,
         ];
         $options = array_merge($baseOptions, $options);
-        $originalContent = $report['EventReport']['content'];
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $mitreAttackGalaxyId = $this->GalaxyCluster->Galaxy->getMitreAttackGalaxyId();
         $clusterContain = ['Tag'];
@@ -743,17 +742,21 @@ class EventReport extends AppModel
             'contain' => $clusterContain
         ]);
 
+        $originalContent = $report['EventReport']['content'];
+        // Remove all existing event report markers
+        $content = preg_replace("/@\[(attribute|tag|galaxymatrix)]\([^)]*\)/", '', $originalContent);
+
         if ($options['tags']) {
             $this->Tag = ClassRegistry::init('Tag');
             $tags = $this->Tag->fetchUsableTags($user);
             foreach ($tags as $tag) {
                 $tagName = $tag['Tag']['name'];
-                $found = $this->isValidReplacementTag($originalContent, $tagName);
+                $found = $this->isValidReplacementTag($content, $tagName);
                 if ($found) {
                     $replacedContext[$tagName][$tagName] = $tag['Tag'];
                 } else {
                     $tagNameUpper = strtoupper($tagName);
-                    $found = $this->isValidReplacementTag($originalContent, $tagNameUpper);
+                    $found = $this->isValidReplacementTag($content, $tagNameUpper);
                     if ($found) {
                         $replacedContext[$tagNameUpper][$tagName] = $tag['Tag'];
                     }
@@ -764,7 +767,7 @@ class EventReport extends AppModel
         foreach ($clusters as $cluster) {
             $cluster['GalaxyCluster']['colour'] = '#0088cc';
             $tagName = $cluster['GalaxyCluster']['tag_name'];
-            $found = $this->isValidReplacementTag($originalContent, $tagName);
+            $found = $this->isValidReplacementTag($content, $tagName);
             if ($found) {
                 $replacedContext[$tagName][$tagName] = $cluster['GalaxyCluster'];
             }
@@ -774,10 +777,10 @@ class EventReport extends AppModel
                 $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
             }
             if ($options['synonyms']) {
-                foreach ($cluster['GalaxyElement'] as $j => $element) {
+                foreach ($cluster['GalaxyElement'] as $element) {
                     if (strlen($element['value']) >= $options['synonyms_min_characters']) {
                         $toSearch = ' ' . $element['value'] . ' ';
-                        $found = strpos($originalContent, $toSearch) !== false;
+                        $found = strpos($content, $toSearch) !== false;
                         if ($found) {
                             $replacedContext[$element['value']][$tagName] = $cluster['GalaxyCluster'];
                         }
@@ -796,18 +799,18 @@ class EventReport extends AppModel
                 $cluster['GalaxyCluster']['colour'] = '#0088cc';
                 $tagName = $cluster['GalaxyCluster']['tag_name'];
                 $toSearch = ' ' . $cluster['GalaxyCluster']['value'] . ' ';
-                $found = strpos($originalContent, $toSearch) !== false;
+                $found = strpos($content, $toSearch) !== false;
                 if ($found) {
                     $replacedContext[$cluster['GalaxyCluster']['value']][$tagName] = $cluster['GalaxyCluster'];
                 } else {
                     $clusterParts = explode(' - ', $cluster['GalaxyCluster']['value'], 2);
                     $toSearch = ' ' . $clusterParts[0] . ' ';
-                    $found = strpos($originalContent, $toSearch) !== false;
+                    $found = strpos($content, $toSearch) !== false;
                     if ($found) {
                         $replacedContext[$clusterParts[0]][$tagName] = $cluster['GalaxyCluster'];
                     } else if (isset($clusterParts[1])) {
                         $toSearch = ' ' . $clusterParts[1] . ' ';
-                        $found = strpos($originalContent, $toSearch) !== false;
+                        $found = strpos($content, $toSearch) !== false;
                         if ($found) {
                             $replacedContext[$clusterParts[1]][$tagName] = $cluster['GalaxyCluster'];
                         }
@@ -819,14 +822,32 @@ class EventReport extends AppModel
             'replacedContext' => $replacedContext
         ];
         if ($options['replace']) {
+            // Sort by original value string length, longest values first
+            uksort($replacedContext, function ($a, $b) {
+                $strlenA = strlen($a);
+                $strlenB = strlen($b);
+                if ($strlenA === $strlenB) {
+                    return 0;
+                }
+                return ($strlenA < $strlenB) ? 1 : -1;
+            });
+
             $content = $originalContent;
+            $secondPassReplace = [];
+            // Replace in two pass to prevent double replace
+            $id = 0;
             foreach ($replacedContext as $rawText => $replacements) {
                 // Replace with first one until a better strategy is found
                 reset($replacements);
                 $replacement = key($replacements);
-                $textToInject = sprintf('@[tag](%s)', $replacement);
-                $content = str_replace($rawText, $textToInject, $content);
+                ++$id;
+                $content = str_replace($rawText, "@[mark]($id)", $content);
+                $secondPassReplace[$id] = "@[tag]($replacement)";
             }
+
+            $content = preg_replace_callback("/@\[mark]\(([^)]*)\)/", function ($matches) use ($secondPassReplace) {
+                return $secondPassReplace[$matches[1]];
+            }, $content);
             $toReturn['contentWithReplacements'] = $content;
         }
         return $toReturn;
@@ -844,7 +865,6 @@ class EventReport extends AppModel
             'event_id' => $event_id,
             'url' => $url
         ];
-        $module = $this->isFetchURLModuleEnabled();
         if (!empty($module)) {
             $result = $this->Module->queryModuleServer($modulePayload, false);
             if (empty($result['results'][0]['values'][0])) {
@@ -862,7 +882,7 @@ class EventReport extends AppModel
     }
 
     /**
-     * findValidReplacementTag Search if tagName is in content and is not wrapped in a tag reference
+     * findValidReplacementTag Search if tagName is in content
      *
      * @param  string $content
      * @param  string $tagName
@@ -870,25 +890,8 @@ class EventReport extends AppModel
      */
     private function isValidReplacementTag($content, $tagName)
     {
-        $lastIndex = 0;
-        $allIndices = [];
         $toSearch = strpos($tagName, ':') === false ? ' ' . $tagName . ' ' : $tagName;
-        while (($lastIndex = strpos($content, $toSearch, $lastIndex)) !== false) {
-            $allIndices[] = $lastIndex;
-            $lastIndex = $lastIndex + strlen($toSearch);
-        }
-        if (empty($allIndices)) {
-            return false;
-        } else {
-            $wrapper = '@[tag](';
-            foreach ($allIndices as $i => $index) {
-                $stringBeforeTag = substr($content, $index - strlen($wrapper), strlen($wrapper));
-                if ($stringBeforeTag != $wrapper) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        return strpos($content, $toSearch) !== false;
     }
 
     public function attachTagsAfterReplacements($user, $replacedContext, $eventId)
