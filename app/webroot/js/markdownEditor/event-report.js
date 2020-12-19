@@ -509,7 +509,7 @@ function renderMISPElement(scope, elementID, indexes) {
                     type: suggestion.complexTypeToolResult.picked_type,
                     origValue: elementID,
                     value: suggestion.complexTypeToolResult.value,
-                    'indexStart': indexes.start,
+                    indexStart: indexes.start,
                     suggestionkey: suggestionKey,
                     checked: suggestion.checked
                 })
@@ -947,7 +947,14 @@ function highlightPickedReplacementInReport() {
 
 function convertEntityIntoSuggestion(content, entity) {
     var converted = ''
-    var entityValue = entity.importRegexMatch ? entity.importRegexMatch : entity.value
+    var entityValue;
+    if (entity.importRegexMatch) {
+        entityValue = entity.importRegexMatch;
+    } else if (entity.original_value) {
+        entityValue = entity.original_value;
+    } else {
+        entityValue = entity.value;
+    }
     var splittedContent = content.split(entityValue)
     splittedContent.forEach(function(text, i) {
         converted += text
@@ -1007,7 +1014,7 @@ function constructSuggestionMapping(entity, indicesInCM) {
 function injectNumberOfOccurrencesInReport(entities) {
     var content = getEditorData()
     entities.forEach(function(entity, i) {
-        entities[i].occurrences = getAllIndicesOf(content, entity.value, false, false).length
+        entities[i].occurrences = getAllIndicesOf(content, entity.original_value, false, false).length
     })
     return entities
 }
@@ -1089,7 +1096,7 @@ function pickSuggestionColumn(index, tableID, force) {
                 tr: $tr,
                 index: index
             }
-            if (tableID == 'replacementTable') {
+            if (tableID === 'replacementTable') {
                 var uuid = $tr.find('select.attribute-replacement').val()
                 pickedSuggestion['entity'] = {
                     value: $tr.data('attributeValue'),
@@ -1100,7 +1107,7 @@ function pickSuggestionColumn(index, tableID, force) {
                     pickedSuggestion['entity']['importRegexMatch'] = proxyMISPElements['attribute'][uuid].importRegexValue
                 }
                 highlightPickedReplacementInReport()
-            } else if (tableID == 'contextReplacementTable') {
+            } else if (tableID === 'contextReplacementTable') {
                 pickedSuggestion['entity'] = {
                     value: $tr.data('contextValue'),
                     picked_type: 'tag',
@@ -1211,7 +1218,11 @@ function submitExtractionSuggestion() {
                 }
             },
             error: function(jqXHR, textStatus, errorThrown) {
-                showMessage('fail', saveFailedMessage + ': ' + errorThrown);
+                if (jqXHR.responseJSON) {
+                    showMessage('fail', jqXHR.responseJSON.errors);
+                } else {
+                    showMessage('fail', saveFailedMessage + ': ' + errorThrown);
+                }
             },
             complete:function() {
                 $('#temp').remove();
@@ -2011,16 +2022,14 @@ function isDoubleExtraction(content) {
 
 function getAllIndicesOf(haystack, needle, caseSensitive, requestLineNum) {
     var indices = []
-    if (needle.length == 0) {
+    if (needle.length === 0) {
         return indices
     }
-    var startIndex = 0, index, indices = [];
+    var startIndex = 0, index = 0;
     if (!caseSensitive) {
         needle = needle.toLowerCase();
         haystack = haystack.toLowerCase();
     }
-    var startIndex = 0
-    var index = 0
     while (true) {
         index = haystack.indexOf(needle, startIndex)
         if (index === -1) {

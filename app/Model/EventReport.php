@@ -521,7 +521,8 @@ class EventReport extends AppModel
         return $errors;
     }
 
-    public function applySuggestions($user, $report, $contentWithSuggestions, $suggestionsMapping) {
+    public function applySuggestions(array $user, array $report, $contentWithSuggestions, array $suggestionsMapping)
+    {
         $errors = [];
         $replacedContent = $contentWithSuggestions;
         $success = 0;
@@ -546,10 +547,10 @@ class EventReport extends AppModel
         return $errors;
     }
     
-    public function applySuggestionsInText($contentWithSuggestions, $attribute, $value)
+    public function applySuggestionsInText($contentWithSuggestions, array $attribute, $value)
     {
-        $textToBeReplaced = sprintf('@[suggestion](%s)', $value);
-        $textToInject = sprintf('@[attribute](%s)', $attribute['Attribute']['uuid']);
+        $textToBeReplaced = "@[suggestion]($value)";
+        $textToInject = "@[attribute]({$attribute['Attribute']['uuid']})";
         $replacedContent = str_replace($textToBeReplaced, $textToInject, $contentWithSuggestions);
         return $replacedContent;
     }
@@ -642,25 +643,36 @@ class EventReport extends AppModel
         ];
     }
 
-    public function transformFreeTextIntoSuggestion($content, $complexTypeToolResult)
+    public function transformFreeTextIntoSuggestion($content, array $complexTypeToolResult)
     {
         $replacedContent = $content;
-        $suggestionsMapping = [];
         $typeToCategoryMapping = $this->Event->Attribute->typeToCategoryMapping();
-        foreach ($complexTypeToolResult as $i => $complexTypeToolEntry) {
+
+        // Sort by original value string length, longest values first
+        usort($complexTypeToolResult, function ($a, $b) {
+           $strlenA = strlen($a['original_value']);
+           $strlenB = strlen($b['original_value']);
+           if ($strlenA === $strlenB) {
+               return 0;
+           }
+           return ($strlenA < $strlenB) ? 1 : -1;
+        });
+
+        $suggestionsMapping = [];
+        foreach ($complexTypeToolResult as $complexTypeToolEntry) {
             $textToBeReplaced = $complexTypeToolEntry['value'];
-            $textToInject = sprintf('@[suggestion](%s)', $textToBeReplaced);
+            $textToInject = "@[suggestion]($textToBeReplaced)";
             $suggestionsMapping[$textToBeReplaced] = [
                 'category' => $typeToCategoryMapping[$complexTypeToolEntry['default_type']][0],
                 'type' => $complexTypeToolEntry['default_type'],
                 'value' => $textToBeReplaced,
                 'to_ids' => $complexTypeToolEntry['to_ids'],
             ];
-            $replacedContent = str_replace($textToBeReplaced, $textToInject, $replacedContent);
+            $replacedContent = str_replace($complexTypeToolEntry['original_value'], $textToInject, $replacedContent);
         }
         return [
             'contentWithSuggestions' => $replacedContent,
-            'suggestionsMapping' => $suggestionsMapping
+            'suggestionsMapping' => $suggestionsMapping,
         ];
     }
 
@@ -674,21 +686,17 @@ class EventReport extends AppModel
         return $complexTypeToolResult;
     }
 
-    public function getComplexTypeToolResultFromReport($content)
+    public function getComplexTypeToolResultWithReplacements(array $user, array $report)
     {
         App::uses('ComplexTypeTool', 'Tools');
         $complexTypeTool = new ComplexTypeTool();
         $this->Warninglist = ClassRegistry::init('Warninglist');
         $complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-        $complexTypeToolResult = $complexTypeTool->checkComplexRouter($content, 'freetext');
-        return $complexTypeToolResult;
-    }
 
-    public function getComplexTypeToolResultWithReplacements($user, $report)
-    {
-        $complexTypeToolResult = $this->getComplexTypeToolResultFromReport($report['EventReport']['content']);
+        $complexTypeToolResult = $complexTypeTool->checkFreeText($report['EventReport']['content']);
         $replacementResult = $this->transformFreeTextIntoReplacement($user, $report, $complexTypeToolResult);
-        $complexTypeToolResult = $this->getComplexTypeToolResultFromReport($replacementResult['contentWithReplacements']);
+        $complexTypeToolResult = $complexTypeTool->checkFreeText($replacementResult['contentWithReplacements']);
+
         return [
             'complexTypeToolResult' => $complexTypeToolResult,
             'replacementResult' => $replacementResult,
