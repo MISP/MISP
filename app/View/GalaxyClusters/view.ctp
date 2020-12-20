@@ -2,7 +2,6 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view_cluster'));
 
     $extendedFromHtml = '';
-    $extendFromLinks = array();
     if (!empty($cluster['GalaxyCluster']['extended_from'])) {
         $element = $this->element('genericElements/IndexTable/Fields/links', array(
             'url' => $baseurl . '/galaxy_clusters/view/',
@@ -12,9 +11,8 @@
                 'title' => sprintf(__('%s (version: %s)'), $cluster['GalaxyCluster']['extended_from']['GalaxyCluster']['value'], $cluster['GalaxyCluster']['extends_version'])
             ),
         ));
-        $extendFromLinks[] = sprintf('<li>%s</li>', $element);
+        $extendedFromHtml = sprintf('<ul><li>%s</li></ul>', $element);
     }
-    $extendedFromHtml = sprintf('<ul>%s</ul>', implode('', $extendFromLinks));
     if ($newVersionAvailable) {
         $extendedFromHtml .= sprintf('<div class="alert alert-warning">%s</div>', sprintf(__('New version available! <a href="%s">Update cluster to version <b>%s</b></a>'),
             '/galaxy_clusters/updateCluster/' . $cluster['GalaxyCluster']['id'],
@@ -24,7 +22,7 @@
 
     $extendedByHtml = '';
     $extendByLinks = array();
-    foreach($cluster['GalaxyCluster']['extended_by'] as $extendCluster) {
+    foreach ($cluster['GalaxyCluster']['extended_by'] as $extendCluster) {
         $element = $this->element('genericElements/IndexTable/Fields/links', array(
             'url' => '/galaxy_clusters/view/',
             'row' => $extendCluster,
@@ -35,7 +33,10 @@
         ));
         $extendByLinks[] = sprintf('<li>%s</li>', $element);
     }
-    $extendedByHtml = sprintf('<ul>%s</ul>', implode('', $extendByLinks));
+    if (!empty($extendByLinks)) {
+        $extendedByHtml = sprintf('<ul>%s</ul>', implode('', $extendByLinks));
+    }
+
     $table_data = array();
     $table_data[] = array('key' => __('Cluster ID'), 'value' => $cluster['GalaxyCluster']['id']);
     $table_data[] = array('key' => __('Name'), 'value' => $cluster['GalaxyCluster']['value']);
@@ -71,7 +72,7 @@
                             sprintf('%s/events/index/searchtag:%s', $baseurl, h($cluster['GalaxyCluster']['tag_id'])),
                             __n('%s event', '%s events', $cluster['GalaxyCluster']['tag_count'], h($cluster['GalaxyCluster']['tag_count']))
                         ):
-                        '0'
+                        '<span>0</span>'
                     );
     if (!empty($extendedFromHtml)) {
         $table_data[] = array('key' => __('Forked From'), 'html' => $extendedFromHtml);
@@ -80,7 +81,6 @@
         $table_data[] = array('key' => __('Forked By'), 'html' => $extendedByHtml);
     }
 ?>
-
 <div class='view'>
     <div class="row-fluid">
         <div class="span8">
@@ -102,13 +102,13 @@
 </div>
 <script type="text/javascript">
 $(function () {
-    $.get("<?php echo $baseurl; ?>/galaxy_elements/index/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
+    $.get("<?= $baseurl ?>/galaxy_elements/index/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#elements_div").html(data);
     });
-    $.get("<?php echo $baseurl; ?>/galaxy_clusters/viewGalaxyMatrix/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
+    $.get("<?= $baseurl ?>/galaxy_clusters/viewGalaxyMatrix/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#matrix_container").html(data);
     });
-    $.get("/galaxy_clusters/viewRelations/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
+    $.get("<?= $baseurl ?>/galaxy_clusters/viewRelations/<?php echo $cluster['GalaxyCluster']['id']; ?>", function(data) {
         $("#relations_container").html(data);
     });
 });
