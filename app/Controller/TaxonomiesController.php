@@ -25,6 +25,15 @@ class TaxonomiesController extends AppController
     public function index()
     {
         $this->paginate['recursive'] = -1;
+
+        if (!empty($this->passedArgs['value'])) {
+            $this->paginate['conditions']['id'] = $this->__search($this->passedArgs['value']);
+        }
+
+        if (isset($this->passedArgs['enabled'])) {
+            $this->paginate['conditions']['enabled'] = $this->passedArgs['enabled'] ? 1 : 0;
+        }
+
         if ($this->_isRest()) {
             $keepFields = array('conditions', 'contain', 'recursive', 'sort');
             $searchParams = array();
@@ -44,13 +53,17 @@ class TaxonomiesController extends AppController
                 $total += empty($predicate['TaxonomyEntry']) ? 1 : count($predicate['TaxonomyEntry']);
             }
             $taxonomies[$key]['total_count'] = $total;
-            $taxonomies[$key]['current_count'] = $this->Tag->find('count', array('conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%', 'hide_tag' => 0)));
+            $taxonomies[$key]['current_count'] = $this->Tag->find('count', array(
+                'conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%', 'hide_tag' => 0),
+                'recursive' => -1,
+            ));
             unset($taxonomies[$key]['TaxonomyPredicate']);
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($taxonomies, $this->response->type());
         } else {
             $this->set('taxonomies', $taxonomies);
+            $this->set('passedArgsArray', $this->passedArgs);
         }
     }
 
@@ -453,5 +466,43 @@ class TaxonomiesController extends AppController
             $this->layout = 'ajax';
             $this->render('ajax/toggle_required');
         }
+    }
+
+    private function __search($value)
+    {
+        $value = strtolower(trim($value));
+        $searchTerm = "%$value%";
+        $taxonomyPredicateIds = $this->Taxonomy->TaxonomyPredicate->TaxonomyEntry->find('list', [
+            'recursive' => -1,
+            'fields' => ['taxonomy_predicate_id'],
+            'conditions' => ['OR' => [
+                'LOWER(value) LIKE' => $searchTerm,
+                'LOWER(expanded) LIKE' => $searchTerm,
+            ]],
+            'group' => ['taxonomy_predicate_id'],
+        ]);
+
+        $taxonomyIds = $this->Taxonomy->TaxonomyPredicate->find('list', [
+            'recursive' => -1,
+            'fields' => ['taxonomy_id'],
+            'conditions' => ['OR' => [
+                'id' => $taxonomyPredicateIds,
+                'LOWER(value) LIKE' => $searchTerm,
+                'LOWER(expanded) LIKE' => $searchTerm,
+            ]],
+            'group' => ['taxonomy_id'],
+        ]);
+
+        $taxonomyIds = $this->Taxonomy->find('list', [
+            'recursive' => -1,
+            'fields' => ['id'],
+            'conditions' => ['OR' => [
+                'id' => $taxonomyIds,
+                'LOWER(namespace) LIKE' => $searchTerm,
+                'LOWER(description) LIKE' => $searchTerm,
+            ]],
+        ]);
+
+        return $taxonomyIds;
     }
 }
