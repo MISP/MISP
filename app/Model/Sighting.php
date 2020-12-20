@@ -789,9 +789,9 @@ class Sighting extends AppModel
         if (isset($filters['context']) && !in_array($filters['context'], $allowedContext, true)) {
             throw new MethodNotAllowedException(__('Invalid context.'));
         }
-        // ensure that an id is provided if context is set
-        if (!empty($filters['context']) && !isset($filters['id'])) {
-            throw new MethodNotAllowedException(__('An id must be provided if the context is set.'));
+        // ensure that an id or uuid is provided if context is set
+        if (!empty($filters['context']) && !(isset($filters['id']) || isset($filters['uuid'])) ) {
+            throw new MethodNotAllowedException(__('An ID or UUID must be provided if the context is set.'));
         }
 
         if (!isset($this->validFormats[$returnFormat][1])) {
@@ -811,7 +811,9 @@ class Sighting extends AppModel
         } else {
             $timeCondition = '30d';
         }
-        $conditions = $this->Attribute->setTimestampConditions($timeCondition, array(), $scope = 'Sighting.date_sighting');
+
+        $contain = [];
+        $conditions = $this->Attribute->setTimestampConditions($timeCondition, [], $scope = 'Sighting.date_sighting');
 
         if (isset($filters['type'])) {
             $conditions['Sighting.type'] = $filters['type'];
@@ -824,7 +826,11 @@ class Sighting extends AppModel
             }
             foreach ($filters['org_id'] as $k => $org_id) {
                 if (Validation::uuid($org_id)) {
-                    $org = $this->Organisation->find('first', array('conditions' => array('Organisation.uuid' => $org_id), 'recursive' => -1, 'fields' => array('Organisation.id')));
+                    $org = $this->Organisation->find('first', array(
+                        'conditions' => array('Organisation.uuid' => $org_id),
+                        'recursive' => -1,
+                        'fields' => array('Organisation.id'),
+                    ));
                     if (empty($org)) {
                         $filters['org_id'][$k] = -1;
                     } else {
@@ -847,13 +853,23 @@ class Sighting extends AppModel
             }
         }
 
+        if (!empty($filters['uuid'])) {
+            if ($filters['context'] === 'attribute') {
+                $conditions['Attribute.uuid'] = $filters['uuid'];
+                $contain[] = 'Attribute';
+            } elseif ($filters['context'] === 'event') {
+                $conditions['Event.uuid'] = $filters['uuid'];
+                $contain[] = 'Event';
+            }
+        }
+
         // fetch sightings matching the query
         $sightings = $this->find('list', array(
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => array('id'),
+            'contain' => $contain,
         ));
-        $sightings = array_values($sightings);
 
         $filters['requested_attributes'] = array('id', 'attribute_id', 'event_id', 'org_id', 'date_sighting', 'uuid', 'source', 'type');
 
@@ -879,20 +895,13 @@ class Sighting extends AppModel
                     $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
                     $additional_event_added = true;
                 }
-                if (!empty($sight)) {
-                    array_push($allowedSightings, $sight);
-                }
+                $allowedSightings[] = $sight;
             }
         }
 
         $params = array(
             'conditions' => array(), //result already filtered
         );
-
-        if (!isset($this->validFormats[$returnFormat])) {
-            // this is where the new code path for the export modules will go
-            throw new NotFoundException('Invalid export format.');
-        }
 
         $exportToolParams = array(
             'user' => $user,
