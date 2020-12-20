@@ -1,83 +1,148 @@
 <div class="taxonomies index">
-    <h2><?php echo __('Taxonomies');?></h2>
-    <div class="pagination">
-        <ul>
-        <?php
-        $this->Paginator->options(array(
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
-        ));
-
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-    <table class="table table-striped table-hover table-condensed">
-    <tr>
-            <th><?php echo $this->Paginator->sort('id', __('ID'));?></th>
-            <th><?php echo $this->Paginator->sort('namespace');?></th>
-            <th><?php echo $this->Paginator->sort('description');?></th>
-            <th><?php echo $this->Paginator->sort('version');?></th>
-            <th><?php echo $this->Paginator->sort('enabled');?></th>
-            <th><?php echo $this->Paginator->sort('required', __('Required'));?></th>
-            <th><?php echo __('Active Tags');?></th>
-            <th class="actions"><?php echo __('Actions');?></th>
-    </tr><?php
-foreach ($taxonomies as $item): ?>
-    <tr>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['id']); ?>&nbsp;</td>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['namespace']); ?>&nbsp;</td>
-        <td ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['description']); ?>&nbsp;</td>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['version']); ?>&nbsp;</td>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo $item['Taxonomy']['enabled'] ? '<span class="green">Yes</span>' : '<span class="red">No</span>'; ?>&nbsp;</td>
-        <td class="short"><input type="checkbox" data-taxonomy-id="<?php echo h($item['Taxonomy']['id']); ?>" class="required-toggle" <?php echo $item['Taxonomy']['required'] ? 'checked' : '';?> id="TaxonomyRequired"<?= $isSiteAdmin ? '' : ' disabled' ?>></td>
-        <td class="shortish"><span><span class="bold"><?php echo h($item['current_count']);?></span> / <?php echo h($item['total_count']);?> <?php if ($item['current_count'] != $item['total_count'] && $isSiteAdmin && $item['Taxonomy']['enabled']) echo '(' . $this->Form->postLink(__('enable all'), array('action' => 'addTag', h($item['Taxonomy']['id'])), array('title' => __('Enable all tags')), (__('Are you sure you want to enable every tag associated to this taxonomy?'))) . ')'; ?></span></td>
-        <td class="short action-links">
-            <?php
-                if ($isSiteAdmin) {
-                    if ($item['Taxonomy']['enabled']) {
-                        echo $this->Form->postLink('', array('action' => 'disable', h($item['Taxonomy']['id'])), array('class' => 'icon-minus', 'title' => __('Disable')), (__('Are you sure you want to disable this taxonomy library?')));
-                    } else {
-                        echo $this->Form->postLink('', array('action' => 'enable', h($item['Taxonomy']['id'])), array('class' => 'icon-plus', 'title' => __('Enable')), (__('Are you sure you want to enable this taxonomy library?')));
-                    }
+<?= $this->element('/genericElements/IndexTable/index_table', ['data' => array(
+    'title' => __('Taxonomies'),
+    'data' => $taxonomies,
+    'top_bar' => array(
+        'children' => array(
+            array(
+                'type' => 'simple',
+                'children' => array(
+                    array(
+                        'url' => $baseurl . '/taxonomies/index',
+                        'text' => __('All'),
+                        'active' => !isset($passedArgsArray['enabled']),
+                    ),
+                    array(
+                        'url' => $baseurl . '/taxonomies/index/enabled:1',
+                        'text' => __('Enabled'),
+                        'active' => isset($passedArgsArray['enabled']) && $passedArgsArray['enabled'] === "1",
+                    ),
+                    array(
+                        'url' => $baseurl . '/taxonomies/index/enabled:0',
+                        'text' => __('Disabled'),
+                        'active' => isset($passedArgsArray['enabled']) && $passedArgsArray['enabled'] === "0",
+                    )
+                )
+            ),
+            array(
+                'type' => 'search',
+                'button' => __('Filter'),
+                'placeholder' => __('Enter value to search'),
+                'searchKey' => 'value',
+            )
+        )
+    ),
+    'fields' => array(
+        array(
+            'name' => __('ID'),
+            'sort' => 'id',
+            'class' => 'short',
+            'data_path' => 'Taxonomy.id'
+        ),
+        array(
+            'name' => __('Namespace'),
+            'sort' => 'namespace',
+            'class' => 'short',
+            'data_path' => 'Taxonomy.namespace'
+        ),
+        array(
+            'name' => __('Description'),
+            'sort' => 'description',
+            'data_path' => 'Taxonomy.description'
+        ),
+        array(
+            'name' => __('Version'),
+            'sort' => 'version',
+            'class' => 'short',
+            'data_path' => 'Taxonomy.version'
+        ),
+        array(
+            'name' => __('Enabled'),
+            'element' => 'boolean',
+            'sort' => 'enabled',
+            'class' => 'short',
+            'data_path' => 'Taxonomy.enabled',
+        ),
+        array(
+            'name' => __('Required'),
+            'element' => 'toggle',
+            'url' => $baseurl . '/taxonomies/toggleRequired',
+            'url_params_data_paths' => array(
+                'Taxonomy.id'
+            ),
+            'sort' => 'required',
+            'class' => 'short',
+            'data_path' => 'Taxonomy.required'
+        ),
+        array(
+            'name' => __('Active Tags'),
+            'element' => 'custom',
+            'class' => 'shortish',
+            'function' => function (array $item) use ($isSiteAdmin) {
+                $content = '<strong>' . h($item['current_count']) . '</strong> / ' . h($item['total_count']);
+                if ($item['current_count'] != $item['total_count'] && $isSiteAdmin && $item['Taxonomy']['enabled']) {
+                    $content .= ' (' . $this->Form->postLink(__('enable all'), array('action' => 'addTag', h($item['Taxonomy']['id'])), array('title' => __('Enable all tags')), __('Are you sure you want to enable every tag associated to this taxonomy?')) . ')';
                 }
-            ?>
-            <a href='<?php echo $baseurl."/taxonomies/view/". h($item['Taxonomy']['id']);?>' class = "fa fa-eye" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"></a>
-            <?php if ($isSiteAdmin): ?>
-            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete taxonomy');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete taxonomy');?>" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($item['Taxonomy']['id']); ?>', '<?php echo h($item['Taxonomy']['id']); ?>');"></span>
-            <?php endif; ?>
-        </td>
-    </tr><?php
-endforeach; ?>
-    </table>
-    <p>
-    <?php
-    echo $this->Paginator->counter(array(
-    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-    ));
-    ?>
-    </p>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-</div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'index'));
+                return $content;
+            }
+        ),
+    ),
+    'actions' => array(
+        array(
+            'title' => __('Enable'),
+            'icon' => 'play',
+            'postLink' => true,
+            'url' => $baseurl . '/taxonomies/enable',
+            'url_params_data_paths' => ['Taxonomy.id'],
+            'postLinkConfirm' => __('Are you sure you want to enable this taxonomy library?'),
+            'complex_requirement' => array(
+                'function' => function ($row, $options) use ($isSiteAdmin) {
+                    return $isSiteAdmin && !$options['datapath']['enabled'];
+                },
+                'options' => array(
+                    'datapath' => array(
+                        'enabled' => 'Taxonomy.enabled'
+                    )
+                )
+            ),
+        ),
+        array(
+            'title' => __('Disable'),
+            'icon' => 'stop',
+            'postLink' => true,
+            'url' => $baseurl . '/taxonomies/disable',
+            'url_params_data_paths' => ['Taxonomy.id'],
+            'postLinkConfirm' => __('Are you sure you want to disable this taxonomy library?'),
+            'complex_requirement' => array(
+                'function' => function ($row, $options) use ($isSiteAdmin) {
+                    return $isSiteAdmin && $options['datapath']['enabled'];
+                },
+                'options' => array(
+                    'datapath' => array(
+                        'enabled' => 'Taxonomy.enabled'
+                    )
+                )
+            ),
+        ),
+        array(
+            'onclick' => "deleteObject('taxonomies', 'delete', '[onclick_params_data_path]', '[onclick_params_data_path]');",
+            'onclick_params_data_path' => 'Taxonomy.id',
+            'icon' => 'trash',
+            'title' => __('Delete taxonomy'),
+            'requirement' => $isSiteAdmin,
+        ),
+        array(
+            'url' => $baseurl . '/taxonomies/view',
+            'url_params_data_paths' => array(
+                'Taxonomy.id'
+            ),
+            'icon' => 'eye',
+            'title' => __('View taxonomy'),
+            'dbclickAction' => true,
+        )
+    )
+)
+]);
 ?>
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('.required-toggle').click(function(e) {
-            changeTaxonomyRequiredState(this);
-        });
-    });
-</script>
+</div>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'index'));

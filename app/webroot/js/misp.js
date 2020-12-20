@@ -5147,27 +5147,6 @@ function submit_feed_overlap_tool(feedId) {
     });
 }
 
-function changeTaxonomyRequiredState(checkbox) {
-    var checkbox_state = $(checkbox).is(":checked");
-    var taxonomy_id = $(checkbox).data('taxonomy-id');
-    fetchFormDataAjax(baseurl + '/taxonomies/toggleRequired/' + taxonomy_id, function(formData) {
-        $.ajax({
-            data: $(formData).serialize(),
-            success:function (data, textStatus) {
-                handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
-            },
-            error:function() {
-                $(checkbox).prop('checked', !$(checkbox).prop('checked'));
-                handleGenericAjaxResponse({'saved':false, 'errors':['Could not toggle the required state of the taxonomy.']});
-            },
-            async:"false",
-            type:"post",
-            cache: false,
-            url: baseurl + '/taxonomies/toggleRequired/' + taxonomy_id,
-        });
-    });
-}
-
 function fetchFormDataAjax(url, callback, errorCallback) {
     var formData = false;
     $.ajax({
