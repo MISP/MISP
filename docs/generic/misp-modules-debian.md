@@ -24,7 +24,7 @@ mispmodules () {
   cd build
   $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
-  cd /usr/loca/src/faup
+  cd /usr/local/src/faup
   # Install faup
   $SUDO_CMD mkdir -p build
   cd build
