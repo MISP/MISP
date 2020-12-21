@@ -41,7 +41,14 @@
         echo $this->element('/genericElements/IndexTable/pagination', array('paginationOptions' => $paginationData));
         echo $this->element('/genericElements/IndexTable/pagination_links');
     }
+    $hasSearch = false;
     if (!empty($data['top_bar'])) {
+        foreach ($data['top_bar']['children'] as $child) {
+            if (isset($child['type']) && $child['type'] === 'search') {
+                $hasSearch = true;
+                break;
+            }
+        }
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));
     }
     $rows = '';
@@ -93,7 +100,6 @@
     }
     $url = $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
 ?>
-
 <script type="text/javascript">
     var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '[]'; ?>;
     <?php
@@ -102,6 +108,7 @@
         }
     ?>
     var url = "<?= $url ?>";
+    <?php if ($hasSearch): ?>
     $(function() {
         $('#quickFilterButton').click(function() {
             if (typeof(target) !== 'undefined') {
@@ -111,6 +118,7 @@
             }
         });
     });
+    <?php endif; ?>
     var ajax = <?= $ajax ? 'true' : 'false' ?>;
     if (ajax && typeof(target) !== 'undefined') {
         $(target + ' .pagination_link a').on('click', function() {
