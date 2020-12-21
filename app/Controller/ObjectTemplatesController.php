@@ -21,7 +21,7 @@ class ObjectTemplatesController extends AppController
 
     public function objectMetaChoice($event_id)
     {
-        $metas = $this->ObjectTemplate->find('list', array(
+        $metas = $this->ObjectTemplate->find('all', array(
             'recursive' => -1,
             'conditions' => array('ObjectTemplate.active' => 1),
             'fields' => array('meta-category'),
@@ -35,6 +35,7 @@ class ObjectTemplatesController extends AppController
             'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/0"
         ]];
         foreach ($metas as $meta) {
+            $meta = $meta['ObjectTemplate']['meta-category'];
             $items[] = array(
                 'name' => $meta,
                 'value' => $this->baseurl . "/ObjectTemplates/objectChoice/$eventId/" . h($meta)
