@@ -4697,7 +4697,7 @@ class Attribute extends AppModel
             $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams);
         }
         $tmpfile->write($exportTool->footer($exportToolParams));
-        return $tmpfile->finish();
+        return $tmpfile;
     }
 
     /**

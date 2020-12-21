@@ -180,7 +180,7 @@ class Feed extends AppModel
         $tmpFile->write(trim($data));
         unset($data);
 
-        return $tmpFile->csv();
+        return $tmpFile->intoParsedCsv();
     }
 
     /**
