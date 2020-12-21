@@ -332,7 +332,7 @@ class Sighting extends AppModel
             'fields' => ['org_id', 'attribute_id', 'type', 'date', 'last_timestamp', 'sighting_count'],
             'recursive' => -1,
             'group' => ['org_id', 'attribute_id', 'type', 'date'],
-            'order' => ['date_sighting'], // from oldest
+            'order' => ['date'], // from oldest
         ));
         unset(
             $this->virtualFields['date'],
@@ -369,7 +369,7 @@ class Sighting extends AppModel
             'conditions' => $conditions,
             'fields' => [ucfirst($context) . 'Tag.tag_id', 'date', 'sighting_count'],
             'group' => [ucfirst($context) . 'Tag.id', 'date'],
-            'order' => ['date_sighting'], // from oldest
+            'order' => ['date'], // from oldest
         ]);
         unset($this->virtualFields['date'], $this->virtualFields['sighting_count']);
         return $sightings;
