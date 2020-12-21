@@ -3927,7 +3927,7 @@ class Server extends AppModel
         if ($this->testForEmpty($value) !== true) {
             return $this->testForEmpty($value);
         }
-        $regex = "/^(?<proto>https?):\/\/(?<host>([\w,\.]+))(?::(?<port>[0-9]+))?(?<base>\/[a-z0-9_\-\.]+)?$/i";
+        $regex = "/^(?<proto>https?):\/\/(?<host>([\w,\-,\.]+))(?::(?<port>[0-9]+))?(?<base>\/[a-z0-9_\-\.]+)?$/i";
 	if (
             !preg_match($regex, $value, $matches) ||
             strtolower($matches['proto']) != strtolower($this->getProto()) ||
