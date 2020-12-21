@@ -207,7 +207,7 @@ class SharingGroup extends AppModel
             $sgs = $this->find('all', array(
                 'contain' => ['SharingGroupOrg' => ['org_id']],
                 'conditions' => $conditions,
-                'fields' => ['SharingGroup.id', 'SharingGroup.name'],
+                'fields' => ['SharingGroup.id', 'SharingGroup.name', 'SharingGroup.org_id'],
                 'order' => 'SharingGroup.name ASC'
             ));
             return $this->appendOrgsAndServers($sgs, ['id', 'name'], []);

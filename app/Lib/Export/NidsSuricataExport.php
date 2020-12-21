@@ -229,4 +229,49 @@ class NidsSuricataExport extends NidsExport
                 1								// rev
         );
     }
+
+    public function ja3Rule($ruleFormat, $attribute, &$sid)
+    {
+        $overruled = $this->checkWhitelist($attribute['value']);
+        $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+        $content = 'ja3.hash; content:"' . $attribute['value'] . '"; fast_pattern;';
+        $this->rules[] = sprintf(
+            $ruleFormat,
+                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                'tls',						// proto
+                'any',					// src_ip
+                'any',							// src_port
+                '->',							// direction
+                'any',				// dst_ip
+                'any',					// dst_port
+                'JA3 Hash: ' . $attribute['value'],		// msg
+                $content,						// rule_content
+                'tag:session,600,seconds;',		// tag
+                $sid,							// sid
+                1								// rev
+        );
+    }
+
+    // For Future use once JA3S Hash Attribute type is created
+    public function ja3sRule($ruleFormat, $attribute, &$sid)
+    {
+        $overruled = $this->checkWhitelist($attribute['value']);
+        $attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+        $content = 'ja3s.hash; content:"' . $attribute['value'] . '"; fast_pattern;';
+        $this->rules[] = sprintf(
+            $ruleFormat,
+                ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+                'tls',						// proto
+                'any',					// src_ip
+                'any',							// src_port
+                '->',							// direction
+                'any',				// dst_ip
+                'any',					// dst_port
+                'JA3S Hash: ' . $attribute['value'],		// msg
+                $content,						// rule_content
+                'tag:session,600,seconds;',		// tag
+                $sid,							// sid
+                1								// rev
+        );
+    }
 }

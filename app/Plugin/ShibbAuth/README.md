@@ -68,7 +68,7 @@ Edit your MISP apache configuration by adding the below (location depends on you
 ```Apache
   <Location /Shibboleth.sso>
     SetHandler shib
-  </Locations>
+  </Location>
 ```
 
 Enable the plugin at bootstrap.php:

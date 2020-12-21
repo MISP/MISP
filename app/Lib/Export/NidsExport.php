@@ -189,6 +189,12 @@ class NidsExport
                 case 'user-agent':
                     $this->userAgentRule($ruleFormat, $item['Attribute'], $sid);
                     break;
+                case 'ja3-fingerprint-md5':
+                    $this->ja3Rule($ruleFormat, $item['Attribute'], $sid);
+                    break;
+                case 'ja3s-fingerprint-md5': // Atribute type doesn't exists yet (2020-12-10) but ready when created.
+                    $this->ja3sRule($ruleFormat, $item['Attribute'], $sid);
+                    break;
                 case 'snort':
                     $this->snortRule($ruleFormat, $item['Attribute'], $sid, $ruleFormatMsg, $ruleFormatReference);
                     // no break
@@ -501,6 +507,16 @@ class NidsExport
                 $sid,							// sid
                 1								// rev
         );
+    }
+
+    public function ja3Rule($ruleFormat, $attribute, &$sid)
+    {
+        //Empty because Snort doesn't support JA3 Rules
+    }
+
+    public function ja3sRule($ruleFormat, $attribute, &$sid)
+    {
+        //Empty because Snort doesn't support JA3S Rules
     }
 
     public function snortRule($ruleFormat, $attribute, &$sid, $ruleFormatMsg, $ruleFormatReference)
