@@ -641,39 +641,50 @@ class User extends AppModel
     // get the current user and rearrange it to be in the same format as in the auth component
     public function getAuthUser($id)
     {
-        $user = $this->getUserById($id);
-        if (empty($user)) {
-            return $user;
+        if (empty($id)) {
+            throw new InvalidArgumentException('Invalid user ID.');
         }
-        return $this->rearrangeToAuthForm($user);
+        $conditions = ['User.id' => $id];
+        return $this->getAuthUserByConditions($conditions);
     }
 
     // get the current user and rearrange it to be in the same format as in the auth component
-    public function getAuthUserByAuthkey($id)
+    public function getAuthUserByAuthkey($authkey)
     {
-        $conditions = array('User.authkey' => $id);
-        $user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
-        if (empty($user)) {
-            return $user;
+        if (empty($authkey)) {
+            throw new InvalidArgumentException('Invalid user auth key.');
         }
-        return $this->rearrangeToAuthForm($user);
+        $conditions = array('User.authkey' => $authkey);
+        return $this->getAuthUserByConditions($conditions);
     }
 
     public function getAuthUserByExternalAuth($auth_key)
     {
+        if (empty($auth_key)) {
+            throw new InvalidArgumentException('Invalid user external auth key.');
+        }
         $conditions = array(
             'User.external_auth_key' => $auth_key,
             'User.external_auth_required' => true
         );
-        $user = $this->find('first', array(
+        return $this->getAuthUserByConditions($conditions);
+    }
+
+    /**
+     * @param array $conditions
+     * @return array|null
+     */
+    private function getAuthUserByConditions(array $conditions)
+    {
+        $user = $this->find('first', [
             'conditions' => $conditions,
             'recursive' => -1,
-            'contain' => array(
+            'contain' => [
                 'Organisation',
                 'Role',
-                'Server'
-            )
-        ));
+                'Server',
+            ],
+        ]);
         if (empty($user)) {
             return $user;
         }
@@ -696,9 +707,6 @@ class User extends AppModel
         $user['User']['Role'] = $user['Role'];
         $user['User']['Organisation'] = $user['Organisation'];
         $user['User']['Server'] = $user['Server'];
-        if (isset($user['UserSetting'])) {
-            $user['User']['UserSetting'] = $user['UserSetting'];
-        }
         return $user['User'];
     }
 
@@ -967,7 +975,7 @@ class User extends AppModel
         if ($result) {
             $this->id = $user['User']['id'];
             $this->saveField('password', $password);
-            $this->saveField('change_pw', '1');
+            $this->updateField($user['User'], 'change_pw', 1);
             if ($simpleReturn) {
                 return true;
             } else {
@@ -1142,7 +1150,7 @@ class User extends AppModel
         if (empty(Configure::read('Security.advanced_authkeys'))) {
             $oldKey = $this->data['User']['authkey'];
             $newkey = $this->generateAuthKey();
-            $this->saveField('authkey', $newkey);
+            $this->updateField($updatedUser['User'], 'authkey', $newkey);
             $this->extralog(
                     $user,
                     'reset_auth_key',
@@ -1286,24 +1294,6 @@ class User extends AppModel
         return $data;
     }
 
-    /*
-     *  Set the monitoring flag in Configure for the current user
-     *  Reads the state from redis
-     */
-    public function setMonitoring($user)
-    {
-        if (
-            !empty(Configure::read('Security.user_monitoring_enabled'))
-        ) {
-            $redis = $this->setupRedis();
-            if (!empty($redis->sismember('misp:monitored_users', $user['id']))) {
-                Configure::write('Security.monitored', 1);
-                return true;
-            }
-        }
-        Configure::write('Security.monitored', 0);
-    }
-
     public function registerUser($added_by, $registration, $org_id, $role_id) {
         $user = array(
                 'email' => $registration['data']['email'],
@@ -1403,7 +1393,7 @@ class User extends AppModel
             $name => $value,
         ], true, ['id', $name, 'date_modified']);
         if (!$success) {
-            throw new RuntimeException("Could not save field `$name` with value `$value` for user `{$user['id']}`.");
+            throw new RuntimeException("Could not save setting $name for user {$user['id']}.");
         }
     }
 

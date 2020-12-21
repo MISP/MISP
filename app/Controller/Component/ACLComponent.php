@@ -15,13 +15,11 @@ class ACLComponent extends Component
     private $__aclList = array(
             '*' => array(
                     'blackhole' => array(),
-                    'checkAction' => array(),
                     'checkAuthUser' => array(),
                     'checkExternalAuthUser' => array(),
                     'cleanModelCaches' => array(),
                     'debugACL' => array(),
                     'generateCount' => array(),
-                    'getActions' => array(),
                     'pruneDuplicateUUIDs' => array(),
                     'queryACL' => array(),
                     'removeDuplicateEvents' => array(),

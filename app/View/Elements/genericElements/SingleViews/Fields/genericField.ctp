@@ -1,5 +1,5 @@
 <?php
-if (!empty($field['raw'])) {
+if (isset($field['raw'])) {
     $string = $field['raw'];
 } else {
     $value = Hash::extract($data, $field['path']);
