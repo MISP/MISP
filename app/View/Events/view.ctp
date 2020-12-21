@@ -74,17 +74,15 @@
             }
         }
         if (!empty($contributors)) {
-            $contributorsContent = '';
+            $contributorsContent = [];
             foreach ($contributors as $organisationId => $name) {
-                $contributorsContent .= sprintf(
-                    '<a href="%s">%s</a>',
-                    $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($name),
-                    $this->OrgImg->getOrgImg(array('name' => $name, 'id' => $organisationId, 'size' => 24), true, true)
-                );
+                $org = ['Organisation' => ['id' => $organisationId, 'name' => $name]];
+                $link = $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($name);
+                $contributorsContent[] =  $this->OrgImg->getNameWithImg($org, $link);
             }
             $table_data[] = array(
                 'key' => __('Contributors'),
-                'html' => $contributorsContent
+                'html' => implode("<br>", $contributorsContent),
             );
         }
         if (isset($event['User']['email'])) {
