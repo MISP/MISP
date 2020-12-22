@@ -2211,6 +2211,7 @@ function cancelSearch() {
     $('#quickFilterButton').click();
 }
 
+// Deprecated, when possible use runIndexQuickFilterFixed that is cleaner
 function runIndexQuickFilter(preserveParams, url, target) {
     if (typeof passedArgsArray === "undefined") {
         var passedArgsArray = [];
@@ -2249,6 +2250,54 @@ function runIndexQuickFilter(preserveParams, url, target) {
             url += "/" + passedArgsArray[key];
         } else if (key !== 'page') {
             url += "/" + key + ":" + passedArgsArray[key];
+        }
+    }
+
+    if (target !== undefined) {
+        $.ajax({
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
+                $(target).html(data);
+            },
+            error: function() {
+                showMessage('fail', 'Could not fetch the requested data.');
+            },
+            complete: function() {
+                $(".loading").hide();
+            },
+            type: "get",
+            url: url
+        });
+    } else {
+        window.location.href = url;
+    }
+}
+
+/**
+ * @param {object} preserveParams
+ * @param {string} url
+ * @param {string} [target]
+ */
+function runIndexQuickFilterFixed(preserveParams, url, target) {
+    var $quickFilterField = $('#quickFilterField');
+    var searchKey;
+    if ($quickFilterField.data('searchkey')) {
+        searchKey = $quickFilterField.data('searchkey');
+    } else {
+        searchKey = 'searchall';
+    }
+    if ($quickFilterField.val().trim().length > 0) {
+        preserveParams[searchKey] = encodeURIComponent($quickFilterField.val().trim());
+    } else {
+        delete preserveParams[searchKey]
+    }
+    for (var key in preserveParams) {
+        if (typeof key == 'number') {
+            url += "/" + preserveParams[key];
+        } else if (key !== 'page') {
+            url += "/" + key + ":" + preserveParams[key];
         }
     }
 
@@ -5392,13 +5441,18 @@ function loadClusterRelations(clusterId) {
 }
 
 function submitGenericFormInPlace() {
+    var $genericForm = $('.genericForm');
     $.ajax({
         type: "POST",
-        url: $('.genericForm').attr('action'),
-        data: $('.genericForm').serialize(), // serializes the form's elements.
-        success: function(data)
-        {
-            $('#genericModal').remove();
+        url: $genericForm.attr('action'),
+        data: $genericForm.serialize(), // serializes the form's elements.
+        success: function(data) {
+            if (typeof data === "object" && data.hasOwnProperty('redirect')) {
+                window.location = data.redirect;
+                return;
+            }
+
+            $('#genericModal').modal('hide').remove();
             $('body').append(data);
             $('#genericModal').modal();
         }

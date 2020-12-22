@@ -2,6 +2,7 @@
 
 class CRUDComponent extends Component
 {
+    /** @var AppController */
     public $Controller = null;
 
     public function initialize(Controller $controller, $settings=array()) {
@@ -114,7 +115,15 @@ class CRUDComponent extends Component
                         $this->Controller->render($params['displayOnSuccess']);
                         return;
                     }
-                    $this->Controller->redirect(['action' => 'index']);
+
+                    $redirect = isset($params['redirect']) ? $params['redirect'] : ['action' => 'index'];
+                    // For AJAX requests doesn't make sense to redirect, redirect must be done on javascript side in `submitGenericFormInPlace`
+                    if ($this->Controller->request->is('ajax')) {
+                        $redirect = Router::url($redirect);
+                        $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData(['redirect' => $redirect], 'json');
+                    } else {
+                        $this->Controller->redirect($redirect);
+                    }
                 }
             } else {
                 $message = __('%s could not be added.', $modelName);
@@ -166,9 +175,10 @@ class CRUDComponent extends Component
                 $message = __('%s updated.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
+                    return;
                 } else {
                     $this->Controller->Flash->success($message);
-                    $this->Controller->redirect(['action' => 'index']);
+                    $this->Controller->redirect(isset($params['redirect']) ? $params['redirect'] : ['action' => 'index']);
                 }
             } else {
                 if ($this->Controller->IndexFilter->isRest()) {
@@ -229,7 +239,18 @@ class CRUDComponent extends Component
         if (empty($data)) {
             throw new NotFoundException(__('Invalid %s.', $modelName));
         }
-        if ($this->Controller->request->is('post') || $this->Controller->request->is('delete')) {
+        $validationError = null;
+        if (isset($params['validate'])) {
+            try {
+                $params['validate']($data);
+            } catch (Exception $e) {
+                $validationError = $e->getMessage();
+                if ($this->Controller->IndexFilter->isRest()) {
+                    $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($modelName, 'delete', $id, $validationError);
+                }
+            }
+        }
+        if ($validationError === null && $this->Controller->request->is('post') || $this->Controller->request->is('delete')) {
             if (!empty($params['modelFunction'])) {
                 $result = $this->Controller->$modelName->{$params['modelFunction']}($id);
             } else {
@@ -239,12 +260,14 @@ class CRUDComponent extends Component
                 $message = __('%s deleted.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveSuccessResponse($modelName, 'delete', $id, 'json', $message);
+                    return;
                 } else {
                     $this->Controller->Flash->success($message);
                     $this->Controller->redirect($this->Controller->referer());
                 }
             }
         }
+        $this->Controller->set('validationError', $validationError);
         $this->Controller->set('id', $data[$modelName]['id']);
         $this->Controller->set('data', $data);
         $this->Controller->layout = 'ajax';

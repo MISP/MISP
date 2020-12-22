@@ -6,6 +6,7 @@ App::uses('AppModel', 'Model');
  */
 class Role extends AppModel
 {
+    public $recursive = -1;
     public $validate = array(
         'valueNotEmpty' => array(
             'rule' => array('valueNotEmpty'),

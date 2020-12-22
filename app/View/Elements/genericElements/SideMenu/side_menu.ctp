@@ -933,7 +933,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'indexRole',
-                        'url' => $baseurl . '/admin/roles/index',
+                        'url' => $baseurl . '/roles/index',
                         'text' => __('List Roles')
                     ));
                     if ($isSiteAdmin) {

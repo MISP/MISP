@@ -9,8 +9,6 @@ App::uses('AppController', 'Controller');
  */
 class RolesController extends AppController
 {
-    public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage & Publish Organization Events'); // FIXME move this to Role Model
-
     public $components = array(
         'Security',
         'Session',
@@ -28,36 +26,32 @@ class RolesController extends AppController
 
     public function view($id=false)
     {
-        $this->set('menuData', ['menuList' => 'globalActions', 'menuItem' => 'roles']);
         $this->CRUD->view($id);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
         $this->set('permissionLevelName', $this->Role->premissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
+        $this->set('menuData', ['menuList' => 'globalActions', 'menuItem' => 'roles']);
     }
 
     public function admin_add()
     {
-        $this->set('menuData', array('menuList' => 'admin', 'menuItem' => 'addRole'));
-        $params = [];
-        $selectConditions = [];
+        $params = ['redirect' => ['action' => 'index', 'admin' => false]];
         $this->CRUD->add($params);
-        if ($this->IndexFilter->isRest()) {
+        if ($this->restResponsePayload) {
             return $this->restResponsePayload;
         }
         $this->set('permFlags', $this->Role->permFlags);
         $dropdownData = [
-            'options' => $this->options
+            'options' => $this->Role->premissionLevelName,
         ];
         $this->set(compact('dropdownData'));
+        $this->set('menuData', array('menuList' => 'admin', 'menuItem' => 'addRole'));
     }
 
     public function admin_edit($id = null)
     {
-        if (!$this->_isSiteAdmin()) {
-            $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
-        }
         $this->Role->id = $id;
         if (!$this->Role->exists() && !$this->request->is('get')) {
             throw new NotFoundException(__('Invalid Role'));
@@ -76,7 +70,7 @@ class RolesController extends AppController
                     return $this->RestResponse->viewData($role, $this->response->type());
                 } else {
                     $this->Flash->success(__('The Role has been saved'));
-                    $this->redirect(array('action' => 'index'));
+                    $this->redirect(array('action' => 'index', 'admin' => false));
                 }
             } else {
                 if ($this->_isRest()) {
@@ -94,12 +88,30 @@ class RolesController extends AppController
             $this->request->data['Role']['id'] = $id;
             $this->request->data = $this->Role->read(null, $id);
         }
-        $this->set('options', $this->options);
+        $this->set('options', $this->Role->premissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
         $this->set('id', $id);
     }
 
-    public function admin_index($id = false)
+    public function admin_delete($id = null)
+    {
+        $this->CRUD->delete($id, [
+            'validate' => function (array $role) {
+                $usersWithRole = $this->User->find('count', [
+                    'conditions' => ['role_id' => $role['Role']['id']],
+                    'recursive' => -1,
+                ]);
+                if ($usersWithRole) {
+                    throw new Exception(__("It is not possible to delete role that is assigned to users."));
+                }
+            }
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+    }
+
+    public function index()
     {
         $params = [
             'filters' => ['name'],
@@ -108,43 +120,21 @@ class RolesController extends AppController
                 $this->loadModel('AdminSetting');
                 $default_setting = $this->AdminSetting->getSetting('default_role');
                 foreach ($elements as &$role) {
-                    $role['Role']['default'] = ($role['Role']['id'] == $default_setting) ? true : false;
+                    $role['Role']['default'] = $role['Role']['id'] == $default_setting;
                 }
                 return $elements;
             }
         ];
-        //$this->paginate['fields'] = ['id', 'name'];
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        $this->set('options', $this->Role->premissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
-        $this->set('menuData', array('menuList' => 'globalActions', 'menuItem' => 'roles'));
-    }
-
-    public function admin_delete($id = null)
-    {
-        $this->CRUD->delete($id);
-        if ($this->IndexFilter->isRest()) {
-            return $this->restResponsePayload;
-        }
-    }
-
-    public function index()
-    {
-        $this->recursive = 0;
-        if ($this->_isRest()) {
-            $roles = $this->Role->find('all', array(
-                'recursive' => -1
-            ));
-            return $this->RestResponse->viewData($roles, $this->response->type());
-        } else {
-            $this->set('list', $this->paginate());
-            $this->set('permFlags', $this->Role->permFlags);
-            $this->loadModel('AdminSetting');
-            $this->set('default_role_id', $this->AdminSetting->getSetting('default_role'));
-            $this->set('options', $this->options);
-        }
+        $this->set('menuData', $this->_isAdmin() ?
+            ['menuList' => 'admin', 'menuItem' => 'indexRole'] :
+            ['menuList' => 'globalActions', 'menuItem' => 'roles']
+        );
     }
 
     public function admin_set_default($role_id = false)

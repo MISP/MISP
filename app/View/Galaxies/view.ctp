@@ -30,7 +30,7 @@
 </div>
 
 <script type="text/javascript">
-$(document).ready(function () {
+$(function () {
     <?php
         $uri = $baseurl . "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
         if (isset($passedArgsArray) && isset($passedArgsArray['context']) && $passedArgsArray['context'] == 'fork_tree') {
@@ -46,7 +46,7 @@ $(document).ready(function () {
     ?>
     $.get("<?php echo h($uri);?>", function(data) {
         $("#clusters_div").html(data);
-    });
+    }).fail(xhrFailCallback);
 
     var $kco = $('#killChainOrder');
     if ($kco && $kco.length > 0) {
