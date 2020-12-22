@@ -112,6 +112,7 @@ class RolesController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        $this->set('options', $this->Role->premissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
         $this->set('menuData', array('menuList' => 'globalActions', 'menuItem' => 'roles'));
     }

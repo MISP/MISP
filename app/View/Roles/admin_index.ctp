@@ -18,6 +18,14 @@
             'name' => __('Name'),
             'sort' => 'Role.name',
             'data_path' => 'Role.name'
+        ],
+        [
+            'name' => __('Permission'),
+            'sort' => 'Role.permission',
+            'element' => 'custom',
+            'function' => function (array $row) use ($options) {
+                return $options[$row['Role']['permission']];
+            }
         ]
     ];
 
@@ -26,7 +34,10 @@
             'name' => Inflector::Humanize(substr($k, 5)),
             'sort' => 'Role.' . $k,
             'data_path' => 'Role.' . $k,
-            'element' => 'boolean'
+            'element' => 'boolean',
+            'rotate_header' => true,
+            'class' => 'rotate',
+            'colors' => true,
         ];
     }
 

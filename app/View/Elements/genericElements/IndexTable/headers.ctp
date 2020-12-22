@@ -19,11 +19,19 @@
                 } else {
                     $header_data = h($header['name']);
                 }
-
             }
+            $classes = [];
+            if (!empty($header['sort'])) {
+                $classes[] = 'pagination_link';
+            }
+            if (!empty($header['rotate_header'])) {
+                $classes[] = 'rotate';
+                $header_data = "<div><span>$header_data</span></div>";
+            }
+
             $headersHtml .= sprintf(
                 '<th%s>%s</th>',
-                !empty($header['sort']) ? ' class="pagination_link"' : '',
+                !empty($classes) ? ' class="' . implode(' ', $classes) .'"' : '',
                 $header_data
             );
         }
