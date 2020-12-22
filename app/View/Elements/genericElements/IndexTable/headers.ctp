@@ -30,8 +30,9 @@
             }
 
             $headersHtml .= sprintf(
-                '<th%s>%s</th>',
+                '<th%s%s>%s</th>',
                 !empty($classes) ? ' class="' . implode(' ', $classes) .'"' : '',
+                !empty($header['header_title']) ? ' title="' . h($header['header_title']) . '"' : '',
                 $header_data
             );
         }

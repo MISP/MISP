@@ -39,7 +39,8 @@ $fields = [
 
 foreach ($permFlags as $k => $permFlag) {
     $fields[] = [
-        'name' => Inflector::Humanize(substr($k, 5)),
+        'name' => $isAdmin ? $permFlag['text'] : Inflector::Humanize(substr($k, 5)),
+        'header_title' => $permFlag['title'],
         'sort' => 'Role.' . $k,
         'data_path' => 'Role.' . $k,
         'element' => 'boolean',
