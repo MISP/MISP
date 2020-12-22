@@ -95,7 +95,17 @@ class RolesController extends AppController
 
     public function admin_delete($id = null)
     {
-        $this->CRUD->delete($id);
+        $this->CRUD->delete($id, [
+            'validate' => function (array $role) {
+                $usersWithRole = $this->User->find('count', [
+                    'conditions' => ['role_id' => $role['Role']['id']],
+                    'recursive' => -1,
+                ]);
+                if ($usersWithRole) {
+                    throw new Exception(__("It is not possible to delete role that is assigned to users."));
+                }
+            }
+        ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }

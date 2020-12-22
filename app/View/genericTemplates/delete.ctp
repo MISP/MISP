@@ -8,6 +8,14 @@ $title = Inflector::singularize(Inflector::humanize(Inflector::underscore($this-
         </button>
         <h3 id="genericModalLabel"><?= __('Delete %s', h($title)) ?></h3>
     </div>
+    <?php if ($validationError): ?>
+        <div class="modal-body modal-body-long">
+            <p><?= h($validationError) ?></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary cancel-button" data-dismiss="modal"><?= __('Cancel') ?></button>
+        </div>
+    <?php else: ?>
     <div class="modal-body modal-body-long">
         <p><?= __('Are you sure you want to delete %s #%s?', h($title), h($id)) ?></p>
     </div>
@@ -20,6 +28,7 @@ $title = Inflector::singularize(Inflector::humanize(Inflector::underscore($this-
         ?>
         <button type="button" class="btn btn-secondary cancel-button" data-dismiss="modal"><?= __('Cancel') ?></button>
     </div>
+    <?php endif; ?>
 </div>
 <script type="text/javascript">
     $(document).keydown(function(e) {
