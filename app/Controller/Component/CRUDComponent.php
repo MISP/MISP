@@ -115,7 +115,15 @@ class CRUDComponent extends Component
                         $this->Controller->render($params['displayOnSuccess']);
                         return;
                     }
-                    $this->Controller->redirect(isset($params['redirect']) ? $params['redirect'] : ['action' => 'index']);
+
+                    $redirect = isset($params['redirect']) ? $params['redirect'] : ['action' => 'index'];
+                    // For AJAX requests doesn't make sense to redirect, redirect must be done on javascript side in `submitGenericFormInPlace`
+                    if ($this->Controller->request->is('ajax')) {
+                        $redirect = Router::url($redirect);
+                        $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData(['redirect' => $redirect], 'json');
+                    } else {
+                        $this->Controller->redirect($redirect);
+                    }
                 }
             } else {
                 $message = __('%s could not be added.', $modelName);

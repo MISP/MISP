@@ -5441,13 +5441,18 @@ function loadClusterRelations(clusterId) {
 }
 
 function submitGenericFormInPlace() {
+    var $genericForm = $('.genericForm');
     $.ajax({
         type: "POST",
-        url: $('.genericForm').attr('action'),
-        data: $('.genericForm').serialize(), // serializes the form's elements.
-        success: function(data)
-        {
-            $('#genericModal').remove();
+        url: $genericForm.attr('action'),
+        data: $genericForm.serialize(), // serializes the form's elements.
+        success: function(data) {
+            if (typeof data === "object" && data.hasOwnProperty('redirect')) {
+                window.location = data.redirect;
+                return;
+            }
+
+            $('#genericModal').modal('hide').remove();
             $('body').append(data);
             $('#genericModal').modal();
         }

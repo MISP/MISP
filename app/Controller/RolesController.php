@@ -37,9 +37,9 @@ class RolesController extends AppController
 
     public function admin_add()
     {
-        $params = ['redirect' => ['controller' => 'roles', 'action' => 'index']];
+        $params = ['redirect' => ['action' => 'index', 'admin' => false]];
         $this->CRUD->add($params);
-        if ($this->IndexFilter->isRest()) {
+        if ($this->restResponsePayload) {
             return $this->restResponsePayload;
         }
         $this->set('permFlags', $this->Role->permFlags);
@@ -70,7 +70,7 @@ class RolesController extends AppController
                     return $this->RestResponse->viewData($role, $this->response->type());
                 } else {
                     $this->Flash->success(__('The Role has been saved'));
-                    $this->redirect(array('action' => 'index', 'controller' => 'role'));
+                    $this->redirect(array('action' => 'index', 'admin' => false));
                 }
             } else {
                 if ($this->_isRest()) {
