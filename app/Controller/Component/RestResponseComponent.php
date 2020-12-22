@@ -519,11 +519,12 @@ class RestResponseComponent extends Component
             } else {
                 $type = $format;
             }
+            $dumpSql = !empty($this->Controller->sql_dump) && Configure::read('debug') > 1;
             if (!$raw) {
                 if (is_string($response)) {
                     $response = array('message' => $response);
                 }
-                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
                     if ($this->Controller->sql_dump === 2) {
                         $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
@@ -533,7 +534,7 @@ class RestResponseComponent extends Component
                 }
                 $response = json_encode($response, JSON_PRETTY_PRINT);
             } else {
-                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
                     if ($this->Controller->sql_dump === 2) {
                         $response = json_encode(array('sql_dump' => $this->Log->getDataSource()->getLog(false, false)));
@@ -547,7 +548,15 @@ class RestResponseComponent extends Component
                 }
             }
         }
-        $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+
+        App::uses('TmpFileTool', 'Tools');
+        if ($response instanceof TmpFileTool) {
+            App::uses('CakeResponseTmp', 'Tools');
+            $cakeResponse = new CakeResponseTmp(['status' => $code, 'type' => $type]);
+            $cakeResponse->file($response);
+        } else {
+            $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+        }
 
         if (Configure::read('Security.allow_cors')) {
             $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";

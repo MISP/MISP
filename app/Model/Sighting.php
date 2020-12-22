@@ -140,7 +140,13 @@ class Sighting extends AppModel
         return $this->save($sighting);
     }
 
-    public function getSighting($id, $user)
+    /**
+     * @param int $id
+     * @param array $user
+     * @param bool $withEvent
+     * @return array
+     */
+    public function getSighting($id, array $user, $withEvent = true)
     {
         $sighting = $this->find('first', array(
             'recursive' => -1,
@@ -149,10 +155,7 @@ class Sighting extends AppModel
                     'fields' => array('Attribute.value', 'Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids')
                 ),
                 'Event' => array(
-                    'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'),
-                    'Orgc' => array(
-                        'fields' => array('Orgc.name')
-                    )
+                    'fields' => $withEvent ? ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'] : ['Event.org_id'],
                 )
             ),
             'conditions' => array('Sighting.id' => $id)
@@ -161,11 +164,7 @@ class Sighting extends AppModel
             return array();
         }
 
-        if (!isset($event)) {
-            $event = array('Event' => $sighting['Event']);
-        }
-
-        $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
+        $ownEvent = $user['Role']['perm_site_admin'] || $sighting['Event']['org_id'] == $user['org_id'];
         if (!$ownEvent) {
             $sightingPolicy = $this->sightingsPolicy();
             // if sighting policy == 0 then return false if the sighting doesn't belong to the user
@@ -181,26 +180,24 @@ class Sighting extends AppModel
                 }
             }
         }
+
+        // Put event organisation name from cache
+        if ($withEvent) {
+            $sighting['Event']['Orgc']['name'] = $this->getOrganisationById($sighting['Event']['orgc_id'])['name'];
+        }
+
         $anonymise = Configure::read('Plugin.Sightings_anonymise');
-        if ($anonymise) {
-            if ($sighting['Sighting']['org_id'] != $user['org_id']) {
-                unset($sighting['Sighting']['org_id']);
-                unset($sighting['Organisation']);
-            }
+        if ($anonymise && $sighting['Sighting']['org_id'] != $user['org_id']) {
+            unset($sighting['Sighting']['org_id']);
         }
         // rearrange it to match the event format of fetchevent
-        if (isset($sighting['Organisation'])) {
-            $sighting['Sighting']['Organisation'] = $sighting['Organisation'];
-            unset($sighting['Organisation']);
-        }
         $result = array(
             'Sighting' => $sighting['Sighting']
         );
-        $result['Sighting']['Event'] = $sighting['Event'];
-        $result['Sighting']['Attribute'] = $sighting['Attribute'];
-        if (!empty($sighting['Organisation'])) {
-            $result['Sighting']['Organisation'] = $sighting['Organisation'];
+        if ($withEvent) {
+            $result['Sighting']['Event'] = $sighting['Event'];
         }
+        $result['Sighting']['Attribute'] = $sighting['Attribute'];
         return $result;
     }
 
@@ -332,7 +329,7 @@ class Sighting extends AppModel
             'fields' => ['org_id', 'attribute_id', 'type', 'date', 'last_timestamp', 'sighting_count'],
             'recursive' => -1,
             'group' => ['org_id', 'attribute_id', 'type', 'date'],
-            'order' => ['date_sighting'], // from oldest
+            'order' => ['date'], // from oldest
         ));
         unset(
             $this->virtualFields['date'],
@@ -369,7 +366,7 @@ class Sighting extends AppModel
             'conditions' => $conditions,
             'fields' => [ucfirst($context) . 'Tag.tag_id', 'date', 'sighting_count'],
             'group' => [ucfirst($context) . 'Tag.id', 'date'],
-            'order' => ['date_sighting'], // from oldest
+            'order' => ['date'], // from oldest
         ]);
         unset($this->virtualFields['date'], $this->virtualFields['sighting_count']);
         return $sightings;
@@ -659,6 +656,10 @@ class Sighting extends AppModel
         return $result;
     }
 
+    /**
+     * @return bool
+     * @deprecated
+     */
     public function addUuids()
     {
         $sightings = $this->find('all', array(
@@ -864,48 +865,27 @@ class Sighting extends AppModel
         }
 
         // fetch sightings matching the query
-        $sightings = $this->find('list', array(
+        $sightingIds = $this->find('list', array(
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => array('id'),
             'contain' => $contain,
         ));
 
-        $filters['requested_attributes'] = array('id', 'attribute_id', 'event_id', 'org_id', 'date_sighting', 'uuid', 'source', 'type');
-
-        // apply ACL and sighting policies
-        $allowedSightings = array();
-        $additional_attribute_added = false;
-        $additional_event_added = false;
-        foreach ($sightings as $sid) {
-            $sight = $this->getSighting($sid, $user);
-            if (!empty($sight)) {
-                $sight['Sighting']['value'] = $sight['Sighting']['Attribute']['value'];
-                // by default, do not include event and attribute
-                if (!isset($filters['includeAttribute']) || !$filters['includeAttribute']) {
-                    unset($sight["Sighting"]["Attribute"]);
-                } else if (!$additional_attribute_added) {
-                    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value'));
-                    $additional_attribute_added = true;
-                }
-
-                if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
-                    unset($sight["Sighting"]["Event"]);
-                } else if (!$additional_event_added) {
-                    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
-                    $additional_event_added = true;
-                }
-                $allowedSightings[] = $sight;
-            }
+        $includeAttribute = isset($filters['includeAttribute']) && $filters['includeAttribute'];
+        $includeEvent = isset($filters['includeEvent']) && $filters['includeEvent'];
+        $requestedAttributes = ['id', 'attribute_id', 'event_id', 'org_id', 'date_sighting', 'uuid', 'source', 'type'];
+        if ($includeAttribute) {
+            $requestedAttributes = array_merge($requestedAttributes, ['attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value']);
         }
-
-        $params = array(
-            'conditions' => array(), //result already filtered
-        );
+        if ($includeEvent) {
+            $requestedAttributes = array_merge($requestedAttributes, ['event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name']);
+        }
+        $filters['requested_attributes'] = $requestedAttributes;
 
         $exportToolParams = array(
             'user' => $user,
-            'params' => $params,
+            'params' => ['conditions' => []],  //result already filtered
             'returnFormat' => $returnFormat,
             'scope' => 'Sighting',
             'filters' => $filters
@@ -913,21 +893,22 @@ class Sighting extends AppModel
 
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
+        $separator = $exportTool->separator($exportToolParams);
 
-        $temp = '';
-        $i = 0;
-        foreach ($allowedSightings as $sighting) {
-            $temp .= $exportTool->handler($sighting, $exportToolParams);
-            if ($temp !== '') {
-                if ($i != count($allowedSightings) -1) {
-                    $temp .= $exportTool->separator($exportToolParams);
+        foreach ($sightingIds as $sightingId) {
+            // apply ACL and sighting policies
+            $sighting = $this->getSighting($sightingId, $user, $includeEvent);
+            if (!empty($sighting)) {
+                $sighting['Sighting']['value'] = $sighting['Sighting']['Attribute']['value'];
+                if (!$includeAttribute) {
+                    unset($sighting['Sighting']['Attribute']);
                 }
+                $tmpfile->writeWithSeparator($exportTool->handler($sighting, $exportToolParams), $separator);
             }
-            $i++;
         }
-        $tmpfile->write($temp);
+
         $tmpfile->write($exportTool->footer($exportToolParams));
-        return $tmpfile->finish();
+        return $tmpfile;
     }
 
     /**

@@ -15,7 +15,7 @@ class CRUDComponent extends Component
         }
     }
 
-    public function index($options)
+    public function index(array $options)
     {
         $this->prepareResponse();
         if (!empty($options['quickFilters'])) {
@@ -75,8 +75,6 @@ class CRUDComponent extends Component
                     $input[$modelName][$field] = $value;
                 }
             }
-            if (isset($input[$modelName]['id'])) {
-            }
             unset($input[$modelName]['id']);
             if (!empty($params['fields'])) {
                 $data = [];
@@ -86,19 +84,24 @@ class CRUDComponent extends Component
             } else {
                 $data = $input;
             }
-            if ($this->Controller->{$modelName}->save($data)) {
-                $data = $this->Controller->{$modelName}->find('first', [
+            /** @var Model $model */
+            $model = $this->Controller->{$modelName};
+            if ($model->save($data)) {
+                $data = $model->find('first', [
                     'recursive' => -1,
                     'conditions' => [
-                        'id' => $this->Controller->{$modelName}->id
+                        'id' => $model->id
                     ]
                 ]);
                 if (!empty($params['saveModelVariable'])) {
                     foreach ($params['saveModelVariable'] as $var) {
-                        if (isset($this->Controller->{$modelName}->$var)) {
-                            $data[$modelName][$var] = $this->Controller->{$modelName}->$var;
+                        if (isset($model->$var)) {
+                            $data[$modelName][$var] = $model->$var;
                         }
                     }
+                }
+                if (isset($params['afterFind'])) {
+                    $data = $params['afterFind']($data);
                 }
                 $message = __('%s added.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
@@ -116,7 +119,9 @@ class CRUDComponent extends Component
             } else {
                 $message = __('%s could not be added.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
-
+                    $controllerName = $this->Controller->params['controller'];
+                    $actionName = $this->Controller->params['action'];
+                    $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($controllerName, $actionName, false, $model->validationErrors, 'json');
                 } else {
                     $this->Controller->Flash->error($message);
                 }
@@ -246,24 +251,25 @@ class CRUDComponent extends Component
         $this->Controller->render('/genericTemplates/delete');
     }
 
-
-    protected function setQuickFilters($params, $query, $quickFilterFields)
+    protected function setQuickFilters($params, array $query, $quickFilterFields)
     {
-        $queryConditions = [];
         if (!empty($params['quickFilter']) && !empty($quickFilterFields)) {
+            $queryConditions = [];
+            $filter = '%' . strtolower($params['quickFilter']) . '%';
             foreach ($quickFilterFields as $filterField) {
-                $queryConditions[$filterField] = $params['quickFilter'];
+                $queryConditions["LOWER($filterField) LIKE"] = $filter;
             }
-            $query['conditions']['OR'][] = $queryConditions;
+            $query['conditions']['OR'] = $queryConditions;
         }
         return $query;
     }
 
-    protected function setFilters($params, $query)
+    protected function setFilters(array $params, array $query)
     {
-        $params = $this->massageFilters($params);
-        if (!empty($params['simpleFilters'])) {
-            foreach ($params['simpleFilters'] as $filter => $filterValue) {
+        // For CakePHP 2, we don't need to distinguish between simpleFilters and relatedFilters
+        //$params = $this->massageFilters($params);
+        if (!empty($params)) {
+            foreach ($params as $filter => $filterValue) {
                 if ($filter === 'quickFilter') {
                     continue;
                 }

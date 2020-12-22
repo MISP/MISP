@@ -1448,7 +1448,7 @@ class ServersController extends AppController
             if (!isset($this->request->data['Server'])) {
                 $this->request->data = array('Server' => $this->request->data);
             }
-            if (!isset($this->request->data['Server']['value'])) {
+            if (!isset($this->request->data['Server']['value']) || !is_scalar($this->request->data['Server']['value'])) {
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'Invalid input. Expected: {"value": "new_setting"}', $this->response->type());
                 }
@@ -1491,7 +1491,7 @@ class ServersController extends AppController
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')), 'status'=>200, 'type' => 'json'));
                 }
             } else {
-                if ($this->_isRest) {
+                if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $result, $this->response->type());
                 } else {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));

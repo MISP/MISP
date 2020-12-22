@@ -865,6 +865,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'null' => true
                         ),
+                        'log_user_ips_authkeys' => [
+                            'level' => self::SETTING_RECOMMENDED,
+                            'description' => __('Log user IP and key usage on each API request. All logs for given keys are deleted after one year when this key is not used.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ],
                         'delegation' => array(
                                 'level' => 1,
                                 'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
@@ -1156,7 +1165,7 @@ class Server extends AppModel
                         'test' => 'testForPositiveInteger',
                         'type' => 'numeric',
                         'null' => true,
-                    ]
+                    ],
                 ),
                 'GnuPG' => array(
                         'branch' => 1,
@@ -1343,6 +1352,24 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                    'advanced_authkeys_validity' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('Maximal key lifetime in days. Use can limit that validity even more. Just newly created keys will be affected. When not set, key validity is not limited.'),
+                        'value' => '',
+                        'errorMessage' => '',
+                        'type' => 'numeric',
+                        'test' => 'testForNumeric',
+                        'null' => true,
+                    ],
+                    'authkey_keep_session' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('When enabled, session is kept between API requests.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => true,
+                    ],
                     'auth_enforced' => [
                         'level' => self::SETTING_OPTIONAL,
                         'description' => __('This optional can be enabled if external auth provider is used and when set to true, it will disable default form authentication.'),
@@ -1585,7 +1612,16 @@ class Server extends AppModel
                             'test' => 'testBool',
                             'type' => 'boolean',
                             'null' => true
-                        )
+                        ),
+                    'username_in_response_header' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('When enabled, logged in username will be included in X-Username HTTP response header. This is useful for request logging on webserver/proxy side.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => true
+                    ]
                 ),
                 'SecureAuth' => array(
                         'branch' => 1,
@@ -4916,6 +4952,7 @@ class Server extends AppModel
 
     public function dbSchemaDiagnostic()
     {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $actualDbVersion = $this->AdminSetting->find('first', array(
             'conditions' => array('setting' => 'db_version')
         ))['AdminSetting']['value'];
@@ -6599,7 +6636,7 @@ class Server extends AppModel
         } catch (Exception $e) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $message = __('Could not reset fetch remote user account.');
+            $message = __('Could not fetch remote user account.');
             $this->Log->save(array(
                     'org' => 'SYSTEM',
                     'model' => 'Server',
@@ -6612,14 +6649,18 @@ class Server extends AppModel
             return $message;
         }
         if ($response->isOk()) {
-            $user = json_decode($response->body, true);
+            $user = $this->jsonDecode($response->body);
             if (!empty($user['User'])) {
-                $result = array(
-                    'Email' => $user['User']['email'],
-                    'Role name' => isset($user['Role']['name']) ? $user['Role']['name'] : 'Unknown, outdated instance',
-                    'Sync flag' => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? 1 : 0) : 'Unknown, outdated instance'
-                );
-                return $result;
+                $results = [
+                    __('User') => $user['User']['email'],
+                    __('Role name') => isset($user['Role']['name']) ? $user['Role']['name'] : __('Unknown, outdated instance'),
+                    __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
+                ];
+                if (isset($response->headers['X-Auth-Key-Expiration'])) {
+                    $date = new DateTime($response->headers['X-Auth-Key-Expiration']);
+                    $results[__('Auth key expiration')] = $date->format('Y-m-d H:i:s');
+                }
+                return $results;
             } else {
                 return __('No user object received in response.');
             }
