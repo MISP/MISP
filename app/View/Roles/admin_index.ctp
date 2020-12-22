@@ -71,6 +71,7 @@
                                 'data' => [
                                     'type' => 'simple',
                                     'text' => __('Add role'),
+                                    'fa-icon' => 'plus',
                                     'class' => 'btn btn-primary',
                                     'onClick' => 'openGenericModal',
                                     'onClickParams' => [

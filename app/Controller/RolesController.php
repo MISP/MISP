@@ -9,8 +9,6 @@ App::uses('AppController', 'Controller');
  */
 class RolesController extends AppController
 {
-    public $options = array('0' => 'Read Only', '1' => 'Manage My Own Events', '2' => 'Manage Organization Events', '3' => 'Manage & Publish Organization Events'); // FIXME move this to Role Model
-
     public $components = array(
         'Security',
         'Session',
@@ -41,23 +39,19 @@ class RolesController extends AppController
     {
         $this->set('menuData', array('menuList' => 'admin', 'menuItem' => 'addRole'));
         $params = [];
-        $selectConditions = [];
         $this->CRUD->add($params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
         $this->set('permFlags', $this->Role->permFlags);
         $dropdownData = [
-            'options' => $this->options
+            'options' => $this->Role->premissionLevelName,
         ];
         $this->set(compact('dropdownData'));
     }
 
     public function admin_edit($id = null)
     {
-        if (!$this->_isSiteAdmin()) {
-            $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
-        }
         $this->Role->id = $id;
         if (!$this->Role->exists() && !$this->request->is('get')) {
             throw new NotFoundException(__('Invalid Role'));
@@ -94,7 +88,7 @@ class RolesController extends AppController
             $this->request->data['Role']['id'] = $id;
             $this->request->data = $this->Role->read(null, $id);
         }
-        $this->set('options', $this->options);
+        $this->set('options', $this->Role->premissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
         $this->set('id', $id);
     }
@@ -132,18 +126,21 @@ class RolesController extends AppController
 
     public function index()
     {
-        $this->recursive = 0;
         if ($this->_isRest()) {
             $roles = $this->Role->find('all', array(
                 'recursive' => -1
             ));
             return $this->RestResponse->viewData($roles, $this->response->type());
         } else {
+            if ($this->_isSiteAdmin()) {
+                $this->redirect(array('controller' => 'roles', 'action' => 'admin_index'));
+            }
+            $this->recursive = 0;
             $this->set('list', $this->paginate());
             $this->set('permFlags', $this->Role->permFlags);
             $this->loadModel('AdminSetting');
             $this->set('default_role_id', $this->AdminSetting->getSetting('default_role'));
-            $this->set('options', $this->options);
+            $this->set('options', $this->Role->premissionLevelName);
         }
     }
 
