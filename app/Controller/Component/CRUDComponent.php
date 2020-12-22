@@ -114,7 +114,7 @@ class CRUDComponent extends Component
                         $this->Controller->render($params['displayOnSuccess']);
                         return;
                     }
-                    $this->Controller->redirect(['action' => 'index']);
+                    $this->Controller->redirect(isset($params['redirect']) ? $params['redirect'] : ['action' => 'index']);
                 }
             } else {
                 $message = __('%s could not be added.', $modelName);
@@ -166,9 +166,10 @@ class CRUDComponent extends Component
                 $message = __('%s updated.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
+                    return;
                 } else {
                     $this->Controller->Flash->success($message);
-                    $this->Controller->redirect(['action' => 'index']);
+                    $this->Controller->redirect(isset($params['redirect']) ? $params['redirect'] : ['action' => 'index']);
                 }
             } else {
                 if ($this->Controller->IndexFilter->isRest()) {

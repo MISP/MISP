@@ -370,7 +370,7 @@
                     ),
                     array(
                         'text' => __('List Roles'),
-                        'url' => $baseurl . '/admin/roles/index'
+                        'url' => $baseurl . '/roles/index'
                     ),
                     array(
                         'text' => __('Add Roles'),
