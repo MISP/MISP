@@ -843,18 +843,16 @@ class Event extends AppModel
         //        ii. Atttibute has a distribution between 1-3 (community only, connected communities, all orgs)
         //        iii. Attribute has a sharing group that the user is accessible to view
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventId, $sgids);
-        $correlations = $this->Correlation->find('list', array(
-                'fields' => array('Correlation.event_id', 'Correlation.event_id'),
-                'conditions' => $conditionsCorrelation,
-                'recursive' => 0,
-                'group' => 'Correlation.event_id',
-                'order' => array('Correlation.event_id DESC')));
+        $relatedEventIds = $this->Correlation->find('column', array(
+            'fields' => array('Correlation.event_id'),
+            'conditions' => $conditionsCorrelation,
+            'unique' => true,
+        ));
 
-        if (empty($correlations)) {
+        if (empty($relatedEventIds)) {
             return [];
         }
 
-        $relatedEventIds = array_values($correlations);
         // now look up the event data for these attributes
         $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = array('Event.id' => $relatedEventIds);

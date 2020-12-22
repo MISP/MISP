@@ -55,6 +55,7 @@ class AppModel extends Model
         parent::__construct($id, $table, $ds);
 
         $this->name = get_class($this);
+        $this->findMethods['column'] = true;
     }
 
     // deprecated, use $db_changes
@@ -3017,6 +3018,51 @@ class AppModel extends Model
         }
     }
 
+    /**
+     * Find method that allows to fetch just one column from database.
+     * @param $state
+     * @param $query
+     * @param array $results
+     * @return array|mixed
+     * @throws Exception
+     */
+    protected function _findColumn($state, $query, $results = array())
+    {
+        if ($state === 'before') {
+            if (count($query['fields']) === 1) {
+                if (strpos($query['fields'][0], '.') === false) {
+                    $query['fields'][0] = $this->alias . '.' . $query['fields'][0];
+                }
+
+                $query['column'] = $query['fields'][0];
+                if (isset($query['unique']) && $query['unique']) {
+                    $query['fields'] = array("DISTINCT {$query['fields'][0]}");
+                } else {
+                    $query['fields'] = array($query['fields'][0]);
+                }
+            } else {
+                throw new Exception("Invalid number of column, expected one, " . count($query['fields']) . " given");
+            }
+
+            if (!isset($query['recursive'])) {
+                $query['recursive'] = -1;
+            }
+
+            return $query;
+        }
+
+        // Faster version of `Hash::extract`
+        foreach (explode('.', $query['column']) as $part) {
+            $results = array_column($results, $part);
+        }
+        return $results;
+    }
+
+    /**
+     * @param string $field
+     * @param AppModel $model
+     * @param array $conditions
+     */
     public function addCountField($field, AppModel $model, array $conditions)
     {
         $db = $this->getDataSource();

@@ -145,11 +145,10 @@ class SharingGroup extends AppModel
         }
 
         if ($user['Role']['perm_site_admin']) {
-            $ids = array_values($this->find('list', array(
-                'recursive' => -1,
+            $ids = $this->find('column', array(
                 'fields' => array('id'),
                 'conditions' => $conditions
-            )));
+            ));
         } else {
             $ids = array_unique(array_merge(
                 $this->SharingGroupServer->fetchAllAuthorised(),

@@ -534,22 +534,23 @@ class Organisation extends AppModel
             $allowedOrgs = [$user['org_id']];
 
             $eventConditions = $this->Event->createEventConditions($user);
-            $orgsWithEvent = array_column(array_column($this->Event->find('all', [
-                'fields' => ['DISTINCT Event.orgc_id'],
-                'recursive' => -1,
+            $orgsWithEvent = $this->Event->find('column', [
+                'fields' => ['Event.orgc_id'],
                 'conditions' => $eventConditions,
-            ]), 'Event'), 'orgc_id');
+                'unique' => true,
+            ]);
             $allowedOrgs = array_merge($allowedOrgs, $orgsWithEvent);
 
             $proposalConditions = $this->Event->ShadowAttribute->buildConditions($user);
             // Do not check orgs that we already can see
             $proposalConditions['AND'][]['NOT'] = ['ShadowAttribute.org_id' => $allowedOrgs];
-            $orgsWithProposal = array_column(array_column($this->Event->ShadowAttribute->find('all', [
-                'fields' => ['DISTINCT ShadowAttribute.org_id'],
-                'recursive' => -1,
+            $orgsWithProposal = $this->Event->ShadowAttribute->find('column', [
+                'fields' => ['ShadowAttribute.org_id'],
                 'conditions' => $proposalConditions,
                 'contain' => ['Event', 'Attribute'],
-            ]), 'ShadowAttribute'), 'org_id');
+                'unique' => true,
+                'order' => false,
+            ]);
 
             $allowedOrgs = array_merge($allowedOrgs, $orgsWithProposal);
             return ['AND' => ['id' => $allowedOrgs]];
