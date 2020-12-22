@@ -32,8 +32,12 @@
                         'type' => 'search',
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
-                        'data' => '',
-                        'searchKey' => 'value'
+                        'searchKey' => 'value',
+                        'cancel' => array(
+                            'fa-icon' => 'times',
+                            'title' => __('Remove filters'),
+                            'onClick' => 'cancelSearch',
+                        )
                     )
                 )
             ),
@@ -134,15 +138,3 @@
         echo '</div>';
         echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'eventReports', 'menuItem' => 'index'));
     }
-?>
-<script type="text/javascript">
-    var passedArgsArray = <?php echo $passedArgs; ?>;
-    if (passedArgsArray['context'] === undefined) {
-        passedArgsArray['context'] = '';
-    }
-    $(function() {
-        $('#quickFilterButton').click(function() {
-            runIndexQuickFilter('/context:' + passedArgsArray['context']);
-        });
-    });
-</script>
