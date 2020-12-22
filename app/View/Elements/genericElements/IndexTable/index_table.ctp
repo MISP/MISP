@@ -101,7 +101,7 @@
     $url = $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
 ?>
 <script type="text/javascript">
-    var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '[]'; ?>;
+    var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '{}'; ?>;
     <?php
         if (isset($containerId)) {
             echo 'var target = "#' . $containerId . '_content";';
@@ -112,9 +112,9 @@
     $(function() {
         $('#quickFilterButton').click(function() {
             if (typeof(target) !== 'undefined') {
-                runIndexQuickFilter(passedArgsArray, url, target);
+                runIndexQuickFilterFixed(passedArgsArray, url, target);
             } else {
-                runIndexQuickFilter(passedArgsArray, url);
+                runIndexQuickFilterFixed(passedArgsArray, url);
             }
         });
     });
