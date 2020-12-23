@@ -4285,9 +4285,10 @@ class EventsController extends AppController
 
     public function viewGraph($id)
     {
+        // Event data are fetched by 'updateGraph', here we need just metadata.
         $event = $this->Event->fetchEvent($this->Auth->user(), array(
             'eventid' => $id,
-            'includeGranularCorrelations' => 1
+            'metadata' => true,
         ));
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid Event.'));
