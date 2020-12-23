@@ -865,12 +865,11 @@ class Sighting extends AppModel
         }
 
         // fetch sightings matching the query
-        $sightingIds = $this->find('list', array(
-            'recursive' => -1,
+        $sightingIds = $this->find('column', [
             'conditions' => $conditions,
-            'fields' => array('id'),
+            'fields' => ['Sighting.id'],
             'contain' => $contain,
-        ));
+        ]);
 
         $includeAttribute = isset($filters['includeAttribute']) && $filters['includeAttribute'];
         $includeEvent = isset($filters['includeEvent']) && $filters['includeEvent'];
@@ -928,11 +927,9 @@ class Sighting extends AppModel
 
         // Since sightings are immutable (it is not possible to change it from web interface), we can check
         // if sighting with given uuid already exists and skip them
-        $existingSighting = $this->find('list', [
-            'fields' => ['uuid'],
-            'recursive' => -1,
+        $existingSighting = $this->find('column', [
+            'fields' => ['Sighting.uuid'],
             'conditions' => ['uuid' => array_column($sightings, 'uuid')],
-            'callbacks' => false,
         ]);
         // Move UUID to array key
         $existingSighting = array_flip($existingSighting);

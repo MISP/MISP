@@ -136,12 +136,12 @@ class EventsController extends AppController
                     $includeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
                 }
 
-                $includeIDs = array_values($this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                $includeIDs = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
                     'conditions' => $includeConditions,
                     'flatten' => true,
                     'event_ids' => true,
                     'list' => true,
-                )));
+                ));
             }
 
             if (!empty($exclude)) {
@@ -151,12 +151,12 @@ class EventsController extends AppController
                     $excludeConditions['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
                 }
 
-                $excludeIDs = array_values($this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                $excludeIDs = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
                     'conditions' => $excludeConditions,
                     'flatten' => true,
                     'event_ids' => true,
                     'list' => true,
-                )));
+                ));
             }
         }
         // return -1 as the only value in includedIDs if both arrays are empty. This will mean that no events will be shown if there was no hit
@@ -191,14 +191,12 @@ class EventsController extends AppController
         $conditions = array(
             'OR' => $subconditions,
         );
-        $attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+        $result = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
             'conditions' => $conditions,
             'flatten' => 1,
             'event_ids' => true,
             'list' => true,
         ));
-
-        $result = array_values($attributeHits);
 
         // we now have a list of event IDs that match on an attribute level, and the user can see it. Let's also find all of the events that match on other criteria!
         // What is interesting here is that we no longer have to worry about the event's releasability. With attributes this was a different case,
@@ -234,10 +232,9 @@ class EventsController extends AppController
         foreach ($values as $v) {
             $subconditions[] = array('lower(name) LIKE' => $v);
         }
-        $orgs = $this->Event->Org->find('list', array(
+        $orgs = $this->Event->Org->find('column', array(
             'conditions' => $subconditions,
-            'recursive' => -1,
-            'fields' => array('id')
+            'fields' => array('Org.id')
         ));
 
         $conditions = empty($result) ? [] : ['NOT' => ['id' => $result]]; // Do not include events that we already found
@@ -246,11 +243,10 @@ class EventsController extends AppController
             $conditions['OR'][] = array('lower(uuid) LIKE' => $v);
         }
         if (!empty($orgs)) {
-            $conditions['OR']['orgc_id'] = array_values($orgs);
+            $conditions['OR']['orgc_id'] = $orgs;
         }
-        $otherEvents = $this->Event->find('list', array(
-            'recursive' => -1,
-            'fields' => array('id'),
+        $otherEvents = $this->Event->find('column', array(
+            'fields' => array('Event.id'),
             'conditions' => $conditions,
         ));
         foreach ($otherEvents as $eventId) {
@@ -454,9 +450,9 @@ class EventsController extends AppController
                         $test = array();
                         foreach ($pieces as $piece) {
                             if ($piece[0] == '!') {
-                                $this->paginate['conditions']['AND'][] = array('lower(Event.info)' . ' NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
+                                $this->paginate['conditions']['AND'][] = array('lower(Event.info) NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
                             } else {
-                                $test['OR'][] = array('lower(Event.info)' . ' LIKE' => '%' . strtolower($piece) . '%');
+                                $test['OR'][] = array('lower(Event.info) LIKE' => '%' . strtolower($piece) . '%');
                             }
                         }
                         $this->paginate['conditions']['AND'][] = $test;
@@ -495,17 +491,13 @@ class EventsController extends AppController
                                     $filterString .= '!' . $piece;
                                     continue;
                                 }
-                                $block = $this->Event->EventTag->find('all', array(
-                                        'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
-                                        'fields' => 'event_id',
-                                        'recursive' => -1,
+                                $block = $this->Event->EventTag->find('column', array(
+                                    'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
+                                    'fields' => ['EventTag.event_id'],
                                 ));
                                 if (!empty($block)) {
-                                    $sqlSubQuery = 'Event.id NOT IN (';
-                                    foreach ($block as $b) {
-                                        $sqlSubQuery .= $b['EventTag']['event_id'] . ',';
-                                    }
-                                    $tagRules['AND'][] = substr($sqlSubQuery, 0, -1) . ')';
+                                    $sqlSubQuery = 'Event.id NOT IN (' . implode(",", $block) . ')';
+                                    $tagRules['AND'][] = $sqlSubQuery;
                                 }
                                 if ($filterString != "") {
                                     $filterString .= "|";
@@ -532,18 +524,14 @@ class EventsController extends AppController
                                     continue;
                                 }
 
-                                $allow = $this->Event->EventTag->find('all', array(
-                                        'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
-                                        'fields' => 'event_id',
-                                        'recursive' => -1,
+                                $allow = $this->Event->EventTag->find('column', array(
+                                    'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
+                                    'fields' => ['EventTag.event_id'],
                                 ));
                                 if (!empty($allow)) {
-                                    $sqlSubQuery = 'Event.id IN (';
-                                    foreach ($allow as $a) {
-                                        $setOR = true;
-                                        $sqlSubQuery .= $a['EventTag']['event_id'] . ',';
-                                    }
-                                    $tagRules['OR'][] = substr($sqlSubQuery, 0, -1) . ')';
+                                    $setOR = true;
+                                    $sqlSubQuery = 'Event.id IN ('. implode(",", $allow) . ')';
+                                    $tagRules['OR'][] = $sqlSubQuery;
                                 }
                                 if ($filterString != "") {
                                     $filterString .= "|";

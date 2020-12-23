@@ -998,6 +998,7 @@ class Attribute extends AppModel
             'recursive' => -1,
             'fields' => array('id'),
             'conditions' => $conditions,
+            'order' => false,
         );
         if (!empty($this->find('first', $params))) {
             // value isn't unique
@@ -2851,8 +2852,7 @@ class Attribute extends AppModel
 
         // get all attributes..
         if (!$eventId) {
-            $eventIds = $this->Event->find('list', [
-                'recursive' => -1,
+            $eventIds = $this->Event->find('column', [
                 'fields' => ['Event.id'],
                 'conditions' => ['Event.disable_correlation' => 0],
             ]);
@@ -2868,7 +2868,7 @@ class Attribute extends AppModel
         } else {
             $jobId = false;
         }
-        foreach (array_values($eventIds) as $j => $id) {
+        foreach ($eventIds as $j => $id) {
             if ($jobId) {
                 if ($attributeId) {
                     $message = 'Correlating Attribute ' . $attributeId;
@@ -2878,10 +2878,10 @@ class Attribute extends AppModel
                 $this->Job->saveProgress($jobId, $message, $startPercentage + ($j / $eventCount * (100 - $startPercentage)));
             }
             $event = $this->Event->find('first', array(
-                    'recursive' => -1,
-                    'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
-                    'conditions' => array('id' => $id),
-                    'order' => array()
+                'recursive' => -1,
+                'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
+                'conditions' => array('id' => $id),
+                'order' => false,
             ));
             $attributeConditions = array(
                 'Attribute.event_id' => $id,
@@ -3207,19 +3207,6 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function listVisibleAttributes($user, $options = array())
-    {
-        $params = array(
-            'conditions' => $this->buildConditions($user),
-            'recursive' => -1,
-            'fields' => array('Attribute.id', 'Attribute.id'),
-        );
-        if (isset($options['conditions'])) {
-            $params['conditions']['AND'][] = $options['conditions'];
-        }
-        return $this->find('list', $params);
-    }
-
     /*
      * Unlike the other fetchers, this one foregoes any ACL checks.
      * the objective is simple: Fetch the given attribute with all related objects needed for the ZMQ output,
@@ -3454,21 +3441,22 @@ class Attribute extends AppModel
         }
         if (!empty($options['list'])) {
             if (!empty($options['event_ids'])) {
-                $fields = array('Attribute.event_id', 'Attribute.event_id');
-                $group = array('Attribute.event_id');
+                return $this->find('column', [
+                    'conditions' => $params['conditions'],
+                    'contain' => array('Event', 'Object'),
+                    'fields' => ['Attribute.event_id'],
+                    'unique' => true,
+                    'sort' => false,
+                ]);
             } else {
-                $fields = array('Attribute.event_id');
-                $group = false;
+                return $this->find('list', array(
+                    'conditions' => $params['conditions'],
+                    'recursive' => -1,
+                    'contain' => array('Event', 'Object'),
+                    'fields' => array('Attribute.event_id'),
+                    'sort' => false
+                ));
             }
-            $results = $this->find('list', array(
-                'conditions' => $params['conditions'],
-                'recursive' => -1,
-                'contain' => array('Event', 'Object'),
-                'fields' => $fields,
-                'group' => $group,
-                'sort' => false
-            ));
-            return $results;
         }
 
         if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->Warninglist)) {
