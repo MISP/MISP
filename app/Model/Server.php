@@ -1558,6 +1558,15 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                        'hide_organisations_in_sharing_groups' => [
+                            'level' => self::SETTING_RECOMMENDED,
+                            'description' => __('Enabling this setting will block the organisation list from being visible in sharing group besides user with sharing group permission.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ],
                         'disable_local_feed_access' => array(
                                 'level' => 0,
                                 'description' => __('Disabling this setting will allow the creation/modification of local feeds (as opposed to network feeds). Enabling this setting will restrict feed sources to be network based only. When disabled, keep in mind that a malicious site administrator could get access to any arbitrary file on the system that the apache user has access to. Make sure that proper safe-guards are in place. This setting can only be modified via the CLI.'),
