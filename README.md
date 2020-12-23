@@ -9,8 +9,8 @@ MISP - Threat Intelligence Sharing Platform
   <td><a href="https://badge.fury.io/gh/MISP%2FMISP"><img src="https://badge.fury.io/gh/MISP%2FMISP.svg" alt="GitHub version" height="18"></a></td>
 </tr>
 <tr>
-  <td>Travis</td>
-  <td><a href="https://travis-ci.org/MISP/MISP"><img src="https://img.shields.io/travis/MISP/MISP/2.4.svg" /></a></td>
+  <td>CI Action</td>
+  <td><a href="https://github.com/MISP/MISP/actions?query=workflow%3Amisp"><img src="https://github.com/MISP/MISP/workflows/misp/badge.svg" /></a></td>
 </tr>
 <tr>
   <td>Gitter</td>
