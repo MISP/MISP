@@ -2221,12 +2221,17 @@ class Server extends AppModel
                         ),
                         'Sightings_policy' => array(
                             'level' => 1,
-                            'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
+                            'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner organisation alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and any organisation that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
                             'value' => 0,
                             'errorMessage' => '',
                             'test' => 'testForSightingVisibility',
                             'type' => 'numeric',
-                            'options' => array(0 => 'Event Owner', 1 => 'Sighting reporters', 2 => 'Everyone'),
+                            'options' => array(
+                                0 => __('Event Owner Organisation'),
+                                1 => __('Sighting reporters'),
+                                2 => __('Everyone'),
+                                3 => __('Event Owner + host org sightings'),
+                            ),
                         ),
                         'Sightings_anonymise' => array(
                             'level' => 1,

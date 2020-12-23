@@ -16,7 +16,7 @@ from lxml.html import fromstring
 from enum import Enum
 
 try:
-    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog
+    from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting
     from pymisp.exceptions import PyMISPError, NoKey, MISPServerError
 except ImportError:
     if sys.version_info < (3, 6):
@@ -1292,6 +1292,33 @@ class TestSecurity(unittest.TestCase):
 
         self.admin_misp_connector.delete_organisation(secret_org)
         self.admin_misp_connector.delete_sharing_group(visible_sg)
+
+    def test_sighting_policy_host_org(self):
+        s = MISPSighting()
+        s.source = 'Testcases'
+        s.type = '1'
+
+        user1 = PyMISP(url, self.test_usr.authkey)
+        user1.global_pythonify = True
+
+        event = user1.add_event(self.__generate_event())
+        check_response(event)
+        check_response(user1.add_sighting(s, event.Attribute[0]))
+        self.assertEqual(len(user1.sightings(event)), 1, "User should see hos own sighting")
+
+        org = self.__create_org()
+        user = self.__create_user(org.id, ROLE.USER)
+        user2 = PyMISP(url, user.authkey)
+        user2.global_pythonify = True
+
+        self.assertEqual(len(user2.sightings(event)), 0, "User should not seen any sighting")
+
+        with self.__setting({"MISP.host_org_id": self.test_org.id, "Plugin.Sightings_policy": 3}):
+            self.assertEqual(len(user2.sightings(event)), 1, "User should see host org sighting")
+
+        self.admin_misp_connector.delete_event(event)
+        self.admin_misp_connector.delete_user(user)
+        self.admin_misp_connector.delete_organisation(org)
 
     def __generate_event(self, distribution: int = 1) -> MISPEvent:
         mispevent = MISPEvent()
