@@ -226,7 +226,8 @@
                         'User.id'
                     ),
                     'icon' => 'eye',
-                    'title' => __('View')
+                    'title' => __('View'),
+                    'dbclickAction' => true,
                 )
             )
         )

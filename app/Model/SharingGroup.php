@@ -145,11 +145,10 @@ class SharingGroup extends AppModel
         }
 
         if ($user['Role']['perm_site_admin']) {
-            $ids = array_values($this->find('list', array(
-                'recursive' => -1,
+            $ids = $this->find('column', array(
                 'fields' => array('id'),
                 'conditions' => $conditions
-            )));
+            ));
         } else {
             $ids = array_unique(array_merge(
                 $this->SharingGroupServer->fetchAllAuthorised(),
@@ -204,13 +203,20 @@ class SharingGroup extends AppModel
         } elseif ($scope === 'distribution_graph') {
             // Specific scope that fetch just necessary information for distribution graph
             // @see DistributionGraphTool
+            $canSeeOrgs = $user['Role']['perm_sharing_group'] || !Configure::read('Security.hide_organisations_in_sharing_groups');
             $sgs = $this->find('all', array(
-                'contain' => ['SharingGroupOrg' => ['org_id']],
+                'contain' => $canSeeOrgs ? ['SharingGroupOrg' => ['org_id']] : [],
                 'conditions' => $conditions,
                 'fields' => ['SharingGroup.id', 'SharingGroup.name', 'SharingGroup.org_id'],
                 'order' => 'SharingGroup.name ASC'
             ));
-            return $this->appendOrgsAndServers($sgs, ['id', 'name'], []);
+            if ($canSeeOrgs) {
+                return $this->appendOrgsAndServers($sgs, ['id', 'name'], []);
+            }
+            foreach ($sgs as &$sg) {
+                $sg['SharingGroupOrg'] = [];
+            }
+            return $sgs;
         } elseif ($scope === 'name') {
             $sgs = $this->find('list', array(
                 'recursive' => -1,
@@ -241,8 +247,10 @@ class SharingGroup extends AppModel
     {
         $orgsToFetch = [];
         $serverToFetch = [];
-        foreach($sharingGroups as $sg) {
-            $orgsToFetch[$sg['SharingGroup']['org_id']] = true;
+        foreach ($sharingGroups as $sg) {
+            if (isset($sg['SharingGroup']['org_id'])) {
+                $orgsToFetch[$sg['SharingGroup']['org_id']] = true;
+            }
             if (isset($sg['SharingGroupOrg'])) {
                 foreach ($sg['SharingGroupOrg'] as $sgo) {
                     $orgsToFetch[$sgo['org_id']] = true;
@@ -283,7 +291,7 @@ class SharingGroup extends AppModel
         }
 
         foreach ($sharingGroups as &$sg) {
-            if (isset($orgsById[$sg['SharingGroup']['org_id']])) {
+            if (isset($sg['SharingGroup']['org_id']) && isset($orgsById[$sg['SharingGroup']['org_id']])) {
                 $sg['Organisation'] = $orgsById[$sg['SharingGroup']['org_id']];
             }
 

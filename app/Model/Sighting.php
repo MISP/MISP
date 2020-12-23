@@ -14,7 +14,8 @@ class Sighting extends AppModel
     // Possible values of `Plugin.Sightings_policy` setting
     const SIGHTING_POLICY_EVENT_OWNER = 0,
         SIGHTING_POLICY_SIGHTING_REPORTER = 1,
-        SIGHTING_POLICY_EVERYONE = 2;
+        SIGHTING_POLICY_EVERYONE = 2,
+        SIGHTING_POLICY_HOST_ORG = 3; // the same as SIGHTING_POLICY_EVENT_OWNER, but also sightings from host org are visible
 
     private $orgCache = [];
 
@@ -179,6 +180,11 @@ class Sighting extends AppModel
                     return array();
                 }
             }
+            else if ($sightingPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                if ($sighting['Sighting']['org_id'] != $user['org_id'] || $sighting['Sighting']['org_id'] != Configure::read('MISP.host_org_id')) {
+                    return array();
+                }
+            }
         }
 
         // Put event organisation name from cache
@@ -220,6 +226,8 @@ class Sighting extends AppModel
         $sightingsPolicy = $this->sightingsPolicy();
         if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
             $conditions['Sighting.org_id'] = $user['org_id'];
+        } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+            $conditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
         }
         // TODO: Currently, we dont support `SIGHTING_POLICY_SIGHTING_REPORTER` for tags
         $sparklineData = [];
@@ -266,6 +274,8 @@ class Sighting extends AppModel
                     if (!$this->isReporter($attribute['Event']['id'], $user['org_id'])) {
                         continue; // skip attribute
                     }
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                    $attributeConditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
                 }
             }
             $conditions['OR'][] = $attributeConditions;
@@ -287,19 +297,21 @@ class Sighting extends AppModel
             return ['data' => [], 'csv' => []];
         }
 
-        $sightingPolicy = $this->sightingsPolicy();
+        $sightingsPolicy = $this->sightingsPolicy();
 
         $conditions = [];
         foreach ($events as $event) {
             $eventCondition = ['Sighting.event_id' => $event['Event']['id']];
             $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
             if (!$ownEvent) {
-                if ($sightingPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+                if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
                     $eventCondition['Sighting.org_id'] = $user['org_id'];
-                } else if ($sightingPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
                     if (!$this->isReporter($event['Event']['id'], $user['org_id'])) {
                         continue;
                     }
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                    $eventCondition['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
                 }
             }
             $conditions['OR'][] = $eventCondition;
@@ -365,7 +377,7 @@ class Sighting extends AppModel
             'contain' => [ucfirst($context) . 'Tag'],
             'conditions' => $conditions,
             'fields' => [ucfirst($context) . 'Tag.tag_id', 'date', 'sighting_count'],
-            'group' => [ucfirst($context) . 'Tag.id', 'date'],
+            'group' => [ucfirst($context) . 'Tag.tag_id', 'date'],
             'order' => ['date'], // from oldest
         ]);
         unset($this->virtualFields['date'], $this->virtualFields['sighting_count']);
@@ -514,13 +526,15 @@ class Sighting extends AppModel
 
         $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
         if (!$ownEvent) {
-            $sightingPolicy = $this->sightingsPolicy();
-            if ($sightingPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+            $sightingsPolicy = $this->sightingsPolicy();
+            if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
                 $conditions['Sighting.org_id'] = $user['org_id'];
-            } elseif ($sightingPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+            } elseif ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
                 if (!$this->isReporter($event['Event']['id'], $user['org_id'])) {
                     return array();
                 }
+            } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                $conditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
             }
         }
         if ($extraConditions !== false) {
@@ -744,10 +758,14 @@ class Sighting extends AppModel
             return $sightings; // site admin can see all sightings, do not limit him
         }
         $sightingsPolicy = $this->sightingsPolicy();
-        if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+        if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER || $sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
             $userOrgId = $user['org_id'];
+            $allowedOrgs = [$userOrgId];
+            if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                $allowedOrgs[] = Configure::read('MISP.host_org_id');
+            }
             foreach ($sightings as $k => $sighting) {
-                if ($eventOwnerOrgIdList[$sighting['Sighting']['event_id']] !== $userOrgId && $sighting['Sighting']['org_id'] !== $userOrgId) {
+                if ($eventOwnerOrgIdList[$sighting['Sighting']['event_id']] !== $userOrgId && !in_array($sighting['Sighting']['org_id'], $allowedOrgs)) {
                     unset($sightings[$k]);
                 }
             }

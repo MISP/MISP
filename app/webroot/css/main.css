@@ -2687,3 +2687,39 @@ a.orgImg {
 .misp-error-container {
     margin: 0 20px;
 }
+
+th.rotate {
+    /* Something you can count on */
+    height: 100px;
+    white-space: nowrap;
+    vertical-align: inherit !important;
+}
+
+th.rotate > div {
+    transform:
+        /* Magic Numbers */
+            translate(15px, 30px)
+                /* 45 is really 360 - 45 */
+            rotate(315deg);
+    width: 25px;
+}
+
+th.rotate > div > span {
+    padding: 5px 0;
+}
+
+td.rotate {
+    text-align: center;
+}
+
+th.rotate, td.rotate {
+    width: 25px;
+}
+
+th.rotate + th:not(.rotate) {
+    padding-left: 30px;
+}
+
+td.rotate + td:not(.rotate) {
+    padding-left: 30px;
+}

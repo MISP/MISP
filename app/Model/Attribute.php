@@ -2048,11 +2048,11 @@ class Attribute extends AppModel
                 }
             }
 
-            $ipList = $this->find('list', array(
+            $ipList = $this->find('column', array(
                 'conditions' => $conditions,
-                'group' => 'value1', // return just unique values
-                'fields' => array('value1'),
-                'order' => false
+                'fields' => ['Attribute.value1'],
+                'unique' => true,
+                'order' => false,
             ));
             foreach ($ipList as $ipToCheck) {
                 $ipToCheckVersion = filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
@@ -3981,13 +3981,13 @@ class Attribute extends AppModel
 
     private function __getCIDRList()
     {
-        return $this->find('list', array(
+        return $this->find('column', array(
             'conditions' => array(
                 'type' => array('ip-src', 'ip-dst'),
                 'value1 LIKE' => '%/%'
             ),
-            'fields' => array('value1'),
-            'group' => array('value1', 'id'), // return just unique value
+            'fields' => array('Attribute.value1'),
+            'unique' => true,
             'order' => false
         ));
     }

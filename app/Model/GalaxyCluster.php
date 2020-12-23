@@ -867,8 +867,18 @@ class GalaxyCluster extends AppModel
         return $tags;
     }
 
+    /**
+     * @param string $name
+     * @param array $user
+     * @return array|mixed
+     */
     public function getCluster($name, $user)
     {
+        $isGalaxyTag = strpos($name, 'misp-galaxy:') === 0;
+        if (!$isGalaxyTag) {
+            return null;
+        }
+
         if (isset($this->__clusterCache[$name])) {
             return $this->__clusterCache[$name];
         }

@@ -1108,8 +1108,12 @@ class TagsController extends AppController
                 $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
             }
         } else {
-            foreach ($tag as $k => $t) {
-                $conditions['OR'][] = array('Tag.name' => $t);
+            foreach ($tag as $t) {
+                if (is_numeric($t)) {
+                    $conditions['OR'][] = ['Tag.id' => $t];
+                } else {
+                    $conditions['OR'][] = array('Tag.name' => $t);
+                }
             }
         }
         $tags = $this->Tag->find('all', array(

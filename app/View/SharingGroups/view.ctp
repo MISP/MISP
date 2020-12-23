@@ -25,6 +25,12 @@ $tableData[] = [
     'key' => __('Events'),
     'html' => '<a href="' . $eventsLink . '">' . __n('%s event', '%s events', $sg['SharingGroup']['event_count'], $sg['SharingGroup']['event_count']) . '</a>',
 ];
+if (isset($sg['SharingGroup']['org_count'])) {
+    $tableData[] = [
+        'key' => __('Organisations'),
+        'html' => __n('%s organisation', '%s organisations', $sg['SharingGroup']['org_count'], $sg['SharingGroup']['org_count']),
+    ];
+}
 echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData]);
 ?>
 </div></div>
@@ -56,7 +62,7 @@ echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData
         </div>
     <?php
         endif;
-        if (!$sg['SharingGroup']['roaming']):
+        if (!$sg['SharingGroup']['roaming'] && isset($sg['SharingGroupServer'])):
     ?>
         <div class="span6">
             <b>Instances</b>

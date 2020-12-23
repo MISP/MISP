@@ -30,13 +30,11 @@ class CerebratesController extends AppController
 
     public function add()
     {
-        $this->set('menuData', array('menuList' => 'sync', 'menuItem' => 'add_cerebrate'));
         $params = [];
         $this->CRUD->add($params);
-        if ($this->IndexFilter->isRest()) {
+        if ($this->restResponsePayload) {
             return $this->restResponsePayload;
         }
-        $this->set('permFlags', $this->Role->permFlags);
 
         $this->loadModel('Organisation');
         $orgs = $this->Organisation->find('list', [
@@ -48,6 +46,7 @@ class CerebratesController extends AppController
             'org_id' => $orgs
         ];
         $this->set(compact('dropdownData'));
+        $this->set('menuData', array('menuList' => 'sync', 'menuItem' => 'add_cerebrate'));
     }
 
     public function edit($id)
@@ -59,7 +58,6 @@ class CerebratesController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
-        $this->set('permFlags', $this->Role->permFlags);
 
         $this->loadModel('Organisation');
         $orgs = $this->Organisation->find('list', [

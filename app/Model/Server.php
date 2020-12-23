@@ -1558,6 +1558,15 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                        'hide_organisations_in_sharing_groups' => [
+                            'level' => self::SETTING_RECOMMENDED,
+                            'description' => __('Enabling this setting will block the organisation list from being visible in sharing group besides user with sharing group permission.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ],
                         'disable_local_feed_access' => array(
                                 'level' => 0,
                                 'description' => __('Disabling this setting will allow the creation/modification of local feeds (as opposed to network feeds). Enabling this setting will restrict feed sources to be network based only. When disabled, keep in mind that a malicious site administrator could get access to any arbitrary file on the system that the apache user has access to. Make sure that proper safe-guards are in place. This setting can only be modified via the CLI.'),
@@ -2212,12 +2221,17 @@ class Server extends AppModel
                         ),
                         'Sightings_policy' => array(
                             'level' => 1,
-                            'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
+                            'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner organisation alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and any organisation that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
                             'value' => 0,
                             'errorMessage' => '',
                             'test' => 'testForSightingVisibility',
                             'type' => 'numeric',
-                            'options' => array(0 => 'Event Owner', 1 => 'Sighting reporters', 2 => 'Everyone'),
+                            'options' => array(
+                                0 => __('Event Owner Organisation'),
+                                1 => __('Sighting reporters'),
+                                2 => __('Everyone'),
+                                3 => __('Event Owner + host org sightings'),
+                            ),
                         ),
                         'Sightings_anonymise' => array(
                             'level' => 1,
