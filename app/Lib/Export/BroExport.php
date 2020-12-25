@@ -27,6 +27,7 @@ class BroExport
         'domain|ip' => array('brotype' => 'DOMAIN', 'composite' => 'ADDR'),
         'url' => array('brotype' => 'URL', 'replace' => array('#^https?://#', '')),
         'user-agent' => array('brotype' => 'SOFTWARE'),
+        'ja3-fingerprint-md5' => array('brotype' => 'JA3'),
         'md5' => array('brotype' => 'FILE_HASH'),
         'malware-sample' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
         'filename|md5' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
@@ -78,6 +79,9 @@ class BroExport
             array('hostname', 1),
             array('domain', 1),
             array('domain|ip', 1)
+        ),
+        'ja3-fingerprint-md5' => array(
+            array('ja3-fingerprint-md5', 1)
         ),
         'email' => array(
             array('email', 1),
