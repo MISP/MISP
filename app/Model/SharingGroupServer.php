@@ -87,12 +87,11 @@ class SharingGroupServer extends AppModel
     // This basically lists all SGs that allow everyone on the instance to see events tagged with it
     public function fetchAllAuthorised()
     {
-        $sgs = $this->find('list', array(
+        $sgs = $this->find('column', array(
             'conditions' => array('all_orgs' => 1, 'server_id' => 0),
-            'recursive' => -1,
-            'fields' => array('sharing_group_id'),
+            'fields' => array('SharingGroupServer.sharing_group_id'),
         ));
-        return array_values($sgs);
+        return $sgs;
     }
 
     // pass a sharing group ID, returns true if it has an attached server object with "all_orgs" ticked
