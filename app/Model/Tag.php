@@ -91,6 +91,9 @@ class Tag extends AppModel
         if (!isset($this->data['Tag']['exportable'])) {
             $this->data['Tag']['exportable'] = 1;
         }
+        if (isset($this->data['Tag']['name']) && strlen($this->data['Tag']['name']) >= 255) {
+            $this->data['Tag']['name'] = substr($this->data['Tag']['name'], 0, 255);
+        }
         $this->data['Tag']['is_galaxy'] = preg_match($this->reGalaxy, $this->data['Tag']['name']);
         $this->data['Tag']['is_custom_galaxy'] = preg_match($this->reCustomGalaxy, $this->data['Tag']['name']);
         return true;
