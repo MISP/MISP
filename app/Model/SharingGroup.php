@@ -111,13 +111,6 @@ class SharingGroup extends AppModel
         return false;
     }
 
-    public function fetchAllAuthorisedForServer($server)
-    {
-        $sgs = $this->SharingGroupOrg->fetchAllAuthorised($server['RemoteOrg']['id']);
-        $sgs = array_merge($sgs, $this->SharingGroupServer->fetchAllSGsForServer($server['Server']['id']));
-        return $sgs;
-    }
-
     /**
      * Returns a list of all sharing groups that the user is allowed to see.
      * Scope can be:

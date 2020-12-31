@@ -4330,8 +4330,8 @@ class EventsController extends AppController
         $grapher = new DistributionGraphTool();
 
         $this->loadModel('Server');
-        $servers = $this->Server->find('list', array(
-            'fields' => array('name'),
+        $servers = $this->Server->find('column', array(
+            'fields' => array('Server.name'),
         ));
         $grapher->construct($this->Event, $servers, $this->Auth->user(), $extended);
         $json = $grapher->get_distributions_graph($id);
