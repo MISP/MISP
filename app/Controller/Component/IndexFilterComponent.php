@@ -87,11 +87,6 @@ class IndexFilterComponent extends Component
         }
         $api = $this->isApiFunction($this->Controller->request->params['controller'], $this->Controller->request->params['action']);
         if (isset($this->Controller->RequestHandler) && ($api || $this->isJson() || $this->Controller->RequestHandler->isXml() || $this->isCsv())) {
-            if ($this->isJson()) {
-                if (!empty($this->Controller->request->input()) && empty($this->Controller->request->input('json_decode'))) {
-                    throw new MethodNotAllowedException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.');
-                }
-            }
             $this->isRest = true;
             return true;
         } else {
@@ -100,11 +95,8 @@ class IndexFilterComponent extends Component
         }
     }
 
-    public function isJson($data=false)
+    public function isJson()
     {
-        if ($data) {
-            return (json_decode($data) != null) ? true : false;
-        }
         return $this->Controller->request->header('Accept') === 'application/json' || $this->Controller->RequestHandler->prefers() === 'json';
     }
 

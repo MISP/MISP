@@ -189,6 +189,27 @@ class AppController extends Controller
             $userLoggedIn = $this->__customAuthentication($_SERVER);
         }
         if ($this->_isRest()) {
+            $jsonDecode = function ($dataToDecode) {
+                if (empty($dataToDecode)) {
+                    return null;
+                }
+                try {
+                    if (defined('JSON_THROW_ON_ERROR')) {
+                        // JSON_THROW_ON_ERROR is supported since PHP 7.3
+                        return json_decode($dataToDecode, true, 512, JSON_THROW_ON_ERROR);
+                    } else {
+                        $decoded = json_decode($dataToDecode, true);
+                        if ($decoded === null) {
+                            throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
+                        }
+                        return $decoded;
+                    }
+                } catch (Exception $e) {
+                    throw new HttpException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.', 405, $e);
+                }
+            };
+            //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
+            $this->RequestHandler->addInputType('json', [$jsonDecode]);
             $this->Security->unlockedActions = array($this->action);
         }
 
