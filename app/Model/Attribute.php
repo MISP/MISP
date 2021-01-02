@@ -3296,13 +3296,7 @@ class Attribute extends AppModel
                 'Event' => array(
                     'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
                 ),
-                'AttributeTag' => array(
-                    'Tag' => array(
-                        'fields' => array(
-                            'id', 'name', 'colour', 'numerical_value'
-                        )
-                    )
-                ),
+                'AttributeTag', // tags are fetched separately, @see Attribute::__attachTagsToAttributes
                 'Object' => array(
                     'fields' => array('id', 'distribution', 'sharing_group_id')
                 )
@@ -3340,9 +3334,6 @@ class Attribute extends AppModel
                 "disable_correlation",
                 "value"
             ));
-        }
-        if (empty($options['includeAllTags'])) {
-            $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
         if (!empty($options['includeContext'])) {
             // include just event id for conditions, rest event data will be fetched later
@@ -3499,21 +3490,9 @@ class Attribute extends AppModel
                 unset($eventsById, $result); // unset result is important, because it is reference
             }
 
+            $this->__attachTagsToAttributes($results, $options);
+
             foreach ($results as $k => $result) {
-                if (!empty($result['AttributeTag'])) {
-                    $tagCulled = false;
-                    foreach ($result['AttributeTag'] as $k2 => $at) {
-                        if (empty($at['Tag'])) {
-                            unset($results[$k]['AttributeTag'][$k2]);
-                            $tagCulled = true;
-                        } else {
-                            $results[$k]['AttributeTag'][$k2]['Tag']['local'] = $results[$k]['AttributeTag'][$k2]['local'];
-                        }
-                    }
-                    if ($tagCulled) {
-                        $results[$k]['AttributeTag'] = array_values($results[$k]['AttributeTag']);
-                    }
-                }
                 if (!empty($options['includeSightings'])) {
                     $temp = $result['Attribute'];
                     $temp['Event'] = $result['Event'];
@@ -3638,6 +3617,53 @@ class Attribute extends AppModel
             $eventsById[$newEvent['id']] = $newEvent;
         }
         return $eventsById;
+    }
+
+    private function __attachTagsToAttributes(array &$attributes, array $options)
+    {
+        $tagIdsToFetch = [];
+        foreach ($attributes as $attribute) {
+            foreach ($attribute['AttributeTag'] as $at) {
+                $tagIdsToFetch[$at['tag_id']] = true;
+            }
+        }
+
+        if (empty($tagIdsToFetch)) {
+            return;
+        }
+
+        $conditions = ['Tag.id' => array_keys($tagIdsToFetch)];
+        unset($tagIdsToFetch);
+        if (empty($options['includeAllTags'])) {
+            $conditions['Tag.exportable'] = 1;
+        }
+
+        $tagsToModify = $this->AttributeTag->Tag->find('all', [
+            'conditions' => $conditions,
+            'fields' => ['id', 'name', 'colour', 'numerical_value'],
+            'recursive' => -1,
+        ]);
+        $tags = [];
+        foreach ($tagsToModify as $tag) {
+            $tags[$tag['Tag']['id']] = $tag['Tag'];
+        }
+
+        foreach ($attributes as $k => $attribute) {
+            $tagCulled = false;
+            foreach ($attribute['AttributeTag'] as $k2 => $at) {
+                if (!isset($tags[$at['tag_id']])) {
+                    unset($attributes[$k]['AttributeTag'][$k2]);
+                    $tagCulled = true;
+                } else {
+                    $tag = $tags[$at['tag_id']];
+                    $tag['local'] = $at['local'];
+                    $attributes[$k]['AttributeTag'][$k2]['Tag'] = $tag;
+                }
+            }
+            if ($tagCulled) {
+                $attributes[$k]['AttributeTag'] = array_values($attributes[$k]['AttributeTag']);
+            }
+        }
     }
 
     private function __attachEventTagsToAttributes($eventTags, &$results, $key, $options)
