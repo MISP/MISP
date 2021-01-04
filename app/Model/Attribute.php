@@ -1000,6 +1000,7 @@ class Attribute extends AppModel
             'recursive' => -1,
             'fields' => array('id'),
             'conditions' => $conditions,
+            'order' => false,
         );
         if (!empty($this->find('first', $params))) {
             // value isn't unique
@@ -2051,11 +2052,11 @@ class Attribute extends AppModel
                 }
             }
 
-            $ipList = $this->find('list', array(
+            $ipList = $this->find('column', array(
                 'conditions' => $conditions,
-                'group' => 'value1', // return just unique values
-                'fields' => array('value1'),
-                'order' => false
+                'fields' => ['Attribute.value1'],
+                'unique' => true,
+                'order' => false,
             ));
             foreach ($ipList as $ipToCheck) {
                 $ipToCheckVersion = filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
@@ -2854,8 +2855,7 @@ class Attribute extends AppModel
 
         // get all attributes..
         if (!$eventId) {
-            $eventIds = $this->Event->find('list', [
-                'recursive' => -1,
+            $eventIds = $this->Event->find('column', [
                 'fields' => ['Event.id'],
                 'conditions' => ['Event.disable_correlation' => 0],
             ]);
@@ -2871,7 +2871,7 @@ class Attribute extends AppModel
         } else {
             $jobId = false;
         }
-        foreach (array_values($eventIds) as $j => $id) {
+        foreach ($eventIds as $j => $id) {
             if ($jobId) {
                 if ($attributeId) {
                     $message = 'Correlating Attribute ' . $attributeId;
@@ -2881,10 +2881,10 @@ class Attribute extends AppModel
                 $this->Job->saveProgress($jobId, $message, $startPercentage + ($j / $eventCount * (100 - $startPercentage)));
             }
             $event = $this->Event->find('first', array(
-                    'recursive' => -1,
-                    'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
-                    'conditions' => array('id' => $id),
-                    'order' => array()
+                'recursive' => -1,
+                'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
+                'conditions' => array('id' => $id),
+                'order' => false,
             ));
             $attributeConditions = array(
                 'Attribute.event_id' => $id,
@@ -3210,19 +3210,6 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function listVisibleAttributes($user, $options = array())
-    {
-        $params = array(
-            'conditions' => $this->buildConditions($user),
-            'recursive' => -1,
-            'fields' => array('Attribute.id', 'Attribute.id'),
-        );
-        if (isset($options['conditions'])) {
-            $params['conditions']['AND'][] = $options['conditions'];
-        }
-        return $this->find('list', $params);
-    }
-
     /*
      * Unlike the other fetchers, this one foregoes any ACL checks.
      * the objective is simple: Fetch the given attribute with all related objects needed for the ZMQ output,
@@ -3309,13 +3296,7 @@ class Attribute extends AppModel
                 'Event' => array(
                     'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
                 ),
-                'AttributeTag' => array(
-                    'Tag' => array(
-                        'fields' => array(
-                            'id', 'name', 'colour', 'numerical_value'
-                        )
-                    )
-                ),
+                'AttributeTag', // tags are fetched separately, @see Attribute::__attachTagsToAttributes
                 'Object' => array(
                     'fields' => array('id', 'distribution', 'sharing_group_id')
                 )
@@ -3353,9 +3334,6 @@ class Attribute extends AppModel
                 "disable_correlation",
                 "value"
             ));
-        }
-        if (empty($options['includeAllTags'])) {
-            $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
         if (!empty($options['includeContext'])) {
             // include just event id for conditions, rest event data will be fetched later
@@ -3457,21 +3435,22 @@ class Attribute extends AppModel
         }
         if (!empty($options['list'])) {
             if (!empty($options['event_ids'])) {
-                $fields = array('Attribute.event_id', 'Attribute.event_id');
-                $group = array('Attribute.event_id');
+                return $this->find('column', [
+                    'conditions' => $params['conditions'],
+                    'contain' => array('Event', 'Object'),
+                    'fields' => ['Attribute.event_id'],
+                    'unique' => true,
+                    'sort' => false,
+                ]);
             } else {
-                $fields = array('Attribute.event_id');
-                $group = false;
+                return $this->find('list', array(
+                    'conditions' => $params['conditions'],
+                    'recursive' => -1,
+                    'contain' => array('Event', 'Object'),
+                    'fields' => array('Attribute.event_id'),
+                    'sort' => false
+                ));
             }
-            $results = $this->find('list', array(
-                'conditions' => $params['conditions'],
-                'recursive' => -1,
-                'contain' => array('Event', 'Object'),
-                'fields' => $fields,
-                'group' => $group,
-                'sort' => false
-            ));
-            return $results;
         }
 
         if (($options['enforceWarninglist'] || $options['includeWarninglistHits']) && !isset($this->Warninglist)) {
@@ -3511,21 +3490,9 @@ class Attribute extends AppModel
                 unset($eventsById, $result); // unset result is important, because it is reference
             }
 
+            $this->__attachTagsToAttributes($results, $options);
+
             foreach ($results as $k => $result) {
-                if (!empty($result['AttributeTag'])) {
-                    $tagCulled = false;
-                    foreach ($result['AttributeTag'] as $k2 => $at) {
-                        if (empty($at['Tag'])) {
-                            unset($results[$k]['AttributeTag'][$k2]);
-                            $tagCulled = true;
-                        } else {
-                            $results[$k]['AttributeTag'][$k2]['Tag']['local'] = $results[$k]['AttributeTag'][$k2]['local'];
-                        }
-                    }
-                    if ($tagCulled) {
-                        $results[$k]['AttributeTag'] = array_values($results[$k]['AttributeTag']);
-                    }
-                }
                 if (!empty($options['includeSightings'])) {
                     $temp = $result['Attribute'];
                     $temp['Event'] = $result['Event'];
@@ -3650,6 +3617,53 @@ class Attribute extends AppModel
             $eventsById[$newEvent['id']] = $newEvent;
         }
         return $eventsById;
+    }
+
+    private function __attachTagsToAttributes(array &$attributes, array $options)
+    {
+        $tagIdsToFetch = [];
+        foreach ($attributes as $attribute) {
+            foreach ($attribute['AttributeTag'] as $at) {
+                $tagIdsToFetch[$at['tag_id']] = true;
+            }
+        }
+
+        if (empty($tagIdsToFetch)) {
+            return;
+        }
+
+        $conditions = ['Tag.id' => array_keys($tagIdsToFetch)];
+        unset($tagIdsToFetch);
+        if (empty($options['includeAllTags'])) {
+            $conditions['Tag.exportable'] = 1;
+        }
+
+        $tagsToModify = $this->AttributeTag->Tag->find('all', [
+            'conditions' => $conditions,
+            'fields' => ['id', 'name', 'colour', 'numerical_value'],
+            'recursive' => -1,
+        ]);
+        $tags = [];
+        foreach ($tagsToModify as $tag) {
+            $tags[$tag['Tag']['id']] = $tag['Tag'];
+        }
+
+        foreach ($attributes as $k => $attribute) {
+            $tagCulled = false;
+            foreach ($attribute['AttributeTag'] as $k2 => $at) {
+                if (!isset($tags[$at['tag_id']])) {
+                    unset($attributes[$k]['AttributeTag'][$k2]);
+                    $tagCulled = true;
+                } else {
+                    $tag = $tags[$at['tag_id']];
+                    $tag['local'] = $at['local'];
+                    $attributes[$k]['AttributeTag'][$k2]['Tag'] = $tag;
+                }
+            }
+            if ($tagCulled) {
+                $attributes[$k]['AttributeTag'] = array_values($attributes[$k]['AttributeTag']);
+            }
+        }
     }
 
     private function __attachEventTagsToAttributes($eventTags, &$results, $key, $options)
@@ -3984,13 +3998,13 @@ class Attribute extends AppModel
 
     private function __getCIDRList()
     {
-        return $this->find('list', array(
+        return $this->find('column', array(
             'conditions' => array(
                 'type' => array('ip-src', 'ip-dst'),
                 'value1 LIKE' => '%/%'
             ),
-            'fields' => array('value1'),
-            'group' => array('value1', 'id'), // return just unique value
+            'fields' => array('Attribute.value1'),
+            'unique' => true,
             'order' => false
         ));
     }
@@ -4700,7 +4714,7 @@ class Attribute extends AppModel
             $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams);
         }
         $tmpfile->write($exportTool->footer($exportToolParams));
-        return $tmpfile->finish();
+        return $tmpfile;
     }
 
     /**

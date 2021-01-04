@@ -17,24 +17,19 @@ class NewsController extends AppController
     {
         $this->paginate['contain'] = array('User' => array('fields' => array('User.email')));
         $newsItems = $this->paginate();
-        $this->loadModel('User');
-        $currentUser = $this->User->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('User.id' => $this->Auth->user('id')),
-                'fields' => array('User.newsread')
-        ));
+
+        $newsread = $this->Auth->user('newsread');
         foreach ($newsItems as $key => $item) {
-            if ($item['News']['date_created'] > $currentUser['User']['newsread']) {
+            if ($item['News']['date_created'] > $newsread) {
                 $newsItems[$key]['News']['new'] = true;
             } else {
                 $newsItems[$key]['News']['new'] = false;
             }
         }
-        $this->User->id = $this->Auth->user('id');
-        //if ($this->User->exists()) {
-        $this->User->saveField('newsread', time());
         $this->set('newsItems', $newsItems);
-        //}
+
+        $this->loadModel('User');
+        $this->User->updateField($this->Auth->user(), 'newsread', time());
     }
 
     public function add()

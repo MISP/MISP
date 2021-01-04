@@ -486,6 +486,7 @@ class Organisation extends AppModel
     /**
      * Hide organisation view from users if they haven't yet contributed data and Security.hide_organisation_index_from_users is enabled
      *
+     * @see Organisation::canSee if you want to check multiple orgs
      * @param array $user
      * @param int $orgId
      * @return bool
@@ -519,6 +520,43 @@ class Organisation extends AppModel
             }
         }
         return true;
+    }
+
+    /**
+     * Create conditions for fetching orgs based on user permission.
+     * @see Organisation::canSee if you want to check just one org
+     * @param array $user
+     * @return array|array[]
+     */
+    public function createConditions(array $user)
+    {
+        if (!$user['Role']['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
+            $allowedOrgs = [$user['org_id']];
+
+            $eventConditions = $this->Event->createEventConditions($user);
+            $orgsWithEvent = $this->Event->find('column', [
+                'fields' => ['Event.orgc_id'],
+                'conditions' => $eventConditions,
+                'unique' => true,
+            ]);
+            $allowedOrgs = array_merge($allowedOrgs, $orgsWithEvent);
+
+            $proposalConditions = $this->Event->ShadowAttribute->buildConditions($user);
+            // Do not check orgs that we already can see
+            $proposalConditions['AND'][]['NOT'] = ['ShadowAttribute.org_id' => $allowedOrgs];
+            $orgsWithProposal = $this->Event->ShadowAttribute->find('column', [
+                'fields' => ['ShadowAttribute.org_id'],
+                'conditions' => $proposalConditions,
+                'contain' => ['Event', 'Attribute'],
+                'unique' => true,
+                'order' => false,
+            ]);
+
+            $allowedOrgs = array_merge($allowedOrgs, $orgsWithProposal);
+            return ['AND' => ['id' => $allowedOrgs]];
+        }
+
+        return [];
     }
 
     private function getCountryGalaxyCluster()

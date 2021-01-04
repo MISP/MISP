@@ -209,31 +209,30 @@ class EventReportsController extends AppController
     {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
-        } else {
-            if ($this->request->is('post')) {
-                $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', $throwErrors=true, $full=false);
-                $results = $this->EventReport->getComplexTypeToolResultWithReplacements($this->Auth->user(), $report);
-                $report['EventReport']['content'] = $results['replacementResult']['contentWithReplacements'];
-                $contextResults = $this->EventReport->extractWithReplacements($this->Auth->user(), $report, ['replace' => true]);
-                $suggestionResult = $this->EventReport->transformFreeTextIntoSuggestion($contextResults['contentWithReplacements'], $results['complexTypeToolResult']);
-                $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestionResult['contentWithSuggestions'], $suggestionResult['suggestionsMapping']);
-                if (empty($errors)) {
-                    if (!empty($this->data['EventReport']['tag_event'])) {
-                        $this->EventReport->attachTagsAfterReplacements($this->Auth->User(), $contextResults['replacedContext'], $report['EventReport']['event_id']);
-                    }
-                    $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
-                    $data = [ 'report' => $report ];
-                    $successMessage = __('Automatic extraction applied to Event Report %s', $reportId);
-                    return $this->__getSuccessResponseBasedOnContext($successMessage, $data, 'applySuggestions', $reportId);
-                } else {
-                    $errorMessage = __('Automatic extraction could not be applied to Event Report %s.%sReasons: %s', $reportId, PHP_EOL, json_encode($errors));
-                    return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'applySuggestions', $reportId);
-                }
-            }
-            $this->layout = 'ajax';
-            $this->set('reportId', $reportId);
-            $this->render('ajax/extractAllFromReport');
         }
+        if ($this->request->is('post')) {
+            $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', $throwErrors=true, $full=false);
+            $results = $this->EventReport->getComplexTypeToolResultWithReplacements($this->Auth->user(), $report);
+            $report['EventReport']['content'] = $results['replacementResult']['contentWithReplacements'];
+            $contextResults = $this->EventReport->extractWithReplacements($this->Auth->user(), $report, ['replace' => true]);
+            $suggestionResult = $this->EventReport->transformFreeTextIntoSuggestion($contextResults['contentWithReplacements'], $results['complexTypeToolResult']);
+            $errors = $this->EventReport->applySuggestions($this->Auth->user(), $report, $suggestionResult['contentWithSuggestions'], $suggestionResult['suggestionsMapping']);
+            if (empty($errors)) {
+                if (!empty($this->data['EventReport']['tag_event'])) {
+                    $this->EventReport->attachTagsAfterReplacements($this->Auth->User(), $contextResults['replacedContext'], $report['EventReport']['event_id']);
+                }
+                $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
+                $data = [ 'report' => $report ];
+                $successMessage = __('Automatic extraction applied to Event Report %s', $reportId);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, $data, 'applySuggestions', $reportId);
+            } else {
+                $errorMessage = __('Automatic extraction could not be applied to Event Report %s.%sReasons: %s', $reportId, PHP_EOL, json_encode($errors));
+                return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'applySuggestions', $reportId);
+            }
+        }
+        $this->layout = 'ajax';
+        $this->set('reportId', $reportId);
+        $this->render('ajax/extractAllFromReport');
     }
 
     public function extractFromReport($reportId)

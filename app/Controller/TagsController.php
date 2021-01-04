@@ -1108,18 +1108,25 @@ class TagsController extends AppController
                 $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
             }
         } else {
-            foreach ($tag as $k => $t) {
-                $conditions['OR'][] = array('Tag.name' => $t);
+            foreach ($tag as $t) {
+                if (is_numeric($t)) {
+                    $conditions['OR'][] = ['Tag.id' => $t];
+                } else {
+                    $conditions['OR'][] = array('Tag.name' => $t);
+                }
             }
         }
         $tags = $this->Tag->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1
         ));
-        if (!$searchIfTagExists && empty($tags)) {
-            $tags = [];
-            foreach ($tag as $i => $tagName) {
-                $tags[] = ['Tag' => ['name' => $tagName], 'simulatedTag' => true];
+        if (!$searchIfTagExists) {
+            $foundTagNames = Hash::extract($tags, "{n}.Tag.name");
+            foreach ($tag as $tagName) {
+                if (!in_array($tagName, $foundTagNames, true)) {
+                    // Tag not found, insert simulated tag
+                    $tags[] = ['Tag' => ['name' => $tagName], 'simulatedTag' => true];
+                }
             }
         }
         $this->loadModel('Taxonomy');

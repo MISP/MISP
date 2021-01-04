@@ -30,6 +30,10 @@
     $listElements = '';
     if (!empty($fields)) {
         foreach ($fields as $field) {
+            if (isset($field['requirement']) && !$field['requirement']) {
+                continue;
+            }
+
             if (empty($field['type'])) {
                 $field['type'] = 'generic';
             }

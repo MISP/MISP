@@ -86,7 +86,7 @@
             'type' => 'checkbox',
             'checked' => isset($this->request->data['User']['contactalert']) ? $this->request->data['User']['contactalert'] : true
         ));
-        echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Disable this user account')));
+        echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Immediately disable this user account')));
         echo $this->Form->input('notify', array(
             'label' => __('Send credentials automatically'),
             'type' => 'checkbox',

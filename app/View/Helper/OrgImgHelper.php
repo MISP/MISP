@@ -6,7 +6,7 @@ class OrgImgHelper extends AppHelper
 {
     const IMG_PATH = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS;
 
-    public function getNameWithImg(array $organisation)
+    public function getNameWithImg(array $organisation, $link = null)
     {
         if (!isset($organisation['Organisation'])) {
             return '';
@@ -14,7 +14,9 @@ class OrgImgHelper extends AppHelper
 
         $orgImgName = $this->findOrgImage($organisation['Organisation']);
         $baseurl = $this->_View->viewVars['baseurl'];
-        $link = $baseurl . '/organisations/view/' . (empty($organisation['Organisation']['id']) ? h($organisation['Organisation']['name']) : h($organisation['Organisation']['id']));
+        if (!$link) {
+            $link = $baseurl . '/organisations/view/' . (empty($organisation['Organisation']['id']) ? h($organisation['Organisation']['name']) : h($organisation['Organisation']['id']));
+        }
         if ($orgImgName) {
             $orgImgUrl = $baseurl . '/img/orgs/' . $orgImgName;
             return sprintf('<a href="%s" style="background-image: url(\'%s\')" class="orgImg">%s</a>', $link, $orgImgUrl, h($organisation['Organisation']['name']));

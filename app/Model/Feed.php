@@ -180,7 +180,7 @@ class Feed extends AppModel
         $tmpFile->write(trim($data));
         unset($data);
 
-        return $tmpFile->csv();
+        return $tmpFile->intoParsedCsv();
     }
 
     /**
@@ -442,12 +442,17 @@ class Feed extends AppModel
                     if (!isset($event[$scope][$sourceId])) {
                         $event[$scope][$sourceId] = $source[$scope];
                     }
+
                     $attributePosition = $redisResultToAttributePosition[$hitIds[$k]];
-                    $attributes[$attributePosition][$scope][] = $source[$scope];
+                    $alreadyAttached = isset($attributes[$attributePosition][$scope]) &&
+                        in_array($sourceId, array_column($attributes[$attributePosition][$scope], 'id'));
+                    if (!$alreadyAttached) {
+                        $attributes[$attributePosition][$scope][] = $source[$scope];
+                    }
                     $sourceHasHit = true;
                 }
             }
-            // Append also exact MISP feed event UUID
+            // Append also exact MISP feed or server event UUID
             // TODO: This can be optimised in future to do that in one pass
             if ($sourceHasHit && ($scope === 'Server' || $source[$scope]['source_format'] === 'misp')) {
                 $pipe = $redis->multi(Redis::PIPELINE);
@@ -475,7 +480,9 @@ class Feed extends AppModel
                         $attributePosition = $eventUuidHitPosition[$sourceHitPos];
                         foreach ($attributes[$attributePosition][$scope] as $tempKey => $tempFeed) {
                             if ($tempFeed['id'] == $feedId) {
-                                $attributes[$attributePosition][$scope][$tempKey]['event_uuids'][] = $eventUuid;
+                                if (empty($attributes[$attributePosition][$scope][$tempKey]['event_uuids']) || !in_array($eventUuid, $attributes[$attributePosition][$scope][$tempKey]['event_uuids'])) {
+                                    $attributes[$attributePosition][$scope][$tempKey]['event_uuids'][] = $eventUuid;
+                                }
                                 break;
                             }
                         }

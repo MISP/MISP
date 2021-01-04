@@ -304,8 +304,7 @@ class Warninglist extends AppModel
             if ($id && $warninglist['Warninglist']['id'] != $id) {
                 continue;
             }
-            $entries = $this->WarninglistEntry->find('list', array(
-                'recursive' => -1,
+            $entries = $this->WarninglistEntry->find('column', array(
                 'conditions' => array('warninglist_id' => $warninglist['Warninglist']['id']),
                 'fields' => array('value')
             ));
@@ -390,11 +389,10 @@ class Warninglist extends AppModel
         if ($redis !== false && $redis->exists('misp:warninglist_entries_cache:' . $id)) {
             return $redis->sMembers('misp:warninglist_entries_cache:' . $id);
         } else {
-            $entries = array_values($this->WarninglistEntry->find('list', array(
-                'recursive' => -1,
+            $entries = $this->WarninglistEntry->find('column', array(
                 'conditions' => array('warninglist_id' => $id),
-                'fields' => array('value')
-            )));
+                'fields' => array('WarninglistEntry.value')
+            ));
             $this->cacheWarninglistEntries($entries, $id);
             return $entries;
         }
@@ -677,14 +675,13 @@ class Warninglist extends AppModel
      */
     public function fetchTLDLists()
     {
-        $tldLists = $this->find('list', array(
+        $tldLists = $this->find('column', array(
             'conditions' => array('Warninglist.name' => $this->__tlds),
-            'recursive' => -1,
-            'fields' => array('Warninglist.id', 'Warninglist.id')
+            'fields' => array('Warninglist.id')
         ));
         $tlds = array();
         if (!empty($tldLists)) {
-            $tlds = $this->WarninglistEntry->find('list', array(
+            $tlds = $this->WarninglistEntry->find('column', array(
                 'conditions' => array('WarninglistEntry.warninglist_id' => $tldLists),
                 'fields' => array('WarninglistEntry.value')
             ));
