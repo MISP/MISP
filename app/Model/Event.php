@@ -4344,7 +4344,71 @@ class Event extends AppModel
         return true;
     }
 
-    // Uploads this specific event or sightings to all remote servers
+    /**
+     * New variant of uploadEventToServersRouter (since 2.4.137) for pushing sightings.
+     * @param array $event with event tags and whhole sharing group
+     * @param null|int $passAlong Server ID that should be skipped from uploading.
+     * @return array|bool
+     * @throws Exception
+     */
+    private function uploadEventSightingsToServersRouter(array $event, $passAlong = null)
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $conditions = ['Server.push_sightings' => 1];
+        if ($passAlong) {
+            $conditions[] = array('Server.id !=' => $passAlong);
+        }
+        $servers = $this->Server->find('all', [
+            'conditions' => $conditions,
+            'contain' => ['RemoteOrg'],
+            'recursive' => -1,
+            'order' => ['Server.priority ASC', 'Server.id ASC'],
+        ]);
+        // TODO: This is a new condition, that was not used in old code
+        // Filter out servers that do not match server conditions for event push
+        $servers = $this->Server->eventFilterPushableServers($event, $servers);
+        if (empty($servers)) {
+            return true;
+        }
+
+        $this->Sighting = ClassRegistry::init('Sighting');
+        App::uses('SyncTool', 'Tools');
+        $syncTool = new SyncTool();
+
+        $failedServers = [];
+        foreach ($servers as $server) {
+            // TODO: This is a new condition, that was not used in old code
+            if (!$this->checkDistributionForPush($event, $server)) {
+                continue; // event distribution do not match with server
+            }
+
+            $fakeSyncUser = [
+                'org_id' => $server['Server']['remote_org_id'],
+                'Role' => [
+                    'perm_site_admin' => 0,
+                ],
+            ];
+            $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, false, true);
+            if (!empty($sightings)) {
+                $HttpSocket = $syncTool->setupHttpSocket($server);
+                if (!$this->uploadSightingsToServer($sightings, $server, $event['Event']['uuid'], $HttpSocket)) {
+                    $failedServers[] = $server['Server']['url'];
+                }
+            }
+        }
+        if (!empty($failedServers)) {
+            return $failedServers;
+        }
+        return true;
+    }
+
+    /**
+     * @param int $id
+     * @param int|null $passAlong
+     * @param string $scope Only 'events', 'sightings' is deprecated since 2.4.137
+     * @return array|bool
+     * @throws Exception
+     */
     public function uploadEventToServersRouter($id, $passAlong = null, $scope = 'events')
     {
         $eventOrgcId = $this->find('first', array(
@@ -4517,7 +4581,8 @@ class Event extends AppModel
         }
         $event = $this->find('first', array(
             'recursive' => -1,
-            'conditions' => $condition
+            'conditions' => $condition,
+            'contain' => ['EventTag', 'SharingGroup' => ['SharingGroupServer', 'SharingGroupOrg' => ['Organisation']]],
         ));
         if (empty($event)) {
             return false;
@@ -4533,8 +4598,7 @@ class Event extends AppModel
             $event['Event']['skip_kafka'] = 1;
             $this->save($event, array('fieldList' => $fieldList));
         }
-        $uploaded = $this->uploadEventToServersRouter($id, $passAlong, 'sightings');
-        return $uploaded;
+        return $this->uploadEventSightingsToServersRouter($event, $passAlong);
     }
 
     // Performs all the actions required to publish an event

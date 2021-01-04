@@ -527,7 +527,7 @@ class Sighting extends AppModel
     }
 
     /**
-     * @param array $event
+     * @param array $event Just 'Event' object is enough
      * @param array $user
      * @param array|int|null $attribute Attribute model or attribute ID
      * @param array|bool $extraConditions
