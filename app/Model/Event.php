@@ -1691,6 +1691,12 @@ class Event extends AppModel
         return $tempConditions;
     }
 
+    /**
+     * @param array $user
+     * @param array $params
+     * @param int $result_count
+     * @return array Event IDs, when `include_attribute_count` is enabled, then it is Event ID => Attribute count
+     */
     public function filterEventIds($user, &$params = array(), &$result_count = 0)
     {
         $conditions = $this->createEventConditions($user);
@@ -1774,14 +1780,9 @@ class Event extends AppModel
                 }
             }
         }
-        $fields = array('Event.id');
-        if (!empty($params['include_attribute_count'])) {
-            $fields[] = 'Event.attribute_count';
-        }
         $find_params = array(
             'conditions' => $conditions,
             'recursive' => -1,
-            'fields' => $fields
         );
         if (isset($params['order'])) {
             $find_params['order'] = $params['order'];
@@ -1794,7 +1795,13 @@ class Event extends AppModel
                 $find_params['page'] = $params['page'];
             }
         }
-        $results = $this->find('list', $find_params);
+        if (!empty($params['include_attribute_count'])) {
+            $find_params['fields'] = array('Event.id', 'Event.attribute_count');
+            $results = $this->find('list', $find_params);
+        } else {
+            $find_params['fields'] = array('Event.id');
+            $results = $this->find('column', $find_params);
+        }
         if (!isset($params['limit'])) {
             $result_count = count($results);
         }
