@@ -229,6 +229,7 @@ jobs:
               pushd PyMISP
               poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
               poetry run python tests/testlive_comprehensive.py
+              poetry run python tests/testlive_security.py -v
               poetry run python tests/test_mispevent.py
               popd
               cp PyMISP/tests/keys.py PyMISP/examples/events/
