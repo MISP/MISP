@@ -4,8 +4,17 @@ Changelog
 v2.4 aka 2.4 for ever (current changelog)
 ------------------------
 
+New
+---
+- [Statistics shell] Added new statistics shell. [iglocska]
+
+  - (R)etrieval (o)f (m)etrics (m)atrix (e)xtended (f)or (s)tatistics
+
+  - run it via /var/www/MISP/app/Console/cake Statistics rommelfs
+
 Changes
 -------
+- [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
 - [installer] update to latest. [Steve Clement]
 - [fix] typo. [Steve Clement]
 - [doc] OpenBSD 6.8 update. [Steve Clement]
@@ -14,11 +23,25 @@ Changes
 
 Fix
 ---
+- [installer] Typo. [Steve Clement]
+- [statistics] Local org flag fixed to show the correct count.
+  [iglocska]
+- [mistake in a comment fixed] [iglocska]
+- [internal] sharing_group graph missing org_ids - throwing notices.
+  [iglocska]
+- [internal] further promises removed from the galaxy model. [iglocska]
+
+  - easier than getting people to stop using EOL software
+- [installer] type in php-bcmath package. [Steve Clement]
 - [installer] forgot to add sfv. [Steve Clement]
+- [internal] removed function promises in crud component. [iglocska]
+
+  - to appease EOL php versions...
 - [delegation] invalid user call. [iglocska]
 
 Other
 -----
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #6767 from SteveClement/guides. [Steve Clement]
 - Merge pull request #6764 from Natsec/patch-1. [Andras Iklody]
 
