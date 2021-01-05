@@ -959,10 +959,9 @@ class User extends AppModel
 
     public function getOrgAdminsForOrg($org_id, $excludeUserId = false)
     {
-        $adminRoles = $this->Role->find('list', array(
-            'recursive' => -1,
+        $adminRoles = $this->Role->find('column', array(
             'conditions' => array('perm_admin' => 1),
-            'fields' => array('Role.id', 'Role.id')
+            'fields' => array('Role.id')
         ));
         $conditions = array(
             'User.org_id' => $org_id,

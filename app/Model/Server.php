@@ -2627,11 +2627,10 @@ class Server extends AppModel
             } elseif ("update" === $technique) {
                 $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
                 $eventModel = ClassRegistry::init('Event');
-                $local_event_ids = $eventModel->find('list', array(
-                    'fields' => array('uuid'),
-                    'recursive' => -1,
+                $localEventUuids = $eventModel->find('column', array(
+                    'fields' => array('Event.uuid'),
                 ));
-                return array_intersect($eventIds, $local_event_ids);
+                return array_intersect($eventIds, $localEventUuids);
             } elseif (is_numeric($technique)) {
                 return array(intval($technique));
             } elseif (Validation::uuid($technique)) {
@@ -3166,11 +3165,11 @@ class Server extends AppModel
         } else {
             if (Configure::read('MISP.enableEventBlocklisting') !== false) {
                 $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-                $blocklistHits = $this->EventBlocklist->find('list', array(
-                    'recursive' => -1,
+                $blocklistHits = $this->EventBlocklist->find('column', array(
                     'conditions' => array('EventBlocklist.event_uuid' => array_column($eventArray, 'uuid')),
-                    'fields' => array('EventBlocklist.event_uuid', 'EventBlocklist.event_uuid'),
+                    'fields' => array('EventBlocklist.event_uuid'),
                 ));
+                $blocklistHits = array_flip($blocklistHits);
                 foreach ($eventArray as $k => $event) {
                     if (isset($blocklistHits[$event['uuid']])) {
                         unset($eventArray[$k]);
@@ -3180,11 +3179,11 @@ class Server extends AppModel
 
             if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
                 $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-                $blocklistHits = $this->OrgBlocklist->find('list', array(
-                    'recursive' => -1,
+                $blocklistHits = $this->OrgBlocklist->find('column', array(
                     'conditions' => array('OrgBlocklist.org_uuid' => array_unique(array_column($eventArray, 'orgc_uuid'))),
-                    'fields' => array('OrgBlocklist.org_uuid', 'OrgBlocklist.org_uuid'),
+                    'fields' => array('OrgBlocklist.org_uuid'),
                 ));
+                $blocklistHits = array_flip($blocklistHits);
                 foreach ($eventArray as $k => $event) {
                     if (isset($blocklistHits[$event['orgc_uuid']])) {
                         unset($eventArray[$k]);

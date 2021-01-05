@@ -1805,11 +1805,10 @@ class Event extends AppModel
     {
         $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
-        $results = array_values($this->find('list', array(
+        $results = $this->find('column', array(
             'conditions' => $conditions,
-            'recursive' => -1,
             'fields' => array('Event.id')
-        )));
+        ));
         return $results;
     }
 
@@ -1885,9 +1884,9 @@ class Event extends AppModel
         if ($list) {
             $params = array(
                 'conditions' => $conditions,
-                'recursive' => -1,
+                'fields' => ['Event.id'],
             );
-            $results = array_values($this->find('list', $params));
+            $results = $this->find('column', $params);
         } else {
             $params = array(
                 'conditions' => $conditions,
@@ -2700,7 +2699,7 @@ class Event extends AppModel
                         $existingOrg = $this->Orgc->find('first', array(
                             'recursive' => -1,
                             'conditions' => array('Orgc.name' => $org),
-                            'fields' => array('Orgc.name', 'Orgc.id')
+                            'fields' => array('Orgc.id')
                         ));
                         if (empty($existingOrg)) {
                             $params['org']['OR'][$k] = -1;
@@ -2717,7 +2716,7 @@ class Event extends AppModel
                         $existingOrg = $this->Orgc->find('first', array(
                             'recursive' => -1,
                             'conditions' => array('Orgc.name' => $org),
-                            'fields' => array('Orgc.name', 'Orgc.id')
+                            'fields' => array('Orgc.id')
                         ));
                         if (!empty($existingOrg)) {
                             $temp[] = $existingOrg['Orgc']['id'];

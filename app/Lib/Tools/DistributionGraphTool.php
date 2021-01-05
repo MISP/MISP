@@ -87,16 +87,15 @@ class DistributionGraphTool
         // community
         $orgConditions = $this->__organisationModel->createConditions($this->__user);
         $orgConditions['local'] = true;
-        $orgs = $this->__organisationModel->find('list', array(
-            'fields' => ['id', 'name'],
+        $orgConditions['id !='] = $this->__user['Organisation']['id'];
+        $orgs = $this->__organisationModel->find('column', array(
+            'fields' => ['name'],
             'conditions' => $orgConditions,
         ));
         $thisOrg = $this->__user['Organisation']['name'];
         $this->__addAdditionalDistributionInfo(1, $thisOrg); // add current community
-        foreach ($orgs as $orgId => $orgName) {
-            if ($thisOrg != $orgName) {
-                $this->__addAdditionalDistributionInfo(1, $orgName);
-            }
+        foreach ($orgs as $orgName) {
+            $this->__addAdditionalDistributionInfo(1, $orgName);
         }
 
         // org only
