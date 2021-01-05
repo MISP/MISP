@@ -241,9 +241,9 @@ class RestResponseComponent extends Component
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time')
             ),
             'restSearch' => array(
-                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id MUST be provided if context is set.",
+                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id or uuid MUST be provided if context is set.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
+                'optional' => array('id', 'uuid', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
                 'params' => array('context')
             ),
         ),
@@ -519,11 +519,12 @@ class RestResponseComponent extends Component
             } else {
                 $type = $format;
             }
+            $dumpSql = !empty($this->Controller->sql_dump) && Configure::read('debug') > 1;
             if (!$raw) {
                 if (is_string($response)) {
                     $response = array('message' => $response);
                 }
-                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
                     if ($this->Controller->sql_dump === 2) {
                         $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
@@ -533,7 +534,7 @@ class RestResponseComponent extends Component
                 }
                 $response = json_encode($response, JSON_PRETTY_PRINT);
             } else {
-                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
                     if ($this->Controller->sql_dump === 2) {
                         $response = json_encode(array('sql_dump' => $this->Log->getDataSource()->getLog(false, false)));
@@ -547,7 +548,15 @@ class RestResponseComponent extends Component
                 }
             }
         }
-        $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+
+        App::uses('TmpFileTool', 'Tools');
+        if ($response instanceof TmpFileTool) {
+            App::uses('CakeResponseTmp', 'Tools');
+            $cakeResponse = new CakeResponseTmp(['status' => $code, 'type' => $type]);
+            $cakeResponse->file($response);
+        } else {
+            $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+        }
 
         if (Configure::read('Security.allow_cors')) {
             $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";

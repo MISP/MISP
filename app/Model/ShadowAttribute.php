@@ -481,13 +481,13 @@ class ShadowAttribute extends AppModel
      */
     public function getEventContributors($eventId)
     {
-        $orgs = $this->find('all', array(
-            'fields' => array('DISTINCT(ShadowAttribute.org_id)'),
+        $orgIds = $this->find('column', array(
+            'fields' => array('ShadowAttribute.org_id'),
             'conditions' => array('event_id' => $eventId),
-            'recursive' => -1,
+            'unique' => true,
             'order' => false
         ));
-        if (empty($orgs)) {
+        if (empty($orgIds)) {
             return [];
         }
 
@@ -495,8 +495,8 @@ class ShadowAttribute extends AppModel
         return $this->Organisation->find('list', array(
             'recursive' => -1,
             'fields' => array('id', 'name'),
-            'conditions' => array('Organisation.id' => Hash::extract($orgs, "{n}.ShadowAttribute.org_id")))
-        );
+            'conditions' => array('Organisation.id' => $orgIds)
+        ));
     }
 
     /**

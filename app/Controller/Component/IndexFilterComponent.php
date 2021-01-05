@@ -6,7 +6,8 @@
 
 class IndexFilterComponent extends Component
 {
-    public $Controller = false;
+    /** @var Controller */
+    public $Controller;
     public $isRest = null;
 
     public function initialize(Controller $controller) {
@@ -74,7 +75,7 @@ class IndexFilterComponent extends Component
                 }
             }
         }
-        $this->Controller->set('passedArgs', json_encode($this->Controller->passedArgs, true));
+        $this->Controller->set('passedArgs', json_encode($this->Controller->passedArgs));
         return $data;
     }
 
@@ -85,12 +86,7 @@ class IndexFilterComponent extends Component
             return $this->isRest;
         }
         $api = $this->isApiFunction($this->Controller->request->params['controller'], $this->Controller->request->params['action']);
-        if (isset($this->Controller->RequestHandler) && ($api || $this->Controller->RequestHandler->isXml() || $this->isJson() || $this->isCsv())) {
-            if ($this->isJson()) {
-                if (!empty($this->Controller->request->input()) && empty($this->Controller->request->input('json_decode'))) {
-                    throw new MethodNotAllowedException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.');
-                }
-            }
+        if (isset($this->Controller->RequestHandler) && ($api || $this->isJson() || $this->Controller->RequestHandler->isXml() || $this->isCsv())) {
             $this->isRest = true;
             return true;
         } else {
@@ -99,11 +95,8 @@ class IndexFilterComponent extends Component
         }
     }
 
-    public function isJson($data=false)
+    public function isJson()
     {
-        if ($data) {
-            return (json_decode($data) != null) ? true : false;
-        }
         return $this->Controller->request->header('Accept') === 'application/json' || $this->Controller->RequestHandler->prefers() === 'json';
     }
 
@@ -117,12 +110,13 @@ class IndexFilterComponent extends Component
 
     }
 
+    /**
+     * @param string $controller
+     * @param string $action
+     * @return bool
+     */
     public function isApiFunction($controller, $action)
     {
-        if (isset($this->Controller->automationArray[$controller]) && in_array($action, $this->Controller->automationArray[$controller])) {
-            return true;
-        }
-        return false;
+        return isset($this->Controller->automationArray[$controller]) && in_array($action, $this->Controller->automationArray[$controller], true);
     }
-
 }

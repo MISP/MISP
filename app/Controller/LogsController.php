@@ -125,7 +125,8 @@ class LogsController extends AppController
             'includeAllTags' => 1,
             'sgReferenceOnly' => 1,
             'deleted' => [0, 1],
-            'deleted_proposals' => 1
+            'deleted_proposals' => 1,
+            'noSightings' => true,
         ));
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');

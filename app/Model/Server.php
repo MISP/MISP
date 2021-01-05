@@ -865,6 +865,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'null' => true
                         ),
+                        'log_user_ips_authkeys' => [
+                            'level' => self::SETTING_RECOMMENDED,
+                            'description' => __('Log user IP and key usage on each API request. All logs for given keys are deleted after one year when this key is not used.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ],
                         'delegation' => array(
                                 'level' => 1,
                                 'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
@@ -1156,7 +1165,7 @@ class Server extends AppModel
                         'test' => 'testForPositiveInteger',
                         'type' => 'numeric',
                         'null' => true,
-                    ]
+                    ],
                 ),
                 'GnuPG' => array(
                         'branch' => 1,
@@ -1343,6 +1352,24 @@ class Server extends AppModel
                                 'test' => 'testBool',
                                 'type' => 'boolean',
                         ),
+                    'advanced_authkeys_validity' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('Maximal key lifetime in days. Use can limit that validity even more. Just newly created keys will be affected. When not set, key validity is not limited.'),
+                        'value' => '',
+                        'errorMessage' => '',
+                        'type' => 'numeric',
+                        'test' => 'testForNumeric',
+                        'null' => true,
+                    ],
+                    'authkey_keep_session' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('When enabled, session is kept between API requests.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => true,
+                    ],
                     'auth_enforced' => [
                         'level' => self::SETTING_OPTIONAL,
                         'description' => __('This optional can be enabled if external auth provider is used and when set to true, it will disable default form authentication.'),
@@ -1531,6 +1558,15 @@ class Server extends AppModel
                             'type' => 'boolean',
                             'null' => true
                         ),
+                        'hide_organisations_in_sharing_groups' => [
+                            'level' => self::SETTING_RECOMMENDED,
+                            'description' => __('Enabling this setting will block the organisation list from being visible in sharing group besides user with sharing group permission.'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ],
                         'disable_local_feed_access' => array(
                                 'level' => 0,
                                 'description' => __('Disabling this setting will allow the creation/modification of local feeds (as opposed to network feeds). Enabling this setting will restrict feed sources to be network based only. When disabled, keep in mind that a malicious site administrator could get access to any arbitrary file on the system that the apache user has access to. Make sure that proper safe-guards are in place. This setting can only be modified via the CLI.'),
@@ -1585,7 +1621,16 @@ class Server extends AppModel
                             'test' => 'testBool',
                             'type' => 'boolean',
                             'null' => true
-                        )
+                        ),
+                    'username_in_response_header' => [
+                        'level' => self::SETTING_OPTIONAL,
+                        'description' => __('When enabled, logged in username will be included in X-Username HTTP response header. This is useful for request logging on webserver/proxy side.'),
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean',
+                        'null' => true
+                    ]
                 ),
                 'SecureAuth' => array(
                         'branch' => 1,
@@ -2176,12 +2221,17 @@ class Server extends AppModel
                         ),
                         'Sightings_policy' => array(
                             'level' => 1,
-                            'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
+                            'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner organisation alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and any organisation that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
                             'value' => 0,
                             'errorMessage' => '',
                             'test' => 'testForSightingVisibility',
                             'type' => 'numeric',
-                            'options' => array(0 => 'Event Owner', 1 => 'Sighting reporters', 2 => 'Everyone'),
+                            'options' => array(
+                                0 => __('Event Owner Organisation'),
+                                1 => __('Sighting reporters'),
+                                2 => __('Everyone'),
+                                3 => __('Event Owner + host org sightings'),
+                            ),
                         ),
                         'Sightings_anonymise' => array(
                             'level' => 1,
@@ -2577,11 +2627,10 @@ class Server extends AppModel
             } elseif ("update" === $technique) {
                 $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
                 $eventModel = ClassRegistry::init('Event');
-                $local_event_ids = $eventModel->find('list', array(
-                    'fields' => array('uuid'),
-                    'recursive' => -1,
+                $localEventUuids = $eventModel->find('column', array(
+                    'fields' => array('Event.uuid'),
                 ));
-                return array_intersect($eventIds, $local_event_ids);
+                return array_intersect($eventIds, $localEventUuids);
             } elseif (is_numeric($technique)) {
                 return array(intval($technique));
             } elseif (Validation::uuid($technique)) {
@@ -3116,11 +3165,11 @@ class Server extends AppModel
         } else {
             if (Configure::read('MISP.enableEventBlocklisting') !== false) {
                 $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-                $blocklistHits = $this->EventBlocklist->find('list', array(
-                    'recursive' => -1,
+                $blocklistHits = $this->EventBlocklist->find('column', array(
                     'conditions' => array('EventBlocklist.event_uuid' => array_column($eventArray, 'uuid')),
-                    'fields' => array('EventBlocklist.event_uuid', 'EventBlocklist.event_uuid'),
+                    'fields' => array('EventBlocklist.event_uuid'),
                 ));
+                $blocklistHits = array_flip($blocklistHits);
                 foreach ($eventArray as $k => $event) {
                     if (isset($blocklistHits[$event['uuid']])) {
                         unset($eventArray[$k]);
@@ -3130,11 +3179,11 @@ class Server extends AppModel
 
             if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
                 $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-                $blocklistHits = $this->OrgBlocklist->find('list', array(
-                    'recursive' => -1,
+                $blocklistHits = $this->OrgBlocklist->find('column', array(
                     'conditions' => array('OrgBlocklist.org_uuid' => array_unique(array_column($eventArray, 'orgc_uuid'))),
-                    'fields' => array('OrgBlocklist.org_uuid', 'OrgBlocklist.org_uuid'),
+                    'fields' => array('OrgBlocklist.org_uuid'),
                 ));
+                $blocklistHits = array_flip($blocklistHits);
                 foreach ($eventArray as $k => $event) {
                     if (isset($blocklistHits[$event['orgc_uuid']])) {
                         unset($eventArray[$k]);
@@ -4916,6 +4965,7 @@ class Server extends AppModel
 
     public function dbSchemaDiagnostic()
     {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $actualDbVersion = $this->AdminSetting->find('first', array(
             'conditions' => array('setting' => 'db_version')
         ))['AdminSetting']['value'];
@@ -6599,7 +6649,7 @@ class Server extends AppModel
         } catch (Exception $e) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $message = __('Could not reset fetch remote user account.');
+            $message = __('Could not fetch remote user account.');
             $this->Log->save(array(
                     'org' => 'SYSTEM',
                     'model' => 'Server',
@@ -6612,14 +6662,18 @@ class Server extends AppModel
             return $message;
         }
         if ($response->isOk()) {
-            $user = json_decode($response->body, true);
+            $user = $this->jsonDecode($response->body);
             if (!empty($user['User'])) {
-                $result = array(
-                    'Email' => $user['User']['email'],
-                    'Role name' => isset($user['Role']['name']) ? $user['Role']['name'] : 'Unknown, outdated instance',
-                    'Sync flag' => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? 1 : 0) : 'Unknown, outdated instance'
-                );
-                return $result;
+                $results = [
+                    __('User') => $user['User']['email'],
+                    __('Role name') => isset($user['Role']['name']) ? $user['Role']['name'] : __('Unknown, outdated instance'),
+                    __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
+                ];
+                if (isset($response->headers['X-Auth-Key-Expiration'])) {
+                    $date = new DateTime($response->headers['X-Auth-Key-Expiration']);
+                    $results[__('Auth key expiration')] = $date->format('Y-m-d H:i:s');
+                }
+                return $results;
             } else {
                 return __('No user object received in response.');
             }

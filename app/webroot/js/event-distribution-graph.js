@@ -4,7 +4,6 @@ var event_distribution = $eventDistriGraph.data('event-distribution');
 var event_distribution_text = $eventDistriGraph.data('event-distribution-text');
 var extended_text = $eventDistriGraph.data('extended') == 1 ? true : false;
 var spanOffset_orig = 15; // due to padding
-var payload = {};
 var distribution_chart;
 var distributionData;
 
@@ -387,13 +386,9 @@ function construct_piechart(data) {
 
 function fetchDistributionData(callback) {
     $.ajax({
-        url: baseurl + "/events/"+"getDistributionGraph"+"/"+scope_id+"/event.json",
-        dataType: 'json',
-        type: 'post',
-        contentType: 'application/json',
-        data: JSON.stringify( payload ),
-        processData: false,
-        beforeSend: function (XMLHttpRequest) {
+        url: baseurl + "/events/getDistributionGraph/"+scope_id+"/event.json",
+        type: 'get',
+        beforeSend: function () {
             $(".loadingPopover").show();
         },
         success: function( data, textStatus, jQxhr ){

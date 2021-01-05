@@ -20,9 +20,9 @@
                 $title = __('Expired at %s', date('Y-m-d H:i:s', $data));
                 $data = '<span class="red bold" title="' . $title . '">' . __('Expired') . '</span>';
             } else {
-                $diffInDays = floor(($data - time()) / 3600 * 24);
+                $diffInDays = floor(($data - time()) / (3600 * 24));
                 $class = $diffInDays <= 14 ? 'text-warning bold' : 'text-success';
-                $title = __n('Will expire at %s day', 'Will expire at %s days', $diffInDays, $diffInDays);
+                $title = __n('Will expire in %s day', 'Will expire in %s days', $diffInDays, $diffInDays);
                 $data = '<span class="' . $class . '" title="' . $title . '">' . date('Y-m-d H:i:s', $data) . '</span>';
             }
         }

@@ -1,12 +1,15 @@
 <?php
 class DistributionGraphTool
 {
-    private $__user = false;
+    /** @var array */
+    private $__user;
     private $__json = array();
     /** @var Event */
     private $__eventModel;
     /** @var Organisation */
     private $__organisationModel;
+    /** @var array */
+    private $__serverList;
 
     public function construct(Event $eventModel, array $servers, array $user, $extended_view=0)
     {
@@ -76,27 +79,26 @@ class DistributionGraphTool
         $this->__addAdditionalDistributionInfo(3, "All other communities"); // add current community
 
         // connected
-        $servers = $this->__serverList;
         $this->__addAdditionalDistributionInfo(2, "This community"); // add current community
-        foreach ($servers as $server) {
+        foreach ($this->__serverList as $server) {
             $this->__addAdditionalDistributionInfo(2, $server);
         }
 
         // community
-        $orgs = $this->__organisationModel->find('list', array(
-            'fields' => array('name'),
-            'conditions' => array('local' => true)
+        $orgConditions = $this->__organisationModel->createConditions($this->__user);
+        $orgConditions['local'] = true;
+        $orgConditions['id !='] = $this->__user['Organisation']['id'];
+        $orgs = $this->__organisationModel->find('column', array(
+            'fields' => ['name'],
+            'conditions' => $orgConditions,
         ));
         $thisOrg = $this->__user['Organisation']['name'];
         $this->__addAdditionalDistributionInfo(1, $thisOrg); // add current community
-        foreach ($orgs as $org) {
-            if ($thisOrg != $org) {
-                $this->__addAdditionalDistributionInfo(1, $org);
-            }
+        foreach ($orgs as $orgName) {
+            $this->__addAdditionalDistributionInfo(1, $orgName);
         }
 
         // org only
-        $thisOrg = $this->__user['Organisation']['name'];
         $this->__addAdditionalDistributionInfo(0, $thisOrg); // add current community
     }
 

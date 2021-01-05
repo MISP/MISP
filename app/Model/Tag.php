@@ -514,13 +514,11 @@ class Tag extends AppModel
             }
             $id = $tag['Tag']['id'];
         }
-        $event_ids = $this->EventTag->find('list', array(
-            'recursive' => -1,
+        $event_ids = $this->EventTag->find('column', array(
             'conditions' => array('EventTag.tag_id' => $id),
-            'fields'  => array('EventTag.event_id', 'EventTag.event_id'),
-            'order' => array('EventTag.event_id')
+            'fields'  => array('EventTag.event_id'),
         ));
-        $params = array('conditions' => array('Event.id' => array_values($event_ids)));
+        $params = array('conditions' => array('Event.id' => $event_ids));
         $events = $this->EventTag->Event->fetchSimpleEvents($user, $params, true);
         foreach ($events as $k => $event) {
             $event['Event']['Orgc'] = $event['Orgc'];

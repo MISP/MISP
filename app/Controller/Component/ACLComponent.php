@@ -15,13 +15,11 @@ class ACLComponent extends Component
     private $__aclList = array(
             '*' => array(
                     'blackhole' => array(),
-                    'checkAction' => array(),
                     'checkAuthUser' => array(),
                     'checkExternalAuthUser' => array(),
                     'cleanModelCaches' => array(),
                     'debugACL' => array(),
                     'generateCount' => array(),
-                    'getActions' => array(),
                     'pruneDuplicateUUIDs' => array(),
                     'queryACL' => array(),
                     'removeDuplicateEvents' => array(),
@@ -461,7 +459,6 @@ class ACLComponent extends Component
                     'admin_add' => array(),
                     'admin_delete' => array(),
                     'admin_edit' => array(),
-                    'admin_index' => array('perm_admin'),
                     'admin_set_default' => array(),
                     'index' => array('*'),
                     'view' => array('*'),
@@ -685,6 +682,7 @@ class ACLComponent extends Component
                     'verifyCertificate' => array(),
                     'verifyGPG' => array(),
                     'view' => array('*'),
+                    'getGpgPublicKey' => array('*'),
             ),
             'userSettings' => array(
                     'index' => array('*'),

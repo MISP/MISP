@@ -843,18 +843,16 @@ class Event extends AppModel
         //        ii. Atttibute has a distribution between 1-3 (community only, connected communities, all orgs)
         //        iii. Attribute has a sharing group that the user is accessible to view
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventId, $sgids);
-        $correlations = $this->Correlation->find('list', array(
-                'fields' => array('Correlation.event_id', 'Correlation.event_id'),
-                'conditions' => $conditionsCorrelation,
-                'recursive' => 0,
-                'group' => 'Correlation.event_id',
-                'order' => array('Correlation.event_id DESC')));
+        $relatedEventIds = $this->Correlation->find('column', array(
+            'fields' => array('Correlation.event_id'),
+            'conditions' => $conditionsCorrelation,
+            'unique' => true,
+        ));
 
-        if (empty($correlations)) {
+        if (empty($relatedEventIds)) {
             return [];
         }
 
-        $relatedEventIds = array_values($correlations);
         // now look up the event data for these attributes
         $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = array('Event.id' => $relatedEventIds);
@@ -1188,14 +1186,18 @@ class Event extends AppModel
         if (is_numeric($event)) {
             return $event;
         }
-        $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         if ($scope === 'sightings') {
             $scope .= '/bulkSaveSightings';
             $urlPath = $event['Event']['uuid'];
         }
+        $url = $server['Server']['url'];
         $uri = $url . '/' . $scope . $this->__getLastUrlPathComponent($urlPath);
+        if ($scope === 'event') {
+            // After creating or editing event, it is not necessary to fetch full event
+            $uri .= '/metadata:1';
+        }
         $data = json_encode($event);
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
@@ -1803,11 +1805,10 @@ class Event extends AppModel
     {
         $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
-        $results = array_values($this->find('list', array(
+        $results = $this->find('column', array(
             'conditions' => $conditions,
-            'recursive' => -1,
             'fields' => array('Event.id')
-        )));
+        ));
         return $results;
     }
 
@@ -1883,9 +1884,9 @@ class Event extends AppModel
         if ($list) {
             $params = array(
                 'conditions' => $conditions,
-                'recursive' => -1,
+                'fields' => ['Event.id'],
             );
-            $results = array_values($this->find('list', $params));
+            $results = $this->find('column', $params);
         } else {
             $params = array(
                 'conditions' => $conditions,
@@ -2698,7 +2699,7 @@ class Event extends AppModel
                         $existingOrg = $this->Orgc->find('first', array(
                             'recursive' => -1,
                             'conditions' => array('Orgc.name' => $org),
-                            'fields' => array('Orgc.name', 'Orgc.id')
+                            'fields' => array('Orgc.id')
                         ));
                         if (empty($existingOrg)) {
                             $params['org']['OR'][$k] = -1;
@@ -2715,7 +2716,7 @@ class Event extends AppModel
                         $existingOrg = $this->Orgc->find('first', array(
                             'recursive' => -1,
                             'conditions' => array('Orgc.name' => $org),
-                            'fields' => array('Orgc.name', 'Orgc.id')
+                            'fields' => array('Orgc.id')
                         ));
                         if (!empty($existingOrg)) {
                             $temp[] = $existingOrg['Orgc']['id'];
@@ -6995,7 +6996,7 @@ class Event extends AppModel
         unset($result);
         unset($temp);
         $tmpfile->write($exportTool->footer($exportToolParams));
-        return $tmpfile->finish();
+        return $tmpfile;
     }
 
     /*

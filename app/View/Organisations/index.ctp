@@ -97,7 +97,7 @@
                 <th><?php echo __('Added by');?></th>
             <?php endif; ?>
             <th><?php echo $this->Paginator->sort('local');?></th>
-            <th>Users</th>
+            <th><?= $this->Paginator->sort('user_count', __('Users'));?></th>
             <th><?php echo $this->Paginator->sort('restrictions');?></th>
             <th class="actions"><?php echo __('Actions');?></th>
     </tr>
