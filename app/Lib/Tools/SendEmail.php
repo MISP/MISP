@@ -320,7 +320,7 @@ class SendEmail
             if (!$this->gpg) {
                 throw new SendEmailException("GPG encryption is enabled, but GPG is not configured.");
             }
-            
+
             try {
                 $fingerprint = $this->importAndValidateGpgPublicKey($params['gpgkey']);
             } catch (Crypt_GPG_NoDataException $e) {
@@ -415,7 +415,7 @@ class SendEmail
             if (!$this->gpg) {
                 throw new SendEmailException("GPG signing is enabled, but GPG is not initialized. Check debug log why GPG could not be initialized.");
             }
-            
+
             try {
                 $fingerprint = $this->importAndValidateGpgPublicKey($user['User']['gpgkey']);
             } catch (Crypt_GPG_NoDataException $e) {
@@ -446,7 +446,9 @@ class SendEmail
         }
 
         if (!$canEncryptGpg && $canEncryptSmime) {
-            $this->signBySmime($email);
+            if (!empty(Configure::read('SMIME.cert_public_sign')) && !empty(Configure::read('SMIME.key_sign'))) {
+                $this->signBySmime($email);
+            }
             $this->encryptBySmime($email, $user['User']['certif_public']);
             $encrypted = true;
         }
