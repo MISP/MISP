@@ -2222,9 +2222,7 @@ function runIndexQuickFilter(preserveParams, url, target) {
     } else {
         searchKey = 'searchall';
     }
-    if ($quickFilterField.val().trim().length > 0) {
-        passedArgsArray[searchKey] = encodeURIComponent($quickFilterField.val().trim());
-    }
+    passedArgsArray[searchKey] = encodeURIComponent($quickFilterField.val().trim());
     if (typeof url === "undefined") {
         url = here;
     }
@@ -2239,11 +2237,12 @@ function runIndexQuickFilter(preserveParams, url, target) {
             if (typeof key == 'number') {
                 url += "/" + preserveParams[key];
             } else if (key !== 'page') {
-                url += "/" + key + ":" + preserveParams[key];
+                if (key !== searchKey || !(searchKey in passedArgsArray)) {
+                    url += "/" + key + ":" + preserveParams[key];
+                }
             }
         }
     }
-
     for (var key in passedArgsArray) {
         if (typeof key == 'number') {
             url += "/" + passedArgsArray[key];
@@ -2251,7 +2250,6 @@ function runIndexQuickFilter(preserveParams, url, target) {
             url += "/" + key + ":" + passedArgsArray[key];
         }
     }
-
     if (target !== undefined) {
         $.ajax({
             beforeSend: function () {
