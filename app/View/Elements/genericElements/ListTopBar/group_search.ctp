@@ -12,7 +12,6 @@
      *  - id: element ID for the input field - defaults to quickFilterField
      */
     if (!isset($data['requirement']) || $data['requirement']) {
-        debug($data);
         $searchKey = empty($data['searchKey']) ? 'searchall' : $data['searchKey'];
         // Set default value to current search term
         if (empty($data['value']) && !empty($this->passedArgs[$searchKey])) {
