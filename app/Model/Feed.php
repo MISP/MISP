@@ -605,11 +605,6 @@ class Feed extends AppModel
             )
         );
 
-        // Enable gzipped responses if PHP has 'gzdecode' method
-        if (function_exists('gzdecode')) {
-            $result['header']['Accept-Encoding'] = 'gzip';
-        }
-
         $commit = $this->checkMIPSCommit();
         if ($commit) {
             $result['header']['commit'] = $commit;
@@ -1779,16 +1774,6 @@ class Feed extends AppModel
         }
 
         $data = $response->body;
-
-        $contentEncoding = $response->getHeader('Content-Encoding');
-        if ($contentEncoding === 'gzip') {
-            $data = gzdecode($data);
-            if ($data === false) {
-                throw new Exception("Fetching the '$uri' failed, response should be gzip encoded, but gzip decoding failed.");
-            }
-        } else if ($contentEncoding) {
-            throw new Exception("Fetching the '$uri' failed, because remote server returns unsupported content encoding '$contentEncoding'");
-        }
 
         $contentType = $response->getHeader('Content-Type');
         if ($contentType === 'application/zip') {
