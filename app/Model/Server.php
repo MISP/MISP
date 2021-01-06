@@ -4722,7 +4722,7 @@ class Server extends AppModel
 
     /**
      * @param array $server
-     * @return int
+     * @return array
      * @throws JsonException
      */
     public function runPOSTtest(array $server)
@@ -4737,12 +4737,13 @@ class Server extends AppModel
 
         try {
             $response = $HttpSocket->post($uri, json_encode(array('testString' => $testFile)), $request);
+            $contentEncoding = $response->getHeader('Content-Encoding');
             $rawBody = $response->body;
             $response = $this->jsonDecode($rawBody);
         } catch (Exception $e) {
             $title = 'Error: POST connection test failed. Reason: ' . $e->getMessage();
             $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
-            return 8;
+            return ['status' => 8];
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
             if (!empty($repsonse['body']['testString'])) {
@@ -4755,18 +4756,18 @@ class Server extends AppModel
 
             $title = 'Error: POST connection test failed due to the message body not containing the expected data. Response: ' . PHP_EOL . PHP_EOL . $responseString;
             $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
-            return 9;
+            return ['status' => 9, 'content-encoding' => $contentEncoding];
         }
         $headers = array('Accept', 'Content-type');
         foreach ($headers as $header) {
-            if (!isset($response['headers'][$header]) || $response['headers'][$header] != 'application/json') {
+            if (!isset($response['headers'][$header]) || $response['headers'][$header] !== 'application/json') {
                 $responseHeader = isset($response['headers'][$header]) ? $response['headers'][$header] : 'Header was not set.';
-                $title = 'Error: POST connection test failed due to a header not matching the expected value. Expected: "application/json", received "' . $responseHeader . '"';
+                $title = 'Error: POST connection test failed due to a header ' . $header . ' not matching the expected value. Expected: "application/json", received "' . $responseHeader . '"';
                 $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
-                return 10;
+                return ['status' => 10, 'content-encoding' => $contentEncoding];
             }
         }
-        return 1;
+        return ['status' => 1, 'content-encoding' => $contentEncoding];
     }
 
     public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false)
