@@ -92,6 +92,27 @@ class HttpSocketExtended extends HttpSocket
     }
 
     /**
+     * @param array $request
+     * @return HttpSocketResponseExtended
+     */
+    public function request($request = array())
+    {
+        // Reset last error
+        $this->lastError = [];
+
+        /** @var HttpSocketResponseExtended $response */
+        $response = parent::request($request);
+        if ($response === false) {
+            throw new InvalidArgumentException("Invalid argument provided.");
+        }
+        // Convert connection timeout to SocketException
+        if (!empty($this->lastError)) {
+            throw new SocketException($this->lastError['msg']);
+        }
+        return $response;
+    }
+
+    /**
      * Returns accepted content encodings (compression algorithms)
      * @return string[]
      */
