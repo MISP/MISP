@@ -477,6 +477,24 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                 break;
 
+                case 'correlationExclusions':
+                    if ($menuItem === 'view') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'text' => __('View Correlation Exclusion')
+                        ));
+                    }
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => $baseurl . '/correlation_exclusions/index',
+                        'text' => __('List Correlation Exclusions')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'add',
+                        'url' => $baseurl . '/correlation_exclusions/add',
+                        'text' => __('Add Correlation Exclusion')
+                    ));
+                    break;
                 case 'warninglist':
                     if ($menuItem === 'view') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(

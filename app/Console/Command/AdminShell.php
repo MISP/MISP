@@ -655,4 +655,15 @@ class AdminShell extends AppShell
             echo $result . PHP_EOL;
         }
     }
+
+    public function cleanExcludedCorrelations()
+    {
+        $jobId = $this->args[0];
+        $this->CorrelationExclusion = ClassRegistry::init('CorrelationExclusion');
+        $this->CorrelationExclusion->clean($jobId);
+        $this->Job->id = $jobId;
+        $this->Job->saveField('progress', 100);
+        $this->Job->saveField('message', 'Job done.');
+        $this->Job->saveField('status', 4);
+    }
 }

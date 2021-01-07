@@ -164,7 +164,11 @@
                     array(
                         'text' => __('List Noticelists'),
                         'url' => $baseurl . '/noticelists/index'
-                    )
+                    ),
+                    [
+                        'text' => __('List Correlation Exclusions'),
+                        'url' => $baseurl . '/correlation_exclusions/index'
+                    ]
                 )
             ),
             array(

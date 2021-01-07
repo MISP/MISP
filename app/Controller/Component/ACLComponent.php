@@ -87,6 +87,13 @@ class ACLComponent extends Component
                 'pull_orgs' => [],
                 'view' => []
             ],
+            'correlationExclusions' => [
+                'add' => [],
+                'clean' => [],
+                'delete' => [],
+                'index' => [],
+                'view' => []
+            ],
             'dashboards' => array(
                 'getForm' => array('*'),
                 'index' => array('*'),

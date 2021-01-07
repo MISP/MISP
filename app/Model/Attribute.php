@@ -2097,17 +2097,64 @@ class Attribute extends AppModel
         return $extraConditions;
     }
 
+    private function __preventExcludedCorrelations($a)
+    {
+        $value = $a['value1'];
+        if (!empty($a['value2'])) {
+            $value .= '|' . $a['value2'];
+        }
+        if (empty($this->exclusions)) {
+            try {
+                $redis = $this->setupRedisWithException();
+            } catch (Exception $e) {
+                $redisFail = true;
+            }
+            if (empty($redisFail)) {
+                $this->Correlation = ClassRegistry::init('Correlation');
+                $this->exclusions = $redis->sMembers('misp:correlation_exclusions');
+            }
+        }
+        foreach ($this->exclusions as $exclusion) {
+            if (!empty($exclusion)) {
+                $firstChar = $exclusion[0];
+                $lastChar = substr($exclusion, -1);
+                if ($firstChar === '%' && $lastChar === '%') {
+                    $exclusion = substr($exclusion, 1, -1);
+                    if (strpos($value, $exclusion) !== false) {
+                        return true;
+                    }
+                } else if ($firstChar === '%') {
+                    $exclusion = substr($exclusion, 1);
+                    if (substr($value, -strlen($exclusion)) === $exclusion) {
+                        return true;
+                    }
+                } else if ($lastChar === '%') {
+                    $exclusion = substr($exclusion, 0, -1);
+                    if (substr($value, 0, strlen($exclusion)) === $exclusion) {
+                        return true;
+                    }
+                } else {
+                    if ($value === $exclusion) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public function __afterSaveCorrelation($a, $full = false, $event = false)
     {
         if (!empty($a['disable_correlation']) || Configure::read('MISP.completely_disable_correlation')) {
             return true;
         }
-
+        if ($this->__preventExcludedCorrelations($a)) {
+            return true;
+        }
         // Don't do any correlation if the type is a non correlating type
         if (in_array($a['type'], $this->nonCorrelatingTypes)) {
             return true;
         }
-
         if (!$event) {
             $event = $this->Event->find('first', array(
                 'recursive' => -1,

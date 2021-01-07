@@ -88,7 +88,7 @@ class AppModel extends Model
         45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
         51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
         57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-        63 => true, 64 => false
+        63 => true, 64 => false, 65 => false
     );
 
     public $advanced_updates_description = array(
@@ -1556,6 +1556,15 @@ class AppModel extends Model
                     PRIMARY KEY (`id`),
                     KEY `url` (`url`),
                     KEY `org_id` (`org_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 65:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `correlation_exclusions` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `value` text NOT NULL,
+                    `from_json` tinyint(1) default 0,
+                    PRIMARY KEY (`id`),
+                    INDEX `value` (`value`(255))
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
