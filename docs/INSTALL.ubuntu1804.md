@@ -165,8 +165,8 @@ installCore () {
     # FIXME: Remove libfaup etc once the egg has the library baked-in
     sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
     cd /tmp
-    false; while [[ $? -ne 0 ]]; do [[ ! -d "faup" ]] && ${SUDO_CMD} git clone git://github.com/stricaud/faup.git faup; done
-    false; while [[ $? -ne 0 ]]; do [[ ! -d "gtcaca" ]] && ${SUDO_CMD} git clone git://github.com/stricaud/gtcaca.git gtcaca; done
+    false; while [[ $? -ne 0 ]]; do [[ ! -d "faup" ]] && ${SUDO_CMD} git clone https://github.com/stricaud/faup.git faup; done
+    false; while [[ $? -ne 0 ]]; do [[ ! -d "gtcaca" ]] && ${SUDO_CMD} git clone https://github.com/stricaud/gtcaca.git gtcaca; done
     sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
     cd gtcaca
     ${SUDO_CMD} mkdir -p build
