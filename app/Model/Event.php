@@ -4346,7 +4346,7 @@ class Event extends AppModel
 
     /**
      * New variant of uploadEventToServersRouter (since 2.4.137) for pushing sightings.
-     * @param array $event with event tags and whhole sharing group
+     * @param array $event with event tags and whole sharing group
      * @param null|int $passAlong Server ID that should be skipped from uploading.
      * @return array|bool
      * @throws Exception
@@ -4364,9 +4364,13 @@ class Event extends AppModel
             'recursive' => -1,
             'order' => ['Server.priority ASC', 'Server.id ASC'],
         ]);
-        // TODO: This is a new condition, that was not used in old code
+        // TODO: This are new conditions, that was not used in old code
         // Filter out servers that do not match server conditions for event push
         $servers = $this->Server->eventFilterPushableServers($event, $servers);
+        // Filter out servers that do not match event distribution conditions for event push
+        $servers = array_filter($servers, function (array $server) use ($event) {
+            return $this->checkDistributionForPush($event, $server);
+        });
         if (empty($servers)) {
             return true;
         }
@@ -4377,11 +4381,6 @@ class Event extends AppModel
 
         $failedServers = [];
         foreach ($servers as $server) {
-            // TODO: This is a new condition, that was not used in old code
-            if (!$this->checkDistributionForPush($event, $server)) {
-                continue; // event distribution do not match with server
-            }
-
             $fakeSyncUser = [
                 'org_id' => $server['Server']['remote_org_id'],
                 'Role' => [
@@ -4391,6 +4390,18 @@ class Event extends AppModel
             $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, false, true);
             if (!empty($sightings)) {
                 $HttpSocket = $syncTool->setupHttpSocket($server);
+
+                try {
+                    // Check if event exists on remote server so we don't push data that are useless
+                    $request = $this->setupSyncRequest($server);
+                    $exists = $HttpSocket->head($server['Server']['url'] . '/events/view/' . $event['Event']['uuid'], [], $request);
+                    if ($exists->code == '404') {
+                        continue;
+                    }
+                } catch (Exception $e) {
+                    $this->logException("Could not check if event {$event['Event']['uuid']} exists on remote server {$server['Server']['id']}", $e);
+                }
+
                 if (!$this->uploadSightingsToServer($sightings, $server, $event['Event']['uuid'], $HttpSocket)) {
                     $failedServers[] = $server['Server']['url'];
                 }
