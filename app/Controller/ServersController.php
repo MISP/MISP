@@ -1296,7 +1296,7 @@ class ServersController extends AppController
         }
     }
 
-    public function idTranslator()
+    public function idTranslator($localId = null)
     {
         // We retrieve the list of remote servers that we can query
         $servers = $this->Server->find('all', [
@@ -1315,9 +1315,13 @@ class ServersController extends AppController
         }
         $this->set('servers', $displayServers);
 
-        if ($this->request->is('post')) {
+        if ($localId || $this->request->is('post')) {
+            if ($localId && $this->request->is('get')) {
+                $this->request->data['Event']['local'] = 'local';
+                $this->request->data['Event']['uuid'] = $localId;
+            }
             $remote_events = array();
-            if(!empty($this->request->data['Event']['uuid']) &&  $this->request->data['Event']['local'] === "local") {
+            if (!empty($this->request->data['Event']['uuid']) && $this->request->data['Event']['local'] === "local") {
                 $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $this->request->data['Event']['uuid']);
             } else if (!empty($this->request->data['Event']['uuid']) && $this->request->data['Event']['local'] === "remote" && !empty($this->request->data['Server']['id'])) {
                 //We check on the remote server for any event with this id and try to find a match locally
@@ -1344,7 +1348,7 @@ class ServersController extends AppController
                     }
                 }
             }
-            if(empty($local_event)) {
+            if (empty($local_event)) {
                 $this->Flash->error( __("This event could not be found or you don't have permissions to see it."));
                 return;
             } else {
@@ -1354,7 +1358,7 @@ class ServersController extends AppController
             // In the second phase, we query all configured sync servers to get their info on the event
             foreach ($servers as $server) {
                 // We check if the server was not already contacted in phase 1
-                if(count($remote_events) > 0 && $remote_events[0]['server_id'] == $server['Server']['id']) {
+                if (count($remote_events) > 0 && $remote_events[0]['server_id'] == $server['Server']['id']) {
                     continue;
                 }
 
