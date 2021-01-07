@@ -1296,47 +1296,45 @@ class ServersController extends AppController
         }
     }
 
-    public function idTranslator() {
-
-        // The id translation feature is limited to people from the host org
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
-            throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
-        }
-
-        //We retrieve the list of remote servers that we can query
-        $options = array();
-        $options['conditions'] = array("pull" => true);
-        $servers = $this->Server->find('all', $options);
+    public function idTranslator()
+    {
+        // We retrieve the list of remote servers that we can query
+        $servers = $this->Server->find('all', [
+            'conditions' => ['OR' => ['pull' => true, 'push' => true]],
+            'recursive' => -1,
+            'order' => ['Server.priority ASC'],
+        ]);
 
         // We generate the list of servers for the dropdown
         $displayServers = array();
-        foreach($servers as $s) {
-            $displayServers[] = array('name' => $s['Server']['name'],
-                                      'value' => $s['Server']['id']);
+        foreach ($servers as $s) {
+            $displayServers[] = [
+                'name' => $s['Server']['name'],
+                'value' => $s['Server']['id'],
+            ];
         }
         $this->set('servers', $displayServers);
 
         if ($this->request->is('post')) {
             $remote_events = array();
-            if(!empty($this->request->data['Event']['uuid']) &&  $this->request->data['Event']['local'] == "local") {
+            if(!empty($this->request->data['Event']['uuid']) &&  $this->request->data['Event']['local'] === "local") {
                 $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $this->request->data['Event']['uuid']);
-            } else if (!empty($this->request->data['Event']['uuid']) && $this->request->data['Event']['local'] == "remote" && !empty($this->request->data['Server']['id'])) {
+            } else if (!empty($this->request->data['Event']['uuid']) && $this->request->data['Event']['local'] === "remote" && !empty($this->request->data['Server']['id'])) {
                 //We check on the remote server for any event with this id and try to find a match locally
                 $conditions = array('AND' => array('Server.id' => $this->request->data['Server']['id'], 'Server.pull' => true));
                 $remote_server = $this->Server->find('first', array('conditions' => $conditions));
-                if(!empty($remote_server)) {
+                if (!empty($remote_server)) {
                     try {
                         $remote_event = $this->Event->downloadEventFromServer($this->request->data['Event']['uuid'], $remote_server, null, true);
                     } catch (Exception $e) {
                         $error_msg = __("Issue while contacting the remote server to retrieve event information");
-                        $this->logException($error_msg, $e);
                         $this->Flash->error($error_msg);
                         return;
                     }
 
                     $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event[0]['uuid']);
                     //we record it to avoid re-querying the same server in the 2nd phase
-                    if(!empty($local_event)) {
+                    if (!empty($local_event)) {
                         $remote_events[] = array(
                             "server_id" => $remote_server['Server']['id'],
                             "server_name" => $remote_server['Server']['name'],
@@ -1354,23 +1352,22 @@ class ServersController extends AppController
             }
 
             // In the second phase, we query all configured sync servers to get their info on the event
-            foreach($servers as $s) {
+            foreach ($servers as $server) {
                 // We check if the server was not already contacted in phase 1
-                if(count($remote_events) > 0 && $remote_events[0]['server_id'] == $s['Server']['id']) {
+                if(count($remote_events) > 0 && $remote_events[0]['server_id'] == $server['Server']['id']) {
                     continue;
                 }
 
                 try {
-                    $remote_event = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $s, null, true);
+                    $remote_event = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
                     $remote_event_id = $remote_event[0]['id'];
                 } catch (Exception $e) {
-                    $this->logException("Couldn't download event from server", $e);
                     $remote_event_id = null;
                 }
                 $remote_events[] = array(
-                    "server_id" => $s['Server']['id'],
-                    "server_name" => $s['Server']['name'],
-                    "url" => isset($remote_event_id) ? $s['Server']['url']."/events/view/".$remote_event_id : $s['Server']['url'],
+                    "server_id" => $server['Server']['id'],
+                    "server_name" => $server['Server']['name'],
+                    "url" => isset($remote_event_id) ? $server['Server']['url']."/events/view/".$remote_event_id : $server['Server']['url'],
                     "remote_id" => isset($remote_event_id) ? $remote_event_id : false
                 );
             }
