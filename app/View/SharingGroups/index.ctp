@@ -1,10 +1,9 @@
-<div class="sharing_groups index">
-<?php
-echo $this->element('/genericElements/IndexTable/index_table', array(
+<div class="sharing_groups<?php if (!$ajax) echo ' index' ?>">
+<?= $this->element('/genericElements/IndexTable/index_table', array(
     'data' => array(
         'title' => __('Sharing Groups'),
         'data' => $sharingGroups,
-        'top_bar' => array(
+        'top_bar' => $ajax ? [] : array(
             'children' => array(
                 array(
                     'type' => 'simple',
@@ -169,4 +168,7 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
         popoverStartup();
     });
 </script>
-<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
+<?php
+if (!$ajax) {
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
+}
