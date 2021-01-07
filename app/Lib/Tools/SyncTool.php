@@ -12,7 +12,7 @@ class SyncTool
      */
     public function setupHttpSocket($server = null, $timeout = false, $model = 'Server')
     {
-        $params = array();
+        $params = ['compress' => true];
         if (!empty($server)) {
             if (!empty($server[$model]['cert_file'])) {
                 $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server[$model]['id'] . '.pem';

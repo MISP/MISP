@@ -1627,28 +1627,31 @@ class ServersController extends AppController
 
     public function postTest()
     {
-        if ($this->request->is('post')) {
-            // Fix for PHP-FPM / Nginx / etc
-            // Fix via https://www.popmartian.com/tipsntricks/2015/07/14/howto-use-php-getallheaders-under-fastcgi-php-fpm-nginx-etc/
-            if (!function_exists('getallheaders')) {
-                $headers = [];
-                foreach ($_SERVER as $name => $value) {
-                    if (substr($name, 0, 5) == 'HTTP_') {
-                        $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
-                    }
-                }
-            } else {
-                $headers = getallheaders();
-            }
-            $result = array();
-            $result['body'] = $this->request->data;
-            $result['headers']['Content-type'] = isset($headers['Content-type']) ? $headers['Content-type'] : 0;
-            $result['headers']['Accept'] = isset($headers['Accept']) ? $headers['Accept'] : 0;
-            $result['headers']['Authorization'] = isset($headers['Authorization']) ? 'OK' : 0;
-            return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
-        } else {
+        if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('Invalid request, expecting a POST request.');
         }
+        // Fix for PHP-FPM / Nginx / etc
+        // Fix via https://www.popmartian.com/tipsntricks/2015/07/14/howto-use-php-getallheaders-under-fastcgi-php-fpm-nginx-etc/
+        if (!function_exists('getallheaders')) {
+            $headers = [];
+            foreach ($_SERVER as $name => $value) {
+                if (substr($name, 0, 5) === 'HTTP_') {
+                    $headers[strtolower(str_replace('_', '-', substr($name, 5)))] = $value;
+                }
+            }
+        } else {
+            $headers = getallheaders();
+            $headers = array_change_key_case($headers, CASE_LOWER);
+        }
+        $result = [
+            'body' => $this->request->data,
+            'headers' => [
+                'Content-type' => isset($headers['content-type']) ? $headers['content-type'] : 0,
+                'Accept' => isset($headers['accept']) ? $headers['accept'] : 0,
+                'Authorization' => isset($headers['authorization']) ? 'OK' : 0,
+            ],
+        ];
+        return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
     }
 
     public function getRemoteUser($id)
@@ -1728,7 +1731,8 @@ class ServersController extends AppController
                                 'version' => implode('.', $version),
                                 'mismatch' => $mismatch,
                                 'newer' => $newer,
-                                'post' => isset($post) ? $post : 'too old',
+                                'post' => isset($post) ? $post['status'] : 'too old',
+                                'response_encoding' => isset($post['content-encoding']) ? $post['content-encoding'] : null,
                                 'client_certificate' => $result['client_certificate'],
                                 )
                             ),

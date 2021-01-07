@@ -1761,15 +1761,17 @@ class Feed extends AppModel
 
         $request = $this->__createFeedRequest($feed['Feed']['headers']);
 
-        if ($followRedirect) {
-            $response = $this->getFollowRedirect($HttpSocket, $uri, $request);
-        } else {
-            $response = $HttpSocket->get($uri, array(), $request);
+        try {
+            if ($followRedirect) {
+                $response = $this->getFollowRedirect($HttpSocket, $uri, $request);
+            } else {
+                $response = $HttpSocket->get($uri, array(), $request);
+            }
+        } catch (Exception $e) {
+            throw new Exception("Fetching the '$uri' failed with exception: {$e->getMessage()}", 0, $e);
         }
 
-        if ($response === false) {
-            throw new Exception("Could not reach '$uri'.");
-        } else if ($response->code != 200) { // intentionally !=
+        if ($response->code != 200) { // intentionally !=
             throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
         }
 
