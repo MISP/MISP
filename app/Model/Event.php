@@ -1086,7 +1086,7 @@ class Event extends AppModel
     public function uploadEventToServer($event, $server, $HttpSocket = null, $scope = 'events')
     {
         $this->Server = ClassRegistry::init('Server');
-        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
+        $push = $this->Server->checkVersionCompatibility($server, false, $HttpSocket);
         if ($scope === 'events' && empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
         } elseif ($scope === 'sightings' && empty($push['canPush']) && empty($push['canSight'])) {
