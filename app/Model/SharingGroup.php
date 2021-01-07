@@ -700,7 +700,7 @@ class SharingGroup extends AppModel
                 if ($force) {
                     $sgids = $existingSG['SharingGroup']['id'];
                     $editedSG = $existingSG['SharingGroup'];
-                    $attributes = array('name', 'releasability', 'description', 'created', 'modified', 'active');
+                    $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'active', 'roaming'];
                     foreach ($attributes as $a) {
                         if (isset($sg[$a])) {
                             $editedSG[$a] = $sg[$a];
