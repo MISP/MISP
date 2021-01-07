@@ -1386,8 +1386,8 @@ installCore () {
     # FIXME: Remove libfaup etc once the egg has the library baked-in
     sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
     cd /tmp
-    false; while [[ $? -ne 0 ]]; do [[ ! -d "faup" ]] && ${SUDO_CMD} git clone git://github.com/stricaud/faup.git faup; done
-    false; while [[ $? -ne 0 ]]; do [[ ! -d "gtcaca" ]] && ${SUDO_CMD} git clone git://github.com/stricaud/gtcaca.git gtcaca; done
+    false; while [[ $? -ne 0 ]]; do [[ ! -d "faup" ]] && ${SUDO_CMD} git clone https://github.com/stricaud/faup.git faup; done
+    false; while [[ $? -ne 0 ]]; do [[ ! -d "gtcaca" ]] && ${SUDO_CMD} git clone https://github.com/stricaud/gtcaca.git gtcaca; done
     sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
     cd gtcaca
     ${SUDO_CMD} mkdir -p build
@@ -1740,8 +1740,8 @@ mispmodules () {
   fi
 
   # Install faup/gtcaca
-  [[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/faup.git faup; done
-  [[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca; done
+  [[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/stricaud/faup.git faup; done
+  [[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca; done
   sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
   # Install gtcaca
   cd gtcaca
@@ -1913,8 +1913,8 @@ mail2misp () {
   sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/MISP/mail_to_misp.git; done
   ## TODO: The below fails miserably (obviously) if faup/gtcac dirs exist, let's just make the dangerous assumption (for the sake of the installer, that they exist)
-  ##[[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/faup.git faup; done
-  ##[[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca; done
+  ##[[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/stricaud/faup.git faup; done
+  ##[[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca; done
   sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
   cd gtcaca
   $SUDO_CMD mkdir -p build
@@ -2182,8 +2182,8 @@ installCoreRHEL () {
   # BROKEN: This needs to be tested on RHEL/CentOS
   ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   cd /tmp
-  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
-  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
   sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
   cd gtcaca
   $SUDO_CMD mkdir -p build

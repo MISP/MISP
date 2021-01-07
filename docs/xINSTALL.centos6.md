@@ -224,8 +224,8 @@ ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install .
 # BROKEN: This needs to be tested on RHEL/CentOS
 ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
 cd /tmp
-[[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
-[[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+[[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
+[[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
 sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
 cd gtcaca
 $SUDO_CMD mkdir -p build
