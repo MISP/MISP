@@ -3225,7 +3225,7 @@ class Server extends AppModel
         }
         $this->Event = ClassRegistry::init('Event');
         $url = $server['Server']['url'];
-        $push = $this->checkVersionCompatibility($id, $user);
+        $push = $this->checkVersionCompatibility($server, $user);
         if (is_array($push) && !$push['canPush'] && !$push['canSight']) {
             $push = 'Remote instance is outdated or no permission to push.';
         }
@@ -4770,14 +4770,13 @@ class Server extends AppModel
         return ['status' => 1, 'content-encoding' => $contentEncoding];
     }
 
-    public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false)
+    public function checkVersionCompatibility(array $server, $user = array(), $HttpSocket = false)
     {
         // for event publishing when we don't have a user.
         if (empty($user)) {
             $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
         }
         $localVersion = $this->checkMISPVersion();
-        $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/servers/getVersion';
@@ -4792,12 +4791,12 @@ class Server extends AppModel
             if (isset($response->code)) {
                 $title = 'Error: Connection to the server has failed.' . (isset($response->code) ? ' Returned response code: ' . $response->code : '');
             } else {
-                $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
+                $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $error;
             }
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Server',
-                    'model_id' => $id,
+                    'model_id' => $server['Server']['id'],
                     'email' => $user['email'],
                     'action' => 'error',
                     'user_id' => $user['id'],
@@ -4805,7 +4804,7 @@ class Server extends AppModel
             ));
             return $title;
         }
-        $remoteVersion = json_decode($response->body, true);
+        $remoteVersion = $this->jsonDecode($response->body);
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $supportEditOfGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']);
@@ -4818,7 +4817,7 @@ class Server extends AppModel
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Server',
-                    'model_id' => $id,
+                    'model_id' => $server['Server']['id'],
                     'email' => $user['email'],
                     'action' => 'error',
                     'user_id' => $user['id'],
@@ -4830,16 +4829,16 @@ class Server extends AppModel
         $success = false;
         $issueLevel = "warning";
         if ($localVersion['major'] > $remoteVersion[0]) {
-            $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a major version.";
+            $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance's MISP version is behind by a major version.";
         }
         if ($response === false && $localVersion['major'] < $remoteVersion[0]) {
-            $response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
+            $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
         }
         if ($response === false && $localVersion['minor'] > $remoteVersion[1]) {
-            $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a minor version.";
+            $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance's MISP version is behind by a minor version.";
         }
         if ($response === false && $localVersion['minor'] < $remoteVersion[1]) {
-            $response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
+            $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
         }
 
         // if we haven't set a message yet, we're good to go. We are only behind by a hotfix version
@@ -4849,13 +4848,13 @@ class Server extends AppModel
             $issueLevel = "error";
         }
         if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) {
-            $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes behind.";
+            $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes behind.";
         }
         if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) {
-            $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
+            $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
         }
         if (empty($response) && $remoteVersion[2] < 111) {
-            $response = "Sync to Server ('" . $id . "') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
+            $response = "Sync to Server ('{$server['Server']['id']}') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
         }
 
         if ($response !== false) {
@@ -4864,14 +4863,22 @@ class Server extends AppModel
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Server',
-                    'model_id' => $id,
+                    'model_id' => $server['Server']['id'],
                     'email' => $user['email'],
                     'action' => $issueLevel,
                     'user_id' => $user['id'],
                     'title' => ucfirst($issueLevel) . ': ' . $response,
             ));
         }
-        return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'canSight' => $canSight, 'canEditGalaxyCluster' => $canEditGalaxyCluster, 'supportEditOfGalaxyCluster' => $supportEditOfGalaxyCluster, 'version' => $remoteVersion);
+        return [
+            'success' => $success,
+            'response' => $response,
+            'canPush' => $canPush,
+            'canSight' => $canSight,
+            'canEditGalaxyCluster' => $canEditGalaxyCluster,
+            'supportEditOfGalaxyCluster' => $supportEditOfGalaxyCluster,
+            'version' => $remoteVersion,
+        ];
     }
 
     public function isJson($string)
