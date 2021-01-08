@@ -2678,7 +2678,7 @@ table tr:hover .down-expand-button {
 
 a.orgImg {
     background-repeat: no-repeat;
-    background-size: 20px;
+    background-size: auto 20px;
     padding-left: 25px;
     padding-top: 3px;
     padding-bottom: 3px;
