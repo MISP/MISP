@@ -698,6 +698,17 @@
                 "column_type": "tinyint(1)",
                 "column_default": "0",
                 "extra": ""
+            },
+            {
+                "column_name": "description",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "text",
+                "column_default": "NULL",
+                "extra": ""
             }
         ],
         "correlations": [
@@ -842,6 +853,41 @@
                 "collation_name": "utf8_bin",
                 "column_type": "text",
                 "column_default": null,
+                "extra": ""
+            }
+        ],
+        "correlation_exclusions": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "value",
+                "is_nullable": "NO",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "from_json",
+                "is_nullable": "YES",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
                 "extra": ""
             }
         ],
@@ -7536,12 +7582,21 @@
             "id": true,
             "expires": false
         },
+        "cerebrates": {
+            "id": true,
+            "url": false,
+            "org_id": false
+        },
         "correlations": {
             "id": true,
             "event_id": false,
             "1_event_id": false,
             "attribute_id": false,
             "1_attribute_id": false
+        },
+        "correlation_exclusions": {
+            "id": true,
+            "value": false
         },
         "dashboards": {
             "id": true,
@@ -7919,5 +7974,5 @@
             "id": true
         }
     },
-    "db_version": "64"
+    "db_version": "65"
 }
