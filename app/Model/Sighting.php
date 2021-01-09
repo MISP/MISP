@@ -125,20 +125,45 @@ class Sighting extends AppModel
         }
     }
 
-    public function captureSighting($sighting, $attribute_id, $event_id, $user)
+    /**
+     * @param array $sightings
+     * @param int $attributeId
+     * @param int $eventId
+     * @param array $user
+     * @return bool
+     */
+    public function captureSightings(array $sightings, $attributeId, $eventId, array $user)
     {
-        $org_id = 0;
-        if (!empty($sighting['Organisation'])) {
-            $org_id = $this->Organisation->captureOrg($sighting['Organisation'], $user);
-        }
-        if (isset($sighting['id'])) {
+        // Since sightings are immutable (it is not possible to change it from web interface), we can check
+        // if sighting with given uuid already exists and skip them
+        $existingSighting = $this->existing($sightings);
+
+        // Fetch existing organisations in bulk
+        $existingOrganisations = $this->existingOrganisations($sightings);
+
+        $toSave = [];
+        foreach ($sightings as $sighting) {
+            if (isset($existingSighting[$sighting['uuid']])) {
+                continue; // already exists, skip
+            }
+
+            $orgId = 0;
+            if (isset($sighting['Organisation'])) {
+                if (isset($existingOrganisations[$sighting['Organisation']['uuid']])) {
+                    $orgId = $existingOrganisations[$sighting['Organisation']['uuid']];
+                } else {
+                    $orgId = $this->Organisation->captureOrg($sighting['Organisation'], $user);
+                }
+            }
             unset($sighting['id']);
+
+            $sighting['org_id'] = $orgId;
+            $sighting['event_id'] = $eventId;
+            $sighting['attribute_id'] = $attributeId;
+            $toSave[] = $sighting;
         }
-        $sighting['org_id'] = $org_id;
-        $sighting['event_id'] = $event_id;
-        $sighting['attribute_id'] = $attribute_id;
-        $this->create();
-        return $this->save($sighting);
+
+        return $this->saveMany($toSave);
     }
 
     /**
@@ -932,7 +957,7 @@ class Sighting extends AppModel
      * @param int|string $eventId Event ID or UUID
      * @param array $sightings
      * @param array $user
-     * @param null $passAlong
+     * @param int|null $passAlong Server ID
      * @return int Number of saved sightings
      * @throws Exception
      */
@@ -945,12 +970,10 @@ class Sighting extends AppModel
 
         // Since sightings are immutable (it is not possible to change it from web interface), we can check
         // if sighting with given uuid already exists and skip them
-        $existingSighting = $this->find('column', [
-            'fields' => ['Sighting.uuid'],
-            'conditions' => ['uuid' => array_column($sightings, 'uuid')],
-        ]);
-        // Move UUID to array key
-        $existingSighting = array_flip($existingSighting);
+        $existingSighting = $this->existing($sightings);
+
+        // Fetch existing organisations in bulk
+        $existingOrganisations = $this->existingOrganisations($sightings);
 
         // Fetch attributes IDs and event IDs
         $attributesToTransform = $this->Attribute->fetchAttributesSimple($user, [
@@ -962,7 +985,7 @@ class Sighting extends AppModel
             $attributes[$attribute['Attribute']['uuid']] = [$attribute['Attribute']['id'], $attribute['Attribute']['event_id']];
         }
 
-        $saved = 0;
+        $toSave = [];
         foreach ($sightings as $s) {
             if (isset($existingSighting[$s['uuid']])) {
                 continue; // sighting already exists
@@ -985,16 +1008,18 @@ class Sighting extends AppModel
             if ($user['Role']['perm_sync']) {
                 if (isset($s['org_id'])) {
                     if ($s['org_id'] != 0 && !empty($s['Organisation'])) {
-                        $saveOnBehalfOf = $this->Event->Orgc->captureOrg($s['Organisation'], $user);
+                        if (isset($existingOrganisations[$s['Organisation']['uuid']])) {
+                            $saveOnBehalfOf = $existingOrganisations[$s['Organisation']['uuid']];
+                        } else {
+                            $saveOnBehalfOf = $this->Organisation->captureOrg($s['Organisation'], $user);
+                        }
                     } else {
                         $saveOnBehalfOf = 0;
                     }
                 }
             }
 
-            $this->create();
-            // TODO: Ignoring possible validation errors
-            $this->save([
+            $toSave[] = [
                 'attribute_id' => $attributeId,
                 'event_id' => $eventId,
                 'org_id' => $saveOnBehalfOf === false ? $user['org_id'] : $saveOnBehalfOf,
@@ -1002,13 +1027,18 @@ class Sighting extends AppModel
                 'type' => $s['type'],
                 'source' => $s['source'],
                 'uuid' => $s['uuid'],
-            ]);
-            $saved++;
+            ];
         }
-        if ($saved > 0) {
+        if (empty($toSave)) {
+            return 0;
+        }
+
+        if ($this->saveMany($toSave)) {
             $this->Event->publishRouter($event['Event']['id'], $passAlong, $user, 'sightings');
+            return count($toSave);
+        } else {
+            return 0;
         }
-        return $saved;
     }
 
     public function pullSightings($user, $server)
@@ -1057,6 +1087,36 @@ class Sighting extends AppModel
         $rangeInDays = Configure::read('MISP.Sightings_range');
         $rangeInDays = (!empty($rangeInDays) && is_numeric($rangeInDays)) ? $rangeInDays : 365;
         return strtotime("-$rangeInDays days");
+    }
+
+    /**
+     * @param array $sightings
+     * @return array Existing sightings UUID in key
+     */
+    private function existing(array $sightings)
+    {
+        $existingSighting = $this->find('column', [
+            'fields' => ['Sighting.uuid'],
+            'conditions' => ['uuid' => array_column($sightings, 'uuid')],
+        ]);
+        // Move UUID to array key
+        return array_flip($existingSighting);
+    }
+
+    /**
+     * @param array $sightings
+     * @return array Organisation UUID => Organisation ID
+     */
+    private function existingOrganisations(array $sightings)
+    {
+        $organisations = array_column($sightings, 'Organisation');
+        if (empty($organisations)) {
+            return [];
+        }
+        return $this->Organisation->find('list', [
+            'fields' => ['Organisation.uuid', 'Organisation.id'],
+            'conditions' => ['Organisation.uuid' => array_unique(array_column($organisations, 'uuid'))],
+        ]);
     }
 
     /**

@@ -3032,7 +3032,7 @@ class AppModel extends Model
      * @param $state
      * @param $query
      * @param array $results
-     * @return array|mixed
+     * @return array
      * @throws Exception
      */
     protected function _findColumn($state, $query, $results = array())

@@ -3322,7 +3322,7 @@ class Attribute extends AppModel
             'recursive' => -1,
             'fields' => $params['fields'],
             'contain' => $params['contain'],
-            'sort' => false
+            'order' => false,
         ));
     }
 
@@ -3487,7 +3487,7 @@ class Attribute extends AppModel
                     'contain' => array('Event', 'Object'),
                     'fields' => ['Attribute.event_id'],
                     'unique' => true,
-                    'sort' => false,
+                    'order' => false,
                 ]);
             } else {
                 return $this->find('list', array(
@@ -3495,7 +3495,7 @@ class Attribute extends AppModel
                     'recursive' => -1,
                     'contain' => array('Event', 'Object'),
                     'fields' => array('Attribute.event_id'),
-                    'sort' => false
+                    'order' => false
                 ));
             }
         }
@@ -4318,9 +4318,7 @@ class Attribute extends AppModel
                 }
             }
             if (!empty($attribute['Sighting'])) {
-                foreach ($attribute['Sighting'] as $k => $sighting) {
-                    $this->Sighting->captureSighting($sighting, $this->id, $eventId, $user);
-                }
+                $this->Sighting->captureSighting($attribute['Sighting'], $this->id, $eventId, $user);
             }
         }
         if (!empty($this->validationErrors)) {
