@@ -605,15 +605,18 @@ function quickEditHover(td, type, id, field, event) {
 }
 
 function addSighting(type, attribute_id, event_id) {
-    $('#Sighting_' + attribute_id + '_type').val(type);
+    var $sightingForm = $('#SightingForm');
+    $('input[name="data[Sighting][type]"]', $sightingForm).val(type);
+    $('input[name="data[Sighting][id]"]', $sightingForm).val(attribute_id);
     $.ajax({
-        data: $('#Sighting_' + attribute_id).closest("form").serialize(),
+        data: $sightingForm.serialize(),
         cache: false,
-        success: function (data, textStatus) {
+        success: function (data) {
             handleGenericAjaxResponse(data);
             var result = data;
             if (result.saved == true) {
-                $('.sightingsCounter').each(function( counter ) {
+                // Update global sighting counter
+                $('.sightingsCounter').each(function() {
                     $(this).html(parseInt($(this).html()) + 1);
                 });
                 updateIndex(event_id, 'event');
@@ -624,7 +627,7 @@ function addSighting(type, attribute_id, event_id) {
             updateIndex(event_id, 'event');
         },
         type: "post",
-        url: baseurl + "/sightings/add/" + attribute_id
+        url: baseurl + "/sightings/add/",
     });
 }
 
