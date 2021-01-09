@@ -3068,6 +3068,8 @@ function organisationViewContent(context, id) {
         action = "/admin/users/index/searchorg:";
     } else if (context === 'events') {
         action = "/events/index/searchorg:";
+    } else if (context === 'sharing_groups') {
+        action = "/sharing_groups/index/searchorg:";
     }
     $.ajax({
         url: baseurl + action + id,

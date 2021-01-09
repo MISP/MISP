@@ -268,17 +268,21 @@ class SharingGroupsController extends AppController
 
         if (isset($this->params['named']['value'])) {
             $term = '%' . strtolower($this->params['named']['value']) . '%';
-            $sgIds = $this->SharingGroup->SharingGroupOrg->find('list', [
-                'conditions' => [
-                    'OR' => [
-                        'Organisation.uuid LIKE' => $term,
-                        'LOWER(Organisation.name) LIKE' => $term,
+            if ($this->__showOrgs()) {
+                $sgIds = $this->SharingGroup->SharingGroupOrg->find('column', [
+                    'conditions' => [
+                        'OR' => [
+                            'Organisation.uuid LIKE' => $term,
+                            'LOWER(Organisation.name) LIKE' => $term,
+                        ],
+                        'SharingGroupOrg.sharing_group_id' => $authorizedSgIds,
                     ],
-                    'SharingGroupOrg.sharing_group_id' => $authorizedSgIds,
-                ],
-                'contain' => ['Organisation'],
-                'fields' => ['SharingGroupOrg.sharing_group_id'],
-            ]);
+                    'contain' => ['Organisation'],
+                    'fields' => ['SharingGroupOrg.sharing_group_id'],
+                ]);
+            } else {
+                $sgIds = [];
+            }
             $this->paginate['conditions'][]['OR'] = [
                 'SharingGroup.id' => $sgIds,
                 'SharingGroup.uuid LIKE' => $term,
@@ -287,6 +291,33 @@ class SharingGroupsController extends AppController
                 'LOWER(SharingGroup.releasability) LIKE' => $term,
                 'LOWER(Organisation.name) LIKE' => $term,
             ];
+        }
+
+        if ($this->__showOrgs() && isset($this->params['named']['searchorg'])) {
+            $orgs = explode('|', $this->params['named']['searchorg']);
+            $conditions = [];
+            foreach ($orgs as $org) {
+                $exclude = $org[0] === '!';
+                if ($exclude) {
+                    $org = substr($org, 1);
+                }
+                $org = $this->SharingGroup->Organisation->fetchOrg($org);
+                if ($org) {
+                    if ($exclude) {
+                        $conditions['AND'][] = ['org_id !=' => $org['id']];
+                    } else {
+                        $conditions['OR'][] = ['org_id' => $org['id']];
+                    }
+                }
+            }
+            $sgIds = $this->SharingGroup->SharingGroupOrg->find('column', [
+                'conditions' => $conditions,
+                'fields' => ['SharingGroupOrg.sharing_group_id'],
+            ]);
+            if (empty($sgIds)) {
+                $sgIds = -1;
+            }
+            $this->paginate['conditions'][] = ['SharingGroup.id' => $sgIds];
         }
 
         // To allow sort sharing group by number of organisation and also show org count when user don't have permission ot see them
