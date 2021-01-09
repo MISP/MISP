@@ -8,6 +8,8 @@ App::uses('ComplexTypeTool', 'Tools');
 /**
  * @property Event $Event
  * @property Attribute $Attribute
+ * @property-read array $typeDefinitions
+ * @property-read array $categoryDefinitions
  */
 class ShadowAttribute extends AppModel
 {
@@ -72,9 +74,6 @@ class ShadowAttribute extends AppModel
     public $uploadDefinitions = array(
             'attachment'
     );
-
-    // definitions of categories
-    public $categoryDefinitions;
 
     public $order = array("ShadowAttribute.event_id" => "DESC", "ShadowAttribute.type" => "ASC");
 
@@ -149,11 +148,22 @@ class ShadowAttribute extends AppModel
         )
     );
 
-    public function __construct($id = false, $table = null, $ds = null)
+    public function __isset($name)
     {
-        parent::__construct($id, $table, $ds);
-        $this->categoryDefinitions = $this->Attribute->categoryDefinitions;
-        $this->typeDefinitions = $this->Attribute->typeDefinitions;
+        if ($name === 'typeDefinitions' || $name === 'categoryDefinitions') {
+            return true;
+        }
+        return parent::__isset($name);
+    }
+
+    public function __get($name)
+    {
+        if ($name === 'categoryDefinitions') {
+            return $this->Attribute->categoryDefinitions;
+        } else if ($name === 'typeDefinitions') {
+            return $this->Attribute->typeDefinitions;
+        }
+        return parent::__get($name);
     }
 
     // The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -354,7 +364,7 @@ class ShadowAttribute extends AppModel
     {
         $category = $this->data['ShadowAttribute']['category'];
         if (isset($this->categoryDefinitions[$category]['types'])) {
-            return in_array($fields['type'], $this->categoryDefinitions[$category]['types']);
+            return in_array($fields['type'], $this->categoryDefinitions[$category]['types'], true);
         }
         return false;
     }
