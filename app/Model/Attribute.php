@@ -1435,13 +1435,6 @@ class Attribute extends AppModel
         return $compositeTypes;
     }
 
-    public function isOwnedByOrg($attributeId, $org)
-    {
-        $this->id = $attributeId;
-        $this->read();
-        return $this->data['Event']['org_id'] === $org;
-    }
-
     public function getRelatedAttributes($user, $attribute, $fields=array(), $includeEventData = false)
     {
         // LATER getRelatedAttributes($attribute) this might become a performance bottleneck

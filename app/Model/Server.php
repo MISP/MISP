@@ -193,13 +193,7 @@ class Server extends AppModel
             'Session' => 'Security'
     );
 
-
     public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
-
-    public function isOwnedByOrg($serverid, $org)
-    {
-        return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
-    }
 
     public function beforeSave($options = array())
     {
