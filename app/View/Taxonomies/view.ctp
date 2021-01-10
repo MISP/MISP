@@ -28,10 +28,6 @@ echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData
         else $url = array($id);
         $this->Paginator->options(array(
             'url' => $url,
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
         ));
 
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
