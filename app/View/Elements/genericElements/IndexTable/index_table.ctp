@@ -38,7 +38,7 @@
     $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
     if (!$skipPagination) {
         $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : array();
-        echo $this->element('/genericElements/IndexTable/pagination', array('paginationOptions' => $paginationData));
+        $this->Paginator->options($paginationData);
         echo $this->element('/genericElements/IndexTable/pagination_links');
     }
     $hasSearch = false;
