@@ -4976,6 +4976,29 @@ $(document.body).on('click', '.quickSelect', function() {
     selection.addRange(range);
 });
 
+// Event paginator
+$(document.body).on('click', 'a[data-paginator]', function (e) {
+    var paginatorType = $(this).attr('data-paginator');
+    if (paginatorType === 'event') {
+        e.preventDefault();
+    } else {
+        return; // not supported
+    }
+    $.ajax({
+        beforeSend: function () {
+            $(".loading").show();
+        },
+        complete: function () {
+            $(".loading").hide();
+        },
+        dataType: "html",
+        success: function (data) {
+            $("#attributes_div").html(data);
+        },
+        url: $(this).attr('href'),
+    });
+});
+
 function queryEventLock(event_id, user_org_id) {
     if (tabIsActive) {
         $.ajax({
