@@ -298,9 +298,10 @@ function submitFunction(clicked, callback) {
     <script>
         if (options_templates === undefined) {
             var options_templates = {};
-            var options_additionalData = {}
+            var options_additionalData = {};
         }
-        options_templates['<?php echo $select_id; ?>'] = <?php echo json_encode($option_templates); ?>;
-        options_additionalData['<?php echo $select_id; ?>'] = <?php echo json_encode($options_additionalData); ?>;
+        // Keep as string, it is faster than parsing as JS
+        options_templates['<?php echo $select_id; ?>'] = JSON.parse('<?= addslashes(json_encode($option_templates)); ?>');
+        options_additionalData['<?php echo $select_id; ?>'] = JSON.parse('<?= addslashes(json_encode($options_additionalData)); ?>');
     </script>
 </div>
