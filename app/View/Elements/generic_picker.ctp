@@ -104,6 +104,12 @@ function setupChosen(id, redrawChosen) {
     if (redrawChosen) {
         redrawChosenWithTemplate($elem, $chosenContainer);
     }
+
+    if ($elem.prop('multiple')) {
+        $elem.filter('[autofocus]').trigger('chosen:open');
+    } else {
+        $elem.filter('[autofocus]').trigger('chosen:activate');
+    }
 }
 
 function redrawChosenWithTemplate($select, $chosenContainer, eventType) {
@@ -272,7 +278,6 @@ function submitFunction(clicked, callback) {
         <script>
             $(function() {
                 setupChosen("<?php echo $select_id; ?>", <?php echo ($defaults['flag_redraw_chosen'] === true ? 'true' : 'false') ?>);
-                $('#<?= $select_id; ?>').chosen().filter('[autofocus]').trigger('chosen:activate');
             });
         </script>
 
