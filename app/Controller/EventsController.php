@@ -3597,8 +3597,7 @@ class EventsController extends AppController
             $this->set('sgs', $sgs);
             $this->set('event', $event);
             $this->set('mayModify', $this->__canModifyEvent($event));
-            $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-            $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+            $this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
             $this->set('typeCategoryMapping', $typeCategoryMapping);
             foreach ($typeCategoryMapping as $k => $v) {
                 $typeCategoryMapping[$k] = array_values($v);
@@ -3635,7 +3634,7 @@ class EventsController extends AppController
                 $attribute['category'] = $attribute['default_category'];
                 unset($attribute['default_category']);
             } else {
-                $attribute['category'] = $this->Event->Attribute->defaultCategories[$attribute['type']];
+                $attribute['category'] = $this->Event->Attribute->typeDefinitions[$attribute['type']]['default_category'];
             }
             $attribute['distribution'] = $distribution;
             $attribute['event_id'] = $event['Event']['id'];
@@ -4887,8 +4886,7 @@ class EventsController extends AppController
             $this->set('event', array('Event' => $attribute[0]['Event']));
         }
         $this->set('resultArray', $resultArray);
-        $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-        $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+        $this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
         $this->set('typeCategoryMapping', $typeCategoryMapping);
         $this->set('title', 'Enrichment Results');
         $this->set('importComment', $importComment);
@@ -5077,8 +5075,7 @@ class EventsController extends AppController
                         }
                         $this->set('event', $event);
                         $this->set('resultArray', $resultArray);
-                        $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-                        $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+                        $this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
                         $this->set('typeCategoryMapping', $typeCategoryMapping);
                         $render_name = 'resolved_attributes';
                     }

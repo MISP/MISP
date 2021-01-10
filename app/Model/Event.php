@@ -6038,8 +6038,8 @@ class Event extends AppModel
                     }
                 }
             }
+            $data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
         }
-        $data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
         return $data;
     }
 

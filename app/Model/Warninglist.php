@@ -480,7 +480,7 @@ class Warninglist extends AppModel
 
         if ($object['to_ids'] || $this->showForAll) {
             foreach ($warninglists as $list) {
-                if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
+                if (in_array('ALL', $list['types'], true) || in_array($object['type'], $list['types'], true)) {
                     $result = $this->__checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
                     if ($result !== false) {
                         $object['warnings'][] = array(
@@ -689,7 +689,7 @@ class Warninglist extends AppModel
                 $tlds[$key] = strtolower($value);
             }
         }
-        if (!in_array('onion', $tlds)) {
+        if (!in_array('onion', $tlds, true)) {
             $tlds[] = 'onion';
         }
         return $tlds;
@@ -707,7 +707,7 @@ class Warninglist extends AppModel
         }
 
         foreach ($warninglists as $warninglist) {
-            if (in_array('ALL', $warninglist['types']) || in_array($attribute['type'], $warninglist['types'])) {
+            if (in_array('ALL', $warninglist['types'], true) || in_array($attribute['type'], $warninglist['types'], true)) {
                 $result = $this->__checkValue($this->getFilteredEntries($warninglist), $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
                 if ($result !== false) {
                     return false;

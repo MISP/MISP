@@ -364,18 +364,18 @@ class Feed extends AppModel
         $redisResultToAttributePosition = [];
 
         foreach ($attributes as $k => $attribute) {
-            if (in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
+            if (in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes, true)) {
                 continue; // attribute type is not correlateable
             }
             if (!empty($attribute['disable_correlation'])) {
                 continue; // attribute correlation is disabled
             }
 
-            if (in_array($attribute['type'], $compositeTypes)) {
+            if (in_array($attribute['type'], $compositeTypes, true)) {
                 list($value1, $value2) = explode('|', $attribute['value']);
                 $parts = [$value1];
 
-                if (!in_array($attribute['type'], $this->Attribute->primaryOnlyCorrelatingTypes)) {
+                if (!in_array($attribute['type'], $this->Attribute->primaryOnlyCorrelatingTypes, true)) {
                     $parts[] = $value2;
                 }
             } else {
