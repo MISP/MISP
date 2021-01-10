@@ -169,60 +169,6 @@ class Attribute extends AppModel
         'yara-json' => array('json', 'YaraExport', 'json')
     );
 
-    // FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
-    public $defaultCategories = array(
-            'md5' => 'Payload delivery',
-            'sha1' => 'Payload delivery',
-            'sha224' =>'Payload delivery',
-            'sha256' => 'Payload delivery',
-            'sha384' => 'Payload delivery',
-            'sha512' => 'Payload delivery',
-            'sha512/224' => 'Payload delivery',
-            'sha512/256' => 'Payload delivery',
-            'sha3-224' =>'Payload delivery',
-            'sha3-256' =>'Payload delivery',
-            'sha3-384' =>'Payload delivery',
-            'sha3-512' =>'Payload delivery',
-            'authentihash' => 'Payload delivery',
-            'vhash' => 'Payload delivery',
-            'imphash' => 'Payload delivery',
-            'telfhash' => 'Payload delivery',
-            'impfuzzy'=> 'Payload delivery',
-            'pehash' => 'Payload delivery',
-            'cdhash' => 'Payload delivery',
-            'filename|md5' => 'Payload delivery',
-            'filename|sha1' => 'Payload delivery',
-            'filename|sha256' => 'Payload delivery',
-            'regkey' => 'Persistence mechanism',
-            'filename' => 'Payload delivery',
-            'ip-src' => 'Network activity',
-            'ip-dst' => 'Network activity',
-            'ip-dst|port' => 'Network activity',
-            'mac-address' => 'Network activity',
-            'mac-eui-64' => 'Network activity',
-            'hostname' => 'Network activity',
-            'domain' => 'Network activity',
-            'eppn' => 'Network activity',
-            'git-commit-id' => 'Internal reference',
-            'url' => 'Network activity',
-            'ja3-fingerprint-md5' => 'Network activity',
-            'jarm-fingerprint' => 'Network activity',
-            'favicon-mmh3' => 'Network activity',
-            'hassh-md5' => 'Network activity',
-            'hasshserver-md5' => 'Network activity',
-            'link' => 'External analysis',
-            'email' => 'Social network',
-            'email-src' => 'Payload delivery',
-            'email-dst' => 'Payload delivery',
-            'text' => 'Other',
-            'hex' => 'Other',
-            'attachment' => 'External analysis',
-            'malware-sample' => 'Payload delivery',
-            'cortex' => 'External analysis',
-            'dns-soa-email' => 'Attribution',
-            'boolean' => 'Other'
-    );
-
     // typeGroupings are a mapping to high level groups for attributes
     // for example, IP addresses, domain names, hostnames and e-mail addresses are network related attribute types
     // whilst filenames and hashes are file related attribute types
