@@ -4976,14 +4976,10 @@ $(document.body).on('click', '.quickSelect', function() {
     selection.addRange(range);
 });
 
-// Event paginator
+// Any link with data-paginator attribute will be treat as AJAX paginator
 $(document.body).on('click', 'a[data-paginator]', function (e) {
-    var paginatorType = $(this).attr('data-paginator');
-    if (paginatorType === 'event') {
-        e.preventDefault();
-    } else {
-        return; // not supported
-    }
+    e.preventDefault();
+    var paginatorTarget = $(this).attr('data-paginator');
     $.ajax({
         beforeSend: function () {
             $(".loading").show();
@@ -4993,7 +4989,10 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
         },
         dataType: "html",
         success: function (data) {
-            $("#attributes_div").html(data);
+            $(paginatorTarget).html(data);
+        },
+        error: function () {
+            showMessage('fail', 'Could not fetch the requested data.');
         },
         url: $(this).attr('href'),
     });

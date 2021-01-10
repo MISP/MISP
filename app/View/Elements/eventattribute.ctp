@@ -36,11 +36,12 @@
             $url = array_merge(array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']), $params);
             $this->Paginator->options(array(
                 'url' => $url,
-                'data-paginator' => 'event',
+                'data-paginator' => '#attributes_div',
             ));
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $paginatorLinks = $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $paginatorLinks .= $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
+            $paginatorLinks .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            echo $paginatorLinks;
         ?>
         <li class="all <?php if ($all) echo 'disabled'; ?>">
             <?php
@@ -203,13 +204,9 @@ attributes or the appropriate distribution level. If you think there is a mistak
             ?>
         </div>
     <?php endif;?>
-    <div class="pagination pagination-event">
+    <div class="pagination">
         <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
+        <?= $paginatorLinks ?>
         <li class="all <?php if ($all) echo 'disabled'; ?>">
             <?php
                 if ($all):
@@ -296,6 +293,3 @@ attributes or the appropriate distribution level. If you think there is a mistak
         filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
     });
 </script>
-<?php
-    echo $this->Js->writeBuffer();
-?>
