@@ -3085,16 +3085,18 @@ class Event extends AppModel
         $userCount = count($usersWithAccess);
         $this->UserSetting = ClassRegistry::init('UserSetting');
         foreach ($usersWithAccess as $k => $user) {
-            if ($this->UserSetting->checkPublishFilter($user, $event)) {
-                // Fetch event for user that will receive alert e-mail to respect all ACLs
-                $eventForUser = $this->fetchEvent($user, [
-                    'eventid' => $id,
-                    'includeAllTags' => true,
-                    'includeEventCorrelations' => true,
-                ])[0];
+            // Fetch event for user that will receive alert e-mail to respect all ACLs
+            $eventForUser = $this->fetchEvent($user, [
+                'eventid' => $id,
+                'includeAllTags' => true,
+                'includeEventCorrelations' => true,
+                'noEventReports' => true,
+                'noSightings' => true,
+            ])[0];
 
+            if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->__buildAlertEmailBody($eventForUser, $user, $oldpublish);
-                $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
+                $this->User->sendEmail(['User' => $user], $body, $bodyNoEnc, $subject);
             }
             if ($jobId) {
                 $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
