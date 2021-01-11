@@ -28,9 +28,9 @@ class GenericPickerHelper extends AppHelper {
         $option_html = '<option';
 
         if (isset($param['value'])) {
-            $option_html .= sprintf(' value=%s',  h($param['value']));
+            $option_html .= ' value="' . h($param['value']) . '"';
         } else {
-            $option_html .= sprintf(' value=%s', h($param['name']));
+            $option_html .= ' value="' . h($param['name']) . '"';
         }
 
         if (isset($param['disabled']) && $param['disabled']) {
@@ -39,10 +39,7 @@ class GenericPickerHelper extends AppHelper {
             $option_html .= ' selected';
         }
 
-        $option_html .= '>';
-
-        $option_html .= h($param['name']);
-        $option_html .= '</option>';
+        $option_html .= '>' . h($param['name']) . '</option>';
         return $option_html;
     }
 
@@ -59,7 +56,6 @@ class GenericPickerHelper extends AppHelper {
             }
         }
 
-        $additionalData = json_encode(array());
         foreach ($param as $paramName => $paramValue) {
             if ($paramName === 'value') {
                 $param_html .= sprintf('value="%s" ', h($paramValue));
