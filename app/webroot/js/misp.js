@@ -4976,6 +4976,28 @@ $(document.body).on('click', '.quickSelect', function() {
     selection.addRange(range);
 });
 
+// Any link with data-paginator attribute will be treat as AJAX paginator
+$(document.body).on('click', 'a[data-paginator]', function (e) {
+    e.preventDefault();
+    var paginatorTarget = $(this).attr('data-paginator');
+    $.ajax({
+        beforeSend: function () {
+            $(".loading").show();
+        },
+        complete: function () {
+            $(".loading").hide();
+        },
+        dataType: "html",
+        success: function (data) {
+            $(paginatorTarget).html(data);
+        },
+        error: function () {
+            showMessage('fail', 'Could not fetch the requested data.');
+        },
+        url: $(this).attr('href'),
+    });
+});
+
 function queryEventLock(event_id, user_org_id) {
     if (tabIsActive) {
         $.ajax({

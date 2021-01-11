@@ -38,8 +38,12 @@
     $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
     if (!$skipPagination) {
         $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : array();
-        echo $this->element('/genericElements/IndexTable/pagination', array('paginationOptions' => $paginationData));
-        echo $this->element('/genericElements/IndexTable/pagination_links');
+        if ($ajax && isset($containerId)) {
+            $paginationData['data-paginator'] = "#{$containerId}_content";
+        }
+        $this->Paginator->options($paginationData);
+        $paginatonLinks = $this->element('/genericElements/IndexTable/pagination_links');
+        echo $paginatonLinks;
     }
     $hasSearch = false;
     if (!empty($data['top_bar'])) {
@@ -96,20 +100,20 @@
     echo '</div>';
     if (!$skipPagination) {
         echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
-        echo $this->element('/genericElements/IndexTable/pagination_links');
+        echo $paginatonLinks;
     }
     $url = $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
 ?>
 <script type="text/javascript">
     var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '{}'; ?>;
-    <?php
-        if (isset($containerId)) {
-            echo 'var target = "#' . $containerId . '_content";';
-        }
-    ?>
     var url = "<?= $url ?>";
     <?php if ($hasSearch): ?>
     $(function() {
+        <?php
+        if (isset($containerId)) {
+            echo 'var target = "#' . $containerId . '_content";';
+        }
+        ?>
         $('#quickFilterButton').click(function() {
             if (typeof(target) !== 'undefined') {
                 runIndexQuickFilterFixed(passedArgsArray, url, target);
@@ -119,26 +123,4 @@
         });
     });
     <?php endif; ?>
-    var ajax = <?= $ajax ? 'true' : 'false' ?>;
-    if (ajax && typeof(target) !== 'undefined') {
-        $(target + ' .pagination_link a').on('click', function() {
-            $.ajax({
-                beforeSend: function () {
-                    $(".loading").show();
-                },
-                success: function (data) {
-                    $(target).html(data);
-                },
-                error: function() {
-                    showMessage('fail', 'Could not fetch the requested data.');
-                },
-                complete: function() {
-                    $(".loading").hide();
-                },
-                type: "get",
-                url: $(this).attr('href')
-            });
-            return false;
-        });
-    }
 </script>

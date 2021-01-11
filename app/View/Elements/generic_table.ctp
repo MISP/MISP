@@ -1,10 +1,4 @@
 <?php
-    $this->Paginator->options(array(
-        'update' => '.span12',
-        'evalScripts' => true,
-        'before' => '$(".progress").show()',
-        'complete' => '$(".progress").hide()',
-    ));
     $title = sprintf('<h2>%s</h2>', $alias);
     if (!empty($description)) {
         $description = sprintf('<p>%s</p>', Inflector::humanize($description));
