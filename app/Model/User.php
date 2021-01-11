@@ -7,6 +7,7 @@ App::uses('SendEmail', 'Tools');
 
 /**
  * @property Log $Log
+ * @property UserSetting $UserSetting
  */
 class User extends AppModel
 {
@@ -314,6 +315,9 @@ class User extends AppModel
                     $kafkaPubTool->publishJson($kafkaTopic, $user, $action);
                 }
             }
+        }
+        if ($created) {
+            $this->UserSetting->createDefault($this->id);
         }
         return true;
     }

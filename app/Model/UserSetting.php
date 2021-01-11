@@ -116,6 +116,26 @@ class UserSetting extends AppModel
         return true;
     }
 
+    /**
+     * Create default user setting.
+     * @param int $userId
+     * @throws Exception
+     */
+    public function createDefault($userId)
+    {
+        foreach ($this->validSettings as $setting => $foo) {
+            $default = Configure::read("DefaultUserSetting.$setting");
+            if ($default) {
+                $this->create();
+                $this->save([
+                    'setting' => $setting,
+                    'user_id' => $userId,
+                    'value' => $default,
+                ]);
+            }
+        }
+    }
+
     // Once we run a find, let us decode the JSON field so we can interact with the contents as if it was an array
     public function afterFind($results, $primary = false)
     {
@@ -306,12 +326,6 @@ class UserSetting extends AppModel
      */
     private function __checkEvent($rule, $lookup_values, $event)
     {
-        if (!is_array($lookup_values)) {
-            $lookup_values = array($lookup_values);
-        }
-        foreach ($lookup_values as $k => $v) {
-            $lookup_values[$k] = mb_strtolower($v);
-        }
         if ($rule === 'AttributeTag.name') {
             $values = array_merge(
                 Hash::extract($event, 'Attribute.{n}.AttributeTag.{n}.Tag.name'),
@@ -333,6 +347,11 @@ class UserSetting extends AppModel
             $values = [$event['ThreatLevel']['name']];
         }
         if (!empty($values)) {
+            if (!is_array($lookup_values)) {
+                $lookup_values = array($lookup_values);
+            }
+            $lookup_values = array_map('mb_strtolower', $lookup_values);
+
             foreach ($values as $extracted_value) {
                 $extracted_value = mb_strtolower($extracted_value);
                 foreach ($lookup_values as $lookup_value) {
