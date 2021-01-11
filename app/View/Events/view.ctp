@@ -23,12 +23,17 @@
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
         $table_data[] = array(
             'key' => 'UUID',
-            'html' => sprintf('<span class="quickSelect">%s</span> %s',
+            'html' => sprintf('<span class="quickSelect">%s</span>%s%s',
                 $event['Event']['uuid'],
-                $isAclAdd ? sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px; margin-left: 0.3em" title="%s">+</a>',
+                $isAclAdd ? sprintf(' <a href="%s/events/add/extends:%s" style="color:black; font-size:15px;padding-left:2px" title="%s"><i class="fas fa-plus-square"></i></a>',
                     $baseurl,
                     $event['Event']['id'],
                     __('Extend this event')
+                ) : '',
+                $isSiteAdmin || $hostOrgUser ? sprintf(' <a href="%s/servers/idTranslator/%s" style="color:black; font-size:15px;padding-left:2px" title="%s"><i class="fas fa-server"></i></a>',
+                    $baseurl,
+                    $event['Event']['id'],
+                    __('Check this event on different servers')
                 ) : ''
             )
         );

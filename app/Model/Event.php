@@ -1356,40 +1356,32 @@ class Event extends AppModel
      * @param int $eventId
      * @param array $server
      * @param null|HttpSocket $HttpSocket
-     * @param boolean $metadataOnly, if True, we only retrieve the metadata
-     * without attributes and attachments which is much faster
+     * @param boolean $metadataOnly, if True, we only retrieve the metadata, without attributes and attachments which is much faster
      * @return array
      * @throws Exception
      */
-    public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $metadataOnly=false)
+    public function downloadEventFromServer($eventId, $server, HttpSocket $HttpSocket=null, $metadataOnly=false)
     {
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         if ($metadataOnly) {
             $uri = $url . '/events/index';
-            $data = ['eventid' => $eventId];
-            $data = json_encode($data);
+            $data = json_encode(['eventid' => $eventId]);
             $response = $HttpSocket->post($uri, $data, $request);
         } else {
             $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
             if (!empty($server['Server']['internal'])) {
                 $uri = $uri . '/excludeLocalTags:1';
             }
-            $response = $HttpSocket->get($uri, $data = '', $request);
+            $response = $HttpSocket->get($uri, [], $request);
         }
 
-        if ($response === false) {
-            throw new Exception("Could not reach '$uri'.");
-        } else if (!$response->isOk()) {
+        if (!$response->isOk()) {
             throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
         }
 
-        $event = json_decode($response->body, true);
-        if ($event === null) {
-            throw new Exception('Could not parse event JSON: ' . json_last_error_msg(), json_last_error());
-        }
-        return $event;
+        return $this->jsonDecode($response->body);
     }
 
     public function quickDelete($event)

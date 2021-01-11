@@ -1,7 +1,5 @@
 <?php
-
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'id_translator'));
-
     echo $this->element('/genericElements/Form/genericForm', array(
         'form' => $this->Form,
         'data' => array(
@@ -42,6 +40,7 @@
     if (isset($remote_events) && isset($local_event)) {
         $table_data = array();
         $table_data[] = array('key' => __('UUID'), 'value' => $local_event['Event']['uuid']);
+        $table_data[] = array('key' => __('Info'), 'value' => $local_event['Event']['info']);
         $link = '<a href="' . $baseurl . '/events/view/' . $local_event['Event']['id'] . '" rel="noreferrer noopener" target="_blank">' . $local_event['Event']['id'] . '</a>';
         $table_data[] = array('key' => __('Local ID'), 'html' => $link);
         foreach ($remote_events as $remote_event) {

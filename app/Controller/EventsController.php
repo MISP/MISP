@@ -307,7 +307,6 @@ class EventsController extends AppController
                         } else {
                             $pieces = explode('|', $v);
                         }
-                        $temp = array();
                         $eventidConditions = array();
                         foreach ($pieces as $piece) {
                             $piece = trim($piece);
