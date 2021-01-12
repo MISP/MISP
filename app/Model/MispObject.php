@@ -318,7 +318,7 @@ class MispObject extends AppModel
                 )
             ),
             'fields' => array('template_uuid'),
-            'conditions' => array('template_uuid' => $object['Object']['template_uuid'], 'Object.deleted' => 0)
+            'conditions' => array('template_uuid' => $object['Object']['template_uuid'], 'Object.deleted' => 0, 'event_id' => $eventId)
         ));
         $oldObjects = array();
         foreach ($existingObjects as $k => $existingObject) {
@@ -327,7 +327,7 @@ class MispObject extends AppModel
                 foreach ($existingObject['Attribute'] as $existingAttribute) {
                     $temp[] = hash(
                         'sha256',
-                        $attribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value']
+                        $existingAttribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value']
                     );
                 }
                 if (empty(array_diff($temp, $newObjectAttributes))) {

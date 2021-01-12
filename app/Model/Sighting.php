@@ -402,7 +402,7 @@ class Sighting extends AppModel
             'contain' => [ucfirst($context) . 'Tag'],
             'conditions' => $conditions,
             'fields' => [ucfirst($context) . 'Tag.tag_id', 'date', 'sighting_count'],
-            'group' => [ucfirst($context) . 'Tag.tag_id', 'date'],
+            'group' => [ucfirst($context) . 'Tag.id', 'date'],
             'order' => ['date'], // from oldest
         ]);
         unset($this->virtualFields['date'], $this->virtualFields['sighting_count']);
