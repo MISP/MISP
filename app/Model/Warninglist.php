@@ -479,11 +479,11 @@ class Warninglist extends AppModel
         if ($warninglists === null) {
             $warninglists = $this->getEnabled();
         }
-
+        $wildlist = $this->getWildList($warninglists = $this->getEnabled());
         if ($object['to_ids'] || $this->showForAll) {
             foreach ($warninglists as $list) {
                 if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
-                    $result = $this->__checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
+                    $result = $this->__checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type'], $wildlist);
                     if ($result !== false) {
                         $object['warnings'][] = array(
                             'match' => $result[0],
@@ -497,6 +497,29 @@ class Warninglist extends AppModel
         }
         return $object;
     }
+    
+    /**
+     * @param array $listValues
+     * @return array
+     */
+    public function getWildList($warninglists)
+    {
+		if ($warninglists === null) {
+            $warninglists = $this->getEnabled();
+        }
+        $wildlist = array();
+		foreach ($warninglists as $warninglist) {
+			if ($warninglist['Warninglist']['type'] == 'wildmask') {
+				$mvalues = $this->getFilteredEntries($warninglist);
+				foreach ($mvalues as $mvalue) {
+					if (substr($mvalue, 0,2) === "!.") {
+						array_push($wildlist, substr($mvalue, 2));
+					}
+				}
+			}
+		}
+		return $wildlist;
+	}
 
     /**
      * @param array $listValues
@@ -505,7 +528,7 @@ class Warninglist extends AppModel
      * @param string $listType
      * @return array|false [Matched value, attribute value that matched]
      */
-    private function __checkValue($listValues, $value, $type, $listType)
+    private function __checkValue($listValues, $value, $type, $listType, $wildlist = array())
     {
         if ($type === 'malware-sample' || strpos($type, '|') !== false) {
             $value = explode('|', $value, 2);
@@ -520,7 +543,7 @@ class Warninglist extends AppModel
             } elseif ($listType === 'substring') {
                 $result = $this->__evalSubString($listValues, $v);
             } elseif ($listType === 'hostname') {
-                $result = $this->__evalHostname($listValues, $v);
+                $result = $this->__evalHostname($listValues, $v, $wildlist);
             } elseif ($listType === 'regex') {
                 $result = $this->__evalRegex($listValues, $v);
             } else {
@@ -533,9 +556,9 @@ class Warninglist extends AppModel
         return false;
     }
 
-    public function quickCheckValue($listValues, $value, $type)
+    public function quickCheckValue($listValues, $value, $type, $wildlist)
     {
-        return $this->__checkValue($listValues, $value, '', $type) !== false;
+        return $this->__checkValue($listValues, $value, '', $type, $wildlist) !== false;
     }
 
     private function __evalCidrList($listValues, $value)
@@ -632,7 +655,7 @@ class Warninglist extends AppModel
         return false;
     }
 
-    private function __evalHostname($listValues, $value)
+    private function __evalHostname($listValues, $value, $wildValues = array())
     {
         // php's parse_url is dumb, so let's use some hacky workarounds
         if (strpos($value, '//') === false) {
@@ -649,6 +672,8 @@ class Warninglist extends AppModel
         $hostname = rtrim($hostname, '.');
         $hostname = explode('.', $hostname);
         $rebuilt = '';
+        $lenght = count($hostname);
+        $i = 1;
         foreach (array_reverse($hostname) as $piece) {
             if (empty($rebuilt)) {
                 $rebuilt = $piece;
@@ -656,8 +681,17 @@ class Warninglist extends AppModel
                 $rebuilt = $piece . '.' . $rebuilt;
             }
             if (isset($listValues[$rebuilt])) {
-                return $rebuilt;
+                if ($i !== $lenght) {
+                    if (in_array($rebuilt, $wildValues)) {
+                        return false;
+                    } else { 
+                        return $rebuilt;
+                    }
+                } else {
+                    return $rebuilt;
+                }
             }
+            $i++;
         }
         return false;
     }
@@ -708,10 +742,10 @@ class Warninglist extends AppModel
         if ($warninglists === null) {
             $warninglists = $this->getEnabled();
         }
-
+        $wildlist = $this->getWildList($warninglists = $this->getEnabled());
         foreach ($warninglists as $warninglist) {
             if (in_array('ALL', $warninglist['types']) || in_array($attribute['type'], $warninglist['types'])) {
-                $result = $this->__checkValue($this->getFilteredEntries($warninglist), $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
+                $result = $this->__checkValue($this->getFilteredEntries($warninglist), $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type'], $wildlist);
                 if ($result !== false) {
                     return false;
                 }
