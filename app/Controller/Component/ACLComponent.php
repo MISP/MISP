@@ -619,6 +619,7 @@ class ACLComponent extends Component
                     'taxonomyMassUnhide' => array('perm_tagger'),
                     'toggleRequired' => array('perm_site_admin'),
                     'update' => array(),
+                    'import' => [],
                     'view' => array('*'),
                     'unhideTag' => array('perm_tagger'),
                     'hideTag' => array('perm_tagger'),

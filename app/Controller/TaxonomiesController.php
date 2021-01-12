@@ -184,11 +184,21 @@ class TaxonomiesController extends AppController
         }
     }
 
+    public function import()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
+        try {
+            $id = $this->Taxonomy->import($this->request->data);
+            return $this->view($id);
+        } catch (Exception $e) {
+            return $this->RestResponse->saveFailResponse('Taxonomy', 'import', false, $e->getMessage());
+        }
+    }
+
     public function update()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
-        }
         $result = $this->Taxonomy->update();
         $this->Log = ClassRegistry::init('Log');
         $fails = 0;
@@ -396,27 +406,18 @@ class TaxonomiesController extends AppController
 
     public function taxonomyMassConfirmation($id)
     {
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
-            throw new NotFoundException(__('You don\'t have permission to do that.'));
-        }
         $this->set('id', $id);
         $this->render('ajax/taxonomy_mass_confirmation');
     }
 
     public function taxonomyMassHide($id)
     {
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
-            throw new NotFoundException(__('You don\'t have permission to do that.'));
-        }
         $this->set('id', $id);
         $this->render('ajax/taxonomy_mass_hide');
     }
 
     public function taxonomyMassUnhide($id)
     {
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
-            throw new NotFoundException(__('You don\'t have permission to do that.'));
-        }
         $this->set('id', $id);
         $this->render('ajax/taxonomy_mass_unhide');
     }
@@ -459,43 +460,40 @@ class TaxonomiesController extends AppController
             } else {
                 return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleRequired', $id, $this->validationError, $this->response->type());
             }
-        } else {
-            $this->set('required', !$taxonomy['Taxonomy']['required']);
-            $this->set('id', $id);
-            $this->autoRender = false;
-            $this->layout = 'ajax';
-            $this->render('ajax/toggle_required');
         }
+
+        $this->set('required', !$taxonomy['Taxonomy']['required']);
+        $this->set('id', $id);
+        $this->autoRender = false;
+        $this->layout = 'ajax';
+        $this->render('ajax/toggle_required');
     }
 
     private function __search($value)
     {
         $value = strtolower(trim($value));
         $searchTerm = "%$value%";
-        $taxonomyPredicateIds = $this->Taxonomy->TaxonomyPredicate->TaxonomyEntry->find('list', [
-            'recursive' => -1,
-            'fields' => ['taxonomy_predicate_id'],
+        $taxonomyPredicateIds = $this->Taxonomy->TaxonomyPredicate->TaxonomyEntry->find('column', [
+            'fields' => ['TaxonomyEntry.taxonomy_predicate_id'],
             'conditions' => ['OR' => [
                 'LOWER(value) LIKE' => $searchTerm,
                 'LOWER(expanded) LIKE' => $searchTerm,
             ]],
-            'group' => ['taxonomy_predicate_id'],
+            'unique' => true,
         ]);
 
-        $taxonomyIds = $this->Taxonomy->TaxonomyPredicate->find('list', [
-            'recursive' => -1,
-            'fields' => ['taxonomy_id'],
+        $taxonomyIds = $this->Taxonomy->TaxonomyPredicate->find('column', [
+            'fields' => ['TaxonomyPredicate.taxonomy_id'],
             'conditions' => ['OR' => [
                 'id' => $taxonomyPredicateIds,
                 'LOWER(value) LIKE' => $searchTerm,
                 'LOWER(expanded) LIKE' => $searchTerm,
             ]],
-            'group' => ['taxonomy_id'],
+            'unique' => true,
         ]);
 
-        $taxonomyIds = $this->Taxonomy->find('list', [
-            'recursive' => -1,
-            'fields' => ['id'],
+        $taxonomyIds = $this->Taxonomy->find('column', [
+            'fields' => ['Taxonomy.id'],
             'conditions' => ['OR' => [
                 'id' => $taxonomyIds,
                 'LOWER(namespace) LIKE' => $searchTerm,

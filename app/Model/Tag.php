@@ -482,16 +482,19 @@ class Tag extends AppModel
         return $tags;
     }
 
+    /**
+     * @param string $namespace
+     * @param bool $containTagConnectors
+     * @return array Uppercase tag name in key
+     */
     public function getTagsForNamespace($namespace, $containTagConnectors = true)
     {
-
-        $contain = array('EventTag', 'AttributeTag');
         $tag_params = array(
-                'recursive' => -1,
-                'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),
+            'recursive' => -1,
+            'conditions' => array('LOWER(name) LIKE' => strtolower($namespace) . '%'),
         );
         if ($containTagConnectors) {
-            $tag_params['contain'] = $contain;
+            $tag_params['contain'] = array('EventTag', 'AttributeTag');
         }
         $tags_temp = $this->find('all', $tag_params);
         $tags = array();
