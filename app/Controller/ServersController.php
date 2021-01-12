@@ -150,9 +150,6 @@ class ServersController extends AppController
 
     public function previewEvent($serverId, $eventId, $all = false)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
-        }
         $server = $this->Server->find('first', array(
             'conditions' => array('Server.id' => $serverId),
             'recursive' => -1,
@@ -202,6 +199,7 @@ class ServersController extends AppController
         }
         $threat_levels = $this->Event->ThreatLevel->find('all');
         $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+        $this->set('title_for_layout', __('Remote event preview'));
     }
 
     public function filterEventIndex($id)
@@ -1331,13 +1329,12 @@ class ServersController extends AppController
                     try {
                         $remote_event = $this->Event->downloadEventFromServer($this->request->data['Event']['uuid'], $remote_server, null, true);
                     } catch (Exception $e) {
-                        $error_msg = __("Issue while contacting the remote server to retrieve event information");
-                        $this->Flash->error($error_msg);
+                        $this->Flash->error(__("Issue while contacting the remote server to retrieve event information"));
                         return;
                     }
 
                     $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event[0]['uuid']);
-                    //we record it to avoid re-querying the same server in the 2nd phase
+                    // we record it to avoid re-querying the same server in the 2nd phase
                     if (!empty($local_event)) {
                         $remote_events[] = array(
                             "server_id" => $remote_server['Server']['id'],
@@ -1349,7 +1346,7 @@ class ServersController extends AppController
                 }
             }
             if (empty($local_event)) {
-                $this->Flash->error( __("This event could not be found or you don't have permissions to see it."));
+                $this->Flash->error(__("This event could not be found or you don't have permissions to see it."));
                 return;
             } else {
                 $this->Flash->success(__('The event has been found.'));
@@ -1379,6 +1376,7 @@ class ServersController extends AppController
             $this->set('local_event', $local_event);
             $this->set('remote_events', $remote_events);
         }
+        $this->set('title_for_layout', __('Event ID translator'));
     }
 
     public function getSubmodulesStatus() {
