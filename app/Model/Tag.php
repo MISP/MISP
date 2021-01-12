@@ -466,13 +466,12 @@ class Tag extends AppModel
 
     public function getTagsByName($tag_names, $containTagConnectors = true)
     {
-        $contain = array('EventTag', 'AttributeTag');
         $tag_params = array(
-                'recursive' => -1,
-                'conditions' => array('name' => $tag_names)
+            'recursive' => -1,
+            'conditions' => array('name' => $tag_names)
         );
         if ($containTagConnectors) {
-            $tag_params['contain'] = $contain;
+            $tag_params['contain'] = array('EventTag', 'AttributeTag');
         }
         $tags_temp = $this->find('all', $tag_params);
         $tags = array();

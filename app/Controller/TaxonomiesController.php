@@ -85,18 +85,18 @@ class TaxonomiesController extends AppController
         }
         $this->loadModel('EventTag');
         $this->loadModel('AttributeTag');
+
+        $tagIds = array_column(array_column(array_column($taxonomy['entries'], 'existing_tag'), 'Tag'), 'id');
+        $eventCount = $this->EventTag->countForTags($tagIds, $this->Auth->user());
+        $attributeTags = $this->AttributeTag->countForTags($tagIds, $this->Auth->user());
+
         foreach ($taxonomy['entries'] as $key => $value) {
             $count = 0;
             $count_a = 0;
             if (!empty($value['existing_tag'])) {
-                foreach ($value['existing_tag'] as $et) {
-                    $count = $this->EventTag->find('count', array(
-                        'conditions' => array('EventTag.tag_id' => $et['id'])
-                    ));
-                    $count_a = $this->AttributeTag->find('count', array(
-                        'conditions' => array('AttributeTag.tag_id' => $et['id'])
-                    ));
-                }
+                $tagId = $value['existing_tag']['Tag']['id'];
+                $count = isset($eventCount[$tagId]) ? $eventCount[$tagId] : 0;
+                $count_a = isset($attributeTags[$tagId]) ? $attributeTags[$tagId] : 0;
             }
             $taxonomy['entries'][$key]['events'] = $count;
             $taxonomy['entries'][$key]['attributes'] = $count_a;
