@@ -303,9 +303,14 @@ class MispObject extends AppModel
         $newObjectAttributes = array();
         $existingObjectAttributes = array();
         foreach ($object['Attribute'] as $attribute) {
+            if ($attribute['type'] === 'malware-sample') {
+                if (strpos($attribute['value'], '|') === false && !empty($attribute['data'])) {
+                    $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
+                }
+            }
             $newObjectAttributes[] = hash(
                 'sha256',
-                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $attribute['value']
+                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $this->data['Attribute']['value'] = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value'])
             );
         }
         $newObjectAttributeCount = count($newObjectAttributes);
