@@ -767,9 +767,7 @@ class Server extends AppModel
 
         $uri = $server['Server']['url'] . '/events/index';
         $response = $HttpSocket->post($uri, json_encode($filterRules), $request);
-        if ($response === false) {
-            throw new Exception("Could not reach '$uri'.");
-        }
+
         if (!$response->isOk()) {
             throw new HttpException("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}", intval($response->code));
         }
@@ -1160,7 +1158,7 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncSightings($HttpSocket, $server, $user, $eventModel)
+    public function syncSightings($HttpSocket, array $server, array $user, Event $eventModel)
     {
         $successes = array();
         if (!$server['Server']['push_sightings']) {
@@ -1169,20 +1167,28 @@ class Server extends AppModel
         $this->Sighting = ClassRegistry::init('Sighting');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         try {
-            $eventIds = $this->getEventIdsFromServer($server, true, $HttpSocket, true, 'sightings');
+            $eventUuids = $this->getEventIdsFromServer($server, true, $HttpSocket, true, 'sightings');
         } catch (Exception $e) {
             $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
             return $successes;
         }
         // now process the $eventIds to push each of the events sequentially
         // check each event and push sightings when needed
-        foreach ($eventIds as $k => $eventId) {
-            $event = $eventModel->fetchEvent($user, $options = array('event_uuid' => $eventId, 'metadata' => true));
+        foreach ($eventUuids as $eventUuid) {
+            $event = $eventModel->fetchEvent($user, ['event_uuid' => $eventUuid, 'metadata' => true]);
             if (!empty($event)) {
                 $event = $event[0];
-                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user, null, false, true);
-                $result = $eventModel->uploadEventToServer($event, $server, $HttpSocket, 'sightings');
-                if ($result === 'Success') {
+
+                if (empty($this->eventFilterPushableServers($event, [$server]))) {
+                    continue;
+                }
+                if (!$eventModel->checkDistributionForPush($event, $server)) {
+                    continue;
+                }
+
+                $sightings = $this->Sighting->attachToEvent($event, $user, null, false, true);
+                $result = $eventModel->uploadSightingsToServer($sightings, $server, $eventUuid, $HttpSocket);
+                if ($result) {
                     $successes[] = 'Sightings for event ' .  $event['Event']['id'];
                 }
             }

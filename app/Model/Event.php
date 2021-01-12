@@ -927,9 +927,9 @@ class Event extends AppModel
         return $error;
     }
 
-    private function __executeRestfulEventToServer($event, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket, $scope)
+    private function __executeRestfulEventToServer($event, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket)
     {
-        $result = $this->restfulEventToServer($event, $server, $resourceId, $newLocation, $newTextBody, $HttpSocket, $scope);
+        $result = $this->restfulEventToServer($event, $server, $resourceId, $newLocation, $newTextBody, $HttpSocket);
         if (is_numeric($result)) {
             $error = $this->__resolveErrorCode($result, $event, $server);
             if ($error) {
@@ -939,11 +939,19 @@ class Event extends AppModel
         return true;
     }
 
-    public function uploadSightingsToServer($sightings, $server, $event_uuid, $HttpSocket = null)
+    /**
+     * @param array $sightings
+     * @param array $server
+     * @param string $eventUuid
+     * @param HttpSocket|null $HttpSocket
+     * @return bool|int
+     * @throws JsonException
+     */
+    public function uploadSightingsToServer(array $sightings, array $server, $eventUuid, HttpSocket $HttpSocket = null)
     {
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/sightings/bulkSaveSightings/' . $event_uuid;
+        $uri = $server['Server']['url'] . '/sightings/bulkSaveSightings/' . $eventUuid;
         foreach ($sightings as &$sighting) {
             if (!isset($sighting['org_id'])) {
                 $sighting['org_id'] = '0';
@@ -954,7 +962,7 @@ class Event extends AppModel
             $pushLogEntry = sprintf(
                 "==============================================================\n\n[%s] Pushing Sightings for Event #%s to Server #%d:\n\n%s\n\n",
                 date("Y-m-d H:i:s"),
-                $event_uuid,
+                $eventUuid,
                 $server['Server']['id'],
                 $data
             );
@@ -964,26 +972,23 @@ class Event extends AppModel
         return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
     }
 
-    public function uploadEventToServer($event, $server, $HttpSocket = null, $scope = 'events')
+    public function uploadEventToServer($event, $server, $HttpSocket = null)
     {
         $this->Server = ClassRegistry::init('Server');
         $push = $this->Server->checkVersionCompatibility($server, false, $HttpSocket);
-        if ($scope === 'events' && empty($push['canPush'])) {
+        if (empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
-        } elseif ($scope === 'sightings' && empty($push['canPush']) && empty($push['canSight'])) {
-            return 'The remote user is not a sightings user - the upload of the sightings has been blocked.';
         }
         if (!empty($server['Server']['unpublish_event'])) {
             $event['Event']['published'] = 0;
         }
-        $updated = null;
         $newLocation = $newTextBody = '';
-        $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket, $scope);
+        $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
         if ($result !== true) {
             return $result;
         }
         if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-            $result = $this->__executeRestfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket, $scope);
+            $result = $this->__executeRestfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
             if ($result !== true) {
                 return $result;
             }
@@ -1061,7 +1066,7 @@ class Event extends AppModel
     }
 
     // Uploads the event and the associated Attributes to another Server
-    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null, $scope)
+    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
     {
         $event = $this->__prepareForPushToServer($event, $server);
         if (is_numeric($event)) {
@@ -1069,16 +1074,10 @@ class Event extends AppModel
         }
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        if ($scope === 'sightings') {
-            $scope .= '/bulkSaveSightings';
-            $urlPath = $event['Event']['uuid'];
-        }
         $url = $server['Server']['url'];
-        $uri = $url . '/' . $scope . $this->__getLastUrlPathComponent($urlPath);
-        if ($scope === 'event') {
-            // After creating or editing event, it is not necessary to fetch full event
-            $uri .= '/metadata:1';
-        }
+        $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
+        // After creating or editing event, it is not necessary to fetch full event
+        $uri .= '/metadata:1';
         $data = json_encode($event);
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
@@ -4360,7 +4359,7 @@ class Event extends AppModel
         }
         $servers = $this->Server->find('all', [
             'conditions' => $conditions,
-            'contain' => ['RemoteOrg'],
+            'contain' => ['RemoteOrg'], // remote org required for checkDistributionForPush
             'recursive' => -1,
             'order' => ['Server.priority ASC', 'Server.id ASC'],
         ]);
@@ -4416,11 +4415,10 @@ class Event extends AppModel
     /**
      * @param int $id
      * @param int|null $passAlong
-     * @param string $scope Only 'events', 'sightings' is deprecated since 2.4.137
      * @return array|bool
      * @throws Exception
      */
-    public function uploadEventToServersRouter($id, $passAlong = null, $scope = 'events')
+    public function uploadEventToServersRouter($id, $passAlong = null)
     {
         $eventOrgcId = $this->find('first', array(
             'conditions' => array('Event.id' => $id),
@@ -4446,11 +4444,8 @@ class Event extends AppModel
         $event['Event']['locked'] = 1;
         // get a list of the servers
         $this->Server = ClassRegistry::init('Server');
-        if ($scope === 'sightings') {
-            $conditions = array('push_sightings' => 1);
-        } else {
-            $conditions = array('push' => 1);
-        }
+
+        $conditions = array('push' => 1);
         if ($passAlong) {
             $conditions[] = array('Server.id !=' => $passAlong);
         }
@@ -4465,16 +4460,14 @@ class Event extends AppModel
         $uploaded = true;
         $failedServers = array();
         App::uses('SyncTool', 'Tools');
-        foreach ($servers as &$server) {
+        $syncTool = new SyncTool();
+
+        foreach ($servers as $server) {
             if (
-                ($scope === 'events' &&
-                    (!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2) ||
-                ($scope === 'sightings' &&
-                    (!isset($server['Server']['push_sightings']) || !$server['Server']['push_sightings']))
+                (!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2
             ) {
                 continue;
             }
-            $syncTool = new SyncTool();
             $HttpSocket = $syncTool->setupHttpSocket($server);
             // Skip servers where the event has come from.
             if (($passAlong != $server['Server']['id'])) {
@@ -4498,33 +4491,17 @@ class Event extends AppModel
                 $event = $this->fetchEvent($elevatedUser, $params);
                 $event = $event[0];
                 $event['Event']['locked'] = 1;
-                // attach sightings if needed
-                if ($scope === 'sightings') {
-                    $this->Sighting = ClassRegistry::init('Sighting');
-                    $fakeSyncUser = array(
-                        'org_id' => $server['Server']['remote_org_id'],
-                        'Role' => array(
-                            'perm_site_admin' => 0
-                        )
-                    );
-                    $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, false, true);
-                    if (!empty($sightings)) {
-                        $thisUploaded = $this->uploadSightingsToServer($sightings, $server, $event['Event']['uuid'], $HttpSocket);
-                    } else {
-                        $thisUploaded = true;
-                    }
-                } else {
-                    $fakeSyncUser = array(
-                        'org_id' => $server['Server']['remote_org_id'],
-                        'Role' => array(
-                            'perm_site_admin' => 0
-                        )
-                    );
-                    $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
-                    $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket, $scope);
-                    if (isset($this->data['ShadowAttribute'])) {
-                        $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
-                    }
+
+                $fakeSyncUser = array(
+                    'org_id' => $server['Server']['remote_org_id'],
+                    'Role' => array(
+                        'perm_site_admin' => 0
+                    )
+                );
+                $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
+                $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
+                if (isset($this->data['ShadowAttribute'])) {
+                    $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
                 }
                 if (!$thisUploaded) {
                     $uploaded = !$uploaded ? $uploaded : $thisUploaded;
