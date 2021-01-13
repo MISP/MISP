@@ -446,7 +446,7 @@ class Server extends AppModel
         } else {
             $email = $user['email'];
         }
-        $server['Server']['version'] = $this->getRemoteVersion($id);
+        $server['Server']['version'] = $this->getRemoteVersion($server);
         $pulledClusters = 0;
         if (!empty($server['Server']['pull_galaxy_clusters'])) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -3491,38 +3491,19 @@ class Server extends AppModel
         ));
     }
 
-    /* returns the version string of a connected instance
-     * error codes:
-     * 1: received non json response
-     * 2: no route to host
-     * 3: empty result set
-     */
-    public function getRemoteVersion($id)
+    private function getRemoteVersion(array $server)
     {
-        $server = $this->find('first', array(
-                'conditions' => array('Server.id' => $id),
-        ));
-        if (empty($server)) {
-            return 2;
-        }
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket($server);
+        $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
         $response = $HttpSocket->get($server['Server']['url'] . '/servers/getVersion', $data = '', $request);
         if ($response->code == 200) {
-            try {
-                $data = json_decode($response->body, true);
-            } catch (Exception $e) {
-                return 1;
-            }
+            $data = $this->jsonDecode($response->body);
             if (isset($data['version']) && !empty($data['version'])) {
                 return $data['version'];
             } else {
-                return 3;
+                throw new Exception("Invalid response from remote server: version field missing");
             }
         }
-        return 2;
     }
 
     /**
@@ -4741,7 +4722,7 @@ class Server extends AppModel
                 'cveurl' => array(
                     'level' => 1,
                     'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
-                    'value' => 'http://cve.circl.lu/cve/',
+                    'value' => 'https://cve.circl.lu/cve/',
                     'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
@@ -4749,7 +4730,7 @@ class Server extends AppModel
                 'cweurl' => array(
                     'level' => 1,
                     'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
-                    'value' => 'http://cve.circl.lu/cwe/',
+                    'value' => 'https://cve.circl.lu/cwe/',
                     'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
@@ -4777,7 +4758,7 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
-                    'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities'),
+                    'options' => array('0' => __('Your organisation only'), '1' => __('This community only'), '2' => __('Connected communities'), '3' => __('All communities')),
                 ),
                 'default_attribute_distribution' => array(
                     'level' => 0,
@@ -4786,7 +4767,7 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
-                    'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities', 'event' => 'Inherit from event'),
+                    'options' => array('0' => __('Your organisation only'), '1' => __('This community only'), '2' => __('Connected communities'), '3' => __('All communities'), 'event' => __('Inherit from event')),
                 ),
                 'default_event_threat_level' => array(
                     'level' => 1,
@@ -5392,7 +5373,7 @@ class Server extends AppModel
                 'branch' => 1,
                 'enabled' => array(
                     'level' => 2,
-                    'description' => __('Enable SMIME encryption. The encryption posture of the GnuPG.onlyencrypted and GnuPG.bodyonlyencrypted settings are inherited if SMIME is enabled.'),
+                    'description' => __('Enable S/MIME encryption. The encryption posture of the GnuPG.onlyencrypted and GnuPG.bodyonlyencrypted settings are inherited if S/MIME is enabled.'),
                     'value' => '',
                     'errorMessage' => '',
                     'test' => 'testBool',
@@ -5400,7 +5381,7 @@ class Server extends AppModel
                 ),
                 'email' => array(
                     'level' => 2,
-                    'description' => __('The e-mail address that the instance\'s SMIME key is tied to.'),
+                    'description' => __('The e-mail address that the instance\'s S/MIME key is tied to.'),
                     'value' => '',
                     'errorMessage' => '',
                     'test' => 'testForEmpty',
@@ -5424,7 +5405,7 @@ class Server extends AppModel
                 ),
                 'password' => array(
                     'level' => 2,
-                    'description' => __('The password (if it is set) of the SMIME key of the instance.'),
+                    'description' => __('The password (if it is set) of the S/MIME key of the instance.'),
                     'value' => '',
                     'errorMessage' => '',
                     'test' => 'testForEmpty',
