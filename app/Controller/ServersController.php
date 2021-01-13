@@ -929,27 +929,6 @@ class ServersController extends AppController
         $this->render('/Elements/healthElements/settings_row');
     }
 
-    private function __loadAvailableLanguages()
-    {
-        return $this->Server->loadAvailableLanguages();
-    }
-
-    private function __loadTagCollections()
-    {
-        return $this->Server->loadTagCollections($this->Auth->user());
-    }
-
-    private function __loadLocalOrgs()
-    {
-        $this->loadModel('Organisation');
-        $local_orgs = $this->Organisation->find('list', array(
-                'conditions' => array('local' => 1),
-                'recursive' => -1,
-                'fields' => array('Organisation.id', 'Organisation.name')
-        ));
-        return array_replace(array(0 => __('No organisation selected.')), $local_orgs);
-    }
-
     public function serverSettings($tab=false)
     {
         if (!$this->_isSiteAdmin()) {
@@ -975,7 +954,6 @@ class ServersController extends AppController
             $mixboxVersion = array(0 => __('Incorrect mixbox version installed, found $current, expecting $expected'), 1 => __('OK'));
             $maecVersion = array(0 => __('Incorrect maec version installed, found $current, expecting $expected'), 1 => __('OK'));
             $pymispVersion = array(0 => __('Incorrect PyMISP version installed, found $current, expecting $expected'), 1 => __('OK'));
-            $plyaraVersion = array(0 => __('Incorrect plyara version installed, found $current, expecting $expected'), 1 => __('OK'));
             $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
             $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
 
@@ -1015,8 +993,8 @@ class ServersController extends AppController
                         $tabs[$result['tab']]['severity'] = $result['level'];
                     }
                 }
-                if (isset($result['optionsSource']) && !empty($result['optionsSource'])) {
-                    $result['options'] = $this->{'__load' . $result['optionsSource']}();
+                if (isset($result['optionsSource']) && is_callable($result['optionsSource'])) {
+                    $result['options'] = $result['optionsSource']();
                 }
                 $dumpResults[] = $result;
                 if ($result['tab'] == $tab) {
@@ -1032,13 +1010,12 @@ class ServersController extends AppController
             $diagnostic_errors = 0;
             App::uses('File', 'Utility');
             App::uses('Folder', 'Utility');
-            $additionalViewVars = array();
-            if ($tab == 'files') {
+            if ($tab === 'files') {
                 $files = $this->__manageFiles();
                 $this->set('files', $files);
             }
             // Only run this check on the diagnostics tab
-            if ($tab == 'diagnostics' || $tab == 'download' || $this->_isRest()) {
+            if ($tab === 'diagnostics' || $tab === 'download' || $this->_isRest()) {
                 $php_ini = php_ini_loaded_file();
                 $this->set('php_ini', $php_ini);
 
@@ -1059,27 +1036,26 @@ class ServersController extends AppController
                 $this->set('commit', $gitStatus['commit']);
                 $this->set('latestCommit', $gitStatus['latestCommit']);
                 $phpSettings = array(
-                        'max_execution_time' => array(
-                            'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
-                            'recommended' => 300,
-                            'unit' => false
-                        ),
-                        'memory_limit' => array(
-                            'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
-                            'recommended' => 2048,
-                            'unit' => 'M'
-                        ),
-                        'upload_max_filesize' => array(
-                            'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
-                            'recommended' => 50,
-                            'unit' => 'M'
-                        ),
-                        'post_max_size' => array(
-                            'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
-                            'recommended' => 50,
-                            'unit' => 'M'
-                        )
-
+                    'max_execution_time' => array(
+                        'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
+                        'recommended' => 300,
+                        'unit' => false
+                    ),
+                    'memory_limit' => array(
+                        'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
+                        'recommended' => 2048,
+                        'unit' => 'M'
+                    ),
+                    'upload_max_filesize' => array(
+                        'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
+                        'recommended' => 50,
+                        'unit' => 'M'
+                    ),
+                    'post_max_size' => array(
+                        'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
+                        'recommended' => 50,
+                        'unit' => 'M'
+                    )
                 );
 
                 foreach ($phpSettings as $setting => $settingArray) {
@@ -1133,7 +1109,9 @@ class ServersController extends AppController
                     $attachmentScan = ['status' => false, 'error' => $e->getMessage()];
                 }
 
-                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan');
+                $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan');
+            } else {
+                $view = [];
             }
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
@@ -1144,13 +1122,8 @@ class ServersController extends AppController
             // check if the encoding is not set to utf8
             $dbEncodingStatus = $this->Server->databaseEncodingDiagnostics($diagnostic_errors);
 
-            $viewVars = array(
-                    'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'readableErrors', 'writeableDirs', 'writeableFiles', 'readableFiles', 'extensions', 'dbEncodingStatus'
-            );
-            $viewVars = array_merge($viewVars, $additionalViewVars);
-            foreach ($viewVars as $viewVar) {
-                $this->set($viewVar, ${$viewVar});
-            }
+            $view = array_merge($view, compact('diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'readableErrors', 'writeableDirs', 'writeableFiles', 'readableFiles', 'extensions', 'dbEncodingStatus'));
+            $this->set($view);
 
             $workerIssueCount = 4;
             $worker_array = array();
@@ -1429,8 +1402,8 @@ class ServersController extends AppController
                 $setting['value'] = $value;
             }
             $setting['setting'] = $setting['name'];
-            if (isset($setting['optionsSource']) && !empty($setting['optionsSource'])) {
-                $setting['options'] = $this->{'__load' . $setting['optionsSource']}();
+            if (isset($setting['optionsSource']) && is_callable($setting['optionsSource'])) {
+                $setting['options'] = $setting['optionsSource']();
             }
             $subGroup = explode('.', $setting['name']);
             if ($subGroup[0] === 'Plugin') {

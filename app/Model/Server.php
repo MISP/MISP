@@ -1208,7 +1208,9 @@ class Server extends AppModel
                             $setting['value'] = 0;
                             $setting['test'] = 'testLocalOrg';
                             $setting['type'] = 'numeric';
-                            $setting['optionsSource'] = 'LocalOrgs';
+                            $setting['optionsSource'] = function () {
+                                return $this->loadLocalOrganisations();
+                            };
                         } else {
                             $setting['test'] = 'testForEmpty';
                             $setting['type'] = 'string';
@@ -1363,6 +1365,16 @@ class Server extends AppModel
             $options[intval($tagCollection['TagCollection']['id'])] = $tagCollection['TagCollection']['name'];
         }
         return $options;
+    }
+
+    private function loadLocalOrganisations()
+    {
+        $localOrgs = $this->Organisation->find('list', array(
+            'conditions' => array('local' => 1),
+            'recursive' => -1,
+            'fields' => array('Organisation.id', 'Organisation.name')
+        ));
+        return array_replace(array(0 => __('No organisation selected.')), $localOrgs);
     }
 
     public function testTagCollections($value)
@@ -3620,6 +3632,11 @@ class Server extends AppModel
         return $validServers;
     }
 
+    /**
+     * Check installed PHP extensions and their versions.
+     * @return array
+     * @throws JsonException
+     */
     public function extensionDiagnostics()
     {
         try {
@@ -3637,10 +3654,11 @@ class Server extends AppModel
                 }
             }
         } catch (Exception $e) {
+            $this->logException('Could not load extensions from composer.json', $e, LOG_NOTICE);
             $extensions = ['redis' => '', 'gd' => '', 'ssdeep' => '', 'zip' => '', 'intl' => '']; // Default extensions
         }
 
-        $results = array();
+        $results = ['cli' => false];
         foreach ($extensions as $extension => $reason) {
             $results['extensions'][$extension] = [
                 'web_version' => phpversion($extension),
@@ -3651,14 +3669,14 @@ class Server extends AppModel
                 'info' => $reason === true ? null : $reason,
             ];
         }
-        if (!is_readable(APP . '/files/scripts/selftest.php')) {
-            $results['cli'] = false;
-        } else {
+        if (is_readable(APP . '/files/scripts/selftest.php')) {
             $execResult = exec('php ' . APP . '/files/scripts/selftest.php ' . escapeshellarg(json_encode(array_keys($extensions))));
-            $execResult = $this->jsonDecode($execResult);
-            $results['cli']['phpversion'] = $execResult['phpversion'];
-            foreach ($execResult['extensions'] as $extension => $loaded) {
-                $results['extensions'][$extension]['cli_version'] = $loaded;
+            if (!empty($execResult)) {
+                $execResult = $this->jsonDecode($execResult);
+                $results['cli']['phpversion'] = $execResult['phpversion'];
+                foreach ($execResult['extensions'] as $extension => $loaded) {
+                    $results['extensions'][$extension]['cli_version'] = $loaded;
+                }
             }
         }
 
@@ -4343,7 +4361,9 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testLanguage',
                     'type' => 'string',
-                    'optionsSource' => 'AvailableLanguages',
+                    'optionsSource' => function () {
+                        return $this->loadAvailableLanguages();
+                    },
                     'afterHook' => 'cleanCacheFiles'
                 ),
                 'default_attribute_memory_coefficient' => array(
@@ -4567,7 +4587,9 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testLocalOrg',
                     'type' => 'numeric',
-                    'optionsSource' => 'LocalOrgs',
+                    'optionsSource' => function () {
+                        return $this->loadLocalOrganisations();
+                    },
                 ),
                 'uuid' => array(
                     'level' => 0,
@@ -4782,7 +4804,9 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testTagCollections',
                     'type' => 'numeric',
-                    'optionsSource' => 'TagCollections',
+                    'optionsSource' => function () {
+                        return $this->loadTagCollections();
+                    }
                 ),
                 'default_publish_alert' => array(
                     'level' => 0,
@@ -6376,7 +6400,9 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testLocalOrg',
                     'type' => 'numeric',
-                    'optionsSource' => 'LocalOrgs',
+                    'optionsSource' => function () {
+                        return $this->loadLocalOrganisations();
+                    },
                 ),
                 'Sightings_range' => array(
                     'level' => 1,
