@@ -72,7 +72,7 @@
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
     <p><b><?php echo __('Directories');?></b></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             foreach ($writeableDirs as $dir => $error) {
                 $colour = 'green';
@@ -87,7 +87,7 @@
     </div>
     <br />
     <p><b><?php echo __('Writeable Files');?></b></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             foreach ($writeableFiles as $file => $error) {
                 $colour = 'green';
@@ -101,7 +101,7 @@
         ?>
     </div>
     <p><b><?php echo __('Readable Files');?></b></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             foreach ($readableFiles as $file => $error) {
                 $colour = 'green';
@@ -250,7 +250,7 @@
             )); ?>
         </div>
     <h3><?= __("Redis info") ?></h3>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <b><?= __('PHP extension version') ?>:</b> <?= $redisInfo['extensionVersion'] ?: ('<span class="red bold">' . __('Not installed.') . '</span>') ?><br>
         <?php if ($redisInfo['connection']): ?>
         <b><?= __('Redis version') ?>:</b> <?= $redisInfo['redis_version'] ?><br>
@@ -264,7 +264,7 @@
     </div>
     <h3><?php echo __('Advanced attachment handler');?></h3>
         <?php echo __('The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample.');?>
-        <div style="background-color:#f7f7f9;width:400px;">
+        <div class="diagnostics-box">
             <?php
                 if (empty($advanced_attachments)):
             ?>
@@ -281,7 +281,7 @@
             ?>
         </div>
     <h3><?= __('Attachment scan module') ?></h3>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php if ($attachmentScan['status']): ?>
         <b>Status:</b> <span class="green bold"><?= __('OK') ?></span><br>
         <b>Software</b>: <?= implode(", ", $attachmentScan['software']) ?>
@@ -300,7 +300,7 @@
     <b>STIX2</b>: <?php echo $stix['stix2']['expected'];?><br />
     <b>PyMISP</b>: <?php echo $stix['pymisp']['expected'];?><br />
     <?php echo __('Other versions might work but are not tested / recommended.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $colour = 'green';
             $testReadError = false;
@@ -341,7 +341,7 @@
     </div>
     <h3><?php echo __('Yara');?></h3>
     <p><?php echo __('This tool tests whether plyara, the library used by the yara export tool is installed or not.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $colour = 'green';
             $message = __('OK');
@@ -355,7 +355,7 @@
 
     <h3><?php echo __('GnuPG');?></h3>
     <p><?php echo __('This tool tests whether your GnuPG is set up correctly or not.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $message = $gpgErrors[$gpgStatus['status']];
             $color = $gpgStatus['status'] === 0 ? 'green' : 'red';
@@ -367,7 +367,7 @@
     </div>
     <h3><?php echo __('ZeroMQ');?></h3>
     <p><?php echo __('This tool tests whether the ZeroMQ extension is installed and functional.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $colour = 'green';
             $message = $zmqErrors[$zmqStatus];
@@ -384,7 +384,7 @@
     </div>
     <h3><?php echo __('Proxy');?></h3>
     <p><?php echo __('This tool tests whether your HTTP proxy settings are correct.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $colour = 'green';
             $message = $proxyErrors[$proxyStatus];
@@ -399,7 +399,7 @@
     <?php
         foreach ($moduleTypes as $type):
     ?>
-        <div style="background-color:#f7f7f9;width:400px;">
+        <div class="diagnostics-box">
             <?php
                 $colour = 'red';
                 if (isset($moduleErrors[$moduleStatus[$type]])) {
@@ -418,7 +418,7 @@
     ?>
     <h3><?php echo __('Session table');?></h3>
     <p><?php echo __('This tool checks how large your database\'s session table is. <br />Sessions in CakePHP rely on PHP\'s garbage collection for clean-up and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $colour = 'green';
             $message = $sessionErrors[$sessionStatus];
@@ -460,7 +460,7 @@
     ?>
     <h3><?php echo __('Orphaned attributes');?></h3>
     <p><?php echo __('In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situations involving a race condition with an event deletion happening before all attributes are synchronised over).');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php echo __('Orphaned attributes');?>…<span id="orphanedAttributeCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
     </div><br />
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
@@ -474,7 +474,7 @@
     <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';"><?php echo __('Legacy Administrative Tools');?></span>
     <h3><?php echo __('Verify bad link on attachments');?></h3>
     <p><?php echo __('Verify each attachment referenced in database is accessible on filesystem.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php echo __('Non existing attachments referenced in Database');?>…<span id="orphanedFileCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
     </div><br>
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check bad link on attachments');?>" title="<?php echo __('Check bad link on attachments');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();"><?php echo __('Check bad link on attachments');?></span>
@@ -484,7 +484,7 @@
 </div>
 
 <script>
-    $(document).ready(function() {
+    $(function() {
         updateSubModulesStatus();
         $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
         $('#updateAllJson').click(function() { updateAllJson(); });

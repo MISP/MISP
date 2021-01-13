@@ -2723,3 +2723,9 @@ th.rotate + th:not(.rotate) {
 td.rotate + td:not(.rotate) {
     padding-left: 30px;
 }
+
+.diagnostics-box {
+    background-color: #f7f7f9;
+    width: 400px;
+    padding: .3em 0.5em;
+}
