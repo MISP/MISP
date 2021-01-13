@@ -52,9 +52,9 @@ class Taxonomy extends AppModel
             if (!$file->exists()) {
                 continue;
             }
-            $vocab = json_decode($file->read(), true);
-            $file->close();
-            if ($vocab === null) {
+            try {
+                $vocab = $this->jsonDecode($file->read());
+            } catch (Exception $e) {
                 $updated['fails'][] = array('namespace' => $dir, 'fail' => "File machinetag.json is not valid JSON.");
                 continue;
             }
@@ -94,17 +94,55 @@ class Taxonomy extends AppModel
         return $updated;
     }
 
-    private function __updateVocab($vocab, $current, $skipUpdateFields = array())
+    /**
+     * @param array $vocab
+     * @return int Taxonomy ID
+     * @throws Exception
+     */
+    public function import(array $vocab)
+    {
+        foreach (['namespace', 'description', 'predicates'] as $requiredField) {
+            if (!isset($vocab[$requiredField])) {
+                throw new Exception("Required field '$requiredField' not provided.");
+            }
+        }
+        if (!is_array($vocab['predicates'])) {
+            throw new Exception("Field 'predicates' must be array.");
+        }
+        if (isset($vocab['values']) && !is_array($vocab['values'])) {
+            throw new Exception("Field 'values' must be array.");
+        }
+        if (!isset($vocab['version'])) {
+            $vocab['version'] = 1;
+        }
+        $current = $this->find('first', array(
+            'conditions' => array('namespace' => $vocab['namespace']),
+            'recursive' => -1,
+            'fields' => array('version', 'enabled', 'namespace')
+        ));
+        $result = $this->__updateVocab($vocab, $current);
+        if (is_array($result)) {
+            throw new Exception('Could not save taxonomy because of validation errors: ' . json_encode($result));
+        }
+        return (int)$result;
+    }
+
+    private function __updateVocab(array $vocab, $current, array $skipUpdateFields = [])
     {
         $enabled = 0;
-        $taxonomy = array();
         if (!empty($current)) {
             if ($current['Taxonomy']['enabled']) {
                 $enabled = 1;
             }
-            $this->deleteAll(array('Taxonomy.namespace' => $current['Taxonomy']['namespace']));
+            $this->deleteAll(['Taxonomy.namespace' => $current['Taxonomy']['namespace']]);
         }
-        $taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'exclusive' => !empty($vocab['exclusive']), 'enabled' => $enabled);
+        $taxonomy = ['Taxonomy' => [
+            'namespace' => $vocab['namespace'],
+            'description' => $vocab['description'],
+            'version' => $vocab['version'],
+            'exclusive' => !empty($vocab['exclusive']),
+            'enabled' => $enabled,
+        ]];
         $predicateLookup = array();
         foreach ($vocab['predicates'] as $k => $predicate) {
             $taxonomy['Taxonomy']['TaxonomyPredicate'][$k] = $predicate;
@@ -112,14 +150,15 @@ class Taxonomy extends AppModel
         }
         if (!empty($vocab['values'])) {
             foreach ($vocab['values'] as $value) {
-                if (empty($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'])) {
-                    $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'] = $value['entry'];
+                $predicatePosition = $predicateLookup[$value['predicate']];
+                if (empty($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'])) {
+                    $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'] = $value['entry'];
                 } else {
-                    $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'] = array_merge($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'], $value['entry']);
+                    $taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'] = array_merge($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicatePosition]['TaxonomyEntry'], $value['entry']);
                 }
             }
         }
-        $result = $this->saveAssociated($taxonomy, array('deep' => true));
+        $result = $this->saveAssociated($taxonomy, ['deep' => true]);
         if ($result) {
             $this->__updateTags($this->id, $skipUpdateFields);
             return $this->id;
@@ -310,13 +349,12 @@ class Taxonomy extends AppModel
 
     private function __updateTags($id, $skipUpdateFields = array())
     {
-        $this->Tag = ClassRegistry::init('Tag');
         App::uses('ColourPaletteTool', 'Tools');
         $paletteTool = new ColourPaletteTool();
         $taxonomy = $this->__getTaxonomy($id, array('full' => true));
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         $this->Tag = ClassRegistry::init('Tag');
-        $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
+        $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace'], false);
         foreach ($taxonomy['entries'] as $k => $entry) {
             if (isset($tags[strtoupper($entry['tag'])])) {
                 $temp = $tags[strtoupper($entry['tag'])];
