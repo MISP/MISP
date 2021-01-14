@@ -231,8 +231,7 @@ class Taxonomy extends AppModel
     public function getAllTaxonomyTags($inverse = false, $user = false, $full = false)
     {
         $this->Tag = ClassRegistry::init('Tag');
-        $taxonomyIdList = $this->find('list', array('fields' => array('id')));
-        $taxonomyIdList = array_keys($taxonomyIdList);
+        $taxonomyIdList = $this->find('column', array('fields' => array('Taxonomy.id')));
         $allTaxonomyTags = array();
         foreach ($taxonomyIdList as $taxonomy) {
             $allTaxonomyTags = array_merge($allTaxonomyTags, array_keys($this->getTaxonomyTags($taxonomy, true)));
