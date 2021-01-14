@@ -163,10 +163,10 @@ class Feed extends AppModel
     /**
      * @param array $feed
      * @param HttpSocket|null $HttpSocket Null can be for local feed
-     * @return Generator
+     * @return Generator<array>
      * @throws Exception
      */
-    public function getCache(array $feed, HttpSocket $HttpSocket = null)
+    private function getHashes(array $feed, HttpSocket $HttpSocket = null)
     {
         $uri = $feed['Feed']['url'] . '/hashes.csv';
         $data = $this->feedGetUri($feed, $uri, $HttpSocket);
@@ -1142,39 +1142,49 @@ class Feed extends AppModel
         $params = array(
             'conditions' => array('caching_enabled' => 1),
             'recursive' => -1,
-            'fields' => array('source_format', 'input_source', 'url', 'id', 'settings', 'headers')
+            'fields' => array('source_format', 'input_source', 'url', 'id', 'settings', 'headers'),
         );
         $redis = $this->setupRedisWithException();
         if ($scope !== 'all') {
             if (is_numeric($scope)) {
                 $params['conditions']['id'] = $scope;
-            } elseif ($scope == 'freetext' || $scope == 'csv') {
+            } elseif ($scope === 'freetext' || $scope === 'csv') {
                 $params['conditions']['source_format'] = array('csv', 'freetext');
-            } elseif ($scope == 'misp') {
+            } elseif ($scope === 'misp') {
                 $redis->del($redis->keys('misp:feed_cache:event_uuid_lookup:*'));
                 $params['conditions']['source_format'] = 'misp';
             } else {
                 throw new InvalidArgumentException("Invalid value for scope, it must be integer or 'freetext', 'csv', 'misp' or 'all' string.");
             }
         } else {
-            $redis->del('misp:feed_cache:combined');
-            $redis->del($redis->keys('misp:feed_cache:event_uuid_lookup:*'));
+            // Rebuild whole cache
+            $this->deleteFromRedis($redis, 'feed');
         }
         $feeds = $this->find('all', $params);
 
         $results = array('successes' => 0, 'fails' => 0);
         foreach ($feeds as $k => $feed) {
             if ($this->__cacheFeed($feed, $redis, $jobId)) {
-                $message = 'Feed ' . $feed['Feed']['id'] . ' cached.';
+                $message = __('Feed %s cached.', $feed['Feed']['id']);
                 $results['successes']++;
             } else {
-                $message = 'Failed to cache feed ' . $feed['Feed']['id'] . '. See logs for more details.';
+                $message = __('Failed to cache feed %s. See logs for more details.', $feed['Feed']['id']);
                 $results['fails']++;
             }
 
             $this->jobProgress($jobId, $message, 100 * $k / count($feeds));
         }
         return $results;
+    }
+
+    /**
+     * @param Redis $redis
+     * @param string $type 'feed' or 'server'
+     */
+    private function deleteFromRedis($redis, $type)
+    {
+        $redis->del($redis->keys('misp:' . $type . '_cache:*'));
+        $redis->del($redis->keys('misp:' . $type . '_cache_timestamp:*'));
     }
 
     /**
@@ -1312,7 +1322,7 @@ class Feed extends AppModel
         $feedId = $feed['Feed']['id'];
 
         try {
-            $cache = $this->getCache($feed, $HttpSocket);
+            $cache = $this->getHashes($feed, $HttpSocket);
         } catch (Exception $e) {
             $this->logException("Could not get cache file for $feedId.", $e, LOG_NOTICE);
             return false;
