@@ -1066,7 +1066,7 @@ class Event extends AppModel
     }
 
     // Uploads the event and the associated Attributes to another Server
-    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
+    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, HttpSocket $HttpSocket = null)
     {
         $event = $this->__prepareForPushToServer($event, $server);
         if (is_numeric($event)) {
@@ -1076,8 +1076,6 @@ class Event extends AppModel
         $request = $this->setupSyncRequest($server);
         $url = $server['Server']['url'];
         $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
-        // After creating or editing event, it is not necessary to fetch full event
-        $uri .= '/metadata:1';
         $data = json_encode($event);
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
