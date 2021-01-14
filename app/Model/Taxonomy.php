@@ -326,8 +326,8 @@ class Taxonomy extends AppModel
             if (empty($taxonomy)) {
                 return false;
             }
-            $tag_names = Hash::extract($taxonomy, 'entries.{n}.tag');
-            $tags = $this->Tag->getTagsByName($tag_names, false);
+            $tagNames = array_column($taxonomy['entries'], 'tag');
+            $tags = $this->Tag->getTagsByName($tagNames, false);
             if (isset($taxonomy['entries'])) {
                 foreach ($taxonomy['entries'] as $key => $temp) {
                     if (isset($tags[strtoupper($temp['tag'])])) {
