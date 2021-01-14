@@ -574,9 +574,6 @@ class TagsController extends AppController
 
     public function selectTag($id, $taxonomy_id, $scope = 'event', $filterData = '')
     {
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
-            throw new NotFoundException('You don\'t have permission to do that.');
-        }
         $this->loadModel('Taxonomy');
         $expanded = array();
         $this->set('taxonomy_id', $taxonomy_id);
@@ -656,15 +653,20 @@ class TagsController extends AppController
                 if (!empty($taxonomies['entries'])) {
                     foreach ($taxonomies['entries'] as $entry) {
                         if (!empty($entry['existing_tag']['Tag'])) {
-                            $tags[$entry['existing_tag']['Tag']['id']] = $entry['existing_tag']['Tag'];
-                            $expanded[$entry['existing_tag']['Tag']['id']] = $entry['expanded'];
+                            $tag = $entry['existing_tag']['Tag'];
+                            if ($tag['hide_tag']) {
+                                continue; // do not include hidden tags
+                            }
+
+                            $tags[$tag['id']] = $tag;
+                            $expanded[$tag['id']] = $entry['expanded'];
                         }
                     }
                 }
 
                 // Unset all tags that this user cannot use for tagging, determined by the org restriction on tags
                 if (!$this->_isSiteAdmin()) {
-                    $banned_tags = $this->Tag->find('list', array(
+                    $banned_tags = $this->Tag->find('column', array(
                         'conditions' => array(
                             'NOT' => array(
                                 'Tag.org_id' => array(
@@ -683,15 +685,6 @@ class TagsController extends AppController
                         unset($tags[$banned_tag]);
                         unset($expanded[$banned_tag]);
                     }
-                }
-
-                $hidden_tags = $this->Tag->find('list', array(
-                    'conditions' => array('Tag.hide_tag' => 1),
-                    'fields' => array('Tag.id')
-                ));
-                foreach ($hidden_tags as $hidden_tag) {
-                    unset($tags[$hidden_tag]);
-                    unset($expanded[$hidden_tag]);
                 }
             }
         }
