@@ -217,7 +217,7 @@ class Taxonomy extends AppModel
         if ($filter) {
             $namespaceLength = strlen($taxonomy['Taxonomy']['namespace']);
             foreach ($entries as $k => $entry) {
-                if (strpos(substr(strtoupper($entry['tag']), $namespaceLength), strtoupper($filter)) === false) {
+                if (strpos(substr(mb_strtolower($entry['tag']), $namespaceLength), mb_strtolower($filter)) === false) {
                     unset($entries[$k]);
                 }
             }
@@ -542,12 +542,9 @@ class Taxonomy extends AppModel
         return $taxonomies;
     }
 
-    public function getTaxonomyForTag($tagName, $metaOnly = false, $fullTaxonomy = False)
+    public function getTaxonomyForTag($tagName, $metaOnly = false, $fullTaxonomy = false)
     {
-        if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
-            $temp = explode(':', $tagName);
-            $pieces = array_merge(array($temp[0]), explode('=', $temp[1]));
-            $pieces[2] = trim($pieces[2], '"');
+        if (preg_match('/^([^:="]+):([^:="]+)="([^:="]+)"$/i', $tagName, $matches)) {
             $contain = array(
                 'TaxonomyPredicate' => array(
                     'TaxonomyEntry' => array()
@@ -555,15 +552,15 @@ class Taxonomy extends AppModel
             );
             if (!$fullTaxonomy) {
                 $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($matches[2]),
                 );
                 $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
-                    'LOWER(TaxonomyEntry.value)' => strtolower($pieces[2])
+                    'LOWER(TaxonomyEntry.value)' => mb_strtolower($matches[3]),
                 );
             }
             $taxonomy = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
+                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($matches[1])),
                 'contain' => $contain
             ));
             if ($metaOnly && !empty($taxonomy)) {
@@ -575,12 +572,12 @@ class Taxonomy extends AppModel
             $contain = array('TaxonomyPredicate' => array());
             if (!$fullTaxonomy) {
                 $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($pieces[1])
                 );
             }
             $taxonomy = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
+                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($pieces[0])),
                 'contain' => $contain
             ));
             if ($metaOnly && !empty($taxonomy)) {

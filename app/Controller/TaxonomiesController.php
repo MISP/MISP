@@ -471,7 +471,7 @@ class TaxonomiesController extends AppController
 
     private function __search($value)
     {
-        $value = strtolower(trim($value));
+        $value = mb_strtolower(trim($value));
         $searchTerm = "%$value%";
         $taxonomyPredicateIds = $this->Taxonomy->TaxonomyPredicate->TaxonomyEntry->find('column', [
             'fields' => ['TaxonomyEntry.taxonomy_predicate_id'],
