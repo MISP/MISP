@@ -146,7 +146,7 @@ coreCAKE () {
 updateGOWNT () {
   # AUTH_KEY Place holder in case we need to **curl** somehing in the future
   # 
-  $SUDO_WWW $RUN_MYSQL -- mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1 > /tmp/auth.key
+  $SUDO_WWW $RUN_MYSQL -- mysql -h $DBHOST -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1 > /tmp/auth.key
   AUTH_KEY=$(cat /tmp/auth.key)
   rm /tmp/auth.key
 
