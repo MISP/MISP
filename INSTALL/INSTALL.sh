@@ -620,7 +620,7 @@ preInstall () {
   DBPASSWORD_MISP=$(cat database.php |grep -v // |grep -e password |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
   DBUSER_MISP=$(cat database.php |grep -v // |grep -e login |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
   DBNAME=$(cat database.php |grep -v // |grep -e database |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
-  AUTH_KEY=$(mysql --disable-column-names -B  -u $DBUSER_MISP -p"$DBPASSWORD_MISP" $DBNAME -e 'SELECT authkey FROM users WHERE role_id=1 LIMIT 1')
+  AUTH_KEY=$(mysql -h $DBHOST --disable-column-names -B  -u $DBUSER_MISP -p"$DBPASSWORD_MISP" $DBNAME -e 'SELECT authkey FROM users WHERE role_id=1 LIMIT 1')
 
   # Check if db exists
   [[ -d "/var/lib/mysql/$DBNAME" ]] && MISP_DB_DIR_EXISTS=1 && echo "/var/lib/mysql/$DBNAME exists"
@@ -1071,8 +1071,8 @@ nuke () {
   sleep 10
   sudo rm -rvf /usr/local/src/{misp-modules,viper,mail_to_misp,LIEF,faup}
   sudo rm -rvf /var/www/MISP
-  sudo mysqladmin drop misp
-  sudo mysql -e "DROP USER misp@localhost"
+  sudo mysqladmin -h $DBHOST drop misp
+  sudo mysql -h $DBHOST -e "DROP USER misp@localhost"
 }
 
 # Final function to let the user know what happened
@@ -1294,25 +1294,25 @@ prepareDB () {
 
     debug "Setting up database"
     # Kill the anonymous users
-    sudo mysql -e "DROP USER IF EXISTS ''@'localhost'"
+    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'localhost'"
     # Because our hostname varies we'll use some Bash magic here.
-    sudo mysql -e "DROP USER IF EXISTS ''@'$(hostname)'"
+    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'$(hostname)'"
     # Kill off the demo database
-    sudo mysql -e "DROP DATABASE IF EXISTS test"
+    sudo mysql -h $DBHOST -e "DROP DATABASE IF EXISTS test"
     # No root remote logins
-    sudo mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+    sudo mysql -h $DBHOST -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
     # Make sure that NOBODY can access the server without a password
-    sudo mysqladmin -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+    sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
     # Make our changes take effect
-    sudo mysql -e "FLUSH PRIVILEGES"
+    sudo mysql -h $DBHOST -e "FLUSH PRIVILEGES"
 
-    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
-    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
-    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
-    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
-    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES;"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES;"
     # Import the empty MISP database from MYSQL.sql
-    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
+    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -h $DBHOST -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
   fi
 }
 
@@ -1641,7 +1641,7 @@ coreCAKE () {
 updateGOWNT () {
   # AUTH_KEY Place holder in case we need to **curl** somehing in the future
   # 
-  $SUDO_WWW $RUN_MYSQL -- mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1 > /tmp/auth.key
+  $SUDO_WWW $RUN_MYSQL -- mysql -h $DBHOST -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1 > /tmp/auth.key
   AUTH_KEY=$(cat /tmp/auth.key)
   rm /tmp/auth.key
 
@@ -2306,12 +2306,12 @@ EOF
 
   sudo systemctl restart rh-mariadb102-mariadb
 
-  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'CREATE DATABASE $DBNAME;'"
-  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
-  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';\""
-  scl enable rh-mariadb102 "mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'"
+  scl enable rh-mariadb102 "mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'CREATE DATABASE $DBNAME;'"
+  scl enable rh-mariadb102 "mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
+  scl enable rh-mariadb102 "mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';\""
+  scl enable rh-mariadb102 "mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'"
 
-  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | sudo scl enable rh-mariadb102 "mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME"
+  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | sudo scl enable rh-mariadb102 "mysql -h $DBHOST -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME"
 }
 
 apacheConfig_RHEL () {

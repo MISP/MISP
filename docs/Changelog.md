@@ -6,6 +6,10 @@ v2.4 aka 2.4 for ever (current changelog)
 
 New
 ---
+- [doc] Added doc about how to change the installer generator. [Steve
+  Clement]
+- [type] favicon-mmh3 is the murmur3 hash of a favicon as used in
+  Shodan. [Alexandre Dulaunoy]
 - [Statistics shell] Added new statistics shell. [iglocska]
 
   - (R)etrieval (o)f (m)etrics (m)atrix (e)xtended (f)or (s)tatistics
@@ -14,6 +18,24 @@ New
 
 Changes
 -------
+- [installer] Update to latest. [Steve Clement]
+- [git] Made the checkouts more proxy friendly. [Steve Clement]
+- [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
+- [taxonomies] updated. [Alexandre Dulaunoy]
+- [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
+- [PyMISP] updated to the latest version. [Alexandre Dulaunoy]
+- [warning-lists] updated to the latest version. [Alexandre Dulaunoy]
+- [debug] cleanup. [iglocska]
+- [misp-galaxy] updated. [Alexandre Dulaunoy]
+- [misp-objects] updated. [Alexandre Dulaunoy]
+- [taxonomies] updated. [Alexandre Dulaunoy]
+- [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
+- [PyMISP] updated. [Alexandre Dulaunoy]
+- [PyMISP] updated to the latest version. [Alexandre Dulaunoy]
+- [warning-list] updated to the latest version. [Alexandre Dulaunoy]
+- [doc] From Travis to GH action. [Alexandre Dulaunoy]
+- [veracode] removed. [Alexandre Dulaunoy]
+- [installer] Latest update. [Steve Clement]
 - [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
 - [installer] update to latest. [Steve Clement]
 - [fix] typo. [Steve Clement]
@@ -23,7 +45,24 @@ Changes
 
 Fix
 ---
+- [S/MIME] don't sign e-mails if no signing key is set. [iglocska]
+
+  - fixes e-mails not going out on instances where no signing key was provided
+- [objects] breakonduplicate fixed. [iglocska]
+- MIssing dependency. [Raphaël Vinot]
+- Call the security test suite properly. [Raphaël Vinot]
+- Remove call to python script out of the virtenv. [Raphaël Vinot]
+- [sighting] Order must contain group for some mysql servers. [Jakub
+  Onderka]
+- [stix2 import] Checking if attack-pattern, course-of-action and
+  vulnerability names are known galaxies before importing them as MISP
+  object. [chrisr3d]
+- [tags] truncate tag names that are too long. [Andras Iklody]
+
+  Otherwise we run into issues on the DB level anyway. For the future, perhaps change the field length.
 - [installer] Typo. [Steve Clement]
+- [search] don't append the same quicksearch value more than once in the
+  URL. [iglocska]
 - [statistics] Local org flag fixed to show the correct count.
   [iglocska]
 - [mistake in a comment fixed] [iglocska]
@@ -41,6 +80,69 @@ Fix
 
 Other
 -----
+- Merge pull request #6858 from SteveClement/guides. [Steve Clement]
+
+  new: [doc] Added doc about how to change the installer generator
+- Merge pull request #6835 from MISP/dependabot/pip/lxml-4.6.2.
+  [Alexandre Dulaunoy]
+
+  build(deps): bump lxml from 4.3.3 to 4.6.2
+- Build(deps): bump lxml from 4.3.3 to 4.6.2. [dependabot[bot]]
+
+  Bumps [lxml](https://github.com/lxml/lxml) from 4.3.3 to 4.6.2.
+  - [Release notes](https://github.com/lxml/lxml/releases)
+  - [Changelog](https://github.com/lxml/lxml/blob/master/CHANGES.txt)
+  - [Commits](https://github.com/lxml/lxml/compare/lxml-4.3.3...lxml-4.6.2)
+- Merge pull request #6825 from StefanKelm/2.4. [Alexandre Dulaunoy]
+
+  Update index.ctp
+- Update index.ctp. [StefanKelm]
+
+  Tinies of typos...
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge pull request #6826 from SteveClement/guides. [Steve Clement]
+
+  chg: [git] Made the checkouts more proxy friendly
+- Fix git urls to https (users behind proxy) [Alexandre Dulaunoy]
+
+  Fix git urls to https (users behind proxy)
+- Merge pull request #6820 from MISP/Rafiot-patch-6. [Raphaël Vinot]
+
+  [Test] Run the security suite from the virtualenv
+- [Test] Run the security suite from the virtualenv. [Raphaël Vinot]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
+  Dulaunoy]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge pull request #6747 from legoguy1000/ja3_zeek_intel_rules.
+  [Alexandre Dulaunoy]
+
+  Create JA3 Hash Zeek Intel Rules
+- JA3 Zeek Intel Rules. [Alex Resnick]
+- Merge pull request #6799 from simonflood/patch-1. [Alexandre Dulaunoy]
+
+  INSTALL.rhel8.md - update EoL for CentOS 8
+- INSTALL.rhel8.md - update EoL for CentOS 8. [Simon Flood]
+
+  Maintenance for CentOS 8 will now end on 31 December 2021
+- Merge pull request #6795 from sdenel/patch-2. [Alexandre Dulaunoy]
+
+  Typo in Server.php: currenty -> currently
+- Typo in Server.php. [Simon DENEL]
+- Veracode added. [Alexandre Dulaunoy]
+- CodeQL added. [Alexandre Dulaunoy]
+- HandlerSSL should be true. [Alexandre Dulaunoy]
+- Merge pull request #6785 from StefanKelm/2.4. [Alexandre Dulaunoy]
+
+  Typos
+- Update indexForEvent.ctp. [StefanKelm]
+- Update importReportFromUrl.ctp. [StefanKelm]
+- Merge pull request #6783 from FafnerKeyZee/patch-1. [Alexandre
+  Dulaunoy]
+
+  Add the possibility to have a '-' in the baseurl
+- Add the possibility to have a '-' in the baseurl. [Fafner [_KeyZee_]]
+
+  With the actual regex in testBaseURL, we can not have a '-' inside the BaseURL, I did a quick fix
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #6767 from SteveClement/guides. [Steve Clement]
 - Merge pull request #6764 from Natsec/patch-1. [Andras Iklody]
