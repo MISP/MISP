@@ -15,12 +15,12 @@ class GenericPickerHelper extends AppHelper {
 
         $select_html = '';
         foreach ($options['select_options'] as $option => $value) {
-            $select_html .= sprintf('%s=%s ', h($option), h($value));
+            $select_html .= sprintf('%s="%s" ', h($option), h($value));
         }
         if (isset($options['functionName']) && $options['functionName'] !== "") {
-            $select_html .= sprintf('data-functionname=%s ', h($options['functionName']));
+            $select_html .= sprintf('data-functionname="%s" ', h($options['functionName']));
         }
-        $select_html .= sprintf(' data-additionaldata=%s', base64_encode($additionalData));
+        $select_html .= sprintf(' data-additionaldata="%s"', base64_encode($additionalData));
         return $select_html;
     }
 

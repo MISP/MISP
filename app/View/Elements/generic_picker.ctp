@@ -17,7 +17,7 @@
             'disable_search_threshold' => 10,
             'allow_single_deselect' => true,
         ),
-        'multiple' => 0,
+        'multiple' => 'multiple',
         'select_threshold' => 7, // threshold above which pills will be replace by a select (unused if multiple is > 1)
         'functionName' => '', // function to be called on submit
         'submitButtonText' => 'Submit',
@@ -234,7 +234,7 @@ function submitFunction(clicked, callback) {
     $flag_addPills = false;
     ?>
     <?php if ($use_select): ?>
-        <select id="<?php echo $select_id; ?>" autofocus style="height: 100px; margin-bottom: 0px;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>>
+        <select id="<?php echo $select_id; ?>" autofocus style="height: 100px; margin-bottom: 0px;" <?= $this->GenericPicker->add_select_params($defaults); ?>>
             <option></option>
             <?php
                 foreach ($items as $param) {
@@ -306,7 +306,7 @@ function submitFunction(clicked, callback) {
             var options_additionalData = {};
         }
         // Keep as string, it is faster than parsing as JS
-        options_templates['<?php echo $select_id; ?>'] = JSON.parse('<?= addslashes(json_encode($option_templates)); ?>');
-        options_additionalData['<?php echo $select_id; ?>'] = JSON.parse('<?= addslashes(json_encode($options_additionalData)); ?>');
+        options_templates['<?php echo $select_id; ?>'] = JSON.parse('<?= addslashes(json_encode($option_templates, JSON_UNESCAPED_UNICODE)); ?>');
+        options_additionalData['<?php echo $select_id; ?>'] = JSON.parse('<?= addslashes(json_encode($options_additionalData, JSON_UNESCAPED_UNICODE)); ?>');
     </script>
 </div>

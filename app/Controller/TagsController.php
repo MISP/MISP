@@ -626,12 +626,14 @@ class TagsController extends AppController
                     $expanded = $tags;
                 }
             } elseif ($taxonomy_id === 'all') {
-                $conditions = [];
+                $conditions = [
+                    'Tag.name NOT LIKE' => 'misp-galaxy:%',
+                    'Tag.hide_tag' => 0,
+                ];
                 if (!$this->_isSiteAdmin()) {
-                    $conditions[] = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
-                    $conditions[] = array('Tag.user_id' => array(0, $this->Auth->user('id')));
+                    $conditions['Tag.org_id'] = array(0, $this->Auth->user('org_id'));
+                    $conditions['Tag.user_id'] = array(0, $this->Auth->user('id'));
                 }
-                $conditions['Tag.hide_tag'] = 0;
                 $allTags = $this->Tag->find('all', array(
                     'conditions' => $conditions,
                     'recursive' => -1,
@@ -640,10 +642,7 @@ class TagsController extends AppController
                 ));
                 $tags = array();
                 foreach ($allTags as $tag) {
-                    $isGalaxyTag = strpos($tag['Tag']['name'], 'misp-galaxy:') === 0;
-                    if (!$isGalaxyTag) {
-                        $tags[$tag['Tag']['id']] = $tag['Tag'];
-                    }
+                    $tags[$tag['Tag']['id']] = $tag['Tag'];
                 }
                 unset($allTags);
                 $expanded = $tags;
@@ -651,39 +650,26 @@ class TagsController extends AppController
                 $taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
                 $tags = array();
                 if (!empty($taxonomies['entries'])) {
+                    $isSiteAdmin = $this->_isSiteAdmin();
                     foreach ($taxonomies['entries'] as $entry) {
                         if (!empty($entry['existing_tag']['Tag'])) {
                             $tag = $entry['existing_tag']['Tag'];
                             if ($tag['hide_tag']) {
                                 continue; // do not include hidden tags
                             }
+                            if (!$isSiteAdmin) {
+                                // Skip all tags that this user cannot use for tagging, determined by the org restriction on tags
+                                if ($tag['org_id'] != '0' && $tag['org_id'] != $this->Auth->user('org_id')) {
+                                    continue;
+                                }
+                                if ($tag['user_id'] != '0' && $tag['user_id'] != $this->Auth->user('id')) {
+                                    continue;
+                                }
+                            }
 
                             $tags[$tag['id']] = $tag;
                             $expanded[$tag['id']] = $entry['expanded'];
                         }
-                    }
-                }
-
-                // Unset all tags that this user cannot use for tagging, determined by the org restriction on tags
-                if (!$this->_isSiteAdmin()) {
-                    $banned_tags = $this->Tag->find('column', array(
-                        'conditions' => array(
-                            'NOT' => array(
-                                'Tag.org_id' => array(
-                                    0,
-                                    $this->Auth->user('org_id')
-                                ),
-                                'Tag.user_id' => array(
-                                    0,
-                                    $this->Auth->user('id')
-                                )
-                            )
-                        ),
-                        'fields' => array('Tag.id')
-                    ));
-                    foreach ($banned_tags as $banned_tag) {
-                        unset($tags[$banned_tag]);
-                        unset($expanded[$banned_tag]);
                     }
                 }
             }
