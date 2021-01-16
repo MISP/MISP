@@ -998,7 +998,7 @@ class Server extends AppModel
                     'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
             );
             $eventIds = $this->Event->find('all', $findParams);
-            $eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
+            $eventUUIDsFiltered = $this->getEventIdsForPush($server, $HttpSocket, $eventIds);
             if (!empty($eventUUIDsFiltered)) {
                 $eventCount = count($eventUUIDsFiltered);
                 // now process the $eventIds to push each of the events sequentially
@@ -1091,11 +1091,8 @@ class Server extends AppModel
         return true;
     }
 
-    public function getEventIdsForPush($id, $HttpSocket, $eventIds, $user)
+    public function getEventIdsForPush(array $server, HttpSocket $HttpSocket, array $eventIds)
     {
-        $server = $this->read(null, $id);
-        $this->Event = ClassRegistry::init('Event');
-
         foreach ($eventIds as $k => $event) {
             if (empty($this->eventFilterPushableServers($event, array($server)))) {
                 unset($eventIds[$k]);
@@ -1103,17 +1100,14 @@ class Server extends AppModel
             }
             unset($eventIds[$k]['Event']['id']);
         }
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         $data = json_encode($eventIds);
         $uri = $server['Server']['url'] . '/events/filterEventIdsForPush';
         $response = $HttpSocket->post($uri, $data, $request);
         if ($response->code == '200') {
-            $uuidList = json_decode($response->body());
-        } else {
-            return false;
+            return $this->jsonDecode($response->body());
         }
-        return $uuidList;
+        return false;
     }
 
     /**

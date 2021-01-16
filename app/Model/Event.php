@@ -943,12 +943,17 @@ class Event extends AppModel
         return $response->isOk();
     }
 
+    /**
+     * @param array $event
+     * @param array $server
+     * @param HttpSocket $HttpSocket
+     * @return false|string
+     */
     public function uploadEventToServer(array $event, array $server, HttpSocket $HttpSocket)
     {
         $this->Server = ClassRegistry::init('Server');
 
-        $server = $this->Server->eventFilterPushableServers($event, [$server]);
-        if (empty($server)) {
+        if (empty($this->Server->eventFilterPushableServers($event, [$server]))) {
             return 'The server rules blocks it from being pushed.';
         }
         if (!$this->checkDistributionForPush($event, $server, 'Event')) {
@@ -967,16 +972,20 @@ class Event extends AppModel
         try {
             $this->restfulEventToServer($event, $server, $HttpSocket);
         } catch (Exception $e) {
+            $errorMessage = $e->getMessage();
             if ($e instanceof HttpException && $e->getCode() == 403) {
                 // Do not log errors that are expected
-                $errorJson = json_decode($e->getMessage(), true);
-                if (isset($errorJson['errors']) && $errorJson['errors'] === 'Event could not be saved: Event in the request not newer than the local copy.') {
-                    return $errorJson['errors'];
+                $errorJson = json_decode($errorMessage, true);
+                if (isset($errorJson['errors'])) {
+                    $errorMessage = $errorJson['errors'];
+                    if ($errorMessage === 'Event could not be saved: Event in the request not newer than the local copy.') {
+                        return $errorMessage;
+                    }
                 }
             }
 
             $this->logException("Could not push event '{$event['Event']['uuid']}' to remote server #{$server['Server']['id']}", $e);
-            $this->__logUploadResult($server, $event, $e->getMessage());
+            $this->__logUploadResult($server, $event, $errorMessage);
             return false;
         }
         return 'Success';
