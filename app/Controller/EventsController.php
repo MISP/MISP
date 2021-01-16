@@ -708,7 +708,8 @@ class EventsController extends AppController
             if (isset($this->paginate['conditions'])) {
                 $rules['conditions'] = $this->paginate['conditions'];
             }
-            if (!empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal'])) {
+            $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
+            if ($minimal) {
                 unset($rules['contain']);
                 $rules['recursive'] = -1;
                 $rules['fields'] = array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid');
@@ -720,39 +721,35 @@ class EventsController extends AppController
                     $rules[$paginationRule] = $passedArgs[$paginationRule];
                 }
             }
-            $counting_rules = $rules;
-            if (!empty($counting_rules['limit'])) {
-                unset($counting_rules['limit']);
-            }
-            if (!empty($counting_rules['page'])) {
-                unset($counting_rules['page']);
-            }
-            $absolute_total = $this->Event->find('count', $counting_rules);
+
             if (empty($rules['limit'])) {
                 $events = array();
                 $i = 1;
-                $continue = true;
                 $rules['limit'] = 20000;
-                while ($continue) {
+                while (true) {
                     $rules['page'] = $i;
                     $temp = $this->Event->find('all', $rules);
-                    if (!empty($temp)) {
+                    $resultCount = count($temp);
+                    if ($resultCount !== 0) {
                         $events = array_merge($events, $temp);
-                    } else {
-                        $continue = false;
+                    }
+                    if ($resultCount < $rules['limit']) {
+                        break;
                     }
                     $i += 1;
                 }
+                $absolute_total = $total_events = count($events);
             } else {
+                $counting_rules = $rules;
+                unset($counting_rules['limit']);
+                unset($counting_rules['page']);
+                $absolute_total = $this->Event->find('count', $counting_rules);
+
                 $events = $this->Event->find('all', $rules);
+                $total_events = count($events);
             }
-            $total_events = count($events);
-            foreach ($events as $k => $event) {
-                if (empty($event['SharingGroup']['name'])) {
-                    unset($events[$k]['SharingGroup']);
-                }
-            }
-            if (empty($passedArgs['searchminimal']) && empty($passedArgs['minimal'])) {
+
+            if (!$minimal) {
                 $passes = ceil($total_events / 1000);
                 for ($i = 0; $i < $passes; $i++) {
                     $event_tag_objects = array();
@@ -799,7 +796,11 @@ class EventsController extends AppController
                 }
                 $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events);
                 foreach ($events as $key => $event) {
-                    $temp = $events[$key]['Event'];
+                    if (empty($event['SharingGroup']['name'])) {
+                        unset($event['SharingGroup']);
+                    }
+
+                    $temp = $event['Event'];
                     $temp['Org'] = $event['Org'];
                     $temp['Orgc'] = $event['Orgc'];
                     unset($temp['user_id']);
@@ -814,14 +815,13 @@ class EventsController extends AppController
                 if ($this->response->type() === 'application/xml') {
                     $events = array('Event' => $events);
                 }
-                return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
             } else {
                 foreach ($events as $key => $event) {
                     $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
                     $events[$key] = $event['Event'];
                 }
-                return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
             }
+            return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
         } else {
             $events = $this->paginate();
             foreach ($events as $k => $event) {
