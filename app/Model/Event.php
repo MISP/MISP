@@ -910,41 +910,12 @@ class Event extends AppModel
         return $data;
     }
 
-    private function __resolveErrorCode($code, &$event, &$server)
-    {
-        $error = false;
-        switch ($code) {
-            case 403:
-                return 'The distribution level of this event blocks it from being pushed.';
-            case 405:
-                $error = 'The sync user on the remote instance does not have the required privileges to handle this event.';
-                break;
-        }
-        if ($error) {
-            $newTextBody = 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')';
-            $this->__logUploadResult($server, $event, $newTextBody);
-        }
-        return $error;
-    }
-
-    private function __executeRestfulEventToServer($event, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket)
-    {
-        $result = $this->restfulEventToServer($event, $server, $resourceId, $newLocation, $newTextBody, $HttpSocket);
-        if (is_numeric($result)) {
-            $error = $this->__resolveErrorCode($result, $event, $server);
-            if ($error) {
-                return $error . ' Error code: ' . $result;
-            }
-        }
-        return true;
-    }
-
     /**
      * @param array $sightings
      * @param array $server
      * @param string $eventUuid
      * @param HttpSocket|null $HttpSocket
-     * @return bool|int
+     * @return bool
      * @throws JsonException
      */
     public function uploadSightingsToServer(array $sightings, array $server, $eventUuid, HttpSocket $HttpSocket = null)
@@ -969,35 +940,44 @@ class Event extends AppModel
             file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
         }
         $response = $HttpSocket->post($uri, $data, $request);
-        return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
+        return $response->isOk();
     }
 
-    public function uploadEventToServer($event, $server, $HttpSocket = null)
+    public function uploadEventToServer(array $event, array $server, HttpSocket $HttpSocket)
     {
         $this->Server = ClassRegistry::init('Server');
+
+        $server = $this->Server->eventFilterPushableServers($event, [$server]);
+        if (empty($server)) {
+            return 'The server rules blocks it from being pushed.';
+        }
+        if (!$this->checkDistributionForPush($event, $server, 'Event')) {
+            return 'The distribution level of this event blocks it from being pushed.';
+        }
+
         $push = $this->Server->checkVersionCompatibility($server, false, $HttpSocket);
         if (empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
         }
+
         if (!empty($server['Server']['unpublish_event'])) {
             $event['Event']['published'] = 0;
         }
-        $newLocation = $newTextBody = '';
-        $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
-        if ($result !== true) {
-            return $result;
-        }
-        if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-            $result = $this->__executeRestfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
-            if ($result !== true) {
-                return $result;
-            }
-        }
+
         try {
-            $this->jsonDecode($newTextBody);
+            $this->restfulEventToServer($event, $server, $HttpSocket);
         } catch (Exception $e) {
-            $this->logException("Invalid JSON returned when pushing to remote server {$server['Server']['id']}", $e);
-            return $this->__logUploadResult($server, $event, $newTextBody);
+            if ($e instanceof HttpException && $e->getCode() == 403) {
+                // Do not log errors that are expected
+                $errorJson = json_decode($e->getMessage(), true);
+                if (isset($errorJson['errors']) && $errorJson['errors'] === 'Event could not be saved: Event in the request not newer than the local copy.') {
+                    return $errorJson['errors'];
+                }
+            }
+
+            $this->logException("Could not push event '{$event['Event']['uuid']}' to remote server #{$server['Server']['id']}", $e);
+            $this->__logUploadResult($server, $event, $e->getMessage());
+            return false;
         }
         return 'Success';
     }
@@ -1042,40 +1022,35 @@ class Event extends AppModel
         return '';
     }
 
-    private function __handleRestfulEventToServerResponse($response, &$newLocation, &$newTextBody)
+    /**
+     * Uploads the event and the associated Attributes to another Server.
+     * @param array $event
+     * @param array $server
+     * @param HttpSocket $HttpSocket
+     * @return array
+     * @throws JsonException
+     */
+    private function restfulEventToServer(array $event, array $server, HttpSocket $HttpSocket)
     {
-        switch ($response->code) {
-            case '200': // 200 (OK) + entity-action-result
-                $newTextBody = $response->body();
-                return true;
-            case '302': // Found
-                $newLocation = $response->headers['Location'];
-                $newTextBody = $response->body();
-                return true;
-            case '404': // Not Found
-                $newLocation = $response->headers['Location'];
-                $newTextBody = $response->body();
-                return 404;
-            case '405':
-                $newTextBody = $response->body();
-                return 405;
-            case '403': // Not authorised
-                $newTextBody = $response->body();
-                return 403;
-        }
-    }
-
-    // Uploads the event and the associated Attributes to another Server
-    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, HttpSocket $HttpSocket = null)
-    {
+        // TODO: Replace by __updateEventForSync method in future
         $event = $this->__prepareForPushToServer($event, $server);
         if (is_numeric($event)) {
-            return $event;
+            throw new Exception("This should never happen.");
         }
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
-        $url = $server['Server']['url'];
-        $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
+        $serverUrl = $server['Server']['url'];
+
+        $exists = false;
+        try {
+            // Check if event exists on remote server to use proper endpoint
+            $response = $HttpSocket->head("$serverUrl/events/view/{$event['Event']['uuid']}", [], $request);
+            if ($response->code == '200') {
+                $exists = true;
+            }
+        } catch (Exception $e) {
+            $this->logException("Could not check if event {$event['Event']['uuid']} exists on remote server {$server['Server']['id']}", $e, LOG_NOTICE);
+        }
+
         $data = json_encode($event);
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
@@ -1087,8 +1062,33 @@ class Event extends AppModel
             );
             file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
         }
-        $response = $HttpSocket->post($uri, $data, $request);
-        return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
+
+        if ($exists) {
+            $url = "$serverUrl/events/edit/{$event['Event']['uuid']}/metadata:1";
+        } else {
+            $url = "$serverUrl/events/add/metadata:1";
+        }
+
+        $response = $HttpSocket->post($url, $data, $request);
+
+        // Maybe the check if event exists was not correct, try to create a new event
+        if ($exists && $response->code == '404') {
+            $url = "$serverUrl/events/add/metadata:1";
+            $response = $HttpSocket->post($url, $data, $request);
+        }
+
+        // There is bug in MISP API, that returns response code 404 with Location if event already exists
+        else if (!$exists && $response->code == '404' && $response->getHeader('Location')) {
+            $lastPart = $this->__getLastUrlPathComponent($response->getHeader('Location'));
+            $url = "$serverUrl/events/edit/$lastPart/metadata:1";
+            $response = $HttpSocket->post($url, $data, $request);
+        }
+
+        if (!$response->isOk()) {
+            throw new HttpException($response->body, $response->code);
+        }
+
+        return $this->jsonDecode($response->body);
     }
 
     private function __rearrangeEventStructureForSync($event)
@@ -4396,7 +4396,7 @@ class Event extends AppModel
                         continue;
                     }
                 } catch (Exception $e) {
-                    $this->logException("Could not check if event {$event['Event']['uuid']} exists on remote server {$server['Server']['id']}", $e);
+                    $this->logException("Could not check if event {$event['Event']['uuid']} exists on remote server {$server['Server']['id']}", $e, LOG_NOTICE);
                 }
 
                 if (!$this->uploadSightingsToServer($sightings, $server, $event['Event']['uuid'], $HttpSocket)) {
