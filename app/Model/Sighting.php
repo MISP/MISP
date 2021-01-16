@@ -127,7 +127,7 @@ class Sighting extends AppModel
 
     /**
      * @param array $sightings
-     * @param int $attributeId
+     * @param int|null $attributeId
      * @param int $eventId
      * @param array $user
      * @return bool
@@ -141,10 +141,32 @@ class Sighting extends AppModel
         // Fetch existing organisations in bulk
         $existingOrganisations = $this->existingOrganisations($sightings);
 
+        if ($attributeId === null) {
+            // If attribute ID is not set, check real ID and also check if user can access that attribute
+            $attributes = $this->Attribute->fetchAttributesSimple($user, [
+                'conditions' => [
+                    'Attribute.uuid' => array_column($sightings, 'attribute_uuid'),
+                    'Attribute.event_id' => $eventId,
+                ],
+                'fields' => ['Attribute.id', 'Attribute.uuid'],
+            ]);
+            $attributes = array_column(array_column($attributes, 'Attribute'), 'id', 'uuid');
+        }
+
         $toSave = [];
         foreach ($sightings as $sighting) {
             if (isset($existingSighting[$sighting['uuid']])) {
                 continue; // already exists, skip
+            }
+
+            if ($attributeId === null) {
+                if (isset($attributes[$sighting['attribute_uuid']])) {
+                    $sighting['attribute_id'] = $attributes[$sighting['attribute_uuid']];
+                } else {
+                    continue; // attribute not exists ar user don't have permission to access it
+                }
+            } else {
+                $sighting['attribute_id'] = $attributeId;
             }
 
             $orgId = 0;
@@ -161,7 +183,6 @@ class Sighting extends AppModel
 
             $sighting['org_id'] = $orgId;
             $sighting['event_id'] = $eventId;
-            $sighting['attribute_id'] = $attributeId;
             $toSave[] = $sighting;
         }
 
