@@ -11,6 +11,7 @@ App::uses('TmpFileTool', 'Tools');
  * @property ShadowAttribute $ShadowAttribute
  * @property EventTag $EventTag
  * @property SharingGroup $SharingGroup
+ * @property ThreatLevel $ThreatLevel
  */
 class Event extends AppModel
 {
@@ -575,7 +576,7 @@ class Event extends AppModel
             $sgids = array(-1);
         }
         $this->Correlation = ClassRegistry::init('Correlation');
-        $eventIds = Set::extract('/Event/id', $events);
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
         $correlations = $this->Correlation->find('all', array(
             'fields' => array('Correlation.1_event_id', 'count(distinct(Correlation.event_id)) as count'),
@@ -585,14 +586,14 @@ class Event extends AppModel
         ));
         $correlations = Hash::combine($correlations, '{n}.Correlation.1_event_id', '{n}.0.count');
         foreach ($events as &$event) {
-            $event['Event']['correlation_count'] = (isset($correlations[$event['Event']['id']])) ? $correlations[$event['Event']['id']] : 0;
+            $event['Event']['correlation_count'] = isset($correlations[$event['Event']['id']]) ? $correlations[$event['Event']['id']] : 0;
         }
         return $events;
     }
 
     public function attachSightingsCountToEvents($user, $events)
     {
-        $eventIds = Set::extract('/Event/id', $events);
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
         $this->Sighting = ClassRegistry::init('Sighting');
         $sightings = $this->Sighting->find('all', array(
             'fields' => array('Sighting.event_id', 'count(distinct(Sighting.id)) as count'),
@@ -602,14 +603,14 @@ class Event extends AppModel
         ));
         $sightings = Hash::combine($sightings, '{n}.Sighting.event_id', '{n}.0.count');
         foreach ($events as $key => $event) {
-            $events[$key]['Event']['sightings_count'] = (isset($sightings[$event['Event']['id']])) ? $sightings[$event['Event']['id']] : 0;
+            $events[$key]['Event']['sightings_count'] = isset($sightings[$event['Event']['id']]) ? $sightings[$event['Event']['id']] : 0;
         }
         return $events;
     }
 
     public function attachProposalsCountToEvents($user, $events)
     {
-        $eventIds = Set::extract('/Event/id', $events);
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
         $proposals = $this->ShadowAttribute->find('all', array(
                 'fields' => array('ShadowAttribute.event_id', 'count(distinct(ShadowAttribute.id)) as count'),
                 'conditions' => array('event_id' => $eventIds, 'deleted' => 0),
@@ -618,14 +619,14 @@ class Event extends AppModel
         ));
         $proposals = Hash::combine($proposals, '{n}.ShadowAttribute.event_id', '{n}.0.count');
         foreach ($events as $key => $event) {
-            $events[$key]['Event']['proposals_count'] = (isset($proposals[$event['Event']['id']])) ? $proposals[$event['Event']['id']] : 0;
+            $events[$key]['Event']['proposals_count'] = isset($proposals[$event['Event']['id']]) ? $proposals[$event['Event']['id']] : 0;
         }
         return $events;
     }
 
     public function attachDiscussionsCountToEvents($user, $events)
     {
-        $eventIds = Set::extract('/Event/id', $events);
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
         $this->Thread = ClassRegistry::init('Thread');
         $threads = $this->Thread->find('list', array(
             'conditions' => array('Thread.event_id' => $eventIds),

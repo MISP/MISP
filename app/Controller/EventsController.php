@@ -700,6 +700,8 @@ class EventsController extends AppController
                 $rules['recursive'] = -1;
                 $rules['fields'] = array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid');
                 $rules['contain'] = array('Orgc.uuid');
+            } else {
+                $rules['contain'][] = 'EventTag';
             }
             $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
             foreach ($paginationRules as $paginationRule) {
@@ -724,63 +726,49 @@ class EventsController extends AppController
                     }
                     $i += 1;
                 }
-                $absolute_total = $total_events = count($events);
+                $absolute_total = count($events);
             } else {
                 $counting_rules = $rules;
                 unset($counting_rules['limit']);
                 unset($counting_rules['page']);
                 $absolute_total = $this->Event->find('count', $counting_rules);
 
-                $events = $this->Event->find('all', $rules);
-                $total_events = count($events);
+                $events = $absolute_total === 0 ? [] : $this->Event->find('all', $rules);
             }
 
             if (!$minimal) {
-                $passes = ceil($total_events / 1000);
-                for ($i = 0; $i < $passes; $i++) {
-                    $event_tag_objects = array();
-                    $event_tag_ids = array();
-                    $elements = 1000;
-                    if ($i == ($passes-1)) {
-                        $elements = ($total_events % 1000);
+                $tagIds = [];
+                foreach (array_column($events, 'EventTag') as $eventTags) {
+                    foreach (array_column($eventTags, 'tag_id') as $tagId) {
+                        $tagIds[$tagId] = true;
                     }
-                    for ($j = 0; $j < $elements; $j++) {
-                        $event_tag_ids[$events[($i*1000) + $j]['Event']['id']] = true;
-                    }
-                    $eventTags = $this->Event->EventTag->find('all', array(
+                }
+                if (!empty($tagIds)) {
+                    $tags = $this->Event->EventTag->Tag->find('all', [
+                        'conditions' => [
+                            'Tag.id' => array_keys($tagIds),
+                            'Tag.exportable' => 1,
+                        ],
                         'recursive' => -1,
-                        'conditions' => array(
-                            'EventTag.event_id' => array_keys($event_tag_ids)
-                        ),
-                        'contain' => array(
-                            'Tag' => array(
-                                'conditions' => array('Tag.exportable' => 1),
-                                'fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy')
-                            )
-                        )
-                    ));
-                    foreach ($eventTags as $ket => $et) {
-                        if (empty($et['Tag']['id'])) {
-                            unset($eventTags[$ket]);
-                        } else {
-                            $et['EventTag']['Tag'] = $et['Tag'];
-                            unset($et['Tag']);
-                            if (empty($event_tag_objects[$et['EventTag']['event_id']])) {
-                                $event_tag_objects[$et['EventTag']['event_id']] = array($et['EventTag']);
+                        'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.is_galaxy'],
+                    ]);
+                    unset($tagIds);
+                    $tags = array_column(array_column($tags, 'Tag'), null, 'id');
+
+                    foreach ($events as $k => $event) {
+                        if (empty($event['EventTag'])) {
+                            continue;
+                        }
+                        foreach ($event['EventTag'] as $k2 => $et) {
+                            if (!isset($tags[$et['tag_id']])) {
+                                unset($events[$k]['EventTag'][$k2]); // tag not exists or is not exportable
                             } else {
-                                $event_tag_objects[$et['EventTag']['event_id']][] = $et['EventTag'];
+                                $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']];
                             }
                         }
                     }
-                    for ($j = 0; $j < $elements; $j++) {
-                        if (!empty($event_tag_objects[$events[($i*1000) + $j]['Event']['id']])) {
-                            $events[($i*1000) + $j]['EventTag'] = $event_tag_objects[$events[($i*1000) + $j]['Event']['id']];
-                        } else {
-                            $events[($i*1000) + $j]['EventTag'] = array();
-                        }
-                    }
+                    $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false, false);
                 }
-                $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false, false);
                 foreach ($events as $key => $event) {
                     if (empty($event['SharingGroup']['name'])) {
                         unset($event['SharingGroup']);
@@ -807,7 +795,7 @@ class EventsController extends AppController
                     $events[$key] = $event['Event'];
                 }
             }
-            return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
+            return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absolute_total]);
         }
 
         $this->paginate['contain']['ThreatLevel'] = [
