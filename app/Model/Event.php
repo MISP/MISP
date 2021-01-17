@@ -4800,32 +4800,25 @@ class Event extends AppModel
         return false;
     }
 
-    public function removeOlder(&$eventArray, $scope = 'events')
+    public function removeOlder(array &$events, $scope = 'events')
     {
-        if ($scope === 'sightings' ) {
-            $field = 'sighting_timestamp';
-        } else {
-            $field = 'timestamp';
-        }
-        $uuidsToCheck = array();
-        foreach ($eventArray as $k => &$event) {
-            $uuidsToCheck[$event['uuid']] = $k;
-        }
-        $localEvents = array();
-        $temp = $this->find('all', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.' . $field, 'Event.locked')));
-        foreach ($temp as $e) {
-            $localEvents[$e['Event']['uuid']] = array($field => $e['Event'][$field], 'locked' => $e['Event']['locked']);
-        }
-        foreach ($uuidsToCheck as $uuid => $eventArrayId) {
+        $field = $scope === 'sightings' ? 'sighting_timestamp' : 'timestamp';
+        $localEvents = $this->find('all', [
+            'recursive' => -1,
+            'fields' => ['Event.uuid', 'Event.' . $field, 'Event.locked'],
+        ]);
+        $localEvents = array_column(array_column($localEvents, 'Event'), null, 'uuid');
+        foreach ($events as $k => $event) {
             // remove all events for the sighting sync if the remote is not aware of the new field yet
-            if (!isset($eventArray[$eventArrayId][$field])) {
-                unset($eventArray[$eventArrayId]);
+            if (!isset($event[$field])) {
+                unset($events[$k]);
             } else {
+                $uuid = $event['uuid'];
                 if (isset($localEvents[$uuid])
-                      && ($localEvents[$uuid][$field] >= $eventArray[$eventArrayId][$field]
+                      && ($localEvents[$uuid][$field] >= $event[$field]
                       || ($scope === 'events' && !$localEvents[$uuid]['locked'])))
                 {
-                    unset($eventArray[$eventArrayId]);
+                    unset($events[$k]);
                 }
             }
         }
