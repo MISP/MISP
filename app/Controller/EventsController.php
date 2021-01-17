@@ -813,8 +813,10 @@ class EventsController extends AppController
         $this->paginate['contain']['ThreatLevel'] = [
             'fields' => array('ThreatLevel.name')
         ];
-        $this->paginate['contain'][] = 'User.email';
         $this->paginate['contain'][] = 'EventTag';
+        if ($this->_isSiteAdmin()) {
+            $this->paginate['contain'][] = 'User.email';
+        }
 
         $events = $this->paginate();
 
