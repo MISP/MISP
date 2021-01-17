@@ -674,21 +674,9 @@ class EventsController extends AppController
                 }
             }
         }
-        $this->set('passedArgs', json_encode($passedArgs));
+
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
         $passedArgsArray = $this->__setIndexFilterConditions($passedArgs, $urlparams);
-        if (!$this->_isRest()) {
-            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag'));
-        } else {
-            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email'));
-        }
-
-        $this->paginate = Set::merge($this->paginate, array('contain' => array(
-            'ThreatLevel' => array(
-                'fields' => array(
-                    'ThreatLevel.name'))
-            ),
-        ));
         $this->loadModel('GalaxyCluster');
 
         // for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
@@ -822,6 +810,12 @@ class EventsController extends AppController
             return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
         }
 
+        $this->paginate['contain']['ThreatLevel'] = [
+            'fields' => array('ThreatLevel.name')
+        ];
+        $this->paginate['contain'][] = 'User.email';
+        $this->paginate['contain'][] = 'EventTag';
+
         $events = $this->paginate();
 
         if (count($events) === 1 && isset($this->passedArgs['searchall'])) {
@@ -883,6 +877,7 @@ class EventsController extends AppController
         $this->set('distributionData', $this->genDistributionGraph(-1));
         $this->set('urlparams', $urlparams);
         $this->set('passedArgsArray', $passedArgsArray);
+        $this->set('passedArgs', json_encode($passedArgs));
 
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
