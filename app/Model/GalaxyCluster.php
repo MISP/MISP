@@ -1419,7 +1419,7 @@ class GalaxyCluster extends AppModel
         foreach ($events as $event) {
             foreach ($event['EventTag'] as $k2 => $eventTag) {
                 if ($eventTag['Tag']['is_galaxy']) {
-                    $clusterTagNames[] = strtolower($eventTag['Tag']['name']);
+                    $clusterTagNames[strtolower($eventTag['Tag']['name'])] = true;
                 }
             }
         }
@@ -1429,7 +1429,7 @@ class GalaxyCluster extends AppModel
         }
 
         $options = [
-            'conditions' => ['LOWER(GalaxyCluster.tag_name)' => $clusterTagNames],
+            'conditions' => ['LOWER(GalaxyCluster.tag_name)' => array_keys($clusterTagNames)],
         ];
         if (!$fetchFullCluster) {
             $options['contain'] = ['Galaxy'];

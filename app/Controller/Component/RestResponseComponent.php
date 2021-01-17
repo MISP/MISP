@@ -1851,33 +1851,36 @@ class RestResponseComponent extends Component
             $field['values'][] = array('label' => h($model_name), 'value' => $i);
         }
     }
-    private function __overwriteTags($scope, $action, &$field) {
-        $this->{$scope} = ClassRegistry::init("Tag");
-        $tags = $this->{$scope}->find('list', array(
-            'recursive' => -1,
-            'fields' => array('name')
-        ));
-        foreach($tags as $i => $tag) {
-            $tagname = htmlspecialchars($tag);
-            $tags[$tagname] = $tagname;
-            unset($tags[$i]);
+
+    private function __overwriteTags($scope, $action, &$field)
+    {
+        static $values;
+        if ($values === null) {
+            $tagModel = ClassRegistry::init("Tag");
+            $tags = $tagModel->find('column', array(
+                'fields' => array('Tag.name')
+            ));
+            $values = [];
+            foreach ($tags as $tag) {
+                $tagname = htmlspecialchars($tag);
+                $values[$tagname] = $tagname;
+            }
         }
-        $field['values'] = $tags;
+        $field['values'] = $values;
 
         if ($action == 'attachTagToObject') {
             $field['help'] = __('Also supports array of tags');
         }
     }
     private function __overwriteNationality($scope, $action, &$field) {
-        $field['values'] = ClassRegistry::init("Organisation")->countries;
+        $field['values'] = ClassRegistry::init("Organisation")->getCountries();
     }
     private function __overwriteAction($scope, $action, &$field) {
         $field['values'] = array_keys(ClassRegistry::init("Log")->actionDefinitions);
     }
     private function __overwriteRoleId($scope, $action, &$field) {
         $this->{$scope} = ClassRegistry::init("Role");
-        $roles = $this->{$scope}->find('list', array(
-            'recursive' => -1,
+        $roles = $this->{$scope}->find('column', array(
             'fields' => array('name')
         ));
         $field['values'] = $roles;

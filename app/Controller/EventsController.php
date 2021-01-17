@@ -674,22 +674,9 @@ class EventsController extends AppController
                 }
             }
         }
-        $this->set('passedArgs', json_encode($passedArgs));
+
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
         $passedArgsArray = $this->__setIndexFilterConditions($passedArgs, $urlparams);
-        if (!$this->_isRest()) {
-            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag'));
-        } else {
-            $this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email'));
-        }
-        $this->set('urlparams', $urlparams);
-        $this->set('passedArgsArray', $passedArgsArray);
-        $this->paginate = Set::merge($this->paginate, array('contain' => array(
-            'ThreatLevel' => array(
-                'fields' => array(
-                    'ThreatLevel.name'))
-            ),
-        ));
         $this->loadModel('GalaxyCluster');
 
         // for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
@@ -708,8 +695,8 @@ class EventsController extends AppController
             if (isset($this->paginate['conditions'])) {
                 $rules['conditions'] = $this->paginate['conditions'];
             }
-            if (!empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal'])) {
-                unset($rules['contain']);
+            $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
+            if ($minimal) {
                 $rules['recursive'] = -1;
                 $rules['fields'] = array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid');
                 $rules['contain'] = array('Orgc.uuid');
@@ -720,39 +707,35 @@ class EventsController extends AppController
                     $rules[$paginationRule] = $passedArgs[$paginationRule];
                 }
             }
-            $counting_rules = $rules;
-            if (!empty($counting_rules['limit'])) {
-                unset($counting_rules['limit']);
-            }
-            if (!empty($counting_rules['page'])) {
-                unset($counting_rules['page']);
-            }
-            $absolute_total = $this->Event->find('count', $counting_rules);
+
             if (empty($rules['limit'])) {
                 $events = array();
                 $i = 1;
-                $continue = true;
                 $rules['limit'] = 20000;
-                while ($continue) {
+                while (true) {
                     $rules['page'] = $i;
                     $temp = $this->Event->find('all', $rules);
-                    if (!empty($temp)) {
+                    $resultCount = count($temp);
+                    if ($resultCount !== 0) {
                         $events = array_merge($events, $temp);
-                    } else {
-                        $continue = false;
+                    }
+                    if ($resultCount < $rules['limit']) {
+                        break;
                     }
                     $i += 1;
                 }
+                $absolute_total = $total_events = count($events);
             } else {
+                $counting_rules = $rules;
+                unset($counting_rules['limit']);
+                unset($counting_rules['page']);
+                $absolute_total = $this->Event->find('count', $counting_rules);
+
                 $events = $this->Event->find('all', $rules);
+                $total_events = count($events);
             }
-            $total_events = count($events);
-            foreach ($events as $k => $event) {
-                if (empty($event['SharingGroup']['name'])) {
-                    unset($events[$k]['SharingGroup']);
-                }
-            }
-            if (empty($passedArgs['searchminimal']) && empty($passedArgs['minimal'])) {
+
+            if (!$minimal) {
                 $passes = ceil($total_events / 1000);
                 for ($i = 0; $i < $passes; $i++) {
                     $event_tag_objects = array();
@@ -797,9 +780,13 @@ class EventsController extends AppController
                         }
                     }
                 }
-                $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events);
+                $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false, false);
                 foreach ($events as $key => $event) {
-                    $temp = $events[$key]['Event'];
+                    if (empty($event['SharingGroup']['name'])) {
+                        unset($event['SharingGroup']);
+                    }
+
+                    $temp = $event['Event'];
                     $temp['Org'] = $event['Org'];
                     $temp['Orgc'] = $event['Orgc'];
                     unset($temp['user_id']);
@@ -814,39 +801,51 @@ class EventsController extends AppController
                 if ($this->response->type() === 'application/xml') {
                     $events = array('Event' => $events);
                 }
-                return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
             } else {
                 foreach ($events as $key => $event) {
                     $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
                     $events[$key] = $event['Event'];
                 }
-                return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
             }
-        } else {
-            $events = $this->paginate();
-            foreach ($events as $k => $event) {
-                if (empty($event['SharingGroup']['name'])) {
-                    unset($events[$k]['SharingGroup']);
-                }
+            return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, array('X-Result-Count' => $absolute_total));
+        }
+
+        $this->paginate['contain']['ThreatLevel'] = [
+            'fields' => array('ThreatLevel.name')
+        ];
+        $this->paginate['contain'][] = 'User.email';
+        $this->paginate['contain'][] = 'EventTag';
+
+        $events = $this->paginate();
+
+        if (count($events) === 1 && isset($this->passedArgs['searchall'])) {
+            $this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
+        }
+
+        foreach ($events as $k => $event) {
+            if (empty($event['SharingGroup']['name'])) {
+                unset($events[$k]['SharingGroup']);
             }
-            if (count($events) == 1 && isset($this->passedArgs['searchall'])) {
-                $this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
-            }
-            $events = $this->Event->attachTagsToEvents($events);
-            if (Configure::read('MISP.showCorrelationsOnIndex')) {
-                $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
-            }
-            if (Configure::read('MISP.showSightingsCountOnIndex')) {
-                $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
-            }
-            if (Configure::read('MISP.showProposalsCountOnIndex')) {
-                $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
-            }
-            if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
-                $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
-            }
-            $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true, false);
-            $this->set('events', $events);
+        }
+        $events = $this->Event->attachTagsToEvents($events);
+        if (Configure::read('MISP.showCorrelationsOnIndex')) {
+            $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
+        }
+        if (Configure::read('MISP.showSightingsCountOnIndex')) {
+            $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
+        }
+        if (Configure::read('MISP.showProposalsCountOnIndex')) {
+            $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
+        }
+        if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
+            $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
+        }
+        $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true, false);
+
+        if ($this->params['ext'] === 'csv') {
+            App::uses('CsvExport', 'Export');
+            $export = new CsvExport();
+            return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
         }
 
         $user = $this->Auth->user();
@@ -869,16 +868,17 @@ class EventsController extends AppController
                 $this->Flash->info(__('No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
             }
         }
+
+        $this->set('events', $events);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('shortDist', $this->Event->shortDist);
         $this->set('distributionData', $this->genDistributionGraph(-1));
-        if ($this->params['ext'] === 'csv') {
-            App::uses('CsvExport', 'Export');
-            $export = new CsvExport();
-            return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
-        }
+        $this->set('urlparams', $urlparams);
+        $this->set('passedArgsArray', $passedArgsArray);
+        $this->set('passedArgs', json_encode($passedArgs));
+
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
             $this->layout = false;

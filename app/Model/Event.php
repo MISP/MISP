@@ -541,10 +541,10 @@ class Event extends AppModel
         }
     }
 
-    public function attachtagsToEvents($events)
+    public function attachTagsToEvents(array $events)
     {
         $tagsToFetch = array();
-        foreach ($events as $k => $event) {
+        foreach ($events as $event) {
             if (!empty($event['EventTag'])) {
                 foreach ($event['EventTag'] as $et) {
                     $tagsToFetch[$et['tag_id']] = $et['tag_id'];
@@ -556,11 +556,11 @@ class Event extends AppModel
             'recursive' => -1,
             'order' => false
         ));
-        $tags = Set::combine($tags, '{n}.Tag.id', '{n}');
+        $tags = array_column(array_column($tags, 'Tag'), null, 'id');
         foreach ($events as $k => $event) {
             if (!empty($event['EventTag'])) {
                 foreach ($event['EventTag'] as $k2 => $et) {
-                    $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']]['Tag'];
+                    $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']];
                 }
             }
         }
