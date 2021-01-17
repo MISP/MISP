@@ -1417,7 +1417,7 @@ class GalaxyCluster extends AppModel
     {
         $clusterTagNames = [];
         foreach ($events as $event) {
-            foreach ($event['EventTag'] as $k2 => $eventTag) {
+            foreach ($event['EventTag'] as $eventTag) {
                 if ($eventTag['Tag']['is_galaxy']) {
                     $clusterTagNames[strtolower($eventTag['Tag']['name'])] = true;
                 }
