@@ -951,17 +951,10 @@ class EventsController extends AppController
             }
         }
         $this->set('filtering', json_encode($filtering));
-        $tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
-        $tagNames = array();
+        $tagNames = $this->Event->EventTag->Tag->find('list', array('recursive' => -1, 'fields' => ['Tag.id', 'Tag.name']));
         $tagJSON = array();
-        foreach ($tags as $k => $v) {
-            $tagNames[$v['Tag']['id']] = $v['Tag']['name'];
-            $tagJSON[] = array('id' => $v['Tag']['id'], 'value' => h($v['Tag']['name']));
-        }
-        $conditions = array();
-        if (!$this->_isSiteAdmin()) {
-            $eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
-            $conditions['AND'][] = array('Event.id' => $eIds);
+        foreach ($tagNames as $tagId => $tagName) {
+            $tagJSON[] = array('id' => $tagId, 'value' => h($tagName));
         }
         $rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'sharinggroup', 'analysis', 'attribute', 'hasproposal');
         if ($this->_isSiteAdmin()) {
@@ -986,7 +979,6 @@ class EventsController extends AppController
         $this->set('tags', $tagNames);
         $this->set('tagJSON', json_encode($tagJSON));
         $this->set('rules', $rules);
-        $this->set('baseurl', Configure::read('MISP.baseurl'));
         $this->layout = 'ajax';
     }
 
