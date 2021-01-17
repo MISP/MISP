@@ -3699,9 +3699,6 @@ class EventsController extends AppController
 
     public function filterEventIdsForPush()
     {
-        if (!$this->userRole['perm_sync']) {
-            throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
-        }
         if ($this->request->is('post')) {
             $incomingIDs = array();
             $incomingEvents = array();
@@ -3714,16 +3711,16 @@ class EventsController extends AppController
                 'recursive' => -1,
                 'fields' => array('Event.uuid', 'Event.timestamp', 'Event.locked'),
             ));
-            foreach ($events as $k => $v) {
-                if ($v['Event']['timestamp'] >= $incomingEvents[$v['Event']['uuid']]) {
-                    unset($incomingEvents[$v['Event']['uuid']]);
+            foreach ($events as $event) {
+                if ($event['Event']['timestamp'] >= $incomingEvents[$event['Event']['uuid']]) {
+                    unset($incomingEvents[$event['Event']['uuid']]);
                     continue;
                 }
-                if ($v['Event']['locked'] == 0) {
-                    unset($incomingEvents[$v['Event']['uuid']]);
+                if ($event['Event']['locked'] == 0) {
+                    unset($incomingEvents[$event['Event']['uuid']]);
                 }
             }
-            $this->set('result', array_keys($incomingEvents));
+            return $this->RestResponse->viewData(array_keys($incomingEvents), $this->response->type());
         }
     }
 
