@@ -376,7 +376,11 @@ class Server extends AppModel
     private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
     {
         // check if the event already exist (using the uuid)
-        $existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+        $existingEvent = $eventModel->find('first', [
+            'conditions' => ['Event.uuid' => $event['Event']['uuid']],
+            'recursive' => -1,
+            'fields' => ['id', 'locked'],
+        ]);
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
@@ -812,10 +816,7 @@ class Server extends AppModel
     public function serverEventsOverlap()
     {
         $servers = $this->find('all', [
-            'conditions' => ['OR' => [
-                'pull' => 1,
-          //      'push' => 1,
-            ]],
+            'conditions' => ['Server.pull' => 1],
             'order' => ['Server.id ASC'],
             'recursive' => -1,
         ]);
@@ -825,14 +826,16 @@ class Server extends AppModel
         }
 
         $serverUuids = [];
-        foreach ($servers as $server) {
+        foreach ($servers as &$server) {
             try {
-                $uuids = $this->getEventIdsFromServer($server, true, null, true, 'events', true);
-                $serverUuids[$server['Server']['id']] = $uuids;
+                $uuids = $this->getEventIdsFromServer($server, true, null, true);
+                $serverUuids[$server['Server']['id']] = array_flip($uuids);
+                $server['Server']['events_count'] = count($uuids);
             } catch (Exception $e) {
                 $this->logException("Could not get event UUIDs for server {$server['Server']['id']}", $e);
             }
         }
+        unset($server);
 
         $compared = [];
         foreach ($servers as $server) {
@@ -848,8 +851,8 @@ class Server extends AppModel
                     continue;
                 }
 
-                $intersect = count(array_intersect($serverUuids[$server['Server']['id']], $serverUuids[$server2['Server']['id']]));
-                $percentage = round(100 * $intersect / count($serverUuids[$server['Server']['id']]));
+                $intersect = count(array_intersect_key($serverUuids[$server['Server']['id']], $serverUuids[$server2['Server']['id']]));
+                $percentage = round(100 * $intersect / $server['Server']['events_count']);
                 $compared[$server['Server']['id']][$server2['Server']['id']] = [
                     'percentage' => $percentage,
                     'events' => $intersect,
