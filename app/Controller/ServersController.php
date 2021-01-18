@@ -203,6 +203,14 @@ class ServersController extends AppController
         $this->set('title_for_layout', __('Remote event preview'));
     }
 
+    public function compareServers()
+    {
+        list($servers, $overlap) = $this->Server->serverEventsOverlap();
+        $this->set('servers', $servers);
+        $this->set('overlap', $overlap);
+        $this->set('title_for_layout', __('Server overlap analysis matrix'));
+    }
+
     public function filterEventIndex($id)
     {
         if (!$this->_isSiteAdmin()) {

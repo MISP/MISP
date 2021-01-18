@@ -809,6 +809,56 @@ class Server extends AppModel
         return $eventUuids;
     }
 
+    public function serverEventsOverlap()
+    {
+        $servers = $this->find('all', [
+            'conditions' => ['OR' => [
+                'pull' => 1,
+          //      'push' => 1,
+            ]],
+            'order' => ['Server.id ASC'],
+            'recursive' => -1,
+        ]);
+
+        if (count($servers) < 2) {
+            return [$servers, []];
+        }
+
+        $serverUuids = [];
+        foreach ($servers as $server) {
+            try {
+                $uuids = $this->getEventIdsFromServer($server, true, null, true, 'events', true);
+                $serverUuids[$server['Server']['id']] = $uuids;
+            } catch (Exception $e) {
+                $this->logException("Could not get event UUIDs for server {$server['Server']['id']}", $e);
+            }
+        }
+
+        $compared = [];
+        foreach ($servers as $server) {
+            if (!isset($serverUuids[$server['Server']['id']])) {
+                continue;
+            }
+
+            foreach ($servers as $server2) {
+                if ($server['Server']['id'] == $server2['Server']['id']) {
+                    continue;
+                }
+                if (!isset($serverUuids[$server2['Server']['id']])) {
+                    continue;
+                }
+
+                $intersect = count(array_intersect($serverUuids[$server['Server']['id']], $serverUuids[$server2['Server']['id']]));
+                $percentage = round(100 * $intersect / count($serverUuids[$server['Server']['id']]));
+                $compared[$server['Server']['id']][$server2['Server']['id']] = [
+                    'percentage' => $percentage,
+                    'events' => $intersect,
+                ];
+            }
+        }
+        return [$servers, $compared];
+    }
+
     /**
      * @param int $id Server ID
      * @param string|int $technique Can be 'full', 'incremental' or event ID

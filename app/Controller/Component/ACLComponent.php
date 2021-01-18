@@ -503,6 +503,7 @@ class ACLComponent extends Component
                     'postTest' => array('perm_sync'),
                     'previewEvent' => array(),
                     'previewIndex' => array(),
+                    'compareServers' => [],
                     'pull' => array(),
                     'purgeSessions' => array(),
                     'push' => array(),
