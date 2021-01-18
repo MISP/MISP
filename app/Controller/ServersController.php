@@ -86,10 +86,8 @@ class ServersController extends AppController
     {
         $urlparams = '';
         $passedArgs = array();
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
-        }
-        $server = $this->Server->find('first', array('conditions' => array('Server.id' => $id), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url', 'Server.name')));
+
+        $server = $this->Server->find('first', array('conditions' => array('Server.id' => $id), 'recursive' => -1));
         if (empty($server)) {
             throw new NotFoundException('Invalid server ID.');
         }
@@ -115,15 +113,15 @@ class ServersController extends AppController
             $combinedArgs['limit'] = 60;
         }
         try {
-            list($events, $total_count) = $this->Server->previewIndex($id, $this->Auth->user(), $combinedArgs);
+            list($events, $total_count) = $this->Server->previewIndex($server, $this->Auth->user(), $combinedArgs);
         } catch (Exception $e) {
             $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
             $this->redirect(array('action' => 'index'));
         }
 
         $this->loadModel('Event');
-        $threat_levels = $this->Event->ThreatLevel->find('all');
-        $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+        $threat_levels = $this->Event->ThreatLevel->find('list', ['fields' => ['id', 'name']]);
+        $this->set('threatLevels', $threat_levels);
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
@@ -153,13 +151,12 @@ class ServersController extends AppController
         $server = $this->Server->find('first', array(
             'conditions' => array('Server.id' => $serverId),
             'recursive' => -1,
-            'fields' => array('Server.id', 'Server.url', 'Server.name'))
-        );
+        ));
         if (empty($server)) {
             throw new NotFoundException('Invalid server ID.');
         }
         try {
-            $event = $this->Server->previewEvent($serverId, $eventId);
+            $event = $this->Server->previewEvent($server, $eventId);
         } catch (NotFoundException $e) {
             throw new NotFoundException(__("Event '%s' not found.", $eventId));
         } catch (Exception $e) {
@@ -197,8 +194,8 @@ class ServersController extends AppController
                 $this->set($alias, $currentModel->{$variable});
             }
         }
-        $threat_levels = $this->Event->ThreatLevel->find('all');
-        $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+        $threat_levels = $this->Event->ThreatLevel->find('list', ['fields' => ['id', 'name']]);
+        $this->set('threatLevels', $threat_levels);
         $this->set('title_for_layout', __('Remote event preview'));
     }
 

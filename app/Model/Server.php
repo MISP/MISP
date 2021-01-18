@@ -3508,13 +3508,13 @@ class Server extends AppModel
 
     /**
      * Returns an array with the events
-     * @param int $id
+     * @param array $server
      * @param $user - not used
      * @param array $passedArgs
      * @return array
      * @throws Exception
      */
-    public function previewIndex($id, $user, array $passedArgs)
+    public function previewIndex(array $server, $user, array $passedArgs)
     {
         $validArgs = array_merge(array('sort', 'direction', 'page', 'limit'), $this->validEventIndexFilters);
         $urlParams = '';
@@ -3525,7 +3525,7 @@ class Server extends AppModel
         }
 
         $relativeUri = '/events/index' . $urlParams;
-        list($events, $response) = $this->serverGetRequest($id, $relativeUri);
+        list($events, $response) = $this->serverGetRequest($server, $relativeUri);
         $totalCount = $response->getHeader('X-Result-Count') ?: 0;
 
         foreach ($events as $k => $event) {
@@ -3546,15 +3546,15 @@ class Server extends AppModel
 
     /**
      * Returns an array with the event.
-     * @param int $serverId
+     * @param array $server
      * @param int $eventId
      * @return array
      * @throws Exception
      */
-    public function previewEvent($serverId, $eventId)
+    public function previewEvent(array $server, $eventId)
     {
         $relativeUri =  '/events/' . $eventId;
-        list($event) = $this->serverGetRequest($serverId, $relativeUri);
+        list($event) = $this->serverGetRequest($server, $relativeUri);
 
         if (!isset($event['Event']['Orgc'])) {
             $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
@@ -4200,48 +4200,34 @@ class Server extends AppModel
     }
 
     /**
-     * @param int $serverId
+     * @param array $server
      * @param string $relativeUri
      * @param HttpSocket|null $HttpSocket
      * @return array
      * @throws Exception
      */
-    private function serverGetRequest($serverId, $relativeUri, HttpSocket $HttpSocket = null)
+    private function serverGetRequest(array $server, $relativeUri, HttpSocket $HttpSocket = null)
     {
-        $server = $this->find('first', array(
-            'conditions' => array('Server.id' => $serverId),
-        ));
-        if ($server === null) {
-            throw new Exception(__("Server with ID '$serverId' not found."));
-        }
-
-        if (!$HttpSocket) {
-            $HttpSocket = $this->setupHttpSocket($server);
-        }
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
 
         $uri = $server['Server']['url'] . $relativeUri;
         $response = $HttpSocket->get($uri, array(), $request);
 
-        if ($response === false) {
-            throw new Exception(__("Could not reach '$uri'."));
-        } else if ($response->code == 404) { // intentional !=
-            throw new NotFoundException(__("Fetching the '$uri' failed with HTTP error 404: Not Found"));
+        if ($response->code == 404) { // intentional !=
+            throw new NotFoundException(__("Fetching the '%s' failed with HTTP error 404: Not Found", $uri));
         } else if ($response->code == 405) { // intentional !=
             $responseText = json_decode($response->body, true);
             if ($responseText !== null) {
-                throw new Exception(sprintf(__("Fetching the '$uri' failed with HTTP error %s: %s"), $response->code, $responseText['message']));
+                throw new Exception(__("Fetching the '%s' failed with HTTP error %s: %s", $uri, $response->code, $responseText['message']));
             }
         }
 
         if ($response->code != 200) { // intentional !=
-            throw new Exception(sprintf(__("Fetching the '$uri' failed with HTTP error %s: %s"), $response->code, $response->reasonPhrase));
+            throw new Exception(__("Fetching the '%s' failed with HTTP error %s: %s", $uri, $response->code, $response->reasonPhrase));
         }
 
-        $data = json_decode($response->body, true);
-        if ($data === null) {
-            throw new Exception(__('Could not parse JSON: ') . json_last_error_msg(), json_last_error());
-        }
+        $data = $this->jsonDecode($response->body);
 
         return array($data, $response);
     }
