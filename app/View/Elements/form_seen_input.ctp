@@ -45,32 +45,32 @@ function extractDatetimePart(text) {
     }
 }
 
-$(document).ready(function() {
-    var sliders_container = "#bothSeenSliderContainer"
+$(function() {
+    var $sliders_container = $("#bothSeenSliderContainer");
     var inputs_container = $('<div class="input-group input-daterange"></div>');
     // create separate date and time input
-    var date_div_fs = $('<div class="input clear larger-input-field" style="margin-left: 10px;"></div>').append(
+    var date_div_fs = $('<div class="input clear" style="width: 257px"></div>').append(
         $('<label><?php echo __('First seen date') . '<span class="fas fa-calendar label-icon"></span>'; ?><input id="date_fs" type="text" style="width: 240px;"></input></label>')
     );
     $(inputs_container).append(date_div_fs);
-    var date_div_ls = $('<div class="input text larger-input-field"></div>').append(
+    var date_div_ls = $('<div class="input text" style="width: 257px"></div>').append(
         $('<label><?php echo __('Last seen date') . '<span class="fas fa-calendar label-icon"></span>'; ?><input id="date_ls" type="text" style="width: 240px;"></input></label>')
     );
     $(inputs_container).append(date_div_ls);
-    $(sliders_container).append(inputs_container);
+    $sliders_container.append(inputs_container);
 
-    var time_div_fs = $('<div class="input clear larger-input-field" style="margin-left: 10px;"></div>').append(
+    var time_div_fs = $('<div class="input clear" style="width: 257px"></div>').append(
         $('<label><?php echo __('First seen time') . '<span class="fas fa-clock label-icon"></span>'; ?><input id="time_fs" type="text" style="width: 240px; text-align: center; margin-bottom: 0px" placeholder="HH:MM:SS.ssssss+TT:TT"></input></label>'),
         $('<span class="apply_css_arrow"></span>').text('<?php echo __('Expected format: HH:MM:SS.ssssss+TT:TT') ?>')
     );
-    $(sliders_container).append(time_div_fs);
-    var time_div_ls = $('<div class="input larger-input-field"></div>').append(
+    $sliders_container.append(time_div_fs);
+    var time_div_ls = $('<div class="input" style="width: 257px"></div>').append(
         $('<label><?php echo __('Last seen time') . '<span class="fas fa-clock label-icon"></span>'; ?><input id="time_ls" type="text" style="width: 240px; text-align: center; margin-bottom: 0px" placeholder="HH:MM:SS.ssssss+TT:TT"></input></label>'),
         $('<span class="apply_css_arrow"></span>').text('<?php echo __('Expected format: HH:MM:SS.ssssss+TT:TT') ?>')
     );
-    $(sliders_container).append(time_div_ls);
+    $sliders_container.append(time_div_ls);
 
-    $('#'+controller+'FirstSeen').closest('form').submit(function( event ) {
+    $('#'+controller+'FirstSeen').closest('form').submit(function() {
         reflect_change_on_form();
     });
 
