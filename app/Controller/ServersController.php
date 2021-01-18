@@ -164,6 +164,10 @@ class ServersController extends AppController
             $this->redirect(array('action' => 'previewIndex', $serverId));
         }
 
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($event, $this->response->type());
+        }
+
         $this->loadModel('Warninglist');
         if (isset($event['Event']['Attribute'])) {
             $this->Warninglist->attachWarninglistToAttributes($event['Event']['Attribute']);
