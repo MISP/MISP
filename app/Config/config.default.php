@@ -6,6 +6,7 @@ $config = array(
 			'level'      => 'medium',
 			'salt'       => '',
 			'cipherSeed' => '',
+            'require_password_confirmation' => true
 			//'auth'=>array('CertAuth.Certificate'), // additional authentication methods
 			//'auth'=>array('ShibbAuth.ApacheShibb'),
 		),
