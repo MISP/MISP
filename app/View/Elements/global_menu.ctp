@@ -468,7 +468,7 @@
                     (!empty($homepage['path']) && $homepage['path'] === $this->here) ? 'orange' : '',
 		    __('Set the current page as your home page in MISP'),
 		    __('Set the current page as your home page in MISP'),
-                    $this->here
+                    h($this->here)
                 )
             ),
             array(
