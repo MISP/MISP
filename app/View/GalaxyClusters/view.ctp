@@ -58,15 +58,15 @@
         'field' => array('data_path' => 'distribution')
     ));
     $table_data[] = array(
-        'key' => __('Owner Organisation'), 
+        'key' => __('Owner Organisation'),
         'html' => $this->OrgImg->getOrgImg(array('name' => $cluster['GalaxyCluster']['Org']['name'], 'id' => $cluster['GalaxyCluster']['Org']['id'], 'size' => 18), true),
     );
     $table_data[] = array(
-        'key' => __('Creator Organisation'), 
+        'key' => __('Creator Organisation'),
         'html' => $this->OrgImg->getOrgImg(array('name' => $cluster['GalaxyCluster']['Orgc']['name'], 'id' => $cluster['GalaxyCluster']['Orgc']['id'], 'size' => 18), true),
     );
     $table_data[] = array('key' => __('Connector tag'), 'value' => $cluster['GalaxyCluster']['tag_name']);
-    $table_data[] = array('key' => __('Events'), 'html' => isset($cluster['GalaxyCluster']['tag_count']) ? 
+    $table_data[] = array('key' => __('Events'), 'html' => isset($cluster['GalaxyCluster']['tag_count']) ?
                         sprintf('<a href="%s">%s</a>',
                             sprintf('%s/events/index/searchtag:%s', $baseurl, h($cluster['GalaxyCluster']['tag_id'])),
                             __n('%s event', '%s events', $cluster['GalaxyCluster']['tag_count'], h($cluster['GalaxyCluster']['tag_count']))
@@ -85,7 +85,7 @@
     <div class="row-fluid">
         <div class="span8">
             <h2>
-                <?= sprintf('%s :: %s', h($cluster['GalaxyCluster']['Galaxy']['name']), $cluster['GalaxyCluster']['value']); ?>
+                <?= sprintf('%s :: %s', h($cluster['GalaxyCluster']['Galaxy']['name']), h($cluster['GalaxyCluster']['value'])); ?>
             </h2>
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
