@@ -1703,23 +1703,17 @@ class ServersController extends AppController
                     $result['status'] = 8;
                     return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
                 }
-                return new CakeResponse(
-                        array(
-                        'body'=> json_encode(
-                            array(
-                                'status' => 1,
-                                'local_version' => implode('.', $local_version),
-                                'version' => implode('.', $version),
-                                'mismatch' => $mismatch,
-                                'newer' => $newer,
-                                'post' => isset($post) ? $post['status'] : 'too old',
-                                'response_encoding' => isset($post['content-encoding']) ? $post['content-encoding'] : null,
-                                'client_certificate' => $result['client_certificate'],
-                                )
-                            ),
-                            'type' => 'json'
-                        )
-                    );
+                return $this->RestResponse->viewData([
+                    'status' => 1,
+                    'local_version' => implode('.', $local_version),
+                    'version' => implode('.', $version),
+                    'mismatch' => $mismatch,
+                    'newer' => $newer,
+                    'post' => isset($post) ? $post['status'] : 'too old',
+                    'response_encoding' => isset($post['content-encoding']) ? $post['content-encoding'] : null,
+                    'request_encoding' => isset($result['info']['request_encoding']) ? $result['info']['request_encoding'] : null,
+                    'client_certificate' => $result['client_certificate'],
+                ], 'json');
             } else {
                 $result['status'] = 3;
             }
@@ -1799,17 +1793,15 @@ class ServersController extends AppController
 
     public function getVersion()
     {
-        if (!$this->userRole['perm_auth']) {
-            throw new MethodNotAllowedException('This action requires API access.');
-        }
         $versionArray = $this->Server->checkMISPVersion();
-        $this->set('response', array(
+        $response = [
             'version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'],
             'perm_sync' => $this->userRole['perm_sync'],
             'perm_sighting' => $this->userRole['perm_sighting'],
             'perm_galaxy_editor' => $this->userRole['perm_galaxy_editor'],
-        ));
-        $this->set('_serialize', 'response');
+            'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
+        ];
+        return $this->RestResponse->viewData($response, $this->response->type());
     }
 
     public function getPyMISPVersion()

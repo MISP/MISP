@@ -492,7 +492,7 @@ class ACLComponent extends Component
                     'getSubmodulesStatus' => array(),
                     'getSubmoduleQuickUpdateForm' => array(),
                     'getWorkers' => array(),
-                    'getVersion' => array('*'),
+                    'getVersion' => array('perm_auth'),
                     'idTranslator' => ['OR' => [
                         'host_org_user',
                         'perm_site_admin',
