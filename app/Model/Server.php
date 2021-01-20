@@ -3947,15 +3947,19 @@ class Server extends AppModel
             $final .= implode("\n", $output) . "\n\n";
         }
         if (!empty($settings['branch'])) {
-            $branchname = preg_match('/$[a-z0-9\_]+/i', $settings['branch']);
-            $checkout_command = $workingDirectoryPrefix . 'git checkout ' . escapeshellarg($branchname) . ' 2>&1';
-            exec($checkout_command, $output, $returnCode);
-            $raw[] = array(
-                'input' => $command1,
-                'output' => $output,
-                'status' => $returnCode,
-            );
-            $status = $this->getCurrentGitStatus();
+            $branchname = false;
+            preg_match('/^[a-z0-9\_]+/i', $settings['branch'], $branchname);
+            if (!empty($branchname)) {
+                $branchname = $branchname[0];
+                $checkout_command = $workingDirectoryPrefix . 'git checkout ' . escapeshellarg($branchname) . ' 2>&1';
+                exec($checkout_command, $output, $returnCode);
+                $raw[] = array(
+                    'input' => $checkout_command,
+                    'output' => $output,
+                    'status' => $returnCode,
+                );
+                $status = $this->getCurrentGitStatus();
+            }
         }
         $command1 = $workingDirectoryPrefix . 'git pull origin ' . escapeshellarg($status['branch']) . ' 2>&1';
         $command2 = $workingDirectoryPrefix . 'git submodule update --init --recursive 2>&1';
