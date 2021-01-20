@@ -1823,9 +1823,19 @@ class ServersController extends AppController
         $result = $this->Server->checkoutMain();
     }
 
-    public function update()
+    public function update($branch = false)
     {
         if ($this->request->is('post')) {
+            $branch = false;
+            $filterData = array(
+                'request' => $this->request,
+                'named_params' => $this->params['named'],
+                'paramArray' => ['branch'],
+                'ordered_url_params' => @compact($paramArray),
+                'additional_delimiters' => PHP_EOL
+            );
+            $exception = false;
+            $settings = $this->_harvestParameters($filterData, $exception);
             $status = $this->Server->getCurrentGitStatus();
             $raw = array();
             if (empty($status['branch'])) { // do not try to update if you are not on branch
@@ -1833,7 +1843,7 @@ class ServersController extends AppController
                 $raw[] = $msg;
                 $update = $msg;
             } else {
-                $update = $this->Server->update($status, $raw);
+                $update = $this->Server->update($status, $raw, $settings);
             }
             if ($this->_isRest()) {
                 return $this->RestResponse->viewData(array('results' => $raw), $this->response->type());

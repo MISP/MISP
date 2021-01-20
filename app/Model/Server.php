@@ -3924,7 +3924,7 @@ class Server extends AppModel
         return implode('\n', $result);
     }
 
-    public function update(array $status, &$raw = array())
+    public function update(array $status, &$raw = [], array $settings = [])
     {
         $final = '';
         $workingDirectoryPrefix = 'cd $(git rev-parse --show-toplevel) && ';
@@ -3943,7 +3943,18 @@ class Server extends AppModel
             );
             $final .= implode("\n", $output) . "\n\n";
         }
-        $command1 = $workingDirectoryPrefix . 'git pull origin ' . $status['branch'] . ' 2>&1';
+        if (!empty($settings['branch'])) {
+            $branchname = preg_match('/$[a-z0-9\_]+/i', $settings['branch']);
+            $checkout_command = $workingDirectoryPrefix . 'git checkout ' . escapeshellarg($branchname) . ' 2>&1';
+            exec($checkout_command, $output, $returnCode);
+            $raw[] = array(
+                'input' => $command1,
+                'output' => $output,
+                'status' => $returnCode,
+            );
+            $status = $this->getCurrentGitStatus();
+        }
+        $command1 = $workingDirectoryPrefix . 'git pull origin ' . escapeshellarg($status['branch']) . ' 2>&1';
         $command2 = $workingDirectoryPrefix . 'git submodule update --init --recursive 2>&1';
         $final .= $command1 . "\n\n";
         $returnCode = false;
