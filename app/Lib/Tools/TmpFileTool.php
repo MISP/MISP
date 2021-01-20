@@ -68,7 +68,7 @@ class TmpFileTool
     }
 
     /**
-     * Get one line from file parsed as CSV.
+     * Returns generator of parsed CSV line from file.
      *
      * @param string $delimiter
      * @param string $enclosure
@@ -76,7 +76,7 @@ class TmpFileTool
      * @return Generator
      * @throws Exception
      */
-    public function csv($delimiter = ',', $enclosure = '"', $escape = "\\")
+    public function intoParsedCsv($delimiter = ',', $enclosure = '"', $escape = "\\")
     {
         $this->rewind();
         $line = 0;
@@ -88,15 +88,16 @@ class TmpFileTool
             $line++;
             yield $result;
         }
-        fclose($this->tmpfile);
-        $this->tmpfile = null;
+        $this->close();
     }
 
     /**
+     * Returns generator of line from file.
+     *
      * @return Generator
      * @throws Exception
      */
-    public function lines()
+    public function intoLines()
     {
         $this->rewind();
         while (!feof($this->tmpfile)) {
@@ -106,24 +107,64 @@ class TmpFileTool
             }
             yield $result;
         }
-        fclose($this->tmpfile);
-        $this->tmpfile = null;
+        $this->close();
+    }
+
+    /**
+     * @param int $chunkSize In bytes
+     * @return Generator
+     * @throws Exception
+     */
+    public function intoChunks($chunkSize = 8192)
+    {
+        $this->rewind();
+        while (!feof($this->tmpfile)) {
+            $result = fread($this->tmpfile, $chunkSize);
+            if ($result === false) {
+                throw new Exception('Could not read from temporary file.');
+            }
+            yield $result;
+        }
+        $this->close();
     }
 
     /**
      * @return string
      * @throws Exception
      */
-    public function finish()
+    public function intoString()
     {
         $this->rewind();
-        $final = stream_get_contents($this->tmpfile);
-        if ($final === false) {
+        $string = stream_get_contents($this->tmpfile);
+        if ($string === false) {
             throw new Exception('Could not read from temporary file.');
         }
-        fclose($this->tmpfile);
-        $this->tmpfile = null;
-        return $final;
+        $this->close();
+        return $string;
+    }
+
+    /**
+     * Pass data to output.
+     *
+     * @throws Exception
+     */
+    public function intoOutput()
+    {
+        $this->rewind();
+        if (fpassthru($this->tmpfile) === false) {
+            throw new Exception('Could not pass temporary file to output.');
+        }
+        $this->close();
+    }
+
+    /**
+     * @return int
+     * @throws Exception
+     */
+    public function size()
+    {
+        $this->isOpen();
+        return fstat($this->tmpfile)['size'];
     }
 
     /**
@@ -132,7 +173,30 @@ class TmpFileTool
      */
     public function __toString()
     {
-        return $this->finish();
+        return $this->intoString();
+    }
+
+    /**
+     * @return bool
+     */
+    public function close()
+    {
+        if ($this->tmpfile) {
+            $result = fclose($this->tmpfile);
+            $this->tmpfile = null;
+            return $result;
+        }
+        return true;
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function isOpen()
+    {
+        if ($this->tmpfile === null) {
+            throw new Exception('Temporary file is already closed.');
+        }
     }
 
     /**
@@ -142,6 +206,7 @@ class TmpFileTool
      */
     private function rewind()
     {
+        $this->isOpen();
         if (fseek($this->tmpfile, 0) === -1) {
             throw new Exception('Could not seek to start of temporary file.');
         }

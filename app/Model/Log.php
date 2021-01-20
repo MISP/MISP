@@ -336,6 +336,11 @@ class Log extends AppModel
             $elasticSearchClient->pushDocument($logIndex, "log", $data);
         }
 
+        // Do not save request action logs to syslog, because they contain no information
+        if ($data['Log']['action'] === 'request') {
+            return true;
+        }
+
         // write to syslogd as well if enabled
         if ($this->syslog === null) {
             if (Configure::read('Security.syslog')) {

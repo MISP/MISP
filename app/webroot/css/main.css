@@ -2678,7 +2678,7 @@ table tr:hover .down-expand-button {
 
 a.orgImg {
     background-repeat: no-repeat;
-    background-size: 20px;
+    background-size: auto 20px;
     padding-left: 25px;
     padding-top: 3px;
     padding-bottom: 3px;
@@ -2686,4 +2686,46 @@ a.orgImg {
 
 .misp-error-container {
     margin: 0 20px;
+}
+
+th.rotate {
+    /* Something you can count on */
+    height: 100px;
+    white-space: nowrap;
+    vertical-align: inherit !important;
+}
+
+th.rotate > div {
+    transform:
+        /* Magic Numbers */
+            translate(15px, 30px)
+                /* 45 is really 360 - 45 */
+            rotate(315deg);
+    width: 25px;
+}
+
+th.rotate > div > span {
+    padding: 5px 0;
+}
+
+td.rotate {
+    text-align: center;
+}
+
+th.rotate, td.rotate {
+    width: 25px;
+}
+
+th.rotate + th:not(.rotate) {
+    padding-left: 30px;
+}
+
+td.rotate + td:not(.rotate) {
+    padding-left: 30px;
+}
+
+.diagnostics-box {
+    background-color: #f7f7f9;
+    width: 400px;
+    padding: .3em 0.5em;
 }

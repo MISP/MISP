@@ -23,12 +23,17 @@
         $table_data[] = array('key' => __('Event ID'), 'value' => $event['Event']['id']);
         $table_data[] = array(
             'key' => 'UUID',
-            'html' => sprintf('<span class="quickSelect">%s</span> %s',
+            'html' => sprintf('<span class="quickSelect">%s</span>%s%s',
                 $event['Event']['uuid'],
-                $isAclAdd ? sprintf('<a href="%s/events/add/extends:%s" class="btn btn-inverse noPrint" style="line-height: 10px; padding: 4px 4px; margin-left: 0.3em" title="%s">+</a>',
+                $isAclAdd ? sprintf(' <a href="%s/events/add/extends:%s" style="color:black; font-size:15px;padding-left:2px" title="%s"><i class="fas fa-plus-square"></i></a>',
                     $baseurl,
                     $event['Event']['id'],
                     __('Extend this event')
+                ) : '',
+                $isSiteAdmin || $hostOrgUser ? sprintf(' <a href="%s/servers/idTranslator/%s" style="color:black; font-size:15px;padding-left:2px" title="%s"><i class="fas fa-server"></i></a>',
+                    $baseurl,
+                    $event['Event']['id'],
+                    __('Check this event on different servers')
                 ) : ''
             )
         );
@@ -74,17 +79,15 @@
             }
         }
         if (!empty($contributors)) {
-            $contributorsContent = '';
+            $contributorsContent = [];
             foreach ($contributors as $organisationId => $name) {
-                $contributorsContent .= sprintf(
-                    '<a href="%s">%s</a>',
-                    $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($name),
-                    $this->OrgImg->getOrgImg(array('name' => $name, 'id' => $organisationId, 'size' => 24), true, true)
-                );
+                $org = ['Organisation' => ['id' => $organisationId, 'name' => $name]];
+                $link = $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($name);
+                $contributorsContent[] =  $this->OrgImg->getNameWithImg($org, $link);
             }
             $table_data[] = array(
                 'key' => __('Contributors'),
-                'html' => $contributorsContent
+                'html' => implode("<br>", $contributorsContent),
             );
         }
         if (isset($event['User']['email'])) {
@@ -487,10 +490,10 @@
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventtimeline_toggle" data-toggle-type="eventtimeline" onclick="enable_timeline();">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle Event timeline');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event timeline');?>" style="vertical-align:top;"></span><?php echo __('Event timeline');?>
         </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="correlationgraph_toggle" data-toggle-type="correlationgraph" onclick="enable_correlation_graph();">
+        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="correlationgraph_toggle" data-toggle-type="correlationgraph" data-load-url="<?= $baseurl ?>/events/viewGraph/<?= h($event['Event']['id']) ?>">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle Correlation graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Correlation graph');?>" style="vertical-align:top;"></span><?php echo __('Correlation graph');?>
         </button>
-        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attackmatrix_toggle" data-toggle-type="attackmatrix" onclick="enable_attack_matrix();">
+        <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attackmatrix_toggle" data-toggle-type="attackmatrix" data-load-url="<?= $baseurl; ?>/events/viewGalaxyMatrix/<?= h($event['Event']['id']) ?>/mitre-attack/event/1">
             <span class="icon-plus icon-white" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>" style="vertical-align:top;"></span><?php echo __('ATT&CK matrix');?>
         </button>
         <button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventreport_toggle" data-toggle-type="eventreport">
@@ -536,7 +539,7 @@
 </div>
 <script type="text/javascript">
 var showContext = false;
-$(document).ready(function () {
+$(function () {
     queryEventLock('<?php echo h($event['Event']['id']); ?>', '<?php echo h($me['org_id']); ?>');
     popoverStartup();
 
@@ -557,18 +560,5 @@ $(document).ready(function () {
         }
     });
 });
-
-function enable_correlation_graph() {
-    $.get("<?= $baseurl ?>/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
-        $("#correlationgraph_div").html(data);
-    });
-}
-
-function enable_attack_matrix() {
-    $.get("<?= $baseurl; ?>/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/mitre-attack/event/1", function(data) {
-        $("#attackmatrix_div").html(data);
-    });
-}
-
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />

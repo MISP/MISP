@@ -477,6 +477,24 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                 break;
 
+                case 'correlationExclusions':
+                    if ($menuItem === 'view') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'text' => __('View Correlation Exclusion')
+                        ));
+                    }
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => $baseurl . '/correlation_exclusions/index',
+                        'text' => __('List Correlation Exclusions')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'add',
+                        'url' => $baseurl . '/correlation_exclusions/add',
+                        'text' => __('Add Correlation Exclusion')
+                    ));
+                    break;
                 case 'warninglist':
                     if ($menuItem === 'view') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -735,6 +753,10 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                             'text' => __('New Servers')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/servers/compareServers',
+                            'text' => __('Server overlap analysis matrix'),
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/communities/index',
                             'text' => __('List Communities'),
                             'element_id' => 'list_communities'
@@ -762,7 +784,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     if ($menuItem === 'id_translator') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'text' => __('Event ID translator'),
-                            'url' => '/servers/id_translator',
+                            'url' => '/servers/idTranslator',
                             'element_id' => 'id_translator'
                         ));
                     }
@@ -933,7 +955,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'indexRole',
-                        'url' => $baseurl . '/admin/roles/index',
+                        'url' => $baseurl . '/roles/index',
                         'text' => __('List Roles')
                     ));
                     if ($isSiteAdmin) {

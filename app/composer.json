@@ -23,6 +23,7 @@
         "ext-redis": "For working background jobs and feed and warninglist caches",
         "ext-zip": "Enabling processing feeds that are ZIP compressed",
         "ext-zlib": "Allow gzip compression of HTTP responses",
+        "ext-brotli": "Allow brotli compression of HTTP responses",
         "ext-intl": "For handling IDN domain names",
         "ext-ssdeep": "For ssdeep hashes correlation",
         "ext-bcmath": "For faster validating IBAN numbers",

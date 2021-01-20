@@ -66,7 +66,7 @@ class LogsController extends AppController
                         $conditions['AND'][] = array('created <= ' => date("Y-m-d H:i:s", $tempData[0]));
                         $conditions['AND'][] = array('created >= ' => date("Y-m-d H:i:s", $tempData[1]));
                     }
-                } else {
+                } else if ($filter !== 'limit' && $filter !== 'page') {
                     $data = array('OR' => $data);
                     $conditions = $this->Log->generic_add_filter($conditions, $data, 'Log.' . $filter);
                 }
@@ -88,20 +88,13 @@ class LogsController extends AppController
             $log_entries = $this->Log->find('all', $params);
             return $this->RestResponse->viewData($log_entries, 'json');
         } else {
-            if (!$this->userRole['perm_audit']) {
-                $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-            }
             $this->set('isSearch', 0);
             $this->recursive = 0;
             $validFilters = $this->Log->logMeta;
             if (!$this->_isSiteAdmin()) {
                 $orgRestriction = $this->Auth->user('Organisation')['name'];
                 $conditions['Log.org'] = $orgRestriction;
-                $this->paginate = array(
-                        'limit' => 60,
-                        'conditions' => $conditions,
-                        'order' => array('Log.id' => 'DESC')
-                );
+                $this->paginate['conditions'] = $conditions;
             } else {
                 $validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
             }
@@ -117,15 +110,14 @@ class LogsController extends AppController
     // Shows a minimalistic history for the currently selected event
     public function event_index($id)
     {
-        // check if the user has access to this event...
-        $mayModify = false;
         $this->loadModel('Event');
         $event = $this->Event->fetchEvent($this->Auth->user(), array(
             'eventid' => $id,
-            'includeAllTags' => 1,
             'sgReferenceOnly' => 1,
             'deleted' => [0, 1],
-            'deleted_proposals' => 1
+            'deleted_proposals' => 1,
+            'noSightings' => true,
+            'noEventReports' => true,
         ));
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
@@ -190,57 +182,50 @@ class LogsController extends AppController
                 )
             );
         }
-        // send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
-        $mineOrAdmin = true;
-        if (!$this->_isSiteAdmin() && $event['Event']['org_id'] != $this->Auth->user('org_id')) {
-            $mineOrAdmin = false;
-        }
-        $this->set('published', $event['Event']['published']);
-        if ($mineOrAdmin && $this->userRole['perm_modify']) {
-            $mayModify = true;
-        }
 
-        $fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org', 'email');
-        $this->paginate = array(
-                'limit' => 60,
-                'conditions' => $conditions,
-                'order' => array('Log.id' => 'DESC'),
-                'fields' => $fieldList
-        );
+        $this->paginate['fields'] = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org', 'email');
+        $this->paginate['conditions'] = $conditions;
+
         $list = $this->paginate();
         if (!$this->_isSiteAdmin()) {
             $this->loadModel('User');
-            $emails = $this->User->find('list', array(
-                    'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
-                    'fields' => array('User.id', 'User.email')
+            $orgEmails = $this->User->find('column', array(
+                'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
+                'fields' => array('User.email')
             ));
             foreach ($list as $k => $item) {
-                if (!in_array($item['Log']['email'], $emails)) {
+                if (!in_array($item['Log']['email'], $orgEmails)) {
                     $list[$k]['Log']['email'] = '';
                 }
             }
         }
         if ($this->_isRest()) {
-            foreach ($list as $k => $item) {
-                $list[$k] = $item['Log'];
-            }
-            $list = array('Log' => $list);
+            $list = array('Log' => array_column($list, 'Log'));
             return $this->RestResponse->viewData($list, $this->response->type());
-        } else {
-            $this->set('event', $event);
-            $this->set('list', $list);
-            $this->set('eventId', $id);
-            $this->set('mayModify', $mayModify);
         }
+
+        // send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
+        $mineOrAdmin = true;
+        if (!$this->_isSiteAdmin() && $event['Event']['org_id'] != $this->Auth->user('org_id')) {
+            $mineOrAdmin = false;
+        }
+
+        $mayModify = false;
+        if ($mineOrAdmin && $this->userRole['perm_modify']) {
+            $mayModify = true;
+        }
+
+        $this->set('published', $event['Event']['published']);
+        $this->set('event', $event);
+        $this->set('list', $list);
+        $this->set('eventId', $id);
+        $this->set('mayModify', $mayModify);
     }
 
     public $helpers = array('Js' => array('Jquery'), 'Highlight');
 
     public function admin_search($new = false)
     {
-        if (!$this->userRole['perm_audit']) {
-            $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-        }
         $orgRestriction = null;
         if ($this->_isSiteAdmin()) {
             $orgRestriction = false;

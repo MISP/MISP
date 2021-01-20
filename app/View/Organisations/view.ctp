@@ -66,9 +66,12 @@
         <button id="button_members" class="btn btn-inverse toggle-left qet orgViewButton" onClick="organisationViewContent('members', '<?php echo $id;?>');"><?php echo __('Members');?></button>
         <button id="button_members_active" style="display:none;" class="btn btn-primary toggle-left qet orgViewButtonActive" onClick="organisationViewContent('members', '<?php echo $id;?>');"><?php echo __('Members');?></button>
 
-        <button id="button_events" class="btn btn-inverse toggle-right qet orgViewButton" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
-        <button id="button_events_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
-    <br /><br />
+        <button id="button_events" class="btn btn-inverse toggle qet orgViewButton" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
+        <button id="button_events_active" style="display:none;" class="btn btn-primary toggle qet orgViewButtonActive" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
+
+        <button id="button_sharing_groups" class="btn btn-inverse toggle-right qet orgViewButton" onClick="organisationViewContent('sharing_groups', '<?= $id ?>');"><?= __('Sharing Groups') ?></button>
+        <button id="button_sharing_groups_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onClick="organisationViewContent('sharing_groups', '<?= $id ?>');"><?= __('Sharing Groups') ?></button>
+        <br><br>
     <?php endif;?>
     <?php
         echo $this->Html->script('vis');

@@ -57,7 +57,8 @@ class OrganisationsController extends AppController
         }
 
         $this->paginate['conditions'] = $conditions;
-        $usersPerOrg = $this->User->getMembersCount();
+
+        $this->Organisation->addCountField('user_count', $this->User, ['User.org_id = Organisation.id']);
         if ($this->_isRest()) {
             unset($this->paginate['limit']);
             $orgs = $this->Organisation->find('all', $this->paginate);
@@ -69,12 +70,10 @@ class OrganisationsController extends AppController
             $this->set('viewall', $viewAll);
             $orgs = $this->paginate();
         }
+
         $this->loadModel('User');
         $org_creator_ids = array();
         foreach ($orgs as $k => $org) {
-            if (isset($usersPerOrg[$org['Organisation']['id']])) {
-                $orgs[$k]['Organisation']['user_count'] = $usersPerOrg[$org['Organisation']['id']];
-            }
             if ($this->_isSiteAdmin()) {
                 if (!isset($org_creator_ids[$org['Organisation']['created_by']])) {
                     $email = $this->User->find('first', array(
@@ -318,10 +317,16 @@ class OrganisationsController extends AppController
             return new CakeResponse(['status' => $exists ? 200 : 404]);
         }
 
+        $fields = ['id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid', 'restricted_to_domain', 'created_by'];
+        if ($this->_isRest()) {
+            $this->Organisation->addCountField('user_count', $this->User, ['User.org_id = Organisation.id']);
+            $fields[] = 'user_count';
+        }
+
         $org = $this->Organisation->find('first', array(
             'conditions' => $conditions,
             'recursive' => -1,
-            'fields' => ['id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid', 'restricted_to_domain', 'created_by'],
+            'fields' => $fields,
         ));
         if (!$org || !$this->Organisation->canSee($this->Auth->user(), $org['Organisation']['id'])) {
             throw new NotFoundException(__('Invalid organisation'));
@@ -342,7 +347,6 @@ class OrganisationsController extends AppController
         }
 
         if ($this->_isRest()) {
-            $org['Organisation']['user_count'] = $this->Organisation->User->getMembersCount($org['Organisation']['id']);
             return $this->RestResponse->viewData($org, $this->response->type());
         }
 

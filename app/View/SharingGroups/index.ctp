@@ -1,11 +1,21 @@
-<div class="sharing_groups index">
-<?php
-echo $this->element('/genericElements/IndexTable/index_table', array(
+<div class="sharing_groups<?php if (!$ajax) echo ' index' ?>">
+<?= $this->element('/genericElements/IndexTable/index_table', array(
     'data' => array(
         'title' => __('Sharing Groups'),
         'data' => $sharingGroups,
-        'top_bar' => array(
+        'top_bar' => $ajax ? [] : array(
             'children' => array(
+                array(
+                    'type' => 'simple',
+                    'children' => array(
+                        array(
+                            'text' => __('Add'),
+                            'fa-icon' => 'plus',
+                            'url' => $baseurl . '/sharing_groups/add',
+                            'requirement' => $isAclSharingGroup,
+                        )
+                    )
+                ),
                 array(
                     'type' => 'simple',
                     'children' => array(
@@ -68,36 +78,42 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
             ),
             array(
                 'name' => __('Org count'),
-                'element' => 'custom',
                 'class' => 'short',
-                'function' => function (array $sharingGroup) {
-                    echo count($sharingGroup['SharingGroupOrg']);
-                }
+                'sort' => 'SharingGroup.org_count',
+                'data_path' => 'SharingGroup.org_count',
             ),
             array(
                 'name' => __('Releasable to'),
                 'element' => 'custom',
                 'function' => function (array $sharingGroup) use ($baseurl) {
                     $combined = __("Organisations:");
-                    if (empty($sharingGroup['SharingGroupOrg'])) $combined .= "<br>N/A";
-                    foreach ($sharingGroup['SharingGroupOrg'] as $sge) {
-                        if (!empty($sge['Organisation'])) {
-                            $combined .= "<br><a href='" . $baseurl . "/organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
-                            if ($sge['extend']) $combined .= ' (can extend)';
+                    if (empty($sharingGroup['SharingGroupOrg'])) {
+                        $combined .= "<br>N/A";
+                    } else {
+                        foreach ($sharingGroup['SharingGroupOrg'] as $sge) {
+                            if (!empty($sge['Organisation'])) {
+                                $combined .= "<br><a href='" . $baseurl . "/organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
+                                if ($sge['extend']) {
+                                    $combined .= ' (can extend)';
+                                }
+                            }
                         }
                     }
                     $combined .= '<hr style="margin:5px 0;"><br>Instances:';
-                    if (empty($sharingGroup['SharingGroupServer'])) $combined .= "<br>N/A";
-                    foreach ($sharingGroup['SharingGroupServer'] as $sgs) {
-                        if ($sgs['server_id'] != 0) {
-                            $combined .= "<br><a href='" . $baseurl . "/server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
-                        } else {
-                            $combined .= "<br>This instance";
-                        }
-                        if ($sgs['all_orgs']) {
-                            $combined .= ' (all organisations)';
-                        } else {
-                            $combined .= ' (as defined above)';
+                    if (empty($sharingGroup['SharingGroupServer'])) {
+                        $combined .= "<br>N/A";
+                    } else {
+                        foreach ($sharingGroup['SharingGroupServer'] as $sgs) {
+                            if ($sgs['server_id'] != 0) {
+                                $combined .= "<br><a href='" . $baseurl . "/server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
+                            } else {
+                                $combined .= "<br>This instance";
+                            }
+                            if ($sgs['all_orgs']) {
+                                $combined .= ' (all organisations)';
+                            } else {
+                                $combined .= ' (as defined above)';
+                            }
                         }
                     } ?>
                     <span data-toggle="popover" data-trigger="hover" title="<?= __('Distribution List') ?>" data-content="<?= h($combined) ?>">
@@ -152,4 +168,7 @@ echo $this->element('/genericElements/IndexTable/index_table', array(
         popoverStartup();
     });
 </script>
-<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
+<?php
+if (!$ajax) {
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
+}

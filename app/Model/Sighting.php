@@ -14,7 +14,8 @@ class Sighting extends AppModel
     // Possible values of `Plugin.Sightings_policy` setting
     const SIGHTING_POLICY_EVENT_OWNER = 0,
         SIGHTING_POLICY_SIGHTING_REPORTER = 1,
-        SIGHTING_POLICY_EVERYONE = 2;
+        SIGHTING_POLICY_EVERYONE = 2,
+        SIGHTING_POLICY_HOST_ORG = 3; // the same as SIGHTING_POLICY_EVENT_OWNER, but also sightings from host org are visible
 
     private $orgCache = [];
 
@@ -124,23 +125,54 @@ class Sighting extends AppModel
         }
     }
 
-    public function captureSighting($sighting, $attribute_id, $event_id, $user)
+    /**
+     * @param array $sightings
+     * @param int $attributeId
+     * @param int $eventId
+     * @param array $user
+     * @return bool
+     */
+    public function captureSightings(array $sightings, $attributeId, $eventId, array $user)
     {
-        $org_id = 0;
-        if (!empty($sighting['Organisation'])) {
-            $org_id = $this->Organisation->captureOrg($sighting['Organisation'], $user);
-        }
-        if (isset($sighting['id'])) {
+        // Since sightings are immutable (it is not possible to change it from web interface), we can check
+        // if sighting with given uuid already exists and skip them
+        $existingSighting = $this->existing($sightings);
+
+        // Fetch existing organisations in bulk
+        $existingOrganisations = $this->existingOrganisations($sightings);
+
+        $toSave = [];
+        foreach ($sightings as $sighting) {
+            if (isset($existingSighting[$sighting['uuid']])) {
+                continue; // already exists, skip
+            }
+
+            $orgId = 0;
+            if (isset($sighting['Organisation'])) {
+                if (isset($existingOrganisations[$sighting['Organisation']['uuid']])) {
+                    $orgId = $existingOrganisations[$sighting['Organisation']['uuid']];
+                } else {
+                    $orgId = $this->Organisation->captureOrg($sighting['Organisation'], $user);
+                }
+            }
             unset($sighting['id']);
+
+            $sighting['org_id'] = $orgId;
+            $sighting['event_id'] = $eventId;
+            $sighting['attribute_id'] = $attributeId;
+            $toSave[] = $sighting;
         }
-        $sighting['org_id'] = $org_id;
-        $sighting['event_id'] = $event_id;
-        $sighting['attribute_id'] = $attribute_id;
-        $this->create();
-        return $this->save($sighting);
+
+        return $this->saveMany($toSave);
     }
 
-    public function getSighting($id, $user)
+    /**
+     * @param int $id
+     * @param array $user
+     * @param bool $withEvent
+     * @return array
+     */
+    public function getSighting($id, array $user, $withEvent = true)
     {
         $sighting = $this->find('first', array(
             'recursive' => -1,
@@ -149,10 +181,7 @@ class Sighting extends AppModel
                     'fields' => array('Attribute.value', 'Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids')
                 ),
                 'Event' => array(
-                    'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'),
-                    'Orgc' => array(
-                        'fields' => array('Orgc.name')
-                    )
+                    'fields' => $withEvent ? ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'] : ['Event.org_id'],
                 )
             ),
             'conditions' => array('Sighting.id' => $id)
@@ -161,11 +190,7 @@ class Sighting extends AppModel
             return array();
         }
 
-        if (!isset($event)) {
-            $event = array('Event' => $sighting['Event']);
-        }
-
-        $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
+        $ownEvent = $user['Role']['perm_site_admin'] || $sighting['Event']['org_id'] == $user['org_id'];
         if (!$ownEvent) {
             $sightingPolicy = $this->sightingsPolicy();
             // if sighting policy == 0 then return false if the sighting doesn't belong to the user
@@ -180,27 +205,30 @@ class Sighting extends AppModel
                     return array();
                 }
             }
-        }
-        $anonymise = Configure::read('Plugin.Sightings_anonymise');
-        if ($anonymise) {
-            if ($sighting['Sighting']['org_id'] != $user['org_id']) {
-                unset($sighting['Sighting']['org_id']);
-                unset($sighting['Organisation']);
+            else if ($sightingPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                if ($sighting['Sighting']['org_id'] != $user['org_id'] || $sighting['Sighting']['org_id'] != Configure::read('MISP.host_org_id')) {
+                    return array();
+                }
             }
         }
-        // rearrange it to match the event format of fetchevent
-        if (isset($sighting['Organisation'])) {
-            $sighting['Sighting']['Organisation'] = $sighting['Organisation'];
-            unset($sighting['Organisation']);
+
+        // Put event organisation name from cache
+        if ($withEvent) {
+            $sighting['Event']['Orgc']['name'] = $this->getOrganisationById($sighting['Event']['orgc_id'])['name'];
         }
+
+        $anonymise = Configure::read('Plugin.Sightings_anonymise');
+        if ($anonymise && $sighting['Sighting']['org_id'] != $user['org_id']) {
+            unset($sighting['Sighting']['org_id']);
+        }
+        // rearrange it to match the event format of fetchevent
         $result = array(
             'Sighting' => $sighting['Sighting']
         );
-        $result['Sighting']['Event'] = $sighting['Event'];
-        $result['Sighting']['Attribute'] = $sighting['Attribute'];
-        if (!empty($sighting['Organisation'])) {
-            $result['Sighting']['Organisation'] = $sighting['Organisation'];
+        if ($withEvent) {
+            $result['Sighting']['Event'] = $sighting['Event'];
         }
+        $result['Sighting']['Attribute'] = $sighting['Attribute'];
         return $result;
     }
 
@@ -223,6 +251,8 @@ class Sighting extends AppModel
         $sightingsPolicy = $this->sightingsPolicy();
         if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
             $conditions['Sighting.org_id'] = $user['org_id'];
+        } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+            $conditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
         }
         // TODO: Currently, we dont support `SIGHTING_POLICY_SIGHTING_REPORTER` for tags
         $sparklineData = [];
@@ -269,6 +299,8 @@ class Sighting extends AppModel
                     if (!$this->isReporter($attribute['Event']['id'], $user['org_id'])) {
                         continue; // skip attribute
                     }
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                    $attributeConditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
                 }
             }
             $conditions['OR'][] = $attributeConditions;
@@ -290,19 +322,21 @@ class Sighting extends AppModel
             return ['data' => [], 'csv' => []];
         }
 
-        $sightingPolicy = $this->sightingsPolicy();
+        $sightingsPolicy = $this->sightingsPolicy();
 
         $conditions = [];
         foreach ($events as $event) {
             $eventCondition = ['Sighting.event_id' => $event['Event']['id']];
             $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
             if (!$ownEvent) {
-                if ($sightingPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+                if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
                     $eventCondition['Sighting.org_id'] = $user['org_id'];
-                } else if ($sightingPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
                     if (!$this->isReporter($event['Event']['id'], $user['org_id'])) {
                         continue;
                     }
+                } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                    $eventCondition['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
                 }
             }
             $conditions['OR'][] = $eventCondition;
@@ -368,7 +402,7 @@ class Sighting extends AppModel
             'contain' => [ucfirst($context) . 'Tag'],
             'conditions' => $conditions,
             'fields' => [ucfirst($context) . 'Tag.tag_id', 'date', 'sighting_count'],
-            'group' => [ucfirst($context) . 'Tag.id', 'date'],
+            'group' => [ucfirst($context) . 'Tag.tag_id', 'date'],
             'order' => ['date'], // from oldest
         ]);
         unset($this->virtualFields['date'], $this->virtualFields['sighting_count']);
@@ -517,13 +551,15 @@ class Sighting extends AppModel
 
         $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
         if (!$ownEvent) {
-            $sightingPolicy = $this->sightingsPolicy();
-            if ($sightingPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+            $sightingsPolicy = $this->sightingsPolicy();
+            if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
                 $conditions['Sighting.org_id'] = $user['org_id'];
-            } elseif ($sightingPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+            } elseif ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
                 if (!$this->isReporter($event['Event']['id'], $user['org_id'])) {
                     return array();
                 }
+            } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                $conditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
             }
         }
         if ($extraConditions !== false) {
@@ -659,6 +695,10 @@ class Sighting extends AppModel
         return $result;
     }
 
+    /**
+     * @return bool
+     * @deprecated
+     */
     public function addUuids()
     {
         $sightings = $this->find('all', array(
@@ -743,10 +783,14 @@ class Sighting extends AppModel
             return $sightings; // site admin can see all sightings, do not limit him
         }
         $sightingsPolicy = $this->sightingsPolicy();
-        if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+        if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER || $sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
             $userOrgId = $user['org_id'];
+            $allowedOrgs = [$userOrgId];
+            if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                $allowedOrgs[] = Configure::read('MISP.host_org_id');
+            }
             foreach ($sightings as $k => $sighting) {
-                if ($eventOwnerOrgIdList[$sighting['Sighting']['event_id']] !== $userOrgId && $sighting['Sighting']['org_id'] !== $userOrgId) {
+                if ($eventOwnerOrgIdList[$sighting['Sighting']['event_id']] !== $userOrgId && !in_array($sighting['Sighting']['org_id'], $allowedOrgs)) {
                     unset($sightings[$k]);
                 }
             }
@@ -789,9 +833,9 @@ class Sighting extends AppModel
         if (isset($filters['context']) && !in_array($filters['context'], $allowedContext, true)) {
             throw new MethodNotAllowedException(__('Invalid context.'));
         }
-        // ensure that an id is provided if context is set
-        if (!empty($filters['context']) && !isset($filters['id'])) {
-            throw new MethodNotAllowedException(__('An id must be provided if the context is set.'));
+        // ensure that an id or uuid is provided if context is set
+        if (!empty($filters['context']) && !(isset($filters['id']) || isset($filters['uuid'])) ) {
+            throw new MethodNotAllowedException(__('An ID or UUID must be provided if the context is set.'));
         }
 
         if (!isset($this->validFormats[$returnFormat][1])) {
@@ -811,7 +855,9 @@ class Sighting extends AppModel
         } else {
             $timeCondition = '30d';
         }
-        $conditions = $this->Attribute->setTimestampConditions($timeCondition, array(), $scope = 'Sighting.date_sighting');
+
+        $contain = [];
+        $conditions = $this->Attribute->setTimestampConditions($timeCondition, [], $scope = 'Sighting.date_sighting');
 
         if (isset($filters['type'])) {
             $conditions['Sighting.type'] = $filters['type'];
@@ -824,7 +870,11 @@ class Sighting extends AppModel
             }
             foreach ($filters['org_id'] as $k => $org_id) {
                 if (Validation::uuid($org_id)) {
-                    $org = $this->Organisation->find('first', array('conditions' => array('Organisation.uuid' => $org_id), 'recursive' => -1, 'fields' => array('Organisation.id')));
+                    $org = $this->Organisation->find('first', array(
+                        'conditions' => array('Organisation.uuid' => $org_id),
+                        'recursive' => -1,
+                        'fields' => array('Organisation.id'),
+                    ));
                     if (empty($org)) {
                         $filters['org_id'][$k] = -1;
                     } else {
@@ -847,56 +897,37 @@ class Sighting extends AppModel
             }
         }
 
-        // fetch sightings matching the query
-        $sightings = $this->find('list', array(
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'fields' => array('id'),
-        ));
-        $sightings = array_values($sightings);
-
-        $filters['requested_attributes'] = array('id', 'attribute_id', 'event_id', 'org_id', 'date_sighting', 'uuid', 'source', 'type');
-
-        // apply ACL and sighting policies
-        $allowedSightings = array();
-        $additional_attribute_added = false;
-        $additional_event_added = false;
-        foreach ($sightings as $sid) {
-            $sight = $this->getSighting($sid, $user);
-            if (!empty($sight)) {
-                $sight['Sighting']['value'] = $sight['Sighting']['Attribute']['value'];
-                // by default, do not include event and attribute
-                if (!isset($filters['includeAttribute']) || !$filters['includeAttribute']) {
-                    unset($sight["Sighting"]["Attribute"]);
-                } else if (!$additional_attribute_added) {
-                    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value'));
-                    $additional_attribute_added = true;
-                }
-
-                if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
-                    unset($sight["Sighting"]["Event"]);
-                } else if (!$additional_event_added) {
-                    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
-                    $additional_event_added = true;
-                }
-                if (!empty($sight)) {
-                    array_push($allowedSightings, $sight);
-                }
+        if (!empty($filters['uuid'])) {
+            if ($filters['context'] === 'attribute') {
+                $conditions['Attribute.uuid'] = $filters['uuid'];
+                $contain[] = 'Attribute';
+            } elseif ($filters['context'] === 'event') {
+                $conditions['Event.uuid'] = $filters['uuid'];
+                $contain[] = 'Event';
             }
         }
 
-        $params = array(
-            'conditions' => array(), //result already filtered
-        );
+        // fetch sightings matching the query
+        $sightingIds = $this->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['Sighting.id'],
+            'contain' => $contain,
+        ]);
 
-        if (!isset($this->validFormats[$returnFormat])) {
-            // this is where the new code path for the export modules will go
-            throw new NotFoundException('Invalid export format.');
+        $includeAttribute = isset($filters['includeAttribute']) && $filters['includeAttribute'];
+        $includeEvent = isset($filters['includeEvent']) && $filters['includeEvent'];
+        $requestedAttributes = ['id', 'attribute_id', 'event_id', 'org_id', 'date_sighting', 'uuid', 'source', 'type'];
+        if ($includeAttribute) {
+            $requestedAttributes = array_merge($requestedAttributes, ['attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value']);
         }
+        if ($includeEvent) {
+            $requestedAttributes = array_merge($requestedAttributes, ['event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name']);
+        }
+        $filters['requested_attributes'] = $requestedAttributes;
 
         $exportToolParams = array(
             'user' => $user,
-            'params' => $params,
+            'params' => ['conditions' => []],  //result already filtered
             'returnFormat' => $returnFormat,
             'scope' => 'Sighting',
             'filters' => $filters
@@ -904,57 +935,110 @@ class Sighting extends AppModel
 
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
+        $separator = $exportTool->separator($exportToolParams);
 
-        $temp = '';
-        $i = 0;
-        foreach ($allowedSightings as $sighting) {
-            $temp .= $exportTool->handler($sighting, $exportToolParams);
-            if ($temp !== '') {
-                if ($i != count($allowedSightings) -1) {
-                    $temp .= $exportTool->separator($exportToolParams);
+        foreach ($sightingIds as $sightingId) {
+            // apply ACL and sighting policies
+            $sighting = $this->getSighting($sightingId, $user, $includeEvent);
+            if (!empty($sighting)) {
+                $sighting['Sighting']['value'] = $sighting['Sighting']['Attribute']['value'];
+                if (!$includeAttribute) {
+                    unset($sighting['Sighting']['Attribute']);
                 }
+                $tmpfile->writeWithSeparator($exportTool->handler($sighting, $exportToolParams), $separator);
             }
-            $i++;
         }
-        $tmpfile->write($temp);
+
         $tmpfile->write($exportTool->footer($exportToolParams));
-        return $tmpfile->finish();
+        return $tmpfile;
     }
 
     /**
      * @param int|string $eventId Event ID or UUID
      * @param array $sightings
      * @param array $user
-     * @param null $passAlong
-     * @return int|string Number of saved sightings or error message as string
+     * @param int|null $passAlong Server ID
+     * @return int Number of saved sightings
+     * @throws Exception
      */
-    public function bulkSaveSightings($eventId, $sightings, $user, $passAlong = null)
+    public function bulkSaveSightings($eventId, array $sightings, array $user, $passAlong = null)
     {
         $event = $this->Event->fetchSimpleEvent($user, $eventId);
         if (empty($event)) {
-            return 'Event not found or not accessible by this user.';
+            throw new NotFoundException('Event not found or not accessible by this user.');
         }
-        $saved = 0;
+
+        // Since sightings are immutable (it is not possible to change it from web interface), we can check
+        // if sighting with given uuid already exists and skip them
+        $existingSighting = $this->existing($sightings);
+
+        // Fetch existing organisations in bulk
+        $existingOrganisations = $this->existingOrganisations($sightings);
+
+        // Fetch attributes IDs and event IDs
+        $attributesToTransform = $this->Attribute->fetchAttributesSimple($user, [
+            'conditions' => ['Attribute.uuid' => array_unique(array_column($sightings, 'attribute_uuid'))],
+            'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.event_id'],
+        ]);
+        $attributes = [];
+        foreach ($attributesToTransform as $attribute) {
+            $attributes[$attribute['Attribute']['uuid']] = [$attribute['Attribute']['id'], $attribute['Attribute']['event_id']];
+        }
+
+        $toSave = [];
         foreach ($sightings as $s) {
+            if (isset($existingSighting[$s['uuid']])) {
+                continue; // sighting already exists
+            }
+            if (!isset($attributes[$s['attribute_uuid']])) {
+                continue; // attribute doesn't exists or user don't have permission to access it
+            }
+            list($attributeId, $eventId) = $attributes[$s['attribute_uuid']];
+
+            if ($s['type'] === '2') {
+                // remove existing expiration by the same org if it exists
+                $this->deleteAll(array(
+                    'Sighting.org_id' => $user['org_id'],
+                    'Sighting.type' => 2,
+                    'Sighting.attribute_id' => $attributeId,
+                ));
+            }
+
             $saveOnBehalfOf = false;
             if ($user['Role']['perm_sync']) {
                 if (isset($s['org_id'])) {
                     if ($s['org_id'] != 0 && !empty($s['Organisation'])) {
-                        $saveOnBehalfOf = $this->Event->Orgc->captureOrg($s['Organisation'], $user);
+                        if (isset($existingOrganisations[$s['Organisation']['uuid']])) {
+                            $saveOnBehalfOf = $existingOrganisations[$s['Organisation']['uuid']];
+                        } else {
+                            $saveOnBehalfOf = $this->Organisation->captureOrg($s['Organisation'], $user);
+                        }
                     } else {
                         $saveOnBehalfOf = 0;
                     }
                 }
             }
-            $result = $this->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid'], false, $saveOnBehalfOf);
-            if (is_numeric($result)) {
-                $saved += $result;
-            }
+
+            $toSave[] = [
+                'attribute_id' => $attributeId,
+                'event_id' => $eventId,
+                'org_id' => $saveOnBehalfOf === false ? $user['org_id'] : $saveOnBehalfOf,
+                'date_sighting' => $s['date_sighting'],
+                'type' => $s['type'],
+                'source' => $s['source'],
+                'uuid' => $s['uuid'],
+            ];
         }
-        if ($saved > 0) {
+        if (empty($toSave)) {
+            return 0;
+        }
+
+        if ($this->saveMany($toSave)) {
             $this->Event->publishRouter($event['Event']['id'], $passAlong, $user, 'sightings');
+            return count($toSave);
+        } else {
+            return 0;
         }
-        return $saved;
     }
 
     public function pullSightings($user, $server)
@@ -1003,6 +1087,36 @@ class Sighting extends AppModel
         $rangeInDays = Configure::read('MISP.Sightings_range');
         $rangeInDays = (!empty($rangeInDays) && is_numeric($rangeInDays)) ? $rangeInDays : 365;
         return strtotime("-$rangeInDays days");
+    }
+
+    /**
+     * @param array $sightings
+     * @return array Existing sightings UUID in key
+     */
+    private function existing(array $sightings)
+    {
+        $existingSighting = $this->find('column', [
+            'fields' => ['Sighting.uuid'],
+            'conditions' => ['uuid' => array_column($sightings, 'uuid')],
+        ]);
+        // Move UUID to array key
+        return array_flip($existingSighting);
+    }
+
+    /**
+     * @param array $sightings
+     * @return array Organisation UUID => Organisation ID
+     */
+    private function existingOrganisations(array $sightings)
+    {
+        $organisations = array_column($sightings, 'Organisation');
+        if (empty($organisations)) {
+            return [];
+        }
+        return $this->Organisation->find('list', [
+            'fields' => ['Organisation.uuid', 'Organisation.id'],
+            'conditions' => ['Organisation.uuid' => array_unique(array_column($organisations, 'uuid'))],
+        ]);
     }
 
     /**

@@ -5,7 +5,7 @@ import argparse
 import json
 
 try:
-    from pymisp import pymisp_json_default
+    from pymisp import pymisp_json_default, AbstractMISP
     from pymisp.tools import make_binary_objects
 except ImportError:
     pass
@@ -16,7 +16,7 @@ def check():
     try:
         import pymisp  # noqa
     except ImportError:
-        missing_dependencies['pymisp'] = 'Please install pymisp: pip install pymisp'
+        missing_dependencies['pymisp'] = 'Please install pydeep: pip install pymisp'
     try:
         import pydeep  # noqa
     except ImportError:
@@ -43,6 +43,15 @@ def make_objects(path):
                 to_return['references'] += s.ObjectReference
 
     if peo:
+        if hasattr(peo, 'certificates') and hasattr(peo, 'signers'):
+            # special authenticode case for PE objects
+            for c in peo.certificates:
+                to_return['objects'].append(c)
+            for s in peo.signers:
+                to_return['objects'].append(s)
+            del peo.certificates
+            del peo.signers
+        del peo.sections
         to_return['objects'].append(peo)
         if peo.ObjectReference:
             to_return['references'] += peo.ObjectReference
@@ -60,6 +69,7 @@ if __name__ == '__main__':
     group.add_argument("-p", "--path", help="Path to process.")
     group.add_argument("-c", "--check", action='store_true', help="Check the dependencies.")
     args = parser.parse_args()
+    a = AbstractMISP()
 
     if args.check:
         print(check())

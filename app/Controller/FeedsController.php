@@ -773,8 +773,10 @@ class FeedsController extends AppController
             return $this->RestResponse->viewData($event, $this->response->type());
         }
         if (is_array($event)) {
-            $this->loadModel('Warninglist');
-            $this->Warninglist->attachWarninglistToAttributes($event['Event']['Attribute']);
+            if (isset($event['Event']['Attribute'])) {
+                $this->loadModel('Warninglist');
+                $this->Warninglist->attachWarninglistToAttributes($event['Event']['Attribute']);
+            }
 
             $this->loadModel('Event');
             $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);

@@ -14,10 +14,6 @@
                     $url = array_merge(array('controller' => 'feeds', 'action' => 'previewIndex', $feed['Feed']['id']), $this->request->named);
                     $this->Paginator->options(array(
                             'url' => $url,
-                            'update' => '.span12',
-                            'evalScripts' => true,
-                            'before' => '$(".progress").show()',
-                            'complete' => '$(".progress").hide()',
                     ));
                         echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
                         echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
@@ -77,11 +73,7 @@
             <ul>
             <?php
                 $this->Paginator->options(array(
-                        'url' => $url,
-                        'update' => '.span12',
-                        'evalScripts' => true,
-                        'before' => '$(".progress").show()',
-                        'complete' => '$(".progress").hide()',
+                    'url' => $url,
                 ));
                 echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
                 echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));

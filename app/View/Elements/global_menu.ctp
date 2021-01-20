@@ -164,7 +164,11 @@
                     array(
                         'text' => __('List Noticelists'),
                         'url' => $baseurl . '/noticelists/index'
-                    )
+                    ),
+                    [
+                        'text' => __('List Correlation Exclusions'),
+                        'url' => $baseurl . '/correlation_exclusions/index'
+                    ]
                 )
             ),
             array(
@@ -370,7 +374,7 @@
                     ),
                     array(
                         'text' => __('List Roles'),
-                        'url' => $baseurl . '/admin/roles/index'
+                        'url' => $baseurl . '/roles/index'
                     ),
                     array(
                         'text' => __('Add Roles'),
