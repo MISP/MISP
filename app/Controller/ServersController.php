@@ -1843,6 +1843,9 @@ class ServersController extends AppController
                 $raw[] = $msg;
                 $update = $msg;
             } else {
+                if ($settings === false) {
+                    $settings = [];
+                }
                 $update = $this->Server->update($status, $raw, $settings);
             }
             if ($this->_isRest()) {
