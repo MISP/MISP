@@ -1,7 +1,11 @@
 <?php
-    $serverTemplate = array(
-        'id', 'name', 'url'
-    );
+$generatePopover = function (array $server) {
+    $popover = '';
+    foreach (['id' => __('ID'), 'name' => __('Name'), 'url' => __('URL'), 'events_count' => __('Events count')] as $key => $name) {
+        $popover .= '<span class=\'bold\'>' . $name . '</span>: <span class=\'bold blue\'>' . h($server['Server'][$key]) . '</span><br>';
+    }
+    return $popover;
+};
 ?>
 <div class="index">
     <h2><?php echo __('Server events overlap analysis matrix');?></h2>
@@ -11,16 +15,12 @@
         <div>
             <table class="table table-striped table-hover table-condensed" style="width:100px;">
                 <tr>
-                        <th>&nbsp;</th>
+                    <th></th>
                     <?php
                     foreach ($servers as $server):
-                        $popover = '';
-                        foreach ($serverTemplate as $element) {
-                            $popover .= '<span class=\'bold\'>' . Inflector::humanize($element) . '</span>: <span class=\'bold blue\'>' . h($server['Server'][$element]) . '</span><br>';
-                        }
                   ?>
-                    <th>
-                        <div data-toggle="popover" data-content="<?= $popover; ?>" data-trigger="hover">
+                    <th style="text-align: center">
+                        <div data-toggle="popover" data-content="<?= $generatePopover($server); ?>" data-trigger="hover">
                             <?= 'S' . h($server['Server']['id']) ?>
                         </div>
                     </th>
@@ -30,15 +30,11 @@
                 </tr>
               <?php
                 foreach ($servers as $item):
-                    $popover = '';
-                    foreach ($serverTemplate as $element) {
-                        $popover .= '<span class=\'bold\'>' . Inflector::humanize($element) . '</span>: <span class=\'bold blue\'>' . h($item['Server'][$element]) . '</span><br>';
-                    }
               ?>
                 <tr>
                     <td class="short">
-                        <div data-toggle="popover" data-content="<?php echo $popover;?>" data-trigger="hover">
-                            <?= __('Server #%s: %s', h($item['Server']['id']), h($item['Server']['name'])) ?>
+                        <div data-toggle="popover" data-content="<?= $generatePopover($item) ?>" data-trigger="hover">
+                            <?= __('<b>S%s</b>: %s', h($item['Server']['id']), h($item['Server']['name'])) ?>
                         </div>
                     </td>
                         <?php
@@ -68,11 +64,11 @@
                                 $popover = __('%s % of the events of %s is contained in %s (%s matching events)', $percentage, $item['Server']['name'], $item2['Server']['name'], $count);
                             }
                             ?>
-                                <td class="<?= h($class); ?>">
-                                    <div data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover">
-                                        <?= $percentage === null ? '-' : h($percentage) . '&nbsp;%' ?>
-                                    </div>
-                                </td>
+                            <td class="<?= $class ?>" style="text-align: center">
+                                <div data-toggle="popover" data-content="<?= h($popover) ?>" data-trigger="hover">
+                                    <?= $percentage === null ? '&ndash;' : h($percentage) . '&nbsp;%' ?>
+                                </div>
+                            </td>
                             <?php
                         endforeach;
                       ?>
