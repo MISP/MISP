@@ -565,22 +565,37 @@ class Sighting extends AppModel
         if ($extraConditions !== false) {
             $conditions['AND'] = $extraConditions;
         }
-        $sightings = $this->find('all', array(
-            'conditions' => $conditions,
-            'recursive' => -1,
-            'contain' => $contain,
-        ));
-        if (empty($sightings)) {
-            return array();
-        }
-        foreach ($sightings as $k => $sighting) {
-            if (isset($sighting['Attribute']['uuid'])) {
-                $sighting['Sighting']['attribute_uuid'] = $sighting['Attribute']['uuid'];
-            } else {
-                $sighting['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
+
+        $sightings = [];
+        $page = 1;
+        while (true) {
+            // Fetch sightings in batch to prevent memory overflow
+            $sightingsBatch = $this->find('all', [
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'contain' => $contain,
+                'limit' => 10000,
+                'page' => $page,
+            ]);
+            foreach ($sightingsBatch as $sighting) {
+                if (isset($sighting['Attribute']['uuid'])) {
+                    $sighting['Sighting']['attribute_uuid'] = $sighting['Attribute']['uuid'];
+                    unset($sighting['Attribute']);
+                } else {
+                    $sighting['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
+                }
+                $sightings[] = $sighting;
             }
-            $sightings[$k] = $sighting;
+            if (count($sightingsBatch) < 10000) {
+                break;
+            }
+            $page++;
         }
+
+        if (empty($sightings)) {
+            return [];
+        }
+
         return $this->attachOrgToSightings($sightings, $user, $forSync);
     }
 
