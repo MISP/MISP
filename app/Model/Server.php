@@ -3432,6 +3432,32 @@ class Server extends AppModel
         return $settings;
     }
 
+    /**
+     * Return PHP setting in basic unit (bytes).
+     * @param string $setting
+     * @return string|int|null
+     */
+    public function getIniSetting($setting)
+    {
+        $value = ini_get($setting);
+        if ($value === '') {
+            return null;
+        }
+
+        switch ($setting) {
+            case 'memory_limit':
+            case 'upload_max_filesize':
+            case 'post_max_size':
+                return (int)preg_replace_callback('/(-?\d+)(.?)/', function ($m) {
+                    return $m[1] * pow(1024, strpos('BKMG', $m[2]));
+                }, strtoupper($value));
+            case 'max_execution_time':
+                return (int)$value;
+            default:
+                return $value;
+        }
+    }
+
     public function killWorker($pid, $user)
     {
         if (!is_numeric($pid)) {
