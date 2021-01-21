@@ -30,7 +30,7 @@
                     'class' => 'short',
                     'data_path' => 'Warninglist.id',
                     'element' => 'links',
-                    'url' => $baseurl . '/Warninglist/view/%s'
+                    'url' => $baseurl . '/warninglists/view/%s'
                 ),
                 array(
                     'name' => __('Name'),
