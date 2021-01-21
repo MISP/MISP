@@ -1115,6 +1115,7 @@ class UsersController extends AppController
 
     public function login()
     {
+        $oldHash = false;
         if ($this->request->is('post') || $this->request->is('put')) {
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
             if (!empty($this->request->data['User']['email'])) {
@@ -1122,6 +1123,17 @@ class UsersController extends AppController
                     $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
                 }
+            }
+            // Check the length of the user's authkey match old format. This can be removed in future.
+            $userPass = $this->User->find('first', [
+                'conditions' => ['User.email' => $this->request->data['User']['email']],
+                'fields' => ['User.password'],
+                'recursive' => -1,
+            ]);
+            if (!empty($userPass) && strlen($userPass['User']['password']) === 40) {
+                $oldHash = true;
+                unset($this->Auth->authenticate['Form']['passwordHasher']); // use default password hasher
+                $this->Auth->constructAuthenticate();
             }
         }
         if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
@@ -1135,6 +1147,13 @@ class UsersController extends AppController
         $this->set('formLoginEnabled', $formLoginEnabled);
 
         if ($this->Auth->login()) {
+            if ($oldHash) {
+                // Convert old style password hash to blowfish
+                $passwordToSave = $this->request->data['User']['password'];
+                $hasher = new BlowfishPasswordHasher();
+                $hashedPassword = $hasher->hash($passwordToSave);
+                $this->User->save(['id' => $this->Auth->user('id'), 'password' => $hashedPassword], false, ['password']);
+            }
             $this->_postlogin();
         } else {
             $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
