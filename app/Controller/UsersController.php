@@ -1150,9 +1150,8 @@ class UsersController extends AppController
             if ($oldHash) {
                 // Convert old style password hash to blowfish
                 $passwordToSave = $this->request->data['User']['password'];
-                $hasher = new BlowfishPasswordHasher();
-                $hashedPassword = $hasher->hash($passwordToSave);
-                $this->User->save(['id' => $this->Auth->user('id'), 'password' => $hashedPassword], false, ['password']);
+                // Password is converted to hashed form automatically
+                $this->User->save(['id' => $this->Auth->user('id'), 'password' => $passwordToSave], false, ['password']);
             }
             $this->_postlogin();
         } else {
