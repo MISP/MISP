@@ -377,6 +377,10 @@ class ACLComponent extends Component
                     'testForStolenAttributes' => array(),
                     'pruneUpdateLogs' => array()
             ),
+      'auditLogs' => [
+          'admin_index' => ['perm_audit'],
+          'eventIndex' => ['*'],
+      ],
       'modules' => array(
         'index' => array('perm_auth'),
         'queryEnrichment' => array('perm_auth'),

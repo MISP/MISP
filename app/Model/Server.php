@@ -14,7 +14,9 @@ class Server extends AppModel
 
     public $name = 'Server';
 
-    public $actsAs = array('SysLogLogable.SysLogLogable' => array(
+    public $actsAs = array(
+        'AuditLog',
+        'SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full'
@@ -469,6 +471,7 @@ class Server extends AppModel
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $force = false)
     {
         if ($jobId) {
+            Configure::write('CurrentUserId', $user['id']);
             $job = ClassRegistry::init('Job');
             $job->read(null, $jobId);
             $email = "Scheduled job";

@@ -5,6 +5,7 @@ App::uses('AppModel', 'Model');
 class Cerebrate extends AppModel
 {
     public $actsAs = [
+        'AuditLog',
         'SysLogLogable.SysLogLogable' => [
             'roleModel' => 'Role',
             'roleKey' => 'role_id',

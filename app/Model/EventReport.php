@@ -7,6 +7,7 @@ App::uses('AppModel', 'Model');
 class EventReport extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
         'Containable',
         'SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',

@@ -94,7 +94,7 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'eventLog',
-                        'url' => $baseurl . '/logs/event_index/' . $eventId,
+                        'url' => $baseurl . (Configure::read('MISP.log_new_audit') ? '/audit_logs/eventIndex/' : '/logs/event_index/') . $eventId,
                         'text' => __('View Event History')
                     ));
                     echo $divider;
@@ -1023,6 +1023,12 @@ $divider = $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/admin/logs/index',
                         'text' => __('List Logs')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'listAuditLogs',
+                        'url' => $baseurl . '/admin/audit_logs/index',
+                        'text' => __('List Audit Logs'),
+                        'requirement' => Configure::read('MISP.log_new_audit'),
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/admin/logs/search',

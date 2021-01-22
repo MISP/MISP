@@ -39,6 +39,7 @@ class Role extends AppModel
     );
 
     public $actsAs = array(
+        'AuditLog',
             'Trim',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Role',

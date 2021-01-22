@@ -5,6 +5,7 @@ App::uses('AppModel', 'Model');
 class ObjectRelationship extends AppModel
 {
     public $actsAs = array(
+        'AuditLog',
             'Containable',
             'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
                 'userModel' => 'User',
