@@ -808,6 +808,9 @@ class ObjectsController extends AppController
             $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
         }
         if ($this->request->is('post') || $this->request->is('delete')) {
+            if (!empty($this->request->data['hard'])) {
+                $hard = true;
+            }
             if ($this->__delete($object['Object']['id'], $hard)) {
                 $message = 'Object deleted.';
                 if ($this->request->is('ajax')) {
