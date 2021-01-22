@@ -100,6 +100,7 @@ function removeRestClientHistoryItem(id) {
     var allValidApis;
     var fieldsConstraint;
     var querybuilderTool;
+    var debounceTimerUpdate;
 
     $('form').submit(function(e) {
         $('#querybuilder').remove();
@@ -141,8 +142,16 @@ function removeRestClientHistoryItem(id) {
         });
 
         $('#TemplateSelect').val($('#ServerUrl').val()).trigger("chosen:updated").trigger("change");
-        $('#ServerUrl').keyup(function() {
-            $('#TemplateSelect').val($(this).val()).trigger("chosen:updated").trigger("change");
+        $('#ServerUrl').keyup(function(e) {
+            var that = this
+            clearTimeout(debounceTimerUpdate);
+            var c = String.fromCharCode(e.keyCode);
+            var isWordCharacter = c.match(/\w/);
+            if (e.keyCode === undefined || isWordCharacter) {
+                debounceTimerUpdate = setTimeout(function() {
+                    $('#TemplateSelect').val($(that).val()).trigger("chosen:updated").trigger("change");
+                }, 200);
+            }
         });
 
         $('#TemplateSelect').change(function(e) {
@@ -227,6 +236,9 @@ function removeRestClientHistoryItem(id) {
 
 
 function updateQueryTool(url, isEmpty) {
+    if ($('#qb-div').css('display') == 'none') {
+        return
+    }
     var apiJson = allValidApis[url];
     var filtersJson = fieldsConstraint[url];
 
