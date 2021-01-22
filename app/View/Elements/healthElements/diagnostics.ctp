@@ -122,6 +122,7 @@
         $phpversions = array();
         $phpversions['web']['phpversion'] = $phpversion;
         $phpversions['cli']['phpversion'] = isset($extensions['cli']['phpversion']) ? $extensions['cli']['phpversion'] : false;
+        $phpversions['cli']['phpversion'] ='7.4.1-0ubuntu0.18.04.7';
         foreach (array('web', 'cli') as $source) {
             if (!$phpversions[$source]['phpversion']) {
                 $phpversions[$source]['phpversion'] = __('Unknown');
@@ -131,13 +132,17 @@
             }
             $phpversions[$source]['phpcolour'] = 'green';
             $phpversions[$source]['phptext'] = __('Up to date');
-            if (version_compare($phpversions[$source]['phpversion'], $phprec) < 1) {
+            if (version_compare($phpversions[$source]['phpversion'], $phprec) < 0) {
                 $phpversions[$source]['phpcolour'] = 'orange';
                 $phpversions[$source]['phptext'] = __('Update highly recommended');
-                if (version_compare($phpversions[$source]['phpversion'], $phpmin) < 1) {
+                if (version_compare($phpversions[$source]['phpversion'], $phpmin) < 0) {
                     $phpversions[$source]['phpcolour'] = 'red';
                     $phpversions[$source]['phptext'] = __('Version unsupported, update ASAP');
                 }
+            }
+            if (version_compare($phpversions[$source]['phpversion'], $phptoonew) >= 0) {
+                $phpversions[$source]['phpcolour'] = 'red';
+                $phpversions[$source]['phptext'] = __('Version unsupported, 8.x support not available yet.');
             }
         }
         if (version_compare($phpversion, $phprec) < 1) {
