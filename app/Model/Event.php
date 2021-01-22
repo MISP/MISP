@@ -2469,6 +2469,12 @@ class Event extends AppModel
             $event['Event']['extensionEvents'][$eventMeta['id']] = $eventMeta;
             $thingsToMerge = array('Attribute', 'Object', 'ShadowAttribute', 'Galaxy');
             foreach ($thingsToMerge as $thingToMerge) {
+                if (!isset($event[$thingToMerge])) {
+                    $event[$thingToMerge] = [];
+                }
+                if (!isset($extensionEvent[$thingToMerge])) {
+                    $extensionEvent[$thingToMerge] = [];
+                }
                 $event[$thingToMerge] = array_merge($event[$thingToMerge], $extensionEvent[$thingToMerge]);
             }
             // Merge event reports if requested
