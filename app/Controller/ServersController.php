@@ -1180,6 +1180,7 @@ class ServersController extends AppController
             $this->set('phpversion', phpversion());
             $this->set('phpmin', $this->phpmin);
             $this->set('phprec', $this->phprec);
+            $this->set('phptoonew', $this->phptoonew);
             $this->set('pythonmin', $this->pythonmin);
             $this->set('pythonrec', $this->pythonrec);
             $this->set('pymisp', $this->pymisp);
