@@ -998,6 +998,7 @@ class AttributesController extends AppController
             'includeAllTags' => false,
             'includeAttributeUuid' => true,
             'flatten' => true,
+            'deleted' => [0, 1]
         );
 
         if ($this->_isRest()) {
