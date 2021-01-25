@@ -14,7 +14,7 @@ class TmpFileTool
     public function __construct($maxInMemory = null)
     {
         if ($maxInMemory === null) {
-            $maxInMemory = 2 * 1024 * 1024;
+            $maxInMemory = 5 * 1024 * 1024;
         }
         $this->tmpfile = fopen("php://temp/maxmemory:$maxInMemory", "w+");
         if ($this->tmpfile === false) {

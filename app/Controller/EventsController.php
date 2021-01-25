@@ -1612,17 +1612,17 @@ class EventsController extends AppController
         }
 
         if ($this->_isRest()) {
-            $this->set('event', $event);
-        } else {
-            $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
-            $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
-            $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
-
-            if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
-                $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
-            }
-            $this->__viewUI($event, $continue, $fromEvent);
+            return $this->__restResponse($event);
         }
+
+        $this->set('deleted', isset($deleted) ? ($deleted == 2 ? 0 : 1) : 0);
+        $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
+        $this->set('includeDecayScore', (!empty($this->params['named']['includeDecayScore'])) ? 1 : 0);
+
+        if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+            $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
+        }
+        $this->__viewUI($event, $continue, $fromEvent);
     }
 
     private function __startPivoting($id, $info, $date)
@@ -1914,9 +1914,7 @@ class EventsController extends AppController
                         if (!empty($validationErrors)) {
                             $event['errors'] = $validationErrors;
                         }
-                        $this->set('event', $event);
-                        $this->render('view');
-                        return true;
+                        return $this->__restResponse($event);
                     } else {
                         // redirect to the view of the newly created event
                         $this->Flash->success(__('The event has been saved'));
@@ -2279,9 +2277,7 @@ class EventsController extends AppController
                     $metadata = $this->request->param('named.metadata');
                     $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id, 'metadata' => $metadata]);
                     $event = $results[0];
-                    $this->set('event', $event);
-                    $this->render('view');
-                    return true;
+                    return $this->__restResponse($event);
                 } else {
                     $message = 'Error';
                     if ($this->_isRest()) {
@@ -5680,5 +5676,38 @@ class EventsController extends AppController
             }
         }
         return $this->RestResponse->viewData($allConflicts);
+    }
+
+    /**
+     * @param array $event
+     * @return CakeResponseTmp
+     * @throws Exception
+     */
+    private function __restResponse(array $event)
+    {
+        $tmpFile = new TmpFileTool();
+
+        if ($this->request->is('json')) {
+            App::uses('JSONConverterTool', 'Tools');
+            $converter = new JSONConverterTool();
+            if ($this->RestResponse->isAutomaticTool()) {
+                foreach ($converter->streamConvert($event) as $part) {
+                    $tmpFile->write($part);
+                }
+            } else {
+                $tmpFile->write($converter->convert($event));
+            }
+            $format = 'json';
+        } elseif ($this->request->is('xml')) {
+            App::uses('XMLConverterTool', 'Tools');
+            $converter = new XMLConverterTool();
+            foreach ($converter->frameCollection($converter->convert($event)) as $chunk) {
+                $tmpFile->write($chunk);
+            }
+            $format = 'xml';
+        } else {
+            throw new Exception("Invalid format, only JSON or XML is supported.");
+        }
+        return $this->RestResponse->viewData($tmpFile, $format, false, true);
     }
 }
