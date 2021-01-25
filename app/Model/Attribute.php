@@ -1575,7 +1575,7 @@ class Attribute extends AppModel
      * @return string
      * @throws Exception
      */
-    private function resizeImage($data, $maxWidth, $maxHeight)
+    public function resizeImage($data, $maxWidth, $maxHeight)
     {
         $image = imagecreatefromstring($data);
         if ($image === false) {
