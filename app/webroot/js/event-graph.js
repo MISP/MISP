@@ -1638,7 +1638,7 @@ class MispInteraction {
             },
             {
                 text: "Add an Attribute",
-                onclick: "simplePopup('"+baseurl+"/attributes/add/"+scope_id+"');"
+                onclick: "openGenericModal('"+baseurl+"/attributes/add/"+scope_id+"');"
             },
         ]);
     }
@@ -1662,7 +1662,7 @@ class MispInteraction {
         var group = nodes.get(id).group;
         id = id.startsWith('o-') ? id.substr(2) : id;
         if (group.slice(0, 9) == 'attribute') {
-            simplePopup(baseurl + '/attributes/edit/' + id);
+            openGenericModal(baseurl + '/attributes/edit/' + id);
         } else if (group == 'object') {
             window.location = baseurl + '/objects/edit/' + id;
         }
