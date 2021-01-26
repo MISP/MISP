@@ -161,6 +161,8 @@ class EventReport extends AppModel
                 $errors[] = __('Event Report not found.');
                 return $errors;
             }
+        } else {
+            $report['EventReport']['id'] = $existingReport['EventReport']['id'];
         }
 
         if ($fromPull) {

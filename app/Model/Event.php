@@ -4092,7 +4092,7 @@ class Event extends AppModel
             if (isset($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $i => $report) {
                     $nothingToChange = false;
-                    $result = $this->EventReport->editReport($user, $report, $this->id, true, $nothingToChange);
+                    $result = $this->EventReport->editReport($user, ['EventReport' => $report], $this->id, true, $nothingToChange);
                     if (!empty($result)) {
                         $validationErrors['EventReport'][] = $result;
                     }
