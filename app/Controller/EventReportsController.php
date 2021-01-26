@@ -124,7 +124,10 @@ class EventReportsController extends AppController
     {
         $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
-            $errors = $this->EventReport->deleteReport($this->Auth->user(), $report, $hard=$hard);
+            if (!empty($this->request->data['hard'])) {
+                $hard = true;
+            }
+            $errors = $this->EventReport->deleteReport($this->Auth->user(), $report, $hard);
             $redirectTarget = $this->referer();
             if (empty($errors)) {
                 $successMessage = __('Event Report %s %s deleted', $id, $hard ? __('hard') : __('soft'));
