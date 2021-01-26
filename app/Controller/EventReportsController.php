@@ -131,8 +131,7 @@ class EventReportsController extends AppController
             $redirectTarget = $this->referer();
             if (empty($errors)) {
                 $successMessage = __('Event Report %s %s deleted', $id, $hard ? __('hard') : __('soft'));
-                $report = $hard ? null : $this->EventReport->simpleFetchById($this->Auth->user(), $id);
-                return $this->__getSuccessResponseBasedOnContext($successMessage, $report, 'delete', $id, $redirectTarget);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, null, 'delete', $id, $redirectTarget);
             } else {
                 $errorMessage = __('Event Report %s could not be %s deleted.%sReasons: %s', $id, $hard ? __('hard') : __('soft'), PHP_EOL, json_encode($errors));
                 return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'edit', $id, $redirectTarget);
@@ -156,8 +155,7 @@ class EventReportsController extends AppController
             $redirectTarget = $this->referer();
             if (empty($errors)) {
                 $successMessage = __('Event Report %s restored', $id);
-                $report = $this->EventReport->simpleFetchById($this->Auth->user(), $id);
-                return $this->__getSuccessResponseBasedOnContext($successMessage, $report, 'restore', $id, $redirectTarget);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, null, 'restore', $id, $redirectTarget);
             } else {
                 $errorMessage = __('Event Report %s could not be %s restored.%sReasons: %s', $id, PHP_EOL, json_encode($errors));
                 return $this->__getFailResponseBasedOnContext($errorMessage, array(), 'restore', $id, $redirectTarget);
