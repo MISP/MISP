@@ -543,6 +543,7 @@ class ACLComponent extends Component
                     'generateCorrelation' => array(),
                     'index' => array('*'),
                     'view' => array('*'),
+                    'viewPicture' => array('*'),
             ),
             'sharingGroups' => array(
                     'add' => array('perm_sharing_group'),
