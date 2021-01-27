@@ -53,7 +53,7 @@ class ObjectTemplate extends AppModel
     {
         $directories = $this->getTemplateDirectoryPaths();
         foreach ($directories as $k => $dir) {
-            $dir = str_replace($objectsDir, '', $dir);
+            $dir = str_replace($this->objectsDir, '', $dir);
             $directories[$k] = $dir;
         }
         $updated = array();
