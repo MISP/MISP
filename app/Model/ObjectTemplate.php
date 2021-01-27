@@ -31,6 +31,8 @@ class ObjectTemplate extends AppModel
     public $validate = array(
     );
 
+    public $objectsDir = APP . 'files/misp-objects/objects';
+
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {
@@ -49,8 +51,7 @@ class ObjectTemplate extends AppModel
 
     public function update($user = false, $type = false, $force = false)
     {
-        $objectsDir = APP . 'files/misp-objects/objects';
-        $directories = glob($objectsDir . '/*', GLOB_ONLYDIR);
+        $directories = $this->getTemplateDirectoryPaths();
         foreach ($directories as $k => $dir) {
             $dir = str_replace($objectsDir, '', $dir);
             $directories[$k] = $dir;
@@ -60,10 +61,10 @@ class ObjectTemplate extends AppModel
             if ($type && '/' . $type != $dir) {
                 continue;
             }
-            if (!file_exists($objectsDir . DS . $dir . DS . 'definition.json')) {
+            if (!file_exists($this->objectsDir . DS . $dir . DS . 'definition.json')) {
                 continue;
             }
-            $file = new File($objectsDir . DS . $dir . DS . 'definition.json');
+            $file = new File($this->objectsDir . DS . $dir . DS . 'definition.json');
             $template = json_decode($file->read(), true);
             $file->close();
             if (!isset($template['version'])) {
@@ -319,38 +320,53 @@ class ObjectTemplate extends AppModel
 
     public function getRawFromDisk($uuidOrName)
     {
-        $templates = $this->readTemplatesFromDisk();
+        $template = [];
         if (Validation::uuid($uuidOrName)) {
-            return $templates[$uuidOrName];
-        } else {
-            foreach ($templates as $uuid => $template) {
-                if ($template['name'] == $uuidOrName) {
-                    return $template;
+            foreach ($this->readTemplatesFromDisk() as $templateFromDisk) {
+                if ($templateFromDisk['uuid'] == $uuidOrName) {
+                    $template = $templateFromDisk;
+                    break;
                 }
             }
+        } else {
+            $allTemplateNames = $this->getTemplateDirectoryPaths(false);
+            if (in_array($uuidOrName, $allTemplateNames)) { // ensure the path is not out of scope
+                $template = $this->readTemplateFromDisk($this->getFullPathFromTemplateName($uuidOrName));
+            }
         }
+        return $template;
+    }
+
+    private function readTemplateFromDisk($path)
+    {
+        $file = new File($path, false);
+        if (!$file->exists()) {
+            return false;
+        }
+        $template = json_decode($file->read(), true);
+        $file->close();
+        return $template;
     }
 
     private function readTemplatesFromDisk()
     {
-        $objectsDir = APP . 'files/misp-objects/objects';
-        $directories = glob($objectsDir . '/*', GLOB_ONLYDIR);
-        foreach ($directories as $k => $dir) {
-            $dir = str_replace($objectsDir, '', $dir);
-            $directories[$k] = $dir;
-        }
-        $templates = [];
-        foreach ($directories as $dir) {
-            if (!file_exists($objectsDir . DS . $dir . DS . 'definition.json')) {
-                continue;
-            }
-            $file = new File($objectsDir . DS . $dir . DS . 'definition.json');
-            $template = json_decode($file->read(), true);
+        foreach ($this->getTemplateDirectoryPaths() as $dirpath) {
+            $filepath = $dirpath . DS . 'definition.json';
+            $template = $this->readTemplateFromDisk($filepath);
             if (isset($template['uuid'])) {
-                $templates[$template['uuid']] = $template;
+                yield $template;
             }
-            $file->close();
         }
-        return $templates;
+    }
+
+    private function getTemplateDirectoryPaths($fullPath=true)
+    {
+        $dir = new Folder($this->objectsDir, false);
+        return $dir->read(true, false, $fullPath)[0];
+    }
+
+    private function getFullPathFromTemplateName($templateName)
+    {
+        return $this->objectsDir . DS . $templateName . DS . 'definition.json';
     }
 }
