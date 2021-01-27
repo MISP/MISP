@@ -82,7 +82,7 @@
                     )
                 ),
                 array(
-                    'name' => __('Id'),
+                    'name' => __('ID'),
                     'sort' => 'Feed.id',
                     'class' => 'short',
                     'data_path' => 'Feed.id',
@@ -108,6 +108,7 @@
                     'name' => __('Name'),
                     'class' => 'shortish',
                     'data_path' => 'Feed.name',
+                    'sort' => 'Feed.name',
                 ),
                 array(
                     'name' => __('Format'),
@@ -309,7 +310,7 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'index'));
 ?>
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(function() {
         popoverStartup();
         $('.select').on('change', function() {
             listCheckboxesChecked();
