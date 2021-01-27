@@ -8,6 +8,8 @@ App::uses('ComplexTypeTool', 'Tools');
 /**
  * @property Event $Event
  * @property Attribute $Attribute
+ * @property-read array $typeDefinitions
+ * @property-read array $categoryDefinitions
  */
 class ShadowAttribute extends AppModel
 {
@@ -72,9 +74,6 @@ class ShadowAttribute extends AppModel
     public $uploadDefinitions = array(
             'attachment'
     );
-
-    // definitions of categories
-    public $categoryDefinitions;
 
     public $order = array("ShadowAttribute.event_id" => "DESC", "ShadowAttribute.type" => "ASC");
 
@@ -149,11 +148,22 @@ class ShadowAttribute extends AppModel
         )
     );
 
-    public function __construct($id = false, $table = null, $ds = null)
+    public function __isset($name)
     {
-        parent::__construct($id, $table, $ds);
-        $this->categoryDefinitions = $this->Attribute->categoryDefinitions;
-        $this->typeDefinitions = $this->Attribute->typeDefinitions;
+        if ($name === 'typeDefinitions' || $name === 'categoryDefinitions') {
+            return true;
+        }
+        return parent::__isset($name);
+    }
+
+    public function __get($name)
+    {
+        if ($name === 'categoryDefinitions') {
+            return $this->Attribute->categoryDefinitions;
+        } else if ($name === 'typeDefinitions') {
+            return $this->Attribute->typeDefinitions;
+        }
+        return parent::__get($name);
     }
 
     // The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -354,7 +364,7 @@ class ShadowAttribute extends AppModel
     {
         $category = $this->data['ShadowAttribute']['category'];
         if (isset($this->categoryDefinitions[$category]['types'])) {
-            return in_array($fields['type'], $this->categoryDefinitions[$category]['types']);
+            return in_array($fields['type'], $this->categoryDefinitions[$category]['types'], true);
         }
         return false;
     }
@@ -481,13 +491,13 @@ class ShadowAttribute extends AppModel
      */
     public function getEventContributors($eventId)
     {
-        $orgs = $this->find('all', array(
-            'fields' => array('DISTINCT(ShadowAttribute.org_id)'),
+        $orgIds = $this->find('column', array(
+            'fields' => array('ShadowAttribute.org_id'),
             'conditions' => array('event_id' => $eventId),
-            'recursive' => -1,
+            'unique' => true,
             'order' => false
         ));
-        if (empty($orgs)) {
+        if (empty($orgIds)) {
             return [];
         }
 
@@ -495,8 +505,8 @@ class ShadowAttribute extends AppModel
         return $this->Organisation->find('list', array(
             'recursive' => -1,
             'fields' => array('id', 'name'),
-            'conditions' => array('Organisation.id' => Hash::extract($orgs, "{n}.ShadowAttribute.org_id")))
-        );
+            'conditions' => array('Organisation.id' => $orgIds)
+        ));
     }
 
     /**
@@ -808,5 +818,50 @@ class ShadowAttribute extends AppModel
                     'change' => 'The job for the generation of Proposal correlations as part of the 2.4.20 datamodel upgrade has been queued'
             ));
         }
+    }
+
+    public function saveAttachment($shadowAttribute, $path_suffix='')
+    {
+        $result = $this->loadAttachmentTool()->saveShadow($shadowAttribute['event_id'], $shadowAttribute['id'], $shadowAttribute['data'], $path_suffix);
+        if ($result) {
+            $this->loadAttachmentScan()->backgroundScan(AttachmentScan::TYPE_SHADOW_ATTRIBUTE, $shadowAttribute);
+        }
+        return $result;
+    }
+
+    /**
+     * @param array $shadowAttribute
+     * @param bool $thumbnail
+     * @param int $maxWidth - When $thumbnail is true
+     * @param int $maxHeight - When $thumbnail is true
+     * @return string
+     * @throws Exception
+     */
+    public function getPictureData(array $shadowAttribute, $thumbnail=false, $maxWidth=200, $maxHeight=200)
+    {
+        if ($thumbnail && extension_loaded('gd')) {
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                // Return thumbnail directly if already exists
+                try {
+                    return $this->getAttachment($shadowAttribute['ShadowAttribute'], $path_suffix = '_thumbnail');
+                } catch (NotFoundException $e) {
+                    // pass
+                }
+            }
+
+            // Thumbnail doesn't exists, we need to generate it
+            $imageData = $this->getAttachment($shadowAttribute['ShadowAttribute']);
+            $imageData = $this->Attribute->resizeImage($imageData, $maxWidth, $maxHeight);
+
+            // Save just when requested default thumbnail size
+            if ($maxWidth == 200 && $maxHeight == 200) {
+                $shadowAttribute['ShadowAttribute']['data'] = $imageData;
+                $this->saveAttachment($shadowAttribute['ShadowAttribute'], $path_suffix='_thumbnail');
+            }
+        } else {
+            $imageData = $this->getAttachment($shadowAttribute['ShadowAttribute']);
+        }
+
+        return $imageData;
     }
 }

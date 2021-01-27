@@ -18,6 +18,18 @@
  * @since         CakePHP(tm) v 0.2.9
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
+// This is GovCERT.CZ modified method to make translation faster
+function __($singular, $args = null) {
+    if (!$singular) {
+        return null;
+    }
+
+    App::uses('I18n', 'I18n');
+    // Enforce english translation to make everything faster
+    $translated = I18n::translate($singular, null, null, I18n::LC_MESSAGES, null, 'eng');
+    $arguments = func_get_args();
+    return I18n::insertArgs($translated, array_slice($arguments, 1));
+}
 /**
  * Use the DS to separate the directories in other defines
  */

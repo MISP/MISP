@@ -1,9 +1,9 @@
 <?php
-if (!empty($field['raw'])) {
+if (isset($field['raw'])) {
     $string = $field['raw'];
 } else {
     $value = Hash::extract($data, $field['path']);
-    $string = empty($value[0]) ? '' : $value[0];
+    $string = empty($value[0]) ? '' : h($value[0]);
 }
 if (!empty($field['url'])) {
     if (!empty($field['url_vars'])) {
@@ -11,7 +11,7 @@ if (!empty($field['url'])) {
             $field['url_vars'] = [$field['url_vars']];
         }
         foreach ($field['url_vars'] as $k => $path) {
-            $field['url'] = str_replace('{{' . $k . '}}', $this->Hash->extract($data, $path)[0], $field['url']);
+            $field['url'] = str_replace('{{' . $k . '}}', Hash::extract($data, $path)[0], $field['url']);
         }
     }
     $string = sprintf(

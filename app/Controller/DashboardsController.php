@@ -230,6 +230,7 @@ class DashboardsController extends AppController
 
     public function saveTemplate($update = false)
     {
+        $this->loadModel('UserSetting');
         if (!empty($update)) {
             $conditions = array('Dashboard.id' => $update);
             if (Validation::uuid($update)) {

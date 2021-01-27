@@ -2,6 +2,7 @@
 
 class CRUDComponent extends Component
 {
+    /** @var AppController */
     public $Controller = null;
 
     public function initialize(Controller $controller, $settings=array()) {
@@ -15,7 +16,7 @@ class CRUDComponent extends Component
         }
     }
 
-    public function index($options)
+    public function index(array $options)
     {
         $this->prepareResponse();
         if (!empty($options['quickFilters'])) {
@@ -40,14 +41,22 @@ class CRUDComponent extends Component
             }
             $data = $this->Controller->{$this->Controller->defaultModel}->find('all', $query);
             if (isset($options['afterFind'])) {
-                $data = $options['afterFind']($data);
+                if (is_callable($options['afterFind'])) {
+                    $data = $options['afterFind']($data);
+                } else {
+                    $data = $this->Controller->{$this->Controller->defaultModel}->{$options['afterFind']}($data);
+                }
             }
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
         } else {
             $this->Controller->paginate = $query;
             $data = $this->Controller->paginate();
             if (isset($options['afterFind'])) {
-                $data = $options['afterFind']($data);
+                if (is_callable($options['afterFind'])) {
+                    $data = $options['afterFind']($data);
+                } else {
+                    $data = $this->Controller->{$this->Controller->defaultModel}->{$options['afterFind']}($data);
+                }
             }
             $this->Controller->set('data', $data);
         }
@@ -67,8 +76,6 @@ class CRUDComponent extends Component
                     $input[$modelName][$field] = $value;
                 }
             }
-            if (isset($input[$modelName]['id'])) {
-            }
             unset($input[$modelName]['id']);
             if (!empty($params['fields'])) {
                 $data = [];
@@ -78,19 +85,24 @@ class CRUDComponent extends Component
             } else {
                 $data = $input;
             }
-            if ($this->Controller->{$modelName}->save($data)) {
-                $data = $this->Controller->{$modelName}->find('first', [
+            /** @var Model $model */
+            $model = $this->Controller->{$modelName};
+            if ($model->save($data)) {
+                $data = $model->find('first', [
                     'recursive' => -1,
                     'conditions' => [
-                        'id' => $this->Controller->{$modelName}->id
+                        'id' => $model->id
                     ]
                 ]);
                 if (!empty($params['saveModelVariable'])) {
                     foreach ($params['saveModelVariable'] as $var) {
-                        if (isset($this->Controller->{$modelName}->$var)) {
-                            $data[$modelName][$var] = $this->Controller->{$modelName}->$var;
+                        if (isset($model->$var)) {
+                            $data[$modelName][$var] = $model->$var;
                         }
                     }
+                }
+                if (isset($params['afterFind'])) {
+                    $data = $params['afterFind']($data);
                 }
                 $message = __('%s added.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
@@ -103,12 +115,22 @@ class CRUDComponent extends Component
                         $this->Controller->render($params['displayOnSuccess']);
                         return;
                     }
-                    $this->Controller->redirect(['action' => 'index']);
+
+                    $redirect = isset($params['redirect']) ? $params['redirect'] : ['action' => 'index'];
+                    // For AJAX requests doesn't make sense to redirect, redirect must be done on javascript side in `submitGenericFormInPlace`
+                    if ($this->Controller->request->is('ajax')) {
+                        $redirect = Router::url($redirect);
+                        $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData(['redirect' => $redirect], 'json');
+                    } else {
+                        $this->Controller->redirect($redirect);
+                    }
                 }
             } else {
                 $message = __('%s could not be added.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
-
+                    $controllerName = $this->Controller->params['controller'];
+                    $actionName = $this->Controller->params['action'];
+                    $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($controllerName, $actionName, false, $model->validationErrors, 'json');
                 } else {
                     $this->Controller->Flash->error($message);
                 }
@@ -117,7 +139,7 @@ class CRUDComponent extends Component
         $this->Controller->set('entity', $data);
     }
 
-    public function edit(int $id, array $params = []): void
+    public function edit(int $id, array $params = [])
     {
         $modelName = $this->Controller->defaultModel;
         if (empty($id)) {
@@ -142,31 +164,34 @@ class CRUDComponent extends Component
             }
             if (!empty($params['fields'])) {
                 foreach ($params['fields'] as $field) {
-                    $data[$field] = $input[$modelName][$field];
+                    $data[$modelName][$field] = $input[$modelName][$field];
                 }
             } else {
-                foreach ($input as $field => $fieldData) {
-                    $data[$field] = $fieldData;
+                foreach ($input[$modelName] as $field => $fieldData) {
+                    $data[$modelName][$field] = $fieldData;
                 }
             }
             if ($this->Controller->{$modelName}->save($data)) {
                 $message = __('%s updated.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
+                    return;
                 } else {
                     $this->Controller->Flash->success($message);
-                    $this->Controller->redirect(['action' => 'index']);
+                    $this->Controller->redirect(isset($params['redirect']) ? $params['redirect'] : ['action' => 'index']);
                 }
             } else {
                 if ($this->Controller->IndexFilter->isRest()) {
 
                 }
             }
+        } else {
+            $this->Controller->request->data = $data;
         }
         $this->Controller->set('entity', $data);
     }
 
-    public function view(int $id, array $params = []): void
+    public function view(int $id, array $params = [])
     {
         $modelName = $this->Controller->defaultModel;
         if (empty($id)) {
@@ -194,7 +219,7 @@ class CRUDComponent extends Component
         }
     }
 
-    public function delete(int $id, array $params = []): void
+    public function delete(int $id, array $params = [])
     {
         $this->prepareResponse();
         $modelName = $this->Controller->defaultModel;
@@ -214,7 +239,18 @@ class CRUDComponent extends Component
         if (empty($data)) {
             throw new NotFoundException(__('Invalid %s.', $modelName));
         }
-        if ($this->Controller->request->is('post') || $this->Controller->request->is('delete')) {
+        $validationError = null;
+        if (isset($params['validate'])) {
+            try {
+                $params['validate']($data);
+            } catch (Exception $e) {
+                $validationError = $e->getMessage();
+                if ($this->Controller->IndexFilter->isRest()) {
+                    $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($modelName, 'delete', $id, $validationError);
+                }
+            }
+        }
+        if ($validationError === null && $this->Controller->request->is('post') || $this->Controller->request->is('delete')) {
             if (!empty($params['modelFunction'])) {
                 $result = $this->Controller->$modelName->{$params['modelFunction']}($id);
             } else {
@@ -224,36 +260,39 @@ class CRUDComponent extends Component
                 $message = __('%s deleted.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveSuccessResponse($modelName, 'delete', $id, 'json', $message);
+                    return;
                 } else {
                     $this->Controller->Flash->success($message);
                     $this->Controller->redirect($this->Controller->referer());
                 }
             }
         }
+        $this->Controller->set('validationError', $validationError);
         $this->Controller->set('id', $data[$modelName]['id']);
         $this->Controller->set('data', $data);
         $this->Controller->layout = 'ajax';
         $this->Controller->render('/genericTemplates/delete');
     }
 
-
-    protected function setQuickFilters($params, $query, $quickFilterFields)
+    protected function setQuickFilters($params, array $query, $quickFilterFields)
     {
-        $queryConditions = [];
         if (!empty($params['quickFilter']) && !empty($quickFilterFields)) {
+            $queryConditions = [];
+            $filter = '%' . strtolower($params['quickFilter']) . '%';
             foreach ($quickFilterFields as $filterField) {
-                $queryConditions[$filterField] = $params['quickFilter'];
+                $queryConditions["LOWER($filterField) LIKE"] = $filter;
             }
-            $query['conditions']['OR'][] = $queryConditions;
+            $query['conditions']['OR'] = $queryConditions;
         }
         return $query;
     }
 
-    protected function setFilters($params, $query)
+    protected function setFilters(array $params, array $query)
     {
-        $params = $this->massageFilters($params);
-        if (!empty($params['simpleFilters'])) {
-            foreach ($params['simpleFilters'] as $filter => $filterValue) {
+        // For CakePHP 2, we don't need to distinguish between simpleFilters and relatedFilters
+        //$params = $this->massageFilters($params);
+        if (!empty($params)) {
+            foreach ($params as $filter => $filterValue) {
                 if ($filter === 'quickFilter') {
                     continue;
                 }
@@ -281,7 +320,7 @@ class CRUDComponent extends Component
         return $query;
     }
 
-    protected function massageFilters(array $params): array
+    protected function massageFilters(array $params)
     {
         $massagedFilters = [
             'simpleFilters' => [],

@@ -334,24 +334,23 @@ class SightingsController extends AppController
     // Save sightings synced over, restricted to sync users
     public function bulkSaveSightings($eventId = false)
     {
-        if ($this->request->is('post')) {
-            if (empty($this->request->data['Sighting'])) {
-                $sightings = $this->request->data;
-            } else {
-                $sightings = $this->request->data['Sighting'];
-            }
-            $saved = $this->Sighting->bulkSaveSightings($eventId, $sightings, $this->Auth->user());
-            if (is_numeric($saved)) {
-                if ($saved > 0) {
-                   return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $saved . ' sightings added.')), 'status' => 200, 'type' => 'json'));
-                } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'success' => 'No sightings added.')), 'status' => 200, 'type' => 'json'));
-                }
-            } else {
-                throw new MethodNotAllowedException($saved);
-            }
-        } else {
+        if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This method is only accessible via POST requests.');
+        }
+        if (empty($this->request->data['Sighting'])) {
+            $sightings = $this->request->data;
+        } else {
+            $sightings = $this->request->data['Sighting'];
+        }
+        try {
+            $saved = $this->Sighting->bulkSaveSightings($eventId, $sightings, $this->Auth->user());
+            if ($saved > 0) {
+                return new CakeResponse(array('body' => json_encode(array('saved' => true, 'success' => $saved . ' sightings added.')), 'status' => 200, 'type' => 'json'));
+            } else {
+                return new CakeResponse(array('body' => json_encode(array('saved' => false, 'success' => 'No sightings added.')), 'status' => 200, 'type' => 'json'));
+            }
+        } catch (NotFoundException $e) {
+            throw new MethodNotAllowedException($e->getMessage());
         }
     }
 }

@@ -17,8 +17,8 @@
         <div class="input select">
             <label>Organisation</label>
             <select id="organisationPicker" data-toggle="chosen">
-                <?php foreach ($organisations as $k => $org): ?>
-                    <option value="<?php echo isset($org['Organisation']['id']) ? h($org['Organisation']['id']) : ''; ?>" <?php echo $org['Organisation']['id'] == $picked_organisation['Organisation']['id'] ? 'selected' : ''; ?> ><?php echo h($org['Organisation']['name']); ?></option>
+                <?php foreach ($organisations as $id => $name): ?>
+                    <option value="<?= $id ?>" <?= $id == $picked_organisation_id ? 'selected' : ''; ?> ><?= h($name) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>

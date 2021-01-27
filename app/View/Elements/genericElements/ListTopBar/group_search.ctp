@@ -17,7 +17,6 @@
         if (empty($data['value']) && !empty($this->passedArgs[$searchKey])) {
             $data['value'] = $this->passedArgs[$searchKey];
         }
-
         $button = empty($data['button']) && empty($data['fa-icon']) ? '' : sprintf(
             '<button class="btn btn-small btn-inverse" %s id="quickFilterButton">%s%s</button>',
             empty($data['data']) ? '' : h($data['data']),

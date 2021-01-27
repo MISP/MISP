@@ -36,14 +36,12 @@
             $url = array_merge(array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']), $params);
             $this->Paginator->options(array(
                 'url' => $url,
-                'update' => '#attributes_div',
-                'evalScripts' => true,
-                'before' => '$(".loading").show()',
-                'complete' => '$(".loading").hide()',
+                'data-paginator' => '#attributes_div',
             ));
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $paginatorLinks = $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $paginatorLinks .= $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
+            $paginatorLinks .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            echo $paginatorLinks;
         ?>
         <li class="all <?php if ($all) echo 'disabled'; ?>">
             <?php
@@ -185,6 +183,13 @@
             }
         ?>
     </table>
+    <?php
+    // Generate form for adding sighting just once, generation for every attribute is surprisingly too slow
+    echo $this->Form->create('Sighting', ['id' => 'SightingForm', 'url' => $baseurl . '/sightings/add/', 'style' => 'display:none;']);
+    echo $this->Form->input('id', ['label' => false, 'type' => 'number']);
+    echo $this->Form->input('type', ['label' => false]);
+    echo $this->Form->end();
+    ?>
 </div>
     <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all') && !$filtered): ?>
         <div class="background-red bold" style="padding: 2px 5px">
@@ -201,18 +206,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
     <?php endif;?>
     <div class="pagination">
         <ul>
-        <?php
-            $this->Paginator->options(array(
-                'url' => $url,
-                'update' => '#attributes_div',
-                'evalScripts' => true,
-                'before' => '$(".loading").show()',
-                'complete' => '$(".loading").hide()',
-            ));
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
+        <?= $paginatorLinks ?>
         <li class="all <?php if ($all) echo 'disabled'; ?>">
             <?php
                 if ($all):
@@ -299,6 +293,3 @@ attributes or the appropriate distribution level. If you think there is a mistak
         filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');
     });
 </script>
-<?php
-    echo $this->Js->writeBuffer();
-?>

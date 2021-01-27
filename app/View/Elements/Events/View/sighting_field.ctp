@@ -24,13 +24,6 @@ if (isset($sightingsData['data'][$objectId])) {
 }
 ?>
 <td class="shortish">
-  <span id="sightingForm_<?= $objectId ?>">
-  <?php
-      echo $this->Form->create('Sighting', array('id' => 'Sighting_' . $objectId, 'url' => $baseurl . '/sightings/add/' . $objectId, 'style' => 'display:none;'));
-      echo $this->Form->input('type', array('label' => false, 'id' => 'Sighting_' . $objectId . '_type'));
-      echo $this->Form->end();
-  ?>
-  </span>
   <?php
     if ($isAclSighting):
   ?>

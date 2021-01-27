@@ -81,6 +81,8 @@ class MispObject extends AppModel
         )
     );
 
+    private $__objectDuplicationCheckCache = [];
+
     public function buildFilterConditions(&$params)
     {
         $conditions = [];
@@ -302,32 +304,44 @@ class MispObject extends AppModel
     {
         $newObjectAttributes = array();
         $existingObjectAttributes = array();
-        foreach ($object['Attribute'] as $attribute) {
+        if (isset($object['Object']['Attribute'])) {
+            $attributeArray = $object['Object']['Attribute'];
+        } else {
+            $attributeArray = $object['Attribute'];
+        }
+        foreach ($attributeArray as $attribute) {
+            if ($attribute['type'] === 'malware-sample') {
+                if (strpos($attribute['value'], '|') === false && !empty($attribute['data'])) {
+                    $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
+                }
+            }
             $newObjectAttributes[] = hash(
                 'sha256',
-                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $attribute['value']
+                $attribute['object_relation'] . $attribute['category'] . $attribute['type'] . $this->data['Attribute']['value'] = $this->Attribute->modifyBeforeValidation($attribute['type'], $attribute['value'])
             );
         }
         $newObjectAttributeCount = count($newObjectAttributes);
-        $existingObjects = $this->find('all', array(
-            'recursive' => -1,
-            'contain' => array(
-                'Attribute' => array(
-                    'fields' => array('value', 'type', 'category', 'object_relation'),
-                    'conditions' => array('Attribute.deleted' => 0)
-                )
-            ),
-            'fields' => array('template_uuid'),
-            'conditions' => array('template_uuid' => $object['Object']['template_uuid'], 'Object.deleted' => 0)
-        ));
+        if (!isset($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']])) {
+            $this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] = $this->find('all', array(
+                'recursive' => -1,
+                'contain' => array(
+                    'Attribute' => array(
+                        'fields' => array('value', 'type', 'category', 'object_relation'),
+                        'conditions' => array('Attribute.deleted' => 0)
+                    )
+                ),
+                'fields' => array('template_uuid'),
+                'conditions' => array('template_uuid' => $object['Object']['template_uuid'], 'Object.deleted' => 0, 'event_id' => $eventId)
+            ));
+        }
         $oldObjects = array();
-        foreach ($existingObjects as $k => $existingObject) {
+        foreach ($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] as $k => $existingObject) {
             $temp = array();
             if (!empty($existingObject['Attribute']) && $newObjectAttributeCount == count($existingObject['Attribute'])) {
                 foreach ($existingObject['Attribute'] as $existingAttribute) {
                     $temp[] = hash(
                         'sha256',
-                        $attribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value']
+                        $existingAttribute['object_relation'] . $existingAttribute['category'] . $existingAttribute['type'] . $existingAttribute['value']
                     );
                 }
                 if (empty(array_diff($temp, $newObjectAttributes))) {
@@ -883,6 +897,23 @@ class MispObject extends AppModel
         $this->create();
         if (!isset($object['Object'])) {
             $object = array('Object' => $object);
+        }
+        if (!empty($object['Object']['breakOnDuplicate'])) {
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId);
+            if ($duplicate) {
+                $log->create();
+                $log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Object',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'add',
+                        'user_id' => $user['id'],
+                        'title' => 'Object dropped due to it being a duplicate and breakOnDuplicate being requested for Event ' . $eventId,
+                        'change' => 'Duplicate object found.',
+                ));
+            }
+            return true;
         }
         if (empty($log)) {
             $log = ClassRegistry::init('Log');
@@ -1443,7 +1474,7 @@ class MispObject extends AppModel
         }
         $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
         $tmpfile->write($exportTool->footer($exportToolParams));
-        return $tmpfile->finish();
+        return $tmpfile;
     }
 
     private function __iteratedFetch($user, &$params, &$loop, TmpFileTool $tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0)

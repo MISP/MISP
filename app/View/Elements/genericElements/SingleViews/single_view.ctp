@@ -30,6 +30,10 @@
     $listElements = '';
     if (!empty($fields)) {
         foreach ($fields as $field) {
+            if (isset($field['requirement']) && !$field['requirement']) {
+                continue;
+            }
+
             if (empty($field['type'])) {
                 $field['type'] = 'generic';
             }
@@ -72,19 +76,30 @@
             );
         }
     }
+    if (!empty($side_panels)) {
+        $side_panels = $this->element(
+            '/genericElements/SidePanels/scaffold',
+            [
+                'side_panels' => $side_panels,
+                'data' => $data
+            ]
+        );
+    } else {
+        $side_panels = '';
+    }
     $title = empty($title) ?
         __('%s view', Inflector::singularize(Inflector::humanize($this->request->params['controller']))) :
         $title;
     echo sprintf(
-        '<div class="view"><div class="row-fluid"><div class="span8">%s</div><div class="span4">%s</div></div><div id="accordion">%s</div></div></div>%s',
+        '<div class="view"><div class="row-fluid"><div class="span8">%s</div><div class="span4">%s</div></div><div id="accordion"></div>%s</div>%s',
         sprintf(
-            '<div><h2 class="ellipsis-overflow">%s</h2>%s%s<table class="meta_table table table-striped table-condensed">%s</table>',
+            '<div><h2 class="ellipsis-overflow">%s</h2>%s%s<table class="meta_table table table-striped table-condensed">%s</table></div>',
             h($title),
             empty($description) ? '' : sprintf('<p>%s</p>', h($description)),
             empty($description_html) ? '' : sprintf('<p>%s</p>', $description_html),
             $listElements
         ),
-        '',
+        $side_panels,
         $ajaxLists,
         $ajax ? '' : $this->element('/genericElements/SideMenu/side_menu', $menuData)
     );

@@ -304,8 +304,7 @@ class Warninglist extends AppModel
             if ($id && $warninglist['Warninglist']['id'] != $id) {
                 continue;
             }
-            $entries = $this->WarninglistEntry->find('list', array(
-                'recursive' => -1,
+            $entries = $this->WarninglistEntry->find('column', array(
                 'conditions' => array('warninglist_id' => $warninglist['Warninglist']['id']),
                 'fields' => array('value')
             ));
@@ -390,11 +389,10 @@ class Warninglist extends AppModel
         if ($redis !== false && $redis->exists('misp:warninglist_entries_cache:' . $id)) {
             return $redis->sMembers('misp:warninglist_entries_cache:' . $id);
         } else {
-            $entries = array_values($this->WarninglistEntry->find('list', array(
-                'recursive' => -1,
+            $entries = $this->WarninglistEntry->find('column', array(
                 'conditions' => array('warninglist_id' => $id),
-                'fields' => array('value')
-            )));
+                'fields' => array('WarninglistEntry.value')
+            ));
             $this->cacheWarninglistEntries($entries, $id);
             return $entries;
         }
@@ -482,7 +480,7 @@ class Warninglist extends AppModel
 
         if ($object['to_ids'] || $this->showForAll) {
             foreach ($warninglists as $list) {
-                if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
+                if (in_array('ALL', $list['types'], true) || in_array($object['type'], $list['types'], true)) {
                     $result = $this->__checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
                     if ($result !== false) {
                         $object['warnings'][] = array(
@@ -677,14 +675,13 @@ class Warninglist extends AppModel
      */
     public function fetchTLDLists()
     {
-        $tldLists = $this->find('list', array(
+        $tldLists = $this->find('column', array(
             'conditions' => array('Warninglist.name' => $this->__tlds),
-            'recursive' => -1,
-            'fields' => array('Warninglist.id', 'Warninglist.id')
+            'fields' => array('Warninglist.id')
         ));
         $tlds = array();
         if (!empty($tldLists)) {
-            $tlds = $this->WarninglistEntry->find('list', array(
+            $tlds = $this->WarninglistEntry->find('column', array(
                 'conditions' => array('WarninglistEntry.warninglist_id' => $tldLists),
                 'fields' => array('WarninglistEntry.value')
             ));
@@ -692,7 +689,7 @@ class Warninglist extends AppModel
                 $tlds[$key] = strtolower($value);
             }
         }
-        if (!in_array('onion', $tlds)) {
+        if (!in_array('onion', $tlds, true)) {
             $tlds[] = 'onion';
         }
         return $tlds;
@@ -710,7 +707,7 @@ class Warninglist extends AppModel
         }
 
         foreach ($warninglists as $warninglist) {
-            if (in_array('ALL', $warninglist['types']) || in_array($attribute['type'], $warninglist['types'])) {
+            if (in_array('ALL', $warninglist['types'], true) || in_array($attribute['type'], $warninglist['types'], true)) {
                 $result = $this->__checkValue($this->getFilteredEntries($warninglist), $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
                 if ($result !== false) {
                     return false;

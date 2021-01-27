@@ -28,13 +28,31 @@
     if (!empty($data['html'])) {
         echo sprintf('<div>%s</div>', $data['html']);
     }
+    if (!empty($data['persistUrlParams'])) {
+        foreach ($data['persistUrlParams'] as $persistedParam) {
+            if (!empty($passedArgs[$persistedParam])) {
+                $data['paginatorOptions']['url'][] = $passedArgs[$persistedParam];
+            }
+        }
+    }
     $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
     if (!$skipPagination) {
         $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : array();
-        echo $this->element('/genericElements/IndexTable/pagination', array('paginationOptions' => $paginationData));
-        echo $this->element('/genericElements/IndexTable/pagination_links');
+        if ($ajax && isset($containerId)) {
+            $paginationData['data-paginator'] = "#{$containerId}_content";
+        }
+        $this->Paginator->options($paginationData);
+        $paginatonLinks = $this->element('/genericElements/IndexTable/pagination_links');
+        echo $paginatonLinks;
     }
+    $hasSearch = false;
     if (!empty($data['top_bar'])) {
+        foreach ($data['top_bar']['children'] as $child) {
+            if (isset($child['type']) && $child['type'] === 'search') {
+                $hasSearch = true;
+                break;
+            }
+        }
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data['top_bar']));
     }
     $rows = '';
@@ -82,5 +100,27 @@
     echo '</div>';
     if (!$skipPagination) {
         echo $this->element('/genericElements/IndexTable/pagination_counter', $paginationData);
-        echo $this->element('/genericElements/IndexTable/pagination_links');
+        echo $paginatonLinks;
     }
+    $url = $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
+?>
+<script type="text/javascript">
+    var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '{}'; ?>;
+    var url = "<?= $url ?>";
+    <?php if ($hasSearch): ?>
+    $(function() {
+        <?php
+        if (isset($containerId)) {
+            echo 'var target = "#' . $containerId . '_content";';
+        }
+        ?>
+        $('#quickFilterButton').click(function() {
+            if (typeof(target) !== 'undefined') {
+                runIndexQuickFilterFixed(passedArgsArray, url, target);
+            } else {
+                runIndexQuickFilterFixed(passedArgsArray, url);
+            }
+        });
+    });
+    <?php endif; ?>
+</script>

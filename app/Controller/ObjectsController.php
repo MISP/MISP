@@ -39,7 +39,7 @@ class ObjectsController extends AppController
                 'ObjectTemplateElement'
             )
         ));
-        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $event_id);
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $event_id, ['contain' => ['Orgc']]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
         }
@@ -169,7 +169,7 @@ class ObjectsController extends AppController
             }
         }
         // Find the event that is to be updated
-        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
+        $event = $this->MispObject->Event->fetchSimpleEvent($this->Auth->user(), $eventId, ['contain' => ['Orgc']]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event.'));
         }
@@ -808,6 +808,9 @@ class ObjectsController extends AppController
             $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
         }
         if ($this->request->is('post') || $this->request->is('delete')) {
+            if (!empty($this->request->data['hard'])) {
+                $hard = true;
+            }
             if ($this->__delete($object['Object']['id'], $hard)) {
                 $message = 'Object deleted.';
                 if ($this->request->is('ajax')) {

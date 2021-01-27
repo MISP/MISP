@@ -32,7 +32,7 @@
             foreach ($cluster_fields as $cluster_field) {
                 $key = sprintf('<span class="blue bold">%s</span>', Inflector::humanize(h($cluster_field['key'])));
                 if (is_array($cluster_field['value'])) {
-                    if ($cluster_field['key'] == 'refs') {
+                    if ($cluster_field['key'] === 'refs') {
                         $value = array();
                         foreach ($cluster_field['value'] as $k => $v) {
                             $v_name = $v;
@@ -41,25 +41,25 @@
                             }
                             $value[$k] = '<a href="' . h($v) . '" title="' . h($v) . '">' . h($v_name) . '</a>';
                         }
-                        $value_contents = nl2br(implode("\n", $value));
-                    } else if($cluster_field['key'] == 'country') {
+                        $value_contents = implode("<br>", $value);
+                    } else if ($cluster_field['key'] === 'country') {
                         $value = array();
                         foreach ($cluster_field['value'] as $k => $v) {
                             $value[] = $this->Icon->countryFlag($v) . '&nbsp;' . h($v);
                         }
-                        $value_contents = nl2br(implode("\n", $value));
+                        $value_contents = implode("<br>", $value);
                     } else {
-                        $value_contents = nl2br(h(implode("\n", $cluster_field['value'])));
+                        $value_contents = nl2br(h(implode("\n", $cluster_field['value'])), false);
                     }
                 } else {
-                     if ($cluster_field['key'] == 'source' && filter_var($cluster_field['value'], FILTER_VALIDATE_URL)) {
-                         $value_contents = '<a href="' . h($cluster_field['value']) . '">' . h($cluster_field['value']) . '</a>';;
+                     if ($cluster_field['key'] === 'source' && filter_var($cluster_field['value'], FILTER_VALIDATE_URL)) {
+                         $value_contents = '<a href="' . h($cluster_field['value']) . '">' . h($cluster_field['value']) . '</a>';
                      } else {
                         $value_contents = h($cluster_field['value']);
                      }
                 }
                 $value = sprintf('<span class="black">%s</span>', $value_contents);
-                $popover_data .= sprintf('<span>%s: %s</span><br />', $key, $value);
+                $popover_data .= "<span>$key: $value</span><br>";
             }
             echo sprintf(
                 '<div class="large-left-margin">%s %s %s %s</div>',
@@ -135,17 +135,3 @@
             );
         }
     }
-?>
-
-<script type="text/javascript">
-$(document).ready(function () {
-    $('<?= isset($rowId) ? '#'.$rowId : '' ?> .expandable')
-    .on('click', function() {
-        loadClusterRelations($(this).data('clusterid'));
-    })
-    .popover({
-        html: true,
-        trigger: 'hover'
-    });
-});
-</script>

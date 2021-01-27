@@ -15,8 +15,8 @@ mispmodules () {
   fi
 
   # Install faup/gtcaca
-  [[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/faup.git faup; done
-  [[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca; done
+  [[ ! -d "faup" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/stricaud/faup.git faup; done
+  [[ ! -d "gtcaca" ]] && false; while [[ $? -ne 0 ]]; do $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca; done
   sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
   # Install gtcaca
   cd gtcaca
@@ -24,7 +24,7 @@ mispmodules () {
   cd build
   $SUDO_CMD cmake .. && $SUDO_CMD make
   sudo make install
-  cd /usr/loca/src/faup
+  cd /usr/local/src/faup
   # Install faup
   $SUDO_CMD mkdir -p build
   cd build
@@ -53,6 +53,7 @@ mispmodules () {
   # Enable Enrichment, set better timeouts
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_popover_only" false
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
   # TODO:"Investigate why the next one fails"

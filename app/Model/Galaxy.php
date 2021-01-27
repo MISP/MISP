@@ -92,7 +92,7 @@ class Galaxy extends AppModel
         return $this->find('list', array('recursive' => -1, 'fields' => array('type', 'id')));
     }
 
-    private function __update_prepare_template(array $cluster_package, array $galaxies): array
+    private function __update_prepare_template(array $cluster_package, array $galaxies)
     {
         return [
             'source' => isset($cluster_package['source']) ? $cluster_package['source'] : '',
@@ -104,7 +104,7 @@ class Galaxy extends AppModel
         ];
     }
 
-    private function __getPreExistingClusters(array $galaxies, array $cluster_package): array
+    private function __getPreExistingClusters(array $galaxies, array $cluster_package)
     {
         $temp = $this->GalaxyCluster->find('all', array(
             'conditions' => array(
@@ -120,7 +120,7 @@ class Galaxy extends AppModel
         return $existingClusters;
     }
 
-    private function __deleteOutdated(bool $force, array $cluster_package, array $existingClusters): array
+    private function __deleteOutdated(bool $force, array $cluster_package, array $existingClusters)
     {
         // Delete all existing outdated clusters
         $cluster_ids_to_delete = array();
@@ -152,7 +152,7 @@ class Galaxy extends AppModel
         return $cluster_package;
     }
 
-    private function __createClusters($cluster_package, $template): array
+    private function __createClusters($cluster_package, $template)
     {
         $relations = [];
         $elements = [];

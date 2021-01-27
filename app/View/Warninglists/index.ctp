@@ -30,7 +30,7 @@
                     'class' => 'short',
                     'data_path' => 'Warninglist.id',
                     'element' => 'links',
-                    'url' => $baseurl . '/Warninglist/view/%s'
+                    'url' => $baseurl . '/warninglists/view/%s'
                 ),
                 array(
                     'name' => __('Name'),
@@ -91,7 +91,7 @@
                     ),
                 ),
                 array(
-                    'title' => __('Disabled'),
+                    'title' => __('Disable'),
                     'icon' => 'stop',
                     'onclick' => sprintf('toggleSetting(%s, \'%s\', \'%s\')', 'event', 'warninglist_enable', '[onclick_params_data_path]'),
                     'onclick_params_data_path' => 'Warninglist.id',

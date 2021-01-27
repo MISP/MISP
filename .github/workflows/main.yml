@@ -3,12 +3,12 @@
 name: misp
 
 # Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the 2.4 branch
+# events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ 2.4 ]
+    branches: [ 2.4, develop ]
   pull_request:
-    branches: [ 2.4 ]
+    branches: [ 2.4, develop ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -66,7 +66,7 @@ jobs:
         run: |
               git submodule update --init --recursive
               sudo apt-get -y update
-              sudo apt-get -y install python3 python3-venv virtualenv python3-pip python3-nose python3-redis python3-lxml apache2 curl libapache2-mod-php libfuzzy-dev libemail-address-perl libemail-outlook-message-perl
+              sudo apt-get -y install curl python3 python3-venv virtualenv python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version php$php_version-xml php$php_version-mbstring php$php_version-mysql libfuzzy-dev libemail-address-perl libemail-outlook-message-perl
               sudo pip3 install --upgrade pip setuptools requests pyzmq poetry
               sudo pip3 install --upgrade -r requirements.txt
               sudo chown $USER:www-data $HOME/.composer
@@ -220,14 +220,15 @@ jobs:
               sudo chown -R $USER:www-data `pwd`/app/Config
               sudo chmod -R 777 `pwd`/app/Config
 
-              python3 tests/testlive_security.py
-
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
               popd
+
               pushd PyMISP
               poetry install -E fileobjects -E openioc -E virustotal -E docs -E pdfexport -E email
               poetry run python tests/testlive_comprehensive.py
+              poetry add lxml
+              poetry run python ../tests/testlive_security.py -v
               poetry run python tests/test_mispevent.py
               popd
               cp PyMISP/tests/keys.py PyMISP/examples/events/

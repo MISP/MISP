@@ -11,9 +11,13 @@
             }
         }
     }
-    $data = h($data);
+    if (empty($data) && !empty($field['empty'])) {
+        $data = $field['empty'];
+    }
     if (is_numeric($data)) {
         $data = date('Y-m-d H:i:s', $data);
+    } else {
+        $data = h($data);
     }
     if (!empty($field['onClick'])) {
         $data = sprintf(
@@ -23,4 +27,4 @@
         );
     }
     echo $data;
-?>
+

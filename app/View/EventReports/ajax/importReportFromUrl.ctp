@@ -10,7 +10,7 @@
                     'field' => 'url',
                     'class' => 'input span6',
                     'div' => 'text',
-                    'label' =>  sprintf('<b>%s:</b> ', __('URL')) . __('Content for this URL will be downloaded and converted to Mardown')
+                    'label' =>  sprintf('<b>%s:</b> ', __('URL')) . __('Content for this URL will be downloaded and converted to Markdown')
                 ),
             ),
             'submit' => array(

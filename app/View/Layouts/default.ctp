@@ -115,7 +115,7 @@
                 tabIsActive = true;
             });
         <?php
-            if (!Configure::read('MISP.disable_auto_logout') and $me):
+            if (!Configure::read('MISP.disable_auto_logout') && isset($me) && $me):
         ?>
                 checkIfLoggedIn();
         <?php

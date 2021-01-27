@@ -68,7 +68,7 @@ Edit your MISP apache configuration by adding the below (location depends on you
 ```Apache
   <Location /Shibboleth.sso>
     SetHandler shib
-  </Locations>
+  </Location>
 ```
 
 Enable the plugin at bootstrap.php:
@@ -144,7 +144,7 @@ If used with Apache as webserver it might be useful to make a distinction to fil
 If you want the logout button to work for killing your session, you can use the CustomAuth plugin to configure a custom logout url, by default the url should be https://&lt;host&gt;/Shibboleth.sso/Logout. This leads to a local logout. If you want to also trigger a logout at the identity provider, you can use the return mechanism. In this case you will need to change the allowed redirects. Your logout url will look like https://&lt;host&gt;/Shibboleth.sso/Logout?return=https://<idp_host>/Logout. Edit your shibboleth configuration (often at /etc/shibboleth/shibboleth2.xml) as necessary. Relevant shibboleth documentation can be found at https://wiki.shibboleth.net/confluence/display/SP3/Logout and https://wiki.shibboleth.net/confluence/display/SP3/Sessions.
 ```xml
 <Sessions lifetime="28800" timeout="3600" relayState="ss:mem"
-                  checkAddress="false" handlerSSL="false" cookieProps="https"
+                  checkAddress="false" handlerSSL="true" cookieProps="https"
                   redirectLimit="exact+whitelist" redirectWhitelist="https://<idp_host>">
 ```
 
