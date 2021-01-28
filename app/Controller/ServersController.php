@@ -1343,16 +1343,18 @@ class ServersController extends AppController
                 }
 
                 try {
-                    $remote_event = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
-                    $remote_event_id = $remote_event[0]['id'];
+                    $remoteEvent = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
                 } catch (Exception $e) {
-                    $remote_event_id = null;
+                    $remoteEvent = null;
+                }
+                if ($remoteEvent) {
+                    $remoteEventId = $remoteEvent[0]['id'];
                 }
                 $remote_events[] = array(
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],
-                    "url" => isset($remote_event_id) ? $server['Server']['url']."/events/view/".$remote_event_id : $server['Server']['url'],
-                    "remote_id" => isset($remote_event_id) ? $remote_event_id : false
+                    "url" => isset($remoteEventId) ? $server['Server']['url'] . "/events/view/" . $remoteEventId : $server['Server']['url'],
+                    "remote_id" => isset($remoteEventId) ? $remoteEventId : false
                 );
             }
 
