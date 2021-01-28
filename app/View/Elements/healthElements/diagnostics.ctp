@@ -122,7 +122,6 @@
         $phpversions = array();
         $phpversions['web']['phpversion'] = $phpversion;
         $phpversions['cli']['phpversion'] = isset($extensions['cli']['phpversion']) ? $extensions['cli']['phpversion'] : false;
-        $phpversions['cli']['phpversion'] ='7.4.1-0ubuntu0.18.04.7';
         foreach (array('web', 'cli') as $source) {
             if (!$phpversions[$source]['phpversion']) {
                 $phpversions[$source]['phpversion'] = __('Unknown');
