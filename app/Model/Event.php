@@ -3619,9 +3619,6 @@ class Event extends AppModel
     // Low level function to add an Event based on an Event $data array
     public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array())
     {
-        if ($jobId) {
-            App::uses('AuthComponent', 'Controller/Component');
-        }
         if (Configure::read('MISP.enableEventBlocklisting') !== false && isset($data['Event']['uuid'])) {
             $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
             if ($this->EventBlocklist->isBlocked($data['Event']['uuid'])) {
@@ -3799,6 +3796,12 @@ class Event extends AppModel
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
         if ($saveResult) {
+            if ($jobId) {
+                /** @var EventLock $eventLock */
+                $eventLock = ClassRegistry::init('EventLock');
+                $eventLock->insertLockBackgroundJob($this->id, $jobId);
+            }
+
             if ($passAlong) {
                 if ($server['Server']['publish_without_email'] == 0) {
                     $st = "enabled";
@@ -3927,6 +3930,10 @@ class Event extends AppModel
                     }
                 }
             }
+            if ($jobId) {
+                $eventLock->deleteBackgroundJobLock($this->id, $jobId);
+            }
+
             return true;
         } else {
             $validationErrors['Event'] = $this->validationErrors;
@@ -4051,6 +4058,11 @@ class Event extends AppModel
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
         $this->Log = ClassRegistry::init('Log');
         if ($saveResult) {
+            if ($jobId) {
+                /** @var EventLock $eventLock */
+                $eventLock = ClassRegistry::init('EventLock');
+                $eventLock->insertLockBackgroundJob($data['Event']['id'], $jobId);
+            }
             $validationErrors = array();
             if (isset($data['Event']['Attribute'])) {
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
@@ -4176,6 +4188,9 @@ class Event extends AppModel
                     $this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
                 }
                 $this->publish($existingEvent['Event']['id']);
+            }
+            if ($jobId) {
+                $eventLock->deleteBackgroundJobLock($data['Event']['id'], $jobId);
             }
             return true;
         }
@@ -6087,6 +6102,10 @@ class Event extends AppModel
         $ontheflyattributes = array();
         $i = 0;
         if ($jobId) {
+            /** @var EventLock $eventLock */
+            $eventLock = ClassRegistry::init('EventLock');
+            $eventLock->insertLockBackgroundJob($event['Event']['id'], $jobId);
+
             $this->Job = ClassRegistry::init('Job');
             $total = count($attributeSources);
         }
@@ -6194,6 +6213,7 @@ class Event extends AppModel
             $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '.';
         }
         if ($jobId) {
+            $eventLock->deleteBackgroundJobLock($event['Event']['id'], $jobId);
             $this->Job->saveStatus($jobId, true, __('Processing complete. %s', $message));
         }
         if (!empty($returnRawResults)) {

@@ -1,65 +1,132 @@
 <?php
 App::uses('AppModel', 'Model');
+
+// Table `event_locks` is not used anymore
 class EventLock extends AppModel
 {
-    public $useTable = 'event_locks';
+    // In seconds
+    const DEFAULT_TTL = 900;
 
-    public $recursive = -1;
-
-    public $actsAs = array(
-            'Containable',
-    );
-
-    public $belongsTo = array(
-            'User' => array(
-                'className' => 'User',
-                'foreignKey' => 'user_id',
-            )
-    );
-
-
-    public $validate = array(
-    );
-
-    public function beforeValidate($options = array())
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @return bool True if insert was successful.
+     */
+    public function insertLock(array $user, $eventId)
     {
-        parent::beforeValidate();
-        return true;
+        return $this->insertLockToRedis("misp:event_lock:$eventId:user:{$user['id']}", [
+            'type' => 'user',
+            'timestamp' => time(),
+            'User' => [
+                'id' => $user['id'],
+                'org_id' => $user['org_id'],
+                'email' => $user['email'],
+            ]
+        ]);
     }
 
-    public function insertLock($user, $eventId)
+    /**
+     * @param int $eventId
+     * @param int $jobId
+     * @return bool True if insert was successful.
+     */
+    public function insertLockBackgroundJob($eventId, $jobId)
     {
-        $date = new DateTime();
-        $lock = array(
-            'timestamp' => $date->getTimestamp(),
+        return $this->insertLockToRedis("misp:event_lock:$eventId:job:$jobId", [
+            'type' => 'job',
+            'timestamp' => time(),
+            'job_id' => $jobId,
+        ]);
+    }
+
+    /**
+     * @param int $eventId
+     * @return int|null Lock ID
+     */
+    public function insertLockApi($eventId, array $user)
+    {
+        $rand = mt_rand();
+        if ($this->insertLockToRedis("misp:event_lock:$eventId:api:{$user['id']}:$rand", [
+            'type' => 'api',
             'user_id' => $user['id'],
-            'event_id' => $eventId
-        );
-        $this->deleteAll(array('user_id' => $user['id']));
-        $this->create();
-        return $this->save($lock);
+            'timestamp' => time(),
+        ])) {
+            return $rand;
+        }
+        return null;
     }
 
-    public function checkLock($user, $eventId)
+    /**
+     * @param int $eventId
+     * @param int $jobId
+     * @return null
+     */
+    public function deleteBackgroundJobLock($eventId, $jobId)
     {
-        $this->cleanupLock($user, $eventId);
-        $locks = $this->find('all', array(
-            'recursive' => -1,
-            'contain' => array('User.email', 'User.org_id', 'User.id'),
-            'conditions' => array(
-                'event_id' => $eventId
-            )
-        ));
-        return $locks;
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+
+        $deleted = $redis->del("misp:event_lock:$eventId:job:$jobId");
+        return $deleted > 0;
     }
 
-    // If a lock has been active for 15 minutes, delete it
-    public function cleanupLock()
+    /**
+     * @param string $key
+     * @param array $data
+     * @return bool
+     */
+    private function insertLockToRedis($key, array $data)
     {
-        $date = new DateTime();
-        $timestamp = $date->getTimestamp();
-        $timestamp -= 900;
-        $this->deleteAll(array('timestamp <' => $timestamp));
-        return true;
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+
+        return $redis->setex($key, self::DEFAULT_TTL, json_encode($data));
+    }
+
+    /**
+     * @param int $eventId
+     * @param int $lockId
+     * @return bool
+     */
+    public function deleteApiLock($eventId, $lockId, array $user)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+
+        $deleted = $redis->del("misp:event_lock:$eventId:api:{$user['id']}:$lockId");
+        return $deleted > 0;
+    }
+
+    /**
+     * @param array $user
+     * @param int $eventId
+     * @return array[]
+     * @throws JsonException
+     */
+    public function checkLock(array $user, $eventId)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return [];
+        }
+
+        $keys = $redis->keys("misp:event_lock:$eventId:*");
+        if (empty($keys)) {
+            return [];
+        }
+
+        return array_map(function ($value) {
+            return $this->jsonDecode($value);
+        }, $redis->mget($keys));
     }
 }
