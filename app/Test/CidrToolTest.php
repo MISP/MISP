@@ -34,8 +34,8 @@ class CidrToolTest extends TestCase
     public function testIpv6(): void
     {
         $cidrTool = new CidrTool(['2001:0db8:1234::/48']);
-        $this->assertEquals('2001:0db8:1234::/48', $cidrTool->contains('2001:0db8:1234:0000:0000:0000:0000:0000'));
-        $this->assertEquals('2001:0db8:1234::/48', $cidrTool->contains('2001:0db8:1234:ffff:ffff:ffff:ffff:ffff'));
+        $this->assertEquals('2001:db8:1234::/48', $cidrTool->contains('2001:0db8:1234:0000:0000:0000:0000:0000'));
+        $this->assertEquals('2001:db8:1234::/48', $cidrTool->contains('2001:0db8:1234:ffff:ffff:ffff:ffff:ffff'));
         $this->assertFalse($cidrTool->contains('2002:0db8:1234:ffff:ffff:ffff:ffff:ffff'));
     }
 }
