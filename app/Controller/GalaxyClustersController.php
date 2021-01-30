@@ -391,7 +391,9 @@ class GalaxyClustersController extends AppController
 
             if (empty($cluster['GalaxyCluster']['authors'])) {
                 $cluster['GalaxyCluster']['authors'] = [];
-            } else {
+            } else if (is_array($cluster['GalaxyCluster']['authors'])) {
+                // This is as intended, move on 
+            }else {
                 $decoded = json_decode($cluster['GalaxyCluster']['authors'], true);
                 if (is_null($decoded)) { // authors might be comma separated
                     $decoded = array_map('trim', explode(',', $cluster['GalaxyCluster']['authors']));
