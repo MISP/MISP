@@ -101,7 +101,7 @@ class GalaxyCluster extends AppModel
         if (!isset($this->data['GalaxyCluster']['description'])) {
             $this->data['GalaxyCluster']['description'] = '';
         }
-        if ($this->data['GalaxyCluster']['distribution'] != 4) {
+        if (isset($this->data['GalaxyCluster']['distribution']) && $this->data['GalaxyCluster']['distribution'] != 4) {
             $this->data['GalaxyCluster']['sharing_group_id'] = null;
         }
         if (!isset($this->data['GalaxyCluster']['published'])) {
