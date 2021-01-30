@@ -1813,14 +1813,14 @@ class UsersController extends AppController
     {
         // set all of the data up for the heatmaps
         $params = array(
-            'fields' => array('name'),
+            'fields' => array('id', 'name'),
             'recursive' => -1,
             'conditions' => array()
         );
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             $params['conditions'] = array('Organisation.id' => $this->Auth->user('org_id'));
         }
-        $orgs = $this->User->Organisation->find('all', $params);
+        $orgs = $this->User->Organisation->find('list', $params);
 
         $local_orgs_params = $params;
         $local_orgs_params['conditions']['Organisation.local'] = 1;
@@ -1869,16 +1869,17 @@ class UsersController extends AppController
                 'stats' => $stats
             );
             return $this->RestResponse->viewData($data, $this->response->type());
-        } else {
-            $this->set('stats', $stats);
-            $this->set('orgs', $orgs);
-            $this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
-            $this->set('end', strtotime(date('Y-m-d H:i:s')));
-            $this->set('startDateCal', $year . ', ' . $month . ', 01');
-            $range = '[5, 10, 50, 100]';
-            $this->set('range', $range);
-            $this->render('statistics_data');
         }
+
+        $this->set('stats', $stats);
+        $this->set('orgs', $orgs);
+        $this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
+        $this->set('end', strtotime(date('Y-m-d H:i:s')));
+        $this->set('startDateCal', $year . ', ' . $month . ', 01');
+        $range = '[5, 10, 50, 100]';
+        $this->set('range', $range);
+        $this->set('activityUrl', $this->baseurl . (Configure::read('MISP.log_new_audit') ? '/audit_logs' : '/logs') . '/returnDates');
+        $this->render('statistics_data');
     }
 
     private function __statisticsSightings($params = array())

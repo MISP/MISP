@@ -185,6 +185,21 @@ class AuditLogsController extends AppController
         $this->set('title_for_layout', __('Audit logs for event #%s', $event['Event']['id']));
     }
 
+    public function returnDates($org = 'all')
+    {
+        if (!$this->Auth->user('Role')['perm_sharing_group'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+            if ($org !== 'all' && $org !== $this->Auth->user('Organisation')['name']) {
+                throw new MethodNotAllowedException('Invalid organisation.');
+            }
+        }
+
+        // Fetching dates can be slow, so to allow concurrent requests, we can close sessions to release session lock
+        session_write_close();
+
+        $data = $this->AuditLog->returnDates($org);
+        return $this->RestResponse->viewData($data, $this->response->type());
+    }
+
     /**
      * @return array
      */
@@ -566,6 +581,4 @@ class AuditLogsController extends AppController
 
         return $auditLogs;
     }
-
-
 }

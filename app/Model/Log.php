@@ -155,11 +155,11 @@ class Log extends AppModel
         $conditions = array();
         $this->Organisation = ClassRegistry::init('Organisation');
         if ($org !== 'all') {
-            $org = $this->Organisation->find('first', array('fields' => array('name'), 'recursive' => -1, 'conditions' => array('UPPER(Organisation.name) LIKE' => strtoupper($org))));
+            $org = $this->Organisation->fetchOrg($org);
             if (empty($org)) {
-                return MethodNotAllowedException('Invalid organisation.');
+                throw new MethodNotAllowedException('Invalid organisation.');
             }
-            $conditions['org'] = $org['Organisation']['name'];
+            $conditions['org'] = $org['name'];
         }
         $conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
         if ($dataSource == 'Database/Mysql' || $dataSource == 'Database/MysqlObserver') {

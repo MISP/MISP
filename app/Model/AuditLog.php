@@ -320,4 +320,47 @@ class AuditLog extends AppModel
             $this->save($change, true, ['id', 'change']);
         }
     }
+
+    /**
+     * @param string|int $org
+     * @return array
+     */
+    public function returnDates($org = 'all')
+    {
+        $conditions = [];
+        if ($org !== 'all') {
+            $org = $this->Organisation->fetchOrg($org);
+            if (empty($org)) {
+                throw new NotFoundException('Invalid organisation.');
+            }
+            $conditions['org_id'] = $org['id'];
+        }
+
+        $dataSource = ConnectionManager::getDataSource('default')->config['datasource'];
+        if ($dataSource === 'Database/Mysql' || $dataSource === 'Database/MysqlObserver') {
+            $validDates = $this->find('all', [
+                'recursive' => -1,
+                'fields' => ['DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'],
+                'conditions' => $conditions,
+                'group' => ['Date'],
+                'order' => ['Date'],
+            ]);
+        } elseif ($dataSource === 'Database/Postgres') {
+            if (!empty($conditions['org_id'])) {
+                $condOrg = 'WHERE org_id = "' . $conditions['org_id'] . '"';
+            } else {
+                $condOrg = '';
+            }
+            $sql = 'SELECT DISTINCT EXTRACT(EPOCH FROM CAST(created AS DATE)) AS "Date", COUNT(id) AS count
+                    FROM audit_logs
+                    ' . $condOrg . '
+                    GROUP BY "Date" ORDER BY "Date"';
+            $validDates = $this->query($sql);
+        }
+        $data = [];
+        foreach ($validDates as $k => $date) {
+            $data[(int)$date[0]['Date']] = (int)$date[0]['count'];
+        }
+        return $data;
+    }
 }
