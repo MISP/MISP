@@ -185,6 +185,19 @@ class AuditLogsController extends AppController
         $this->set('title_for_layout', __('Audit logs for event #%s', $event['Event']['id']));
     }
 
+    public function fullChange($id)
+    {
+        $log = $this->AuditLog->find('first', [
+            'conditions' => ['id' => $id],
+            'recursive' => -1,
+            'fields' => ['change', 'action'],
+        ]);
+        if (empty($log)) {
+            throw new Exception('Log not found.');
+        }
+        $this->set('log', $log);
+    }
+
     public function returnDates($org = 'all')
     {
         if (!$this->Auth->user('Role')['perm_sharing_group'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {

@@ -1,34 +1,4 @@
-<?php
-$formatValue = function($field, $value) {
-    if (strpos($field, 'timestamp') !== false && is_numeric($value)) {
-        $date = date('Y-m-d H:i:s', $value);
-        if ($date !== false) {
-            return '<span title="Original value: ' . h($value) . '">' . h($date) . '</span>';
-        }
-    } else if ($field === 'last_seen' || $field === 'first_seen') {
-        $ls_sec = intval($value / 1000000); // $ls is in micro (10^6)
-        $ls_micro = $value % 1000000;
-        $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
-        $ls = $ls_sec . '.' . $ls_micro;
-        $date = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.u');
-        return '<span title="Original value: ' . h($value) . '">' . h($date) . '</span>';
-    }
-
-    if (mb_strlen($value) > 64) {
-        $value = mb_substr($value, 0, 64) . '...';
-    }
-    return h(json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-};
-
-$removeActions = [
-    AuditLog::ACTION_DELETE => true,
-    AuditLog::ACTION_REMOVE_GALAXY_LOCAL => true,
-    AuditLog::ACTION_REMOVE_GALAXY => true,
-    AuditLog::ACTION_REMOVE_TAG => true,
-    AuditLog::ACTION_REMOVE_TAG_LOCAL => true,
-];
-
-?><div class="logs index">
+<div class="logs index">
     <h2><?= __('Audit logs') ?></h2>
     <div>
         <div id="builder"></div>
@@ -272,9 +242,9 @@ $removeActions = [
             <th><?= $this->Paginator->sort('ip', __('IP')) ?></th>
             <th><?= $this->Paginator->sort('org_id', __('Org')) ?></th>
             <th><?= $this->Paginator->sort('action') ?></th>
-            <th>Model</th>
-            <th>Title</th>
-            <th>Change</th>
+            <th><?= __('Model') ?></th>
+            <th><?= __('Title') ?></th>
+            <th><?= __('Change') ?></th>
         </tr>
         <?php foreach ($list as $item): ?>
         <tr>
@@ -311,24 +281,7 @@ $removeActions = [
                 <?= isset($item['AuditLog']['model_link']) ? '</a>' : '' ?>
             </td>
             <td class="limitedWidth"><?= h($item['AuditLog']['title']) ?></td>
-            <td><?php
-                if (is_array($item['AuditLog']['change'])) {
-                    foreach ($item['AuditLog']['change'] as $field => $values) {
-                        echo '<span class="json_key">' . h($field) . ':</span> ';
-                        if (isset($removeActions[$item['AuditLog']['action']])) {
-                            echo '<span class="json_string">' . $formatValue($field, $values) . '</span> <i class="fas fa-arrow-right json_null"></i> <i class="fas fa-times json_string"></i><br>';
-                        } else {
-                            if (is_array($values)) {
-                                echo '<span class="json_string">' . $formatValue($field, $values[0]) . '</span> ';
-                                $value = $values[1];
-                            } else {
-                                $value = $values;
-                            }
-                            echo '<i class="fas fa-arrow-right json_null"></i> <span class="json_string">' . $formatValue($field, $value) . '</span><br>';
-                        }
-                    }
-                }
-                ?></td>
+            <td ondblclick="showFullChange(<?= h($item['AuditLog']['id']) ?>)"><?= $this->element('AuditLog/change', ['item' => $item]) ?></td>
         </tr>
         <?php endforeach; ?>
     </table>
@@ -346,6 +299,19 @@ $removeActions = [
 </div>
 <script type="text/javascript">
     var passedArgs = <?= $passedArgs ?>;
+
+    function showFullChange(id) {
+        $.get(baseurl + "/audit_logs/fullChange/" + id, function(data) {
+            var $popoverFormLarge = $('#popover_form_large');
+            $popoverFormLarge.html(data);
+            $popoverFormLarge.find("span.json").each(function () {
+                $(this).html(syntaxHighlightJson($(this).text()));
+            });
+            openPopup($popoverFormLarge);
+        });
+        return false;
+    }
+
     $('td[data-search]').mouseenter(function() {
         var $td = $(this);
         if ($td.data('search-value').length === 0) {

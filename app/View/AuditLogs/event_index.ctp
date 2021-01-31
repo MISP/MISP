@@ -1,20 +1,4 @@
-<?php
-$formatValue = function($value) {
-    if (mb_strlen($value) > 64) {
-        $value = mb_substr($value, 0, 64) . '...';
-    }
-    return h(json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-};
-
-$removeActions = [
-    AuditLog::ACTION_DELETE => true,
-    AuditLog::ACTION_REMOVE_GALAXY_LOCAL => true,
-    AuditLog::ACTION_REMOVE_GALAXY => true,
-    AuditLog::ACTION_REMOVE_TAG => true,
-    AuditLog::ACTION_REMOVE_TAG_LOCAL => true,
-];
-
-?><div class="logs index">
+<div class="logs index">
 <h2><?= __('Audit logs for event #%s', $event['Event']['id']) ?></h2>
     <div class="pagination">
         <ul>
@@ -29,13 +13,13 @@ $removeActions = [
     </div>
     <table class="table table-striped table-hover table-condensed">
         <tr>
-            <th><?= $this->Paginator->sort('created');?></th>
-            <th><?= $this->Paginator->sort('user_id', __('User'));?></th>
-            <th><?= $this->Paginator->sort('org_id', __('Org'));?></th>
-            <th><?= $this->Paginator->sort('action');?></th>
-            <th>Model</th>
-            <th>Title</th>
-            <th>Change</th>
+            <th><?= $this->Paginator->sort('created') ?></th>
+            <th><?= $this->Paginator->sort('user_id', __('User')) ?></th>
+            <th><?= $this->Paginator->sort('org_id', __('Org')) ?></th>
+            <th><?= $this->Paginator->sort('action') ?></th>
+            <th><?= __('Model') ?></th>
+            <th><?= __('Title') ?></th>
+            <th><?= __('Change') ?></th>
         </tr>
         <?php foreach ($list as $item): ?>
         <tr>
@@ -50,24 +34,7 @@ $removeActions = [
             <td class="short"><?= h($item['AuditLog']['action_human']) ?></td>
             <td class="short"><?= h($item['AuditLog']['model']) . ' #' . h($item['AuditLog']['model_id']) ?></td>
             <td class="limitedWidth"><?= h($item['AuditLog']['title']) ?></td>
-            <td><?php
-                if (is_array($item['AuditLog']['change'])) {
-                    foreach ($item['AuditLog']['change'] as $field => $values) {
-                        echo '<span class="json_key">' . h($field) . ':</span> ';
-                        if (isset($removeActions[$item['AuditLog']['action']])) {
-                            echo '<span class="json_string">' . $formatValue($values) . '</span> <i class="fas fa-arrow-right json_null"></i> <i class="fas fa-times json_string"></i><br>';
-                        } else {
-                            if (is_array($values)) {
-                                echo '<span class="json_string">' . $formatValue($values[0]) . '</span> ';
-                                $value = $values[1];
-                            } else {
-                                $value = $values;
-                            }
-                            echo '<i class="fas fa-arrow-right json_null"></i> <span class="json_string">' . $formatValue($value) . '</span><br>';
-                        }
-                    }
-                }
-                ?></td>
+            <td><?= $this->element('AuditLog/change', ['item' => $item]) ?></td>
         </tr>
         <?php endforeach; ?>
     </table>
