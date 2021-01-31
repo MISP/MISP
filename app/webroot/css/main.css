@@ -205,9 +205,9 @@ div.actions h3 {
   color:#777;
 }
 
-div.input{
+div.input {
     float:left;
-    width: 230px;
+    margin-right: 10px;
 }
 
 div.forminfo{
@@ -2193,7 +2193,7 @@ table.table.table-striped tr.deleted_row td {
 }
 
 .checkbox input[type=checkbox] {
-    margin-top:0px;
+    margin-top:3px;
 }
 
 .simplepre {
@@ -2666,10 +2666,6 @@ table tr:hover .down-expand-button {
     float: none;
     width: inherit;
     margin-top: 3px;
-}
-
-.user-edit-checkboxes .checkbox input[type="checkbox"] {
-    margin-top: 4px;
 }
 
 .user-edit-checkboxes label {
