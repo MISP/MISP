@@ -2729,3 +2729,7 @@ td.rotate + td:not(.rotate) {
     width: 400px;
     padding: .3em 0.5em;
 }
+
+#eventToggleButtons button span {
+    margin-right: 2px;
+}
