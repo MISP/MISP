@@ -258,7 +258,7 @@
                     if ($item['AuditLog']['request_type'] == AuditLog::REQUEST_TYPE_CLI) {
                         echo ' <i class="fas fa-terminal" title="' . __('Action done by CLI or background job') .'"></i>';
                     } else if ($item['AuditLog']['request_type'] == AuditLog::REQUEST_TYPE_API) {
-                        $key = $item['AuditLog']['authkey_id'] ? ' ' . __('by auth key %s', h($item['AuditLog']['authkey_id'])) : '';
+                        $key = $item['AuditLog']['authkey_id'] ? ' ' . __('by auth key #%s', h($item['AuditLog']['authkey_id'])) : '';
                         echo ' <i class="fas fa-cogs" title="' . __('Action done trough API') . $key . '"></i>';
                     }
                 } else {

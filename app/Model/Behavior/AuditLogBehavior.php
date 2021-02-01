@@ -68,6 +68,11 @@ class AuditLogBehavior extends ModelBehavior
         };
         $this->modelInfo['Attribute'] = $attributeInfo;
         $this->modelInfo['ShadowAttribute'] = $attributeInfo;
+        $this->modelInfo['AuthKey'] = function (array $new, array $old) {
+            $start = isset($new['authkey_start']) ? $new['authkey_start'] : $old['authkey_start'];
+            $end = isset($new['authkey_end']) ? $new['authkey_end'] : $old['authkey_end'];
+            return "$start********************************$end";
+        };
     }
 
     public function beforeSave(Model $model, $options = [])

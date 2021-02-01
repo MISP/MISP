@@ -492,7 +492,7 @@ class AuditLogsController extends AppController
         }
 
         $existingObjects = [];
-        foreach (['User', 'Organisation', 'Galaxy', 'GalaxyCluster', 'Warninglist'] as $modelName) {
+        foreach (['User', 'Organisation', 'Galaxy', 'GalaxyCluster', 'Warninglist', 'AuthKey'] as $modelName) {
             if (isset($models[$modelName])) {
                 $this->loadModel($modelName);
                 $data = $this->{$modelName}->find('column', [
@@ -505,7 +505,7 @@ class AuditLogsController extends AppController
 
         foreach ($auditLogs as $k => $auditLog) {
             $auditLog = $auditLog['AuditLog'];
-            $modelId = $auditLog['model_id'];
+            $modelId = (int)$auditLog['model_id'];
             $url = null;
             $eventInfo = null;
             switch ($auditLog['model']) {
@@ -579,6 +579,11 @@ class AuditLogsController extends AppController
                 case 'GalaxyCluster':
                     if (isset($existingObjects['GalaxyCluster'][$modelId])) {
                         $url = '/galaxy_clusters/view/' . $modelId;
+                    }
+                    break;
+                case 'AuthKey':
+                    if (isset($existingObjects['AuthKey'][$modelId])) {
+                        $url = '/auth_keys/view/' . $modelId;
                     }
                     break;
                 default:
