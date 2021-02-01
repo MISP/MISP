@@ -4077,6 +4077,12 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
+        if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
+            $this->Sighting = ClassRegistry::init('Sighting');
+            foreach ($attribute['Sighting'] as $s) {
+                $result = $this->Sighting->saveSightings($attribute['uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], isset($s['uuid']) ? $s['uuid']: false);
+            }
+        }
         $fieldList = $this->editableFields;
         if (empty($existingAttribute)) {
             $addableFieldList = array('event_id', 'type', 'uuid');
