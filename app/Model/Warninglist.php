@@ -155,7 +155,7 @@ class Warninglist extends AppModel
         if (!empty($saveToCache)) {
             $pipe = $redis->multi(Redis::PIPELINE);
             foreach ($saveToCache as $attributeKey => $json) {
-                $redis->setex($attributeKey, 3600, $json); // cache for one hour
+                $redis->setex($attributeKey, 8 * 3600, $json); // cache for eight hour
             }
             $pipe->exec();
         }
