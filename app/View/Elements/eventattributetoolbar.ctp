@@ -51,7 +51,7 @@
                         'id' => 'create-button',
                         'title' => $possibleAction === 'attribute' ? __('Add attribute') : __('Add proposal'),
                         'fa-icon' => 'plus',
-                        //'onClick' => 'clickCreateButton',
+                        'class' => 'last',
                         'onClick' => 'openGenericModal',
                         'onClickParams' => array('/' . $possibleAction . 's/add/' . h($event['Event']['id']))
                     ),
