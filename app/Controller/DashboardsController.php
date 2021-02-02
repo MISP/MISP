@@ -392,7 +392,7 @@ class DashboardsController extends AppController
                     $element['User']['email'] = '';
                 }
             }
-            $this->set('passedArgs', $this->passedArgs);
+            $this->set('passedArgs', json_encode($this->passedArgs));
             $this->set('data', $data);
         }
     }
