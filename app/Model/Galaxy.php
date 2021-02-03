@@ -377,12 +377,23 @@ class Galaxy extends AppModel
         $result = $this->Tag->$connectorModel->save($toSave);
         if ($result) {
             if ($target_type !== 'tag_collection') {
+                $date = new DateTime();
                 if ($target_type === 'event') {
                     $event = $target;
+                } else if ($target_type === 'attribute') {
+                    $target['Attribute']['timestamp'] = $date->getTimestamp();
+                    $this->Tag->AttributeTag->Attribute->save($target);
+                    if (!empty($target['Attribute']['object_id'])) {
+                        $container_object = $this->Tag->AttributeTag->Attribute->Object->find('first', [
+                            'recursive' => -1,
+                            'conditions' => ['id' => $target['Attribute']['object_id']]
+                        ]);
+                        $container_object['Object']['timestamp'] = $date->getTimestamp();
+                        $this->Tag->AttributeTag->Attribute->Object->save($container_object);
+                    }
                 }
                 $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
                 $event['Event']['published'] = 0;
-                $date = new DateTime();
                 $event['Event']['timestamp'] = $date->getTimestamp();
                 $this->Tag->EventTag->Event->save($event);
             }
