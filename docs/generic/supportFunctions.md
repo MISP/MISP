@@ -510,6 +510,7 @@ kaliSpaceSaver () {
   echo "${RED}Not implement${NC}"
 }
 
+# FIXME: Kali now uses kali/kali instead of root/toor
 # Because Kali is l33t we make sure we DO NOT run as root
 kaliOnTheR0ckz () {
   totalRoot=$(df -k | grep /$ |awk '{ print $2 }')
