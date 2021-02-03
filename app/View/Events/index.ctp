@@ -3,26 +3,21 @@
     <div class="pagination">
         <ul>
         <?php
-            $this->Paginator->options(array(
-                'update' => '.span12',
-                'evalScripts' => true,
-                'before' => '$(".progress").show()',
-                'complete' => '$(".progress").hide()',
-            ));
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $pagination = $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $pagination .= $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+            $pagination .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            echo $pagination;
         ?>
         </ul>
     </div>
     <?php
         $filterParamsString = array();
         foreach ($passedArgsArray as $k => $v) {
-                $filterParamsString[] = sprintf(
-                    '%s: %s',
-                    h(ucfirst($k)),
-                    h($v)
-                );
+            $filterParamsString[] = sprintf(
+                '%s: %s',
+                h(ucfirst($k)),
+                h($v)
+            );
         }
         $filterParamsString = implode(' & ', $filterParamsString);
         $data = array(
@@ -111,11 +106,7 @@
     </p>
     <div class="pagination">
         <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
+        <?= $pagination ?>
         </ul>
     </div>
 </div>
@@ -129,7 +120,6 @@
             runIndexQuickFilter();
         });
     });
-
 </script>
 <?php
     echo $this->Html->script('vis');
@@ -137,7 +127,6 @@
     echo $this->Html->css('distribution-graph');
     echo $this->Html->script('network-distribution-graph');
 ?>
-
 <input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/event_index.json" />
 <?php
     if (!$ajax) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));

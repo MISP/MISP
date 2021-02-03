@@ -1,5 +1,4 @@
 <?php
-
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
         'title' => __('Add auth key'),
@@ -13,11 +12,12 @@ echo $this->element('genericElements/Form/genericForm', [
             ],
             [
                 'field' => 'comment',
+                'label' => __('Comment'),
                 'class' => 'span6'
             ],
             [
                 'field' => 'expiration',
-                'label' => 'Expiration',
+                'label' => __('Expiration (%s)', $validity ? __('keep empty for maximal validity of %s days', $validity) : __('keep empty for indefinite')),
                 'class' => 'datepicker span6',
                 'placeholder' => "YYYY-MM-DD",
                 'type' => 'text'

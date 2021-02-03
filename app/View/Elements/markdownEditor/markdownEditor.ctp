@@ -98,7 +98,7 @@
                 </li>
             </ul>
         <?php elseif($canEdit && !empty($editRedirect)): ?>
-            <a id="saveMarkdownButton" type="button" class="btn btn-primary" href="<?= h($editRedirect) ?>" target="_blank">
+            <a type="button" class="btn btn-primary" href="<?= h($editRedirect) ?>#splitscreen" target="_blank">
                 <i class="<?= $this->FontAwesome->getClass('edit') ?>"></i>
                 <?= __('Edit report') ?>
             </a>

@@ -459,13 +459,12 @@ function reload_timeline() {
                     }
                     adjust_text_length(item);
                 }
-                itemIds[item.attribute_id] = item.content;
                 if (selectedScope == 'sightings') {
+                    itemIds[item.attribute_id] = item.content;
                     item.group = item.attribute_id;
                     item.content = '';
                 }
             }
-            items_timeline.add(data.items);
             handle_not_seen_enabled($('#checkbox_timeline_display_hide_not_seen_enabled').prop('checked'), false)
             if (selectedScope == 'sightings') {
                 var groups = Object.keys(itemIds).map(function(id) {
@@ -475,8 +474,9 @@ function reload_timeline() {
                 eventTimeline.setOptions({selectable: false});
             } else {
                 eventTimeline.setOptions({selectable: true});
-                eventTimeline.setGroups([]);
+                eventTimeline.setGroups(null);
             }
+            items_timeline.add(data.items);
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );

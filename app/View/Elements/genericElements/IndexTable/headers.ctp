@@ -19,11 +19,20 @@
                 } else {
                     $header_data = h($header['name']);
                 }
-
             }
+            $classes = [];
+            if (!empty($header['sort'])) {
+                $classes[] = 'pagination_link';
+            }
+            if (!empty($header['rotate_header'])) {
+                $classes[] = 'rotate';
+                $header_data = "<div><span>$header_data</span></div>";
+            }
+
             $headersHtml .= sprintf(
-                '<th%s>%s</th>',
-                !empty($header['sort']) ? ' class="pagination_link"' : '',
+                '<th%s%s>%s</th>',
+                !empty($classes) ? ' class="' . implode(' ', $classes) .'"' : '',
+                !empty($header['header_title']) ? ' title="' . h($header['header_title']) . '"' : '',
                 $header_data
             );
         }

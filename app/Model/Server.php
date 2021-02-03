@@ -2,6 +2,9 @@
 App::uses('AppModel', 'Model');
 App::uses('GpgTool', 'Tools');
 
+/**
+ * @property-read array $serverSettings
+ */
 class Server extends AppModel
 {
     const SETTING_CRITICAL = 0,
@@ -180,2349 +183,6 @@ class Server extends AppModel
                 'header' => __('Managing the background workers')
             )
         );
-
-        $this->serverSettings = array(
-                'MISP' => array(
-                        'branch' => 1,
-                        'baseurl' => array(
-                                'level' => 0,
-                                'description' => __('The base url of the application (in the format https://www.mymispinstance.com or https://myserver.com/misp). Several features depend on this setting being correctly set to function.'),
-                                'value' => '',
-                                'errorMessage' => __('The currently set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address).'),
-                                'test' => 'testBaseURL',
-                                'type' => 'string',
-                        ),
-                        'external_baseurl' => array(
-                                'level' => 0,
-                                'description' => __('The base url of the application (in the format https://www.mymispinstance.com) as visible externally/by other MISPs. MISP will encode this URL in sharing groups when including itself. If this value is not set, the baseurl is used as a fallback.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testURL',
-                                'type' => 'string',
-                        ),
-                        'live' => array(
-                                'level' => 0,
-                                'description' => __('Unless set to true, the instance will only be accessible by site admins.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testLive',
-                                'type' => 'boolean',
-                        ),
-                        'language' => array(
-                                'level' => 0,
-                                'description' => __('Select the language MISP should use. The default is english.'),
-                                'value' => 'eng',
-                                'errorMessage' => '',
-                                'test' => 'testLanguage',
-                                'type' => 'string',
-                                'optionsSource' => 'AvailableLanguages',
-                                'afterHook' => 'cleanCacheFiles'
-                        ),
-                        'default_attribute_memory_coefficient' => array(
-                                'level' => 1,
-                                'description' => __('This values controls the internal fetcher\'s memory envelope when it comes to attributes. The number provided is the amount of attributes that can be loaded for each MB of PHP memory available in one shot. Consider lowering this number if your instance has a lot of attribute tags / attribute galaxies attached.'),
-                                'value' => 80,
-                                'errorMessage' => '',
-                                'test' => 'testForNumeric',
-                                'type' => 'numeric',
-                                'null' => true
-                        ),
-                        'default_event_memory_divisor' => array(
-                                'level' => 1,
-                                'description' => __('This value controls the divisor for attribute weighting when it comes to loading full events. Meaning that it will load coefficient / divisor number of attributes per MB of memory available. Consider raising this number if you have a lot of correlations or highly contextualised events (large number of event level galaxies/tags).'),
-                                'value' => 3,
-                                'errorMessage' => '',
-                                'test' => 'testForNumeric',
-                                'type' => 'numeric',
-                                'null' => true
-                        ),
-                        'enable_advanced_correlations' => array(
-                                'level' => 0,
-                                'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'server_settings_skip_backup_rotate' => array(
-                            'level' => 1,
-                            'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'python_bin' => array(
-                                'level' => 1,
-                                'description' => __('It is highly recommended to install all the python dependencies in a virtualenv. The recommended location is: %s/venv', ROOT),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'null' => false,
-                                'test' => 'testForBinExec',
-                                'beforeHook' => 'beforeHookBinExec',
-                                'type' => 'string',
-                                'cli_only' => 1
-                        ),
-                        'ca_path' => array(
-                                'level' => 1,
-                                'description' => __('MISP will default to the bundled mozilla certificate bundle shipped with the framework, which is rather stale. If you wish to use an alternate bundle, just set this setting using the path to the bundle to use. This setting can only be modified via the CLI.'),
-                                'value' => APP . 'Lib/cakephp/lib/Cake/Config/cacert.pem',
-                                'errorMessage' => '',
-                                'null' => true,
-                                'test' => 'testForCABundle',
-                                'type' => 'string',
-                                'cli_only' => 1
-                        ),
-                        'disable_auto_logout' => array(
-                                'level' => 1,
-                                'description' => __('In some cases, a heavily used MISP instance can generate unwanted blackhole errors due to a high number of requests hitting the server. Disable the auto logout functionality to ease the burden on the system.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'ssdeep_correlation_threshold' => array(
-                            'level' => 1,
-                            'description' => __('Set the ssdeep score at which to consider two ssdeep hashes as correlating [1-100]'),
-                            'value' => 40,
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'numeric'
-                        ),
-                        'max_correlations_per_event' => array(
-                                'level' => 1,
-                                'description' => __('Sets the maximum number of correlations that can be fetched with a single event. For extreme edge cases this can prevent memory issues. The default value is 5k.'),
-                                'value' => 5000,
-                                'errorMessage' => '',
-                                'test' => 'testForNumeric',
-                                'type' => 'numeric',
-                                'null' => true
-                        ),
-                        'maintenance_message' => array(
-                                'level' => 2,
-                                'description' => __('The message that users will see if the instance is not live.'),
-                                'value' => 'Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at $email.',
-                                'errorMessage' => __('If this is not set the default value will be used.'),
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'name' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'version' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'disable_cached_exports' => array(
-                                'level' => 1,
-                                'description' => __('Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Disabling the cached exports is not recommended as it\'s a valuable feature, however, if your server is having free space issues it might make sense to take this step.'),
-                                'value' => false,
-                                'null' => true,
-                                'errorMessage' => '',
-                                'test' => 'testDisableCache',
-                                'type' => 'boolean',
-                                'afterHook' => 'disableCacheAfterHook',
-                        ),
-                        'disable_threat_level' => array(
-                                'level' => 1,
-                                'description' => __('Disable displaying / modifications to the threat level altogether on the instance (deprecated field).'),
-                                'value' => false,
-                                'null' => true,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'header' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'footermidleft' => array(
-                                'level' => 2,
-                                'description' => __('Footer text prepending the "Powered by MISP" text.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'footermidright' => array(
-                                'level' => 2,
-                                'description' => __('Footer text following the "Powered by MISP" text.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'footerpart1' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'footerpart2' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'footer' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'footerversion' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'footer_logo' => array(
-                                'level' => 2 ,
-                                'description' => __('If set, this setting allows you to display a logo on the right side of the footer. Upload it as a custom image in the file management tool.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForCustomImage',
-                                'type' => 'string',
-                        ),
-                        'home_logo' => array(
-                                'level' => 2 ,
-                                'description' => __('If set, this setting allows you to display a logo as the home icon. Upload it as a custom image in the file management tool.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForCustomImage',
-                                'type' => 'string',
-                        ),
-                        'main_logo' => array(
-                                'level' => 2 ,
-                                'description' => __('If set, the image specified here will replace the main MISP logo on the login screen. Upload it as a custom image in the file management tool.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForCustomImage',
-                                'type' => 'string',
-                        ),
-                        'org' => array(
-                                'level' => 1,
-                                'description' => __('The organisation tag of the hosting organisation. This is used in the e-mail subjects.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'host_org_id' => array(
-                                'level' => 0,
-                                'description' => __('The hosting organisation of this instance. If this is not selected then replication instances cannot be added.'),
-                                'value' => '0',
-                                'errorMessage' => '',
-                                'test' => 'testLocalOrg',
-                                'type' => 'numeric',
-                                'optionsSource' => 'LocalOrgs',
-                        ),
-                        'uuid' => array(
-                                'level' => 0,
-                                'description' => __('The MISP instance UUID. This UUID is used to identify this instance.'),
-                                'value' => '0',
-                                'errorMessage' => __('No valid UUID set'),
-                                'test' => 'testUuid',
-                                'type' => 'string'
-                        ),
-                        'logo' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'showorg' => array(
-                                'level' => 0,
-                                'description' => __('Setting this setting to \'false\' will hide all organisation names / logos.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                        'threatlevel_in_email_subject' => array(
-                                'level' => 2,
-                                'description' => __('Put the event threat level in the notification E-mail subject.'),
-                                'value' => true,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                            ),
-                        'email_subject_TLP_string' => array(
-                                'level' => 2,
-                                'description' => __('This is the TLP string for e-mails when email_subject_tag is not found.'),
-                                'value' => 'tlp:amber',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                            ),
-                        'email_subject_tag' => array(
-                                'level' => 2,
-                                'description' => __('If this tag is set on an event it\'s value will be sent in the E-mail subject. If the tag is not set the email_subject_TLP_string will be used.'),
-                                'value' => 'tlp',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                            ),
-                        'email_subject_include_tag_name' => array(
-                                'level' => 2,
-                                'description' => __('Include in name of the email_subject_tag in the subject. When false only the tag value is used.'),
-                                'value' => true,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                            ),
-                        'taxii_sync' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'taxii_client_path' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'background_jobs' => array(
-                                'level' => 1,
-                                'description' => __('Enables the use of MISP\'s background processing.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBoolTrue',
-                                'type' => 'boolean',
-                        ),
-                        'attachments_dir' => array(
-                                'level' => 2,
-                                'description' => __('Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.'),
-                                'value' =>  APP . '/files', # GUI display purpose only.
-                                'errorMessage' => '',
-                                'null' => false,
-                                'test' => 'testForWritableDir',
-                                'type' => 'string',
-                                'cli_only' => 1
-                        ),
-                        'cached_attachments' => array(
-                                'level' => 1,
-                                'description' => __('Allow the XML caches to include the encoded attachments.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                        'download_attachments_on_load' => array(
-                            'level' => 2,
-                            'description' => __('Always download attachments when loaded by a user in a browser'),
-                            'value' => true,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                        ),
-                        'osuser' => array(
-                                'level' => 0,
-                                'description' => __('The Unix user MISP (php) is running as'),
-                                'value' => 'www-data',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'email' => array(
-                                'level' => 0,
-                                'description' => __('The e-mail address that MISP should use for all notifications'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'disable_emailing' => array(
-                                'level' => 0,
-                                'description' => __('You can disable all e-mailing using this setting. When enabled, no outgoing e-mails will be sent by MISP.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'null' => true,
-                                'test' => 'testDisableEmail',
-                                'type' => 'boolean',
-                        ),
-                        'contact' => array(
-                                'level' => 1,
-                                'description' => __('The e-mail address that MISP should include as a contact address for the instance\'s support team.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'dns' => array(
-                                'level' => 3,
-                                'description' => __('This setting is deprecated and can be safely removed.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'cveurl' => array(
-                                'level' => 1,
-                                'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
-                                'value' => 'http://cve.circl.lu/cve/',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'cweurl' => array(
-                                'level' => 1,
-                                'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
-                                'value' => 'http://cve.circl.lu/cwe/',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'disablerestalert' => array(
-                                'level' => 1,
-                                'description' => __('This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST.'),
-                                'value' => true,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                        'extended_alert_subject' => array(
-                                'level' => 1,
-                                'description' => __('enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by GnuPG, so only enable it if you accept that part of the event description will be sent out in clear-text.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'default_event_distribution' => array(
-                                'level' => 0,
-                                'description' => __('The default distribution setting for events (0-3).'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities'),
-                        ),
-                        'default_attribute_distribution' => array(
-                                'level' => 0,
-                                'description' => __('The default distribution setting for attributes, set it to \'event\' if you would like the attributes to default to the event distribution level. (0-3 or "event")'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'options' => array('0' => 'Your organisation only', '1' => 'This community only', '2' => 'Connected communities', '3' => 'All communities', 'event' => 'Inherit from event'),
-                        ),
-                        'default_event_threat_level' => array(
-                                'level' => 1,
-                                'description' => __('The default threat level setting when creating events.'),
-                                'value' => 4,
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'options' => array('1' => 'High', '2' => 'Medium', '3' => 'Low', '4' => 'undefined'),
-                        ),
-                        'default_event_tag_collection' => array(
-                            'level' => 0,
-                            'description' => __('The tag collection to be applied to all events created manually.'),
-                            'value' => 0,
-                            'errorMessage' => '',
-                            'test' => 'testTagCollections',
-                            'type' => 'numeric',
-                            'optionsSource' => 'TagCollections',
-                        ),
-                        'default_publish_alert' => array(
-                                'level' => 0,
-                                'description' => __('The default setting for publish alerts when creating users.'),
-                                'value' => true,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'tagging' => array(
-                                'level' => 1,
-                                'description' => __('Enable the tagging feature of MISP. This is highly recommended.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                        'full_tags_on_event_index' => array(
-                                'level' => 2,
-                                'description' => __('Show the full tag names on the event index.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'options' => array(0 => 'Minimal tags', 1 => 'Full tags', 2 => 'Shortened tags'),
-                        ),
-                        'welcome_text_top' => array(
-                                'level' => 2,
-                                'description' => __('Used on the login page, before the MISP logo'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'welcome_text_bottom' => array(
-                                'level' => 2,
-                                'description' => __('Used on the login page, after the MISP logo'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'welcome_logo' => array(
-                                'level' => 2,
-                                'description' => __('Used on the login page, to the left of the MISP logo, upload it as a custom image in the file management tool.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForCustomImage',
-                                'type' => 'string',
-                        ),
-                        'welcome_logo2' => array(
-                                'level' => 2,
-                                'description' => __('Used on the login page, to the right of the MISP logo, upload it as a custom image in the file management tool.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForCustomImage',
-                                'type' => 'string',
-                        ),
-                        'title_text' => array(
-                            'level' => 2,
-                            'description' => __('Used in the page title, after the name of the page'),
-                            'value' => 'MISP',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                        ),
-                        'take_ownership_xml_import' => array(
-                                'level' => 2,
-                                'description' => __('Allows users to take ownership of an event uploaded via the "Add MISP XML" button. This allows spoofing the creator of a manually imported event, also breaking possibly breaking the original intended releasability. Synchronising with an instance that has a different creator for the same event can lead to unwanted consequences.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                        'terms_download' => array(
-                                'level' => 2,
-                                'description' => __('Choose whether the terms and conditions should be displayed inline (false) or offered as a download (true)'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'terms_file' => array(
-                                'level' => 2,
-                                'description' => __('The filename of the terms and conditions file. Make sure that the file is located in your MISP/app/files/terms directory'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForTermsFile',
-                                'type' => 'string'
-                        ),
-                        'showorgalternate' => array(
-                                'level' => 2,
-                                'description' => __('True enables the alternate org fields for the event index (source org and member org) instead of the traditional way of showing only an org field. This allows users to see if an event was uploaded by a member organisation on their MISP instance, or if it originated on an interconnected instance.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'unpublishedprivate' => array(
-                                'level' => 2,
-                                'description' => __('True will deny access to unpublished events to users outside the organization of the submitter except site admins.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'newUserText' => array(
-                                'level' => 1,
-                                'bigField' => true,
-                                'description' => __('The message sent to the user after account creation (has to be sent manually from the administration interface). Use \\n for line-breaks. The following variables will be automatically replaced in the text: $password = a new temporary password that MISP generates, $username = the user\'s e-mail address, $misp = the url of this instance, $org = the organisation that the instance belongs to, as set in MISP.org, $contact = the e-mail address used to contact the support team, as set in MISP.contact. For example, "the password for $username is $password" would appear to a user with the e-mail address user@misp.org as "the password for user@misp.org is hNamJae81".'),
-                                'value' => 'Dear new MISP user,\n\nWe would hereby like to welcome you to the $org MISP community.\n\n Use the credentials below to log into MISP at $misp, where you will be prompted to manually change your password to something of your own choice.\n\nUsername: $username\nPassword: $password\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
-                                'errorMessage' => '',
-                                'test' => 'testPasswordResetText',
-                                'type' => 'string'
-                        ),
-                        'passwordResetText' => array(
-                                'level' => 1,
-                                'bigField' => true,
-                                'description' => __('The message sent to the users when a password reset is triggered. Use \\n for line-breaks. The following variables will be automatically replaced in the text: $password = a new temporary password that MISP generates, $username = the user\'s e-mail address, $misp = the url of this instance, $contact = the e-mail address used to contact the support team, as set in MISP.contact. For example, "the password for $username is $password" would appear to a user with the e-mail address user@misp.org as "the password for user@misp.org is hNamJae81".'),
-                                'value' => 'Dear MISP user,\n\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at $misp, where you will be prompted to manually change your password to something of your own choice.\n\nUsername: $username\nYour temporary password: $password\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
-                                'errorMessage' => '',
-                                'test' => 'testPasswordResetText',
-                                'type' => 'string'
-                        ),
-                        'enableEventBlocklisting' => array(
-                                'level' => 1,
-                                'description' => __('Since version 2.3.107 you can start blocklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.'),
-                                'value' => true,
-                                'type' => 'boolean',
-                                'test' => 'testBool'
-                        ),
-                        'enableOrgBlocklisting' => array(
-                                'level' => 1,
-                                'description' => __('Blocklisting organisation UUIDs to prevent the creation of any event created by the blocklisted organisation.'),
-                                'value' => true,
-                                'type' => 'boolean',
-                                'test' => 'testBool'
-                        ),
-                        'log_client_ip' => array(
-                                'level' => 1,
-                                'description' => __('If enabled, all log entries will include the IP address of the user.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'beforeHook' => 'ipLogBeforeHook'
-                        ),
-                        'log_client_ip_header' => array(
-                            'level' => 1,
-                            'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy infront of your MISP instance.'),
-                            'value' => 'REMOTE_ADDR',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                            'null' => true,
-                        ),
-                        'log_auth' => array(
-                                'level' => 1,
-                                'description' => __('If enabled, MISP will log all successful authentications using API keys. The requested URLs are also logged.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                        'log_skip_db_logs_completely' => array(
-                            'level' => 0,
-                            'description' => __('This functionality allows you to completely disable any logs from being saved in your SQL backend. This is HIGHLY advised against, you lose all the functionalities provided by the audit log subsystem along with the event history (as these are built based on the logs on the fly). Only enable this if you understand and accept the associated risks.'),
-                            'value' => false,
-                            'errorMessage' => __('Logging has now been disabled - your audit logs will not capture failed authentication attempts, your event history logs are not being populated and no system maintenance messages are being logged.'),
-                            'test' => 'testBoolFalse',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'log_paranoid' => array(
-                                'level' => 0,
-                                'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBoolFalse',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'log_paranoid_skip_db' => array(
-                                'level' => 0,
-                                'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testParanoidSkipDb',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'log_paranoid_include_post_body' => array(
-                                'level' => 0,
-                                'description' => __('If paranoid logging is enabled, include the POST body in the entries.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'log_user_ips' => array(
-                                'level' => 0,
-                                'description' => __('Log user IPs on each request. 30 day retention for lookups by IP to get the last authenticated user ID for the given IP, whilst on the reverse, indefinitely stores all associated IPs for a user ID.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'delegation' => array(
-                                'level' => 1,
-                                'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'showCorrelationsOnIndex' => array(
-                                'level' => 1,
-                                'description' => __('When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'showProposalsCountOnIndex' => array(
-                                'level' => 1,
-                                'description' => __('When enabled, the number of proposals for the events are shown on the index.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'showSightingsCountOnIndex' => array(
-                                'level' => 1,
-                                'description' => __('When enabled, the aggregate number of attribute sightings within the event becomes visible to the currently logged in user on the event index UI.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'showDiscussionsCountOnIndex' => array(
-                                'level' => 1,
-                                'description' => __('When enabled, the aggregate number of discussion posts for the event becomes visible to the currently logged in user on the event index UI.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'disableUserSelfManagement' => array(
-                                'level' => 1,
-                                'description' => __('When enabled only Org and Site admins can edit a user\'s profile.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => false,
-                        ),
-                    'disable_user_login_change' => array(
-                        'level' => self::SETTING_RECOMMENDED,
-                        'description' => __('When enabled only Site admins can change user email. This should be enabled if you manage user logins by external system.'),
-                        'value' => false,
-                        'errorMessage' => '',
-                        'test' => 'testBool',
-                        'type' => 'boolean',
-                        'null' => false,
-                    ),
-                    'disable_user_password_change' => array(
-                        'level' => self::SETTING_RECOMMENDED,
-                        'description' => __('When enabled only Site admins can change user password. This should be enabled if you manage user passwords by external system.'),
-                        'value' => false,
-                        'errorMessage' => '',
-                        'test' => 'testBool',
-                        'type' => 'boolean',
-                        'null' => false,
-                    ),
-                    'disable_user_add' => array(
-                        'level' => self::SETTING_RECOMMENDED,
-                        'description' => __('When enabled, Org Admins could not add new users. This should be enabled if you manage users by external system.'),
-                        'value' => false,
-                        'errorMessage' => '',
-                        'test' => 'testBool',
-                        'type' => 'boolean',
-                        'null' => false,
-                    ),
-                        'block_event_alert' => array(
-                                'level' => 1,
-                                'description' => __('Enable this setting to start blocking alert e-mails for events with a certain tag. Define the tag in MISP.block_event_alert_tag.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => false,
-                        ),
-                        'block_event_alert_tag' => array(
-                                'level' => 1,
-                                'description' => __('If the MISP.block_event_alert setting is set, alert e-mails for events tagged with the tag defined by this setting will be blocked.'),
-                                'value' => 'no-alerts="true"',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => false,
-                        ),
-                        'org_alert_threshold' => array(
-                                'level' => 1,
-                                'description' => __('Set a value to limit the number of email alerts that events can generate per creator organisation (for example, if an organisation pushes out 2000 events in one shot, only alert on the first 20).'),
-                                'value' => 0,
-                                'errorMessage' => '',
-                                'test' => 'testForNumeric',
-                                'type' => 'numeric',
-                                'null' => true,
-                        ),
-                        'block_old_event_alert' => array(
-                                'level' => 1,
-                                'description' => __('Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => false,
-                        ),
-                        'block_old_event_alert_age' => array(
-                                'level' => 1,
-                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "timestamp" field of the event is used. Expected format: integer, in days'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testForNumeric',
-                                'type' => 'numeric',
-                                'null' => false,
-                        ),
-                        'block_old_event_alert_by_date' => array(
-                                'level' => 1,
-                                'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control the threshold for the event.date field, indicating how old an event can be for it to be alerted on. The "date" field of the event is used. Expected format: integer, in days'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testForNumeric',
-                                'type' => 'numeric',
-                                'null' => false,
-                        ),
-                        'tmpdir' => array(
-                                'level' => 1,
-                                'description' => __('Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to /tmp and will be used among others to store certain temporary files extracted from imports during the import process.'),
-                                'value' => '/tmp',
-                                'errorMessage' => '',
-                                'test' => 'testForPath',
-                                'type' => 'string',
-                                'null' => true,
-                                'cli_only' => 1
-                        ),
-                        'custom_css' => array(
-                                'level' => 2,
-                                'description' => __('If you would like to customise the css, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForStyleFile',
-                                'type' => 'string',
-                                'null' => true,
-                        ),
-                        'proposals_block_attributes' => array(
-                                'level' => 0,
-                                'description' => __('Enable this setting to allow blocking attributes from to_ids sensitive exports if a proposal has been made to it to remove the IDS flag or to remove the attribute altogether. This is a powerful tool to deal with false-positives efficiently.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => false,
-                        ),
-                        'incoming_tags_disabled_by_default' => array(
-                                'level' => 1,
-                                'description' => __('Enable this settings if new tags synced / added via incoming events from any source should not be selectable by users by default.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => false
-                        ),
-                        'completely_disable_correlation' => array(
-                                'level' => 0,
-                                'description' => __('*WARNING* This setting will completely disable the correlation on this instance and remove any existing saved correlations. Enabling this will trigger a full recorrelation of all data which is an extremely long and costly procedure. Only enable this if you know what you\'re doing.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBoolFalse',
-                                'type' => 'boolean',
-                                'null' => true,
-                                'afterHook' => 'correlationAfterHook',
-                        ),
-                        'allow_disabling_correlation' => array(
-                                'level' => 0,
-                                'description' => __('*WARNING* This setting will give event creators the possibility to disable the correlation of individual events / attributes that they have created.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBoolFalse',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'redis_host' => array(
-                            'level' => 0,
-                            'description' => __('The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),
-                            'value' => '127.0.0.1',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'redis_port' => array(
-                            'level' => 0,
-                            'description' => __('The port used by the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),
-                            'value' => 6379,
-                            'errorMessage' => '',
-                            'test' => 'testForNumeric',
-                            'type' => 'numeric'
-                        ),
-                        'redis_database' => array(
-                            'level' => 0,
-                            'description' => __('The database on the redis server to be used for generic MISP tasks. If you run more than one MISP instance, please make sure to use a different database on each instance.'),
-                            'value' => 13,
-                            'errorMessage' => '',
-                            'test' => 'testForNumeric',
-                            'type' => 'numeric'
-                        ),
-                        'redis_password' => array(
-                            'level' => 0,
-                            'description' => __('The password on the redis server (if any) to be used for generic MISP tasks.'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => null,
-                            'type' => 'string',
-                            'redacted' => true
-                        ),
-                        'event_view_filter_fields' => array(
-                            'level' => 2,
-                            'description' => __('Specify which fields to filter on when you search on the event view. Default values are : "id, uuid, value, comment, type, category, Tag.name"'),
-                            'value' => 'id, uuid, value, comment, type, category, Tag.name',
-                            'errorMessage' => '',
-                            'test' => null,
-                            'type' => 'string',
-                        ),
-                        'manage_workers' => array(
-                                'level' => 2,
-                                'description' => __('Set this to false if you would like to disable MISP managing its own worker processes (for example, if you are managing the workers with a systemd unit).'),
-                                'value' => true,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'deadlock_avoidance' => array(
-                                'level' => 1,
-                                'description' => __('Only enable this if you have some tools using MISP with extreme high concurency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'updateTimeThreshold' => array(
-                               'level' => 1,
-                               'description' => __('Sets the minimum time before being able to re-trigger an update if the previous one failed. (safe guard to avoid starting the same update multiple time)'),
-                               'value' => '7200',
-                               'test' => 'testForNumeric',
-                               'type' => 'numeric',
-                               'null' => true
-                       ),
-                       'attribute_filters_block_only' => array(
-                               'level' => 1,
-                               'description' => __('This is a performance tweak to change the behaviour of restSearch to use attribute filters solely for blocking. This means that a lookup on the event scope with for example the type field set will be ignored unless it\'s used to strip unwanted attributes from the results. If left disabled, passing [ip-src, ip-dst] for example will return any event with at least one ip-src or ip-dst attribute. This is generally not considered to be too useful and is a heavy burden on the database.'),
-                               'value' => false,
-                               'errorMessage' => '',
-                               'test' => 'testBool',
-                               'type' => 'boolean',
-                               'null' => true
-                       ),
-                    'attachment_scan_module' => [
-                        'level' => self::SETTING_OPTIONAL,
-                        'description' => __('Name of enrichment module that will be used for attachment malware scanning. This module must return av-signature or sb-signature object.'),
-                        'value' => '',
-                        'errorMessage' => '',
-                        'type' => 'string',
-                        'null' => true,
-                    ],
-                    'attachment_scan_hash_only' => [
-                        'level' => self::SETTING_OPTIONAL,
-                        'description' => __('Send to attachment scan module just file hash. This can be useful if module sends attachment to remote service and you don\'t want to leak real data.'),
-                        'value' => false,
-                        'errorMessage' => '',
-                        'test' => 'testBool',
-                        'type' => 'boolean',
-                        'null' => true,
-                    ],
-                    'attachment_scan_timeout' => [
-                        'level' => self::SETTING_OPTIONAL,
-                        'description' => __('How long to wait for scan results in seconds.'),
-                        'value' => 30,
-                        'errorMessage' => '',
-                        'test' => 'testForPositiveInteger',
-                        'type' => 'numeric',
-                        'null' => true,
-                    ]
-                ),
-                'GnuPG' => array(
-                        'branch' => 1,
-                        'binary' => array(
-                                'level' => 2,
-                                'description' => __('The location of the GnuPG executable. If you would like to use a different GnuPG executable than /usr/bin/gpg, you can set it here. If the default is fine, just keep the setting suggested by MISP.'),
-                                'value' => '/usr/bin/gpg',
-                                'errorMessage' => '',
-                                'test' => 'testForGPGBinary',
-                                'type' => 'string',
-                                'cli_only' => 1
-                        ),
-                        'onlyencrypted' => array(
-                                'level' => 0,
-                                'description' => __('Allow (false) unencrypted e-mails to be sent to users that don\'t have a GnuPG key.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                        'bodyonlyencrypted' => array(
-                                'level' => 2,
-                                'description' => __('Allow (false) the body of unencrypted e-mails to contain details about the event.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                        'sign' => array(
-                                'level' => 2,
-                                'description' => __('Enable the signing of GnuPG emails. By default, GnuPG emails are signed'),
-                                'value' => true,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                        'email' => array(
-                                'level' => 0,
-                                'description' => __('The e-mail address that the instance\'s GnuPG key is tied to.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'password' => array(
-                                'level' => 1,
-                                'description' => __('The password (if it is set) of the GnuPG key of the instance.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'redacted' => true
-                        ),
-                        'homedir' => array(
-                                'level' => 0,
-                                'description' => __('The location of the GnuPG homedir.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'obscure_subject' => array(
-                                'level' => 2,
-                                'description' => __('When enabled, subject in signed and encrypted e-mails will not send in unencrypted form.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        )
-                ),
-                'SMIME' => array(
-                        'branch' => 1,
-                        'enabled' => array(
-                                'level' => 2,
-                                'description' => __('Enable SMIME encryption. The encryption posture of the GnuPG.onlyencrypted and GnuPG.bodyonlyencrypted settings are inherited if SMIME is enabled.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                        'email' => array(
-                                'level' => 2,
-                                'description' => __('The e-mail address that the instance\'s SMIME key is tied to.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'cert_public_sign' => array(
-                                'level' => 2,
-                                'description' => __('The location of the public half of the signing certificate.'),
-                                'value' => '/var/www/MISP/.smime/email@address.com.pem',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'key_sign' => array(
-                                'level' => 2,
-                                'description' => __('The location of the private half of the signing certificate.'),
-                                'value' => '/var/www/MISP/.smime/email@address.com.key',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'password' => array(
-                                'level' => 2,
-                                'description' => __('The password (if it is set) of the SMIME key of the instance.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'redacted' => true
-                        ),
-                ),
-                'Proxy' => array(
-                        'branch' => 1,
-                        'host' => array(
-                                'level' => 2,
-                                'description' => __('The hostname of an HTTP proxy for outgoing sync requests. Leave empty to not use a proxy.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'port' => array(
-                                'level' => 2,
-                                'description' => __('The TCP port for the HTTP proxy.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForNumeric',
-                                'type' => 'numeric',
-                        ),
-                        'method' => array(
-                                'level' => 2,
-                                'description' => __('The authentication method for the HTTP proxy. Currently supported are Basic or Digest. Leave empty for no proxy authentication.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'user' => array(
-                                'level' => 2,
-                                'description' => __('The authentication username for the HTTP proxy.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'password' => array(
-                                'level' => 2,
-                                'description' => __('The authentication password for the HTTP proxy.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                ),
-                'Security' => array(
-                        'branch' => 1,
-                        'disable_form_security' => array(
-                            'level' => 0,
-                            'description' => __('Disabling this setting will remove all form tampering protection. Do not set this setting pretty much ever. You were warned.'),
-                            'value' => false,
-                            'errorMessage' => 'This setting leaves your users open to CSRF attacks. Do not please consider disabling this setting.',
-                            'test' => 'testBoolFalse',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'salt' => array(
-                                'level' => 0,
-                                'description' => __('The salt used for the hashed passwords. You cannot reset this from the GUI, only manually from the settings.php file. Keep in mind, this will invalidate all passwords in the database.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testSalt',
-                                'type' => 'string',
-                                'editable' => false,
-                                'redacted' => true
-                        ),
-                        'advanced_authkeys' => array(
-                                'level' => 0,
-                                'description' => __('Advanced authkeys will allow each user to create and manage a set of authkeys for themselves, each with individual expirations and comments. API keys are stored in a hashed state and can no longer be recovered from MISP. Users will be prompted to note down their key when creating a new authkey. You can generate a new set of API keys for all users on demand in the diagnostics page, or by triggering %s.', sprintf('<a href="%s/servers/serverSettings/diagnostics#advanced_authkey_update">%s</a>', $this->baseurl, __('the advanced upgrade'))),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                        ),
-                    'auth_enforced' => [
-                        'level' => self::SETTING_OPTIONAL,
-                        'description' => __('This optional can be enabled if external auth provider is used and when set to true, it will disable default form authentication.'),
-                        'value' => false,
-                        'errorMessage' => '',
-                        'test' => 'testBool',
-                        'type' => 'boolean',
-                    ],
-                        'rest_client_enable_arbitrary_urls' => array(
-                            'level' => 0,
-                            'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via the rest client. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'rest_client_baseurl' => array(
-                            'level' => 1,
-                            'description' => __('If left empty, the baseurl of your MISP is used. However, in some instances (such as port-forwarded VM installations) this will not work. You can override the baseurl with a url through which your MISP can reach itself (typically https://127.0.0.1 would work).'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => null,
-                            'type' => 'string'
-                        ),
-                        'syslog' => array(
-                            'level' => 0,
-                            'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                    'syslog_to_stderr' => array(
-                        'level' => self::SETTING_OPTIONAL,
-                        'description' => __('Write syslog messages also to standard error output.'),
-                        'value' => true,
-                        'errorMessage' => '',
-                        'test' => 'testBool',
-                        'type' => 'boolean',
-                        'null' => true
-                    ),
-                    'syslog_ident' => array(
-                        'level' => self::SETTING_OPTIONAL,
-                        'description' => __('Syslog message identifier.'),
-                        'value' => '',
-                        'errorMessage' => '',
-                        'test' => 'testForEmpty',
-                        'type' => 'string',
-                        'null' => true
-                    ),
-                        'do_not_log_authkeys' => array(
-                            'level' => 0,
-                            'description' => __('If enabled, any authkey will be replaced by asterisks in Audit log.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'disable_browser_cache' => array(
-                            'level' => 0,
-                            'description' => __('If enabled, HTTP headers that block browser cache will be send. Static files (like images or JavaScripts) will still be cached, but not generated pages.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true,
-                        ),
-                        'check_sec_fetch_site_header' => [
-                            'level' => 0,
-                            'description' => __('If enabled, any POST, PUT or AJAX request will be allow just when Sec-Fetch-Site header is not defined or contains "same-origin".'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true,
-                        ],
-                        'email_otp_enabled' => array(
-                                'level'=> 2,
-                                'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'beforeHook' => 'otpBeforeHook',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'email_otp_length' => array (
-                                'level' => 2,
-                                'description' => __('Define the length of the OTP code sent by email'),
-                                'value' => '6',
-                                'errorMessage' => '',
-                                'type' => 'numeric',
-                                'test' => 'testForNumeric',
-                                'null' => true,
-                        ),
-                        'email_otp_validity' => array (
-                                'level' => 2,
-                                'description' => __('Define the validity (in minutes) of the OTP code sent by email'),
-                                'value' => '5',
-                                'errorMessage' => '',
-                                'type' => 'numeric',
-                                'test' => 'testForNumeric',
-                                'null' => true,
-                        ),
-                        'email_otp_text' => array(
-                                'level' => 2,
-                                'bigField' => true,
-                                'description' => __('The message sent to the user when a new OTP is requested. Use \\n for line-breaks. The following variables will be automatically replaced in the text: $otp = the new OTP generated by MISP, $username = the user\'s e-mail address, $org the Organisation managing the instance, $misp = the url of this instance, $contact = the e-mail address used to contact the support team (as set in MISP.contact), $ip the IP used to complete the first step of the login and $validity the validity time in minutes.'),
-                                'value' => 'Dear MISP user,\n\nYou have attempted to login to MISP ($misp) from $ip with username $username.\n\n Use the following OTP to log into MISP: $otp\n This code is valid for the next $validity minutes.\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => true,
-                        ),
-                        'email_otp_exceptions' => array(
-                                'level' => 2,
-                                'bigField' => true,
-                                'description' => __('A comma separated list of emails for which the OTP is disabled. Note that if you remove someone from this list, the OTP will only be asked at next login.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => true,
-                        ),
-                        'allow_self_registration' => array(
-                            'level' => 1,
-                            'description' => __('Enabling this setting will allow users to have access to the pre-auth registration form. This will create an inbox entry for administrators to review.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'self_registration_message' => array(
-                                'level' => 1,
-                                'bigField' => true,
-                                'description' => __('The message sent shown to anyone trying to self-register.'),
-                                'value' => 'If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators.',
-                                'errorMessage' => '',
-                                'test' => false,
-                                'type' => 'string'
-                        ),
-                        'password_policy_length' => array(
-                                'level' => 2,
-                                'description' => __('Password length requirement. If it is not set or it is set to 0, then the default value is assumed (12).'),
-                                'value' => '12',
-                                'errorMessage' => '',
-                                'test' => 'testPasswordLength',
-                                'type' => 'numeric',
-                        ),
-                        'password_policy_complexity' => array(
-                                'level' => 2,
-                                'description' => __('Password complexity requirement. Leave it empty for the default setting (3 out of 4, with either a digit or a special char) or enter your own regex. Keep in mind that the length is checked in another key. Default (simple 3 out of 4 or minimum 16 characters): /^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'),
-                                'value' => '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/',
-                                'errorMessage' => '',
-                                'test' => 'testPasswordRegex',
-                                'type' => 'string',
-                        ),
-                        'require_password_confirmation' => array(
-                            'level' => 1,
-                            'description' => __('Enabling this setting will require users to submit their current password on any edits to their profile (including a triggered password change). For administrators, the confirmation will be required when changing the profile of any user. Could potentially mitigate an attacker trying to change a compromised user\'s password in order to establish persistance, however, enabling this feature will be highly annoying to users.'),
-                            'value' => true,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'sanitise_attribute_on_delete' => array(
-                            'level' => 1,
-                            'description' => __('Enabling this setting will sanitise the contents of an attribute on a soft delete'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'hide_organisation_index_from_users' => array(
-                            'level' => 1,
-                            'description' => __('Enabling this setting will block the organisation index from being visible to anyone besides site administrators on the current instance. Keep in mind that users can still see organisations that produce data via events, proposals, event history log entries, etc.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'disable_local_feed_access' => array(
-                                'level' => 0,
-                                'description' => __('Disabling this setting will allow the creation/modification of local feeds (as opposed to network feeds). Enabling this setting will restrict feed sources to be network based only. When disabled, keep in mind that a malicious site administrator could get access to any arbitrary file on the system that the apache user has access to. Make sure that proper safe-guards are in place. This setting can only be modified via the CLI.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true,
-                                'cli_only' => 1
-                        ),
-                        'allow_unsafe_apikey_named_param' => array(
-                            'level' => 0,
-                            'description' => __('Allows passing the API key via the named url parameter "apikey" - highly recommended not to enable this, but if you have some dodgy legacy tools that cannot pass the authorization header it can work as a workaround. Again, only use this as a last resort.'),
-                            'value' => false,
-                            'errorMessage' => __('You have enabled the passing of API keys via URL parameters. This is highly recommended against, do you really want to reveal APIkeys in your logs?...'),
-                            'test' => 'testBoolFalse',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'allow_cors' => array(
-                            'level' => 1,
-                            'description' => __('Allow cross-origin requests to this instance, matching origins given in Security.cors_origins. Set to false to totally disable'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'cors_origins' => array(
-                            'level' => 1,
-                            'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma seperate if you need more than one.'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                            'null' => true
-                        ),
-                        'sync_audit' => array(
-                            'level' => 1,
-                            'description' => __('Enable this setting to create verbose logs of synced event data for debugging reasons. Logs are saved in your MISP directory\'s app/files/scripts/tmp/ directory.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBoolFalse',
-                            'type' => 'boolean',
-                            'null' => true
-                        ),
-                        'user_monitoring_enabled' => array(
-                            'level' => 1,
-                            'description' => __('Enables the functionality to monitor users - thereby enabling all logging functionalities for a single user. This functionality is intrusive and potentially heavy on the system - use it with care.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'null' => true
-                        )
-                ),
-                'SecureAuth' => array(
-                        'branch' => 1,
-                        'amount' => array(
-                                'level' => 0,
-                                'description' => __('The number of tries a user can try to login and fail before the bruteforce protection kicks in.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForNumeric',
-                                'type' => 'string',
-                        ),
-                        'expire' => array(
-                                'level' => 0,
-                                'description' => __('The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForNumeric',
-                                'type' => 'string',
-                        ),
-                ),
-                'Session' => array(
-                        'branch' => 1,
-                        'autoRegenerate' => array(
-                                'level' => 0,
-                                'description' => __('Set to true to automatically regenerate sessions after x number of requests. This might lead to the user getting de-authenticated and is frustrating in general, so only enable it if you really need to regenerate sessions. (Not recommended)'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBoolFalse',
-                                'type' => 'boolean',
-                        ),
-                        'checkAgent' => array(
-                                'level' => 0,
-                                'description' => __('Set to true to check for the user agent string in each request. This can lead to occasional logouts (not recommended).'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBoolFalse',
-                                'type' => 'boolean',
-                        ),
-                        'defaults' => array(
-                                'level' => 0,
-                                'description' => __('The session type used by MISP. The default setting is php, which will use the session settings configured in php.ini for the session data (supported options: php, database). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add \'session.save_handler = redis\' and "session.save_path = \'tcp://localhost:6379\'" (replace the latter with your redis connection) to '),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForSessionDefaults',
-                                'type' => 'string',
-                                'options' => array('php' => 'php', 'database' => 'database', 'cake' => 'cake', 'cache' => 'cache'),
-                        ),
-                        'timeout' => array(
-                                'level' => 0,
-                                'description' => __('The timeout duration of sessions (in MINUTES). 0 does not mean infinite for the PHP session handler, instead sessions will invalidate immediately.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForNumeric',
-                                'type' => 'string'
-                        ),
-                        'cookieTimeout' => array(
-                                'level' => 0,
-                                'description' => __('The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForCookieTimeout',
-                                'type' => 'numeric'
-                        )
-                ),
-                'Plugin' => array(
-                        'branch' => 1,
-                        'RPZ_policy' => array(
-                            'level' => 2,
-                            'description' => __('The default policy action for the values added to the RPZ.'),
-                            'value' => 1,
-                            'errorMessage' => '',
-                            'test' => 'testForRPZBehaviour',
-                            'type' => 'numeric',
-                            'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'Local-Data', 4 => 'PASSTHRU', 5 => 'TCP-only' ),
-                        ),
-                        'RPZ_walled_garden' => array(
-                            'level' => 2,
-                            'description' => __('The default walled garden used by the RPZ export if the Local-Data policy setting is picked for the export.'),
-                            'value' => '127.0.0.1',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                        ),
-                        'RPZ_serial' => array(
-                                'level' => 2,
-                                'description' => __('The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting). Setting it to $time will give you an unixtime-based serial (good then you need more than 99 revisions per day).'),
-                                'value' => '$date00',
-                                'errorMessage' => '',
-                                'test' => 'testForRPZSerial',
-                                'type' => 'string',
-                        ),
-                        'RPZ_refresh' => array(
-                                'level' => 2,
-                                'description' => __('The refresh specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
-                                'value' => '2h',
-                                'errorMessage' => '',
-                                'test' => 'testForRPZDuration',
-                                'type' => 'string',
-                        ),
-                        'RPZ_retry' => array(
-                                'level' => 2,
-                                'description' => __('The retry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
-                                'value' => '30m',
-                                'errorMessage' => '',
-                                'test' => 'testForRPZDuration',
-                                'type' => 'string',
-                        ),
-                        'RPZ_expiry' => array(
-                                'level' => 2,
-                                'description' => __('The expiry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
-                                'value' => '30d',
-                                'errorMessage' => '',
-                                'test' => 'testForRPZDuration',
-                                'type' => 'string',
-                        ),
-                        'RPZ_minimum_ttl' => array(
-                                'level' => 2,
-                                'description' => __('The minimum TTL specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
-                                'value' => '1h',
-                                'errorMessage' => '',
-                                'test' => 'testForRPZDuration',
-                                'type' => 'string',
-                        ),
-                        'RPZ_ttl' => array(
-                                'level' => 2,
-                                'description' => __('The TTL of the zone file. (in seconds, or shorthand duration such as 15m)'),
-                                'value' => '1w',
-                                'errorMessage' => '',
-                                'test' => 'testForRPZDuration',
-                                'type' => 'string',
-                        ),
-                        'RPZ_ns' => array(
-                                'level' => 2,
-                                'description' => __('Nameserver'),
-                                'value' => 'localhost.',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                        ),
-                        'RPZ_ns_alt' => array(
-                            'level' => 2,
-                            'description' => __('Alternate nameserver'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                    ),
-                        'RPZ_email' => array(
-                            'level' => 2,
-                            'description' => __('The e-mail address specified in the SOA portion of the zone file.'),
-                            'value' => 'root.localhost',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                        ),
-                        'Kafka_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the Kafka pub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                        ),
-                        'Kafka_brokers' => array(
-                            'level' => 2,
-                            'description' => __('A comma separated list of Kafka bootstrap brokers'),
-                            'value' => 'kafka:9092',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                        ),
-                        'Kafka_rdkafka_config' => array(
-                            'level' => 2,
-                            'description' => __('A path to an ini file with configuration options to be passed to rdkafka. Section headers in the ini file will be ignored.'),
-                            'value' => '/etc/rdkafka.ini',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                        ),
-                        'Kafka_include_attachments' => array(
-                            'level' => 2,
-                            'description' => __('Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_event_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any event creations/edits/deletions.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_event_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing event creations/edits/deletions.'),
-                            'value' => 'misp_event',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Kafka_event_publish_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('If enabled it will publish to Kafka the event at the time that the event gets published in MISP. Event actions (creation or edit) will not be published to Kafka.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_event_publish_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing event information on publish.'),
-                            'value' => 'misp_event_publish',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Kafka_object_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any object creations/edits/deletions.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_object_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing object creations/edits/deletions.'),
-                            'value' => 'misp_object',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Kafka_object_reference_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any object reference creations/deletions.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_object_reference_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing object reference creations/deletions.'),
-                            'value' => 'misp_object_reference',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Kafka_attribute_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any attribute creations/edits/soft deletions.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_attribute_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing attribute creations/edits/soft deletions.'),
-                            'value' => 'misp_attribute',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Kafka_shadow_attribute_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any proposal creations/edits/deletions.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_shadow_attribute_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing proposal creations/edits/deletions.'),
-                            'value' => 'misp_shadow_attribute',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Kafka_tag_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_tag_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
-                            'value' => 'misp_tag',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Kafka_sighting_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of new sightings.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_sighting_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing sightings.'),
-                            'value' => 'misp_sighting',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Kafka_user_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of new/modified users.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_user_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing new/modified users.'),
-                            'value' => 'misp_user',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Kafka_organisation_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of new/modified organisations.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_organisation_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing new/modified organisations.'),
-                            'value' => 'misp_organisation',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Kafka_audit_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of log entries. Keep in mind, this can get pretty verbose depending on your logging settings.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Kafka_audit_notifications_topic' => array(
-                            'level' => 2,
-                            'description' => __('Topic for publishing log entries.'),
-                            'value' => 'misp_audit',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'ZeroMQ_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the pub/sub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                            'afterHook' => 'zmqAfterHook',
-                        ),
-                        'ZeroMQ_port' => array(
-                            'level' => 2,
-                            'description' => __('The port that the pub/sub feature will use.'),
-                            'value' => 50000,
-                            'errorMessage' => '',
-                            'test' => 'testForZMQPortNumber',
-                            'type' => 'numeric',
-                            'afterHook' => 'zmqAfterHook',
-                        ),
-                        'ZeroMQ_username' => array(
-                            'level' => 2,
-                            'description' => __('The username that client need to use to connect to ZeroMQ.'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                            'afterHook' => 'zmqAfterHook',
-                        ),
-                        'ZeroMQ_password' => array(
-                            'level' => 2,
-                            'description' => __('The password that client need to use to connect to ZeroMQ.'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                            'afterHook' => 'zmqAfterHook',
-                        ),
-                        'ZeroMQ_redis_host' => array(
-                            'level' => 2,
-                            'description' => __('Location of the Redis db used by MISP and the Python PUB script to queue data to be published.'),
-                            'value' => 'localhost',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                            'afterHook' => 'zmqAfterHook',
-                        ),
-                        'ZeroMQ_redis_port' => array(
-                            'level' => 2,
-                            'description' => __('The port that Redis is listening on.'),
-                            'value' => 6379,
-                            'errorMessage' => '',
-                            'test' => 'testForPortNumber',
-                            'type' => 'numeric',
-                            'afterHook' => 'zmqAfterHook',
-                        ),
-                        'ZeroMQ_redis_password' => array(
-                            'level' => 2,
-                            'description' => __('The password, if set for Redis.'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                            'afterHook' => 'zmqAfterHook',
-                        ),
-                        'ZeroMQ_redis_database' => array(
-                            'level' => 2,
-                            'description' => __('The database to be used for queuing messages for the pub/sub functionality.'),
-                            'value' => 1,
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                            'afterHook' => 'zmqAfterHook',
-                        ),
-                        'ZeroMQ_redis_namespace' => array(
-                            'level' => 2,
-                            'description' => __('The namespace to be used for queuing messages for the pub/sub functionality.'),
-                            'value' => 'mispq',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string',
-                            'afterHook' => 'zmqAfterHook',
-                        ),
-                        'ZeroMQ_include_attachments' => array(
-                            'level' => 2,
-                            'description' => __('Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ZeroMQ_event_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any event creations/edits/deletions.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ZeroMQ_object_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any object creations/edits/deletions.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ZeroMQ_object_reference_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any object reference creations/deletions.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ZeroMQ_attribute_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any attribute creations/edits/soft deletions.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ZeroMQ_tag_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ZeroMQ_sighting_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of new sightings to the ZMQ pubsub feed.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ZeroMQ_user_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of new/modified users to the ZMQ pubsub feed.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ZeroMQ_organisation_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of new/modified organisations to the ZMQ pubsub feed.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ZeroMQ_audit_notifications_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables the publishing of log entries to the ZMQ pubsub feed. Keep in mind, this can get pretty verbose depending on your logging settings.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ElasticSearch_logging_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enabled logging to an ElasticSearch instance'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'ElasticSearch_connection_string' => array(
-                            'level' => 2,
-                            'description' => __('The URL(s) at which to access ElasticSearch - comma separate if you want to have more than one.'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'ElasticSearch_log_index' => array(
-                            'level' => 2,
-                            'description' => __('The index in which to place logs'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'S3_enable' => array(
-                            'level' => 2,
-                            'description' => __('Enables or disables uploading of malware samples to S3 rather than to disk (WARNING: Get permission from amazon first!)'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'S3_bucket_name' => array(
-                            'level' => 2,
-                            'description' => __('Bucket name to upload to'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'S3_region' => array(
-                            'level' => 2,
-                            'description' => __('Region in which your S3 bucket resides'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'S3_aws_access_key' => array(
-                            'level' => 2,
-                            'description' => __('AWS key to use when uploading samples (WARNING: It\' highly recommended that you use EC2 IAM roles if at all possible)'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'S3_aws_secret_key' => array(
-                            'level' => 2,
-                            'description' => __('AWS secret key to use when uploading samples'),
-                            'value' => '',
-                            'errorMessage' => '',
-                            'test' => 'testForEmpty',
-                            'type' => 'string'
-                        ),
-                        'Sightings_policy' => array(
-                            'level' => 1,
-                            'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
-                            'value' => 0,
-                            'errorMessage' => '',
-                            'test' => 'testForSightingVisibility',
-                            'type' => 'numeric',
-                            'options' => array(0 => 'Event Owner', 1 => 'Sighting reporters', 2 => 'Everyone'),
-                        ),
-                        'Sightings_anonymise' => array(
-                            'level' => 1,
-                            'description' => __('Enabling the anonymisation of sightings will simply aggregate all sightings instead of showing the organisations that have reported a sighting. Users will be able to tell the number of sightings their organisation has submitted and the number of sightings for other organisations'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean',
-                        ),
-                        'Sightings_anonymise_as' => array(
-                                'level' => 1,
-                                'description' => __('When pushing sightings to another server, report all sightings from this instance as this organisation. This effectively hides all sightings from this instance behind a single organisation to the outside world. Sightings pulled from this instance follow the Sightings_policy above.'),
-                                'value' => '0',
-                                'errorMessage' => '',
-                                'test' => 'testLocalOrg',
-                                'type' => 'numeric',
-                                'optionsSource' => 'LocalOrgs',
-                        ),
-                        'Sightings_range' => array(
-                            'level' => 1,
-                            'description' => __('Set the range in which sightings will be taken into account when generating graphs. For example a sighting with a sighted_date of 7 years ago might not be relevant anymore. Setting given in number of days, default is 365 days'),
-                            'value' => 365,
-                            'errorMessage' => '',
-                            'test' => 'testForNumeric',
-                            'type' => 'numeric'
-                        ),
-                        'Sightings_sighting_db_enable' => array(
-                            'level' => 1,
-                            'description' => __('Enable SightingDB integration.'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'CustomAuth_enable' => array(
-                                'level' => 2,
-                                'description' => __('Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true,
-                                'beforeHook' => 'customAuthBeforeHook'
-                        ),
-                        'CustomAuth_header' => array(
-                                'level' => 2,
-                                'description' => __('Set the header that MISP should look for here. If left empty it will default to the Authorization header.'),
-                                'value' => 'Authorization',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => true
-                        ),
-                        'CustomAuth_use_header_namespace' => array(
-                                'level' => 2,
-                                'description' => __('Use a header namespace for the auth header - default setting is enabled'),
-                                'value' => true,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'CustomAuth_header_namespace' => array(
-                                'level' => 2,
-                                'description' => __('The default header namespace for the auth header - default setting is HTTP_'),
-                                'value' => 'HTTP_',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => true
-                        ),
-                        'CustomAuth_required' => array(
-                                'level' => 2,
-                                'description' => __('If this setting is enabled then the only way to authenticate will be using the custom header. Alternatively, you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'CustomAuth_only_allow_source' => array(
-                                'level' => 2,
-                                'description' => __('If you are using an external tool to authenticate with MISP and would like to only allow the tool\'s url as a valid point of entry then set this field. '),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => true
-                        ),
-                        'CustomAuth_name' => array(
-                                'level' => 2,
-                                'description' => __('The name of the authentication method, this is cosmetic only and will be shown on the user creation page and logs.'),
-                                'value' => 'External authentication',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => true
-                        ),
-                        'CustomAuth_disable_logout' => array(
-                                'level' => 2,
-                                'description' => __('Disable the logout button for users authenticate with the external auth mechanism.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'Enrichment_services_enable' => array(
-                            'level' => 0,
-                            'description' => __('Enable/disable the enrichment services'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Enrichment_timeout' => array(
-                                'level' => 1,
-                                'description' => __('Set a timeout for the enrichment services'),
-                                'value' => 10,
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'numeric'
-                        ),
-                        'Import_services_enable' => array(
-                                'level' => 0,
-                                'description' => __('Enable/disable the import services'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'Import_timeout' => array(
-                                'level' => 1,
-                                'description' => __('Set a timeout for the import services'),
-                                'value' => 10,
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'numeric'
-                        ),
-                        'Import_services_url' => array(
-                                'level' => 1,
-                                'description' => __('The url used to access the import services. By default, it is accessible at http://127.0.0.1:6666'),
-                                'value' => 'http://127.0.0.1',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string'
-                        ),
-                        'Import_services_port' => array(
-                                'level' => 1,
-                                'description' => __('The port used to access the import services. By default, it is accessible at 127.0.0.1:6666'),
-                                'value' => '6666',
-                                'errorMessage' => '',
-                                'test' => 'testForPortNumber',
-                                'type' => 'numeric'
-                        ),
-                        'Export_services_url' => array(
-                                'level' => 1,
-                                'description' => __('The url used to access the export services. By default, it is accessible at http://127.0.0.1:6666'),
-                                'value' => 'http://127.0.0.1',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string'
-                        ),
-                        'Export_services_port' => array(
-                                'level' => 1,
-                                'description' => __('The port used to access the export services. By default, it is accessible at 127.0.0.1:6666'),
-                                'value' => '6666',
-                                'errorMessage' => '',
-                                'test' => 'testForPortNumber',
-                                'type' => 'numeric'
-                        ),
-                        'Export_services_enable' => array(
-                                'level' => 0,
-                                'description' => __('Enable/disable the export services'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'Export_timeout' => array(
-                                'level' => 1,
-                                'description' => __('Set a timeout for the export services'),
-                                'value' => 10,
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'numeric'
-                        ),
-                        'Enrichment_hover_enable' => array(
-                                'level' => 0,
-                                'description' => __('Enable/disable the hover over information retrieved from the enrichment modules'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'Enrichment_hover_popover_only' => array(
-                            'level' => 0,
-                            'description' => __('When enabled, users have to click on the magnifier icon to show the enrichment'),
-                            'value' => false,
-                            'errorMessage' => '',
-                            'test' => 'testBool',
-                            'type' => 'boolean'
-                        ),
-                        'Enrichment_hover_timeout' => array(
-                                'level' => 1,
-                                'description' => __('Set a timeout for the hover services'),
-                                'value' => 5,
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'numeric'
-                        ),
-                        'Enrichment_services_url' => array(
-                                'level' => 1,
-                                'description' => __('The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666'),
-                                'value' => 'http://127.0.0.1',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string'
-                        ),
-                        'Enrichment_services_port' => array(
-                                'level' => 1,
-                                'description' => __('The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666'),
-                                'value' => 6666,
-                                'errorMessage' => '',
-                                'test' => 'testForPortNumber',
-                                'type' => 'numeric'
-                        ),
-                        'Cortex_services_url' => array(
-                                'level' => 1,
-                                'description' => __('The url used to access Cortex. By default, it is accessible at http://cortex-url'),
-                                'value' => 'http://127.0.0.1',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string'
-                        ),
-                        'Cortex_services_port' => array(
-                                'level' => 1,
-                                'description' => __('The port used to access Cortex. By default, this is port 9000'),
-                                'value' => 9000,
-                                'errorMessage' => '',
-                                'test' => 'testForPortNumber',
-                                'type' => 'numeric'
-                        ),
-                        'Cortex_services_enable' => array(
-                                'level' => 0,
-                                'description' => __('Enable/disable the Cortex services'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean'
-                        ),
-                        'Cortex_authkey' => array(
-                                'level' => 1,
-                                'description' => __('Set an authentication key to be passed to Cortex'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => true
-                        ),
-                        'Cortex_timeout' => array(
-                                'level' => 1,
-                                'description' => __('Set a timeout for the Cortex services'),
-                                'value' => 120,
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'numeric'
-                        ),
-                        'Cortex_ssl_verify_peer' => array(
-                                'level' => 1,
-                                'description' => __('Set to false to disable SSL verification. This is not recommended.'),
-                                'value' => true,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'Cortex_ssl_verify_host' => array(
-                                'level' => 1,
-                                'description' => __('Set to false if you wish to ignore hostname match errors when validating certificates.'),
-                                'value' => true,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'Cortex_ssl_allow_self_signed' => array(
-                                'level' => 1,
-                                'description' => __('Set to true to enable self-signed certificates to be accepted. This requires Cortex_ssl_verify_peer to be enabled.'),
-                                'value' => false,
-                                'errorMessage' => '',
-                                'test' => 'testBool',
-                                'type' => 'boolean',
-                                'null' => true
-                        ),
-                        'Cortex_ssl_cafile' => array(
-                                'level' => 1,
-                                'description' => __('Set to the absolute path of the Certificate Authority file that you wish to use for verifying SSL certificates.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => true
-                        ),
-                        'CustomAuth_custom_password_reset' => array(
-                                'level' => 2,
-                                'description' => __('Provide your custom authentication users with an external URL to the authentication system to reset their passwords.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => true
-                        ),
-                        'CustomAuth_custom_logout' => array(
-                                'level' => 2,
-                                'description' => __('Provide a custom logout URL for your users that will log them out using the authentication system you use.'),
-                                'value' => '',
-                                'errorMessage' => '',
-                                'test' => 'testForEmpty',
-                                'type' => 'string',
-                                'null' => true
-                        )
-                ),
-                'debug' => array(
-                        'level' => 0,
-                        'description' => __('The debug level of the instance, always use 0 for production instances.'),
-                        'value' => '',
-                        'errorMessage' => '',
-                        'test' => 'testDebug',
-                        'type' => 'numeric',
-                        'options' => array(0 => 'Debug off', 1 => 'Debug on', 2 => 'Debug + SQL dump'),
-                ),
-                'site_admin_debug' => array(
-                        'level' => 0,
-                        'description' => __('The debug level of the instance for site admins. This feature allows site admins to run debug mode on a live instance without exposing it to other users. The most verbose option of debug and site_admin_debug is used for site admins.'),
-                        'value' => '',
-                        'errorMessage' => '',
-                        'test' => 'testDebugAdmin',
-                        'type' => 'boolean',
-                        'null' => true
-                ),
-        );
     }
 
     private $__settingTabMergeRules = array(
@@ -2533,13 +193,7 @@ class Server extends AppModel
             'Session' => 'Security'
     );
 
-
     public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
-
-    public function isOwnedByOrg($serverid, $org)
-    {
-        return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
-    }
 
     public function beforeSave($options = array())
     {
@@ -2577,11 +231,10 @@ class Server extends AppModel
             } elseif ("update" === $technique) {
                 $eventIds = $this->getEventIdsFromServer($server, false, null, true, 'events', $force);
                 $eventModel = ClassRegistry::init('Event');
-                $local_event_ids = $eventModel->find('list', array(
-                    'fields' => array('uuid'),
-                    'recursive' => -1,
+                $localEventUuids = $eventModel->find('column', array(
+                    'fields' => array('Event.uuid'),
                 ));
-                return array_intersect($eventIds, $local_event_ids);
+                return array_intersect($eventIds, $localEventUuids);
             } elseif (is_numeric($technique)) {
                 return array(intval($technique));
             } elseif (Validation::uuid($technique)) {
@@ -2723,7 +376,11 @@ class Server extends AppModel
     private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId, $force = false)
     {
         // check if the event already exist (using the uuid)
-        $existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+        $existingEvent = $eventModel->find('first', [
+            'conditions' => ['Event.uuid' => $event['Event']['uuid']],
+            'recursive' => -1,
+            'fields' => ['id', 'locked'],
+        ]);
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
@@ -2793,7 +450,7 @@ class Server extends AppModel
         } else {
             $email = $user['email'];
         }
-        $server['Server']['version'] = $this->getRemoteVersion($id);
+        $server['Server']['version'] = $this->getRemoteVersion($server);
         $pulledClusters = 0;
         if (!empty($server['Server']['pull_galaxy_clusters'])) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -3116,11 +773,11 @@ class Server extends AppModel
         } else {
             if (Configure::read('MISP.enableEventBlocklisting') !== false) {
                 $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-                $blocklistHits = $this->EventBlocklist->find('list', array(
-                    'recursive' => -1,
+                $blocklistHits = $this->EventBlocklist->find('column', array(
                     'conditions' => array('EventBlocklist.event_uuid' => array_column($eventArray, 'uuid')),
-                    'fields' => array('EventBlocklist.event_uuid', 'EventBlocklist.event_uuid'),
+                    'fields' => array('EventBlocklist.event_uuid'),
                 ));
+                $blocklistHits = array_flip($blocklistHits);
                 foreach ($eventArray as $k => $event) {
                     if (isset($blocklistHits[$event['uuid']])) {
                         unset($eventArray[$k]);
@@ -3130,11 +787,11 @@ class Server extends AppModel
 
             if (Configure::read('MISP.enableOrgBlocklisting') !== false) {
                 $this->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-                $blocklistHits = $this->OrgBlocklist->find('list', array(
-                    'recursive' => -1,
+                $blocklistHits = $this->OrgBlocklist->find('column', array(
                     'conditions' => array('OrgBlocklist.org_uuid' => array_unique(array_column($eventArray, 'orgc_uuid'))),
-                    'fields' => array('OrgBlocklist.org_uuid', 'OrgBlocklist.org_uuid'),
+                    'fields' => array('OrgBlocklist.org_uuid'),
                 ));
+                $blocklistHits = array_flip($blocklistHits);
                 foreach ($eventArray as $k => $event) {
                     if (isset($blocklistHits[$event['orgc_uuid']])) {
                         unset($eventArray[$k]);
@@ -3154,6 +811,55 @@ class Server extends AppModel
             $eventUuids = array_column($eventArray, 'uuid');
         }
         return $eventUuids;
+    }
+
+    public function serverEventsOverlap()
+    {
+        $servers = $this->find('all', [
+            'conditions' => ['Server.pull' => 1],
+            'order' => ['Server.id ASC'],
+            'recursive' => -1,
+        ]);
+
+        if (count($servers) < 2) {
+            return [$servers, []];
+        }
+
+        $serverUuids = [];
+        foreach ($servers as &$server) {
+            try {
+                $uuids = $this->getEventIdsFromServer($server, true, null, true);
+                $serverUuids[$server['Server']['id']] = array_flip($uuids);
+                $server['Server']['events_count'] = count($uuids);
+            } catch (Exception $e) {
+                $this->logException("Could not get event UUIDs for server {$server['Server']['id']}", $e);
+            }
+        }
+        unset($server);
+
+        $compared = [];
+        foreach ($servers as $server) {
+            if (!isset($serverUuids[$server['Server']['id']])) {
+                continue;
+            }
+
+            foreach ($servers as $server2) {
+                if ($server['Server']['id'] == $server2['Server']['id']) {
+                    continue;
+                }
+                if (!isset($serverUuids[$server2['Server']['id']])) {
+                    continue;
+                }
+
+                $intersect = count(array_intersect_key($serverUuids[$server['Server']['id']], $serverUuids[$server2['Server']['id']]));
+                $percentage = round(100 * $intersect / $server['Server']['events_count']);
+                $compared[$server['Server']['id']][$server2['Server']['id']] = [
+                    'percentage' => $percentage,
+                    'events' => $intersect,
+                ];
+            }
+        }
+        return [$servers, $compared];
     }
 
     /**
@@ -3176,7 +882,7 @@ class Server extends AppModel
         }
         $this->Event = ClassRegistry::init('Event');
         $url = $server['Server']['url'];
-        $push = $this->checkVersionCompatibility($id, $user);
+        $push = $this->checkVersionCompatibility($server, $user);
         if (is_array($push) && !$push['canPush'] && !$push['canSight']) {
             $push = 'Remote instance is outdated or no permission to push.';
         }
@@ -3555,7 +1261,9 @@ class Server extends AppModel
                             $setting['value'] = 0;
                             $setting['test'] = 'testLocalOrg';
                             $setting['type'] = 'numeric';
-                            $setting['optionsSource'] = 'LocalOrgs';
+                            $setting['optionsSource'] = function () {
+                                return $this->loadLocalOrganisations();
+                            };
                         } else {
                             $setting['test'] = 'testForEmpty';
                             $setting['type'] = 'string';
@@ -3710,6 +1418,16 @@ class Server extends AppModel
             $options[intval($tagCollection['TagCollection']['id'])] = $tagCollection['TagCollection']['name'];
         }
         return $options;
+    }
+
+    private function loadLocalOrganisations()
+    {
+        $localOrgs = $this->Organisation->find('list', array(
+            'conditions' => array('local' => 1),
+            'recursive' => -1,
+            'fields' => array('Organisation.id', 'Organisation.name')
+        ));
+        return array_replace(array(0 => __('No organisation selected.')), $localOrgs);
     }
 
     public function testTagCollections($value)
@@ -4673,7 +2391,7 @@ class Server extends AppModel
 
     /**
      * @param array $server
-     * @return int
+     * @return array
      * @throws JsonException
      */
     public function runPOSTtest(array $server)
@@ -4688,12 +2406,13 @@ class Server extends AppModel
 
         try {
             $response = $HttpSocket->post($uri, json_encode(array('testString' => $testFile)), $request);
+            $contentEncoding = $response->getHeader('Content-Encoding');
             $rawBody = $response->body;
             $response = $this->jsonDecode($rawBody);
         } catch (Exception $e) {
             $title = 'Error: POST connection test failed. Reason: ' . $e->getMessage();
             $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
-            return 8;
+            return ['status' => 8];
         }
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
             if (!empty($repsonse['body']['testString'])) {
@@ -4706,28 +2425,27 @@ class Server extends AppModel
 
             $title = 'Error: POST connection test failed due to the message body not containing the expected data. Response: ' . PHP_EOL . PHP_EOL . $responseString;
             $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
-            return 9;
+            return ['status' => 9, 'content-encoding' => $contentEncoding];
         }
         $headers = array('Accept', 'Content-type');
         foreach ($headers as $header) {
-            if (!isset($response['headers'][$header]) || $response['headers'][$header] != 'application/json') {
+            if (!isset($response['headers'][$header]) || $response['headers'][$header] !== 'application/json') {
                 $responseHeader = isset($response['headers'][$header]) ? $response['headers'][$header] : 'Header was not set.';
-                $title = 'Error: POST connection test failed due to a header not matching the expected value. Expected: "application/json", received "' . $responseHeader . '"';
+                $title = 'Error: POST connection test failed due to a header ' . $header . ' not matching the expected value. Expected: "application/json", received "' . $responseHeader . '"';
                 $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $server['Server']['id'], $title);
-                return 10;
+                return ['status' => 10, 'content-encoding' => $contentEncoding];
             }
         }
-        return 1;
+        return ['status' => 1, 'content-encoding' => $contentEncoding];
     }
 
-    public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false)
+    public function checkVersionCompatibility(array $server, $user = array(), $HttpSocket = false)
     {
         // for event publishing when we don't have a user.
         if (empty($user)) {
             $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
         }
         $localVersion = $this->checkMISPVersion();
-        $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/servers/getVersion';
@@ -4742,12 +2460,12 @@ class Server extends AppModel
             if (isset($response->code)) {
                 $title = 'Error: Connection to the server has failed.' . (isset($response->code) ? ' Returned response code: ' . $response->code : '');
             } else {
-                $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
+                $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $error;
             }
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Server',
-                    'model_id' => $id,
+                    'model_id' => $server['Server']['id'],
                     'email' => $user['email'],
                     'action' => 'error',
                     'user_id' => $user['id'],
@@ -4755,7 +2473,7 @@ class Server extends AppModel
             ));
             return $title;
         }
-        $remoteVersion = json_decode($response->body, true);
+        $remoteVersion = $this->jsonDecode($response->body);
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $supportEditOfGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']);
@@ -4768,7 +2486,7 @@ class Server extends AppModel
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Server',
-                    'model_id' => $id,
+                    'model_id' => $server['Server']['id'],
                     'email' => $user['email'],
                     'action' => 'error',
                     'user_id' => $user['id'],
@@ -4780,16 +2498,16 @@ class Server extends AppModel
         $success = false;
         $issueLevel = "warning";
         if ($localVersion['major'] > $remoteVersion[0]) {
-            $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a major version.";
+            $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance's MISP version is behind by a major version.";
         }
         if ($response === false && $localVersion['major'] < $remoteVersion[0]) {
-            $response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
+            $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
         }
         if ($response === false && $localVersion['minor'] > $remoteVersion[1]) {
-            $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a minor version.";
+            $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance's MISP version is behind by a minor version.";
         }
         if ($response === false && $localVersion['minor'] < $remoteVersion[1]) {
-            $response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
+            $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
         }
 
         // if we haven't set a message yet, we're good to go. We are only behind by a hotfix version
@@ -4799,13 +2517,13 @@ class Server extends AppModel
             $issueLevel = "error";
         }
         if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) {
-            $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes behind.";
+            $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes behind.";
         }
         if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) {
-            $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
+            $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
         }
         if (empty($response) && $remoteVersion[2] < 111) {
-            $response = "Sync to Server ('" . $id . "') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
+            $response = "Sync to Server ('{$server['Server']['id']}') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
         }
 
         if ($response !== false) {
@@ -4814,14 +2532,22 @@ class Server extends AppModel
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Server',
-                    'model_id' => $id,
+                    'model_id' => $server['Server']['id'],
                     'email' => $user['email'],
                     'action' => $issueLevel,
                     'user_id' => $user['id'],
                     'title' => ucfirst($issueLevel) . ': ' . $response,
             ));
         }
-        return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'canSight' => $canSight, 'canEditGalaxyCluster' => $canEditGalaxyCluster, 'supportEditOfGalaxyCluster' => $supportEditOfGalaxyCluster, 'version' => $remoteVersion);
+        return [
+            'success' => $success,
+            'response' => $response,
+            'canPush' => $canPush,
+            'canSight' => $canSight,
+            'canEditGalaxyCluster' => $canEditGalaxyCluster,
+            'supportEditOfGalaxyCluster' => $supportEditOfGalaxyCluster,
+            'version' => $remoteVersion,
+        ];
     }
 
     public function isJson($string)
@@ -4916,6 +2642,7 @@ class Server extends AppModel
 
     public function dbSchemaDiagnostic()
     {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $actualDbVersion = $this->AdminSetting->find('first', array(
             'conditions' => array('setting' => 'db_version')
         ))['AdminSetting']['value'];
@@ -4997,7 +2724,7 @@ class Server extends AppModel
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
-                            strpos($field['expected']['column_type'], 'unsigned') != -1 ? 'UNSIGNED' : '',
+                            strpos($field['expected']['column_type'], 'unsigned') !== false ? 'UNSIGNED' : '',
                             isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                             empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
@@ -5011,7 +2738,7 @@ class Server extends AppModel
                             $field['column_name'],
                             $field['expected']['data_type'],
                             $length !== null ? sprintf('(%d)', $length) : '',
-                            strpos($field['expected']['column_type'], 'unsigned') != -1 ? 'UNSIGNED' : '',
+                            strpos($field['expected']['column_type'], 'unsigned') !== false ? 'UNSIGNED' : '',
                             isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
                             $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                             empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
@@ -5036,7 +2763,7 @@ class Server extends AppModel
                         $expectedField['column_name'],
                         $expectedField['data_type'],
                         $length !== null ? sprintf('(%d)', $length) : '',
-                        strpos($expectedField['column_type'], 'unsigned') != -1 ? 'UNSIGNED' : '',
+                        strpos($expectedField['column_type'], 'unsigned') !== false ? 'UNSIGNED' : '',
                         isset($expectedField['column_default']) ? 'DEFAULT "' . $expectedField['column_default'] . '"' : '',
                         $expectedField['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
                         empty($expectedField['collation_name']) ? '' : 'COLLATE ' . $expectedField['collation_name'],
@@ -5817,49 +3544,30 @@ class Server extends AppModel
         ));
     }
 
-    /* returns the version string of a connected instance
-     * error codes:
-     * 1: received non json response
-     * 2: no route to host
-     * 3: empty result set
-     */
-    public function getRemoteVersion($id)
+    private function getRemoteVersion(array $server)
     {
-        $server = $this->find('first', array(
-                'conditions' => array('Server.id' => $id),
-        ));
-        if (empty($server)) {
-            return 2;
-        }
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket($server);
+        $HttpSocket = $this->setupHttpSocket($server);
         $request = $this->setupSyncRequest($server);
         $response = $HttpSocket->get($server['Server']['url'] . '/servers/getVersion', $data = '', $request);
         if ($response->code == 200) {
-            try {
-                $data = json_decode($response->body, true);
-            } catch (Exception $e) {
-                return 1;
-            }
+            $data = $this->jsonDecode($response->body);
             if (isset($data['version']) && !empty($data['version'])) {
                 return $data['version'];
             } else {
-                return 3;
+                throw new Exception("Invalid response from remote server: version field missing");
             }
         }
-        return 2;
     }
 
     /**
      * Returns an array with the events
-     * @param int $id
+     * @param array $server
      * @param $user - not used
      * @param array $passedArgs
      * @return array
      * @throws Exception
      */
-    public function previewIndex($id, $user, array $passedArgs)
+    public function previewIndex(array $server, $user, array $passedArgs)
     {
         $validArgs = array_merge(array('sort', 'direction', 'page', 'limit'), $this->validEventIndexFilters);
         $urlParams = '';
@@ -5870,7 +3578,7 @@ class Server extends AppModel
         }
 
         $relativeUri = '/events/index' . $urlParams;
-        list($events, $response) = $this->serverGetRequest($id, $relativeUri);
+        list($events, $response) = $this->serverGetRequest($server, $relativeUri);
         $totalCount = $response->getHeader('X-Result-Count') ?: 0;
 
         foreach ($events as $k => $event) {
@@ -5891,15 +3599,15 @@ class Server extends AppModel
 
     /**
      * Returns an array with the event.
-     * @param int $serverId
+     * @param array $server
      * @param int $eventId
      * @return array
      * @throws Exception
      */
-    public function previewEvent($serverId, $eventId)
+    public function previewEvent(array $server, $eventId)
     {
         $relativeUri =  '/events/' . $eventId;
-        list($event) = $this->serverGetRequest($serverId, $relativeUri);
+        list($event) = $this->serverGetRequest($server, $relativeUri);
 
         if (!isset($event['Event']['Orgc'])) {
             $event['Event']['Orgc']['name'] = $event['Event']['orgc'];
@@ -5958,6 +3666,11 @@ class Server extends AppModel
         return $validServers;
     }
 
+    /**
+     * Check installed PHP extensions and their versions.
+     * @return array
+     * @throws JsonException
+     */
     public function extensionDiagnostics()
     {
         try {
@@ -5975,10 +3688,11 @@ class Server extends AppModel
                 }
             }
         } catch (Exception $e) {
+            $this->logException('Could not load extensions from composer.json', $e, LOG_NOTICE);
             $extensions = ['redis' => '', 'gd' => '', 'ssdeep' => '', 'zip' => '', 'intl' => '']; // Default extensions
         }
 
-        $results = array();
+        $results = ['cli' => false];
         foreach ($extensions as $extension => $reason) {
             $results['extensions'][$extension] = [
                 'web_version' => phpversion($extension),
@@ -5989,14 +3703,14 @@ class Server extends AppModel
                 'info' => $reason === true ? null : $reason,
             ];
         }
-        if (!is_readable(APP . '/files/scripts/selftest.php')) {
-            $results['cli'] = false;
-        } else {
+        if (is_readable(APP . '/files/scripts/selftest.php')) {
             $execResult = exec('php ' . APP . '/files/scripts/selftest.php ' . escapeshellarg(json_encode(array_keys($extensions))));
-            $execResult = $this->jsonDecode($execResult);
-            $results['cli']['phpversion'] = $execResult['phpversion'];
-            foreach ($execResult['extensions'] as $extension => $loaded) {
-                $results['extensions'][$extension]['cli_version'] = $loaded;
+            if (!empty($execResult)) {
+                $execResult = $this->jsonDecode($execResult);
+                $results['cli']['phpversion'] = $execResult['phpversion'];
+                foreach ($execResult['extensions'] as $extension => $loaded) {
+                    $results['extensions'][$extension]['cli_version'] = $loaded;
+                }
             }
         }
 
@@ -6213,7 +3927,7 @@ class Server extends AppModel
         return implode('\n', $result);
     }
 
-    public function update(array $status, &$raw = array())
+    public function update(array $status, &$raw = [], array $settings = [])
     {
         $final = '';
         $workingDirectoryPrefix = 'cd $(git rev-parse --show-toplevel) && ';
@@ -6232,7 +3946,22 @@ class Server extends AppModel
             );
             $final .= implode("\n", $output) . "\n\n";
         }
-        $command1 = $workingDirectoryPrefix . 'git pull origin ' . $status['branch'] . ' 2>&1';
+        if (!empty($settings['branch'])) {
+            $branchname = false;
+            preg_match('/^[a-z0-9\_]+/i', $settings['branch'], $branchname);
+            if (!empty($branchname)) {
+                $branchname = $branchname[0];
+                $checkout_command = $workingDirectoryPrefix . 'git checkout ' . escapeshellarg($branchname) . ' 2>&1';
+                exec($checkout_command, $output, $returnCode);
+                $raw[] = array(
+                    'input' => $checkout_command,
+                    'output' => $output,
+                    'status' => $returnCode,
+                );
+                $status = $this->getCurrentGitStatus();
+            }
+        }
+        $command1 = $workingDirectoryPrefix . 'git pull origin ' . escapeshellarg($status['branch']) . ' 2>&1';
         $command2 = $workingDirectoryPrefix . 'git submodule update --init --recursive 2>&1';
         $final .= $command1 . "\n\n";
         $returnCode = false;
@@ -6539,48 +4268,34 @@ class Server extends AppModel
     }
 
     /**
-     * @param int $serverId
+     * @param array $server
      * @param string $relativeUri
      * @param HttpSocket|null $HttpSocket
      * @return array
      * @throws Exception
      */
-    private function serverGetRequest($serverId, $relativeUri, HttpSocket $HttpSocket = null)
+    private function serverGetRequest(array $server, $relativeUri, HttpSocket $HttpSocket = null)
     {
-        $server = $this->find('first', array(
-            'conditions' => array('Server.id' => $serverId),
-        ));
-        if ($server === null) {
-            throw new Exception(__("Server with ID '$serverId' not found."));
-        }
-
-        if (!$HttpSocket) {
-            $HttpSocket = $this->setupHttpSocket($server);
-        }
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
 
         $uri = $server['Server']['url'] . $relativeUri;
         $response = $HttpSocket->get($uri, array(), $request);
 
-        if ($response === false) {
-            throw new Exception(__("Could not reach '$uri'."));
-        } else if ($response->code == 404) { // intentional !=
-            throw new NotFoundException(__("Fetching the '$uri' failed with HTTP error 404: Not Found"));
+        if ($response->code == 404) { // intentional !=
+            throw new NotFoundException(__("Fetching the '%s' failed with HTTP error 404: Not Found", $uri));
         } else if ($response->code == 405) { // intentional !=
             $responseText = json_decode($response->body, true);
             if ($responseText !== null) {
-                throw new Exception(sprintf(__("Fetching the '$uri' failed with HTTP error %s: %s"), $response->code, $responseText['message']));
+                throw new Exception(__("Fetching the '%s' failed with HTTP error %s: %s", $uri, $response->code, $responseText['message']));
             }
         }
 
         if ($response->code != 200) { // intentional !=
-            throw new Exception(sprintf(__("Fetching the '$uri' failed with HTTP error %s: %s"), $response->code, $response->reasonPhrase));
+            throw new Exception(__("Fetching the '%s' failed with HTTP error %s: %s", $uri, $response->code, $response->reasonPhrase));
         }
 
-        $data = json_decode($response->body, true);
-        if ($data === null) {
-            throw new Exception(__('Could not parse JSON: ') . json_last_error_msg(), json_last_error());
-        }
+        $data = $this->jsonDecode($response->body);
 
         return array($data, $response);
     }
@@ -6599,7 +4314,7 @@ class Server extends AppModel
         } catch (Exception $e) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-            $message = __('Could not reset fetch remote user account.');
+            $message = __('Could not fetch remote user account.');
             $this->Log->save(array(
                     'org' => 'SYSTEM',
                     'model' => 'Server',
@@ -6612,19 +4327,2440 @@ class Server extends AppModel
             return $message;
         }
         if ($response->isOk()) {
-            $user = json_decode($response->body, true);
+            $user = $this->jsonDecode($response->body);
             if (!empty($user['User'])) {
-                $result = array(
-                    'Email' => $user['User']['email'],
-                    'Role name' => isset($user['Role']['name']) ? $user['Role']['name'] : 'Unknown, outdated instance',
-                    'Sync flag' => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? 1 : 0) : 'Unknown, outdated instance'
-                );
-                return $result;
+                $results = [
+                    __('User') => $user['User']['email'],
+                    __('Role name') => isset($user['Role']['name']) ? $user['Role']['name'] : __('Unknown, outdated instance'),
+                    __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
+                ];
+                if (isset($response->headers['X-Auth-Key-Expiration'])) {
+                    $date = new DateTime($response->headers['X-Auth-Key-Expiration']);
+                    $results[__('Auth key expiration')] = $date->format('Y-m-d H:i:s');
+                }
+                return $results;
             } else {
                 return __('No user object received in response.');
             }
         } else {
             return $response->code;
         }
+    }
+
+    public function __get($name)
+    {
+        if ($name === 'serverSettings') {
+            $this->serverSettings = $this->generateServerSettings();
+            return $this->serverSettings;
+        }
+        return parent::__get($name);
+    }
+
+    /**
+     * Generate just when required
+     * @return array[]
+     */
+    private function generateServerSettings()
+    {
+        return array(
+            'MISP' => array(
+                'branch' => 1,
+                'baseurl' => array(
+                    'level' => 0,
+                    'description' => __('The base url of the application (in the format https://www.mymispinstance.com or https://myserver.com/misp). Several features depend on this setting being correctly set to function.'),
+                    'value' => '',
+                    'errorMessage' => __('The currently set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address).'),
+                    'test' => 'testBaseURL',
+                    'type' => 'string',
+                ),
+                'external_baseurl' => array(
+                    'level' => 0,
+                    'description' => __('The base url of the application (in the format https://www.mymispinstance.com) as visible externally/by other MISPs. MISP will encode this URL in sharing groups when including itself. If this value is not set, the baseurl is used as a fallback.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testURL',
+                    'type' => 'string',
+                ),
+                'live' => array(
+                    'level' => 0,
+                    'description' => __('Unless set to true, the instance will only be accessible by site admins.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testLive',
+                    'type' => 'boolean',
+                ),
+                'language' => array(
+                    'level' => 0,
+                    'description' => __('Select the language MISP should use. The default is english.'),
+                    'value' => 'eng',
+                    'errorMessage' => '',
+                    'test' => 'testLanguage',
+                    'type' => 'string',
+                    'optionsSource' => function () {
+                        return $this->loadAvailableLanguages();
+                    },
+                    'afterHook' => 'cleanCacheFiles'
+                ),
+                'default_attribute_memory_coefficient' => array(
+                    'level' => 1,
+                    'description' => __('This values controls the internal fetcher\'s memory envelope when it comes to attributes. The number provided is the amount of attributes that can be loaded for each MB of PHP memory available in one shot. Consider lowering this number if your instance has a lot of attribute tags / attribute galaxies attached.'),
+                    'value' => 80,
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
+                'default_event_memory_divisor' => array(
+                    'level' => 1,
+                    'description' => __('This value controls the divisor for attribute weighting when it comes to loading full events. Meaning that it will load coefficient / divisor number of attributes per MB of memory available. Consider raising this number if you have a lot of correlations or highly contextualised events (large number of event level galaxies/tags).'),
+                    'value' => 3,
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
+                'enable_advanced_correlations' => array(
+                    'level' => 0,
+                    'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'server_settings_skip_backup_rotate' => array(
+                    'level' => 1,
+                    'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'python_bin' => array(
+                    'level' => 1,
+                    'description' => __('It is highly recommended to install all the python dependencies in a virtualenv. The recommended location is: %s/venv', ROOT),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'null' => false,
+                    'test' => 'testForBinExec',
+                    'beforeHook' => 'beforeHookBinExec',
+                    'type' => 'string',
+                    'cli_only' => 1
+                ),
+                'ca_path' => array(
+                    'level' => 1,
+                    'description' => __('MISP will default to the bundled mozilla certificate bundle shipped with the framework, which is rather stale. If you wish to use an alternate bundle, just set this setting using the path to the bundle to use. This setting can only be modified via the CLI.'),
+                    'value' => APP . 'Lib/cakephp/lib/Cake/Config/cacert.pem',
+                    'errorMessage' => '',
+                    'null' => true,
+                    'test' => 'testForCABundle',
+                    'type' => 'string',
+                    'cli_only' => 1
+                ),
+                'disable_auto_logout' => array(
+                    'level' => 1,
+                    'description' => __('In some cases, a heavily used MISP instance can generate unwanted blackhole errors due to a high number of requests hitting the server. Disable the auto logout functionality to ease the burden on the system.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'ssdeep_correlation_threshold' => array(
+                    'level' => 1,
+                    'description' => __('Set the ssdeep score at which to consider two ssdeep hashes as correlating [1-100]'),
+                    'value' => 40,
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'max_correlations_per_event' => array(
+                    'level' => 1,
+                    'description' => __('Sets the maximum number of correlations that can be fetched with a single event. For extreme edge cases this can prevent memory issues. The default value is 5k.'),
+                    'value' => 5000,
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
+                'maintenance_message' => array(
+                    'level' => 2,
+                    'description' => __('The message that users will see if the instance is not live.'),
+                    'value' => 'Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at $email.',
+                    'errorMessage' => __('If this is not set the default value will be used.'),
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'name' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'version' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'disable_cached_exports' => array(
+                    'level' => 1,
+                    'description' => __('Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Disabling the cached exports is not recommended as it\'s a valuable feature, however, if your server is having free space issues it might make sense to take this step.'),
+                    'value' => false,
+                    'null' => true,
+                    'errorMessage' => '',
+                    'test' => 'testDisableCache',
+                    'type' => 'boolean',
+                    'afterHook' => 'disableCacheAfterHook',
+                ),
+                'disable_threat_level' => array(
+                    'level' => 1,
+                    'description' => __('Disable displaying / modifications to the threat level altogether on the instance (deprecated field).'),
+                    'value' => false,
+                    'null' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'header' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'footermidleft' => array(
+                    'level' => 2,
+                    'description' => __('Footer text prepending the "Powered by MISP" text.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'footermidright' => array(
+                    'level' => 2,
+                    'description' => __('Footer text following the "Powered by MISP" text.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'footerpart1' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'footerpart2' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'footer' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'footerversion' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'footer_logo' => array(
+                    'level' => 2 ,
+                    'description' => __('If set, this setting allows you to display a logo on the right side of the footer. Upload it as a custom image in the file management tool.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForCustomImage',
+                    'type' => 'string',
+                ),
+                'home_logo' => array(
+                    'level' => 2 ,
+                    'description' => __('If set, this setting allows you to display a logo as the home icon. Upload it as a custom image in the file management tool.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForCustomImage',
+                    'type' => 'string',
+                ),
+                'main_logo' => array(
+                    'level' => 2 ,
+                    'description' => __('If set, the image specified here will replace the main MISP logo on the login screen. Upload it as a custom image in the file management tool.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForCustomImage',
+                    'type' => 'string',
+                ),
+                'org' => array(
+                    'level' => 1,
+                    'description' => __('The organisation tag of the hosting organisation. This is used in the e-mail subjects.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'host_org_id' => array(
+                    'level' => 0,
+                    'description' => __('The hosting organisation of this instance. If this is not selected then replication instances cannot be added.'),
+                    'value' => '0',
+                    'errorMessage' => '',
+                    'test' => 'testLocalOrg',
+                    'type' => 'numeric',
+                    'optionsSource' => function () {
+                        return $this->loadLocalOrganisations();
+                    },
+                ),
+                'uuid' => array(
+                    'level' => 0,
+                    'description' => __('The MISP instance UUID. This UUID is used to identify this instance.'),
+                    'value' => '0',
+                    'errorMessage' => __('No valid UUID set'),
+                    'test' => 'testUuid',
+                    'type' => 'string'
+                ),
+                'logo' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'showorg' => array(
+                    'level' => 0,
+                    'description' => __('Setting this setting to \'false\' will hide all organisation names / logos.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'threatlevel_in_email_subject' => array(
+                    'level' => 2,
+                    'description' => __('Put the event threat level in the notification E-mail subject.'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'email_subject_TLP_string' => array(
+                    'level' => 2,
+                    'description' => __('This is the TLP string for e-mails when email_subject_tag is not found.'),
+                    'value' => 'tlp:amber',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'email_subject_tag' => array(
+                    'level' => 2,
+                    'description' => __('If this tag is set on an event it\'s value will be sent in the E-mail subject. If the tag is not set the email_subject_TLP_string will be used.'),
+                    'value' => 'tlp',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'email_subject_include_tag_name' => array(
+                    'level' => 2,
+                    'description' => __('Include in name of the email_subject_tag in the subject. When false only the tag value is used.'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'taxii_sync' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'taxii_client_path' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'background_jobs' => array(
+                    'level' => 1,
+                    'description' => __('Enables the use of MISP\'s background processing.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBoolTrue',
+                    'type' => 'boolean',
+                ),
+                'attachments_dir' => array(
+                    'level' => 2,
+                    'description' => __('Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.'),
+                    'value' =>  APP . '/files', # GUI display purpose only.
+                    'errorMessage' => '',
+                    'null' => false,
+                    'test' => 'testForWritableDir',
+                    'type' => 'string',
+                    'cli_only' => 1
+                ),
+                'cached_attachments' => array(
+                    'level' => 1,
+                    'description' => __('Allow the XML caches to include the encoded attachments.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'download_attachments_on_load' => array(
+                    'level' => 2,
+                    'description' => __('Always download attachments when loaded by a user in a browser'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'osuser' => array(
+                    'level' => 0,
+                    'description' => __('The Unix user MISP (php) is running as'),
+                    'value' => 'www-data',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'email' => array(
+                    'level' => 0,
+                    'description' => __('The e-mail address that MISP should use for all notifications'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'disable_emailing' => array(
+                    'level' => 0,
+                    'description' => __('You can disable all e-mailing using this setting. When enabled, no outgoing e-mails will be sent by MISP.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'null' => true,
+                    'test' => 'testDisableEmail',
+                    'type' => 'boolean',
+                ),
+                'contact' => array(
+                    'level' => 1,
+                    'description' => __('The e-mail address that MISP should include as a contact address for the instance\'s support team.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'dns' => array(
+                    'level' => 3,
+                    'description' => __('This setting is deprecated and can be safely removed.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'cveurl' => array(
+                    'level' => 1,
+                    'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
+                    'value' => 'https://cve.circl.lu/cve/',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'cweurl' => array(
+                    'level' => 1,
+                    'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
+                    'value' => 'https://cve.circl.lu/cwe/',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'disablerestalert' => array(
+                    'level' => 1,
+                    'description' => __('This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST.'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'extended_alert_subject' => array(
+                    'level' => 1,
+                    'description' => __('enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by GnuPG, so only enable it if you accept that part of the event description will be sent out in clear-text.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'default_event_distribution' => array(
+                    'level' => 0,
+                    'description' => __('The default distribution setting for events (0-3).'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'options' => array('0' => __('Your organisation only'), '1' => __('This community only'), '2' => __('Connected communities'), '3' => __('All communities')),
+                ),
+                'default_attribute_distribution' => array(
+                    'level' => 0,
+                    'description' => __('The default distribution setting for attributes, set it to \'event\' if you would like the attributes to default to the event distribution level. (0-3 or "event")'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'options' => array('0' => __('Your organisation only'), '1' => __('This community only'), '2' => __('Connected communities'), '3' => __('All communities'), 'event' => __('Inherit from event')),
+                ),
+                'default_event_threat_level' => array(
+                    'level' => 1,
+                    'description' => __('The default threat level setting when creating events.'),
+                    'value' => 4,
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'options' => array('1' => 'High', '2' => 'Medium', '3' => 'Low', '4' => 'undefined'),
+                ),
+                'default_event_tag_collection' => array(
+                    'level' => 0,
+                    'description' => __('The tag collection to be applied to all events created manually.'),
+                    'value' => 0,
+                    'errorMessage' => '',
+                    'test' => 'testTagCollections',
+                    'type' => 'numeric',
+                    'optionsSource' => function () {
+                        return $this->loadTagCollections();
+                    }
+                ),
+                'default_publish_alert' => array(
+                    'level' => 0,
+                    'description' => __('The default setting for publish alerts when creating users.'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'tagging' => array(
+                    'level' => 1,
+                    'description' => __('Enable the tagging feature of MISP. This is highly recommended.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'full_tags_on_event_index' => array(
+                    'level' => 2,
+                    'description' => __('Show the full tag names on the event index.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'options' => array(0 => 'Minimal tags', 1 => 'Full tags', 2 => 'Shortened tags'),
+                ),
+                'welcome_text_top' => array(
+                    'level' => 2,
+                    'description' => __('Used on the login page, before the MISP logo'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'welcome_text_bottom' => array(
+                    'level' => 2,
+                    'description' => __('Used on the login page, after the MISP logo'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'welcome_logo' => array(
+                    'level' => 2,
+                    'description' => __('Used on the login page, to the left of the MISP logo, upload it as a custom image in the file management tool.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForCustomImage',
+                    'type' => 'string',
+                ),
+                'welcome_logo2' => array(
+                    'level' => 2,
+                    'description' => __('Used on the login page, to the right of the MISP logo, upload it as a custom image in the file management tool.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForCustomImage',
+                    'type' => 'string',
+                ),
+                'title_text' => array(
+                    'level' => 2,
+                    'description' => __('Used in the page title, after the name of the page'),
+                    'value' => 'MISP',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'take_ownership_xml_import' => array(
+                    'level' => 2,
+                    'description' => __('Allows users to take ownership of an event uploaded via the "Add MISP XML" button. This allows spoofing the creator of a manually imported event, also breaking possibly breaking the original intended releasability. Synchronising with an instance that has a different creator for the same event can lead to unwanted consequences.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'terms_download' => array(
+                    'level' => 2,
+                    'description' => __('Choose whether the terms and conditions should be displayed inline (false) or offered as a download (true)'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'terms_file' => array(
+                    'level' => 2,
+                    'description' => __('The filename of the terms and conditions file. Make sure that the file is located in your MISP/app/files/terms directory'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForTermsFile',
+                    'type' => 'string'
+                ),
+                'showorgalternate' => array(
+                    'level' => 2,
+                    'description' => __('True enables the alternate org fields for the event index (source org and member org) instead of the traditional way of showing only an org field. This allows users to see if an event was uploaded by a member organisation on their MISP instance, or if it originated on an interconnected instance.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'unpublishedprivate' => array(
+                    'level' => 2,
+                    'description' => __('True will deny access to unpublished events to users outside the organization of the submitter except site admins.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'newUserText' => array(
+                    'level' => 1,
+                    'bigField' => true,
+                    'description' => __('The message sent to the user after account creation (has to be sent manually from the administration interface). Use \\n for line-breaks. The following variables will be automatically replaced in the text: $password = a new temporary password that MISP generates, $username = the user\'s e-mail address, $misp = the url of this instance, $org = the organisation that the instance belongs to, as set in MISP.org, $contact = the e-mail address used to contact the support team, as set in MISP.contact. For example, "the password for $username is $password" would appear to a user with the e-mail address user@misp.org as "the password for user@misp.org is hNamJae81".'),
+                    'value' => 'Dear new MISP user,\n\nWe would hereby like to welcome you to the $org MISP community.\n\n Use the credentials below to log into MISP at $misp, where you will be prompted to manually change your password to something of your own choice.\n\nUsername: $username\nPassword: $password\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
+                    'errorMessage' => '',
+                    'test' => 'testPasswordResetText',
+                    'type' => 'string'
+                ),
+                'passwordResetText' => array(
+                    'level' => 1,
+                    'bigField' => true,
+                    'description' => __('The message sent to the users when a password reset is triggered. Use \\n for line-breaks. The following variables will be automatically replaced in the text: $password = a new temporary password that MISP generates, $username = the user\'s e-mail address, $misp = the url of this instance, $contact = the e-mail address used to contact the support team, as set in MISP.contact. For example, "the password for $username is $password" would appear to a user with the e-mail address user@misp.org as "the password for user@misp.org is hNamJae81".'),
+                    'value' => 'Dear MISP user,\n\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at $misp, where you will be prompted to manually change your password to something of your own choice.\n\nUsername: $username\nYour temporary password: $password\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
+                    'errorMessage' => '',
+                    'test' => 'testPasswordResetText',
+                    'type' => 'string'
+                ),
+                'enableEventBlocklisting' => array(
+                    'level' => 1,
+                    'description' => __('Since version 2.3.107 you can start blocklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.'),
+                    'value' => true,
+                    'type' => 'boolean',
+                    'test' => 'testBool'
+                ),
+                'enableOrgBlocklisting' => array(
+                    'level' => 1,
+                    'description' => __('Blocklisting organisation UUIDs to prevent the creation of any event created by the blocklisted organisation.'),
+                    'value' => true,
+                    'type' => 'boolean',
+                    'test' => 'testBool'
+                ),
+                'log_client_ip' => array(
+                    'level' => 1,
+                    'description' => __('If enabled, all log entries will include the IP address of the user.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'beforeHook' => 'ipLogBeforeHook'
+                ),
+                'log_client_ip_header' => array(
+                    'level' => 1,
+                    'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy infront of your MISP instance.'),
+                    'value' => 'REMOTE_ADDR',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true,
+                ),
+                'log_auth' => array(
+                    'level' => 1,
+                    'description' => __('If enabled, MISP will log all successful authentications using API keys. The requested URLs are also logged.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'log_skip_db_logs_completely' => array(
+                    'level' => 0,
+                    'description' => __('This functionality allows you to completely disable any logs from being saved in your SQL backend. This is HIGHLY advised against, you lose all the functionalities provided by the audit log subsystem along with the event history (as these are built based on the logs on the fly). Only enable this if you understand and accept the associated risks.'),
+                    'value' => false,
+                    'errorMessage' => __('Logging has now been disabled - your audit logs will not capture failed authentication attempts, your event history logs are not being populated and no system maintenance messages are being logged.'),
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'log_paranoid' => array(
+                    'level' => 0,
+                    'description' => __('If this functionality is enabled all page requests will be logged. Keep in mind this is extremely verbose and will become a burden to your database.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'log_paranoid_skip_db' => array(
+                    'level' => 0,
+                    'description' => __('You can decide to skip the logging of the paranoid logs to the database.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testParanoidSkipDb',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'log_paranoid_include_post_body' => array(
+                    'level' => 0,
+                    'description' => __('If paranoid logging is enabled, include the POST body in the entries.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'log_user_ips' => array(
+                    'level' => 0,
+                    'description' => __('Log user IPs on each request. 30 day retention for lookups by IP to get the last authenticated user ID for the given IP, whilst on the reverse, indefinitely stores all associated IPs for a user ID.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'log_user_ips_authkeys' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('Log user IP and key usage on each API request. All logs for given keys are deleted after one year when this key is not used.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
+                'delegation' => array(
+                    'level' => 1,
+                    'description' => __('This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'showCorrelationsOnIndex' => array(
+                    'level' => 1,
+                    'description' => __('When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'showProposalsCountOnIndex' => array(
+                    'level' => 1,
+                    'description' => __('When enabled, the number of proposals for the events are shown on the index.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'showSightingsCountOnIndex' => array(
+                    'level' => 1,
+                    'description' => __('When enabled, the aggregate number of attribute sightings within the event becomes visible to the currently logged in user on the event index UI.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'showDiscussionsCountOnIndex' => array(
+                    'level' => 1,
+                    'description' => __('When enabled, the aggregate number of discussion posts for the event becomes visible to the currently logged in user on the event index UI.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'disableUserSelfManagement' => array(
+                    'level' => 1,
+                    'description' => __('When enabled only Org and Site admins can edit a user\'s profile.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'disable_user_login_change' => array(
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('When enabled only Site admins can change user email. This should be enabled if you manage user logins by external system.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'disable_user_password_change' => array(
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('When enabled only Site admins can change user password. This should be enabled if you manage user passwords by external system.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'disable_user_add' => array(
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('When enabled, Org Admins could not add new users. This should be enabled if you manage users by external system.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'block_event_alert' => array(
+                    'level' => 1,
+                    'description' => __('Enable this setting to start blocking alert e-mails for events with a certain tag. Define the tag in MISP.block_event_alert_tag.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'block_event_alert_tag' => array(
+                    'level' => 1,
+                    'description' => __('If the MISP.block_event_alert setting is set, alert e-mails for events tagged with the tag defined by this setting will be blocked.'),
+                    'value' => 'no-alerts="true"',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => false,
+                ),
+                'org_alert_threshold' => array(
+                    'level' => 1,
+                    'description' => __('Set a value to limit the number of email alerts that events can generate per creator organisation (for example, if an organisation pushes out 2000 events in one shot, only alert on the first 20).'),
+                    'value' => 0,
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true,
+                ),
+                'block_old_event_alert' => array(
+                    'level' => 1,
+                    'description' => __('Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'block_old_event_alert_age' => array(
+                    'level' => 1,
+                    'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "timestamp" field of the event is used. Expected format: integer, in days'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => false,
+                ),
+                'block_old_event_alert_by_date' => array(
+                    'level' => 1,
+                    'description' => __('If the MISP.block_old_event_alert setting is set, this setting will control the threshold for the event.date field, indicating how old an event can be for it to be alerted on. The "date" field of the event is used. Expected format: integer, in days'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => false,
+                ),
+                'tmpdir' => array(
+                    'level' => 1,
+                    'description' => __('Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to /tmp and will be used among others to store certain temporary files extracted from imports during the import process.'),
+                    'value' => '/tmp',
+                    'errorMessage' => '',
+                    'test' => 'testForPath',
+                    'type' => 'string',
+                    'null' => true,
+                    'cli_only' => 1
+                ),
+                'custom_css' => array(
+                    'level' => 2,
+                    'description' => __('If you would like to customise the css, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForStyleFile',
+                    'type' => 'string',
+                    'null' => true,
+                ),
+                'proposals_block_attributes' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting to allow blocking attributes from to_ids sensitive exports if a proposal has been made to it to remove the IDS flag or to remove the attribute altogether. This is a powerful tool to deal with false-positives efficiently.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'incoming_tags_disabled_by_default' => array(
+                    'level' => 1,
+                    'description' => __('Enable this settings if new tags synced / added via incoming events from any source should not be selectable by users by default.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false
+                ),
+                'completely_disable_correlation' => array(
+                    'level' => 0,
+                    'description' => __('*WARNING* This setting will completely disable the correlation on this instance and remove any existing saved correlations. Enabling this will trigger a full recorrelation of all data which is an extremely long and costly procedure. Only enable this if you know what you\'re doing.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'afterHook' => 'correlationAfterHook',
+                ),
+                'allow_disabling_correlation' => array(
+                    'level' => 0,
+                    'description' => __('*WARNING* This setting will give event creators the possibility to disable the correlation of individual events / attributes that they have created.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'redis_host' => array(
+                    'level' => 0,
+                    'description' => __('The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),
+                    'value' => '127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'redis_port' => array(
+                    'level' => 0,
+                    'description' => __('The port used by the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),
+                    'value' => 6379,
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ),
+                'redis_database' => array(
+                    'level' => 0,
+                    'description' => __('The database on the redis server to be used for generic MISP tasks. If you run more than one MISP instance, please make sure to use a different database on each instance.'),
+                    'value' => 13,
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ),
+                'redis_password' => array(
+                    'level' => 0,
+                    'description' => __('The password on the redis server (if any) to be used for generic MISP tasks.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => null,
+                    'type' => 'string',
+                    'redacted' => true
+                ),
+                'event_view_filter_fields' => array(
+                    'level' => 2,
+                    'description' => __('Specify which fields to filter on when you search on the event view. Default values are : "id, uuid, value, comment, type, category, Tag.name"'),
+                    'value' => 'id, uuid, value, comment, type, category, Tag.name',
+                    'errorMessage' => '',
+                    'test' => null,
+                    'type' => 'string',
+                ),
+                'manage_workers' => array(
+                    'level' => 2,
+                    'description' => __('Set this to false if you would like to disable MISP managing its own worker processes (for example, if you are managing the workers with a systemd unit).'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'deadlock_avoidance' => array(
+                    'level' => 1,
+                    'description' => __('Only enable this if you have some tools using MISP with extreme high concurency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'updateTimeThreshold' => array(
+                    'level' => 1,
+                    'description' => __('Sets the minimum time before being able to re-trigger an update if the previous one failed. (safe guard to avoid starting the same update multiple time)'),
+                    'value' => '7200',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
+                'attribute_filters_block_only' => array(
+                    'level' => 1,
+                    'description' => __('This is a performance tweak to change the behaviour of restSearch to use attribute filters solely for blocking. This means that a lookup on the event scope with for example the type field set will be ignored unless it\'s used to strip unwanted attributes from the results. If left disabled, passing [ip-src, ip-dst] for example will return any event with at least one ip-src or ip-dst attribute. This is generally not considered to be too useful and is a heavy burden on the database.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'attachment_scan_module' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Name of enrichment module that will be used for attachment malware scanning. This module must return av-signature or sb-signature object.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'type' => 'string',
+                    'null' => true,
+                ],
+                'attachment_scan_hash_only' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Send to attachment scan module just file hash. This can be useful if module sends attachment to remote service and you don\'t want to leak real data.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
+                'attachment_scan_timeout' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('How long to wait for scan results in seconds.'),
+                    'value' => 30,
+                    'errorMessage' => '',
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => true,
+                ],
+            ),
+            'GnuPG' => array(
+                'branch' => 1,
+                'binary' => array(
+                    'level' => 2,
+                    'description' => __('The location of the GnuPG executable. If you would like to use a different GnuPG executable than /usr/bin/gpg, you can set it here. If the default is fine, just keep the setting suggested by MISP.'),
+                    'value' => '/usr/bin/gpg',
+                    'errorMessage' => '',
+                    'test' => 'testForGPGBinary',
+                    'type' => 'string',
+                    'cli_only' => 1
+                ),
+                'onlyencrypted' => array(
+                    'level' => 0,
+                    'description' => __('Allow (false) unencrypted e-mails to be sent to users that don\'t have a GnuPG key.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'bodyonlyencrypted' => array(
+                    'level' => 2,
+                    'description' => __('Allow (false) the body of unencrypted e-mails to contain details about the event.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'sign' => array(
+                    'level' => 2,
+                    'description' => __('Enable the signing of GnuPG emails. By default, GnuPG emails are signed'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'email' => array(
+                    'level' => 0,
+                    'description' => __('The e-mail address that the instance\'s GnuPG key is tied to.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'password' => array(
+                    'level' => 1,
+                    'description' => __('The password (if it is set) of the GnuPG key of the instance.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'redacted' => true
+                ),
+                'homedir' => array(
+                    'level' => 0,
+                    'description' => __('The location of the GnuPG homedir.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'obscure_subject' => array(
+                    'level' => 2,
+                    'description' => __('When enabled, subject in signed and encrypted e-mails will not send in unencrypted form.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                )
+            ),
+            'SMIME' => array(
+                'branch' => 1,
+                'enabled' => array(
+                    'level' => 2,
+                    'description' => __('Enable S/MIME encryption. The encryption posture of the GnuPG.onlyencrypted and GnuPG.bodyonlyencrypted settings are inherited if S/MIME is enabled.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'email' => array(
+                    'level' => 2,
+                    'description' => __('The e-mail address that the instance\'s S/MIME key is tied to.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'cert_public_sign' => array(
+                    'level' => 2,
+                    'description' => __('The location of the public half of the signing certificate.'),
+                    'value' => '/var/www/MISP/.smime/email@address.com.pem',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'key_sign' => array(
+                    'level' => 2,
+                    'description' => __('The location of the private half of the signing certificate.'),
+                    'value' => '/var/www/MISP/.smime/email@address.com.key',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'password' => array(
+                    'level' => 2,
+                    'description' => __('The password (if it is set) of the S/MIME key of the instance.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'redacted' => true
+                ),
+            ),
+            'Proxy' => array(
+                'branch' => 1,
+                'host' => array(
+                    'level' => 2,
+                    'description' => __('The hostname of an HTTP proxy for outgoing sync requests. Leave empty to not use a proxy.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'port' => array(
+                    'level' => 2,
+                    'description' => __('The TCP port for the HTTP proxy.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                ),
+                'method' => array(
+                    'level' => 2,
+                    'description' => __('The authentication method for the HTTP proxy. Currently supported are Basic or Digest. Leave empty for no proxy authentication.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'user' => array(
+                    'level' => 2,
+                    'description' => __('The authentication username for the HTTP proxy.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'password' => array(
+                    'level' => 2,
+                    'description' => __('The authentication password for the HTTP proxy.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+            ),
+            'Security' => array(
+                'branch' => 1,
+                'disable_form_security' => array(
+                    'level' => 0,
+                    'description' => __('Disabling this setting will remove all form tampering protection. Do not set this setting pretty much ever. You were warned.'),
+                    'value' => false,
+                    'errorMessage' => 'This setting leaves your users open to CSRF attacks. Do not please consider disabling this setting.',
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'salt' => array(
+                    'level' => 0,
+                    'description' => __('The salt used for the hashed passwords. You cannot reset this from the GUI, only manually from the settings.php file. Keep in mind, this will invalidate all passwords in the database.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testSalt',
+                    'type' => 'string',
+                    'editable' => false,
+                    'redacted' => true
+                ),
+                'advanced_authkeys' => array(
+                    'level' => 0,
+                    'description' => __('Advanced authkeys will allow each user to create and manage a set of authkeys for themselves, each with individual expirations and comments. API keys are stored in a hashed state and can no longer be recovered from MISP. Users will be prompted to note down their key when creating a new authkey. You can generate a new set of API keys for all users on demand in the diagnostics page, or by triggering %s.', sprintf('<a href="%s/servers/serverSettings/diagnostics#advanced_authkey_update">%s</a>', $this->baseurl, __('the advanced upgrade'))),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'advanced_authkeys_validity' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Maximal key lifetime in days. Use can limit that validity even more. Just newly created keys will be affected. When not set, key validity is not limited.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'type' => 'numeric',
+                    'test' => 'testForNumeric',
+                    'null' => true,
+                ],
+                'authkey_keep_session' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When enabled, session is kept between API requests.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
+                'auth_enforced' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('This optional can be enabled if external auth provider is used and when set to true, it will disable default form authentication.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
+                'rest_client_enable_arbitrary_urls' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via the rest client. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'rest_client_baseurl' => array(
+                    'level' => 1,
+                    'description' => __('If left empty, the baseurl of your MISP is used. However, in some instances (such as port-forwarded VM installations) this will not work. You can override the baseurl with a url through which your MISP can reach itself (typically https://127.0.0.1 would work).'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => null,
+                    'type' => 'string'
+                ),
+                'syslog' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'syslog_to_stderr' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Write syslog messages also to standard error output.'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'syslog_ident' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Syslog message identifier.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'do_not_log_authkeys' => array(
+                    'level' => 0,
+                    'description' => __('If enabled, any authkey will be replaced by asterisks in Audit log.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'disable_browser_cache' => array(
+                    'level' => 0,
+                    'description' => __('If enabled, HTTP headers that block browser cache will be send. Static files (like images or JavaScripts) will still be cached, but not generated pages.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ),
+                'check_sec_fetch_site_header' => [
+                    'level' => 0,
+                    'description' => __('If enabled, any POST, PUT or AJAX request will be allow just when Sec-Fetch-Site header is not defined or contains "same-origin".'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
+                'email_otp_enabled' => array(
+                    'level'=> 2,
+                    'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'beforeHook' => 'otpBeforeHook',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'email_otp_length' => array (
+                    'level' => 2,
+                    'description' => __('Define the length of the OTP code sent by email'),
+                    'value' => '6',
+                    'errorMessage' => '',
+                    'type' => 'numeric',
+                    'test' => 'testForNumeric',
+                    'null' => true,
+                ),
+                'email_otp_validity' => array (
+                    'level' => 2,
+                    'description' => __('Define the validity (in minutes) of the OTP code sent by email'),
+                    'value' => '5',
+                    'errorMessage' => '',
+                    'type' => 'numeric',
+                    'test' => 'testForNumeric',
+                    'null' => true,
+                ),
+                'email_otp_text' => array(
+                    'level' => 2,
+                    'bigField' => true,
+                    'description' => __('The message sent to the user when a new OTP is requested. Use \\n for line-breaks. The following variables will be automatically replaced in the text: $otp = the new OTP generated by MISP, $username = the user\'s e-mail address, $org the Organisation managing the instance, $misp = the url of this instance, $contact = the e-mail address used to contact the support team (as set in MISP.contact), $ip the IP used to complete the first step of the login and $validity the validity time in minutes.'),
+                    'value' => 'Dear MISP user,\n\nYou have attempted to login to MISP ($misp) from $ip with username $username.\n\n Use the following OTP to log into MISP: $otp\n This code is valid for the next $validity minutes.\n\nIf you have any questions, don\'t hesitate to contact us at: $contact.\n\nBest regards,\nYour $org MISP support team',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true,
+                ),
+                'email_otp_exceptions' => array(
+                    'level' => 2,
+                    'bigField' => true,
+                    'description' => __('A comma separated list of emails for which the OTP is disabled. Note that if you remove someone from this list, the OTP will only be asked at next login.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true,
+                ),
+                'allow_self_registration' => array(
+                    'level' => 1,
+                    'description' => __('Enabling this setting will allow users to have access to the pre-auth registration form. This will create an inbox entry for administrators to review.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'self_registration_message' => array(
+                    'level' => 1,
+                    'bigField' => true,
+                    'description' => __('The message sent shown to anyone trying to self-register.'),
+                    'value' => 'If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators.',
+                    'errorMessage' => '',
+                    'test' => false,
+                    'type' => 'string'
+                ),
+                'password_policy_length' => array(
+                    'level' => 2,
+                    'description' => __('Password length requirement. If it is not set or it is set to 0, then the default value is assumed (12).'),
+                    'value' => '12',
+                    'errorMessage' => '',
+                    'test' => 'testPasswordLength',
+                    'type' => 'numeric',
+                ),
+                'password_policy_complexity' => array(
+                    'level' => 2,
+                    'description' => __('Password complexity requirement. Leave it empty for the default setting (3 out of 4, with either a digit or a special char) or enter your own regex. Keep in mind that the length is checked in another key. Default (simple 3 out of 4 or minimum 16 characters): /^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'),
+                    'value' => '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/',
+                    'errorMessage' => '',
+                    'test' => 'testPasswordRegex',
+                    'type' => 'string',
+                ),
+                'require_password_confirmation' => array(
+                    'level' => 1,
+                    'description' => __('Enabling this setting will require users to submit their current password on any edits to their profile (including a triggered password change). For administrators, the confirmation will be required when changing the profile of any user. Could potentially mitigate an attacker trying to change a compromised user\'s password in order to establish persistance, however, enabling this feature will be highly annoying to users.'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'sanitise_attribute_on_delete' => array(
+                    'level' => 1,
+                    'description' => __('Enabling this setting will sanitise the contents of an attribute on a soft delete'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'hide_organisation_index_from_users' => array(
+                    'level' => 1,
+                    'description' => __('Enabling this setting will block the organisation index from being visible to anyone besides site administrators on the current instance. Keep in mind that users can still see organisations that produce data via events, proposals, event history log entries, etc.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'hide_organisations_in_sharing_groups' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('Enabling this setting will block the organisation list from being visible in sharing group besides user with sharing group permission.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
+                'disable_local_feed_access' => array(
+                    'level' => 0,
+                    'description' => __('Disabling this setting will allow the creation/modification of local feeds (as opposed to network feeds). Enabling this setting will restrict feed sources to be network based only. When disabled, keep in mind that a malicious site administrator could get access to any arbitrary file on the system that the apache user has access to. Make sure that proper safe-guards are in place. This setting can only be modified via the CLI.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => 1
+                ),
+                'allow_unsafe_apikey_named_param' => array(
+                    'level' => 0,
+                    'description' => __('Allows passing the API key via the named url parameter "apikey" - highly recommended not to enable this, but if you have some dodgy legacy tools that cannot pass the authorization header it can work as a workaround. Again, only use this as a last resort.'),
+                    'value' => false,
+                    'errorMessage' => __('You have enabled the passing of API keys via URL parameters. This is highly recommended against, do you really want to reveal APIkeys in your logs?...'),
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'allow_cors' => array(
+                    'level' => 1,
+                    'description' => __('Allow cross-origin requests to this instance, matching origins given in Security.cors_origins. Set to false to totally disable'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'cors_origins' => array(
+                    'level' => 1,
+                    'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma seperate if you need more than one.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'sync_audit' => array(
+                    'level' => 1,
+                    'description' => __('Enable this setting to create verbose logs of synced event data for debugging reasons. Logs are saved in your MISP directory\'s app/files/scripts/tmp/ directory.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'user_monitoring_enabled' => array(
+                    'level' => 1,
+                    'description' => __('Enables the functionality to monitor users - thereby enabling all logging functionalities for a single user. This functionality is intrusive and potentially heavy on the system - use it with care.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'username_in_response_header' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When enabled, logged in username will be included in X-Username HTTP response header. This is useful for request logging on webserver/proxy side.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ]
+            ),
+            'SecureAuth' => array(
+                'branch' => 1,
+                'amount' => array(
+                    'level' => 0,
+                    'description' => __('The number of tries a user can try to login and fail before the bruteforce protection kicks in.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'string',
+                ),
+                'expire' => array(
+                    'level' => 0,
+                    'description' => __('The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'string',
+                ),
+            ),
+            'Session' => array(
+                'branch' => 1,
+                'autoRegenerate' => array(
+                    'level' => 0,
+                    'description' => __('Set to true to automatically regenerate sessions after x number of requests. This might lead to the user getting de-authenticated and is frustrating in general, so only enable it if you really need to regenerate sessions. (Not recommended)'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                ),
+                'checkAgent' => array(
+                    'level' => 0,
+                    'description' => __('Set to true to check for the user agent string in each request. This can lead to occasional logouts (not recommended).'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                ),
+                'defaults' => array(
+                    'level' => 0,
+                    'description' => __('The session type used by MISP. The default setting is php, which will use the session settings configured in php.ini for the session data (supported options: php, database). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add \'session.save_handler = redis\' and "session.save_path = \'tcp://localhost:6379\'" (replace the latter with your redis connection) to '),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForSessionDefaults',
+                    'type' => 'string',
+                    'options' => array('php' => 'php', 'database' => 'database', 'cake' => 'cake', 'cache' => 'cache'),
+                ),
+                'timeout' => array(
+                    'level' => 0,
+                    'description' => __('The timeout duration of sessions (in MINUTES). 0 does not mean infinite for the PHP session handler, instead sessions will invalidate immediately.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'string'
+                ),
+                'cookieTimeout' => array(
+                    'level' => 0,
+                    'description' => __('The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForCookieTimeout',
+                    'type' => 'numeric'
+                )
+            ),
+            'Plugin' => array(
+                'branch' => 1,
+                'RPZ_policy' => array(
+                    'level' => 2,
+                    'description' => __('The default policy action for the values added to the RPZ.'),
+                    'value' => 1,
+                    'errorMessage' => '',
+                    'test' => 'testForRPZBehaviour',
+                    'type' => 'numeric',
+                    'options' => array(0 => 'DROP', 1 => 'NXDOMAIN', 2 => 'NODATA', 3 => 'Local-Data', 4 => 'PASSTHRU', 5 => 'TCP-only' ),
+                ),
+                'RPZ_walled_garden' => array(
+                    'level' => 2,
+                    'description' => __('The default walled garden used by the RPZ export if the Local-Data policy setting is picked for the export.'),
+                    'value' => '127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'RPZ_serial' => array(
+                    'level' => 2,
+                    'description' => __('The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting). Setting it to $time will give you an unixtime-based serial (good then you need more than 99 revisions per day).'),
+                    'value' => '$date00',
+                    'errorMessage' => '',
+                    'test' => 'testForRPZSerial',
+                    'type' => 'string',
+                ),
+                'RPZ_refresh' => array(
+                    'level' => 2,
+                    'description' => __('The refresh specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
+                    'value' => '2h',
+                    'errorMessage' => '',
+                    'test' => 'testForRPZDuration',
+                    'type' => 'string',
+                ),
+                'RPZ_retry' => array(
+                    'level' => 2,
+                    'description' => __('The retry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
+                    'value' => '30m',
+                    'errorMessage' => '',
+                    'test' => 'testForRPZDuration',
+                    'type' => 'string',
+                ),
+                'RPZ_expiry' => array(
+                    'level' => 2,
+                    'description' => __('The expiry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
+                    'value' => '30d',
+                    'errorMessage' => '',
+                    'test' => 'testForRPZDuration',
+                    'type' => 'string',
+                ),
+                'RPZ_minimum_ttl' => array(
+                    'level' => 2,
+                    'description' => __('The minimum TTL specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)'),
+                    'value' => '1h',
+                    'errorMessage' => '',
+                    'test' => 'testForRPZDuration',
+                    'type' => 'string',
+                ),
+                'RPZ_ttl' => array(
+                    'level' => 2,
+                    'description' => __('The TTL of the zone file. (in seconds, or shorthand duration such as 15m)'),
+                    'value' => '1w',
+                    'errorMessage' => '',
+                    'test' => 'testForRPZDuration',
+                    'type' => 'string',
+                ),
+                'RPZ_ns' => array(
+                    'level' => 2,
+                    'description' => __('Nameserver'),
+                    'value' => 'localhost.',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'RPZ_ns_alt' => array(
+                    'level' => 2,
+                    'description' => __('Alternate nameserver'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'RPZ_email' => array(
+                    'level' => 2,
+                    'description' => __('The e-mail address specified in the SOA portion of the zone file.'),
+                    'value' => 'root.localhost',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'Kafka_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the Kafka pub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'Kafka_brokers' => array(
+                    'level' => 2,
+                    'description' => __('A comma separated list of Kafka bootstrap brokers'),
+                    'value' => 'kafka:9092',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'Kafka_rdkafka_config' => array(
+                    'level' => 2,
+                    'description' => __('A path to an ini file with configuration options to be passed to rdkafka. Section headers in the ini file will be ignored.'),
+                    'value' => '/etc/rdkafka.ini',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ),
+                'Kafka_include_attachments' => array(
+                    'level' => 2,
+                    'description' => __('Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_event_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any event creations/edits/deletions.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_event_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing event creations/edits/deletions.'),
+                    'value' => 'misp_event',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Kafka_event_publish_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('If enabled it will publish to Kafka the event at the time that the event gets published in MISP. Event actions (creation or edit) will not be published to Kafka.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_event_publish_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing event information on publish.'),
+                    'value' => 'misp_event_publish',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Kafka_object_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any object creations/edits/deletions.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_object_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing object creations/edits/deletions.'),
+                    'value' => 'misp_object',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Kafka_object_reference_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any object reference creations/deletions.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_object_reference_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing object reference creations/deletions.'),
+                    'value' => 'misp_object_reference',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Kafka_attribute_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any attribute creations/edits/soft deletions.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_attribute_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing attribute creations/edits/soft deletions.'),
+                    'value' => 'misp_attribute',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Kafka_shadow_attribute_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any proposal creations/edits/deletions.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_shadow_attribute_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing proposal creations/edits/deletions.'),
+                    'value' => 'misp_shadow_attribute',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Kafka_tag_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_tag_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
+                    'value' => 'misp_tag',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Kafka_sighting_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of new sightings.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_sighting_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing sightings.'),
+                    'value' => 'misp_sighting',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Kafka_user_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of new/modified users.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_user_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing new/modified users.'),
+                    'value' => 'misp_user',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Kafka_organisation_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of new/modified organisations.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_organisation_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing new/modified organisations.'),
+                    'value' => 'misp_organisation',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Kafka_audit_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of log entries. Keep in mind, this can get pretty verbose depending on your logging settings.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Kafka_audit_notifications_topic' => array(
+                    'level' => 2,
+                    'description' => __('Topic for publishing log entries.'),
+                    'value' => 'misp_audit',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'ZeroMQ_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the pub/sub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_port' => array(
+                    'level' => 2,
+                    'description' => __('The port that the pub/sub feature will use.'),
+                    'value' => 50000,
+                    'errorMessage' => '',
+                    'test' => 'testForZMQPortNumber',
+                    'type' => 'numeric',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_username' => array(
+                    'level' => 2,
+                    'description' => __('The username that client need to use to connect to ZeroMQ.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_password' => array(
+                    'level' => 2,
+                    'description' => __('The password that client need to use to connect to ZeroMQ.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_redis_host' => array(
+                    'level' => 2,
+                    'description' => __('Location of the Redis db used by MISP and the Python PUB script to queue data to be published.'),
+                    'value' => 'localhost',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_redis_port' => array(
+                    'level' => 2,
+                    'description' => __('The port that Redis is listening on.'),
+                    'value' => 6379,
+                    'errorMessage' => '',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_redis_password' => array(
+                    'level' => 2,
+                    'description' => __('The password, if set for Redis.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_redis_database' => array(
+                    'level' => 2,
+                    'description' => __('The database to be used for queuing messages for the pub/sub functionality.'),
+                    'value' => 1,
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_redis_namespace' => array(
+                    'level' => 2,
+                    'description' => __('The namespace to be used for queuing messages for the pub/sub functionality.'),
+                    'value' => 'mispq',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_include_attachments' => array(
+                    'level' => 2,
+                    'description' => __('Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_event_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any event creations/edits/deletions.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_object_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any object creations/edits/deletions.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_object_reference_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any object reference creations/deletions.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_attribute_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any attribute creations/edits/soft deletions.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_tag_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_sighting_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of new sightings to the ZMQ pubsub feed.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_user_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of new/modified users to the ZMQ pubsub feed.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_organisation_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of new/modified organisations to the ZMQ pubsub feed.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ZeroMQ_audit_notifications_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables the publishing of log entries to the ZMQ pubsub feed. Keep in mind, this can get pretty verbose depending on your logging settings.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ElasticSearch_logging_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enabled logging to an ElasticSearch instance'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'ElasticSearch_connection_string' => array(
+                    'level' => 2,
+                    'description' => __('The URL(s) at which to access ElasticSearch - comma separate if you want to have more than one.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'ElasticSearch_log_index' => array(
+                    'level' => 2,
+                    'description' => __('The index in which to place logs'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'S3_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enables or disables uploading of malware samples to S3 rather than to disk (WARNING: Get permission from amazon first!)'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'S3_bucket_name' => array(
+                    'level' => 2,
+                    'description' => __('Bucket name to upload to'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'S3_region' => array(
+                    'level' => 2,
+                    'description' => __('Region in which your S3 bucket resides'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'S3_aws_access_key' => array(
+                    'level' => 2,
+                    'description' => __('AWS key to use when uploading samples (WARNING: It\' highly recommended that you use EC2 IAM roles if at all possible)'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'S3_aws_secret_key' => array(
+                    'level' => 2,
+                    'description' => __('AWS secret key to use when uploading samples'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Sightings_policy' => array(
+                    'level' => 1,
+                    'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner organisation alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and any organisation that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
+                    'value' => 0,
+                    'errorMessage' => '',
+                    'test' => 'testForSightingVisibility',
+                    'type' => 'numeric',
+                    'options' => array(
+                        0 => __('Event Owner Organisation'),
+                        1 => __('Sighting reporters'),
+                        2 => __('Everyone'),
+                        3 => __('Event Owner + host org sightings'),
+                    ),
+                ),
+                'Sightings_anonymise' => array(
+                    'level' => 1,
+                    'description' => __('Enabling the anonymisation of sightings will simply aggregate all sightings instead of showing the organisations that have reported a sighting. Users will be able to tell the number of sightings their organisation has submitted and the number of sightings for other organisations'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ),
+                'Sightings_anonymise_as' => array(
+                    'level' => 1,
+                    'description' => __('When pushing sightings to another server, report all sightings from this instance as this organisation. This effectively hides all sightings from this instance behind a single organisation to the outside world. Sightings pulled from this instance follow the Sightings_policy above.'),
+                    'value' => '0',
+                    'errorMessage' => '',
+                    'test' => 'testLocalOrg',
+                    'type' => 'numeric',
+                    'optionsSource' => function () {
+                        return $this->loadLocalOrganisations();
+                    },
+                ),
+                'Sightings_range' => array(
+                    'level' => 1,
+                    'description' => __('Set the range in which sightings will be taken into account when generating graphs. For example a sighting with a sighted_date of 7 years ago might not be relevant anymore. Setting given in number of days, default is 365 days'),
+                    'value' => 365,
+                    'errorMessage' => '',
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric'
+                ),
+                'Sightings_sighting_db_enable' => array(
+                    'level' => 1,
+                    'description' => __('Enable SightingDB integration.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'CustomAuth_enable' => array(
+                    'level' => 2,
+                    'description' => __('Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'beforeHook' => 'customAuthBeforeHook'
+                ),
+                'CustomAuth_header' => array(
+                    'level' => 2,
+                    'description' => __('Set the header that MISP should look for here. If left empty it will default to the Authorization header.'),
+                    'value' => 'Authorization',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'CustomAuth_use_header_namespace' => array(
+                    'level' => 2,
+                    'description' => __('Use a header namespace for the auth header - default setting is enabled'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'CustomAuth_header_namespace' => array(
+                    'level' => 2,
+                    'description' => __('The default header namespace for the auth header - default setting is HTTP_'),
+                    'value' => 'HTTP_',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'CustomAuth_required' => array(
+                    'level' => 2,
+                    'description' => __('If this setting is enabled then the only way to authenticate will be using the custom header. Alternatively, you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'CustomAuth_only_allow_source' => array(
+                    'level' => 2,
+                    'description' => __('If you are using an external tool to authenticate with MISP and would like to only allow the tool\'s url as a valid point of entry then set this field. '),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'CustomAuth_name' => array(
+                    'level' => 2,
+                    'description' => __('The name of the authentication method, this is cosmetic only and will be shown on the user creation page and logs.'),
+                    'value' => 'External authentication',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'CustomAuth_disable_logout' => array(
+                    'level' => 2,
+                    'description' => __('Disable the logout button for users authenticate with the external auth mechanism.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Enrichment_services_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable/disable the enrichment services'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Enrichment_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Set a timeout for the enrichment services'),
+                    'value' => 10,
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Import_services_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable/disable the import services'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Import_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Set a timeout for the import services'),
+                    'value' => 10,
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Import_services_url' => array(
+                    'level' => 1,
+                    'description' => __('The url used to access the import services. By default, it is accessible at http://127.0.0.1:6666'),
+                    'value' => 'http://127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Import_services_port' => array(
+                    'level' => 1,
+                    'description' => __('The port used to access the import services. By default, it is accessible at 127.0.0.1:6666'),
+                    'value' => '6666',
+                    'errorMessage' => '',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric'
+                ),
+                'Export_services_url' => array(
+                    'level' => 1,
+                    'description' => __('The url used to access the export services. By default, it is accessible at http://127.0.0.1:6666'),
+                    'value' => 'http://127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Export_services_port' => array(
+                    'level' => 1,
+                    'description' => __('The port used to access the export services. By default, it is accessible at 127.0.0.1:6666'),
+                    'value' => '6666',
+                    'errorMessage' => '',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric'
+                ),
+                'Export_services_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable/disable the export services'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Export_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Set a timeout for the export services'),
+                    'value' => 10,
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Enrichment_hover_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable/disable the hover over information retrieved from the enrichment modules'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Enrichment_hover_popover_only' => array(
+                    'level' => 0,
+                    'description' => __('When enabled, users have to click on the magnifier icon to show the enrichment'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Enrichment_hover_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Set a timeout for the hover services'),
+                    'value' => 5,
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Enrichment_services_url' => array(
+                    'level' => 1,
+                    'description' => __('The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666'),
+                    'value' => 'http://127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Enrichment_services_port' => array(
+                    'level' => 1,
+                    'description' => __('The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666'),
+                    'value' => 6666,
+                    'errorMessage' => '',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric'
+                ),
+                'Cortex_services_url' => array(
+                    'level' => 1,
+                    'description' => __('The url used to access Cortex. By default, it is accessible at http://cortex-url'),
+                    'value' => 'http://127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Cortex_services_port' => array(
+                    'level' => 1,
+                    'description' => __('The port used to access Cortex. By default, this is port 9000'),
+                    'value' => 9000,
+                    'errorMessage' => '',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric'
+                ),
+                'Cortex_services_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable/disable the Cortex services'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Cortex_authkey' => array(
+                    'level' => 1,
+                    'description' => __('Set an authentication key to be passed to Cortex'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'Cortex_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Set a timeout for the Cortex services'),
+                    'value' => 120,
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Cortex_ssl_verify_peer' => array(
+                    'level' => 1,
+                    'description' => __('Set to false to disable SSL verification. This is not recommended.'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'Cortex_ssl_verify_host' => array(
+                    'level' => 1,
+                    'description' => __('Set to false if you wish to ignore hostname match errors when validating certificates.'),
+                    'value' => true,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'Cortex_ssl_allow_self_signed' => array(
+                    'level' => 1,
+                    'description' => __('Set to true to enable self-signed certificates to be accepted. This requires Cortex_ssl_verify_peer to be enabled.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'Cortex_ssl_cafile' => array(
+                    'level' => 1,
+                    'description' => __('Set to the absolute path of the Certificate Authority file that you wish to use for verifying SSL certificates.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'CustomAuth_custom_password_reset' => array(
+                    'level' => 2,
+                    'description' => __('Provide your custom authentication users with an external URL to the authentication system to reset their passwords.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
+                'CustomAuth_custom_logout' => array(
+                    'level' => 2,
+                    'description' => __('Provide a custom logout URL for your users that will log them out using the authentication system you use.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                )
+            ),
+            'debug' => array(
+                'level' => 0,
+                'description' => __('The debug level of the instance, always use 0 for production instances.'),
+                'value' => '',
+                'errorMessage' => '',
+                'test' => 'testDebug',
+                'type' => 'numeric',
+                'options' => array(0 => 'Debug off', 1 => 'Debug on', 2 => 'Debug + SQL dump'),
+            ),
+            'site_admin_debug' => array(
+                'level' => 0,
+                'description' => __('The debug level of the instance for site admins. This feature allows site admins to run debug mode on a live instance without exposing it to other users. The most verbose option of debug and site_admin_debug is used for site admins.'),
+                'value' => '',
+                'errorMessage' => '',
+                'test' => 'testDebugAdmin',
+                'type' => 'boolean',
+                'null' => true
+            ),
+        );
     }
 }

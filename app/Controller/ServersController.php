@@ -86,10 +86,8 @@ class ServersController extends AppController
     {
         $urlparams = '';
         $passedArgs = array();
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
-        }
-        $server = $this->Server->find('first', array('conditions' => array('Server.id' => $id), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url', 'Server.name')));
+
+        $server = $this->Server->find('first', array('conditions' => array('Server.id' => $id), 'recursive' => -1));
         if (empty($server)) {
             throw new NotFoundException('Invalid server ID.');
         }
@@ -115,15 +113,15 @@ class ServersController extends AppController
             $combinedArgs['limit'] = 60;
         }
         try {
-            list($events, $total_count) = $this->Server->previewIndex($id, $this->Auth->user(), $combinedArgs);
+            list($events, $total_count) = $this->Server->previewIndex($server, $this->Auth->user(), $combinedArgs);
         } catch (Exception $e) {
             $this->Flash->error(__('Download failed.') . ' ' . $e->getMessage());
             $this->redirect(array('action' => 'index'));
         }
 
         $this->loadModel('Event');
-        $threat_levels = $this->Event->ThreatLevel->find('all');
-        $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+        $threat_levels = $this->Event->ThreatLevel->find('list', ['fields' => ['id', 'name']]);
+        $this->set('threatLevels', $threat_levels);
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
@@ -150,24 +148,24 @@ class ServersController extends AppController
 
     public function previewEvent($serverId, $eventId, $all = false)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
-        }
         $server = $this->Server->find('first', array(
             'conditions' => array('Server.id' => $serverId),
             'recursive' => -1,
-            'fields' => array('Server.id', 'Server.url', 'Server.name'))
-        );
+        ));
         if (empty($server)) {
             throw new NotFoundException('Invalid server ID.');
         }
         try {
-            $event = $this->Server->previewEvent($serverId, $eventId);
+            $event = $this->Server->previewEvent($server, $eventId);
         } catch (NotFoundException $e) {
             throw new NotFoundException(__("Event '%s' not found.", $eventId));
         } catch (Exception $e) {
             $this->Flash->error(__('Download failed. %s', $e->getMessage()));
             $this->redirect(array('action' => 'previewIndex', $serverId));
+        }
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($event, $this->response->type());
         }
 
         $this->loadModel('Warninglist');
@@ -200,8 +198,17 @@ class ServersController extends AppController
                 $this->set($alias, $currentModel->{$variable});
             }
         }
-        $threat_levels = $this->Event->ThreatLevel->find('all');
-        $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+        $threat_levels = $this->Event->ThreatLevel->find('list', ['fields' => ['id', 'name']]);
+        $this->set('threatLevels', $threat_levels);
+        $this->set('title_for_layout', __('Remote event preview'));
+    }
+
+    public function compareServers()
+    {
+        list($servers, $overlap) = $this->Server->serverEventsOverlap();
+        $this->set('servers', $servers);
+        $this->set('overlap', $overlap);
+        $this->set('title_for_layout', __('Server overlap analysis matrix'));
     }
 
     public function filterEventIndex($id)
@@ -929,27 +936,6 @@ class ServersController extends AppController
         $this->render('/Elements/healthElements/settings_row');
     }
 
-    private function __loadAvailableLanguages()
-    {
-        return $this->Server->loadAvailableLanguages();
-    }
-
-    private function __loadTagCollections()
-    {
-        return $this->Server->loadTagCollections($this->Auth->user());
-    }
-
-    private function __loadLocalOrgs()
-    {
-        $this->loadModel('Organisation');
-        $local_orgs = $this->Organisation->find('list', array(
-                'conditions' => array('local' => 1),
-                'recursive' => -1,
-                'fields' => array('Organisation.id', 'Organisation.name')
-        ));
-        return array_replace(array(0 => __('No organisation selected.')), $local_orgs);
-    }
-
     public function serverSettings($tab=false)
     {
         if (!$this->_isSiteAdmin()) {
@@ -975,7 +961,6 @@ class ServersController extends AppController
             $mixboxVersion = array(0 => __('Incorrect mixbox version installed, found $current, expecting $expected'), 1 => __('OK'));
             $maecVersion = array(0 => __('Incorrect maec version installed, found $current, expecting $expected'), 1 => __('OK'));
             $pymispVersion = array(0 => __('Incorrect PyMISP version installed, found $current, expecting $expected'), 1 => __('OK'));
-            $plyaraVersion = array(0 => __('Incorrect plyara version installed, found $current, expecting $expected'), 1 => __('OK'));
             $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
             $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
 
@@ -1015,8 +1000,8 @@ class ServersController extends AppController
                         $tabs[$result['tab']]['severity'] = $result['level'];
                     }
                 }
-                if (isset($result['optionsSource']) && !empty($result['optionsSource'])) {
-                    $result['options'] = $this->{'__load' . $result['optionsSource']}();
+                if (isset($result['optionsSource']) && is_callable($result['optionsSource'])) {
+                    $result['options'] = $result['optionsSource']();
                 }
                 $dumpResults[] = $result;
                 if ($result['tab'] == $tab) {
@@ -1032,13 +1017,12 @@ class ServersController extends AppController
             $diagnostic_errors = 0;
             App::uses('File', 'Utility');
             App::uses('Folder', 'Utility');
-            $additionalViewVars = array();
-            if ($tab == 'files') {
+            if ($tab === 'files') {
                 $files = $this->__manageFiles();
                 $this->set('files', $files);
             }
             // Only run this check on the diagnostics tab
-            if ($tab == 'diagnostics' || $tab == 'download' || $this->_isRest()) {
+            if ($tab === 'diagnostics' || $tab === 'download' || $this->_isRest()) {
                 $php_ini = php_ini_loaded_file();
                 $this->set('php_ini', $php_ini);
 
@@ -1059,27 +1043,26 @@ class ServersController extends AppController
                 $this->set('commit', $gitStatus['commit']);
                 $this->set('latestCommit', $gitStatus['latestCommit']);
                 $phpSettings = array(
-                        'max_execution_time' => array(
-                            'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
-                            'recommended' => 300,
-                            'unit' => false
-                        ),
-                        'memory_limit' => array(
-                            'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
-                            'recommended' => 2048,
-                            'unit' => 'M'
-                        ),
-                        'upload_max_filesize' => array(
-                            'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
-                            'recommended' => 50,
-                            'unit' => 'M'
-                        ),
-                        'post_max_size' => array(
-                            'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
-                            'recommended' => 50,
-                            'unit' => 'M'
-                        )
-
+                    'max_execution_time' => array(
+                        'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
+                        'recommended' => 300,
+                        'unit' => false
+                    ),
+                    'memory_limit' => array(
+                        'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
+                        'recommended' => 2048,
+                        'unit' => 'M'
+                    ),
+                    'upload_max_filesize' => array(
+                        'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
+                        'recommended' => 50,
+                        'unit' => 'M'
+                    ),
+                    'post_max_size' => array(
+                        'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
+                        'recommended' => 50,
+                        'unit' => 'M'
+                    )
                 );
 
                 foreach ($phpSettings as $setting => $settingArray) {
@@ -1133,7 +1116,9 @@ class ServersController extends AppController
                     $attachmentScan = ['status' => false, 'error' => $e->getMessage()];
                 }
 
-                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan');
+                $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan');
+            } else {
+                $view = [];
             }
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
@@ -1144,13 +1129,8 @@ class ServersController extends AppController
             // check if the encoding is not set to utf8
             $dbEncodingStatus = $this->Server->databaseEncodingDiagnostics($diagnostic_errors);
 
-            $viewVars = array(
-                    'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'readableErrors', 'writeableDirs', 'writeableFiles', 'readableFiles', 'extensions', 'dbEncodingStatus'
-            );
-            $viewVars = array_merge($viewVars, $additionalViewVars);
-            foreach ($viewVars as $viewVar) {
-                $this->set($viewVar, ${$viewVar});
-            }
+            $view = array_merge($view, compact('diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'readableErrors', 'writeableDirs', 'writeableFiles', 'readableFiles', 'extensions', 'dbEncodingStatus'));
+            $this->set($view);
 
             $workerIssueCount = 4;
             $worker_array = array();
@@ -1200,6 +1180,7 @@ class ServersController extends AppController
             $this->set('phpversion', phpversion());
             $this->set('phpmin', $this->phpmin);
             $this->set('phprec', $this->phprec);
+            $this->set('phptoonew', $this->phptoonew);
             $this->set('pythonmin', $this->pythonmin);
             $this->set('pythonrec', $this->pythonrec);
             $this->set('pymisp', $this->pymisp);
@@ -1296,47 +1277,48 @@ class ServersController extends AppController
         }
     }
 
-    public function idTranslator() {
-
-        // The id translation feature is limited to people from the host org
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
-            throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
-        }
-
-        //We retrieve the list of remote servers that we can query
-        $options = array();
-        $options['conditions'] = array("pull" => true);
-        $servers = $this->Server->find('all', $options);
+    public function idTranslator($localId = null)
+    {
+        // We retrieve the list of remote servers that we can query
+        $servers = $this->Server->find('all', [
+            'conditions' => ['OR' => ['pull' => true, 'push' => true]],
+            'recursive' => -1,
+            'order' => ['Server.priority ASC'],
+        ]);
 
         // We generate the list of servers for the dropdown
         $displayServers = array();
-        foreach($servers as $s) {
-            $displayServers[] = array('name' => $s['Server']['name'],
-                                      'value' => $s['Server']['id']);
+        foreach ($servers as $s) {
+            $displayServers[] = [
+                'name' => $s['Server']['name'],
+                'value' => $s['Server']['id'],
+            ];
         }
         $this->set('servers', $displayServers);
 
-        if ($this->request->is('post')) {
+        if ($localId || $this->request->is('post')) {
+            if ($localId && $this->request->is('get')) {
+                $this->request->data['Event']['local'] = 'local';
+                $this->request->data['Event']['uuid'] = $localId;
+            }
             $remote_events = array();
-            if(!empty($this->request->data['Event']['uuid']) &&  $this->request->data['Event']['local'] == "local") {
+            if (!empty($this->request->data['Event']['uuid']) && $this->request->data['Event']['local'] === "local") {
                 $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $this->request->data['Event']['uuid']);
-            } else if (!empty($this->request->data['Event']['uuid']) && $this->request->data['Event']['local'] == "remote" && !empty($this->request->data['Server']['id'])) {
+            } else if (!empty($this->request->data['Event']['uuid']) && $this->request->data['Event']['local'] === "remote" && !empty($this->request->data['Server']['id'])) {
                 //We check on the remote server for any event with this id and try to find a match locally
                 $conditions = array('AND' => array('Server.id' => $this->request->data['Server']['id'], 'Server.pull' => true));
                 $remote_server = $this->Server->find('first', array('conditions' => $conditions));
-                if(!empty($remote_server)) {
+                if (!empty($remote_server)) {
                     try {
                         $remote_event = $this->Event->downloadEventFromServer($this->request->data['Event']['uuid'], $remote_server, null, true);
                     } catch (Exception $e) {
-                        $error_msg = __("Issue while contacting the remote server to retrieve event information");
-                        $this->logException($error_msg, $e);
-                        $this->Flash->error($error_msg);
+                        $this->Flash->error(__("Issue while contacting the remote server to retrieve event information"));
                         return;
                     }
 
                     $local_event = $this->Event->fetchSimpleEvent($this->Auth->user(), $remote_event[0]['uuid']);
-                    //we record it to avoid re-querying the same server in the 2nd phase
-                    if(!empty($local_event)) {
+                    // we record it to avoid re-querying the same server in the 2nd phase
+                    if (!empty($local_event)) {
                         $remote_events[] = array(
                             "server_id" => $remote_server['Server']['id'],
                             "server_name" => $remote_server['Server']['name'],
@@ -1346,31 +1328,30 @@ class ServersController extends AppController
                     }
                 }
             }
-            if(empty($local_event)) {
-                $this->Flash->error( __("This event could not be found or you don't have permissions to see it."));
+            if (empty($local_event)) {
+                $this->Flash->error(__("This event could not be found or you don't have permissions to see it."));
                 return;
             } else {
                 $this->Flash->success(__('The event has been found.'));
             }
 
             // In the second phase, we query all configured sync servers to get their info on the event
-            foreach($servers as $s) {
+            foreach ($servers as $server) {
                 // We check if the server was not already contacted in phase 1
-                if(count($remote_events) > 0 && $remote_events[0]['server_id'] == $s['Server']['id']) {
+                if (count($remote_events) > 0 && $remote_events[0]['server_id'] == $server['Server']['id']) {
                     continue;
                 }
 
                 try {
-                    $remote_event = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $s, null, true);
+                    $remote_event = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
                     $remote_event_id = $remote_event[0]['id'];
                 } catch (Exception $e) {
-                    $this->logException("Couldn't download event from server", $e);
                     $remote_event_id = null;
                 }
                 $remote_events[] = array(
-                    "server_id" => $s['Server']['id'],
-                    "server_name" => $s['Server']['name'],
-                    "url" => isset($remote_event_id) ? $s['Server']['url']."/events/view/".$remote_event_id : $s['Server']['url'],
+                    "server_id" => $server['Server']['id'],
+                    "server_name" => $server['Server']['name'],
+                    "url" => isset($remote_event_id) ? $server['Server']['url']."/events/view/".$remote_event_id : $server['Server']['url'],
                     "remote_id" => isset($remote_event_id) ? $remote_event_id : false
                 );
             }
@@ -1378,6 +1359,7 @@ class ServersController extends AppController
             $this->set('local_event', $local_event);
             $this->set('remote_events', $remote_events);
         }
+        $this->set('title_for_layout', __('Event ID translator'));
     }
 
     public function getSubmodulesStatus() {
@@ -1428,8 +1410,8 @@ class ServersController extends AppController
                 $setting['value'] = $value;
             }
             $setting['setting'] = $setting['name'];
-            if (isset($setting['optionsSource']) && !empty($setting['optionsSource'])) {
-                $setting['options'] = $this->{'__load' . $setting['optionsSource']}();
+            if (isset($setting['optionsSource']) && is_callable($setting['optionsSource'])) {
+                $setting['options'] = $setting['optionsSource']();
             }
             $subGroup = explode('.', $setting['name']);
             if ($subGroup[0] === 'Plugin') {
@@ -1448,7 +1430,7 @@ class ServersController extends AppController
             if (!isset($this->request->data['Server'])) {
                 $this->request->data = array('Server' => $this->request->data);
             }
-            if (!isset($this->request->data['Server']['value'])) {
+            if (!isset($this->request->data['Server']['value']) || !is_scalar($this->request->data['Server']['value'])) {
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'Invalid input. Expected: {"value": "new_setting"}', $this->response->type());
                 }
@@ -1491,7 +1473,7 @@ class ServersController extends AppController
                     return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')), 'status'=>200, 'type' => 'json'));
                 }
             } else {
-                if ($this->_isRest) {
+                if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $result, $this->response->type());
                 } else {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));
@@ -1627,28 +1609,31 @@ class ServersController extends AppController
 
     public function postTest()
     {
-        if ($this->request->is('post')) {
-            // Fix for PHP-FPM / Nginx / etc
-            // Fix via https://www.popmartian.com/tipsntricks/2015/07/14/howto-use-php-getallheaders-under-fastcgi-php-fpm-nginx-etc/
-            if (!function_exists('getallheaders')) {
-                $headers = [];
-                foreach ($_SERVER as $name => $value) {
-                    if (substr($name, 0, 5) == 'HTTP_') {
-                        $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
-                    }
-                }
-            } else {
-                $headers = getallheaders();
-            }
-            $result = array();
-            $result['body'] = $this->request->data;
-            $result['headers']['Content-type'] = isset($headers['Content-type']) ? $headers['Content-type'] : 0;
-            $result['headers']['Accept'] = isset($headers['Accept']) ? $headers['Accept'] : 0;
-            $result['headers']['Authorization'] = isset($headers['Authorization']) ? 'OK' : 0;
-            return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
-        } else {
+        if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('Invalid request, expecting a POST request.');
         }
+        // Fix for PHP-FPM / Nginx / etc
+        // Fix via https://www.popmartian.com/tipsntricks/2015/07/14/howto-use-php-getallheaders-under-fastcgi-php-fpm-nginx-etc/
+        if (!function_exists('getallheaders')) {
+            $headers = [];
+            foreach ($_SERVER as $name => $value) {
+                if (substr($name, 0, 5) === 'HTTP_') {
+                    $headers[strtolower(str_replace('_', '-', substr($name, 5)))] = $value;
+                }
+            }
+        } else {
+            $headers = getallheaders();
+            $headers = array_change_key_case($headers, CASE_LOWER);
+        }
+        $result = [
+            'body' => $this->request->data,
+            'headers' => [
+                'Content-type' => isset($headers['content-type']) ? $headers['content-type'] : 0,
+                'Accept' => isset($headers['accept']) ? $headers['accept'] : 0,
+                'Authorization' => isset($headers['authorization']) ? 'OK' : 0,
+            ],
+        ];
+        return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
     }
 
     public function getRemoteUser($id)
@@ -1728,7 +1713,8 @@ class ServersController extends AppController
                                 'version' => implode('.', $version),
                                 'mismatch' => $mismatch,
                                 'newer' => $newer,
-                                'post' => isset($post) ? $post : 'too old',
+                                'post' => isset($post) ? $post['status'] : 'too old',
+                                'response_encoding' => isset($post['content-encoding']) ? $post['content-encoding'] : null,
                                 'client_certificate' => $result['client_certificate'],
                                 )
                             ),
@@ -1838,9 +1824,19 @@ class ServersController extends AppController
         $result = $this->Server->checkoutMain();
     }
 
-    public function update()
+    public function update($branch = false)
     {
         if ($this->request->is('post')) {
+            $branch = false;
+            $filterData = array(
+                'request' => $this->request,
+                'named_params' => $this->params['named'],
+                'paramArray' => ['branch'],
+                'ordered_url_params' => @compact($paramArray),
+                'additional_delimiters' => PHP_EOL
+            );
+            $exception = false;
+            $settings = $this->_harvestParameters($filterData, $exception);
             $status = $this->Server->getCurrentGitStatus();
             $raw = array();
             if (empty($status['branch'])) { // do not try to update if you are not on branch
@@ -1848,7 +1844,10 @@ class ServersController extends AppController
                 $raw[] = $msg;
                 $update = $msg;
             } else {
-                $update = $this->Server->update($status, $raw);
+                if ($settings === false) {
+                    $settings = [];
+                }
+                $update = $this->Server->update($status, $raw, $settings);
             }
             if ($this->_isRest()) {
                 return $this->RestResponse->viewData(array('results' => $raw), $this->response->type());

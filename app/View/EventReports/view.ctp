@@ -1,7 +1,7 @@
 <?php
     $table_data = array();
     $table_data[] = array('key' => __('ID'), 'value' => $report['EventReport']['id']);
-    $table_data[] = array('key' => __('UUID'), 'html' => '<span class="quickSelect">' . h($report['EventReport']['uuid']) . '</span>');
+    $table_data[] = array('key' => __('UUID'), 'value' => $report['EventReport']['uuid'], 'value_class' => 'quickSelect');
     $table_data[] = array(
         'key' => __('Event'),
         'html' => sprintf(
@@ -20,7 +20,13 @@
     );
 
     $table_data[] = array('key' => __('Last update'), 'value' => date('Y-m-d H:i:s', $report['EventReport']['timestamp']));
-    $table_data[] = array('key' => __('Deleted'), 'boolean' => $report['EventReport']['deleted'], 'value_class' => $report['EventReport']['deleted'] ? 'red' : 'green');
+    if ($report['EventReport']['deleted']) {
+        $table_data[] = array(
+            'key' => __('Deleted'),
+            'boolean' => $report['EventReport']['deleted'],
+            'value_class' => 'red',
+        );
+    }
 ?>
 
 <div class='<?= !isset($ajax) || !$ajax ? 'view' : '' ?>'>
@@ -30,7 +36,6 @@
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
         </div>
         <div class="clear">
-            <h4><?= __('Event Report content') ?></h4>
             <div class="markdownEditor-full-container">
                 <?php 
                     echo $this->element('markdownEditor/markdownEditor', [

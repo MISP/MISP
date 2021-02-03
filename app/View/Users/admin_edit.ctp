@@ -81,13 +81,13 @@
         echo $this->Form->input('termsaccepted', array('type' => 'checkbox', 'label' => __('Terms accepted')));
         echo $this->Form->input('change_pw', [
             'type' => 'checkbox',
-            'label' => __('User must change password after next login'),
+            'label' => __('User must change password'),
             'disabled' => !$canChangePassword,
             'data-disabled-reason' => !$canChangePassword ? __('User password change is disabled on this instance') : '',
         ]);
         echo $this->Form->input('autoalert', array('label' => __('Receive email alerts when events are published'), 'type' => 'checkbox'));
         echo $this->Form->input('contactalert', array('label' => __('Receive email alerts from "Contact reporter" requests'), 'type' => 'checkbox'));
-        echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Disable this user account')));
+        echo $this->Form->input('disabled', array('type' => 'checkbox', 'label' => __('Immediately disable this user account')));
         echo '</div>';
     ?>
     </fieldset>

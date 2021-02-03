@@ -268,17 +268,21 @@ class SharingGroupsController extends AppController
 
         if (isset($this->params['named']['value'])) {
             $term = '%' . strtolower($this->params['named']['value']) . '%';
-            $sgIds = $this->SharingGroup->SharingGroupOrg->find('list', [
-                'conditions' => [
-                    'OR' => [
-                        'Organisation.uuid LIKE' => $term,
-                        'LOWER(Organisation.name) LIKE' => $term,
+            if ($this->__showOrgs()) {
+                $sgIds = $this->SharingGroup->SharingGroupOrg->find('column', [
+                    'conditions' => [
+                        'OR' => [
+                            'Organisation.uuid LIKE' => $term,
+                            'LOWER(Organisation.name) LIKE' => $term,
+                        ],
+                        'SharingGroupOrg.sharing_group_id' => $authorizedSgIds,
                     ],
-                    'SharingGroupOrg.sharing_group_id' => $authorizedSgIds,
-                ],
-                'contain' => ['Organisation'],
-                'fields' => ['SharingGroupOrg.sharing_group_id'],
-            ]);
+                    'contain' => ['Organisation'],
+                    'fields' => ['SharingGroupOrg.sharing_group_id'],
+                ]);
+            } else {
+                $sgIds = [];
+            }
             $this->paginate['conditions'][]['OR'] = [
                 'SharingGroup.id' => $sgIds,
                 'SharingGroup.uuid LIKE' => $term,
@@ -288,6 +292,43 @@ class SharingGroupsController extends AppController
                 'LOWER(Organisation.name) LIKE' => $term,
             ];
         }
+
+        if ($this->__showOrgs() && isset($this->params['named']['searchorg'])) {
+            $orgs = explode('|', $this->params['named']['searchorg']);
+            $conditions = [];
+            foreach ($orgs as $org) {
+                $exclude = $org[0] === '!';
+                if ($exclude) {
+                    $org = substr($org, 1);
+                }
+                $org = $this->SharingGroup->Organisation->fetchOrg($org);
+                if ($org) {
+                    if ($exclude) {
+                        $conditions['AND'][] = ['org_id !=' => $org['id']];
+                    } else {
+                        $conditions['OR'][] = ['org_id' => $org['id']];
+                    }
+                }
+            }
+            $sgIds = $this->SharingGroup->SharingGroupOrg->find('column', [
+                'conditions' => $conditions,
+                'fields' => ['SharingGroupOrg.sharing_group_id'],
+            ]);
+            if (empty($sgIds)) {
+                $sgIds = -1;
+            }
+            $this->paginate['conditions'][] = ['SharingGroup.id' => $sgIds];
+        }
+
+        // To allow sort sharing group by number of organisation and also show org count when user don't have permission ot see them
+        $this->SharingGroup->addCountField('org_count', $this->SharingGroup->SharingGroupOrg, ['SharingGroupOrg.sharing_group_id = SharingGroup.id']);
+        $this->paginate['fields'][] = 'SharingGroup.org_count';
+
+        if (!$this->__showOrgs()) {
+            unset($this->paginate['contain']['SharingGroupOrg']);
+            unset($this->paginate['contain']['SharingGroupServer']);
+        }
+
         $result = $this->paginate();
 
         // check if the current user can modify or delete the SG
@@ -331,21 +372,30 @@ class SharingGroupsController extends AppController
         if (!$this->SharingGroup->checkIfAuthorised($this->Auth->user(), $id)) {
             throw new MethodNotAllowedException('Sharing group doesn\'t exist or you do not have permission to access it.');
         }
-        $sg = $this->SharingGroup->find('first', [
-            'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
-            'contain' => array(
-                'SharingGroupOrg' => array(
-                    'Organisation' => array(
-                        'fields' => array('id', 'name', 'uuid', 'local')
-                    )
-                ),
-                'Organisation',
-                'SharingGroupServer' => array(
-                    'Server' => array(
-                        'fields' => array('id', 'name', 'url')
-                    )
+
+        $contain = array(
+            'Organisation',
+            'SharingGroupOrg' => array(
+                'Organisation' => array(
+                    'fields' => array('id', 'name', 'uuid', 'local')
+                )
+            ),
+            'SharingGroupServer' => array(
+                'Server' => array(
+                    'fields' => array('id', 'name', 'url')
                 )
             )
+        );
+
+        if (!$this->__showOrgs()) {
+            unset($contain['SharingGroupOrg']);
+            unset($contain['SharingGroupServer']);
+            $this->SharingGroup->addCountField('org_count', $this->SharingGroup->SharingGroupOrg, ['SharingGroupOrg.sharing_group_id = SharingGroup.id']);
+        }
+
+        $sg = $this->SharingGroup->find('first', [
+            'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
+            'contain' => $contain,
         ]);
         if (isset($sg['SharingGroupServer'])) {
             foreach ($sg['SharingGroupServer'] as $key => $sgs) {
@@ -576,5 +626,13 @@ class SharingGroupsController extends AppController
         } else {
             return $this->RestResponse->saveFailResponse('SharingGroup', $action, false, $object_type . ' could not be ' . $actionType . ' the sharing group.', $this->response->type());
         }
+    }
+
+    /**
+     * @return bool
+     */
+    private function __showOrgs()
+    {
+        return $this->Auth->user()['Role']['perm_sharing_group'] || !Configure::read('Security.hide_organisations_in_sharing_groups');
     }
 }

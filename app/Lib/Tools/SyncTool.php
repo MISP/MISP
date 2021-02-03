@@ -2,10 +2,17 @@
 
 class SyncTool
 {
-    // take a server as parameter and return a HttpSocket object using the ssl options defined in the server settings
+    /**
+     * Take a server as parameter and return a HttpSocket object using the ssl options defined in the server settings
+     * @param array|null $server
+     * @param false $timeout
+     * @param string $model
+     * @return HttpSocketExtended
+     * @throws Exception
+     */
     public function setupHttpSocket($server = null, $timeout = false, $model = 'Server')
     {
-        $params = array();
+        $params = ['compress' => true];
         if (!empty($server)) {
             if (!empty($server[$model]['cert_file'])) {
                 $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server[$model]['id'] . '.pem';
@@ -33,12 +40,12 @@ class SyncTool
 
     public function setupHttpSocketFeed($feed = null)
     {
-        return $this->setupHttpSocket();
+        return $this->createHttpSocket(['compress' => true]);
     }
 
     /**
      * @param array $params
-     * @return HttpSocket
+     * @return HttpSocketExtended
      * @throws Exception
      */
     public function createHttpSocket($params = array())
@@ -52,8 +59,8 @@ class SyncTool
             $params['ssl_cafile'] = $caPath;
         }
 
-        App::uses('HttpSocket', 'Network/Http');
-        $HttpSocket = new HttpSocket($params);
+        App::uses('HttpSocketExtended', 'Tools');
+        $HttpSocket = new HttpSocketExtended($params);
         $proxy = Configure::read('Proxy');
         if (empty($params['skip_proxy']) && isset($proxy['host']) && !empty($proxy['host'])) {
             $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);

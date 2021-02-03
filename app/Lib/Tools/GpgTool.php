@@ -46,7 +46,7 @@ class GpgTool
      */
     public function searchGpgKey($search)
     {
-        $uri = 'https://pgp.circl.lu/pks/lookup?search=' . urlencode($search) . '&op=index&fingerprint=on&options=mr';
+        $uri = 'https://openpgp.circl.lu/pks/lookup?search=' . urlencode($search) . '&op=index&fingerprint=on&options=mr';
         $response = $this->keyServerLookup($uri);
         if ($response->code == 404) {
             return array(); // no keys found
@@ -63,7 +63,7 @@ class GpgTool
      */
     public function fetchGpgKey($fingerprint)
     {
-        $uri = 'https://pgp.circl.lu/pks/lookup?search=0x' . urlencode($fingerprint) . '&op=get&options=mr';
+        $uri = 'https://openpgp.circl.lu/pks/lookup?search=0x' . urlencode($fingerprint) . '&op=get&options=mr';
         $response = $this->keyServerLookup($uri);
         if ($response->code == 404) {
             return null; // key with given fingerprint not found

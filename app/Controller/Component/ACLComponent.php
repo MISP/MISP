@@ -15,13 +15,11 @@ class ACLComponent extends Component
     private $__aclList = array(
             '*' => array(
                     'blackhole' => array(),
-                    'checkAction' => array(),
                     'checkAuthUser' => array(),
                     'checkExternalAuthUser' => array(),
                     'cleanModelCaches' => array(),
                     'debugACL' => array(),
                     'generateCount' => array(),
-                    'getActions' => array(),
                     'pruneDuplicateUUIDs' => array(),
                     'queryACL' => array(),
                     'removeDuplicateEvents' => array(),
@@ -87,6 +85,13 @@ class ACLComponent extends Component
                 'index' => [],
                 'preview_orgs' => [],
                 'pull_orgs' => [],
+                'view' => []
+            ],
+            'correlationExclusions' => [
+                'add' => [],
+                'clean' => [],
+                'delete' => [],
+                'index' => [],
                 'view' => []
             ],
             'dashboards' => array(
@@ -461,7 +466,6 @@ class ACLComponent extends Component
                     'admin_add' => array(),
                     'admin_delete' => array(),
                     'admin_edit' => array(),
-                    'admin_index' => array('perm_admin'),
                     'admin_set_default' => array(),
                     'index' => array('*'),
                     'view' => array('*'),
@@ -499,6 +503,7 @@ class ACLComponent extends Component
                     'postTest' => array('perm_sync'),
                     'previewEvent' => array(),
                     'previewIndex' => array(),
+                    'compareServers' => [],
                     'pull' => array(),
                     'purgeSessions' => array(),
                     'push' => array(),
@@ -615,6 +620,7 @@ class ACLComponent extends Component
                     'taxonomyMassUnhide' => array('perm_tagger'),
                     'toggleRequired' => array('perm_site_admin'),
                     'update' => array(),
+                    'import' => [],
                     'view' => array('*'),
                     'unhideTag' => array('perm_tagger'),
                     'hideTag' => array('perm_tagger'),
@@ -685,6 +691,7 @@ class ACLComponent extends Component
                     'verifyCertificate' => array(),
                     'verifyGPG' => array(),
                     'view' => array('*'),
+                    'getGpgPublicKey' => array('*'),
             ),
             'userSettings' => array(
                     'index' => array('*'),
