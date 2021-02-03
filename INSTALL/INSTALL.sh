@@ -675,6 +675,7 @@ kaliSpaceSaver () {
   echo "${RED}Not implement${NC}"
 }
 
+# FIXME: Kali now uses kali/kali instead of root/toor
 # Because Kali is l33t we make sure we DO NOT run as root
 kaliOnTheR0ckz () {
   totalRoot=$(df -k | grep /$ |awk '{ print $2 }')
@@ -1768,6 +1769,7 @@ mispmodules () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install censys pyfaup
 
   # Start misp-modules as a service
   sudo cp /usr/local/src/misp-modules/etc/systemd/system/misp-modules.service /etc/systemd/system/
@@ -2541,6 +2543,7 @@ mispmodulesRHEL () {
   # pip install
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install pyfaup censys
   sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
 
   echo "[Unit]
