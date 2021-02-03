@@ -510,6 +510,7 @@ kaliSpaceSaver () {
   echo "${RED}Not implement${NC}"
 }
 
+# FIXME: Kali now uses kali/kali instead of root/toor
 # Because Kali is l33t we make sure we DO NOT run as root
 kaliOnTheR0ckz () {
   totalRoot=$(df -k | grep /$ |awk '{ print $2 }')
@@ -611,6 +612,7 @@ installRNG () {
 kaliUpgrade () {
   debug "Running various Kali upgrade tasks"
   checkAptLock
+  sudo DEBIAN_FRONTEND=noninteractive apt update
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
   sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
 }
