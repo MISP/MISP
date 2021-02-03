@@ -4,13 +4,14 @@
       private $__lookupTables = array();
       private $__related_events = array();
       private $__related_attributes = array();
-      private $__eventModel = false;
+      /** @var Event */
+      private $__eventModel;
       private $__taxonomyModel = false;
       private $__galaxyClusterModel = false;
       private $__user = false;
       private $__json = array();
 
-      public function construct($eventModel, $taxonomyModel, $galaxyClusterModel, $user, $json)
+      public function construct(Event $eventModel, $taxonomyModel, $galaxyClusterModel, $user, $json)
       {
           $this->__eventModel = $eventModel;
           $this->__taxonomyModel = $taxonomyModel;
@@ -99,11 +100,11 @@
       {
           foreach ($objects as $k => $object) {
               $include = $full;
-              if (!$include) {
+              if (!$include && isset($object['Attribute'])) {
                   foreach ($object['Attribute'] as $attribute) {
                       if (isset($this->__related_attributes[$attribute['id']])) {
                           $include = true;
-                          continue;
+                          break;
                       }
                   }
               }

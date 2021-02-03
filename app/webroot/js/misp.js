@@ -4419,16 +4419,16 @@ function selectAllInbetween(last, current) {
     });
 }
 
-$('.galaxy-toggle-button').click(function() {
+$('#eventToggleButtons button').click(function() {
     var element = $(this).data('toggle-type');
     var $button = $(this).children('span');
-    if ($button.hasClass('icon-minus')) {
-        $button.addClass('icon-plus');
-        $button.removeClass('icon-minus');
+    if ($button.hasClass('fa-minus')) {
+        $button.addClass('fa-plus');
+        $button.removeClass('fa-minus');
         $('#' + element + '_div').hide();
     } else {
-        $button.removeClass('icon-plus');
-        $button.addClass('icon-minus');
+        $button.removeClass('fa-plus');
+        $button.addClass('fa-minus');
         $('#' + element + '_div').show();
 
         var loadUrl = $(this).data('load-url');

@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('CidrTool', 'Tools');
 
 /**
  * @property WarninglistType $WarninglistType
@@ -154,7 +155,7 @@ class Warninglist extends AppModel
         if (!empty($saveToCache)) {
             $pipe = $redis->multi(Redis::PIPELINE);
             foreach ($saveToCache as $attributeKey => $json) {
-                $redis->setex($attributeKey, 3600, $json); // cache for one hour
+                $redis->setex($attributeKey, 8 * 3600, $json); // cache for eight hour
             }
             $pipe->exec();
         }
@@ -399,39 +400,6 @@ class Warninglist extends AppModel
     }
 
     /**
-     * Filter out invalid IPv4 or IPv4 CIDR and append maximum netmaks if no netmask is given.
-     * @param array $inputValues
-     * @return array
-     */
-    private function filterCidrList($inputValues)
-    {
-        $outputValues = [];
-        foreach ($inputValues as $v) {
-            $v = strtolower($v);
-            $parts = explode('/', $v, 2);
-            if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                $maximumNetmask = 32;
-            } else if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                $maximumNetmask = 128;
-            } else {
-                // IP address part of CIDR is invalid
-                continue;
-            }
-
-            if (!isset($parts[1])) {
-                // If CIDR doesnt contains '/', we will consider CIDR as /32 for IPv4 or /128 for IPv6
-                $v = "$v/$maximumNetmask";
-            } else if ($parts[1] > $maximumNetmask || $parts[1] < 0) {
-                // Netmask part of CIDR is invalid
-                continue;
-            }
-
-            $outputValues[$v] = true;
-        }
-        return $outputValues;
-    }
-
-    /**
      * For 'hostname', 'string' and 'cidr' warninglist type, values are just in keys to save memory.
      *
      * @param array $warninglist
@@ -459,7 +427,7 @@ class Warninglist extends AppModel
             }
             $values = $output;
         } else if ($warninglist['Warninglist']['type'] === 'cidr') {
-            $values = $this->filterCidrList($values);
+            $values = new CidrTool($values);
         }
 
         $this->entriesCache[$id] = $values;
@@ -497,7 +465,7 @@ class Warninglist extends AppModel
     }
 
     /**
-     * @param array $listValues
+     * @param array|CidrTool $listValues
      * @param string $value
      * @param string $type
      * @param string $listType
@@ -512,7 +480,7 @@ class Warninglist extends AppModel
         }
         foreach ($value as $v) {
             if ($listType === 'cidr') {
-                $result = $this->__evalCidrList($listValues, $v);
+                $result = $listValues->contains($v);
             } elseif ($listType === 'string') {
                 $result = $this->__evalString($listValues, $v);
             } elseif ($listType === 'substring') {
@@ -534,75 +502,6 @@ class Warninglist extends AppModel
     public function quickCheckValue($listValues, $value, $type)
     {
         return $this->__checkValue($listValues, $value, '', $type) !== false;
-    }
-
-    private function __evalCidrList($listValues, $value)
-    {
-        $valueMask = null;
-        if (strpos($value, '/') !== false) {
-            list($value, $valueMask) = explode('/', $value);
-        }
-
-        $match = false;
-        if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            // This code converts IP address to all possible CIDRs that can contains given IP address
-            // and then check if given hash table contains that CIDR.
-            $ip = ip2long($value);
-            // Start from 1, because doesn't make sense to check 0.0.0.0/0 match
-            for ($bits = 1; $bits <= 32; $bits++) {
-                $mask = -1 << (32 - $bits);
-                $needle = long2ip($ip & $mask) . "/$bits";
-                if (isset($listValues[$needle])) {
-                    $match = $needle;
-                    break;
-                }
-            }
-
-        } elseif (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            foreach ($listValues as $lv => $foo) {
-                if (strpos($lv, ':') !== false) { // Filter out IPv4 CIDR, IPv6 CIDR must contain colon
-                    if ($this->__ipv6InCidr($value, $lv)) {
-                        $match = $lv;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if ($match && $valueMask) {
-            $matchMask = explode('/', $match)[1];
-            if ($valueMask < $matchMask) {
-                return false;
-            }
-        }
-
-        return $match;
-    }
-
-    /**
-     * Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
-     *
-     * @param string $ip
-     * @param string $cidr
-     * @return bool
-     */
-    private function __ipv6InCidr($ip, $cidr)
-    {
-        list($address, $netmask) = explode('/', $cidr);
-
-        $bytesAddr = unpack('n*', inet_pton($address));
-        $bytesTest = unpack('n*', inet_pton($ip));
-
-        for ($i = 1, $ceil = ceil($netmask / 16); $i <= $ceil; ++$i) {
-            $left = $netmask - 16 * ($i - 1);
-            $left = ($left <= 16) ? $left : 16;
-            $mask = ~(0xffff >> $left) & 0xffff;
-            if (($bytesAddr[$i] & $mask) != ($bytesTest[$i] & $mask)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**
