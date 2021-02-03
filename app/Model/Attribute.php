@@ -12,6 +12,7 @@ App::uses('ComplexTypeTool', 'Tools');
 /**
  * @property Event $Event
  * @property AttributeTag $AttributeTag
+ * @property Sighting $Sighting
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -3979,7 +3980,7 @@ class Attribute extends AppModel
                 }
             }
             if (!empty($attribute['Sighting'])) {
-                $this->Sighting->captureSighting($attribute['Sighting'], $this->id, $eventId, $user);
+                $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
             }
         }
         if (!empty($this->validationErrors)) {
