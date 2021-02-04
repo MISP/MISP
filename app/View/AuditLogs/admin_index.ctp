@@ -251,19 +251,20 @@
             <td class="short"><?= h($item['AuditLog']['created']); ?></td>
             <td class="short" data-search="user" data-search-value="<?= h($item['AuditLog']['user_id']) ?>"><?php
                 if (isset($item['AuditLog']['user_id']) && $item['AuditLog']['user_id'] == 0) {
-                    echo __('SYSTEM') . ' <i class="fas fa-terminal" title="' . __('Action done by CLI') .'"></i>';
+                    echo __('SYSTEM');
                 } else if (isset($item['User']['email'])) {
                     echo '<a href="' . $baseurl . '/admin/users/view/' . h($item['User']['id']) . '">' . h($item['User']['email']) . '</a>';
-
-                    if ($item['AuditLog']['request_type'] == AuditLog::REQUEST_TYPE_CLI) {
-                        echo ' <i class="fas fa-terminal" title="' . __('Action done by CLI or background job') .'"></i>';
-                    } else if ($item['AuditLog']['request_type'] == AuditLog::REQUEST_TYPE_API) {
-                        $key = $item['AuditLog']['authkey_id'] ? ' ' . __('by auth key #%s', h($item['AuditLog']['authkey_id'])) : '';
-                        echo ' <i class="fas fa-cogs" title="' . __('Action done trough API') . $key . '"></i>';
-                    }
                 } else {
                     echo __('<i>Deleted user #%s</i>', h($item['AuditLog']['user_id']));
-                } ?></td>
+                }
+
+                if ($item['AuditLog']['request_type'] == AuditLog::REQUEST_TYPE_CLI) {
+                    echo ' <i class="fas fa-terminal" title="' . __('Action done by CLI or background job') .'"></i>';
+                } else if ($item['AuditLog']['request_type'] == AuditLog::REQUEST_TYPE_API) {
+                    $key = $item['AuditLog']['authkey_id'] ? ' ' . __('by auth key #%s', h($item['AuditLog']['authkey_id'])) : '';
+                    echo ' <i class="fas fa-cogs" title="' . __('Action done trough API') . $key . '"></i>';
+                }
+                ?></td>
             <td class="short" data-search="ip" data-search-value="<?= h($item['AuditLog']['ip']) ?>"><?= h($item['AuditLog']['ip']) ?></td>
             <td class="short" data-search="org" data-search-value="<?= h($item['AuditLog']['org_id']) ?>">
                 <?php if (isset($item['Organisation']) && $item['Organisation']['id']) {
