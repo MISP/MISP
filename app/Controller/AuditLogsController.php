@@ -492,7 +492,7 @@ class AuditLogsController extends AppController
         }
 
         $existingObjects = [];
-        foreach (['User', 'Organisation', 'Galaxy', 'GalaxyCluster', 'Warninglist', 'AuthKey'] as $modelName) {
+        foreach (['User', 'Organisation', 'Galaxy', 'GalaxyCluster', 'Warninglist', 'AuthKey', 'ObjectTemplate'] as $modelName) {
             if (isset($models[$modelName])) {
                 $this->loadModel($modelName);
                 $data = $this->{$modelName}->find('column', [
@@ -502,6 +502,16 @@ class AuditLogsController extends AppController
                 $existingObjects[$modelName] = array_flip($data);
             }
         }
+
+        $links = [
+            'ObjectTemplate' => 'objectTemplates',
+            'AuthKey' => 'auth_keys',
+            'GalaxyCluster' => 'galaxy_clusters',
+            'Galaxy' => 'galaxies',
+            'Organisation' => 'organisation',
+            'Warninglist' => 'warninglists',
+            'User' => 'admin/user',
+        ];
 
         foreach ($auditLogs as $k => $auditLog) {
             $auditLog = $auditLog['AuditLog'];
@@ -556,38 +566,12 @@ class AuditLogsController extends AppController
                         }
                     }
                     break;
-                case 'User':
-                    if (isset($existingObjects['User'][$modelId])) {
-                        $url = '/admin/users/view/' . $modelId;
-                    }
-                    break;
-                case 'Warninglist':
-                    if (isset($existingObjects['Warninglist'][$modelId])) {
-                        $url = '/warninglists/view/' . $modelId;
-                    }
-                    break;
-                case 'Organisation':
-                    if (isset($existingObjects['Organisation'][$modelId])) {
-                        $url = '/organisation/view/' . $modelId;
-                    }
-                    break;
-                case 'Galaxy':
-                    if (isset($existingObjects['Galaxy'][$modelId])) {
-                        $url = '/galaxies/view/' . $modelId;
-                    }
-                    break;
-                case 'GalaxyCluster':
-                    if (isset($existingObjects['GalaxyCluster'][$modelId])) {
-                        $url = '/galaxy_clusters/view/' . $modelId;
-                    }
-                    break;
-                case 'AuthKey':
-                    if (isset($existingObjects['AuthKey'][$modelId])) {
-                        $url = '/auth_keys/view/' . $modelId;
-                    }
-                    break;
                 default:
-                    continue 2;
+                    if (isset($existingObjects[$auditLog['model']][$modelId])) {
+                        $url = '/' . $links[$auditLog['model']] . '/view/' . $modelId;
+                    } else {
+                        continue 2;
+                    }
             }
             if ($url) {
                 $auditLogs[$k]['AuditLog']['model_link'] = $this->baseurl . $url;
