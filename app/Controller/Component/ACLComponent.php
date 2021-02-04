@@ -412,6 +412,7 @@ class ACLComponent extends Component
                 'edit' => array('perm_object_template'),
                 'delete' => array('perm_object_template'),
                 'getToggleField' => array(),
+                'getRaw' => array('perm_object_template'),
                 'objectChoice' => array('*'),
                 'objectMetaChoice' => array('perm_add'),
                 'view' => array('*'),
@@ -542,6 +543,7 @@ class ACLComponent extends Component
                     'generateCorrelation' => array(),
                     'index' => array('*'),
                     'view' => array('*'),
+                    'viewPicture' => array('*'),
             ),
             'sharingGroups' => array(
                     'add' => array('perm_sharing_group'),

@@ -214,19 +214,24 @@ class AdminShell extends AppShell
             if (empty($user)) {
                 echo 'User with ID: ' . $userId . ' not found' . PHP_EOL;
                 $result = $this->ObjectTemplate->update();
-                if ($result) {
-                    echo 'Object templates updated' . PHP_EOL;
-                } else {
-                    echo 'Could not update object templates' . PHP_EOL;
-                }
             } else {
                 $result = $this->ObjectTemplate->update($user, false,false);
-                if ($result) {
-                    echo 'Object templates updated' . PHP_EOL;
-                } else {
-                    echo 'Could not update object templates' . PHP_EOL;
+            }
+
+            $successes = count(!empty($result['success']) ? $result['success'] : []);
+            $fails = count(!empty($result['fails']) ? $result['fails'] : []);
+            $message = '';
+            if ($successes == 0 && $fails == 0) {
+                $message = __('All object templates are up to date already.');
+            } elseif ($successes == 0 && $fails > 0) {
+                $message = __('Could not update any of the object templates.');
+            } elseif ($successes > 0 ) {
+                $message = __('Successfully updated %s object templates.', $successes);
+                if ($fails != 0) {
+                    $message .= __(' However, could not update %s object templates.', $fails);
                 }
             }
+            echo $message . PHP_EOL;
         }
     }
 
