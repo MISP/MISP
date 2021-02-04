@@ -203,17 +203,17 @@ class Attribute extends AppModel
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty')
             ),
+            'validComposite' => array(
+                'rule' => array('validComposite'),
+                'message' => 'Composite type found but the value not in the composite (value1|value2) format.'
+            ),
             'userdefined' => array(
                 'rule' => array('validateAttributeValue'),
                 'message' => 'Value not in the right type/format. Please double check the value or select type "other".'
             ),
             'uniqueValue' => array(
-                    'rule' => array('valueIsUnique'),
-                    'message' => 'A similar attribute already exists for this event.'
-            ),
-            'validComposite' => array(
-                'rule' => array('validComposite'),
-                'message' => 'Composite type found but the value not in the composite (value1|value2) format.'
+                'rule' => array('valueIsUnique'),
+                'message' => 'A similar attribute already exists for this event.'
             ),
             'maxTextLength' => array(
                 'rule' => array('maxTextLength')
@@ -603,7 +603,7 @@ class Attribute extends AppModel
     public function validComposite($fields)
     {
         $compositeTypes = $this->getCompositeTypes();
-        if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
+        if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
             if (substr_count($fields['value'], '|') !== 1) {
                 return false;
             }
