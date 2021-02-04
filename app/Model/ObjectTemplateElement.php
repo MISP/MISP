@@ -5,7 +5,6 @@ App::uses('AppModel', 'Model');
 class ObjectTemplateElement extends AppModel
 {
     public $actsAs = array(
-        'AuditLog',
             'Containable'
     );
 

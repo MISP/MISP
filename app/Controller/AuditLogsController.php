@@ -29,7 +29,6 @@ class AuditLogsController extends AppController
         'DecayingModel',
         'Object',
         'ObjectTemplate',
-        'ObjectTemplateElement',
         'Organisation',
         'OrgBlocklist',
         'Post',
