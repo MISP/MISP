@@ -800,13 +800,20 @@ class User extends AppModel
             return true;
         }
 
-        $this->Log = ClassRegistry::init('Log');
+        $this->loadLog();
         $replyToLog = $replyToUser ? ' from ' . $replyToUser['User']['email'] : '';
 
         $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
+
         try {
-            $encrypted = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc ?: null, $replyToUser ?: array());
+            $encrypted = $sendEmail->sendToUser(
+                $user,
+                $subject,
+                new CakeEmailBody($body),
+                $bodyNoEnc ? new CakeEmailBody($bodyNoEnc): null,
+                $replyToUser ?: []
+            );
 
         } catch (SendEmailException $e) {
             $this->logException("Exception during sending e-mail", $e);
