@@ -757,7 +757,7 @@ class User extends AppModel
             'conditions' => $conditions,
             'recursive' => -1,
             'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id', 'disabled'),
-            'contain' => ['Role' => ['fields' => ['perm_site_admin', 'perm_audit']], 'Organisation' => ['fields' => ['id']]],
+            'contain' => ['Role' => ['fields' => ['perm_site_admin', 'perm_audit']], 'Organisation' => ['fields' => ['id', 'name']]],
         ));
         foreach ($users as $k => $user) {
             $user = $user['User'];
@@ -786,8 +786,8 @@ class User extends AppModel
      * the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
      *
      * @param array $user
-     * @param string $body
-     * @param string|false $bodyNoEnc
+     * @param CakeEmailBody|string $body
+     * @param CakeEmailBody|string|false $bodyNoEnc
      * @param string $subject
      * @param array|false $replyToUser
      * @return bool
@@ -810,8 +810,8 @@ class User extends AppModel
             $encrypted = $sendEmail->sendToUser(
                 $user,
                 $subject,
-                new CakeEmailBody($body),
-                $bodyNoEnc ? new CakeEmailBody($bodyNoEnc): null,
+                is_string($body) ? new CakeEmailBody($body) : $body,
+                $bodyNoEnc ? (is_string($bodyNoEnc) ? new CakeEmailBody($bodyNoEnc) : $bodyNoEnc): null,
                 $replyToUser ?: []
             );
 

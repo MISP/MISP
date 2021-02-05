@@ -4739,6 +4739,14 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
+                'email_from_name' => [
+                    'level' => 2,
+                    'description' => __('Notification e-mail sender name.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ],
                 'taxii_sync' => array(
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),

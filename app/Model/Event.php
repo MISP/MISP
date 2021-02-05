@@ -3219,7 +3219,7 @@ class Event extends AppModel
             ])[0];
 
             if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {
-                $body = $this->__buildAlertEmailBody($eventForUser, $user, $oldpublish);
+                $body = $this->renderAlertEmail($eventForUser, $user, $oldpublish);
                 $this->User->sendEmail(['User' => $user], $body, $bodyNoEnc, $subject);
             }
             if ($jobId) {
@@ -3234,135 +3234,40 @@ class Event extends AppModel
     }
 
     /**
-     * @param string $body
-     * @param string $bodyTempOther
-     * @param array $objects
-     * @param int|null $oldpublish Timestamp of latest publish
-     */
-    private function __buildAlertEmailObject(&$body, &$bodyTempOther, array $objects, $oldpublish)
-    {
-        foreach ($objects as $object) {
-            if (isset($oldpublish) && isset($object['timestamp']) && $object['timestamp'] > $oldpublish) {
-                $body .= '* ';
-            } else {
-                $body .= '  ';
-            }
-            $body .= $object['name'] . '/' . $object['meta-category'] . "\n";
-            if (!empty($object['Attribute'])) {
-                $body .= $this->__buildAlertEmailAttribute($body, $bodyTempOther, $object['Attribute'], $oldpublish, '    ');
-            }
-        }
-    }
-
-    /**
-     * @param string $body
-     * @param string $bodyTempOther
-     * @param array $attributes
-     * @param int|null $oldpublish Timestamp of latest publish
-     * @param string $indent
-     */
-    private function __buildAlertEmailAttribute(&$body, &$bodyTempOther, array $attributes, $oldpublish, $indent = '  ')
-    {
-        $appendlen = 20;
-        foreach ($attributes as $attribute) {
-            $ids = $attribute['to_ids'] ?  ' (IDS)' : '';
-
-            // Defanging URLs (Not "links") emails domains/ips in notification emails
-            $value = $attribute['value'];
-            if ('url' == $attribute['type'] || 'uri' == $attribute['type']) {
-                $value = str_ireplace("http", "hxxp", $value);
-                $value = str_ireplace(".", "[.]", $value);
-            } elseif (in_array($attribute['type'], array('email-src', 'email-dst', 'whois-registrant-email', 'dns-soa-email', 'email-reply-to'))) {
-                $value = str_replace("@", "[at]", $value);
-            } elseif (in_array($attribute['type'], array('hostname', 'domain', 'ip-src', 'ip-dst', 'domain|ip'))) {
-                $value = str_replace(".", "[.]", $value);
-            }
-
-            $strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
-            $strRepeat = ($strRepeatCount > 0) ? str_repeat(' ', $strRepeatCount) : '';
-            if (isset($oldpublish) && isset($attribute['timestamp']) && $attribute['timestamp'] > $oldpublish) {
-                $line = '* ' . $indent . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $value . $ids . " *\n";
-            } else {
-                $line = $indent . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $value . $ids .  "\n";
-            }
-
-            if (!empty($attribute['AttributeTag'])) {
-                $tags = [];
-                foreach ($attribute['AttributeTag'] as $aT) {
-                    $tags[] = $aT['Tag']['name'];
-                }
-                $line .= '  - Tags: ' . implode(', ', $tags) . "\n";
-            }
-            if ('other' == $attribute['type']) { // append the 'other' attribute types to the bottom.
-                $bodyTempOther .= $line;
-            } else {
-                $body .= $line;
-            }
-        }
-    }
-
-    /**
      * @param array $event
      * @param array $user
-     * @param int|null $oldpublish Timestamp of latest publish
-     * @return string
+     * @param int|null $oldpublish Timestamp of previous publishing.
+     * @param bool $contactAlert
+     * @return CakeEmailBody
+     * @throws CakeException
      */
-    private function __buildAlertEmailBody(array $event, array $user, $oldpublish)
+    private function renderAlertEmail(array $event, array $user, $oldpublish = null, $contactAlert = false)
     {
-        // The mail body, h() is NOT needed as we are sending plain-text mails.
-        $body = "";
-        $body .= '==============================================' . "\n";
-        $body .= 'URL         : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $event['Event']['id'] . "\n";
-        $body .= 'Event ID    : ' . $event['Event']['id'] . "\n";
-        $body .= 'Date        : ' . $event['Event']['date'] . "\n";
-        if (Configure::read('MISP.showorg')) {
-            $body .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
-            $body .= 'Local owner of the event : ' . $event['Org']['name'] . "\n";
+        $View = new View();
+        $View->helpers = ['TextColour'];
+        $View->loadHelpers();
+
+        $View->set('event', $event);
+        $View->set('user', $user);
+        $View->set('oldPublishTimestamp', $oldpublish);
+        $View->set('baseurl', $this->__getAnnounceBaseurl());
+        $View->set('distributionLevels', $this->distributionLevels);
+        $View->set('analysisLevels', $this->analysisLevels);
+        $View->set('contactAlert', $contactAlert);
+
+        try {
+            $View->viewPath = $View->layoutPath = 'Emails' . DS . 'html';
+            $html = $View->render('alert');
+        } catch (MissingViewException $e) {
+            $html = null; // HTMl template is optional
         }
-        $body .= 'Distribution: ' . $this->distributionLevels[$event['Event']['distribution']] . "\n";
-        if ($event['Event']['distribution'] == 4) {
-            $body .= 'Sharing Group: ' . $event['SharingGroup']['name'] . "\n";
-        }
-        $tags = [];
-        foreach ($event['EventTag'] as $tag) {
-            $tags[] = $tag['Tag']['name'];
-        }
-        $body .= 'Tags: ' . implode(', ', $tags) . "\n";
-        $body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
-        $body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
-        $body .= 'Description : ' . $event['Event']['info'] . "\n";
-        if (!empty($event['RelatedEvent'])) {
-            $body .= '==============================================' . "\n";
-            $body .= 'Related to: '. "\n";
-            foreach ($event['RelatedEvent'] as $relatedEvent) {
-                $body .= $this->__getAnnounceBaseurl() . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
-            }
-            $body .= '==============================================' . "\n";
-        }
-        $bodyTempOther = "";
-        if (!empty($event['Attribute'])) {
-            $body .= 'Attributes (* indicates a new or modified attribute):' . "\n";
-            $this->__buildAlertEmailAttribute($body, $bodyTempOther, $event['Attribute'], $oldpublish);
-        }
-        if (!empty($event['Object'])) {
-            $body .= 'Objects (* indicates a new or modified object):' . "\n";
-            $this->__buildAlertEmailObject($body, $bodyTempOther, $event['Object'], $oldpublish);
-        }
-        if (!empty($bodyTempOther)) {
-            $body .= "\n";
-        }
-        $body .= $bodyTempOther;    // append the 'other' attribute types to the bottom.
-        $body .= '==============================================' . "\n";
-        $body .= sprintf(
-            "You receive this e-mail because the e-mail address %s is set to receive publish alerts on the MISP instance at %s.%s%s",
-            $user['email'],
-            $this->__getAnnounceBaseurl(),
-            PHP_EOL,
-            PHP_EOL
-        );
-        $body .= "If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via " . $this->__getAnnounceBaseurl() . '/users/edit' . PHP_EOL;
-        $body .= '==============================================' . "\n";
-        return $body;
+
+        $View->hasRendered = false;
+        $View->viewPath = $View->layoutPath = 'Emails' . DS . 'text';
+        $text = $View->render('alert');
+
+        require_once APP . '/Lib/Tools/SendEmail.php'; // TODO
+        return new CakeEmailBody($text, $html);
     }
 
     /**
@@ -3423,13 +3328,13 @@ class Event extends AppModel
         $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event $id - " . strtoupper($tplColorString);
         $result = true;
         foreach ($orgMembers as $reporter) {
-            list($bodyevent, $body) = $this->__buildContactEventEmailBody($user, $message, $event);
+            list($bodyevent, $body) = $this->__buildContactEventEmailBody($user, $reporter, $message, $event);
             $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
         }
         return $result;
     }
 
-    private function __buildContactEventEmailBody(array $user, $message, array $event)
+    private function __buildContactEventEmailBody(array $user, array $reporter, $message, array $event)
     {
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
@@ -3451,40 +3356,13 @@ class Event extends AppModel
         $body .= "\n";
         $body .= "The event is the following: \n";
 
-        // print the event in mail-format
-        // LATER place event-to-email-layout in a function
-        $body .= 'URL         : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $event['Event']['id'] . "\n";
-        $bodyevent = $body;
-        $bodyevent .= 'Event ID    : ' . $event['Event']['id'] . "\n";
-        $bodyevent .= 'Date        : ' . $event['Event']['date'] . "\n";
-        if (Configure::read('MISP.showorg')) {
-            $bodyevent .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
-        }
-        $bodyevent .= 'Risk        : ' . $event['ThreatLevel']['name'] . "\n";
-        $bodyevent .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
+        $full = $body;
+        $body .= $this->__getAnnounceBaseurl() . '/events/view/' . $event['Event']['id'] . "\n";
 
-        foreach ($event['RelatedEvent'] as $relatedEvent) {
-            $bodyevent .= 'Related to  : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
-        }
+        $rendered = $this->renderAlertEmail($event, $reporter);
+        $full .= $rendered->text;
 
-        $bodyevent .= 'Info  : ' . "\n";
-        $bodyevent .= $event['Event']['info'] . "\n";
-
-        $bodyTempOther = "";
-        if (!empty($event['Attribute'])) {
-            $bodyevent .= 'Attributes:' . "\n";
-            $this->__buildAlertEmailAttribute($bodyevent, $bodyTempOther, $event['Attribute'], null);
-        }
-        if (!empty($event['Object'])) {
-            $bodyevent .= 'Objects:' . "\n";
-            $this->__buildAlertEmailObject($bodyevent, $bodyTempOther, $event['Object'], null);
-        }
-        if (!empty($bodyTempOther)) {
-            $bodyevent .= "\n";
-        }
-        $bodyevent .= $bodyTempOther;    // append the 'other' attribute types to the bottom.
-
-        return array($bodyevent, $body);
+        return array($body, $full);
     }
 
     public function captureSGForElement($element, $user, $server=false)

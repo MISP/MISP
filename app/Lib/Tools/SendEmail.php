@@ -581,7 +581,7 @@ class SendEmail
             $email->replyTo(Configure::read('MISP.email_reply_to'));
         }
 
-        $email->from(Configure::read('MISP.email'));
+        $email->from(Configure::read('MISP.email'), Configure::read('MISP.email_from_name'));
         $email->returnPath(Configure::read('MISP.email')); // TODO?
         $email->to($user['User']['email']);
         $email->subject($subject);
