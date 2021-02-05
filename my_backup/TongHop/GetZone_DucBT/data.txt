@@ -1,0 +1,110 @@
+			<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+	<head>
+		<title>seminaire-business-france.fr hacked. Notified by Mr.L3RB1</title>
+		<link href="/css/style.css" rel="stylesheet" type="text/css"/>
+		<link rel="canonical" href="http://www.zone-h.org/mirror/id/33460795" />
+		<META NAME="Description" CONTENT="seminaire-business-france.fr hacked. Notified by Mr.L3RB1">
+		<META NAME="Keywords" CONTENT="seminaire-business-france.fr,Mr.L3RB1,seminaire-business-france.fr hacked,seminaire-business-france.fr defaced,hacker,hacked,hacking,defaced,seminaire-business-france.fr defacement,seminaire-business-france.fr hacking,seminaire-business-france.fr Mr.L3RB1,defacer">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta name="robots" content="noarchive" />
+		<link rel="alternate" title="Zone-H News" href="http://www.zone-h.org/rss/news" type="application/rss+xml">
+		<link rel="alternate" title="Zone-H Defacements" href="http://www.zone-h.org/rss/defacements" type="application/rss+xml">
+		<link rel="alternate" title="Zone-H Special Defacements" href="http://www.zone-h.org/rss/specialdefacements" type="application/rss+xml">
+				<script type="text/javascript" src="/js/zh.js"></script>
+		<script type="text/javascript" src="/js/jquery-1.8.2.min.js"></script>
+						
+		<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-12763010-1");
+pageTracker._setDomainName("none");
+pageTracker._setAllowLinker(true);
+pageTracker._trackPageview();
+} catch(err) {}</script>
+<meta name="google-site-verification" content="IV27xhD1i2cR9z4XFr_gi8P-0sU6oqAUsOyUlvuD7i0" />
+<meta name="google-site-verification" content="IRNYr6gINTjEqcnCZQqKShEdzOrwpYS_V4ohXhjNH8M" />
+	</head>
+	
+	<body>
+		<div id="content">
+			<div id="logo"><a href="/"><img src="/images/logo.gif" border="0"/></a></div>
+			<div id="menu">
+				<ul>
+					<li><a href="/">Home</a></li>
+															<li><a href="/listingnews">News</a></li>
+					<li><a href="/listingevents">Events</a></li>
+					<li><a href="/archive">Archive</a></li>
+					<li><a href="/archive/special=1">Archive <img src="/images/star.gif" border="0"></a></li>
+					<li><a href="/archive/published=0">Onhold</a></li>
+					<li><a href="/notify/single">Notify</a></li>
+					<li><a href="/stats">Stats</a></li>
+					 
+						<li><a href="/register">Register</a></li>
+						<li><a href="/login">Login</a></li>
+										<li><a href="/feeds"><img src="/images/feedred14x14.gif" border="0"></a></li>
+					<li style="float:right;"><form
+name="sitesearch" action="/search" method="post"><input
+id="searchinput" type="text" name="searchinput" value="search..."
+style="width: 98px" onclick="window.document.sitesearch.searchinput.value=''"/></form></li>
+				</ul>
+			</div>
+			
+			<div class="bodyy">
+				<div id="propdeface">
+					<ul>
+						<li class="deface0"><strong>Mirror saved on:</strong> 2020-05-11 08:45:09</li>
+
+						<li class="deface0">
+							<ul>
+								<li
+class="defacef"><strong>Notified by:</strong> Mr.L3RB1</li>
+								<li
+class="defaces"><strong>Domain:</strong> http://seminaire-business-france.fr/z.txt</li>
+								<li class="defacet"><strong>IP address:</strong> 213.186.33.4  <img src="/images/cflags/png/fr.png" alt="France" title="France"></li>
+							</ul>
+						</li>
+
+						<li class="deface0">
+							<ul>
+								<li class="defacef"><strong>System:</strong> Linux</li>
+								<li
+class="defaces"><strong>Web server:</strong> Apache</li>
+								<li
+class="defacet"><a href="/archive/notifier=Mr.L3RB1">Notifier stats</a></li>
+							</ul>
+						</li>
+						                                                													<li class="deface0">This is a CACHE (mirror) page of the site when it was saved by our robot on 2020-05-11 08:45:09</li>
+											</ul>
+					<iframe src=
+"http://zonehmirrors.org/defaced/2020/05/11/seminaire-business-france.fr/seminaire-business-france.fr/z.txt" width="100%"
+height="350px" border="0" scrolling="auto" /></iframe>
+				</div>
+			</div>
+			<div id="footer">
+			<p align="center">
+			<a href="/">Home</a>
+			<a href="/listingnews">News</a>
+			<a href="/listingevents">Events</a>
+			<a href="/archive">Archive</a>
+		        <a href="/archive/special=1">Archive <img src="/images/star.gif" border="0"></a>
+			<a href="/archive/published=0">Onhold</a>
+			<a href="/notify/single">Notify</a> 
+			<a href="/stats">Stats</a>
+			<a href="/register">Register</a>
+			<a href="/login">Login</a>
+			<a href="/disclaimer">Disclaimer</a>
+			<a href="/contact">Contact</a>
+			</p>
+			<p align="center">
+			<a
+href="/license">Attribution-NonCommercial-NoDerivs 3.0 Unported License</a>
+			</p>
+</div>
+		</div>
+
+	</body>
+</html>

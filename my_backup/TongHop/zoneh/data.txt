@@ -1,0 +1,14 @@
+2020/03/02|MR.Donut's|datphongsamson.com.vn//ohayou.php|Linux
+2020/03/02|MR.Donut's|matechjsc.vn/ohayou.php|Linux
+2020/03/02|MR.Donut's|songthuong.com.vn/ohayou.php|Linux
+2020/03/02|MR.Donut's|truonggiangtravel.vn/ohayou.php|Linux
+2020/02/29|Xpordi|nhatvietjsc.vn/wp-admin/vuln.htm|Linux
+2020/02/29|Astra|ktktbd.edu.vn/data/ganteng.htm|Linux
+2020/02/28|CyberTeam|trantuandulichsukien.vn/op4mar...|Linux
+2020/03/02|MR.Donut's|datphongsamson.com.vn//ohayou.php|Linux
+2020/03/02|MR.Donut's|matechjsc.vn/ohayou.php|Linux
+2020/03/02|MR.Donut's|songthuong.com.vn/ohayou.php|Linux
+2020/03/02|MR.Donut's|truonggiangtravel.vn/ohayou.php|Linux
+2020/02/29|Xpordi|nhatvietjsc.vn/wp-admin/vuln.htm|Linux
+2020/02/29|Astra|ktktbd.edu.vn/data/ganteng.htm|Linux
+2020/02/28|CyberTeam|trantuandulichsukien.vn/op4mar...|Linux

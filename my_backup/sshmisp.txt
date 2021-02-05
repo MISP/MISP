@@ -1,0 +1,924 @@
+1000  cd DuLieuZoneH/
+ 1001  ls
+ 1002  cp ~/Desktop/Module_ZoneH/Now_Code/Final_1503/Ngay_17_10_2020.txt ~/Desktop/DuLieuZoneH/
+ 1003  ls
+ 1004  nano upZoneH.py
+ 1005  python3 upZoneH.py
+ 1006  nano upZoneH.py
+ 1007  python3
+ 1008  ls
+ 1009  cat Ngay_17_10_2020.txt
+ 1010  ls
+ 1011  cat keys.py
+ 1012  python3 upZoneH.py
+ 1013  nano upZoneH.py
+ 1014  cat Ngay_17_10_2020.txt
+ 1015  ls
+ 1016  screen -ls
+ 1017  screen -XS 7770 quit
+ 1018  cd Desktop/
+ 1019  ls
+ 1020  cd Module_ZoneH/
+ 1021  ls
+ 1022  cd Final_1503/
+ 1023  ls
+ 1024  nano upZoneH.py
+ 1025  screen
+ 1026  screen -ls
+ 1027  screen -r 7770.pts-3.misp
+ 1028  screen -ls
+ 1029  ping 10.2.65.31
+ 1030  ifconfig
+ 1031  screen -ls
+ 1032  screen -r 956.pts-3.misp
+ 1033  nano /etc/host
+ 1034  nano /etc/hosts
+ 1035  sudo nano /etc/hosts
+ 1036  screen -ls
+ 1037  screen -r 956.pts-3.misp
+ 1038  cd Desktop/
+ 1039  ls
+ 1040  cd DuLieuZoneH/
+ 1041  ls
+ 1042  python3 upZoneH.py
+ 1043  nano upZoneH.py
+ 1044  ls
+ 1045  cd ...
+ 1046  cd
+ 1047  ls
+ 1048  cd Desktop/
+ 1049  ls
+ 1050  cd Module_ZoneH/
+ 1051  ls
+ 1052  cd Now_Code/
+ 1053  ls
+ 1054  cd Final_1503/
+ 1055  ls
+ 1056  python3
+ 1057  sudo apt-get update
+ 1058  sudo apt-get upgrade
+ 1059  clear
+ 1060  ls
+ 1061  cd Desktop/
+ 1062  ls
+ 1063  cd Module_ZoneH/
+ 1064  ls
+ 1065  cd Now_Code/
+ 1066  ls
+ 1067  cd Final_1503/
+ 1068  ls
+ 1069  nano keys.py
+ 1070  nano upZoneH.py
+ 1071  ls
+ 1072  cd Desktop/
+ 1073  ls
+ 1074  cd Module_ZoneH/
+ 1075  ls
+ 1076  cd Now_Code/
+ 1077  ls
+ 1078  mv Final_1503* ~/Desktop/Module_ZoneH/
+ 1079  ls
+ 1080  mv readme.txt ~/Desktop/Module_ZoneH/
+ 1081  ls
+ 1082  cd ..
+ 1083  ls
+ 1084  rm -rf Now_Code/
+ 1085  ls
+ 1086  cd Final_1503/
+ 1087  ls
+ 1088  nano upZoneH.py
+ 1089  cd T8_2020/
+ 1090  ls
+ 1091  cd T9
+ 1092  cd ..
+ 1093  cd T9_2020_loi/
+ 1094  ls
+ 1095  cd Desktop/
+ 1096  ls
+ 1097  cd DuLieuZoneH/
+ 1098  ls
+ 1099  cd ..
+ 1100  ls
+ 1101  cd Desktop/
+ 1102  ls
+ 1103  cd Module_ZoneH/
+ 1104  ls'
+ 1105  ls
+ 1106  cd Final_1503/
+ 1107  ls
+ 1108  nano upZoneH.py
+ 1109  cd Desktop/
+ 1110  ls
+ 1111  cd Module_ZoneH/
+ 1112  ls
+ 1113  cd ..
+ 1114  ls
+ 1115  cd DuLieuZoneH/
+ 1116  ls
+ 1117  nano upZoneH.py
+ 1118  screen -ls
+ 1119  screen -r 956.pts-3.misp
+ 1120  cd Desktop/
+ 1121  ls
+ 1122  cd Module_ZoneH/
+ 1123  ls
+ 1124  cd Final_1503/
+ 1125  l
+ 1126  python3
+ 1127  screen -ls
+ 1128  screen -r 956.pts-3.misp
+ 1129  python3
+ 1130  cd Desktop/
+ 1131  ls
+ 1132  cd DuLieuZoneH/
+ 1133  ls
+ 1134  python3
+ 1135  ls
+ 1136  cd Desktop/
+ 1137  ls
+ 1138  cd Module_ZoneH/
+ 1139  ls
+ 1140  cd Final_1503/
+ 1141  ls
+ 1142  scp bachtrongduc@10.2.65.31:~/Desktop/upZoneH.py /home/misp/Desktop/Module_ZoneH/Final_1503
+ 1143  scp bachtrongduc@10.2.32.161:~/Desktop/upZoneH.py /home/misp/Desktop/Module_ZoneH/Final_1503
+ 1144  nano upZoneH.py
+ 1145  screen -ls
+ 1146  cd Desktop/
+ 1147  ls
+ 1148  cd Module_ZoneH/
+ 1149  ls
+ 1150  cd Final_1503/
+ 1151  ls
+ 1152  nano upZoneH.py
+ 1153  python3 upZoneH.py
+ 1154  nano upZoneH.py
+ 1155  cd ..
+ 1156  ls
+ 1157  cd ..
+ 1158  ls
+ 1159  cd DuLieuZoneH/
+ 1160  ls
+ 1161  nano upZoneH.py
+ 1162  python3 cat keys.py
+ 1163  cat keys.py
+ 1164  python3 upZoneH.py
+ 1165  nano upZoneH.py
+ 1166  python3 upZoneH.py
+ 1167  nano upZoneH.py
+ 1168  python3 upZoneH.py
+ 1169  nano upZoneH.py
+ 1170  python3 upZoneH.py
+ 1171  ls
+ 1172  cat keys.py
+ 1173  mv upZoneH.py ~/Desktop/DuLieuZoneH/
+ 1174  cd Du
+ 1175  cd ..
+ 1176  cd
+ 1177  cd Desktop/
+ 1178  ls
+ 1179  cd DuLieuZoneH/
+ 1180  ls
+ 1181  scp bachtrongduc@10.2.65.161:~/Desktop/upZoneH.py /home/misp/Desktop/Module_ZoneH/
+ 1182  scp bachtrongduc@10.2.32.161:~/Desktop/upZoneH.py /home/misp/Desktop/Module_ZoneH/
+ 1183  cd Desktop/
+ 1184  ls
+ 1185  cd Module_ZoneH/
+ 1186  ls
+ 1187  mv upZoneH.py Final_1503
+ 1188  cd Final_1503/
+ 1189  ls
+ 1190  nano upZoneH.py
+ 1191  screen
+ 1192  screen -ls
+ 1193  screen
+ 1194  screen -ls
+ 1195  screen -r 14296.pts-3.misp
+ 1196  screen -ls
+ 1197  screen -r 14296.pts-3.misp
+ 1198  screen -ls
+ 1199  screen -r 956.pts-3.misp
+ 1200  ls
+ 1201  python3 final.py
+ 1202  ls
+ 1203  cat Ngay_17_10_2020.txt
+ 1204  python3 final.py
+ 1205  cd
+ 1206  screen -ls
+ 1207  cd Desktop/
+ 1208  ls
+ 1209  cd DuLieuZoneH/
+ 1210  ls
+ 1211  cd ..
+ 1212  ls
+ 1213  mv DuLieuZoneH/ ~/Desktop/Module_ZoneH/
+ 1214  ls
+ 1215  cd Module_ZoneH/
+ 1216  ls
+ 1217  cd DuLieuZoneH/
+ 1218  ls
+ 1219  rm Ngay_*_09*
+ 1220  ls
+ 1221  mv Ngay_17_10_2020.txt  Up_Done_T10_2020/
+ 1222  ls
+ 1223  cd ..
+ 1224  ls
+ 1225  mv Ngay_*_10 DuLieuZoneH/
+ 1226  mv Ngay_*_10* DuLieuZoneH/
+ 1227  ls
+ 1228  cd DuLieuZoneH/
+ 1229  ls
+ 1230  rm Ngay_17*
+ 1231  ls
+ 1232  cd ..
+ 1233  ls
+ 1234  screen -ls
+ 1235  screen -r 956.pts-3.misp
+ 1236  ls
+ 1237  mv Up_Done_T6_2020/ DuLieuZoneH/
+ 1238  ls
+ 1239  cd DuLieuZoneH/
+ 1240  ls
+ 1241  cd ..
+ 1242  ls
+ 1243  mv T*_2020/ DuLieuZoneH/
+ 1244  ls
+ 1245  nano final.py
+ 1246  screen -ls
+ 1247  screen -r 956.pts-3.misp
+ 1248  screen -ls
+ 1249  screen -r 14296
+ 1250  cd Desktop/
+ 1251  ls
+ 1252  cd Module_ZoneH/
+ 1253  ls
+ 1254  cd DuLieuZoneH/
+ 1255  ls
+ 1256  cd Up_Done_T10_2020/
+ 1257  ls
+ 1258  cd..
+ 1259  cd .
+ 1260  cd ..
+ 1261  ls
+ 1262  screen -ls
+ 1263  screen -r 14296.pts-3.misp
+ 1264  screnn -r 14296.pts-3.misp
+ 1265  screen -ls
+ 1266  screen -r 14296
+ 1267  screen -d -r 14296
+ 1268  ls
+ 1269  cd ..
+ 1270  clear
+ 1271  screen -ls
+ 1272  screen -ls
+ 1273  screen -r 14296.pts-3.misp
+ 1274  ls
+ 1275  cd Desktop/
+ 1276  ls
+ 1277  cd Module_ZoneH/
+ 1278  ls
+ 1279  cd DuLieuZoneH/
+ 1280  ls
+ 1281  screen -ls
+ 1282  screen -r 14296.pts-3.misp
+ 1283  cd ..
+ 1284  ls
+ 1285  screen
+ 1286  screen -ls
+ 1287  screen -r 14296.pts-3.misp
+ 1288  screen -ls
+ 1289  screen -r 18721.pts-6.misp
+ 1290  screen -ls
+ 1291  screen -r 14296.pts-3.misp
+ 1292  screen -ls
+ 1293  screen -r 18721.pts-6.misp
+ 1294  cd Desktop/
+ 1295  ls
+ 1296  cd Module_ZoneH/
+ 1297  ls
+ 1298  screen -ls
+ 1299  screen -r 18721.pts-6.misp
+ 1300  screen -ls
+ 1301  expressvpn disconnect
+ 1302  screen -ls
+ 1303  expressvpn
+ 1304  expressvpn list
+ 1305  expressvpn connect sgju
+ 1306  screen -ls
+ 1307  screen -r 18721.pts-6.misp
+ 1308  cd Desktop/
+ 1309  ls
+ 1310  cd Module_ZoneH/
+ 1311  ls
+ 1312  cd DuLieuZoneH/
+ 1313  ls
+ 1314  screen -ls
+ 1315  screen -r 18721.pts-6.misp
+ 1316  screen -ls
+ 1317  screen -r 18721.pts-6.misp
+ 1318  expressvpn list
+ 1319  expressvpn connect uklo
+ 1320  screen -ls
+ 1321  screen -r 18721.pts-6.misp
+ 1322  screen -ls
+ 1323  screen -r 18721.pts-6.misp
+ 1324  screen -ls
+ 1325  screen -r 14296.pts-3.misp
+ 1326  cd Desktop/
+ 1327  ls
+ 1328  cd Module_ZoneH/
+ 1329  ls
+ 1330  cd DuLieuZoneH/
+ 1331  ls
+ 1332  screen -ls
+ 1333  screen -r 18721.pts-6.misp
+ 1334  screen -r 14296.pts-3.misp
+ 1335  screen -ls
+ 1336  screen -r 18721.pts-6.misp
+ 1337  cd ..
+ 1338  cd
+ 1339  cd Desktop/
+ 1340  ls
+ 1341  cd DuLieuZoneH/
+ 1342  ls
+ 1343  cat Ngay_17_10_2020.txt
+ 1344  clear
+ 1345  python3 upZoneH.py Ngay_17_10_2020.txt
+ 1346  ls
+ 1347  mkdir Up_Done_T10_2020
+ 1348  python3
+ 1349  cd ..
+ 1350  ls
+ 1351  cd Module_ZoneH/
+ 1352  ls
+ 1353  cd Final_1503/
+ 1354  ls
+ 1355  mv * ~/Desktop/Module_ZoneH/
+ 1356  ls
+ 1357  cd ..
+ 1358  ls
+ 1359  rm -rf Final_1503
+ 1360  ls
+ 1361  cd UpDone/
+ 1362  ls
+ 1363  cd ..
+ 1364  mv T9_2020_loi/ Error_T9_2020
+ 1365  ls
+ 1366  cd UpDone/
+ 1367  ls
+ 1368  cd ..
+ 1369  mv UpDone/ Up_Done_T6_2020
+ 1370  ls
+ 1371  cd T7_2020/
+ 1372  ls
+ 1373  cd ..
+ 1374  ls
+ 1375  python3 upZoneH.py Ngay_16_10_2020.txt
+ 1376  ls
+ 1377  mv Ngay_16_10_2020.txt  Up_Done_T10_2020/
+ 1378  ls
+ 1379  python3 upZoneH.py Ngay_18_10_2020.txt
+ 1380  ls
+ 1381  python3 upZoneH.py Ngay_18_10_2020.txt
+ 1382  screen -ls
+ 1383  screen -r 14296.pts-3.misp
+ 1384  expressvpn lis
+ 1385  expressvpn list
+ 1386  expressvpn connect hk2
+ 1387  screen -ls
+ 1388  screen -r 18721.pts-6.misp
+ 1389  cd Desktop/
+ 1390  screen
+ 1391  cd Module_ZoneH/
+ 1392  ls
+ 1393  screen -ls
+ 1394  screen -r 18721.pts-6.misp
+ 1395  screen -ls
+ 1396  screen -r 20189.pts-3.misp
+ 1397  screen -ls
+ 1398  cd Desktop/
+ 1399  ls
+ 1400  cd Module_ZoneH/
+ 1401  ls
+ 1402  cat Ngay_01_11_2020.txt
+ 1403  screen -ls
+ 1404  screen -r 20189.pts-3.misp
+ 1405  screen -r 18721.pts-6.misp
+ 1406  screen -ls
+ 1407  screen -r 20189.pts-3.misp
+ 1408  screen -r 18721.pts-6.misp
+ 1409  screen -ls
+ 1410  screen -r 20189.pts-3.misp
+ 1411  screen -r 18721.pts-6.misp
+ 1412  screen -ls
+ 1413  screen
+ 1414  screen -ls
+ 1415  screen -r 4647.pts-3.misp
+ 1416  screen -ls
+ 1417  cd Desktop/
+ 1418  ls
+ 1419  cd Module_ZoneH/
+ 1420  ls
+ 1421  screen -ls
+ 1422  screen -r 4647.pts-3.misp
+ 1423  cd Desktop/
+ 1424  ls
+ 1425  cd Module_ZoneH/
+ 1426  ls
+ 1427  cd DuLieuZoneH/
+ 1428  ls
+ 1429  mv Ngay_20_10_2020.txt Up_Done_T10_2020/
+ 1430  screen
+ 1431  screen -ls
+ 1432  screen -r 6565.pts-3.misp
+ 1433  cd Desktop/
+ 1434  ls
+ 1435  cd Module_ZoneH/
+ 1436  ls
+ 1437  screen -ls
+ 1438  screen -r 4647.pts-3.misp
+ 1439  expressvpn disconnect
+ 1440  expressvpn list
+ 1441  expressvpn connect sgju
+ 1442  screen -ls
+ 1443  screen -r 6565.pts-3.misp
+ 1444  screen -r 4647.pts-3.misp
+ 1445  sudo mysql
+ 1446  hítory
+ 1447  history
+ 1448  clear
+ 1449  sudo mysql
+ 1450  clear
+ 1451  sudo mysql
+ 1452  screen -ls
+ 1453  screen -r 6565.pts-3.misp
+ 1454  screen -r 4647.pts-3.misp
+ 1455  cd Desktop/
+ 1456  ls
+ 1457  cd Module_ZoneH/
+ 1458  ls
+ 1459  expressvpn disconnect
+ 1460  screen -ls
+ 1461  expressvpn connect
+ 1462  cd Desktop/
+ 1463  ls
+ 1464  cd Module_ZoneH/
+ 1465  screen -ls
+ 1466  screen -r 6565.pts-3.misp
+ 1467  screen -ls
+ 1468  screen -r 4647.pts-3.misp
+ 1469  screen -ls
+ 1470  screen -r 4647.pts-3.misp
+ 1471  screen -ls
+ 1472  screen -r 4647.pts-3.misp
+ 1473  screen -ls
+ 1474  screen -r 6565.pts-3.misp
+ 1475  sudo mysql
+ 1476  python3 upZoneH.py Ngay_21_10_2020.txt
+ 1477  ls
+ 1478  python3 upZoneH.py Ngay_22_10_2020.txt
+ 1479  ls
+ 1480  mv Ngay_21_10_2020.txt  Up_Done_T10_2020/
+ 1481  mv Ngay_22_10_2020.txt  Up_Done_T10_2020/
+ 1482  python3 upZoneH.py Ngay_23_10_2020.txt
+ 1483  screen -ls
+ 1484  screen -r 6565.pts-3.misp
+ 1485  screen -ls
+ 1486  screen -r 4647.pts-3.misp
+ 1487  cd Desktop/
+ 1488  ls
+ 1489  cd Module_ZoneH/
+ 1490  ls
+ 1491  cd DuLieuZoneH/
+ 1492  ls
+ 1493  screen -ls
+ 1494  screen -r 4647.pts-3.misp
+ 1495  ls
+ 1496  cd ..
+ 1497  ls
+ 1498  cd DuLieuZoneH/
+ 1499  ls
+ 1500  nano upZoneH.py
+ 1501  mv Ngay_23_10_2020.txt Up_Done_T10_2020/
+ 1502  ls
+ 1503  cd ..
+ 1504  ls
+ 1505  mv Ngay_*_10_2020.txt DuLieuZoneH/
+ 1506  ls
+ 1507  cd DuLieuZoneH/
+ 1508  ls
+ 1509  mv Ngay_23_10_2020.txt Up_Done_T10_2020/
+ 1510  ls
+ 1511  screen
+ 1512  screen -ls
+ 1513  screen -r 15998.pts-3.misp
+ 1514  ls
+ 1515  history
+ 1516  tmux ls
+ 1517  tmux
+ 1518  history
+ 1519  tmux a -t 0
+ 1520  tmux
+ 1521  screen -ls
+ 1522  screen -S 21606.pts-3.misp -X quit
+ 1523  expressvpn disconnect
+ 1524  expressvpn connect
+ 1525  screen -ls
+ 1526  screen -r 4647.pts-3.misp
+ 1527  screen -r 15998.pts-3.misp
+ 1528  screen
+ 1529  screen -ls
+ 1530  screen -r 15998.pts-3.misp
+ 1531  screen -ls
+ 1532  screen -r 4647.pts-3.misp
+ 1533  clear
+ 1534  expressvpn -l
+ 1535  expressvpn ls
+ 1536  expressvpn connect ussf
+ 1537  screen -ls
+ 1538  screen -r 4647.pts-3.misp
+ 1539  screen -ls
+ 1540  screen -r 15998.pts-3.misp
+ 1541  history
+ 1542  screen -ls
+ 1543  screen -r 15998.pts-3.misp
+ 1544  screen -ls
+ 1545  screen -r 4647.pts-3.misp
+ 1546  expressvpn disconect
+ 1547  expressvpn disconnect
+ 1548  screen -ls
+ 1549  history
+ 1550  clear
+ 1551  screen -ls
+ 1552  screen -r 15998.pts-3.misp
+ 1553  screen -ls
+ 1554  screen -r 4647.pts-3.misp
+ 1555  screen -ls
+ 1556  screen -r 15998.pts-3.misp
+ 1557  screen -ls
+ 1558  screen -r 4647.pts-3.misp
+ 1559  sudi mýql
+ 1560  sudo mysql
+ 1561  screen -ls
+ 1562  screen -r 4647.pts-3.misp
+ 1563  screen -r 15998.pts-3.misp
+ 1564  screen -ls
+ 1565  screen -r 15998.pts-3.misp
+ 1566  screen -ls
+ 1567  screen -r 4647.pts-3.misp
+ 1568  clear
+ 1569  history
+ 1570  screen -ls
+ 1571  screen -r 15998.pts-3.misp
+ 1572  screen -ls
+ 1573  screen -r 4647.pts-3.misp
+ 1574  cd ..
+ 1575  history
+ 1576  1721  cd Desktop/
+ 1577  clear
+ 1578  ls
+ 1579  cd misp
+ 1580  ls
+ 1581  cd Desktop/
+ 1582  ls
+ 1583  cd Module_ZoneH/
+ 1584  ls
+ 1585  cd DuLieuZoneH/
+ 1586  ls
+ 1587  python3 upZoneH.py Ngay_27_10_2020.txt
+ 1588  screen -ls
+ 1589  screen -r 15998.pts-3.misp
+ 1590  screen -ls
+ 1591  screen -r 15998.pts-3.misp
+ 1592  screen -ls
+ 1593  screen -r 4647.pts-3.misp
+ 1594  cd Desktop/
+ 1595  ls
+ 1596  cd Module_ZoneH/
+ 1597  ls
+ 1598  cat upZoneH.py.save
+ 1599  ls
+ 1600  cd DuLieuZoneH/
+ 1601  ls
+ 1602  cat upZoneH.py
+ 1603  nano upZoneH.py
+ 1604  screen -ls
+ 1605  screen -r 4647.pts-3.misp
+ 1606  expressvpn list
+ 1607  screen -ls
+ 1608  screen -r 15998.pts-3.misp
+ 1609  screen -ls
+ 1610  screen -ls
+ 1611  screen -r 15998.pts-3.misp
+ 1612  ls
+ 1613  cd Dék
+ 1614  cd Desktop/
+ 1615  LS
+ 1616  ls
+ 1617  cd Module_ZoneH/
+ 1618  ls
+ 1619  history
+ 1620  clear
+ 1621  ls
+ 1622  mv Ngay_23_10_2020.txt Up_Done_T10_2020/
+ 1623  mv Ngay_01_11_2020.txt DuLieuZoneH/
+ 1624  ls
+ 1625  clear
+ 1626  ls
+ 1627  cd DuLieuZoneH/
+ 1628  ls
+ 1629  cd ..
+ 1630  ls
+ 1631  clear
+ 1632  ls
+ 1633  mv Ngay_01_12_2020.txt DuLieuZoneH/
+ 1634  ls
+ 1635  mv Ngay_02_12_2020.txt DuLieuZoneH/
+ 1636  mv Ngay_03_12_2020.txt DuLieuZoneH/
+ 1637  mv Ngay_04_12_2020.txt DuLieuZoneH/
+ 1638  mv Ngay_05_12_2020.txt DuLieuZoneH/
+ 1639  mv Ngay_06_12_2020.txt DuLieuZoneH/
+ 1640  mv Ngay_07_12_2020.txt DuLieuZoneH/
+ 1641  mv Ngay_08_12_2020.txt DuLieuZoneH/
+ 1642  ls
+ 1643  mv Ngay_03_11_2020.txt DuLieuZoneH/
+ 1644  mv Ngay_04_11_2020.txt DuLieuZoneH/
+ 1645  mv Ngay_05_11_2020.txt DuLieuZoneH/
+ 1646  mv Ngay_06_11_2020.txt DuLieuZoneH/
+ 1647  mv Ngay_07_11_2020.txt DuLieuZoneH/
+ 1648  mv Ngay_08_11_2020.txt DuLieuZoneH/
+ 1649  mv Ngay_09_11_2020.txt DuLieuZoneH/
+ 1650  mv Ngay_10_11_2020.txt DuLieuZoneH/
+ 1651  mv Ngay_11_11_2020.txt DuLieuZoneH/
+ 1652  mv Ngay_13_11_2020.txt DuLieuZoneH/
+ 1653  mv Ngay_14_11_2020.txt DuLieuZoneH/
+ 1654  mv Ngay_15_11_2020.txt DuLieuZoneH/
+ 1655  mv Ngay_16_11_2020.txt DuLieuZoneH/
+ 1656  mv Ngay_17_11_2020.txt DuLieuZoneH/
+ 1657  mv Ngay_18_11_2020.txt DuLieuZoneH/
+ 1658  mv Ngay_19_11_2020.txt DuLieuZoneH/
+ 1659  mv Ngay_20_11_2020.txt DuLieuZoneH/
+ 1660  mv Ngay_21_11_2020.txt DuLieuZoneH/
+ 1661  mv Ngay_22_11_2020.txt DuLieuZoneH/
+ 1662  mv Ngay_23_11_2020.txt DuLieuZoneH/
+ 1663  mv Ngay_24_11_2020.txt DuLieuZoneH/
+ 1664  mv Ngay_25_11_2020.txt DuLieuZoneH/
+ 1665  mv Ngay_27_11_2020.txt DuLieuZoneH/
+ 1666  mv Ngay_28_11_2020.txt DuLieuZoneH/
+ 1667  mv Ngay_30_11_2020.txt DuLieuZoneH/
+ 1668  ls
+ 1669  mv Ngay_02_11_2020.txt DuLieuZoneH/
+ 1670  ls
+ 1671  clear
+ 1672  ls
+ 1673  cd DuLieuZoneH/
+ 1674  ls
+ 1675  mkdir Up_Done_T11_2020
+ 1676  ls
+ 1677  screen -ls
+ 1678  screen -r 15998.pts-3.misp
+ 1679  screen -r 15998.pts-3.misp
+ 1680  screen -r 15998
+ 1681  screen -ls
+ 1682  screen -r 15998.pts-3.misp
+ 1683  screen -ls
+ 1684  screen -r 15998.pts-3.misp
+ 1685  screen -r 4647.pts-3.misp
+ 1686  screen -r 15998.pts-3.misp
+ 1687  clear
+ 1688  screen -ls
+ 1689  screen -r 15998.pts-3.misp
+ 1690  screen -r 4647.pts-3.misp
+ 1691  screen -r 15998.pts-3.misp
+ 1692  screen -r 4647.pts-3.misp
+ 1693  screen -r 15998.pts-3.misp
+ 1694  exit
+ 1695  tmux
+ 1696  tmux ls
+ 1697  tmux a -t 0
+ 1698  screen -r 4647.pts-3.misp
+ 1699  screen -r 15998.pts-3.misp
+ 1700  df
+ 1701  df -h
+ 1702  ps
+ 1703  ps -a
+ 1704  free
+ 1705  netstat -ntlp
+ 1706  netstat -tulpn
+ 1707  screen -ls
+ 1708  screen -r 15998.pts-3.misp
+ 1709  screen -r 4647.pts-3.misp
+ 1710  cd Desktop/
+ 1711  ls
+ 1712  cd Module_ZoneH/
+ 1713  ls
+ 1714  cat Ngay_10_12_2020.txt
+ 1715  free
+ 1716  du
+ 1717  history
+ 1718  clear
+ 1719  du
+ 1720  ncdu
+ 1721  df -h
+ 1722  disk part
+ 1723  ps
+ 1724  df
+ 1725  df /dev/sda
+ 1726  df /dev/sda1
+ 1727  df /dev/sda2
+ 1728  df -h
+ 1729  du
+ 1730  ncdu
+ 1731  sudo apt install ncdu
+ 1732  ncdu
+ 1733  cat /proc/cpuinfor | grep processor | wc -l
+ 1734  df -h
+ 1735  ncdu
+ 1736  df -h
+ 1737  screen -ls
+ 1738  screen -r 15998.pts-3.misp
+ 1739  screen -r 4647.pts-3.misp
+ 1740  screen -r 15998.pts-3.misp
+ 1741  screen -r 4647.pts-3.misp
+ 1742  screen -r 15998.pts-3.misp
+ 1743  screen -r 4647.pts-3.misp
+ 1744  screen -r 15998.pts-3.misp
+ 1745  screen -r 4647.pts-3.misp
+ 1746  screen -r 15998.pts-3.misp
+ 1747  clear
+ 1748  screen -r 15998.pts-3.misp
+ 1749  screen -r 4647.pts-3.misp
+ 1750  screen -r 15998.pts-3.misp
+ 1751  networklog.txt
+ 1752  netstat
+ 1753  nmap
+ 1754  sudo apt install nmap
+ 1755  nmap
+ 1756  netstat
+ 1757  screen -r 15998.pts-3.misp
+ 1758  screen -r 4647.pts-3.misp
+ 1759  screen -r 15998.pts-3.misp
+ 1760  ls
+ 1761  cat mysql.txt
+ 1762  cat misp.sql
+ 1763  ls
+ 1764  cd backup
+ 1765  ls
+ 1766  exit
+ 1767  free -h
+ 1768  free -m
+ 1769  top
+ 1770  netstat -ano
+ 1771  free -m
+ 1772  mysql -u root -p
+ 1773  sudo mysql
+ 1774  use misp;
+ 1775  myqsl
+ 1776  sudo mysql
+ 1777  date
+ 1778  sudo mýql
+ 1779  sudo mysql
+ 1780  sudo mysql;
+ 1781  free -m
+ 1782  screen -r 4647.pts-3.misp
+ 1783  screen -r 15998.pts-3.misp
+ 1784  history
+ 1785  screen -ls
+ 1786  screen -l
+ 1787  screen -r 4647.pts-3.misp
+ 1788  ls
+ 1789  exit
+ 1790  ls
+ 1791  screen -ls
+ 1792  screen -r 10338.pts-4.misp
+ 1793  clear
+ 1794  screen -ls
+ 1795  screen -r 10338.pts-4.misp
+ 1796  screen -XS 10338 quit
+ 1797  screen -ls
+ 1798  screen -S laydulieu
+ 1799  screen -S updulieu
+ 1800  ls
+ 1801  screen -ls
+ 1802  screen -r laydulieu
+ 1803  screen -ls
+ 1804  screen -r laydulieu
+ 1805  screen -ls
+ 1806  cd Desktop/
+ 1807  ls
+ 1808  cd Module_ZoneH/
+ 1809  ls
+ 1810  cd DuLieuZoneH/
+ 1811  ls
+ 1812  cd
+ 1813  screen -S updulieu Ngay_07_12_2020.txt
+ 1814  history
+ 1815  screen -ls
+ 1816  screen -r 11637.updulieu
+ 1817  screen -ls
+ 1818  screen -r laydulieu
+ 1819  screen -ls
+ 1820  screen -r updulieu
+ 1821  screen -r laydulieu
+ 1822  screen -r updulieu
+ 1823  cd /var/www/MISP/app/Console/
+ 1824  ls
+ 1825  cd cake
+ 1826  cake cake userInit -q
+ 1827  cake userInit -q
+ 1828  exit
+ 1829  sudo ls /var/www/MISP/Console/
+ 1830  sudo ls /var/www/MISP/
+ 1831  cd app
+ 1832  sudo cd app
+ 1833  sudo -s
+ 1834  ls
+ 1835  cd /var/www/MISP/app/
+ 1836  ls
+ 1837  cd Console/
+ 1838  ls
+ 1839  nano cake
+ 1840  cd
+ 1841  sudo apt update
+ 1842  sudo apt-get install upgrade -y
+ 1843  cd /var/www/MISP/
+ 1844  ls
+ 1845  cd app
+ 1846  ls
+ 1847  cd Config/
+ 1848  ls
+ 1849  sudo nano config.php
+ 1850  cd ..
+ 1851  ls
+ 1852  cd ..
+ 1853  ls
+ 1854  cd app
+ 1855  ls
+ 1856  vd View/
+ 1857  ls
+ 1858  cd
+ 1859  ls
+ 1860  cd home/misp
+ 1861  cat /etc/php
+ 1862  ls
+ 1863  sudo -s
+ 1864  cd /var/www/MISP/
+ 1865  cd app/Config
+ 1866  ls
+ 1867  nano config.php
+ 1868  free -m
+ 1869  mysql
+ 1870  sudo mysql
+ 1871  screen -ls
+ 1872  screen -r 11583.laydulieu
+ 1873  screen -ls
+ 1874  screen -r 11637.updulieu
+ 1875  service --status-all
+ 1876  service --status-all | grep grafana-server
+ 1877  systemctl status grafana-service
+ 1878  systemctl enable grafana-server
+ 1879  sudo systemctl start grafana-server
+ 1880  systemctl status grafana-service
+ 1881  systemctl status grafana-server
+ 1882  screen -r 11637.updulieu
+ 1883  screen -ls
+ 1884  screen -r 11583.laydulieu
+ 1885  ls
+ 1886  cd Desktop/
+ 1887  ls
+ 1888  cd Module_ZoneH/
+ 1889  ls
+ 1890  cd DuLieuZoneH/
+ 1891  ls
+ 1892  cd ..
+ 1893  ls
+ 1894  mkdir Data_T12
+ 1895  ls
+ 1896  mv Ngay_09_12_2020.txt Data_T12/
+ 1897  ls
+ 1898  mv Ngay_*_12_2020.txt Data_T12/
+ 1899  ls
+ 1900  ls Data_T12/
+ 1901  cd ..
+ 1902  ls
+ 1903  ls /Desktop/Module_ZoneH/DuLieuZoneH/
+ 1904  cd
+ 1905  cd Desktop/
+ 1906  ls
+ 1907  cd Module_ZoneH/
+ 1908  ls
+ 1909  cd DuLieuZoneH/
+ 1910  ls
+ 1911  mkdir Up_Done_T12_2020
+ 1912  ls
+ 1913  clear
+ 1914  ls
+ 1915  mv Ngay_*_12_2020.txt Up_Done_T12_2020/
+ 1916  ls
+ 1917  cd Up_Done
+ 1918  ls
+ 1919  cd ..
+ 1920  ls
+ 1921  mkdir Up_Done_T7_2020
+ 1922  ls
+ 1923  mkdir Up_Done_T9_2020
