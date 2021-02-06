@@ -442,6 +442,7 @@ class SendEmail
             $body->set('canEncryptSmime', $canEncryptSmime);
             $body->set('canEncryptGpg', $canEncryptGpg);
             $bodyContent = $body->render($hideDetails);
+            $subject = $body->subject() ?: $subject; // Get generated subject from template
         } else {
             if ($hideDetails && $bodyWithoutEncryption) {
                 $body = $bodyWithoutEncryption;

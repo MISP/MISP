@@ -10,6 +10,9 @@ class SendEmailTemplate
     /** @var string|null */
     private $referenceId;
 
+    /** @var string|null */
+    private $subject;
+
     public function __construct($viewName)
     {
         $this->viewName = $viewName;
@@ -26,6 +29,15 @@ class SendEmailTemplate
             return $this->referenceId ;
         }
         $this->referenceId = $referenceId;
+    }
+
+    /**
+     * Get subject from template. Must be called after render method.
+     * @return string
+     */
+    public function subject()
+    {
+        return $this->subject;
     }
 
     /**
@@ -63,6 +75,9 @@ class SendEmailTemplate
         $View->viewPath = $View->layoutPath = 'Emails' . DS . 'text';
         $View->hasRendered = false;
         $text = $View->render($this->viewName);
+
+        // Template can change default subject.
+        $this->subject = $View->get('subject');
 
         return new CakeEmailBody($text, $html);
     }

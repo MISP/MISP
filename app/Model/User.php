@@ -786,8 +786,8 @@ class User extends AppModel
      * the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
      *
      * @param array $user
-     * @param CakeEmailBody|string $body
-     * @param CakeEmailBody|string|false $bodyNoEnc
+     * @param SendEmailTemplate|string $body
+     * @param string|false $bodyNoEnc
      * @param string $subject
      * @param array|false $replyToUser
      * @return bool
