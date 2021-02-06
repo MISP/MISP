@@ -441,15 +441,25 @@ class SendEmail
         if ($body instanceof SendEmailTemplate) {
             $body->set('canEncryptSmime', $canEncryptSmime);
             $body->set('canEncryptGpg', $canEncryptGpg);
-            $body = $body->render($hideDetails);
+            $bodyContent = $body->render($hideDetails);
         } else {
             if ($hideDetails && $bodyWithoutEncryption) {
                 $body = $bodyWithoutEncryption;
             }
-            $body = new CakeEmailBody($body);
+            $bodyContent = new CakeEmailBody($body);
         }
 
-        $email = $this->create($user, $subject, $body, [], $replyToUser);
+        $email = $this->create($user, $subject, $bodyContent, [], $replyToUser);
+
+        // Generate `In-Reply-To` and `References` to group emails
+        if ($body instanceof SendEmailTemplate && $body->referenceId()) {
+            $reference = sha1($body->referenceId() . '|' .  Configure::read('MISP.uuid'));
+            $reference = "<$reference@{$email->domain()}>";
+            $email->addHeaders([
+                'In-Reply-To' => $reference,
+                'References' => $reference,
+            ]);
+        }
 
         $signed = false;
         if (Configure::read('GnuPG.sign')) {

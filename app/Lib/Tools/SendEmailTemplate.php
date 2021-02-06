@@ -7,12 +7,29 @@ class SendEmailTemplate
     /** @var string */
     private $viewName;
 
+    /** @var string|null */
+    private $referenceId;
+
     public function __construct($viewName)
     {
         $this->viewName = $viewName;
     }
 
     /**
+     * This value will be used for grouping emails in mail client.
+     * @param string|null $referenceId
+     * @return string
+     */
+    public function referenceId($referenceId = null)
+    {
+        if ($referenceId === null) {
+            return $this->referenceId ;
+        }
+        $this->referenceId = $referenceId;
+    }
+
+    /**
+     * Set template variable.
      * @param string $key
      * @param mixed $value
      */
@@ -29,6 +46,7 @@ class SendEmailTemplate
     public function render($hideDetails = false)
     {
         $View = new View();
+        $View->autoLayout = false;
         $View->helpers = ['TextColour'];
         $View->loadHelpers();
 

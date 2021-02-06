@@ -3247,6 +3247,7 @@ class Event extends AppModel
         $template->set('distributionLevels', $this->distributionLevels);
         $template->set('analysisLevels', $this->analysisLevels);
         $template->set('tlp', $this->getEmailSubjectMarkForEvent($event));
+        $template->referenceId("event-alert|{$event['Event']['id']}");
         return $template;
     }
 
