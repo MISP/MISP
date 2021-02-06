@@ -5391,12 +5391,12 @@ function saveDashboardState() {
 }
 
 function updateDashboardWidget(element) {
-    element = $(element);
+    var $element = $(element);
     if (element.length) {
-        var container_id = $(element).attr('id').substring(7);
-        var container = $(element).find('.widgetContent');
-        var titleText = $(element).find('.widgetTitleText');
-        var temp = JSON.parse($(element).attr('config'));
+        var container_id = $element.attr('id').substring(7);
+        var container = $element.find('.widgetContent');
+        var titleText = $element.find('.widgetTitleText');
+        var temp = JSON.parse($element.attr('config'));
         if (temp['alias'] !== undefined) {
             titleText.text(temp['alias']);
         }
@@ -5404,8 +5404,8 @@ function updateDashboardWidget(element) {
             type: 'POST',
             url: baseurl + '/dashboards/renderWidget/' + container_id,
             data: {
-                config: $(element).attr('config'),
-                widget: $(element).attr('widget')
+                config: $element.attr('config'),
+                widget: $element.attr('widget')
             },
             success:function (data, textStatus) {
                 container.html(data);
