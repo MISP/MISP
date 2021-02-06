@@ -1,4 +1,19 @@
 <?php
+if (!isset($oldPublishTimestamp)) {
+    $oldPublishTimestamp = null;
+}
+
+if (!isset($contactAlert)) {
+    $contactAlert = false;
+}
+
+if ($hideDetails) { // Used when GnuPG.bodyonlyencrypted is enabled and e-mail cannot be send in encrypted form
+    $eventUrl = $baseurl . "/events/view/" . $event['Event']['id'];
+    echo __("A new or modified event was just published on %s", $eventUrl) . PHP_EOL . PHP_EOL;
+    echo __("If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via %s", $baseurl . '/users/edit');
+    return;
+}
+
 $renderAttributes = function(array $attributes, $indent = '  ') use ($oldPublishTimestamp) {
     $appendlen = 20;
     foreach ($attributes as $attribute) {
@@ -83,12 +98,12 @@ foreach ($event['RelatedEvent'] as $relatedEvent) {
 <?php endif; ?>
 
 <?php if (!empty($event['Attribute'])): ?>
-Attributes<?= isset($oldPublishTimestamp) ? ' (* indicates a new or modified attribute since last update):' : ':' ?>
+Attributes<?= isset($oldPublishTimestamp) ? " (* indicates a new or modified attribute since last update):\n" : ":\n" ?>
 <?= $renderAttributes($event['Attribute']) ?>
 <?php endif; ?>
 
 <?php if (!empty($event['Object'])): ?>
-Objects<?= isset($oldPublishTimestamp) ? ' (* indicates a new or modified object since last update):' : ':' ?>
+Objects<?= isset($oldPublishTimestamp) ? " (* indicates a new or modified object since last update):\n" : ":\n" ?>
 <?= $renderObjects($event['Object']) ?>
 <?php endif; ?>
 

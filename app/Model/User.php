@@ -807,13 +807,7 @@ class User extends AppModel
         $sendEmail = new SendEmail($gpg);
 
         try {
-            $encrypted = $sendEmail->sendToUser(
-                $user,
-                $subject,
-                is_string($body) ? new CakeEmailBody($body) : $body,
-                $bodyNoEnc ? (is_string($bodyNoEnc) ? new CakeEmailBody($bodyNoEnc) : $bodyNoEnc): null,
-                $replyToUser ?: []
-            );
+            $encrypted = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
         } catch (SendEmailException $e) {
             $this->logException("Exception during sending e-mail", $e);

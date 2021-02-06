@@ -4,6 +4,7 @@ App::uses('CakeEmail', 'Network/Email');
 App::uses('RandomTool', 'Tools');
 App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
+App::uses('SendEmailTemplate', 'Tools');
 
 /**
  * @property User $User
@@ -3202,10 +3203,6 @@ class Event extends AppModel
         }
         $subject = "[" . Configure::read('MISP.org') . " MISP] Event $id - $subject$threatLevel" . strtoupper($subjMarkingString);
 
-        $eventUrl = $this->__getAnnounceBaseurl() . "/events/view/" . $id;
-        $bodyNoEnc = __("A new or modified event was just published on %s", $eventUrl) . "\n\n";
-        $bodyNoEnc .= __("If you would like to unsubscribe from receiving such alert e-mails, simply\ndisable publish alerts via %s",  $this->__getAnnounceBaseurl() . '/users/edit');
-
         $userCount = count($usersWithAccess);
         $this->UserSetting = ClassRegistry::init('UserSetting');
         foreach ($usersWithAccess as $k => $user) {
@@ -3219,8 +3216,8 @@ class Event extends AppModel
             ])[0];
 
             if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {
-                $body = $this->renderAlertEmail($eventForUser, $user, $oldpublish);
-                $this->User->sendEmail(['User' => $user], $body, $bodyNoEnc, $subject);
+                $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
+                $this->User->sendEmail(['User' => $user], $body, false, $subject);
             }
             if ($jobId) {
                 $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
@@ -3235,39 +3232,22 @@ class Event extends AppModel
 
     /**
      * @param array $event
-     * @param array $user
+     * @param array $user E-mail receiver
      * @param int|null $oldpublish Timestamp of previous publishing.
-     * @param bool $contactAlert
-     * @return CakeEmailBody
+     * @return SendEmailTemplate
      * @throws CakeException
      */
-    private function renderAlertEmail(array $event, array $user, $oldpublish = null, $contactAlert = false)
+    private function prepareAlertEmail(array $event, array $user, $oldpublish = null)
     {
-        $View = new View();
-        $View->helpers = ['TextColour'];
-        $View->loadHelpers();
-
-        $View->set('event', $event);
-        $View->set('user', $user);
-        $View->set('oldPublishTimestamp', $oldpublish);
-        $View->set('baseurl', $this->__getAnnounceBaseurl());
-        $View->set('distributionLevels', $this->distributionLevels);
-        $View->set('analysisLevels', $this->analysisLevels);
-        $View->set('contactAlert', $contactAlert);
-
-        try {
-            $View->viewPath = $View->layoutPath = 'Emails' . DS . 'html';
-            $html = $View->render('alert');
-        } catch (MissingViewException $e) {
-            $html = null; // HTMl template is optional
-        }
-
-        $View->hasRendered = false;
-        $View->viewPath = $View->layoutPath = 'Emails' . DS . 'text';
-        $text = $View->render('alert');
-
-        require_once APP . '/Lib/Tools/SendEmail.php'; // TODO
-        return new CakeEmailBody($text, $html);
+        $template = new SendEmailTemplate('alert');
+        $template->set('event', $event);
+        $template->set('user', $user);
+        $template->set('oldPublishTimestamp', $oldpublish);
+        $template->set('baseurl', $this->__getAnnounceBaseurl());
+        $template->set('distributionLevels', $this->distributionLevels);
+        $template->set('analysisLevels', $this->analysisLevels);
+        $template->set('tlp', $this->getEmailSubjectMarkForEvent($event));
+        return $template;
     }
 
     /**
@@ -3327,42 +3307,33 @@ class Event extends AppModel
         $tplColorString = $this->getEmailSubjectMarkForEvent($event);
         $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event $id - " . strtoupper($tplColorString);
         $result = true;
-        foreach ($orgMembers as $reporter) {
-            list($bodyevent, $body) = $this->__buildContactEventEmailBody($user, $reporter, $message, $event);
-            $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
+        foreach ($orgMembers as $eventReporter) {
+            $body = $this->prepareContactAlertEmail($user, $eventReporter, $message, $event);
+            $result = $this->User->sendEmail($eventReporter, $body, false, $subject, $user) && $result;
         }
         return $result;
     }
 
-    private function __buildContactEventEmailBody(array $user, array $reporter, $message, array $event)
+    /**
+     * @param array $user
+     * @param array $eventReporter
+     * @param string $message
+     * @param array $event
+     * @return SendEmailTemplate
+     */
+    private function prepareContactAlertEmail(array $user, array $eventReporter, $message, array $event)
     {
-        // The mail body, h() is NOT needed as we are sending plain-text mails.
-        $body = "";
-        $body .= "Hello, \n";
-        $body .= "\n";
-        $body .= "Someone wants to get in touch with you concerning a MISP event. \n";
-        $body .= "\n";
-        $body .= "You can reach them at " . $user['User']['email'] . "\n";
-        if (!empty($user['User']['gpgkey'])) {
-            $body .= "Their GnuPG key is added as attachment to this email. \n";
-        }
-        if (!empty($user['User']['certif_public'])) {
-            $body .= "Their Public certificate is added as attachment to this email. \n";
-        }
-        $body .= "\n";
-        $body .= "They wrote the following message: \n";
-        $body .= $message . "\n";
-        $body .= "\n";
-        $body .= "\n";
-        $body .= "The event is the following: \n";
-
-        $full = $body;
-        $body .= $this->__getAnnounceBaseurl() . '/events/view/' . $event['Event']['id'] . "\n";
-
-        $rendered = $this->renderAlertEmail($event, $reporter);
-        $full .= $rendered->text;
-
-        return array($body, $full);
+        $template = new SendEmailTemplate('alert_contact');
+        $template->set('event', $event);
+        $template->set('requestor', $user);
+        $template->set('message', $message);
+        $template->set('user', $this->User->rearrangeToAuthForm($eventReporter));
+        $template->set('baseurl', $this->__getAnnounceBaseurl());
+        $template->set('distributionLevels', $this->distributionLevels);
+        $template->set('analysisLevels', $this->analysisLevels);
+        $template->set('contactAlert', true);
+        $template->set('tlp', $this->getEmailSubjectMarkForEvent($event));
+        return $template;
     }
 
     public function captureSGForElement($element, $user, $server=false)

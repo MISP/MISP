@@ -405,16 +405,20 @@ class SendEmail
     /**
      * @param array $user
      * @param string $subject
-     * @param CakeEmailBody $body
-     * @param CakeEmailBody|null $bodyWithoutEncryption
+     * @param SendEmailTemplate|string $body
+     * @param string|false $bodyWithoutEncryption
      * @param array $replyToUser
      * @return bool True if e-mail is encrypted, false if not.
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      * @throws SendEmailException
      */
-    public function sendToUser(array $user, $subject, CakeEmailBody $body, CakeEmailBody $bodyWithoutEncryption = null, array $replyToUser = array())
+    public function sendToUser(array $user, $subject, $body, $bodyWithoutEncryption = false, array $replyToUser = array())
     {
+        if ($body instanceof SendEmailTemplate && $bodyWithoutEncryption !== false) {
+            throw new InvalidArgumentException("When body is instance of SendEmailTemplate, \$bodyWithoutEncryption must be false.");
+        }
+
         if (Configure::read('MISP.disable_emailing')) {
             throw new SendEmailException('Emailing is currently disabled on this instance.');
         }
@@ -431,9 +435,18 @@ class SendEmail
             throw new SendEmailException('Encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.');
         }
 
-        // If 'bodyonlyencrypted' is enabled and the user has no encryption key, use the alternate body (if it exists)
-        if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSmime && !$canEncryptGpg && $bodyWithoutEncryption) {
-            $body = $bodyWithoutEncryption;
+        // If 'GnuPG.bodyonlyencrypted' is enabled and the user has no encryption key, use the alternate body
+        $hideDetails = Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSmime && !$canEncryptGpg;
+
+        if ($body instanceof SendEmailTemplate) {
+            $body->set('canEncryptSmime', $canEncryptSmime);
+            $body->set('canEncryptGpg', $canEncryptGpg);
+            $body = $body->render($hideDetails);
+        } else {
+            if ($hideDetails && $bodyWithoutEncryption) {
+                $body = $bodyWithoutEncryption;
+            }
+            $body = new CakeEmailBody($body);
         }
 
         $email = $this->create($user, $subject, $body, [], $replyToUser);
