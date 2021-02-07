@@ -304,10 +304,11 @@ class MessagePart
 
 class SendEmail
 {
-    /**
-     * @var CryptGpgExtended
-     */
+    /** @var CryptGpgExtended */
     private $gpg;
+
+    /** @var string|null */
+    private $transport;
 
     /**
      * @param CryptGpgExtended|null $gpg
@@ -321,6 +322,14 @@ class SendEmail
                 ->clearPassphrases();
             $this->gpg = $gpg;
         }
+    }
+
+    /**
+     * @param string $transport
+     */
+    public function setTransport($transport)
+    {
+        $this->transport = $transport;
     }
 
     /**
@@ -362,6 +371,10 @@ class SendEmail
         $email->emailFormat($body->format());
         $email->body($body);
         $email->attachments($attachments);
+
+        if ($this->transport) {
+            $email->transport($this->transport);
+        }
 
         $mock = false;
         if (!empty(Configure::read('MISP.disable_emailing')) || !empty($params['mock'])) {
@@ -408,7 +421,7 @@ class SendEmail
      * @param SendEmailTemplate|string $body
      * @param string|false $bodyWithoutEncryption
      * @param array $replyToUser
-     * @return bool True if e-mail is encrypted, false if not.
+     * @return array
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      * @throws SendEmailException
@@ -451,6 +464,10 @@ class SendEmail
         }
 
         $email = $this->create($user, $subject, $bodyContent, [], $replyToUser);
+
+        if ($this->transport) {
+            $email->transport($this->transport);
+        }
 
         // Generate `In-Reply-To` and `References` to group emails
         if ($body instanceof SendEmailTemplate && $body->referenceId()) {
@@ -529,8 +546,11 @@ class SendEmail
         }
 
         try {
-            $email->send();
-            return $encrypted;
+            return [
+                'contents' => $email->send(),
+                'encrypted' => $encrypted,
+                'subject' => $subject,
+            ];
         } catch (Exception $e) {
             throw new SendEmailException('The message could not be sent.', 0, $e);
         }

@@ -807,7 +807,7 @@ class User extends AppModel
         $sendEmail = new SendEmail($gpg);
 
         try {
-            $encrypted = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
+            $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
         } catch (SendEmailException $e) {
             $this->logException("Exception during sending e-mail", $e);
@@ -824,9 +824,9 @@ class User extends AppModel
             return false;
         }
 
-        $logTitle = $encrypted ? 'Encrypted email' : 'Email';
+        $logTitle = $result['encrypted'] ? 'Encrypted email' : 'Email';
         // Intentional two spaces to pass test :)
-        $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $subject . '".';
+        $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $result['subject'] . '".';
 
         $this->Log->create();
         $this->Log->save(array(
