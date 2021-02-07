@@ -26,18 +26,22 @@ class SendEmailTemplate
     public function referenceId($referenceId = null)
     {
         if ($referenceId === null) {
-            return $this->referenceId ;
+            return $this->referenceId;
         }
         $this->referenceId = $referenceId;
     }
 
     /**
      * Get subject from template. Must be called after render method.
+     * @param string|null $subject
      * @return string
      */
-    public function subject()
+    public function subject($subject = null)
     {
-        return $this->subject;
+        if ($subject === null) {
+            return $this->subject;
+        }
+        $this->subject = $subject;
     }
 
     /**

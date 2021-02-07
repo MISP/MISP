@@ -3156,7 +3156,7 @@ class Event extends AppModel
     {
         $event = $this->find('first', [
            'conditions' => ['Event.id' => $id],
-           'contain' => ['EventTag' => ['Tag'], 'ThreatLevel'],
+           'recursive' => -1,
         ]);
         if (empty($event)) {
             throw new NotFoundException('Invalid Event.');
@@ -3185,23 +3185,6 @@ class Event extends AppModel
             $event['Event']['sharing_group_id'],
             $userConditions
         );
-        if (Configure::read('MISP.extended_alert_subject')) {
-            $subject = preg_replace("/\r|\n/", "", $event['Event']['info']);
-            if (strlen($subject) > 58) {
-                $subject = substr($subject, 0, 55) . '... - ';
-            } else {
-                $subject .= " - ";
-            }
-        } else {
-            $subject = '';
-        }
-        $subjMarkingString = $this->getEmailSubjectMarkForEvent($event);
-        if (Configure::read('MISP.threatlevel_in_email_subject') === false) {
-            $threatLevel = '';
-        } else {
-            $threatLevel = $event['ThreatLevel']['name'] . " - ";
-        }
-        $subject = "[" . Configure::read('MISP.org') . " MISP] Event $id - $subject$threatLevel" . strtoupper($subjMarkingString);
 
         $userCount = count($usersWithAccess);
         $this->UserSetting = ClassRegistry::init('UserSetting');
@@ -3217,7 +3200,7 @@ class Event extends AppModel
 
             if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->prepareAlertEmail($eventForUser, $user, $oldpublish);
-                $this->User->sendEmail(['User' => $user], $body, false, $subject);
+                $this->User->sendEmail(['User' => $user], $body, false, null);
             }
             if ($jobId) {
                 $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
@@ -3237,8 +3220,28 @@ class Event extends AppModel
      * @return SendEmailTemplate
      * @throws CakeException
      */
-    private function prepareAlertEmail(array $event, array $user, $oldpublish = null)
+    public function prepareAlertEmail(array $event, array $user, $oldpublish = null)
     {
+        if (Configure::read('MISP.extended_alert_subject')) {
+            $subject = preg_replace("/\r|\n/", "", $event['Event']['info']);
+            if (strlen($subject) > 58) {
+                $subject = substr($subject, 0, 55) . '... - ';
+            } else {
+                $subject .= " - ";
+            }
+        } else {
+            $subject = '';
+        }
+
+        if (Configure::read('MISP.threatlevel_in_email_subject') === false) {
+            $threatLevel = '';
+        } else {
+            $threatLevel = $event['ThreatLevel']['name'] . " - ";
+        }
+
+        $subjMarkingString = $this->getEmailSubjectMarkForEvent($event);
+        $subject = "[" . Configure::read('MISP.org') . " MISP] Event {$event['Event']['id']} - $subject$threatLevel" . strtoupper($subjMarkingString);
+
         $template = new SendEmailTemplate('alert');
         $template->set('event', $event);
         $template->set('user', $user);
@@ -3246,7 +3249,8 @@ class Event extends AppModel
         $template->set('baseurl', $this->__getAnnounceBaseurl());
         $template->set('distributionLevels', $this->distributionLevels);
         $template->set('analysisLevels', $this->analysisLevels);
-        $template->set('tlp', $this->getEmailSubjectMarkForEvent($event));
+        $template->set('tlp', $subjMarkingString);
+        $template->subject($subject);
         $template->referenceId("event-alert|{$event['Event']['id']}");
         return $template;
     }
