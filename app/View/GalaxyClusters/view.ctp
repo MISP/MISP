@@ -96,8 +96,8 @@
     <div class="row-fuild">
         <div id="relations_container"></div>
     </div>
-    <div class="row-fluid">
-        <div id="elements_div" class="span8"></div>
+    <div class="">
+        <div id="elements_div"></div>
     </div>
 </div>
 <script type="text/javascript">

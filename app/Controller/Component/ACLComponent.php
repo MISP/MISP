@@ -346,7 +346,9 @@ class ACLComponent extends Component
                 'view' => array('*'),
             ),
             'galaxyElements' => array(
-                    'index' => array('*')
+                'delete' => array('perm_galaxy_editor'),
+                'flattenJson' => array('perm_galaxy_editor'),
+                'index' => array('*'),
             ),
             'jobs' => array(
                     'cache' => array('*'),

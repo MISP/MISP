@@ -2219,14 +2219,15 @@ function runIndexQuickFilter(preserveParams, url, target) {
     if (typeof passedArgsArray === "undefined") {
         var passedArgsArray = [];
     }
-    var $quickFilterField = $('#quickFilterField');
-    var searchKey;
-    if ($quickFilterField.data('searchkey')) {
-        searchKey = $quickFilterField.data('searchkey');
-    } else {
-        searchKey = 'searchall';
+    var searchKey = 'searchall';
+    if ($('#quickFilterField').length > 0) {
+        if ($('#quickFilterField').data('searchkey')) {
+            searchKey = $('#quickFilterField').data('searchkey');
+        }
+        if ( $('#quickFilterField').val().trim().length > 0){
+            passedArgsArray[searchKey] = encodeURIComponent($('#quickFilterField').val().trim());
+        }
     }
-    passedArgsArray[searchKey] = encodeURIComponent($quickFilterField.val().trim());
     if (typeof url === "undefined") {
         url = here;
     }
