@@ -469,7 +469,7 @@ class SendEmail
             $email->transport($this->transport);
         }
 
-        // Generate `In-Reply-To` and `References` to group emails
+        // Generate `In-Reply-To` and `References` headers to group emails
         if ($body instanceof SendEmailTemplate && $body->referenceId()) {
             $reference = sha1($body->referenceId() . '|' .  Configure::read('MISP.uuid'));
             $reference = "<$reference@{$email->domain()}>";
@@ -603,6 +603,14 @@ class SendEmail
     {
         $email = new CakeEmailExtended();
 
+        $fromEmail = Configure::read('MISP.email');
+
+        // Set correct domain when sending email from CLI
+        $fromEmailParts = explode('@', $fromEmail, 2);
+        if (isset($fromEmailParts[1])) {
+            $email->domain($fromEmailParts[1]);
+        }
+
         // We must generate message ID by own, because CakeEmail returns different message ID for every call of
         // getHeaders() method.
         $email->messageId($this->generateMessageId($email));
@@ -625,8 +633,8 @@ class SendEmail
             $email->replyTo(Configure::read('MISP.email_reply_to'));
         }
 
-        $email->from(Configure::read('MISP.email'), Configure::read('MISP.email_from_name'));
-        $email->returnPath(Configure::read('MISP.email')); // TODO?
+        $email->from($fromEmail, Configure::read('MISP.email_from_name'));
+        $email->returnPath($fromEmail); // TODO?
         $email->to($user['User']['email']);
         $email->subject($subject);
         $email->emailFormat($body->format());
