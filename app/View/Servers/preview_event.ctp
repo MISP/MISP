@@ -27,8 +27,8 @@
                     <dt><?php echo __('Tags');?></dt>
                     <dd class="eventTagContainer">
                     <?php if (!empty($event['Tag'])) foreach ($event['Tag'] as $tag): ?>
-                        <span style="padding-right:0px;">
-                            <span role="button" tabindex="0" aria-label="<?php echo __('Filter the remote instance by tag: %s', h($tag['name']));?>" title="<?php echo __('Filter the remote instance on the tag: %s', h($tag['name'])); ?>" onclick="document.location.href='<?php echo $baseurl . "/servers/previewIndex/" . h($server['Server']['id']); ?>/searchtag:<?php echo h($tag['name']); ?>';" class="tagFirstHalf" style="background-color:<?php echo h($tag['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>"><?php echo h($tag['name']); ?></span>
+                        <span style="padding-right:0;">
+                            <span role="button" tabindex="0" aria-label="<?php echo __('Filter the remote instance by tag: %s', h($tag['name']));?>" title="<?php echo __('Filter the remote instance on the tag: %s', h($tag['name'])); ?>" onclick="document.location.href='<?php echo $baseurl . "/servers/previewIndex/" . h($server['Server']['id']); ?>/searchtag:<?php echo h($tag['id']); ?>';" class="tagFirstHalf" style="background-color:<?php echo h($tag['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>"><?php echo h($tag['name']); ?></span>
                         </span>
                     <?php endforeach; ?>&nbsp;
                     </dd>
@@ -55,7 +55,7 @@
                     <?php
                         if ($event['Event']['distribution'] == 4):
                     ?>
-                            <?php echo h($event['SharingGroup']['name']); ?></a>
+                            <?php echo h($event['SharingGroup']['name']); ?>
                     <?php
                         else:
                             echo h($distributionLevels[$event['Event']['distribution']]);
@@ -129,8 +129,8 @@
 ?>
 <script type="text/javascript">
 // tooltips
-$(document).ready(function () {
-    //loadEventTags("<?php echo $event['Event']['id']; ?>");
+$(function () {
+    popoverStartup();
     $("th, td, dt, div, span, li").tooltip({
         'placement': 'top',
         'container' : 'body',

@@ -509,7 +509,7 @@ function renderMISPElement(scope, elementID, indexes) {
                     type: suggestion.complexTypeToolResult.picked_type,
                     origValue: elementID,
                     value: suggestion.complexTypeToolResult.value,
-                    'indexStart': indexes.start,
+                    indexStart: indexes.start,
                     suggestionkey: suggestionKey,
                     checked: suggestion.checked
                 })
@@ -651,23 +651,34 @@ function attachRemoteMISPElements() {
             $div.html(cache_matrix[cacheKey])
         }
     })
+
+    var tagNamesToLoad = [];
+    var tagsLoading = [];
     $('.embeddedTag[data-scope="tag"]').each(function() {
-        var $div = $(this)
-        $div.append($('<span/>').append(loadingSpanAnimation))
-        var eventID = $div.data('eventid')
-        var elementID = $div.data('elementid')
-        var cacheKey = eventid + '-' + elementID
-        clearTimeout(tagTimers[cacheKey]);
-        if (cache_tag[cacheKey] === undefined) {
-            tagTimers[cacheKey] = setTimeout(function() {
-                fetchTagInfo(eventID, elementID, function() {
-                    attachTagInfo($div, eventID, elementID, true)
-                })
-            }, firstCustomPostRenderCall ? 0 : slowDebounceDelay);
+        var $div = $(this);
+        var elementID = $div.data('elementid');
+        if (!(elementID in cache_tag)) {
+            $div.append($('<span/>').append(loadingSpanAnimation));
+            tagNamesToLoad.push(elementID);
+            tagsLoading.push($div);
         } else {
-            $div.html(cache_tag[cacheKey])
+            $div.html(cache_tag[elementID]);
         }
-    })
+    }).promise().done(function() {
+        if (tagNamesToLoad.length === 0) {
+            return;
+        }
+        fetchTagInfo(tagNamesToLoad, function() {
+            $.each(tagsLoading, function() {
+                var $div = $(this);
+                var elementID = $div.data('elementid');
+                if (elementID in cache_tag) {
+                    $div.html(cache_tag[elementID]);
+                }
+            });
+        });
+    });
+
     if (firstCustomPostRenderCall) {
         // Wait, because .each calls are asynchronous
         setTimeout(function() {
@@ -720,56 +731,53 @@ function attachGalaxyMatrix($elem, eventid, elementID) {
     })
 }
 
-function attachTagInfo($elem, eventid, elementID, all) {
-    var cacheKey = eventid + '-' + elementID
-    $elem.html(cache_tag[cacheKey])
-    if (all === true) {
-        $('.embeddedTag[data-scope="tag"]').filter(function() {
-            return $(this).data('eventid') == eventid && $(this).data('elementid') == elementID
-        }).html(cache_tag[cacheKey])
-    }
-}
-
-function fetchTagInfo(eventid, tagName, callback) {
+function fetchTagInfo(tagNames, callback) {
     $.ajax({
         data: {
-            "tag": tagName,
+            "tag": tagNames,
         },
-        success:function(data, textStatus) {
-            var $tag
+        success: function (data) {
+            var $tag, tagName;
             data = $.parseJSON(data)
-            var tagData;
             for (var i = 0; i < data.length; i++) {
                 var tag = data[i];
-                if (tag.Tag.name == tagName) {
-                    tagData = data[i]
-                    break
+                tagName = tag.Tag.name;
+
+                proxyMISPElements['tag'][tagName] = tag;
+
+                $tag = getTagReprensentation(tag);
+                cache_tag[tagName] = $tag[0].outerHTML;
+            }
+
+            // If tag name doesn't exists, construct empty placeholder
+            for (i = 0; i < tagNames.length; i++) {
+                tagName = tagNames[i];
+                if (!(tagName in cache_tag)) {
+                    $tag = constructTagHtml(tagName, '#ffffff', {'border': '1px solid #000'});
+                    cache_tag[tagName] = $tag[0].outerHTML;
                 }
             }
-            if (tagData === undefined) {
-                tagData = {}
-                $tag = constructTagHtml(tagName, '#ffffff', {'border': '1px solid #000'})
-            } else {
-                $tag = getTagReprensentation(tagData)
-                proxyMISPElements['tag'][tagName] = tagData
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            // Query failed, fill cache with placeholder
+            var tagName, templateVariables;
+            for (var i = 0; i < tagNames.length; i++) {
+                tagName = tagNames[i];
+                if (!(tagName in cache_tag)) {
+                    templateVariables = sanitizeObject({
+                        scope: 'Error while fetching tag',
+                        id: tagName
+                    });
+                    cache_tag[tagName] = dotTemplateInvalid(templateVariables);
+                }
             }
-            var cacheKey = eventid + '-' + tagName
-            cache_tag[cacheKey] = $tag[0].outerHTML;
         },
-        error: function(jqXHR, textStatus, errorThrown) {
-            var templateVariables = sanitizeObject({
-                scope: 'Error while fetching tag',
-                id: tagName
-            })
-            var placeholder = dotTemplateInvalid(templateVariables)
-            cache_tag[cacheKey] = placeholder;
-        },
-        complete: function() {
+        complete: function () {
             if (callback !== undefined) {
                 callback()
             }
         },
-        type:"post",
+        type: "post",
         url: baseurl + "/tags/search/0/1/0"
     })
 }
@@ -947,7 +955,14 @@ function highlightPickedReplacementInReport() {
 
 function convertEntityIntoSuggestion(content, entity) {
     var converted = ''
-    var entityValue = entity.importRegexMatch ? entity.importRegexMatch : entity.value
+    var entityValue;
+    if (entity.importRegexMatch) {
+        entityValue = entity.importRegexMatch;
+    } else if (entity.original_value) {
+        entityValue = entity.original_value;
+    } else {
+        entityValue = entity.value;
+    }
     var splittedContent = content.split(entityValue)
     splittedContent.forEach(function(text, i) {
         converted += text
@@ -1007,7 +1022,7 @@ function constructSuggestionMapping(entity, indicesInCM) {
 function injectNumberOfOccurrencesInReport(entities) {
     var content = getEditorData()
     entities.forEach(function(entity, i) {
-        entities[i].occurrences = getAllIndicesOf(content, entity.value, false, false).length
+        entities[i].occurrences = getAllIndicesOf(content, entity.original_value, false, false).length
     })
     return entities
 }
@@ -1089,7 +1104,7 @@ function pickSuggestionColumn(index, tableID, force) {
                 tr: $tr,
                 index: index
             }
-            if (tableID == 'replacementTable') {
+            if (tableID === 'replacementTable') {
                 var uuid = $tr.find('select.attribute-replacement').val()
                 pickedSuggestion['entity'] = {
                     value: $tr.data('attributeValue'),
@@ -1100,7 +1115,7 @@ function pickSuggestionColumn(index, tableID, force) {
                     pickedSuggestion['entity']['importRegexMatch'] = proxyMISPElements['attribute'][uuid].importRegexValue
                 }
                 highlightPickedReplacementInReport()
-            } else if (tableID == 'contextReplacementTable') {
+            } else if (tableID === 'contextReplacementTable') {
                 pickedSuggestion['entity'] = {
                     value: $tr.data('contextValue'),
                     picked_type: 'tag',
@@ -1211,7 +1226,11 @@ function submitExtractionSuggestion() {
                 }
             },
             error: function(jqXHR, textStatus, errorThrown) {
-                showMessage('fail', saveFailedMessage + ': ' + errorThrown);
+                if (jqXHR.responseJSON) {
+                    showMessage('fail', jqXHR.responseJSON.errors);
+                } else {
+                    showMessage('fail', saveFailedMessage + ': ' + errorThrown);
+                }
             },
             complete:function() {
                 $('#temp').remove();
@@ -1412,10 +1431,11 @@ function constructTag(tagName) {
 
 function getTagReprensentation(tagData) {
     var $tag
-    if(tagData.GalaxyCluster !== undefined) {
+    if (tagData.GalaxyCluster !== undefined) {
         $tag = constructClusterTagHtml(tagData)
     } else {
-        $tag = constructTagHtml(tagData.Tag.name, tagData.Tag.colour)
+        var color = tagData.Tag.colour ? tagData.Tag.colour : tagData.TaxonomyPredicate.colour;
+        $tag = constructTagHtml(tagData.Tag.name, color)
     }
     return $tag
 }
@@ -1480,8 +1500,7 @@ function constructTaxonomyInfo(tagData) {
 }
 
 function constructGalaxyInfo(tagData) {
-    var cacheKey = eventid + '-' + tagData.Tag.name
-    var tagHTML = cache_tag[cacheKey]
+    var tagHTML = cache_tag[tagData.Tag.name]
     var $tag = $(tagHTML)
     var $cluster = $('<div/>').append(
         $('<span/>').append($tag),
@@ -2011,16 +2030,14 @@ function isDoubleExtraction(content) {
 
 function getAllIndicesOf(haystack, needle, caseSensitive, requestLineNum) {
     var indices = []
-    if (needle.length == 0) {
+    if (needle.length === 0) {
         return indices
     }
-    var startIndex = 0, index, indices = [];
+    var startIndex = 0, index = 0;
     if (!caseSensitive) {
         needle = needle.toLowerCase();
         haystack = haystack.toLowerCase();
     }
-    var startIndex = 0
-    var index = 0
     while (true) {
         index = haystack.indexOf(needle, startIndex)
         if (index === -1) {

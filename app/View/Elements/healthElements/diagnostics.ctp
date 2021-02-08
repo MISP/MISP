@@ -11,8 +11,8 @@
     <div style="background-color:#f7f7f9;width:100%;">
         <span><?php echo __('Currently installed version…');?>
             <?php
-
-                switch ($version['upToDate']) {
+                $upToDate = isset($version['upToDate']) ? $version['upToDate'] : null;
+                switch ($upToDate) {
                     case 'newer':
                         $fontColour = 'orange';
                         $versionText = __('Upcoming development version');
@@ -27,34 +27,27 @@
                         break;
                     default:
                         $fontColour = 'red';
-                        $versionText = __('Could not retrieve version from github');
+                        $versionText = __('Could not retrieve version from GitHub');
                 }
             ?>
             <span style="color:<?php echo $fontColour; ?>;">
-                <?php
-                    echo $version['current'] . ' (' . h($commit) . ')';
+                <?= (isset($version['current']) ? $version['current'] : __('Unknown')) . ' (' . h($commit) . ')';
                 ?>
                 <?php if ($commit === ''): ?>
-                    <br />
+                    <br>
                     <span class="red bold apply_css_arrow">
-                        <?php echo __('Unable to fetch current commit id, check apache user read privilege.'); ?>
+                        <?php echo __('Unable to fetch current commit ID, check apache user read privilege.'); ?>
                     </span>
                 <?php endif; ?>
             </span>
         </span><br />
         <span><?php echo __('Latest available version…');?>
             <span style="color:<?php echo $fontColour; ?>;">
-                <?php
-                    echo $version['newest'] . ' (' . $latestCommit . ')';
-                ?>
+                <?= (isset($version['newest']) ? $version['newest'] : __('Unknown')) . ' (' . (isset($latestCommit) ? $latestCommit : __('Unknown')) . ')' ?>
             </span>
         </span><br />
         <span><?php echo __('Status…');?>
-            <span style="color:<?php echo $fontColour; ?>;">
-                <?php
-                    echo $versionText;
-                ?>
-            </span>
+            <span style="color:<?php echo $fontColour; ?>;"><?= $versionText ?></span>
         </span><br />
         <span><?php echo __('Current branch…');?>
             <?php
@@ -65,7 +58,7 @@
             </span>
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
-        <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
+        <button title="<?php echo __('Pull the latest MISP version from GitHub');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
         <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" style="margin-left: 5px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><i class="fas fa-tasks"></i> <?php echo __('View Update Progress');?></a>
     </div>
     <h3><?php echo __('Submodules version');?>
@@ -79,7 +72,7 @@
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
     <p><b><?php echo __('Directories');?></b></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             foreach ($writeableDirs as $dir => $error) {
                 $colour = 'green';
@@ -94,7 +87,7 @@
     </div>
     <br />
     <p><b><?php echo __('Writeable Files');?></b></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             foreach ($writeableFiles as $file => $error) {
                 $colour = 'green';
@@ -108,7 +101,7 @@
         ?>
     </div>
     <p><b><?php echo __('Readable Files');?></b></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             foreach ($readableFiles as $file => $error) {
                 $colour = 'green';
@@ -138,13 +131,17 @@
             }
             $phpversions[$source]['phpcolour'] = 'green';
             $phpversions[$source]['phptext'] = __('Up to date');
-            if (version_compare($phpversions[$source]['phpversion'], $phprec) < 1) {
+            if (version_compare($phpversions[$source]['phpversion'], $phprec) < 0) {
                 $phpversions[$source]['phpcolour'] = 'orange';
                 $phpversions[$source]['phptext'] = __('Update highly recommended');
-                if (version_compare($phpversions[$source]['phpversion'], $phpmin) < 1) {
+                if (version_compare($phpversions[$source]['phpversion'], $phpmin) < 0) {
                     $phpversions[$source]['phpcolour'] = 'red';
                     $phpversions[$source]['phptext'] = __('Version unsupported, update ASAP');
                 }
+            }
+            if (version_compare($phpversions[$source]['phpversion'], $phptoonew) >= 0) {
+                $phpversions[$source]['phpcolour'] = 'red';
+                $phpversions[$source]['phptext'] = __('Version unsupported, 8.x support not available yet.');
             }
         }
         if (version_compare($phpversion, $phprec) < 1) {
@@ -163,11 +160,11 @@
     <p><?php echo __('The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.');?></p>
     <?php
         foreach ($phpSettings as $settingName => &$phpSetting):
-            echo $settingName . ' (<span class="bold">' . $phpSetting['value'] . ($phpSetting['unit'] ? $phpSetting['unit'] : '') . '</span>' .')' . '…';
+            echo $settingName . ' (<b>' . $phpSetting['value'] . ($phpSetting['unit'] ? ' ' . $phpSetting['unit'] : '') . '</b>' .')' . '…';
             if ($phpSetting['value'] < $phpSetting['recommended']) $pass = false;
             else $pass = true;
     ?>
-    <span style="color:<?php echo $pass ? 'green': 'orange'; ?>"><?php echo $pass ? __('OK') : __('Low'); ?> (recommended: <?php echo strval($phpSetting['recommended']) . ($phpSetting['unit'] ? $phpSetting['unit'] : '') . ')'; ?></span><br />
+    <span style="color:<?php echo $pass ? 'green': 'orange'; ?>"><?php echo $pass ? __('OK') : __('Low'); ?> (recommended: <?php echo strval($phpSetting['recommended']) . ($phpSetting['unit'] ? ' ' . $phpSetting['unit'] : '') . ')'; ?></span><br>
     <?php
         endforeach;
     ?>
@@ -257,7 +254,7 @@
             )); ?>
         </div>
     <h3><?= __("Redis info") ?></h3>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <b><?= __('PHP extension version') ?>:</b> <?= $redisInfo['extensionVersion'] ?: ('<span class="red bold">' . __('Not installed.') . '</span>') ?><br>
         <?php if ($redisInfo['connection']): ?>
         <b><?= __('Redis version') ?>:</b> <?= $redisInfo['redis_version'] ?><br>
@@ -271,7 +268,7 @@
     </div>
     <h3><?php echo __('Advanced attachment handler');?></h3>
         <?php echo __('The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample.');?>
-        <div style="background-color:#f7f7f9;width:400px;">
+        <div class="diagnostics-box">
             <?php
                 if (empty($advanced_attachments)):
             ?>
@@ -288,7 +285,7 @@
             ?>
         </div>
     <h3><?= __('Attachment scan module') ?></h3>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php if ($attachmentScan['status']): ?>
         <b>Status:</b> <span class="green bold"><?= __('OK') ?></span><br>
         <b>Software</b>: <?= implode(", ", $attachmentScan['software']) ?>
@@ -307,7 +304,7 @@
     <b>STIX2</b>: <?php echo $stix['stix2']['expected'];?><br />
     <b>PyMISP</b>: <?php echo $stix['pymisp']['expected'];?><br />
     <?php echo __('Other versions might work but are not tested / recommended.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $colour = 'green';
             $testReadError = false;
@@ -348,7 +345,7 @@
     </div>
     <h3><?php echo __('Yara');?></h3>
     <p><?php echo __('This tool tests whether plyara, the library used by the yara export tool is installed or not.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $colour = 'green';
             $message = __('OK');
@@ -362,7 +359,7 @@
 
     <h3><?php echo __('GnuPG');?></h3>
     <p><?php echo __('This tool tests whether your GnuPG is set up correctly or not.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $message = $gpgErrors[$gpgStatus['status']];
             $color = $gpgStatus['status'] === 0 ? 'green' : 'red';
@@ -374,7 +371,7 @@
     </div>
     <h3><?php echo __('ZeroMQ');?></h3>
     <p><?php echo __('This tool tests whether the ZeroMQ extension is installed and functional.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $colour = 'green';
             $message = $zmqErrors[$zmqStatus];
@@ -391,7 +388,7 @@
     </div>
     <h3><?php echo __('Proxy');?></h3>
     <p><?php echo __('This tool tests whether your HTTP proxy settings are correct.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $colour = 'green';
             $message = $proxyErrors[$proxyStatus];
@@ -406,7 +403,7 @@
     <?php
         foreach ($moduleTypes as $type):
     ?>
-        <div style="background-color:#f7f7f9;width:400px;">
+        <div class="diagnostics-box">
             <?php
                 $colour = 'red';
                 if (isset($moduleErrors[$moduleStatus[$type]])) {
@@ -425,7 +422,7 @@
     ?>
     <h3><?php echo __('Session table');?></h3>
     <p><?php echo __('This tool checks how large your database\'s session table is. <br />Sessions in CakePHP rely on PHP\'s garbage collection for clean-up and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php
             $colour = 'green';
             $message = $sessionErrors[$sessionStatus];
@@ -467,7 +464,7 @@
     ?>
     <h3><?php echo __('Orphaned attributes');?></h3>
     <p><?php echo __('In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situations involving a race condition with an event deletion happening before all attributes are synchronised over).');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php echo __('Orphaned attributes');?>…<span id="orphanedAttributeCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
     </div><br />
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
@@ -481,7 +478,7 @@
     <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';"><?php echo __('Legacy Administrative Tools');?></span>
     <h3><?php echo __('Verify bad link on attachments');?></h3>
     <p><?php echo __('Verify each attachment referenced in database is accessible on filesystem.');?></p>
-    <div style="background-color:#f7f7f9;width:400px;">
+    <div class="diagnostics-box">
         <?php echo __('Non existing attachments referenced in Database');?>…<span id="orphanedFileCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
     </div><br>
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check bad link on attachments');?>" title="<?php echo __('Check bad link on attachments');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();"><?php echo __('Check bad link on attachments');?></span>
@@ -491,7 +488,7 @@
 </div>
 
 <script>
-    $(document).ready(function() {
+    $(function() {
         updateSubModulesStatus();
         $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
         $('#updateAllJson').click(function() { updateAllJson(); });

@@ -6,21 +6,17 @@ class OrgImgHelper extends AppHelper
 {
     const IMG_PATH = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS;
 
-    public function getNameWithImg(array $organisation)
+    public function getNameWithImg(array $organisation, $link = null)
     {
         if (!isset($organisation['Organisation'])) {
             return '';
         }
 
-        $orgImgName = null;
-        foreach (['id', 'name'] as $field) {
-            if (isset($organisation['Organisation'][$field]) && file_exists(self::IMG_PATH . $organisation['Organisation'][$field] . '.png')) {
-                $orgImgName = $organisation['Organisation'][$field] . '.png';
-                break;
-            }
-        }
+        $orgImgName = $this->findOrgImage($organisation['Organisation']);
         $baseurl = $this->_View->viewVars['baseurl'];
-        $link = $baseurl . '/organisations/view/' . (empty($organisation['Organisation']['id']) ? h($organisation['Organisation']['name']) : h($organisation['Organisation']['id']));
+        if (!$link) {
+            $link = $baseurl . '/organisations/view/' . (empty($organisation['Organisation']['id']) ? h($organisation['Organisation']['name']) : h($organisation['Organisation']['id']));
+        }
         if ($orgImgName) {
             $orgImgUrl = $baseurl . '/img/orgs/' . $orgImgName;
             return sprintf('<a href="%s" style="background-image: url(\'%s\')" class="orgImg">%s</a>', $link, $orgImgUrl, h($organisation['Organisation']['name']));
@@ -29,15 +25,29 @@ class OrgImgHelper extends AppHelper
         }
     }
 
+    /**
+     * @param array $organisation
+     * @param int $size
+     * @param bool $withLink
+     * @return string
+     */
+    public function getOrgLogo(array $organisation, $size, $withLink = true)
+    {
+        if (isset($organisation['Organisation'])) {
+            $options = $organisation['Organisation'];
+        } else {
+            $options = $organisation;
+        }
+        $options['size'] = $size;
+        return $this->getOrgImg($options, true, !$withLink);
+    }
+
+    /**
+     * @deprecated
+     */
     public function getOrgImg($options, $returnData = false, $raw = false)
     {
-        $orgImgName = null;
-        foreach (['id', 'name'] as $field) {
-            if (isset($options[$field]) && file_exists(self::IMG_PATH . $options[$field] . '.png')) {
-                $orgImgName = $options[$field] . '.png';
-                break;
-            }
-        }
+        $orgImgName = $this->findOrgImage($options);
         $baseurl = $this->_View->viewVars['baseurl'];
         if ($orgImgName) {
             $size = !empty($options['size']) ? $options['size'] : 48;
@@ -79,5 +89,23 @@ class OrgImgHelper extends AppHelper
         } else {
             echo $result;
         }
+    }
+
+    /**
+     * @param array $options
+     * @return string|null
+     */
+    private function findOrgImage(array $options)
+    {
+        foreach (['id', 'name', 'uuid'] as $field) {
+            if (isset($options[$field])) {
+                foreach (['png', 'svg'] as $extensions) {
+                    if (file_exists(self::IMG_PATH . $options[$field] . '.' . $extensions)) {
+                        return $options[$field] . '.' . $extensions;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

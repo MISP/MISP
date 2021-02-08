@@ -32,13 +32,6 @@
     <div class="pagination">
         <ul>
             <?php
-                $this->Paginator->options(array(
-                        'update' => '.span12',
-                        'evalScripts' => true,
-                        'before' => '$(".progress").show()',
-                        'complete' => '$(".progress").hide()',
-                ));
-
                 echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
                 echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
                 echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
@@ -97,7 +90,7 @@
                 <th><?php echo __('Added by');?></th>
             <?php endif; ?>
             <th><?php echo $this->Paginator->sort('local');?></th>
-            <th>Users</th>
+            <th><?= $this->Paginator->sort('user_count', __('Users'));?></th>
             <th><?php echo $this->Paginator->sort('restrictions');?></th>
             <th class="actions"><?php echo __('Actions');?></th>
     </tr>
@@ -106,9 +99,7 @@ foreach ($orgs as $org): ?>
     <tr>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['id']); ?></td>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'">
-            <?php
-                echo $this->OrgImg->getOrgImg(array('name' => $org['Organisation']['name'], 'id' => $org['Organisation']['id'], 'size' => 24));
-            ?>
+            <?= $this->OrgImg->getOrgLogo($org, 24) ?>
         </td>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/organisations/view/" . $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['name']); ?></td>
         <?php if ($isSiteAdmin): ?>

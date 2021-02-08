@@ -92,7 +92,7 @@ class Galaxy extends AppModel
         return $this->find('list', array('recursive' => -1, 'fields' => array('type', 'id')));
     }
 
-    private function __update_prepare_template(array $cluster_package, array $galaxies): array
+    private function __update_prepare_template(array $cluster_package, array $galaxies)
     {
         return [
             'source' => isset($cluster_package['source']) ? $cluster_package['source'] : '',
@@ -104,7 +104,7 @@ class Galaxy extends AppModel
         ];
     }
 
-    private function __getPreExistingClusters(array $galaxies, array $cluster_package): array
+    private function __getPreExistingClusters(array $galaxies, array $cluster_package)
     {
         $temp = $this->GalaxyCluster->find('all', array(
             'conditions' => array(
@@ -120,7 +120,7 @@ class Galaxy extends AppModel
         return $existingClusters;
     }
 
-    private function __deleteOutdated(bool $force, array $cluster_package, array $existingClusters): array
+    private function __deleteOutdated(bool $force, array $cluster_package, array $existingClusters)
     {
         // Delete all existing outdated clusters
         $cluster_ids_to_delete = array();
@@ -152,7 +152,7 @@ class Galaxy extends AppModel
         return $cluster_package;
     }
 
-    private function __createClusters($cluster_package, $template): array
+    private function __createClusters($cluster_package, $template)
     {
         $relations = [];
         $elements = [];
@@ -377,12 +377,23 @@ class Galaxy extends AppModel
         $result = $this->Tag->$connectorModel->save($toSave);
         if ($result) {
             if ($target_type !== 'tag_collection') {
+                $date = new DateTime();
                 if ($target_type === 'event') {
                     $event = $target;
+                } else if ($target_type === 'attribute') {
+                    $target['Attribute']['timestamp'] = $date->getTimestamp();
+                    $this->Tag->AttributeTag->Attribute->save($target);
+                    if (!empty($target['Attribute']['object_id'])) {
+                        $container_object = $this->Tag->AttributeTag->Attribute->Object->find('first', [
+                            'recursive' => -1,
+                            'conditions' => ['id' => $target['Attribute']['object_id']]
+                        ]);
+                        $container_object['Object']['timestamp'] = $date->getTimestamp();
+                        $this->Tag->AttributeTag->Attribute->Object->save($container_object);
+                    }
                 }
                 $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
                 $event['Event']['published'] = 0;
-                $date = new DateTime();
                 $event['Event']['timestamp'] = $date->getTimestamp();
                 $this->Tag->EventTag->Event->save($event);
             }

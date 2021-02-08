@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * @property ACLComponent $ACL
+ */
 class RestResponseComponent extends Component
 {
     public $components = array('ACL');
@@ -238,9 +241,9 @@ class RestResponseComponent extends Component
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time')
             ),
             'restSearch' => array(
-                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id MUST be provided if context is set.",
+                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id or uuid MUST be provided if context is set.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
+                'optional' => array('id', 'uuid', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
                 'params' => array('context')
             ),
         ),
@@ -343,7 +346,8 @@ class RestResponseComponent extends Component
         $this->__setup();
         $result = array();
         foreach ($this->__scopedFieldsConstraint as $controller => $actions) {
-            $controller = Inflector::tableize($controller);
+            // EventGraph controller has different rule
+            $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
                 if ($this->ACL->canUserAccess($user, $controller, $action)) {
                     $admin_routing = '';
@@ -364,7 +368,8 @@ class RestResponseComponent extends Component
         $this->__setup();
         $result = array();
         foreach ($this->__descriptions as $controller => $actions) {
-            $controller = Inflector::tableize($controller);
+            // EventGraph controller has different rule
+            $controller = $controller === 'EventGraph' ? 'event_graph' : Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
                 if ($this->ACL->canUserAccess($user, $controller, $action)) {
                     $admin_routing = '';
@@ -514,11 +519,12 @@ class RestResponseComponent extends Component
             } else {
                 $type = $format;
             }
+            $dumpSql = !empty($this->Controller->sql_dump) && Configure::read('debug') > 1;
             if (!$raw) {
                 if (is_string($response)) {
                     $response = array('message' => $response);
                 }
-                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
                     if ($this->Controller->sql_dump === 2) {
                         $response = array('sql_dump' => $this->Log->getDataSource()->getLog(false, false));
@@ -526,9 +532,11 @@ class RestResponseComponent extends Component
                         $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);
                     }
                 }
-                $response = json_encode($response, JSON_PRETTY_PRINT);
+                // Do not pretty print response for automatic tools
+                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : JSON_PRETTY_PRINT;
+                $response = json_encode($response, $flags);
             } else {
-                if (Configure::read('debug') > 1 && !empty($this->Controller->sql_dump)) {
+                if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
                     if ($this->Controller->sql_dump === 2) {
                         $response = json_encode(array('sql_dump' => $this->Log->getDataSource()->getLog(false, false)));
@@ -542,7 +550,15 @@ class RestResponseComponent extends Component
                 }
             }
         }
-        $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+
+        App::uses('TmpFileTool', 'Tools');
+        if ($response instanceof TmpFileTool) {
+            App::uses('CakeResponseTmp', 'Tools');
+            $cakeResponse = new CakeResponseTmp(['status' => $code, 'type' => $type]);
+            $cakeResponse->file($response);
+        } else {
+            $cakeResponse = new CakeResponse(array('body' => $response, 'status' => $code, 'type' => $type));
+        }
 
         if (Configure::read('Security.allow_cors')) {
             $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";
@@ -566,6 +582,16 @@ class RestResponseComponent extends Component
             $cakeResponse->download($download);
         }
         return $cakeResponse;
+    }
+
+    /**
+     * Detect if request comes from automatic tool, like other MISP instance or PyMISP
+     * @return bool
+     */
+    public function isAutomaticTool()
+    {
+        $userAgent = CakeRequest::header('User-Agent');
+        return $userAgent && (substr($userAgent, 0, 6) === 'PyMISP' || substr($userAgent, 0, 4) === 'MISP');
     }
 
     private function __generateURL($action, $controller, $id)
@@ -1792,8 +1818,6 @@ class RestResponseComponent extends Component
     private function __overwriteReturnFormat($scope, $action, &$field) {
         switch($scope) {
             case "Attribute":
-                $field['values'] = array_keys(ClassRegistry::init($scope)->validFormats);
-                break;
             case "Event":
                 $field['values'] = array_keys(ClassRegistry::init($scope)->validFormats);
                 break;
@@ -1837,33 +1861,36 @@ class RestResponseComponent extends Component
             $field['values'][] = array('label' => h($model_name), 'value' => $i);
         }
     }
-    private function __overwriteTags($scope, $action, &$field) {
-        $this->{$scope} = ClassRegistry::init("Tag");
-        $tags = $this->{$scope}->find('list', array(
-            'recursive' => -1,
-            'fields' => array('name')
-        ));
-        foreach($tags as $i => $tag) {
-            $tagname = htmlspecialchars($tag);
-            $tags[$tagname] = $tagname;
-            unset($tags[$i]);
+
+    private function __overwriteTags($scope, $action, &$field)
+    {
+        static $values;
+        if ($values === null) {
+            $tagModel = ClassRegistry::init("Tag");
+            $tags = $tagModel->find('column', array(
+                'fields' => array('Tag.name')
+            ));
+            $values = [];
+            foreach ($tags as $tag) {
+                $tagname = htmlspecialchars($tag);
+                $values[$tagname] = $tagname;
+            }
         }
-        $field['values'] = $tags;
+        $field['values'] = $values;
 
         if ($action == 'attachTagToObject') {
             $field['help'] = __('Also supports array of tags');
         }
     }
     private function __overwriteNationality($scope, $action, &$field) {
-        $field['values'] = ClassRegistry::init("Organisation")->countries;
+        $field['values'] = ClassRegistry::init("Organisation")->getCountries();
     }
     private function __overwriteAction($scope, $action, &$field) {
         $field['values'] = array_keys(ClassRegistry::init("Log")->actionDefinitions);
     }
     private function __overwriteRoleId($scope, $action, &$field) {
         $this->{$scope} = ClassRegistry::init("Role");
-        $roles = $this->{$scope}->find('list', array(
-            'recursive' => -1,
+        $roles = $this->{$scope}->find('column', array(
             'fields' => array('name')
         ));
         $field['values'] = $roles;

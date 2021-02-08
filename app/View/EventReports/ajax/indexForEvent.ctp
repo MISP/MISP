@@ -27,7 +27,7 @@
                                     'onClickParams' => [$baseurl . '/eventReports/importReportFromUrl/' . h($event_id)],
                                     'active' => true,
                                     'text' => __('Import from URL'),
-                                    'title' => __('Content for this URL will be downloaded and converted to Mardown'),
+                                    'title' => __('Content for this URL will be downloaded and converted to Markdown'),
                                     'fa-icon' => 'link',
                                     'requirement' => $canModify && $importModuleEnabled,
                                 ),

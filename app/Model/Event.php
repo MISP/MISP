@@ -10,6 +10,8 @@ App::uses('TmpFileTool', 'Tools');
  * @property Attribute $Attribute
  * @property ShadowAttribute $ShadowAttribute
  * @property EventTag $EventTag
+ * @property SharingGroup $SharingGroup
+ * @property ThreatLevel $ThreatLevel
  */
 class Event extends AppModel
 {
@@ -61,120 +63,7 @@ class Event extends AppModel
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 
-    public $export_types = array(
-            'json' => array(
-                    'extension' => '.json',
-                    'type' => 'JSON',
-                    'scope' => 'Event',
-                    'requiresPublished' => 0,
-                    'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'json'),
-                    'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
-            ),
-            'xml' => array(
-                    'extension' => '.xml',
-                    'type' => 'XML',
-                    'scope' => 'Event',
-                    'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'xml'),
-                    'requiresPublished' => 0,
-                    'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
-            ),
-            'csv_sig' => array(
-                    'extension' => '.csv',
-                    'type' => 'CSV_Sig',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('published' => 1, 'to_ids' => 1, 'returnFormat' => 'csv'),
-                    'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
-            ),
-            'csv_all' => array(
-                    'extension' => '.csv',
-                    'type' => 'CSV_All',
-                    'scope' => 'Event',
-                    'requiresPublished' => 0,
-                    'params' => array('ignore' => 1, 'returnFormat' => 'csv'),
-                    'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
-            ),
-            'suricata' => array(
-                    'extension' => '.rules',
-                    'type' => 'Suricata',
-                    'scope' => 'Attribute',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'suricata'),
-                    'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.',
-            ),
-            'snort' => array(
-                    'extension' => '.rules',
-                    'type' => 'Snort',
-                    'scope' => 'Attribute',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'snort'),
-                    'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.',
-            ),
-            'bro' => array(
-                    'extension' => '.intel',
-                    'type' => 'Bro',
-                    'scope' => 'Attribute',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'bro'),
-                    'description' => 'Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.',
-            ),
-            'stix' => array(
-                    'extension' => '.xml',
-                    'type' => 'STIX',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
-                    'description' => 'Click this to download a STIX document containing the STIX version of all events and attributes that you have access to.'
-            ),
-            'stix-json' => array(
-                    'extension' => '.json',
-                    'type' => 'STIX',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
-                    'description' => 'Click this to download a STIX document containing the STIX version of all events and attributes that you have access to.'
-            ),
-            'stix2' => array(
-                    'extension' => '.json',
-                    'type' => 'STIX2',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
-                    'description' => 'Click this to download a STIX2 document containing the STIX2 version of all events and attributes that you have access to.'
-            ),
-            'rpz' => array(
-                    'extension' => '.txt',
-                    'type' => 'RPZ',
-                    'scope' => 'Attribute',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'rpz'),
-                    'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
-            ),
-            'text' => array(
-                    'extension' => '.txt',
-                    'type' => 'TEXT',
-                    'scope' => 'Attribute',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
-                    'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
-            ),
-            'yara' => array(
-                    'extension' => '.yara',
-                    'type' => 'Yara',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'yara'),
-                    'description' => 'Click this to download Yara rules generated from all relevant attributes.'
-            ),
-            'yara-json' => array(
-                    'extension' => '.json',
-                    'type' => 'Yara',
-                    'scope' => 'Event',
-                    'requiresPublished' => 1,
-                    'params' => array('returnFormat' => 'yara-json'),
-                    'description' => 'Click this to download Yara rules generated from all relevant attributes. Rules are returned in a JSON format with information about origin (generated or parsed) and validity.'
-            ),
-    );
+    public $export_types = [];
 
     public $validFormats = array(
         'attack' => array('html', 'AttackExport', 'html'),
@@ -653,10 +542,10 @@ class Event extends AppModel
         }
     }
 
-    public function attachtagsToEvents($events)
+    public function attachTagsToEvents(array $events)
     {
         $tagsToFetch = array();
-        foreach ($events as $k => $event) {
+        foreach ($events as $event) {
             if (!empty($event['EventTag'])) {
                 foreach ($event['EventTag'] as $et) {
                     $tagsToFetch[$et['tag_id']] = $et['tag_id'];
@@ -668,11 +557,11 @@ class Event extends AppModel
             'recursive' => -1,
             'order' => false
         ));
-        $tags = Set::combine($tags, '{n}.Tag.id', '{n}');
+        $tags = array_column(array_column($tags, 'Tag'), null, 'id');
         foreach ($events as $k => $event) {
             if (!empty($event['EventTag'])) {
                 foreach ($event['EventTag'] as $k2 => $et) {
-                    $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']]['Tag'];
+                    $events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']];
                 }
             }
         }
@@ -687,7 +576,7 @@ class Event extends AppModel
             $sgids = array(-1);
         }
         $this->Correlation = ClassRegistry::init('Correlation');
-        $eventIds = Set::extract('/Event/id', $events);
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
         $correlations = $this->Correlation->find('all', array(
             'fields' => array('Correlation.1_event_id', 'count(distinct(Correlation.event_id)) as count'),
@@ -697,14 +586,14 @@ class Event extends AppModel
         ));
         $correlations = Hash::combine($correlations, '{n}.Correlation.1_event_id', '{n}.0.count');
         foreach ($events as &$event) {
-            $event['Event']['correlation_count'] = (isset($correlations[$event['Event']['id']])) ? $correlations[$event['Event']['id']] : 0;
+            $event['Event']['correlation_count'] = isset($correlations[$event['Event']['id']]) ? $correlations[$event['Event']['id']] : 0;
         }
         return $events;
     }
 
     public function attachSightingsCountToEvents($user, $events)
     {
-        $eventIds = Set::extract('/Event/id', $events);
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
         $this->Sighting = ClassRegistry::init('Sighting');
         $sightings = $this->Sighting->find('all', array(
             'fields' => array('Sighting.event_id', 'count(distinct(Sighting.id)) as count'),
@@ -714,14 +603,14 @@ class Event extends AppModel
         ));
         $sightings = Hash::combine($sightings, '{n}.Sighting.event_id', '{n}.0.count');
         foreach ($events as $key => $event) {
-            $events[$key]['Event']['sightings_count'] = (isset($sightings[$event['Event']['id']])) ? $sightings[$event['Event']['id']] : 0;
+            $events[$key]['Event']['sightings_count'] = isset($sightings[$event['Event']['id']]) ? $sightings[$event['Event']['id']] : 0;
         }
         return $events;
     }
 
     public function attachProposalsCountToEvents($user, $events)
     {
-        $eventIds = Set::extract('/Event/id', $events);
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
         $proposals = $this->ShadowAttribute->find('all', array(
                 'fields' => array('ShadowAttribute.event_id', 'count(distinct(ShadowAttribute.id)) as count'),
                 'conditions' => array('event_id' => $eventIds, 'deleted' => 0),
@@ -730,14 +619,14 @@ class Event extends AppModel
         ));
         $proposals = Hash::combine($proposals, '{n}.ShadowAttribute.event_id', '{n}.0.count');
         foreach ($events as $key => $event) {
-            $events[$key]['Event']['proposals_count'] = (isset($proposals[$event['Event']['id']])) ? $proposals[$event['Event']['id']] : 0;
+            $events[$key]['Event']['proposals_count'] = isset($proposals[$event['Event']['id']]) ? $proposals[$event['Event']['id']] : 0;
         }
         return $events;
     }
 
     public function attachDiscussionsCountToEvents($user, $events)
     {
-        $eventIds = Set::extract('/Event/id', $events);
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
         $this->Thread = ClassRegistry::init('Thread');
         $threads = $this->Thread->find('list', array(
             'conditions' => array('Thread.event_id' => $eventIds),
@@ -842,18 +731,16 @@ class Event extends AppModel
         //        ii. Atttibute has a distribution between 1-3 (community only, connected communities, all orgs)
         //        iii. Attribute has a sharing group that the user is accessible to view
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventId, $sgids);
-        $correlations = $this->Correlation->find('list', array(
-                'fields' => array('Correlation.event_id', 'Correlation.event_id'),
-                'conditions' => $conditionsCorrelation,
-                'recursive' => 0,
-                'group' => 'Correlation.event_id',
-                'order' => array('Correlation.event_id DESC')));
+        $relatedEventIds = $this->Correlation->find('column', array(
+            'fields' => array('Correlation.event_id'),
+            'conditions' => $conditionsCorrelation,
+            'unique' => true,
+        ));
 
-        if (empty($correlations)) {
+        if (empty($relatedEventIds)) {
             return [];
         }
 
-        $relatedEventIds = array_values($correlations);
         // now look up the event data for these attributes
         $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = array('Event.id' => $relatedEventIds);
@@ -1087,7 +974,7 @@ class Event extends AppModel
     public function uploadEventToServer($event, $server, $HttpSocket = null, $scope = 'events')
     {
         $this->Server = ClassRegistry::init('Server');
-        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
+        $push = $this->Server->checkVersionCompatibility($server, false, $HttpSocket);
         if ($scope === 'events' && empty($push['canPush'])) {
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
         } elseif ($scope === 'sightings' && empty($push['canPush']) && empty($push['canSight'])) {
@@ -1187,14 +1074,18 @@ class Event extends AppModel
         if (is_numeric($event)) {
             return $event;
         }
-        $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         if ($scope === 'sightings') {
             $scope .= '/bulkSaveSightings';
             $urlPath = $event['Event']['uuid'];
         }
+        $url = $server['Server']['url'];
         $uri = $url . '/' . $scope . $this->__getLastUrlPathComponent($urlPath);
+        if ($scope === 'event') {
+            // After creating or editing event, it is not necessary to fetch full event
+            $uri .= '/metadata:1';
+        }
         $data = json_encode($event);
         if (!empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(
@@ -1466,40 +1357,32 @@ class Event extends AppModel
      * @param int $eventId
      * @param array $server
      * @param null|HttpSocket $HttpSocket
-     * @param boolean $metadataOnly, if True, we only retrieve the metadata
-     * without attributes and attachments which is much faster
+     * @param boolean $metadataOnly, if True, we only retrieve the metadata, without attributes and attachments which is much faster
      * @return array
      * @throws Exception
      */
-    public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $metadataOnly=false)
+    public function downloadEventFromServer($eventId, $server, HttpSocket $HttpSocket=null, $metadataOnly=false)
     {
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
         if ($metadataOnly) {
             $uri = $url . '/events/index';
-            $data = ['eventid' => $eventId];
-            $data = json_encode($data);
+            $data = json_encode(['eventid' => $eventId]);
             $response = $HttpSocket->post($uri, $data, $request);
         } else {
             $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
             if (!empty($server['Server']['internal'])) {
                 $uri = $uri . '/excludeLocalTags:1';
             }
-            $response = $HttpSocket->get($uri, $data = '', $request);
+            $response = $HttpSocket->get($uri, [], $request);
         }
 
-        if ($response === false) {
-            throw new Exception("Could not reach '$uri'.");
-        } else if (!$response->isOk()) {
+        if (!$response->isOk()) {
             throw new Exception("Fetching the '$uri' failed with HTTP error {$response->code}: {$response->reasonPhrase}");
         }
 
-        $event = json_decode($response->body, true);
-        if ($event === null) {
-            throw new Exception('Could not parse event JSON: ' . json_last_error_msg(), json_last_error());
-        }
-        return $event;
+        return $this->jsonDecode($response->body);
     }
 
     public function quickDelete($event)
@@ -1802,11 +1685,10 @@ class Event extends AppModel
     {
         $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
-        $results = array_values($this->find('list', array(
+        $results = $this->find('column', array(
             'conditions' => $conditions,
-            'recursive' => -1,
             'fields' => array('Event.id')
-        )));
+        ));
         return $results;
     }
 
@@ -1882,9 +1764,9 @@ class Event extends AppModel
         if ($list) {
             $params = array(
                 'conditions' => $conditions,
-                'recursive' => -1,
+                'fields' => ['Event.id'],
             );
-            $results = array_values($this->find('list', $params));
+            $results = $this->find('column', $params);
         } else {
             $params = array(
                 'conditions' => $conditions,
@@ -2587,6 +2469,12 @@ class Event extends AppModel
             $event['Event']['extensionEvents'][$eventMeta['id']] = $eventMeta;
             $thingsToMerge = array('Attribute', 'Object', 'ShadowAttribute', 'Galaxy');
             foreach ($thingsToMerge as $thingToMerge) {
+                if (!isset($event[$thingToMerge])) {
+                    $event[$thingToMerge] = [];
+                }
+                if (!isset($extensionEvent[$thingToMerge])) {
+                    $extensionEvent[$thingToMerge] = [];
+                }
                 $event[$thingToMerge] = array_merge($event[$thingToMerge], $extensionEvent[$thingToMerge]);
             }
             // Merge event reports if requested
@@ -2697,7 +2585,7 @@ class Event extends AppModel
                         $existingOrg = $this->Orgc->find('first', array(
                             'recursive' => -1,
                             'conditions' => array('Orgc.name' => $org),
-                            'fields' => array('Orgc.name', 'Orgc.id')
+                            'fields' => array('Orgc.id')
                         ));
                         if (empty($existingOrg)) {
                             $params['org']['OR'][$k] = -1;
@@ -2714,7 +2602,7 @@ class Event extends AppModel
                         $existingOrg = $this->Orgc->find('first', array(
                             'recursive' => -1,
                             'conditions' => array('Orgc.name' => $org),
-                            'fields' => array('Orgc.name', 'Orgc.id')
+                            'fields' => array('Orgc.id')
                         ));
                         if (!empty($existingOrg)) {
                             $temp[] = $existingOrg['Orgc']['id'];
@@ -3197,16 +3085,18 @@ class Event extends AppModel
         $userCount = count($usersWithAccess);
         $this->UserSetting = ClassRegistry::init('UserSetting');
         foreach ($usersWithAccess as $k => $user) {
-            if ($this->UserSetting->checkPublishFilter($user, $event)) {
-                // Fetch event for user that will receive alert e-mail to respect all ACLs
-                $eventForUser = $this->fetchEvent($user, [
-                    'eventid' => $id,
-                    'includeAllTags' => true,
-                    'includeEventCorrelations' => true,
-                ])[0];
+            // Fetch event for user that will receive alert e-mail to respect all ACLs
+            $eventForUser = $this->fetchEvent($user, [
+                'eventid' => $id,
+                'includeAllTags' => true,
+                'includeEventCorrelations' => true,
+                'noEventReports' => true,
+                'noSightings' => true,
+            ])[0];
 
+            if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->__buildAlertEmailBody($eventForUser, $user, $oldpublish);
-                $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
+                $this->User->sendEmail(['User' => $user], $body, $bodyNoEnc, $subject);
             }
             if ($jobId) {
                 $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
@@ -4204,7 +4094,7 @@ class Event extends AppModel
             if (isset($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $i => $report) {
                     $nothingToChange = false;
-                    $result = $this->EventReport->editReport($user, $report, $this->id, true, $nothingToChange);
+                    $result = $this->EventReport->editReport($user, ['EventReport' => $report], $this->id, true, $nothingToChange);
                     if (!empty($result)) {
                         $validationErrors['EventReport'][] = $result;
                     }
@@ -6149,8 +6039,8 @@ class Event extends AppModel
                     }
                 }
             }
+            $data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
         }
-        $data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
         return $data;
     }
 
@@ -6994,7 +6884,7 @@ class Event extends AppModel
         unset($result);
         unset($temp);
         $tmpfile->write($exportTool->footer($exportToolParams));
-        return $tmpfile->finish();
+        return $tmpfile;
     }
 
     /*
@@ -7046,7 +6936,7 @@ class Event extends AppModel
                     'model_id' => 0,
                     'email' => 'SYSTEM',
                     'action' => 'error',
-                    'title' => sprintf('Event fetch potential memory exhaustion. During the fetching of events, a large event (#%s) was detected that exceeds the available PHP memory. Consider raising the PHP max_memory setting to at least %sM', $largest_event_id, ceil($largest_event/$memory_scaling_factor)),
+                    'title' => sprintf('Event fetch potential memory exhaustion.' . PHP_EOL . 'During the fetching of events, a large event (#%s) was detected that exceeds the available PHP memory.' . PHP_EOL . 'Consider raising the PHP max_memory setting to at least %sM', $largest_event_id, ceil($largest_event/$memory_scaling_factor)),
                     'change' => null,
             ));
         }

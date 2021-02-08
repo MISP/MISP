@@ -1,42 +1,26 @@
 <div class="taxonomy view">
-<h2><?php echo h(strtoupper($taxonomy['namespace'])) . ' ' . __('Taxonomy Library');?></h2>
-    <dl>
-        <dt><?php echo __('Id');?></dt>
-        <dd>
-            <?php echo h($taxonomy['id']); ?>
-            &nbsp;
-        </dd>
-        <dt><?php echo __('Namespace');?></dt>
-        <dd>
-            <?php echo h($taxonomy['namespace']); ?>
-            &nbsp;
-        </dd>
-        <dt><?php echo __('Description');?></dt>
-        <dd>
-            <?php echo h($taxonomy['description']); ?>
-            &nbsp;
-        </dd>
-        <dt><?php echo __('Version');?></dt>
-        <dd>
-            <?php echo h($taxonomy['version']); ?>
-            &nbsp;
-        </dd>
-        <dt><?php echo __('Enabled');?></dt>
-        <dd>
-            <?php echo $taxonomy['enabled'] ? '<span class="green">'. __('Yes') . '</span>&nbsp;&nbsp;' : '<span class="red">' . __('No') . '</span>&nbsp;&nbsp;';
-                if ($isSiteAdmin) {
-                    if ($taxonomy['enabled']) {
-                        echo $this->Form->postLink(__('(disable)'), array('action' => 'disable', h($taxonomy['id'])), array('title' => __('Disable')), (__('Are you sure you want to disable this taxonomy library?')));
-                    } else {
-                        echo $this->Form->postLink(__('(enable)'), array('action' => 'enable', h($taxonomy['id'])), array('title' => __('Enable')), (__('Are you sure you want to enable this taxonomy library?')));
-                    }
-                }
-            ?>
-
-            &nbsp;
-        </dd>
-    </dl>
-    <br />
+    <h2><?php echo h(strtoupper($taxonomy['namespace'])) . ' ' . __('Taxonomy Library');?></h2>
+    <div class="row-fluid"><div class="span8" style="margin:0">
+<?php
+$enabled = $taxonomy['enabled'] ? '<span class="green">'. __('Yes') . '</span>&nbsp;&nbsp;' : '<span class="red">' . __('No') . '</span>&nbsp;&nbsp;';
+if ($isSiteAdmin) {
+    if ($taxonomy['enabled']) {
+        $enabled .= $this->Form->postLink(__('(disable)'), array('action' => 'disable', h($taxonomy['id'])), array('title' => __('Disable')), (__('Are you sure you want to disable this taxonomy library?')));
+    } else {
+        $enabled .= $this->Form->postLink(__('(enable)'), array('action' => 'enable', h($taxonomy['id'])), array('title' => __('Enable')), (__('Are you sure you want to enable this taxonomy library?')));
+    }
+}
+$tableData = [
+    ['key' => __('ID'), 'value' => $taxonomy['id']],
+    ['key' => __('Namespace'), 'value' => $taxonomy['namespace']],
+    ['key' => __('Description'), 'value' => $taxonomy['description']],
+    ['key' => __('Version'), 'value' => $taxonomy['version']],
+    ['key' => __('Enabled'), 'html' => $enabled],
+];
+echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData]);
+?>
+    </div></div>
+    <br>
     <div class="pagination">
         <ul>
         <?php
@@ -44,10 +28,6 @@
         else $url = array($id);
         $this->Paginator->options(array(
             'url' => $url,
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
         ));
 
             echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
@@ -102,7 +82,7 @@
                     <?php if(isset($item['original_numerical_value'])): ?>
                         <i
                             class="<?= $this->FontAwesome->getClass('exclamation-triangle') ?> fa-exclamation-triangle"
-                            title="<?= __('Numerical value overriden by userSetting.&#10;Original numerical_value = %s', h($item['original_numerical_value'])) ?>"
+                            title="<?= __('Numerical value overridden by userSetting.&#10;Original numerical_value = %s', h($item['original_numerical_value'])) ?>"
                             data-value-overriden="1"
                         ></i>
                     <?php endif; ?>
@@ -143,7 +123,7 @@
                         <a href="<?php echo $url;?>" class="<?php echo $isAclTagger ? 'tagFirstHalf' : 'tag' ?>" style="background-color:<?php echo h($item['existing_tag']['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($item['existing_tag']['Tag']['colour']);?>"><?php echo h($item['existing_tag']['Tag']['name']); ?></a>
                 <?php
                         endif;
-                        echo '&nbsp;' . $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['existing_tag']['Tag']['id']), array('class' => 'fa fa-share-alt black', 'title' => __('View graph'), 'aria-label' => __('View graph')));
+                        echo '&nbsp;' . $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['existing_tag']['Tag']['id']), array('class' => 'fa fa-share-alt black', 'title' => __('View correlation graph'), 'aria-label' => __('View correlation graph')));
                     endif;
                 ?>
                 </td>
@@ -196,7 +176,7 @@
     </div>
 </div>
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(function(){
         $('input:checkbox').removeAttr('checked');
         $('.mass-select').hide();
         $('.select_taxonomy, .select_all').click(function(){
@@ -205,6 +185,4 @@
         $('[data-value-overriden="1"]').tooltip();
     });
 </script>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'view'));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'view'));

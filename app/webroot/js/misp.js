@@ -605,15 +605,18 @@ function quickEditHover(td, type, id, field, event) {
 }
 
 function addSighting(type, attribute_id, event_id) {
-    $('#Sighting_' + attribute_id + '_type').val(type);
+    var $sightingForm = $('#SightingForm');
+    $('input[name="data[Sighting][type]"]', $sightingForm).val(type);
+    $('input[name="data[Sighting][id]"]', $sightingForm).val(attribute_id);
     $.ajax({
-        data: $('#Sighting_' + attribute_id).closest("form").serialize(),
+        data: $sightingForm.serialize(),
         cache: false,
-        success: function (data, textStatus) {
+        success: function (data) {
             handleGenericAjaxResponse(data);
             var result = data;
             if (result.saved == true) {
-                $('.sightingsCounter').each(function( counter ) {
+                // Update global sighting counter
+                $('.sightingsCounter').each(function() {
                     $(this).html(parseInt($(this).html()) + 1);
                 });
                 updateIndex(event_id, 'event');
@@ -624,7 +627,7 @@ function addSighting(type, attribute_id, event_id) {
             updateIndex(event_id, 'event');
         },
         type: "post",
-        url: baseurl + "/sightings/add/" + attribute_id
+        url: baseurl + "/sightings/add/",
     });
 }
 
@@ -2206,8 +2209,14 @@ function runIndexFilter(element) {
     window.location.href = url;
 }
 
+function cancelSearch() {
+    $('#quickFilterField').val('');
+    $('#quickFilterButton').click();
+}
+
+// Deprecated, when possible use runIndexQuickFilterFixed that is cleaner
 function runIndexQuickFilter(preserveParams, url, target) {
-    if (!passedArgsArray) {
+    if (typeof passedArgsArray === "undefined") {
         var passedArgsArray = [];
     }
     var searchKey = 'searchall';
@@ -2222,12 +2231,22 @@ function runIndexQuickFilter(preserveParams, url, target) {
     if (typeof url === "undefined") {
         url = here;
     }
-    if (typeof preserveParams !== "undefined") {
+    if (typeof preserveParams === "string") {
         preserveParams = String(preserveParams);
         if (!preserveParams.startsWith('/')) {
             preserveParams = '/' + preserveParams;
         }
         url += preserveParams;
+    } else if (typeof preserveParams === "object") {
+        for (var key in preserveParams) {
+            if (typeof key == 'number') {
+                url += "/" + preserveParams[key];
+            } else if (key !== 'page') {
+                if (key !== searchKey || !(searchKey in passedArgsArray)) {
+                    url += "/" + key + ":" + preserveParams[key];
+                }
+            }
+        }
     }
     for (var key in passedArgsArray) {
         if (typeof key == 'number') {
@@ -2236,6 +2255,54 @@ function runIndexQuickFilter(preserveParams, url, target) {
             url += "/" + key + ":" + passedArgsArray[key];
         }
     }
+    if (target !== undefined) {
+        $.ajax({
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
+                $(target).html(data);
+            },
+            error: function() {
+                showMessage('fail', 'Could not fetch the requested data.');
+            },
+            complete: function() {
+                $(".loading").hide();
+            },
+            type: "get",
+            url: url
+        });
+    } else {
+        window.location.href = url;
+    }
+}
+
+/**
+ * @param {object} preserveParams
+ * @param {string} url
+ * @param {string} [target]
+ */
+function runIndexQuickFilterFixed(preserveParams, url, target) {
+    var $quickFilterField = $('#quickFilterField');
+    var searchKey;
+    if ($quickFilterField.data('searchkey')) {
+        searchKey = $quickFilterField.data('searchkey');
+    } else {
+        searchKey = 'searchall';
+    }
+    if ($quickFilterField.val().trim().length > 0) {
+        preserveParams[searchKey] = encodeURIComponent($quickFilterField.val().trim());
+    } else {
+        delete preserveParams[searchKey]
+    }
+    for (var key in preserveParams) {
+        if (typeof key == 'number') {
+            url += "/" + preserveParams[key];
+        } else if (key !== 'page') {
+            url += "/" + key + ":" + preserveParams[key];
+        }
+    }
+
     if (target !== undefined) {
         $.ajax({
             beforeSend: function () {
@@ -3005,6 +3072,8 @@ function organisationViewContent(context, id) {
         action = "/admin/users/index/searchorg:";
     } else if (context === 'events') {
         action = "/events/index/searchorg:";
+    } else if (context === 'sharing_groups') {
+        action = "/sharing_groups/index/searchorg:";
     }
     $.ajax({
         url: baseurl + action + id,
@@ -3355,15 +3424,15 @@ function getRemoteSyncUser(id) {
     $.ajax({
         url: baseurl + '/servers/getRemoteUser/' + id,
         type:'GET',
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             resultContainer.html('Running test...');
         },
-        error: function(){
+        error: function() {
             resultContainer.html('Internal error.');
         },
         success: function(response) {
+            resultContainer.empty();
             if (typeof(response.message) != 'undefined') {
-                resultContainer.empty();
                 resultContainer.append(
                     $('<span>')
                     .attr('class', 'red bold')
@@ -3373,7 +3442,6 @@ function getRemoteSyncUser(id) {
                     .text(': #' + response.message)
                 );
             } else {
-                resultContainer.empty();
                 Object.keys(response).forEach(function(key) {
                     var value = response[key];
                     resultContainer.append(
@@ -3388,7 +3456,6 @@ function getRemoteSyncUser(id) {
                     );
                 });
             }
-            var result = response;
         }
     });
 }
@@ -4137,12 +4204,18 @@ function initPopoverContent(context) {
 }
 
 function checkSharingGroup(context) {
+    var $sharingGroupSelect = $('#' + context + 'SharingGroupId');
     if ($('#' + context + 'Distribution').val() == 4) {
-        $('#' + context + 'SharingGroupId').show();
-        $('#' + context + 'SharingGroupId').closest("div").show();
+        $sharingGroupSelect.show();
+        $sharingGroupSelect.closest("div").show();
+
+        // For sharing group select with more than 10 items, use chosen
+        if ($sharingGroupSelect.find('option').length > 10) {
+            $sharingGroupSelect.chosen();
+        }
     } else {
-        $('#' + context + 'SharingGroupId').hide();
-        $('#' + context + 'SharingGroupId').closest("div").hide();
+        $sharingGroupSelect.hide();
+        $sharingGroupSelect.closest("div").hide();
     }
 }
 
@@ -4347,19 +4420,26 @@ function selectAllInbetween(last, current) {
     });
 }
 
-$('.galaxy-toggle-button').click(function() {
+$('#eventToggleButtons button').click(function() {
     var element = $(this).data('toggle-type');
-    if ($(this).children('span').hasClass('icon-minus')) {
-        $(this).children('span').addClass('icon-plus');
-        $(this).children('span').removeClass('icon-minus');
+    var $button = $(this).children('span');
+    if ($button.hasClass('fa-minus')) {
+        $button.addClass('fa-plus');
+        $button.removeClass('fa-minus');
         $('#' + element + '_div').hide();
     } else {
-        $(this).children('span').removeClass('icon-plus');
-        $(this).children('span').addClass('icon-minus');
+        $button.removeClass('fa-plus');
+        $button.addClass('fa-minus');
         $('#' + element + '_div').show();
+
+        var loadUrl = $(this).data('load-url');
+        if (loadUrl) {
+            $.get(loadUrl, function(data) {
+                $('#' + element + '_div').html(data);
+            });
+        }
     }
 });
-
 
 function addGalaxyListener(id) {
     var target_type = $(id).data('target-type');
@@ -4818,6 +4898,16 @@ $(document).ready(function() {
             $this.addClass('fa-eye');
         }
     });
+
+    // For galaxyQuickViewMini.ctp
+    $('.expandable[data-clusterid]')
+        .on('click', function() {
+            loadClusterRelations($(this).data('clusterid'));
+        })
+        .popover({
+            html: true,
+            trigger: 'hover'
+        });
 });
 
 $(document.body).on("click", ".correlation-expand-button", function() {
@@ -4885,6 +4975,28 @@ $(document.body).on('click', '.quickSelect', function() {
     range.selectNodeContents(this);
     selection.removeAllRanges();
     selection.addRange(range);
+});
+
+// Any link with data-paginator attribute will be treat as AJAX paginator
+$(document.body).on('click', 'a[data-paginator]', function (e) {
+    e.preventDefault();
+    var paginatorTarget = $(this).attr('data-paginator');
+    $.ajax({
+        beforeSend: function () {
+            $(".loading").show();
+        },
+        complete: function () {
+            $(".loading").hide();
+        },
+        dataType: "html",
+        success: function (data) {
+            $(paginatorTarget).html(data);
+        },
+        error: function () {
+            showMessage('fail', 'Could not fetch the requested data.');
+        },
+        url: $(this).attr('href'),
+    });
 });
 
 function queryEventLock(event_id, user_org_id) {
@@ -5124,27 +5236,6 @@ function submit_feed_overlap_tool(feedId) {
     });
 }
 
-function changeTaxonomyRequiredState(checkbox) {
-    var checkbox_state = $(checkbox).is(":checked");
-    var taxonomy_id = $(checkbox).data('taxonomy-id');
-    fetchFormDataAjax(baseurl + '/taxonomies/toggleRequired/' + taxonomy_id, function(formData) {
-        $.ajax({
-            data: $(formData).serialize(),
-            success:function (data, textStatus) {
-                handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
-            },
-            error:function() {
-                $(checkbox).prop('checked', !$(checkbox).prop('checked'));
-                handleGenericAjaxResponse({'saved':false, 'errors':['Could not toggle the required state of the taxonomy.']});
-            },
-            async:"false",
-            type:"post",
-            cache: false,
-            url: baseurl + '/taxonomies/toggleRequired/' + taxonomy_id,
-        });
-    });
-}
-
 function fetchFormDataAjax(url, callback, errorCallback) {
     var formData = false;
     $.ajax({
@@ -5301,12 +5392,12 @@ function saveDashboardState() {
 }
 
 function updateDashboardWidget(element) {
-    element = $(element);
+    var $element = $(element);
     if (element.length) {
-        var container_id = $(element).attr('id').substring(7);
-        var container = $(element).find('.widgetContent');
-        var titleText = $(element).find('.widgetTitleText');
-        var temp = JSON.parse($(element).attr('config'));
+        var container_id = $element.attr('id').substring(7);
+        var container = $element.find('.widgetContent');
+        var titleText = $element.find('.widgetTitleText');
+        var temp = JSON.parse($element.attr('config'));
         if (temp['alias'] !== undefined) {
             titleText.text(temp['alias']);
         }
@@ -5314,8 +5405,8 @@ function updateDashboardWidget(element) {
             type: 'POST',
             url: baseurl + '/dashboards/renderWidget/' + container_id,
             data: {
-                config: $(element).attr('config'),
-                widget: $(element).attr('widget')
+                config: $element.attr('config'),
+                widget: $element.attr('widget')
             },
             success:function (data, textStatus) {
                 container.html(data);
@@ -5392,13 +5483,18 @@ function loadClusterRelations(clusterId) {
 }
 
 function submitGenericFormInPlace() {
+    var $genericForm = $('.genericForm');
     $.ajax({
         type: "POST",
-        url: $('.genericForm').attr('action'),
-        data: $('.genericForm').serialize(), // serializes the form's elements.
-        success: function(data)
-        {
-            $('#genericModal').remove();
+        url: $genericForm.attr('action'),
+        data: $genericForm.serialize(), // serializes the form's elements.
+        success: function(data) {
+            if (typeof data === "object" && data.hasOwnProperty('redirect')) {
+                window.location = data.redirect;
+                return;
+            }
+
+            $('#genericModal').modal('hide').remove();
             $('body').append(data);
             $('#genericModal').modal();
         }
@@ -5460,3 +5556,102 @@ $('body').on('click', '.hex-value-convert', function() {
             .attr('aria-label', 'Switch to binary representation');
     }
 });
+
+// Tag popover with taxonomy description
+(function() {
+    var tagDataCache = {};
+    function fetchTagInfo(tagId, callback) {
+        if (tagId in tagDataCache) {
+            callback(tagDataCache[tagId]);
+            return;
+        }
+
+        $.ajax({
+            success: function (data) {
+                data = $.parseJSON(data);
+                var tagData;
+                for (var i = 0; i < data.length; i++) {
+                    var tag = data[i];
+                    if (tag.Tag.id == tagId) {
+                        tagData = data[i]
+                        break;
+                    }
+                }
+                if (tagData !== undefined) {
+                    callback(tagData);
+                    tagDataCache[tagId] = tagData;
+                }
+            },
+            type: "get",
+            url: baseurl + "/tags/search/" + tagId + "/1/1"
+        })
+    }
+
+    function constructTaxonomyInfo(tagData) {
+        var predicateText = tagData.TaxonomyPredicate.expanded;
+        if (tagData.TaxonomyPredicate.TaxonomyEntry) {
+            predicateText += ": " + tagData.TaxonomyPredicate.TaxonomyEntry[0].expanded;
+        }
+
+        var $predicate = $('<div/>').append(
+            $('<h3/>').css("margin-top", "5px").text('Tag info'),
+            $('<p/>').css("margin-bottom", "5px").text(predicateText)
+        );
+        if (tagData.TaxonomyPredicate.description) {
+            $predicate.append($('<p/>').css("margin-bottom", "5px").append(
+                $('<strong/>').text('Description: '),
+                $('<span/>').text(tagData.TaxonomyPredicate.description),
+            ));
+        }
+        if (tagData.TaxonomyPredicate.TaxonomyEntry && tagData.TaxonomyPredicate.TaxonomyEntry[0].numerical_value) {
+            $predicate.append($('<p/>').css("margin-bottom", "5px").append(
+                $('<strong/>').text('Numerical value: '),
+                $('<span/>').text(tagData.TaxonomyPredicate.TaxonomyEntry[0].numerical_value),
+            ));
+        }
+        var $meta = $('<div/>').append(
+            $('<h3/>').text('Taxonomy: ' + tagData.Taxonomy.namespace.toUpperCase()),
+            $('<p/>').css("margin-bottom", "5px").append(
+                $('<span/>').text(tagData.Taxonomy.description),
+            )
+        )
+        return $('<div/>').append($predicate, $meta)
+    }
+
+    var popoverDebounce = null;
+    $(document.body).on({
+        mouseover: function() {
+            var $tag = $(this);
+            popoverDebounce = setTimeout(function() {
+                popoverDebounce = null;
+                var tagId = $tag.data('tag-id');
+
+                fetchTagInfo(tagId, function (tagData) {
+                    if (tagData.TaxonomyPredicate === undefined) {
+                        return;
+                    }
+                    // Check if user cursor is still on tag
+                    if ($(':hover').last()[0] !== $tag[0]) {
+                        return;
+                    }
+                    $tag.popover({
+                        html: true,
+                        container: 'body',
+                        placement: 'top',
+                        template: '<div class="popover"><div class="arrow"></div><div class="popover-content"></div></div>',
+                        content: function () {
+                            return constructTaxonomyInfo(tagData);
+                        }
+                    }).popover('show');
+                });
+            }, 200);
+        },
+        mouseout: function() {
+            if (popoverDebounce) {
+                clearTimeout(popoverDebounce);
+                popoverDebounce = null;
+            }
+            $(this).popover('destroy');
+        }
+    }, 'a.tag[data-tag-id]');
+})();

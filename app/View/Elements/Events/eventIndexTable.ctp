@@ -82,17 +82,12 @@
         </td>
         <?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
             <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Orgc']['id'];?>'">
-                <?php
-                    echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 24));
-                ?>
+                <?= $this->OrgImg->getOrgLogo($event['Orgc'], 24) ?>
             </td>
         <?php endif;?>
         <?php if ($isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
             <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Org']['id'];?>'">
-                <?php
-                    echo $this->OrgImg->getOrgImg(array('name' => $event['Org']['name'], 'id' => $event['Org']['id'], 'size' => 24));
-                ?>
-                &nbsp;
+                <?= $this->OrgImg->getOrgLogo($event['Org'], 24) ?>
             </td>
         <?php endif; ?>
         <td style="width:30px;">

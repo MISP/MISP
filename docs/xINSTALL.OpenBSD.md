@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for OpenBSD 6.7-amd64
+## for OpenBSD 6.8-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
@@ -86,7 +86,7 @@ doas pkg_add -v mariadb-server
 #### Install misc dependencies
 
 ```bash
-doas pkg_add -v curl git python--%3.7 redis libmagic autoconf--%2.69 automake--%1.16 libtool unzip--iconv
+doas pkg_add -v curl git python--%3.8 redis libmagic autoconf--%2.69 automake--%1.16 libtool unzip--iconv
 ```
 
 ```bash
@@ -229,8 +229,8 @@ doas rcctl enable httpd
 #### Install Python virtualenv
 ```bash
 doas pkg_add -v py3-virtualenv py3-pip
-doas ln -sf /usr/local/bin/pip3.7 /usr/local/bin/pip
-doas ln -s /usr/local/bin/python3.7 /usr/local/bin/python
+doas ln -sf /usr/local/bin/pip3.8 /usr/local/bin/pip
+doas ln -s /usr/local/bin/python3.8 /usr/local/bin/python
 doas mkdir /usr/local/virtualenvs
 doas virtualenv-3 /usr/local/virtualenvs/MISP
 ```
@@ -247,13 +247,8 @@ doas pkg_add -v fcgi-cgi fcgi
 ```
 
 #### php7 ports
-!!! notice
-    php-5.6 is marked as end-of-life starting December 2018, use php 7.0 instead.
-    Option 2.
-    If on OpenBSD 6.3, upgrade to 6.7 to make your life much easier.
-
 ```
-doas pkg_add -v php-mysqli--%7.4 php-pcntl--%7.4 php-pdo_mysql--%7.4 php-apache--%7.4 pecl74-redis php-gd--%7.4 php-zip--%7.4
+doas pkg_add -v php-mysqli--%7.4 php-pcntl--%7.4 php-pdo_mysql--%7.4 php-apache--%7.4 pecl74-redis php-gd--%7.4 php-zip--%7.4 php-bcmath--%7.4 php-intl--%7.4
 ```
 
 #### /etc/php-7.4.ini 

@@ -1,6 +1,6 @@
 <?php
     if (empty($elementId)) {
-        $elementId = 'accordion-' . bin2hex(openssl_random_pseudo_bytes(8));
+        $elementId = 'accordion-' . dechex(mt_rand());
     }
     $elements = [];
     $url = $baseurl . $url;
@@ -15,7 +15,7 @@
             h($elementId) . '-collapse',
             h($title),
             !empty($allowFullscreen) ? '' : sprintf(
-                '<span class="fas fa-external-link-alt" title="View %s full screen" onClick="window.location.href=\'%s\';"></span>',
+                '<span class="fas fa-external-link-alt" title="View %s full screen" onclick="event.stopPropagation(); window.location.href=\'%s\';"></span>',
                 h($title),
                 h($url)
             )
@@ -29,21 +29,23 @@
     );
 ?>
 <script type="text/javascript">
-    $(document).ready(function() {
+    $(function() {
         var elementId = '#<?= h($elementId) ?>';
         $(elementId).on('shown', function() {
             $.ajax({
                 type:"get",
                 url: $(elementId + '-collapse-inner').data('url'),
-                beforeSend: function (XMLHttpRequest) {
+                beforeSend: function() {
                     $(".loading").show();
                 },
-                success:function (data) {
+                success: function(data) {
                     $(elementId + '-collapse-inner').html(data);
-                    $(".loading").hide();
                 },
-                error:function() {
+                error: function() {
                     showMessage('fail', 'Something went wrong - could not fetch content.');
+                },
+                complete: function() {
+                    $(".loading").hide();
                 }
             });
         });

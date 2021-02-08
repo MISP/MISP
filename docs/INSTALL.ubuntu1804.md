@@ -114,6 +114,7 @@ installDepsPhp72 () {
   php-dev \
   php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring php-zip \
   php-redis php-gnupg \
+  php-intl php-bcmath \
   php-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
@@ -152,7 +153,7 @@ installCore () {
     for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
       false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git clone https://github.com/${dependency}.git ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}; done
       ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} config core.filemode false
-      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP_SCRIPTS}/${dependency##/*}
+      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}
     done
 
     debug "Install python-stix2"
@@ -164,8 +165,8 @@ installCore () {
     # FIXME: Remove libfaup etc once the egg has the library baked-in
     sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
     cd /tmp
-    false; while [[ $? -ne 0 ]]; do [[ ! -d "faup" ]] && ${SUDO_CMD} git clone git://github.com/stricaud/faup.git faup; done
-    false; while [[ $? -ne 0 ]]; do [[ ! -d "gtcaca" ]] && ${SUDO_CMD} git clone git://github.com/stricaud/gtcaca.git gtcaca; done
+    false; while [[ $? -ne 0 ]]; do [[ ! -d "faup" ]] && ${SUDO_CMD} git clone https://github.com/stricaud/faup.git faup; done
+    false; while [[ $? -ne 0 ]]; do [[ ! -d "gtcaca" ]] && ${SUDO_CMD} git clone https://github.com/stricaud/gtcaca.git gtcaca; done
     sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
     cd gtcaca
     ${SUDO_CMD} mkdir -p build
@@ -201,7 +202,7 @@ installCore () {
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U setuptools pip lief zmq redis python-magic plyara
     for dependency in CybOXProject/python-cybox STIXProject/python-stix MAECProject/python-maec CybOXProject/mixbox; do
       false; while [[ $? -ne 0 ]]; do checkAptLock; ${SUDO_WWW} git -C ${PATH_TO_MISP_SCRIPTS}/${dependency##*/} pull; done
-      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP_SCRIPTS}/${dependency##/*}
+      ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP_SCRIPTS}/${dependency##*/}
     done
 
     ${SUDO_WWW} ${PATH_TO_MISP}/venv/bin/pip install -U ${PATH_TO_MISP}/cti-python-stix2
@@ -275,25 +276,25 @@ prepareDB () {
 
     debug "Setting up database"
     # Kill the anonymous users
-    sudo mysql -e "DROP USER IF EXISTS ''@'localhost'"
+    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'localhost'"
     # Because our hostname varies we'll use some Bash magic here.
-    sudo mysql -e "DROP USER IF EXISTS ''@'$(hostname)'"
+    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'$(hostname)'"
     # Kill off the demo database
-    sudo mysql -e "DROP DATABASE IF EXISTS test"
+    sudo mysql -h $DBHOST -e "DROP DATABASE IF EXISTS test"
     # No root remote logins
-    sudo mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+    sudo mysql -h $DBHOST -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
     # Make sure that NOBODY can access the server without a password
-    sudo mysqladmin -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+    sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
     # Make our changes take effect
-    sudo mysql -e "FLUSH PRIVILEGES"
+    sudo mysql -h $DBHOST -e "FLUSH PRIVILEGES"
 
-    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
-    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
-    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
-    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
-    sudo mysql -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES;"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+    sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES;"
     # Import the empty MISP database from MYSQL.sql
-    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
+    ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -h $DBHOST -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
   fi
 }
 # <snippet-end 1_prepareDB.sh>

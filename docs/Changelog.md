@@ -6,6 +6,243 @@ v2.4 aka 2.4 for ever (current changelog)
 
 New
 ---
+- [doc] Added doc about how to change the installer generator. [Steve
+  Clement]
+- [type] favicon-mmh3 is the murmur3 hash of a favicon as used in
+  Shodan. [Alexandre Dulaunoy]
+- [Statistics shell] Added new statistics shell. [iglocska]
+
+  - (R)etrieval (o)f (m)etrics (m)atrix (e)xtended (f)or (s)tatistics
+
+  - run it via /var/www/MISP/app/Console/cake Statistics rommelfs
+
+Changes
+-------
+- [installer] Update to latest. [Steve Clement]
+- [git] Made the checkouts more proxy friendly. [Steve Clement]
+- [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
+- [taxonomies] updated. [Alexandre Dulaunoy]
+- [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
+- [PyMISP] updated to the latest version. [Alexandre Dulaunoy]
+- [warning-lists] updated to the latest version. [Alexandre Dulaunoy]
+- [debug] cleanup. [iglocska]
+- [misp-galaxy] updated. [Alexandre Dulaunoy]
+- [misp-objects] updated. [Alexandre Dulaunoy]
+- [taxonomies] updated. [Alexandre Dulaunoy]
+- [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
+- [PyMISP] updated. [Alexandre Dulaunoy]
+- [PyMISP] updated to the latest version. [Alexandre Dulaunoy]
+- [warning-list] updated to the latest version. [Alexandre Dulaunoy]
+- [doc] From Travis to GH action. [Alexandre Dulaunoy]
+- [veracode] removed. [Alexandre Dulaunoy]
+- [installer] Latest update. [Steve Clement]
+- [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
+- [installer] update to latest. [Steve Clement]
+- [fix] typo. [Steve Clement]
+- [doc] OpenBSD 6.8 update. [Steve Clement]
+- [php] Added 2 missing modules. [Steve Clement]
+- [doc] Added new default flags. [Steve Clement]
+
+Fix
+---
+- [S/MIME] don't sign e-mails if no signing key is set. [iglocska]
+
+  - fixes e-mails not going out on instances where no signing key was provided
+- [objects] breakonduplicate fixed. [iglocska]
+- MIssing dependency. [Raphaël Vinot]
+- Call the security test suite properly. [Raphaël Vinot]
+- Remove call to python script out of the virtenv. [Raphaël Vinot]
+- [sighting] Order must contain group for some mysql servers. [Jakub
+  Onderka]
+- [stix2 import] Checking if attack-pattern, course-of-action and
+  vulnerability names are known galaxies before importing them as MISP
+  object. [chrisr3d]
+- [tags] truncate tag names that are too long. [Andras Iklody]
+
+  Otherwise we run into issues on the DB level anyway. For the future, perhaps change the field length.
+- [installer] Typo. [Steve Clement]
+- [search] don't append the same quicksearch value more than once in the
+  URL. [iglocska]
+- [statistics] Local org flag fixed to show the correct count.
+  [iglocska]
+- [mistake in a comment fixed] [iglocska]
+- [internal] sharing_group graph missing org_ids - throwing notices.
+  [iglocska]
+- [internal] further promises removed from the galaxy model. [iglocska]
+
+  - easier than getting people to stop using EOL software
+- [installer] type in php-bcmath package. [Steve Clement]
+- [installer] forgot to add sfv. [Steve Clement]
+- [internal] removed function promises in crud component. [iglocska]
+
+  - to appease EOL php versions...
+- [delegation] invalid user call. [iglocska]
+
+Other
+-----
+- Merge pull request #6858 from SteveClement/guides. [Steve Clement]
+
+  new: [doc] Added doc about how to change the installer generator
+- Merge pull request #6835 from MISP/dependabot/pip/lxml-4.6.2.
+  [Alexandre Dulaunoy]
+
+  build(deps): bump lxml from 4.3.3 to 4.6.2
+- Build(deps): bump lxml from 4.3.3 to 4.6.2. [dependabot[bot]]
+
+  Bumps [lxml](https://github.com/lxml/lxml) from 4.3.3 to 4.6.2.
+  - [Release notes](https://github.com/lxml/lxml/releases)
+  - [Changelog](https://github.com/lxml/lxml/blob/master/CHANGES.txt)
+  - [Commits](https://github.com/lxml/lxml/compare/lxml-4.3.3...lxml-4.6.2)
+- Merge pull request #6825 from StefanKelm/2.4. [Alexandre Dulaunoy]
+
+  Update index.ctp
+- Update index.ctp. [StefanKelm]
+
+  Tinies of typos...
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge pull request #6826 from SteveClement/guides. [Steve Clement]
+
+  chg: [git] Made the checkouts more proxy friendly
+- Fix git urls to https (users behind proxy) [Alexandre Dulaunoy]
+
+  Fix git urls to https (users behind proxy)
+- Merge pull request #6820 from MISP/Rafiot-patch-6. [Raphaël Vinot]
+
+  [Test] Run the security suite from the virtualenv
+- [Test] Run the security suite from the virtualenv. [Raphaël Vinot]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
+  Dulaunoy]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge pull request #6747 from legoguy1000/ja3_zeek_intel_rules.
+  [Alexandre Dulaunoy]
+
+  Create JA3 Hash Zeek Intel Rules
+- JA3 Zeek Intel Rules. [Alex Resnick]
+- Merge pull request #6799 from simonflood/patch-1. [Alexandre Dulaunoy]
+
+  INSTALL.rhel8.md - update EoL for CentOS 8
+- INSTALL.rhel8.md - update EoL for CentOS 8. [Simon Flood]
+
+  Maintenance for CentOS 8 will now end on 31 December 2021
+- Merge pull request #6795 from sdenel/patch-2. [Alexandre Dulaunoy]
+
+  Typo in Server.php: currenty -> currently
+- Typo in Server.php. [Simon DENEL]
+- Veracode added. [Alexandre Dulaunoy]
+- CodeQL added. [Alexandre Dulaunoy]
+- HandlerSSL should be true. [Alexandre Dulaunoy]
+- Merge pull request #6785 from StefanKelm/2.4. [Alexandre Dulaunoy]
+
+  Typos
+- Update indexForEvent.ctp. [StefanKelm]
+- Update importReportFromUrl.ctp. [StefanKelm]
+- Merge pull request #6783 from FafnerKeyZee/patch-1. [Alexandre
+  Dulaunoy]
+
+  Add the possibility to have a '-' in the baseurl
+- Add the possibility to have a '-' in the baseurl. [Fafner [_KeyZee_]]
+
+  With the actual regex in testBaseURL, we can not have a '-' inside the BaseURL, I did a quick fix
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge pull request #6767 from SteveClement/guides. [Steve Clement]
+- Merge pull request #6764 from Natsec/patch-1. [Andras Iklody]
+
+  Typo caused fail of dependency installation
+- Typo caused fail of dependency installation. [Kamil]
+
+  Hello,
+
+  During installation, I would get the following error :
+  ```shell
+  Cloning into '/var/www/MISP/app/files/scripts/python-cybox'...
+  remote: Enumerating objects: 343, done.
+  remote: Counting objects: 100% (343/343), done.
+  remote: Compressing objects: 100% (191/191), done.
+  remote: Total 14731 (delta 180), reused 253 (delta 152), pack-reused 14388
+  Receiving objects: 100% (14731/14731), 7.39 MiB | 3.10 MiB/s, done.
+  Resolving deltas: 100% (10487/10487), done.
+  ERROR: Invalid requirement: '/var/www/MISP/app/files/scripts/CybOXProject/python-cybox'
+  Hint: It looks like a path. File '/var/www/MISP/app/files/scripts/CybOXProject/python-cybox' does not exist.
+  apt is maybe locked, waiting 3 seconds.
+  Cloning into '/var/www/MISP/app/files/scripts/python-stix'...
+  remote: Enumerating objects: 298, done.
+  remote: Counting objects: 100% (298/298), done.
+  remote: Compressing objects: 100% (215/215), done.
+  remote: Total 13777 (delta 190), reused 155 (delta 83), pack-reused 13479
+  Receiving objects: 100% (13777/13777), 5.78 MiB | 2.58 MiB/s, done.
+  Resolving deltas: 100% (10076/10076), done.
+  ERROR: Invalid requirement: '/var/www/MISP/app/files/scripts/STIXProject/python-stix'
+  Hint: It looks like a path. File '/var/www/MISP/app/files/scripts/STIXProject/python-stix' does not exist.
+  apt is maybe locked, waiting 3 seconds.
+  Cloning into '/var/www/MISP/app/files/scripts/python-maec'...
+  remote: Enumerating objects: 59, done.
+  remote: Counting objects: 100% (59/59), done.
+  remote: Compressing objects: 100% (39/39), done.
+  remote: Total 4472 (delta 32), reused 40 (delta 20), pack-reused 4413
+  Receiving objects: 100% (4472/4472), 1.29 MiB | 1.90 MiB/s, done.
+  Resolving deltas: 100% (2992/2992), done.
+  ERROR: Invalid requirement: '/var/www/MISP/app/files/scripts/MAECProject/python-maec'
+  Hint: It looks like a path. File '/var/www/MISP/app/files/scripts/MAECProject/python-maec' does not exist.
+  apt is maybe locked, waiting 3 seconds.
+  Cloning into '/var/www/MISP/app/files/scripts/mixbox'...
+  remote: Enumerating objects: 39, done.
+  remote: Counting objects: 100% (39/39), done.
+  remote: Compressing objects: 100% (26/26), done.
+  remote: Total 1055 (delta 20), reused 27 (delta 13), pack-reused 1016
+  Receiving objects: 100% (1055/1055), 278.98 KiB | 901.00 KiB/s, done.
+  Resolving deltas: 100% (696/696), done.
+  ERROR: Invalid requirement: '/var/www/MISP/app/files/scripts/CybOXProject/mixbox'
+  Hint: It looks like a path. File '/var/www/MISP/app/files/scripts/CybOXProject/mixbox' does not exist.
+  ```
+
+  Making the modification fixed the installation of the dependencies.
+
+  Best regards,
+  Kamil
+
+v2.4.136 (2020-12-16)
+---------------------
+
+New
+---
+- [CLI] Import events with compressed file support. [Jakub Onderka]
+
+  Useful for importing big files
+- [UI] Find org images also by uuid and support SVG images. [Jakub
+  Onderka]
+- [UI] Make possible to filter users by active/disabled. [Jakub Onderka]
+- [UI] Show number of events for sharing group. [Jakub Onderka]
+- [test] View org page. [Jakub Onderka]
+- [UI] Allow to search in sharing group list. [Jakub Onderka]
+- :lock: Test if user can see sharing groups. [Jakub Onderka]
+- [factories] generic confirmation UI factory added. [iglocska]
+- [Cerebrates] added Cerebrate sync functionality. [iglocska]
+
+  - add/modify cerebrate links
+  - preview cerebrate instanes for organisations
+  - fetch organisations from cerebrate
+    - ingests new organisations and updates existing ones
+
+  - More to come in the future
+- [Cerebrate] db update added. [iglocska]
+- [view factories rework] [iglocska]
+
+  indextable:
+    - org lookup field cleaned up and made more resilient
+    - remote status: status field for checking of the local vs remote state of objects added
+    - pagination system updated to allow for ajax pagination
+    - random named container added for the index table's scaffolding
+
+  side menu:
+    - added cerebrate options
+
+  side panels:
+    - new factory type added for side panel elements (for the usual 2:1 split views)
+    - added logo element
+
+  single views:
+    - child reworked to use the accordion element
+    - added side panel support
 - [auth] Allow to enforce auth plugin authentication. [Jakub Onderka]
 - [shibb] Test for organisation UUID HTTP header. [Jakub Onderka]
 - [shibb] Allow to get organisation UUID from HTTP headers. [Jakub
@@ -19,9 +256,54 @@ New
 
 Changes
 -------
+- [version] bump. [iglocska]
+- [UI] Nicer galaxy cluster view. [Jakub Onderka]
+- [UI] Nicer icon for discussion reply. [Jakub Onderka]
+- [UI] Move org UUID after ID to match other page style. [Jakub Onderka]
+- [UI] Add cancel for sharing group search. [Jakub Onderka]
+- [UI] Nicer title when creating event report. [Jakub Onderka]
+- :lock: For `hide_organisation_index_from_users` hide orgs that
+  make contribution that user cannot see. [Jakub Onderka]
+- [composer] Add ext-rdkafka as suggested dependency. [Jakub Onderka]
+- [UI] Use PGP instead of GnuGP, GnuPG is implementation. [Jakub
+  Onderka]
+- [UI] Hide some fields from user profile and use better description.
+  [Jakub Onderka]
+- [internal] HEAD check if org exists. [Jakub Onderka]
+- [internal] Simplified SharingGroup::checkIfOwner method. [Jakub
+  Onderka]
+- [internal] Load orgs just when it is necessary. [Jakub Onderka]
+- [UI] Use standardised view for sharging group. [Jakub Onderka]
+- [composer] Raise minimal PHP version to 7.2 and disable support for
+  8.0. [Jakub Onderka]
+- [shibb] Newly created org should be local. [Jakub Onderka]
+- [galaxyClusters:view_relation_tree] Adjust height based on the number
+  of nodes. [mokaddem]
+- [actions] added develop branch. [iglocska]
+- [ACL] cerebrate added to the ACL. [iglocska]
+- [querystring] bump. [iglocska]
+- [image] added cerebrate logo. [iglocska]
+- [js] runIndexQuickFilter changes. [iglocska]
+
+  - added optional url parameter to set a fixed URL to search from
+  - added target parameter for ajax refreshes (target css selector)
+  - added possibility to pass ordered parameters in addition to key value pairs
+  - added ajax lookups
+- [Cerebrate] added to the global menu. [iglocska]
+- [synctool] added custom model support for the setuphttpsocket()
+  function. [iglocska]
+- [CRUD component] call model functions in the afterfind. [iglocska]
+
+  - added the option to either use anonymous functions or call model functions in the hook
+  - fixed a bug with a missing modelname in the lookup scope for fields (carryover from cerebrate)
+- [warning-lists] updated to the latest version. [Alexandre Dulaunoy]
+- [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
+- [warning-lists] updated to the latest version. [Alexandre Dulaunoy]
+- [installer] Update to latest version. [Steve Clement]
 - [installer] Leveled installer out. [Steve Clement]
 - [installer] Update to latest. [Steve Clement]
 - [installer] More fixes to replayability. [Steve Clement]
+- [actions] added to the develop branch. [iglocska]
 - [UI] Normalize date format to match rest of MISP. [Jakub Onderka]
 - [installer] Update to latest. [Steve Clement]
 - [installer] misp-modules install refactor. [Steve Clement]
@@ -71,6 +353,85 @@ Changes
 
 Fix
 ---
+- [UI] Contact form text. [Jakub Onderka]
+- [distribution graph] Graph doesn't work for non sync users when event
+  is shared to sharing group. [Jakub Onderka]
+- [UI] Show correct sync org for sharing group view. [Jakub Onderka]
+- [UI] Change order for sg view. [Jakub Onderka]
+- [UI] Do not show authkey if advanced authkeys are enabled. [Jakub
+  Onderka]
+- [UI] For accorddion external link do not propagate click. [Jakub
+  Onderka]
+- [UI] Send email link should be visible just for admin view. [Jakub
+  Onderka]
+- [UI] User search keeps filter. [Jakub Onderka]
+- [UI] Show correct menu for EventsController::importModule action.
+  [Jakub Onderka]
+- [UI] For import show correct active menu. [Jakub Onderka]
+- [UI] For tags show actions just when user can permission to use them.
+  [Jakub Onderka]
+- [UI] For Taxonomies show actions just when user can permission to use
+  them. [Jakub Onderka]
+- [UI] Show correct menu for Contact Reporter page. [Jakub Onderka]
+- [UI] Remove unused All button from galaxy index. [Jakub Onderka]
+- [UI] Show feed cache buttons just to site admins. [Jakub Onderka]
+- [UI] For fail when uploading stix, show unit for maximum size. [Jakub
+  Onderka]
+- [UI] Button border when adding thread port. [Jakub Onderka]
+- [UI] Show REST client menu item just when user has perm_auth. [Jakub
+  Onderka]
+- [internal] Undefined variable $passedArgs. [Jakub Onderka]
+- [internal] Undefined variables when GitHub is not reachable. [Jakub
+  Onderka]
+- [internal] Undefined variable me. [Jakub Onderka]
+- [UI] Better error message for permission denied. [Jakub Onderka]
+- :lock: Do not leak org names when
+  hide_organisation_index_from_users enabled. [Jakub Onderka]
+- [UI] Nicer error message for CSRF. [Jakub Onderka]
+- [internal] User should be able to see his org. [Jakub Onderka]
+- [UI] Toggle doesn't work with absolute URLs. [Jakub Onderka]
+- [UI] Confusing messages after object template is deleted. [Jakub
+  Onderka]
+- [UI] Do not mention that STIX 2 export require library. [Jakub
+  Onderka]
+
+  This information can be useful just for site administrators, but not for users
+- [UI] Do not show REST client menu link when user don't have
+  permission. [Jakub Onderka]
+- [UI] Do not show taxonomy delete menu link when user don't have
+  permission. [Jakub Onderka]
+- [UI] Do not show proposals menu link when user don't have permission.
+  [Jakub Onderka]
+- [UI] Do not show extend this event button when user don't have
+  permission to do that. [Jakub Onderka]
+- [UI] Allow to access delegations index just when delegations are
+  enabled. [Jakub Onderka]
+- [UI] Show `Add Cluster` in menu just when user has permission to add
+  cluster. [Jakub Onderka]
+- [sighting] Make sure that correct columns are processed. [Jakub
+  Onderka]
+- [rest-client] Do not raise exception for not site admin. [Jakub
+  Onderka]
+- [UI] Link to role edit. [Jakub Onderka]
+- [UI] Show delete and edit button for SG just when user has permission.
+  [Jakub Onderka]
+- [UI] Sort countries by name. [Jakub Onderka]
+- [db_schema] added cerebrate. [iglocska]
+- [baseurl] validation relaxed. [iglocska]
+
+  - no more arbitrary junk blocking https://localhost
+- [communities] search fixed, context no longer defaults to "pending"
+  which is an unknown value. [iglocska]
+- [authkey] fixed a bug causing recurring authkey lookups via model
+  binding failing. [iglocska]
+
+  - missing parameter caused the linking to be single use
+- [community] removed invalid filter field causing notice errors.
+  [iglocska]
+- [custompagination tool] hardcoded modelname fixed. [iglocska]
+- [doc] Location typo fixed. [Alexandre Dulaunoy]
+- [pgp] Key info for older GPG versions. [Jakub Onderka]
+- :lock: XSS in authkey comment field. [Jakub Onderka]
 - [sightings] Support mysql in sql_mode=only_full_group_by. [Jakub
   Onderka]
 - :lock: Remove hashed advanced keys from response. [Jakub Onderka]
@@ -100,6 +461,151 @@ Fix
 
 Other
 -----
+- Merge branch 'develop' into 2.4. [iglocska]
+- Merge pull request #6754 from JakubOnderka/fix-contact-ui. [Jakub
+  Onderka]
+
+  fix: [UI] Contact form text
+- Merge pull request #6752 from JakubOnderka/distribution_graph_sg_fix.
+  [Jakub Onderka]
+
+  fix: [distribution graph] Graph doesn't work for non sync users
+- Merge pull request #6698 from JakubOnderka/small-ui-fixes. [Jakub
+  Onderka]
+
+  Small UI fixes
+- Merge pull request #6716 from JakubOnderka/cli-import. [Jakub Onderka]
+
+  new: [CLI] Import events with compressed file support
+- Merge pull request #6730 from JakubOnderka/org-image-svg-uuid. [Jakub
+  Onderka]
+
+  new: [UI] Find org images also by uuid and support SVG images
+- Merge pull request #6746 from JakubOnderka/rest-client-menu-
+  permission. [Jakub Onderka]
+
+  Rest client menu permission
+- Merge pull request #6743 from JakubOnderka/undefined-me. [Jakub
+  Onderka]
+
+  fix: [internal] Undefined variables
+- Merge pull request #6744 from JakubOnderka/user-filter. [Jakub
+  Onderka]
+
+  new: [UI] Make possible to filter users by active/disabled
+- Merge pull request #6739 from JakubOnderka/error-message. [Jakub
+  Onderka]
+
+  fix: [UI] Better error message for permission denied
+- Merge pull request #6738 from JakubOnderka/hide-orgs-dont-leak. [Jakub
+  Onderka]
+
+  fix: :lock: Do not leak org names
+- Merge pull request #6735 from JakubOnderka/error-message. [Jakub
+  Onderka]
+
+  fix: [UI] Nicer error message for CSRF
+- Merge pull request #6732 from JakubOnderka/hide-orgs-show-his-org.
+  [Jakub Onderka]
+
+  fix: [internal] User should be able to see his org
+- Merge pull request #6727 from JakubOnderka/fix-toggle-url. [Jakub
+  Onderka]
+
+  fix: [UI] Toggle doesn't work with absolute URLs
+- Merge pull request #6721 from JakubOnderka/org-can-see. [Jakub
+  Onderka]
+
+  chg: :lock: For `hide_organisation_index_from_users` hide more orgs
+- Merge pull request #6725 from JakubOnderka/object-delete-ui. [Jakub
+  Onderka]
+
+  fix: [UI] Confusing messages after object template is deleted
+- Merge pull request #6724 from JakubOnderka/kafka-suggested-ext. [Jakub
+  Onderka]
+
+  Kafka suggested ext
+- Merge pull request #6707 from JakubOnderka/event-export-library-
+  mention. [Jakub Onderka]
+
+  fix: [UI] Do not mention that STIX 2 export require library
+- Merge pull request #6720 from JakubOnderka/permission-ui. [Jakub
+  Onderka]
+
+  Permission UI
+- Merge pull request #6719 from JakubOnderka/delegation-access. [Jakub
+  Onderka]
+
+  fix: [UI] Allow to access delegations index just when delegations are enabled
+- Merge pull request #6717 from JakubOnderka/sharing-group-events.
+  [Jakub Onderka]
+
+  new: [UI] Show number of events for sharing group
+- Merge pull request #6696 from JakubOnderka/user-profile-ui. [Jakub
+  Onderka]
+
+  chg: [UI] Hide some fields from user profile and use better description
+- Merge pull request #6695 from JakubOnderka/add-cluster-menu-view.
+  [Jakub Onderka]
+
+  fix: [UI] Show `Add Cluster` in menu just when user has permission to…
+- Merge branch 'develop' into add-cluster-menu-view. [Jakub Onderka]
+- Merge pull request #6676 from JakubOnderka/fix-sighting-columns.
+  [Jakub Onderka]
+
+  fix: [sighting] Make sure that correct columns are processed
+- Merge pull request #6694 from JakubOnderka/invalid-controller-name-
+  fix. [Jakub Onderka]
+
+  fix: [rest-client] Do not raise exception for non site admin
+- Merge pull request #6706 from JakubOnderka/role-edit-fix. [Jakub
+  Onderka]
+
+  fix: [UI] Link to role edit
+- Merge pull request #6699 from folbricht-stripe/s3-fix-writable-check.
+  [Jakub Onderka]
+
+  fix: Don't fail writable attachment dir test for S3
+- Don't fail writable attachment dir test for S3. [Frank Olbricht]
+- Merge pull request #6703 from JakubOnderka/org-view. [Jakub Onderka]
+
+  new: [test] View org page
+- Merge pull request #6700 from JakubOnderka/sg-view. [Jakub Onderka]
+
+  Sharing group view
+- Merge pull request #6701 from JakubOnderka/security-sg-view. [Jakub
+  Onderka]
+
+  new: :lock: Test if user can see sharing groups
+- Merge pull request #6662 from JakubOnderka/php-test. [Jakub Onderka]
+
+  Disable PHP 8 support
+- Merge pull request #6693 from JakubOnderka/countries-order. [Jakub
+  Onderka]
+
+  fix: [UI] Sort countries by name
+- Merge pull request #6691 from JakubOnderka/shibb-new-org-local. [Jakub
+  Onderka]
+
+  chg: [shibb] Newly created org should be local
+- Merge branch 'develop' of github.com:MISP/MISP into develop.
+  [iglocska]
+- Merge branch '2.4' into develop. [iglocska]
+- Merge branch '2.4' into cerebrate. [iglocska]
+- Merge pull request #6733 from legoguy1000/#6355-Suricata-JA3-Rules.
+  [Alexandre Dulaunoy]
+
+  Create JA3 Hash Suricata Rules
+- \#6355 Create JA3 Hash Suricata Rules. [Alex Resnick]
+- Merge pull request #6697 from JakubOnderka/gpg-key-import-fix. [Jakub
+  Onderka]
+
+  fix: [pgp] Key info for older GPG versions
+- Merge pull request #6690 from JakubOnderka/xss-authkey-fix. [Jakub
+  Onderka]
+
+  fix: :lock: XSS in authkey comment field
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #6675 from SteveClement/guides. [Steve Clement]
 
   chg: [installer] Leveled installer out

@@ -613,8 +613,8 @@ function installMISPonTsurugi() {
 
   apt-get install cmake libcaca-dev liblua5.3-dev -y
   git clone https://github.com/MISP/mail_to_misp.git
-  git clone git://github.com/stricaud/faup.git faup
-  git clone git://github.com/stricaud/gtcaca.git gtcaca
+  git clone https://github.com/stricaud/faup.git faup
+  git clone https://github.com/stricaud/gtcaca.git gtcaca
   chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
   cd gtcaca
   $SUDO_CMD mkdir -p build

@@ -17,7 +17,7 @@
             'disable_search_threshold' => 10,
             'allow_single_deselect' => true,
         ),
-        'multiple' => 0,
+        'multiple' => 'multiple',
         'select_threshold' => 7, // threshold above which pills will be replace by a select (unused if multiple is > 1)
         'functionName' => '', // function to be called on submit
         'submitButtonText' => 'Submit',
@@ -104,6 +104,12 @@ function setupChosen(id, redrawChosen) {
     if (redrawChosen) {
         redrawChosenWithTemplate($elem, $chosenContainer);
     }
+
+    if ($elem.prop('multiple')) {
+        $elem.filter('[autofocus]').trigger('chosen:open');
+    } else {
+        $elem.filter('[autofocus]').trigger('chosen:activate');
+    }
 }
 
 function redrawChosenWithTemplate($select, $chosenContainer, eventType) {
@@ -113,11 +119,12 @@ function redrawChosenWithTemplate($select, $chosenContainer, eventType) {
     } else {
         $chosenContainer.find('.generic-picker-wrapper-warning-text').hide(0)
         var $matches;
-        if (eventType == 'chosen:picked' || eventType == 'change') {
+        if (eventType === 'chosen:picked' || eventType === 'change') {
             $matches = $chosenContainer.find('.chosen-single > span, .search-choice > span');
         } else {
             $matches = $chosenContainer.find('.chosen-results .active-result');
         }
+        var templates = options_templates[$select.attr('id')];
         $matches.each(function() {
             var $item = $(this);
             var index = $item.data('option-array-index');
@@ -131,8 +138,7 @@ function redrawChosenWithTemplate($select, $chosenContainer, eventType) {
                     return temp === text;
                 });
             }
-            var template = options_templates[$select.attr('id')][$option.val()];
-            var res = "";
+            var template = templates[$option.val()];
             if (template !== undefined && template !== '') {
                 $item.html(template);
             }
@@ -228,10 +234,10 @@ function submitFunction(clicked, callback) {
     $flag_addPills = false;
     ?>
     <?php if ($use_select): ?>
-        <select id="<?php echo $select_id; ?>" style="height: 100px; margin-bottom: 0px;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>>
+        <select id="<?php echo $select_id; ?>" autofocus style="height: 100px; margin-bottom: 0px;" <?= $this->GenericPicker->add_select_params($defaults); ?>>
             <option></option>
             <?php
-                foreach ($items as $k => $param) {
+                foreach ($items as $param) {
                     if (isset($param['isPill']) && $param['isPill']) {
                         $flag_addPills = true;
                         continue;
@@ -256,7 +262,7 @@ function submitFunction(clicked, callback) {
         <?php if ($flag_addPills): // add forced pills ?>
             <ul class="nav nav-pills">
                 <?php
-                foreach ($items as $k => $param) {
+                foreach ($items as $param) {
                     if (isset($param['isPill']) && $param['isPill']) {
                         echo $this->GenericPicker->add_pill($param, $defaults);
                         if (isset($param['additionalData'])) {
@@ -270,16 +276,16 @@ function submitFunction(clicked, callback) {
         <?php endif; ?>
 
         <script>
-            $(document).ready(function() {
+            $(function() {
                 setupChosen("<?php echo $select_id; ?>", <?php echo ($defaults['flag_redraw_chosen'] === true ? 'true' : 'false') ?>);
             });
         </script>
 
     <?php elseif (count($items) > 0): ?>
         <ul class="nav nav-pills">
-            <select id="<?php echo $select_id; ?>" style="display: none;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>></select>
+            <select id="<?php echo $select_id; ?>" autofocus style="display: none;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>></select>
             <?php
-            foreach ($items as $k => $param) {
+            foreach ($items as $param) {
                 echo $this->GenericPicker->add_pill($param, $defaults);
                 if (isset($param['additionalData'])) {
                     $additionalData = $param['additionalData'];
@@ -297,9 +303,10 @@ function submitFunction(clicked, callback) {
     <script>
         if (options_templates === undefined) {
             var options_templates = {};
-            var options_additionalData = {}
+            var options_additionalData = {};
         }
-        options_templates['<?php echo $select_id; ?>'] = <?php echo json_encode($option_templates); ?>;
-        options_additionalData['<?php echo $select_id; ?>'] = <?php echo json_encode($options_additionalData); ?>;
+        // Keep as string, it is faster than parsing as JS
+        options_templates['<?php echo $select_id; ?>'] = JSON.parse('<?= addslashes(json_encode($option_templates, JSON_UNESCAPED_UNICODE)); ?>');
+        options_additionalData['<?php echo $select_id; ?>'] = JSON.parse('<?= addslashes(json_encode($options_additionalData, JSON_UNESCAPED_UNICODE)); ?>');
     </script>
 </div>

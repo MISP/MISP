@@ -30,7 +30,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
 
 !!! notice
-    Maintenance for CentOS 8 will end on: May 31st, 2029 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
+    Maintenance for CentOS 8 will end on: December 31st, 2021 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
     CentOS 8 [NetInstallURL](http://mirrorlist.centos.org/?release=8&arch=x86_64&repo=BaseOS)
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 8.x (RHEL 8.x) and CentOS 8.x.
@@ -279,8 +279,8 @@ installCoreRHEL () {
   # BROKEN: This needs to be tested on RHEL/CentOS
   ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   cd /tmp
-  [[ ! -d "faup" ]] && $SUDO_CMD git clone git://github.com/stricaud/faup.git faup
-  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone git://github.com/stricaud/gtcaca.git gtcaca
+  [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
+  [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
   sudo chown -R ${MISP_USER}:${MISP_USER} faup gtcaca
   cd gtcaca
   $SUDO_CMD mkdir -p build
@@ -442,12 +442,12 @@ EOF
 
   sudo systemctl restart mariadb
 
-  mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-  mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';"
-  mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-  mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'
+  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
+  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';"
+  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
+  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'
 
-  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -h $DBHOST -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 }
 # <snippet-end 1_prepareDB_RHEL.sh>
 ```
