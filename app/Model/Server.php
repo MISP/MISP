@@ -5416,7 +5416,7 @@ class Server extends AppModel
                 ),
                 'obscure_subject' => array(
                     'level' => 2,
-                    'description' => __('When enabled, subject in signed and encrypted e-mails will not send in unencrypted form.'),
+                    'description' => __('When enabled, the subject in signed and encrypted e-mails will not be sent in unencrypted form.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
@@ -5516,7 +5516,7 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Disabling this setting will remove all form tampering protection. Do not set this setting pretty much ever. You were warned.'),
                     'value' => false,
-                    'errorMessage' => 'This setting leaves your users open to CSRF attacks. Do not please consider disabling this setting.',
+                    'errorMessage' => 'This setting leaves your users open to CSRF attacks. Please consider disabling this setting.',
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true
@@ -5559,7 +5559,7 @@ class Server extends AppModel
                 ],
                 'auth_enforced' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('This optional can be enabled if external auth provider is used and when set to true, it will disable default form authentication.'),
+                    'description' => __('This optionally can be enabled if an external auth provider is used. When set to true, it will disable the default form authentication.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
