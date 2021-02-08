@@ -35,10 +35,7 @@ class EventShell extends AppShell
     public function import()
     {
         list($userId, $path) = $this->args;
-        $user = $this->User->getAuthUser($userId);
-        if (empty($user)) {
-            $this->error("User with ID $userId does not exists.");
-        }
+        $user = $this->getUser($userId);
 
         if (!file_exists($path)) {
             $this->error("File '$path' does not exists.");
@@ -113,7 +110,7 @@ class EventShell extends AppShell
         $timeStart = time();
         $userId = $this->args[0];
         $id = $this->args[1];
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->getUser($userId);
         $this->Job->id = $id;
         $export_type = $this->args[2];
         file_put_contents('/tmp/test', $export_type);
@@ -204,10 +201,7 @@ class EventShell extends AppShell
         $jobId = $this->args[1];
         $eventId = $this->args[2];
         $oldpublish = $this->args[3];
-        $user = $this->User->getUserById($userId);
-        if (empty($user)) {
-            die("Invalid user ID '$userId' provided.");
-        }
+        $user = $this->getUser($userId);
         $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $jobId);
     }
 
@@ -220,10 +214,7 @@ class EventShell extends AppShell
         $userId = $this->args[3];
         $processId = $this->args[4];
 
-        $user = $this->User->getUserById($userId);
-        if (empty($user)) {
-            die("Invalid user ID '$userId' provided.");
-        }
+        $user = $this->getUser($userId);
         $result = $this->Event->sendContactEmail($id, $message, $all, $user);
         $this->Job->saveStatus($processId, $result);
     }
@@ -305,10 +296,7 @@ class EventShell extends AppShell
         $passAlong = $this->args[1];
         $jobId = $this->args[2];
         $userId = $this->args[3];
-        $user = $this->User->getAuthUser($userId);
-        if (empty($user)) {
-            die("Invalid user ID '$userId' provided.");
-        }
+        $user = $this->getUser($userId);
         $job = $this->Job->read(null, $jobId);
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
         $result = $this->Event->publish($id, $passAlong);
@@ -332,10 +320,7 @@ class EventShell extends AppShell
         $passAlong = $this->args[1];
         $jobId = $this->args[2];
         $userId = $this->args[3];
-        $user = $this->User->getAuthUser($userId);
-        if (empty($user)) {
-            die("Invalid user ID '$userId' provided.");
-        }
+        $user = $this->getUser($userId);
         $job = $this->Job->read(null, $jobId);
         $this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
         $result = $this->Event->publish_sightings($id, $passAlong);
@@ -359,7 +344,7 @@ class EventShell extends AppShell
         $jobId = $this->args[1];
         $userId = $this->args[2];
         $passAlong = $this->args[3];
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->getUser($userId);
         $job = $this->Job->read(null, $jobId);
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $result = $this->GalaxyCluster->publish($clusterId, $passAlong=$passAlong);
@@ -383,8 +368,7 @@ class EventShell extends AppShell
             die('Usage: ' . $this->Server->command_line_functions['enrichment'] . PHP_EOL);
         }
         $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
-        if (empty($user)) die('Invalid user.');
+        $user = $this->getUser($userId);
         $eventId = $this->args[1];
         $modulesRaw = $this->args[2];
         try {
@@ -483,5 +467,18 @@ class EventShell extends AppShell
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         $job['Job']['message'] = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
         $this->Job->save($job);
+    }
+
+    /**
+     * @param int $userId
+     * @return array
+     */
+    private function getUser($userId)
+    {
+        $user = $this->User->getAuthUser($userId);
+        if (empty($user)) {
+            $this->error("User with ID $userId does not exists.");
+        }
+        return $user;
     }
 }
