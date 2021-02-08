@@ -2541,7 +2541,6 @@ class Attribute extends AppModel
                 'recursive' => -1, // int
                 'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids', 'Attribute.value', 'Attribute.value' . $valueField),
                 'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
-                'group' => array('Attribute.type', 'Attribute.value' . $valueField), // fields to GROUP BY
                 'enforceWarninglist' => $enforceWarninglist,
                 'flatten' => 1
             )
@@ -3089,7 +3088,7 @@ class Attribute extends AppModel
             $params['conditions']['AND'][] = $options['conditions'];
         }
         if (empty($options['flatten'])) {
-            $params['conditions']['AND'][] = array('(Attribute.object_id + 0)' => 0);
+            $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
         }
         if (isset($options['order'])) {
             $params['order'] = $options['order'];
@@ -3124,7 +3123,7 @@ class Attribute extends AppModel
             $options['includeEventTags'] = true;
         }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
-            $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
+            $params['conditions']['AND']['Attribute.deleted'] = 0;
         } else {
             if ($options['deleted'] === "only") {
                 $options['deleted'] = 1;
