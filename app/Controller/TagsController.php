@@ -41,7 +41,6 @@ class TagsController extends AppController
             'request' => $this->request,
             'named_params' => $this->params['named'],
             'paramArray' => ['favouritesOnly', 'filter', 'searchall', 'name', 'search', 'exclude_statistics'],
-            'ordered_url_params' => @compact($paramArray)
         );
         $exception = false;
         $passedArgsArray = $this->_harvestParameters($filterData, $exception);

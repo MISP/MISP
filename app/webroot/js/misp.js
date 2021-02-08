@@ -2219,14 +2219,15 @@ function runIndexQuickFilter(preserveParams, url, target) {
     if (typeof passedArgsArray === "undefined") {
         var passedArgsArray = [];
     }
-    var $quickFilterField = $('#quickFilterField');
-    var searchKey;
-    if ($quickFilterField.data('searchkey')) {
-        searchKey = $quickFilterField.data('searchkey');
-    } else {
-        searchKey = 'searchall';
+    var searchKey = 'searchall';
+    if ($('#quickFilterField').length > 0) {
+        if ($('#quickFilterField').data('searchkey')) {
+            searchKey = $('#quickFilterField').data('searchkey');
+        }
+        if ( $('#quickFilterField').val().trim().length > 0){
+            passedArgsArray[searchKey] = encodeURIComponent($('#quickFilterField').val().trim());
+        }
     }
-    passedArgsArray[searchKey] = encodeURIComponent($quickFilterField.val().trim());
     if (typeof url === "undefined") {
         url = here;
     }
@@ -4419,16 +4420,16 @@ function selectAllInbetween(last, current) {
     });
 }
 
-$('.galaxy-toggle-button').click(function() {
+$('#eventToggleButtons button').click(function() {
     var element = $(this).data('toggle-type');
     var $button = $(this).children('span');
-    if ($button.hasClass('icon-minus')) {
-        $button.addClass('icon-plus');
-        $button.removeClass('icon-minus');
+    if ($button.hasClass('fa-minus')) {
+        $button.addClass('fa-plus');
+        $button.removeClass('fa-minus');
         $('#' + element + '_div').hide();
     } else {
-        $button.removeClass('icon-plus');
-        $button.addClass('icon-minus');
+        $button.removeClass('fa-plus');
+        $button.addClass('fa-minus');
         $('#' + element + '_div').show();
 
         var loadUrl = $(this).data('load-url');
@@ -5391,12 +5392,12 @@ function saveDashboardState() {
 }
 
 function updateDashboardWidget(element) {
-    element = $(element);
+    var $element = $(element);
     if (element.length) {
-        var container_id = $(element).attr('id').substring(7);
-        var container = $(element).find('.widgetContent');
-        var titleText = $(element).find('.widgetTitleText');
-        var temp = JSON.parse($(element).attr('config'));
+        var container_id = $element.attr('id').substring(7);
+        var container = $element.find('.widgetContent');
+        var titleText = $element.find('.widgetTitleText');
+        var temp = JSON.parse($element.attr('config'));
         if (temp['alias'] !== undefined) {
             titleText.text(temp['alias']);
         }
@@ -5404,8 +5405,8 @@ function updateDashboardWidget(element) {
             type: 'POST',
             url: baseurl + '/dashboards/renderWidget/' + container_id,
             data: {
-                config: $(element).attr('config'),
-                widget: $(element).attr('widget')
+                config: $element.attr('config'),
+                widget: $element.attr('widget')
             },
             success:function (data, textStatus) {
                 container.html(data);
