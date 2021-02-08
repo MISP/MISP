@@ -3196,6 +3196,7 @@ class Event extends AppModel
                 'includeEventCorrelations' => true,
                 'noEventReports' => true,
                 'noSightings' => true,
+                'metadata' => Configure::read('MISP.event_alert_metadata_only') ?: false,
             ])[0];
 
             if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {

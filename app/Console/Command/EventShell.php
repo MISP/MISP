@@ -490,6 +490,7 @@ class EventShell extends AppShell
             'includeEventCorrelations' => true,
             'noEventReports' => true,
             'noSightings' => true,
+            'metadata' => Configure::read('MISP.event_alert_metadata_only') ?: false,
         ]);
         if (empty($eventForUser)) {
             $this->error("Event with ID $eventId not exists or given user don't have permission to access it.");
