@@ -661,14 +661,15 @@ class SendEmail
 
         $messagePart = new MessagePart();
         $messagePart->addHeader('Content-Type', array(
-            'multipart/mixed',
+            $email->emailFormat() === 'both' ? 'multipart/alternative' : 'multipart/mixed',
             'boundary="' . $email->boundary() . '"',
             'protected-headers="v1"',
         ));
 
-        // Protect User-Facing Headers according to https://tools.ietf.org/id/draft-autocrypt-lamps-protected-headers-01.html
+        // Protect User-Facing Headers and Structural Headers according to
+        // https://tools.ietf.org/id/draft-autocrypt-lamps-protected-headers-02.html
         $originalHeaders = $email->getHeaders(array('subject', 'from', 'to'));
-        $protectedHeaders = array('From', 'To', 'Date', 'Message-ID', 'Subject', 'Reply-To');
+        $protectedHeaders = ['From', 'To', 'Date', 'Message-ID', 'Subject', 'Reply-To', 'In-Reply-To', 'References'];
         foreach ($protectedHeaders as $header) {
             if (isset($originalHeaders[$header])) {
                 $messagePart->addHeader($header, $originalHeaders[$header]);
@@ -757,7 +758,7 @@ class SendEmail
 
         $messagePart = new MessagePart();
         $messagePart->addHeader('Content-Type', array(
-            'multipart/mixed',
+            $email->emailFormat() === 'both' ? 'multipart/alternative' : 'multipart/mixed',
             'boundary="' . $email->boundary() . '"',
         ));
         $messagePart->setPayload($renderedEmail);
