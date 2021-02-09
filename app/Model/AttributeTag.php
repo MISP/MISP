@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property Tag $Tag
+ * @property Attribute $Attribute
  */
 class AttributeTag extends AppModel
 {
