@@ -32,7 +32,10 @@ class Feed extends AppModel
             'rule' => array('urlOrExistingFilepath')
         ),
         'provider' => 'valueNotEmpty',
-        'name' => 'valueNotEmpty',
+        'name' => [
+            'rule' => 'valueNotEmpty',
+            'required' => true,
+        ],
         'event_id' => array(
             'rule' => array('numeric'),
             'message' => 'Please enter a numeric event ID or leave this field blank.',
