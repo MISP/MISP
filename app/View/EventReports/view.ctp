@@ -19,7 +19,10 @@
                 h($distributionLevels[$report['EventReport']['distribution']])
     );
 
-    $table_data[] = array('key' => __('Last update'), 'value' => date('Y-m-d H:i:s', $report['EventReport']['timestamp']));
+    $table_data[] = array(
+        'key' => __('Last update'),
+        'html' => $this->Time->time($report['EventReport']['timestamp']),
+    );
     if ($report['EventReport']['deleted']) {
         $table_data[] = array(
             'key' => __('Deleted'),

@@ -29,7 +29,7 @@
                 ?>
             </div>
             <div class="footerText footerCenterText">
-                <span><?php echo h(Configure::read('MISP.footermidleft')); ?> Powered by <a href="https://github.com/MISP/MISP">MISP <?php if (isset($me['id'])) echo h($mispVersionFull);?></a> <?php echo h(Configure::read('MISP.footermidright')); ?> - <?php echo date("Y-m-d H:i:s"); ?></span>
+                <span><?= h(Configure::read('MISP.footermidleft')); ?> Powered by <a href="https://github.com/MISP/MISP" rel="noopener">MISP <?= isset($me['id']) ? h($mispVersionFull) : '' ?></a> <?= h(Configure::read('MISP.footermidright')); ?> - <?= $this->Time->time(time()) ?></span>
             </div>
             <div class="pull-right" style="position:relative;padding-top:9px;z-index:2;">
                 <?php

@@ -127,8 +127,8 @@
 ?>
         <tr>
             <td class="short"><?php echo h($item['Job']['id']); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Job']['date_created']); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Job']['date_modified']); ?>&nbsp;</td>
+            <td class="short"><?= $this->Time->time($item['Job']['date_created']) ?></td>
+            <td class="short"><?= $this->Time->time($item['Job']['date_modified']) ?></td>
             <td class="short"><?php echo h($item['Job']['process_id']); ?>&nbsp;</td>
             <td class="short"><?php echo h($item['Job']['worker']); ?>&nbsp;</td>
             <td class="short"><?php echo h($item['Job']['job_type']); ?>&nbsp;</td>
