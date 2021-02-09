@@ -172,11 +172,11 @@
         );
         $table_data[] = array(
             'key' => __('First recorded change'),
-            'value' => (!$oldest_timestamp) ? '' : date('Y-m-d H:i:s', $oldest_timestamp)
+            'html' => !$oldest_timestamp ? '' : $this->Time->time($oldest_timestamp),
         );
         $table_data[] = array(
             'key' => __('Last change'),
-            'value' => date('Y-m-d H:i:s', $event['Event']['timestamp'])
+            'html' => $this->Time->time($event['Event']['timestamp']),
         );
         $table_data[] = array(
             'key' => __('Modification map'),
