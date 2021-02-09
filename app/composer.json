@@ -32,6 +32,7 @@
         "aws/aws-sdk-php": "To upload samples to S3"
     },
     "config": {
-        "vendor-dir": "Vendor"
+        "vendor-dir": "Vendor",
+        "optimize-autoloader": true
     }
 }
