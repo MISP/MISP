@@ -22,6 +22,11 @@ echo $this->element('genericElements/assetLoader', array(
             return;
         }
         hasBeenBuilt = true;
+        var $tree = $('#treeSVG');
+        treeWidth = $tree.width() - margin.right - margin.left;
+        treeHeight = $tree.height() - margin.top - margin.bottom;
+        var leftShift;
+        var childrenBothSides, side;
         if (treeData.left[0].children === undefined || treeData.left[0].children.length == 0) {
             leftShift = 0;
             childrenBothSides = false;
@@ -38,11 +43,6 @@ echo $this->element('genericElements/assetLoader', array(
             }
         }
         adaptContainerHeightIfNeeded(side);
-        var $tree = $('#treeSVG');
-        treeWidth = $tree.width() - margin.right - margin.left;
-        treeHeight = $tree.height() - margin.top - margin.bottom;
-        var leftShift;
-        var childrenBothSides, side;
 
         var data = genHierarchy(treeData, leftShift, childrenBothSides, side);
         drawTree(data, leftShift, childrenBothSides);
