@@ -70,6 +70,9 @@ switch ($object['type']) {
             }
         }
         break;
+    case 'datetime':
+        echo $this->Time->time($object['value']);
+        break;
 
     case 'vulnerability':
         $cveUrl = Configure::read('MISP.cveurl') ?: 'https://cve.circl.lu/cve/';

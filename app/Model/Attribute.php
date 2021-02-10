@@ -2943,9 +2943,7 @@ class Attribute extends AppModel
         if (!empty($attribute)) {
             if (!empty($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
-                    if ($at['Tag']['exportable']) {
-                        $attribute['Attribute']['Tag'][] = $at['Tag'];
-                    }
+                    $attribute['Attribute']['Tag'][] = $at['Tag'];
                 }
             }
             unset($attribute['AttributeTag']);

@@ -1347,9 +1347,7 @@ class ServersController extends AppController
                 } catch (Exception $e) {
                     $remoteEvent = null;
                 }
-                if ($remoteEvent) {
-                    $remoteEventId = $remoteEvent[0]['id'];
-                }
+                $remoteEventId = isset($remoteEvent[0]['id']) ? $remoteEvent[0]['id'] : null;
                 $remote_events[] = array(
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],
