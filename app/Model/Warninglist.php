@@ -165,6 +165,12 @@ class Warninglist extends AppModel
 
     public function update()
     {
+        $existingWarninglist = $this->find('all', [
+            'fields' => ['id', 'name', 'version', 'enabled'],
+            'recursive' => -1,
+        ]);
+        $existingWarninglist = array_column(array_column($existingWarninglist, 'Warninglist'), null, 'name');
+
         $directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
         $updated = array('success' => [], 'fails' => []);
         foreach ($directories as $dir) {
@@ -180,17 +186,13 @@ class Warninglist extends AppModel
             } elseif (is_array($list['type'])) {
                 $list['type'] = $list['type'][0];
             }
-            $current = $this->find('first', array(
-                'conditions' => array('name' => $list['name']),
-                'recursive' => -1,
-                'fields' => array('*')
-            ));
-            if (empty($current) || $list['version'] > $current['Warninglist']['version']) {
+            if (!isset($existingWarninglist[$list['name']]) || $list['version'] > $existingWarninglist[$list['name']]['version']) {
+                $current = isset($existingWarninglist[$list['name']]) ? $existingWarninglist[$list['name']] : [];
                 $result = $this->__updateList($list, $current);
                 if (is_numeric($result)) {
                     $updated['success'][$result] = array('name' => $list['name'], 'new' => $list['version']);
                     if (!empty($current)) {
-                        $updated['success'][$result]['old'] = $current['Warninglist']['version'];
+                        $updated['success'][$result]['old'] = $current['version'];
                     }
                 } else {
                     $updated['fails'][] = array('name' => $list['name'], 'fail' => json_encode($result));
@@ -222,10 +224,10 @@ class Warninglist extends AppModel
         $list['enabled'] = 0;
         $warninglist = array();
         if (!empty($current)) {
-            if ($current['Warninglist']['enabled']) {
+            if ($current['enabled']) {
                 $list['enabled'] = 1;
             }
-            $this->quickDelete($current['Warninglist']['id']);
+            $this->quickDelete($current['id']);
         }
         $fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
         foreach ($fieldsToSave as $fieldToSave) {
