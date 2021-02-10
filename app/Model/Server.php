@@ -3767,17 +3767,14 @@ class Server extends AppModel
         return true;
     }
 
-    public function getLatestGitRemote()
-    {
-        return exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
-    }
-
     public function getCurrentGitStatus()
     {
+        $latestCommit = exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
+
         $status = array();
         $status['commit'] = exec('git rev-parse HEAD');
         $status['branch'] = $this->getCurrentBranch();
-        $status['latestCommit'] = $this->getLatestGitremote();
+        $status['latestCommit'] = $latestCommit;
         return $status;
     }
 
