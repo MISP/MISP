@@ -1,5 +1,4 @@
-<?php echo $this->Html->script('moment-with-locales'); ?>
-
+<?= $this->Html->script('moment.min'); ?>
 <script>
 <?php
     $temp = explode('_', $this->params->controller);
