@@ -10,6 +10,9 @@ if (isset($keyUsage)) {
         $dateAsString = date('Y-m-d', $date);
         $keyUsageCsv .= $dateAsString . ',' . (isset($keyUsage[$dateAsString]) ? $keyUsage[$dateAsString] : 0) . '\n';
     }
+} else {
+    $lastUsed = null;
+    $uniqueIps = null;
 }
 
 echo $this->element(
