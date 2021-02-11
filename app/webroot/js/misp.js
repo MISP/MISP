@@ -5655,3 +5655,14 @@ $('body').on('click', '.hex-value-convert', function() {
         }
     }, 'a.tag[data-tag-id]');
 })();
+
+// Highlight column for roles table
+$('td.rotate').hover(function() {
+    var $table = $(this).closest('table');
+    var t = parseInt($(this).index()) + 1;
+    $table.find('td:nth-child(' + t + ')').css('background-color', '#CFEFFF');
+}, function() {
+    var $table = $(this).closest('table');
+    var t = parseInt($(this).index()) + 1;
+    $table.find('td:nth-child(' + t + ')').css('background-color', '');
+});
