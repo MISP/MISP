@@ -13,6 +13,7 @@ echo $this->element('/genericElements/Form/genericForm', array(
                 "type" => "text",
                 "placeholder" => __("1234"),
                 "stayInLine" => true,
+                'class' => 'span4',
             ),
             array(
                 "field" => "local",
@@ -21,6 +22,7 @@ echo $this->element('/genericElements/Form/genericForm', array(
                 "options" => array("local" => __("local"), "remote" => __("remote")),
                 "type" => "select",
                 "stayInLine" => true,
+                'class' => 'span3',
             ),
             array(
                 "field" => "Server.id",
@@ -28,6 +30,7 @@ echo $this->element('/genericElements/Form/genericForm', array(
                 "options" => $servers,
                 "label" => __("ID referenced on server"),
                 "type" => "select",
+                'class' => 'span3',
             )
         ),
         "submit" => array(
@@ -50,8 +53,10 @@ if (isset($remote_events) && isset($local_event)) {
                 $value .= ' (<a href="' . $baseurl . '/servers/previewEvent/' . $remote_event['server_id'] . '/' . $remote_event['remote_id'] . '">' . __('preview') .  '</a>)';
             }
             $table_data[] = array('key' => h($remote_event['server_name']), 'html' => $value);
+        } elseif ($remote_event['exception']) {
+            $table_data[] = array('key' => h($remote_event['server_name']), 'value' => __('Remote server unreachable: %s', $remote_event['exception']));
         } else {
-            $table_data[] = array('key' => h($remote_event['server_name']), 'value' => __('Not found or server unreachable'));
+            $table_data[] = array('key' => h($remote_event['server_name']), 'value' => __('Not found'));
         }
     }
     echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data));
