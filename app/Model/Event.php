@@ -3085,16 +3085,18 @@ class Event extends AppModel
         $userCount = count($usersWithAccess);
         $this->UserSetting = ClassRegistry::init('UserSetting');
         foreach ($usersWithAccess as $k => $user) {
-            if ($this->UserSetting->checkPublishFilter($user, $event)) {
-                // Fetch event for user that will receive alert e-mail to respect all ACLs
-                $eventForUser = $this->fetchEvent($user, [
-                    'eventid' => $id,
-                    'includeAllTags' => true,
-                    'includeEventCorrelations' => true,
-                ])[0];
+            // Fetch event for user that will receive alert e-mail to respect all ACLs
+            $eventForUser = $this->fetchEvent($user, [
+                'eventid' => $id,
+                'includeAllTags' => true,
+                'includeEventCorrelations' => true,
+                'noEventReports' => true,
+                'noSightings' => true,
+            ])[0];
 
+            if ($this->UserSetting->checkPublishFilter($user, $eventForUser)) {
                 $body = $this->__buildAlertEmailBody($eventForUser, $user, $oldpublish);
-                $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
+                $this->User->sendEmail(['User' => $user], $body, $bodyNoEnc, $subject);
             }
             if ($jobId) {
                 $this->Job->saveProgress($jobId, null, $k / $userCount * 100);
@@ -6934,7 +6936,7 @@ class Event extends AppModel
                     'model_id' => 0,
                     'email' => 'SYSTEM',
                     'action' => 'error',
-                    'title' => sprintf('Event fetch potential memory exhaustion. During the fetching of events, a large event (#%s) was detected that exceeds the available PHP memory. Consider raising the PHP max_memory setting to at least %sM', $largest_event_id, ceil($largest_event/$memory_scaling_factor)),
+                    'title' => sprintf('Event fetch potential memory exhaustion.' . PHP_EOL . 'During the fetching of events, a large event (#%s) was detected that exceeds the available PHP memory.' . PHP_EOL . 'Consider raising the PHP max_memory setting to at least %sM', $largest_event_id, ceil($largest_event/$memory_scaling_factor)),
                     'change' => null,
             ));
         }

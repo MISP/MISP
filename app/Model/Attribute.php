@@ -12,6 +12,7 @@ App::uses('ComplexTypeTool', 'Tools');
 /**
  * @property Event $Event
  * @property AttributeTag $AttributeTag
+ * @property Sighting $Sighting
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -62,6 +63,7 @@ class Attribute extends AppModel
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
 
+    private $exclusions = null;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -202,17 +204,17 @@ class Attribute extends AppModel
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty')
             ),
+            'validComposite' => array(
+                'rule' => array('validComposite'),
+                'message' => 'Composite type found but the value not in the composite (value1|value2) format.'
+            ),
             'userdefined' => array(
                 'rule' => array('validateAttributeValue'),
                 'message' => 'Value not in the right type/format. Please double check the value or select type "other".'
             ),
             'uniqueValue' => array(
-                    'rule' => array('valueIsUnique'),
-                    'message' => 'A similar attribute already exists for this event.'
-            ),
-            'validComposite' => array(
-                'rule' => array('validComposite'),
-                'message' => 'Composite type found but the value not in the composite (value1|value2) format.'
+                'rule' => array('valueIsUnique'),
+                'message' => 'A similar attribute already exists for this event.'
             ),
             'maxTextLength' => array(
                 'rule' => array('maxTextLength')
@@ -602,7 +604,7 @@ class Attribute extends AppModel
     public function validComposite($fields)
     {
         $compositeTypes = $this->getCompositeTypes();
-        if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
+        if (in_array($this->data['Attribute']['type'], $compositeTypes, true)) {
             if (substr_count($fields['value'], '|') !== 1) {
                 return false;
             }
@@ -1575,7 +1577,7 @@ class Attribute extends AppModel
      * @return string
      * @throws Exception
      */
-    private function resizeImage($data, $maxWidth, $maxHeight)
+    public function resizeImage($data, $maxWidth, $maxHeight)
     {
         $image = imagecreatefromstring($data);
         if ($image === false) {
@@ -1764,15 +1766,12 @@ class Attribute extends AppModel
         if (!empty($a['value2'])) {
             $value .= '|' . $a['value2'];
         }
-        if (empty($this->exclusions)) {
+        if ($this->exclusions === null) {
             try {
                 $redis = $this->setupRedisWithException();
-            } catch (Exception $e) {
-                $redisFail = true;
-            }
-            if (empty($redisFail)) {
-                $this->Correlation = ClassRegistry::init('Correlation');
                 $this->exclusions = $redis->sMembers('misp:correlation_exclusions');
+            } catch (Exception $e) {
+                $this->exclusions = [];
             }
         }
         foreach ($this->exclusions as $exclusion) {
@@ -1809,11 +1808,11 @@ class Attribute extends AppModel
         if (!empty($a['disable_correlation']) || Configure::read('MISP.completely_disable_correlation')) {
             return true;
         }
-        if ($this->__preventExcludedCorrelations($a)) {
+        // Don't do any correlation if the type is a non correlating type
+        if (in_array($a['type'], $this->nonCorrelatingTypes, true)) {
             return true;
         }
-        // Don't do any correlation if the type is a non correlating type
-        if (in_array($a['type'], $this->nonCorrelatingTypes)) {
+        if ($this->__preventExcludedCorrelations($a)) {
             return true;
         }
         if (!$event) {
@@ -2542,7 +2541,6 @@ class Attribute extends AppModel
                 'recursive' => -1, // int
                 'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids', 'Attribute.value', 'Attribute.value' . $valueField),
                 'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
-                'group' => array('Attribute.type', 'Attribute.value' . $valueField), // fields to GROUP BY
                 'enforceWarninglist' => $enforceWarninglist,
                 'flatten' => 1
             )
@@ -2944,9 +2942,7 @@ class Attribute extends AppModel
         if (!empty($attribute)) {
             if (!empty($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
-                    if ($at['Tag']['exportable']) {
-                        $attribute['Attribute']['Tag'][] = $at['Tag'];
-                    }
+                    $attribute['Attribute']['Tag'][] = $at['Tag'];
                 }
             }
             unset($attribute['AttributeTag']);
@@ -3092,7 +3088,7 @@ class Attribute extends AppModel
             $params['conditions']['AND'][] = $options['conditions'];
         }
         if (empty($options['flatten'])) {
-            $params['conditions']['AND'][] = array('(Attribute.object_id + 0)' => 0);
+            $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
         }
         if (isset($options['order'])) {
             $params['order'] = $options['order'];
@@ -3127,7 +3123,7 @@ class Attribute extends AppModel
             $options['includeEventTags'] = true;
         }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
-            $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
+            $params['conditions']['AND']['Attribute.deleted'] = 0;
         } else {
             if ($options['deleted'] === "only") {
                 $options['deleted'] = 1;
@@ -3979,7 +3975,7 @@ class Attribute extends AppModel
                 }
             }
             if (!empty($attribute['Sighting'])) {
-                $this->Sighting->captureSighting($attribute['Sighting'], $this->id, $eventId, $user);
+                $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
             }
         }
         if (!empty($this->validationErrors)) {

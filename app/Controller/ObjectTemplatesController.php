@@ -298,4 +298,13 @@ class ObjectTemplatesController extends AppController
         $this->layout = 'ajax';
         $this->render('ajax/getToggleField');
     }
+
+    public function getRaw($uuidOrName)
+    {
+        $template = $this->ObjectTemplate->getRawFromDisk($uuidOrName);
+        if (empty($template)) {
+            throw new NotFoundException(__('Template not found'));
+        }
+        return $this->RestResponse->viewData($template, $this->response->type());
+    }
 }

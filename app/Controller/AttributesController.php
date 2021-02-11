@@ -998,6 +998,7 @@ class AttributesController extends AppController
             'includeAllTags' => false,
             'includeAttributeUuid' => true,
             'flatten' => true,
+            'deleted' => [0, 1]
         );
 
         if ($this->_isRest()) {
@@ -1505,7 +1506,6 @@ class AttributesController extends AppController
                 'request' => $this->request,
                 'named_params' => $this->params['named'],
                 'paramArray' => $paramArray,
-                'ordered_url_params' => @compact($paramArray),
                 'additional_delimiters' => PHP_EOL
             );
             $exception = false;

@@ -230,25 +230,21 @@ class UserSetting extends AppModel
          return null;
      }
 
-    /*
-     *  Check whether the event is something the user is interested (to be alerted on)
-     *
+    /**
+     * Check whether the event is something the user is interested (to be alerted on)
+     * @param $user
+     * @param $event
+     * @return bool
      */
-    public function checkPublishFilter($user, $event)
+    public function checkPublishFilter(array $user, array $event)
     {
-        $rule = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'UserSetting.user_id' => $user['id'],
-                'UserSetting.setting' => 'publish_alert_filter'
-            )
-        ));
+        $rule = $this->getValueForUser($user['id'], 'publish_alert_filter');
         // We should return true if no setting has been configured, or there's a setting with an empty value
-        if (empty($rule) || empty($rule['UserSetting']['value'])) {
+        if (empty($rule)) {
             return true;
         }
         // recursively evaluate the boolean tree to true/false and return the value
-        $result = $this->__recursiveConvert($rule['UserSetting']['value'], $event);
+        $result = $this->__recursiveConvert($rule, $event);
         if (isset($result[0])) {
             return $result[0];
         } else {
@@ -256,7 +252,7 @@ class UserSetting extends AppModel
         }
     }
 
-    /*
+    /**
      * Convert a complex rule set recursively
      * takes as params a rule branch and an event to check against
      * evaluate whether the rule set evaluates as true/false
@@ -284,9 +280,9 @@ class UserSetting extends AppModel
                             }
                         }
                     }
-                    $toReturn []= $temp;
+                    $toReturn[] = $temp;
                 } else {
-                    $toReturn []= $this->__checkEvent($k, $v, $event);
+                    $toReturn[] = $this->__checkEvent($k, $v, $event);
                 }
             }
             return $toReturn;
@@ -303,6 +299,7 @@ class UserSetting extends AppModel
      * - Tag.name (checks against both event and attribute tags)
      * - Orgc.uuid
      * - Orgc.name
+     * - ThreatLevel.name
      * Values passed can be used for direct string comparisons or alternatively
      * as substring matches by encapsulating the string in a pair of "%" characters
      * Each rule can take a list of values
@@ -332,6 +329,8 @@ class UserSetting extends AppModel
                 Hash::extract($event, 'Object.{n}.Attribute.{n}.AttributeTag.{n}.Tag.name'),
                 Hash::extract($event, 'EventTag.{n}.Tag.name')
             );
+        } else if ($rule === 'ThreatLevel.name') {
+            $values = [$event['ThreatLevel']['name']];
         }
         if (!empty($values)) {
             foreach ($values as $extracted_value) {
@@ -405,18 +404,14 @@ class UserSetting extends AppModel
         return true;
     }
 
+    /**
+     * @param int $user_id
+     * @param string $setting
+     * @return array|mixed
+     * @deprecated
+     */
     public function getSetting($user_id, $setting)
     {
-        $setting = $this->find('first', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'UserSetting.user_id' => $user_id,
-                'UserSetting.setting' => $setting
-            )
-        ));
-        if (empty($setting)) {
-            return array();
-        }
-        return $setting['UserSetting']['value'];
+        return $this->getValueForUser($user_id, $setting) ?: [];
     }
 }

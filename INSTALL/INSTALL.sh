@@ -675,6 +675,7 @@ kaliSpaceSaver () {
   echo "${RED}Not implement${NC}"
 }
 
+# FIXME: Kali now uses kali/kali instead of root/toor
 # Because Kali is l33t we make sure we DO NOT run as root
 kaliOnTheR0ckz () {
   totalRoot=$(df -k | grep /$ |awk '{ print $2 }')
@@ -776,6 +777,7 @@ installRNG () {
 kaliUpgrade () {
   debug "Running various Kali upgrade tasks"
   checkAptLock
+  sudo DEBIAN_FRONTEND=noninteractive apt update
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
   sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
 }
@@ -1197,7 +1199,7 @@ installDepsPhp74 () {
   libapache2-mod-php \
   php php-cli \
   php-dev \
-  php-json php-xml php-mysql php-opcache php-readline php-mbstring php-zip \
+  php-json php-xml php-mysql php7.4-opcache php-readline php-mbstring php-zip \
   php-redis php-gnupg \
   php-intl php-bcmath \
   php-gd
@@ -1559,6 +1561,7 @@ coreCAKE () {
   # Various plugin sightings settings
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_policy" 0
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_anonymise" false
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_anonymise_as" 1
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_range" 365
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_sighting_db_enable" false
 
@@ -1766,6 +1769,7 @@ mispmodules () {
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install censys pyfaup
 
   # Start misp-modules as a service
   sudo cp /usr/local/src/misp-modules/etc/systemd/system/misp-modules.service /etc/systemd/system/
@@ -2539,6 +2543,7 @@ mispmodulesRHEL () {
   # pip install
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install pyfaup censys
   sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
 
   echo "[Unit]
@@ -2780,10 +2785,10 @@ installSupported () {
       # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
     elif [[ "$PHP_VER" == 7.3 ]]; then
-      # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
+      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
     elif [[ "$PHP_VER" == 7.4 ]]; then
-      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
+      # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
       [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp74
     elif [[ "$PHP_VER" == 7.0 ]]; then
       # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
@@ -2885,7 +2890,7 @@ installSupported () {
 
 # Main Kali Install function
 installMISPonKali () {
-  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
+  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('generic/supportFunctions.md')
   kaliUpgrade
 
   # Set locale if not set - functionLocation('generic/supportFunctions.md')
@@ -2894,8 +2899,8 @@ installMISPonKali () {
   # Set Base URL - functionLocation('generic/supportFunctions.md')
   setBaseURL
 
-  # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
-  installDepsPhp73
+  # Install PHP 7.4 Dependencies - functionLocation('INSTALL.ubuntu2004.md')
+  installDepsPhp74
 
   # Set custom Kali only variables and tweaks
   space
@@ -2913,12 +2918,12 @@ installMISPonKali () {
   installCoreDeps
 
   debug "Enabling redis and gnupg modules"
-  sudo phpenmod -v 7.3 redis
-  sudo phpenmod -v 7.3 gnupg
+  sudo phpenmod -v 7.4 redis
+  sudo phpenmod -v 7.4 gnupg
 
   debug "Apache2 ops: dismod: status - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
   sudo a2dismod status
-  sudo a2enmod ssl rewrite headers php7.3
+  sudo a2enmod ssl rewrite headers php7.4
   sudo a2dissite 000-default
   sudo a2ensite default-ssl
 
@@ -3021,26 +3026,18 @@ installMISPonKali () {
 
   debug "Setting up database"
   if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
-    echo "
-      set timeout 10
-      spawn sudo mysql_secure_installation
-      expect \"Enter current password for root (enter for none):\"
-      send -- \"\r\"
-      expect \"Set root password?\"
-      send -- \"y\r\"
-      expect \"New password:\"
-      send -- \"${DBPASSWORD_ADMIN}\r\"
-      expect \"Re-enter new password:\"
-      send -- \"${DBPASSWORD_ADMIN}\r\"
-      expect \"Remove anonymous users?\"
-      send -- \"y\r\"
-      expect \"Disallow root login remotely?\"
-      send -- \"y\r\"
-      expect \"Remove test database and access to it?\"
-      send -- \"y\r\"
-      expect \"Reload privilege tables now?\"
-      send -- \"y\r\"
-      expect eof" | expect -f -
+    # Kill the anonymous users
+    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'localhost'"
+    # Because our hostname varies we'll use some Bash magic here.
+    sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'$(hostname)'"
+    # Kill off the demo database
+    sudo mysql -h $DBHOST -e "DROP DATABASE IF EXISTS test"
+    # No root remote logins
+    sudo mysql -h $DBHOST -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+    # Make sure that NOBODY can access the server without a password
+    sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+    # Make our changes take effect
+    sudo mysql -h $DBHOST -e "FLUSH PRIVILEGES"
 
     sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
     sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBUSER_MISP@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
@@ -3291,9 +3288,6 @@ x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
-x86_64-kali-2020.1
-x86_64-kali-2020.2
-x86_64-kali-2020.3
 x86_64-kali-2020.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch

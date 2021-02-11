@@ -128,4 +128,14 @@ class GalaxyElement extends AppModel
         }
         return $elements;
     }
+
+    public function getExpandedJSONFromElements($elements)
+    {
+        $keyedValue = [];
+        foreach ($elements as $i => $element) {
+            $keyedValue[$element['GalaxyElement']['key']][] = $element['GalaxyElement']['value'];
+        }
+        $expanded = Hash::expand($keyedValue);
+        return $expanded;
+    }
 }

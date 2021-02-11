@@ -415,7 +415,7 @@ class GalaxyCluster extends AppModel
                 }
                 $saveSuccess = $this->save($cluster, array('fieldList' => $fieldList));
                 if ($saveSuccess) {
-                    if (!empty($cluster['GalaxyCluster']['GalaxyElement'])) {
+                    if (isset($cluster['GalaxyCluster']['GalaxyElement'])) {
                         $elementsToSave = array();
                         foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) { // transform cluster into Galaxy meta format
                             $elementsToSave[$element['key']][] = $element['value'];

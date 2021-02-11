@@ -912,8 +912,8 @@ class MispObject extends AppModel
                         'title' => 'Object dropped due to it being a duplicate and breakOnDuplicate being requested for Event ' . $eventId,
                         'change' => 'Duplicate object found.',
                 ));
+                return true;
             }
-            return true;
         }
         if (empty($log)) {
             $log = ClassRegistry::init('Log');
