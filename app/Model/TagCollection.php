@@ -111,7 +111,7 @@ class TagCollection extends AppModel
      */
     public function cullBlockedTags(array $user, array $tagCollections)
     {
-        if (empty($tagCollection)) {
+        if (empty($tagCollections)) {
             return [];
         }
 
