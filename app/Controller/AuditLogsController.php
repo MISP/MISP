@@ -491,7 +491,7 @@ class AuditLogsController extends AppController
         }
 
         $existingObjects = [];
-        foreach (['User', 'Organisation', 'Galaxy', 'GalaxyCluster', 'Warninglist', 'AuthKey', 'ObjectTemplate'] as $modelName) {
+        foreach (['User', 'Organisation', 'Galaxy', 'GalaxyCluster', 'Warninglist', 'AuthKey', 'ObjectTemplate', 'Role'] as $modelName) {
             if (isset($models[$modelName])) {
                 $this->loadModel($modelName);
                 $data = $this->{$modelName}->find('column', [
@@ -510,6 +510,7 @@ class AuditLogsController extends AppController
             'Organisation' => 'organisation',
             'Warninglist' => 'warninglists',
             'User' => 'admin/user',
+            'Role' => 'roles',
         ];
 
         foreach ($auditLogs as $k => $auditLog) {

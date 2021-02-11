@@ -23,7 +23,7 @@
         </tr>
         <?php foreach ($list as $item): ?>
         <tr>
-            <td class="short"><?= h($item['AuditLog']['created']); ?></td>
+            <td class="short"><?= $this->Time->time($item['AuditLog']['created']); ?></td>
             <td class="short"><?php
                 if (isset($item['AuditLog']['user_id']) && $item['AuditLog']['user_id'] == 0) {
                     echo __('SYSTEM');

@@ -248,7 +248,7 @@
         </tr>
         <?php foreach ($list as $item): ?>
         <tr>
-            <td class="short"><?= h($item['AuditLog']['created']); ?></td>
+            <td class="short"><?= $this->Time->time($item['AuditLog']['created']); ?></td>
             <td class="short" data-search="user" data-search-value="<?= h($item['AuditLog']['user_id']) ?>"><?php
                 if (isset($item['AuditLog']['user_id']) && $item['AuditLog']['user_id'] == 0) {
                     echo __('SYSTEM');
@@ -274,7 +274,7 @@
                 }
                 ?>
             </td>
-            <td class="short"><?= h($item['AuditLog']['action_human']) ?></td>
+            <td class="short" data-search="action" data-search-value="<?= h($item['AuditLog']['action']) ?>"><?= h($item['AuditLog']['action_human']) ?></td>
             <td class="short" data-search="model" data-search-value="<?= h($item['AuditLog']['model']) . ':' . h($item['AuditLog']['model_id']) ?>">
                 <?php $title = isset($item['AuditLog']['event_info']) ? ' title="' . __('Event #%s: %s', $item['AuditLog']['event_id'], h($item['AuditLog']['event_info'])) . '"' : '' ?>
                 <?= isset($item['AuditLog']['model_link']) ? '<a href="' . h($item['AuditLog']['model_link']) . '"' . $title . '>' : '' ?>
