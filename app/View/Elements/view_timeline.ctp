@@ -27,7 +27,7 @@
 </div>
 
 <?php
-    echo $this->Html->script('moment-with-locales');
+    echo $this->Html->script('moment.min');
     echo $this->Html->script('event-timeline');
     echo $this->Html->css('event-timeline');
 ?>

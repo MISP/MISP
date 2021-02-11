@@ -63,7 +63,7 @@ echo $this->element(
             ],
             [
                 'key' => __('Last used'),
-                'raw' => $lastUsed ? date('Y-m-d H:i:s', $lastUsed) : __('Not used yet'),
+                'raw' => $lastUsed ? $this->Time->time($lastUsed) : __('Not used yet'),
                 'requirement' => isset($keyUsage),
             ],
             [
