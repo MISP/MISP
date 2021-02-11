@@ -4079,9 +4079,7 @@ class Attribute extends AppModel
         }
         if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
             $this->Sighting = ClassRegistry::init('Sighting');
-            foreach ($attribute['Sighting'] as $s) {
-                $result = $this->Sighting->saveSightings($attribute['uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], isset($s['uuid']) ? $s['uuid']: false);
-            }
+            $this->Sighting->captureSightings($attribute['Sighting'], $attribute['id'], $eventId, $user);
         }
         $fieldList = $this->editableFields;
         if (empty($existingAttribute)) {
