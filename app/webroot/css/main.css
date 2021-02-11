@@ -2729,3 +2729,16 @@ td.rotate + td:not(.rotate) {
 #eventToggleButtons button span {
     margin-right: 2px;
 }
+
+#RoleAdminEditForm fieldset {
+    margin-bottom: 1em;
+}
+
+#RoleAdminEditForm .role-permissions {
+    clear: both;
+    width: 570px;
+}
+
+#RoleAdminEditForm .role-permissions div.input {
+   width: 160px;
+}
