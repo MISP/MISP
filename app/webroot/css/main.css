@@ -1883,6 +1883,7 @@ span.success {
     background-color: red !important;
     color: white;
     font-weight: bold;
+    padding: 3px 5px;
 }
 
 .red {
