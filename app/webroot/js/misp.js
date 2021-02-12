@@ -4925,6 +4925,11 @@ $(document).ready(function() {
             html: true,
             trigger: 'hover'
         });
+
+    if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
+        var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
+        $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
+    }
 });
 
 $(document.body).on("click", ".correlation-expand-button", function() {
