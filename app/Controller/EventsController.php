@@ -4499,16 +4499,23 @@ class EventsController extends AppController
         if ($scope == 'event') {
             $eventId = $scope_id;
         } elseif ($scope == 'attribute') {
-            $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
-                'conditions' => array('Attribute.id' => $scope_id),
-                'fields' => array('event_id'),
-                'flatten' => 1,
-            ));
-            if (empty($attribute)) {
-                throw new Exception("Invalid Attribute.");
+            if ($scope_id == 'selected') {
+                if (empty($this->params['named']['eventid'])) {
+                    throw new Exception("Invalid Event.");
+                }
+                $eventId = $this->params['named']['eventid'];
+            } else {
+                $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                    'conditions' => array('Attribute.id' => $scope_id),
+                    'fields' => array('event_id'),
+                    'flatten' => 1,
+                ));
+                if (empty($attribute)) {
+                    throw new Exception("Invalid Attribute.");
+                }
+                $attribute = $attribute[0];
+                $eventId = $attribute['Attribute']['event_id'];
             }
-            $attribute = $attribute[0];
-            $eventId = $attribute['Attribute']['event_id'];
         } elseif ($scope == 'tag_collection') {
             $eventId = 0; // no event_id for tag_collection, consider all events
         } else {
