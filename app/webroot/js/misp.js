@@ -5393,7 +5393,7 @@ function saveDashboardState() {
 
 function updateDashboardWidget(element) {
     var $element = $(element);
-    if (element.length) {
+    if ($element.length) {
         var container_id = $element.attr('id').substring(7);
         var container = $element.find('.widgetContent');
         var titleText = $element.find('.widgetTitleText');
