@@ -596,7 +596,8 @@ class Organisation extends AppModel
     {
         $countries = array_column($this->getCountryGalaxyCluster(), 'description');
         sort($countries);
-        array_unshift($countries, 'Internation');
+        array_unshift($countries, 'International');
+        array_unshift($countries, 'Europe');
         return $countries;
     }
 }
