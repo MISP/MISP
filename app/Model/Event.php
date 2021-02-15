@@ -1325,7 +1325,7 @@ class Event extends AppModel
         if (!$eventReportSupportedByRemote) {
             return [];
         }
-        
+
         // Downgrade the object from connected communities to community only
         if (!$server['Server']['internal'] && $report['distribution'] == 2) {
             $report['distribution'] = 1;
@@ -1846,6 +1846,8 @@ class Event extends AppModel
             'includeWarninglistHits',
             'noEventReports', // do not include event report in event data
             'noShadowAttributes', // do not fetch proposals
+            'limit',
+            'page'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -7120,7 +7122,7 @@ class Event extends AppModel
             }
         }
     }
-    
+
     /**
      * extractAllTagNames Returns all tag names attached to any elements in an event
      *
