@@ -3024,6 +3024,23 @@ function moduleResultsSubmit(id) {
         });
         data_collected['Attribute'] = attributes;
     }
+    if ($('.MISPEventReport').length) {
+        var reports = [];
+        $('.MISPEventReport').each(function() {
+            temp = {
+                import_report: $(this).find('.ImportMISPEventReport')[0].checked,
+                name: $(this).find('.EventReportName').text(),
+                content: $(this).find('.EventReportContent').text(),
+                uuid: $(this).find('.EventReportUUID').text(),
+                distribution: $(this).find('.EventReportDistribution').val(),
+                sharing_group_id: $(this).find('.EventReportSharingGroup').val()
+            }
+            if (temp['import_report']) {
+                reports.push(temp);
+            }
+        });
+        data_collected['EventReport'] = reports;
+    }
     $("#EventJsonObject").val(JSON.stringify(data_collected));
     var formData = $('.mainForm').serialize();
     $.ajax({
