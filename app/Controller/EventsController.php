@@ -5137,7 +5137,7 @@ class EventsController extends AppController
         if ($this->request->is('Post')) {
             if (Configure::read('Plugin.ZeroMQ_enable')) {
                 $pubSubTool = $this->Event->getPubSubTool();
-                $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+                $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id, 'includeAllTags' => true));
                 if (!empty($event)) {
                     $pubSubTool->publishEvent($event[0]);
                     $success = 1;
@@ -5184,7 +5184,7 @@ class EventsController extends AppController
                 $kafkaPubTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
                 if (!empty($event['Event']['published']) && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaPubTopic)) {
                     $kafkaPubTool = $this->Event->getKafkaPubTool();
-                    $params = array('eventid' => $id);
+                    $params = array('eventid' => $id, 'includeAllTags' => true);
                     if (Configure::read('Plugin.Kafka_include_attachments')) {
                         $params['includeAttachments'] = 1;
                     }
