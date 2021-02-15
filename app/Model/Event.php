@@ -2097,7 +2097,13 @@ class Event extends AppModel
             $justExportableTags = false;
         }
 
-        $overrideLimit = !empty($options['overrideLimit']);
+        if ($options['includeServerCorrelations'] && $options['includeFeedCorrelations']) {
+            $feedCorrelationsScope = 'Both';
+        } else if ($options['includeServerCorrelations']) {
+            $feedCorrelationsScope = 'Server';
+        } else if ($options['includeFeedCorrelations']) {
+            $feedCorrelationsScope = 'Feed';
+        }
 
         if (!empty($options['allow_proposal_blocking']) && !Configure::read('MISP.proposals_block_attributes')) {
             $options['allow_proposal_blocking'] = false; // proposal blocking is not enabled
@@ -2179,11 +2185,8 @@ class Event extends AppModel
             }
             $shadowAttributeByOldId = [];
             if (!empty($event['ShadowAttribute'])) {
-                if ($isSiteAdmin && $options['includeFeedCorrelations']) {
-                    $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
-                }
-                if ($options['includeServerCorrelations']) {
-                    $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
+                if (isset($feedCorrelationsScope)) {
+                    $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $feedCorrelationsScope);
                 }
 
                 if ($options['includeAttachments']) {
@@ -2203,12 +2206,10 @@ class Event extends AppModel
                 $event['ShadowAttribute'] = $shadowAttributeByOldId[0] ?? [];
             }
             if (!empty($event['Attribute'])) {
-                if ($options['includeFeedCorrelations']) {
-                    $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
+                if (isset($feedCorrelationsScope)) {
+                    $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $feedCorrelationsScope);
                 }
-                if ($options['includeServerCorrelations']) {
-                    $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit, 'Server');
-                }
+
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
                 if (!$sharingGroupReferenceOnly) {
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
