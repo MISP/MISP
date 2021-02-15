@@ -5592,6 +5592,9 @@ class Event extends AppModel
             }
             $event['Object'] = $objects;
         }
+        if (!empty($result['results']['EventReport'])) {
+            $event['EventReport'] = $result['results']['EventReport'];
+        }
         foreach (array('Tag', 'Galaxy') as $field) {
             if (!empty($result['results'][$field])) {
                 $event[$field] = $result['results'][$field];
@@ -6226,12 +6229,12 @@ class Event extends AppModel
             $this->Job->id = $jobId;
 
         }
-        $failed_attributes = $failed_objects = $failed_object_attributes = 0;
-        $saved_attributes = $saved_objects = $saved_object_attributes = 0;
+        $failed_attributes = $failed_objects = $failed_object_attributes = $failed_reports = 0;
+        $saved_attributes = $saved_objects = $saved_object_attributes = $saved_reports = 0;
         $items_count = 0;
         $failed = array();
         $recovered_uuids = array();
-        foreach (array('Attribute', 'Object') as $feature) {
+        foreach (array('Attribute', 'Object', 'EventReport') as $feature) {
             if (isset($resolved_data[$feature])) {
                 $items_count += count($resolved_data[$feature]);
             }
@@ -6447,7 +6450,27 @@ class Event extends AppModel
                 }
             }
         }
-        if ($saved_attributes > 0 || $saved_objects > 0) {
+        if (!empty($resolved_data['EventReport'])) {
+            $total_reports = count($resolved_data['EventReport']);
+            foreach ($resolved_data['EventReport'] as $i => $report) {
+                $this->EventReport->create();
+                $report['event_id'] = $id;
+                if ($this->EventReport->save($report)) {
+                    $saved_reports++;
+                } else {
+                    $failed_reports++;
+                    $lastReportError = $this->EventReport->validationErrors;
+                }
+                if ($jobId) {
+                    $current = ($i + 1);
+                    $this->Job->saveField('message', 'EventReport ' . $current . '/' . $total_reports);
+                    $this->Job->saveField('progress', ($current * 100 / $items_count));
+                }
+            }
+        } else {
+            $total_reports = 0;
+        }
+        if ($saved_attributes > 0 || $saved_objects > 0 || $saved_reports > 0) {
             $event = $this->find('first', array(
                     'conditions' => array('Event.id' => $id),
                     'recursive' => -1
@@ -6460,7 +6483,7 @@ class Event extends AppModel
             $this->save($event);
         }
         if ($event_level) {
-            return $saved_attributes + $saved_object_attributes;
+            return $saved_attributes + $saved_object_attributes + $saved_reports;
         }
         $message = '';
         if ($saved_attributes > 0) {
@@ -6505,6 +6528,17 @@ class Event extends AppModel
                 $message .= $error;
             }
             $message .= 'you can have a look at the module results view you just left, to compare.';
+        }
+        if ($saved_reports > 0) {
+            $message .= $saved_reports . ' ' . $this->__apply_inflector($saved_reports, 'eventReport') . ' created. ';
+        }
+        if ($failed_reports > 0) {
+            if ($failed_reports == 1) {
+                $reason = ' eventReport could not be saved. Reason for the failure: ' . json_encode($lastReportError) . ' ';
+            } else {
+                $reason = ' eventReport could not be saved. ';
+            }
+            $message .= $failed_reports . $reason;
         }
         if ($jobId) {
             $this->Job->saveField('message', 'Processing complete. ' . $message);
