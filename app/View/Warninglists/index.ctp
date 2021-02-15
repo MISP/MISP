@@ -75,6 +75,8 @@
                 ),
                 array(
                     'name' => __('Valid attributes'),
+                    'class' => 'short',
+                    'sort' => 'Warninglist.valid_attributes',
                     'data_path' => 'Warninglist.valid_attributes',
                 ),
                 array(
