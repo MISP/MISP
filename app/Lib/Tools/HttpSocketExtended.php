@@ -107,7 +107,7 @@ class HttpSocketExtended extends HttpSocket
         }
         // Convert connection timeout to SocketException
         if (!empty($this->lastError)) {
-            throw new SocketException($this->lastError['msg']);
+            throw new SocketException($this->lastError['str']);
         }
         return $response;
     }
