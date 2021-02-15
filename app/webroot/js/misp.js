@@ -3572,10 +3572,10 @@ function testConnection(id) {
                 html += '<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>';
                 break;
             case 7:
-                html += '<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>';
+                html += '<span class="orange bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user, only pulling events is available.</span>';
                 break;
             case 8:
-                html += '<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, syncing sightings only</span>';
+                html += '<span class="orange bold" title="The user account on the remote instance is only a sightings user.">Remote user not a sync user, only pulling events is available. Pushing availale for sightings only</span>';
                 break;
             }
 

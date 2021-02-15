@@ -371,6 +371,8 @@ class LogsController extends AppController
                 'EventTag',
                 'Feed',
                 'DecayingModel',
+                'EventGraph',
+                'EventReport',
                 'MispObject',
                 'Organisation',
                 'Post',
