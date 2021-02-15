@@ -340,7 +340,7 @@ class Event extends AppModel
                     'scope' => 'Event',
                     'requiresPublished' => 1,
                     'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
-                    'description' => __('Click this to download an a STIX document containing the STIX version of all events and attributes that you have access to.')
+                    'description' => __('Click this to download a STIX document containing the STIX version of all events and attributes that you have access to.')
             ),
             'stix2' => array(
                     'extension' => '.json',
@@ -348,7 +348,7 @@ class Event extends AppModel
                     'scope' => 'Event',
                     'requiresPublished' => 1,
                     'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
-                    'description' => __('Click this to download an a STIX2 document containing the STIX2 version of all events and attributes that you have access to.')
+                    'description' => __('Click this to download a STIX2 document containing the STIX2 version of all events and attributes that you have access to.')
             ),
             'rpz' => array(
                     'extension' => '.txt',
