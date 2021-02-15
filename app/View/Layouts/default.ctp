@@ -117,7 +117,7 @@
         <?php
             if (!Configure::read('MISP.disable_auto_logout') && isset($me) && $me):
         ?>
-                checkIfLoggedIn();
+                //checkIfLoggedIn();
         <?php
             endif;
         ?>
