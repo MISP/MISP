@@ -1741,6 +1741,9 @@ class EventsController extends AppController
 
         // search for all attributes in object
         foreach ($event['Object'] as $k => $object) {
+            if ($this->__valueInFieldAttribute($object, ['id', 'uuid', 'name', 'comment'], $searchFor)) {
+                continue;
+            }
             foreach ($object['Attribute'] as $k2 => $attribute) {
                 if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchFor)) {
                     unset($event['Object'][$k]['Attribute'][$k2]);
