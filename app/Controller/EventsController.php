@@ -2169,9 +2169,12 @@ class EventsController extends AppController
             if (empty($source_event)) {
                 throw new NotFoundException(__('Invalid source event.'));
             }
+            $recovered_uuids = [];
             foreach ($source_event[0]['Attribute'] as &$attribute) {
                 unset($attribute['id']);
+                $originalUUID = $attribute['uuid'];
                 $attribute['uuid'] = CakeText::uuid();
+                $recovered_uuids[$originalUUID] = $attribute['uuid'];
                 unset($attribute['ShadowAttribute']);
                 $attribute['Tag'] = [];
                 foreach ($attribute['AttributeTag'] as $aT) {
@@ -2182,10 +2185,14 @@ class EventsController extends AppController
             }
             foreach ($source_event[0]['Object'] as &$object) {
                 unset($object['id']);
+                $originalUUID = $object['uuid'];
                 $object['uuid'] = CakeText::uuid();
+                $recovered_uuids[$originalUUID] = $object['uuid'];
                 foreach ($object['Attribute'] as &$attribute) {
                     unset($attribute['id']);
+                    $originalUUID = $attribute['uuid'];
                     $attribute['uuid'] = CakeText::uuid();
+                    $recovered_uuids[$originalUUID] = $attribute['uuid'];
                     unset($attribute['ShadowAttribute']);
                     $attribute['Tag'] = [];
                     foreach ($attribute['AttributeTag'] as $aT) {
@@ -2194,6 +2201,20 @@ class EventsController extends AppController
                     }
                     unset($attribute['AttributeTag']);
                 }
+            }
+            foreach ($source_event[0]['Object'] as &$object) {
+                foreach ($object['ObjectReference'] as &$reference) {
+                    if (isset($recovered_uuids[$object['uuid']])) {
+                        $reference['object_uuid'] = $recovered_uuids[$object['uuid']];
+                    }
+                    if (isset($recovered_uuids[$reference['referenced_uuid']])) {
+                        $reference['referenced_uuid'] = $recovered_uuids[$reference['referenced_uuid']];
+                    }
+                }
+            }
+            foreach ($source_event[0]['EventReport'] as &$report) {
+                unset($report['id'], $report['event_id']);
+                $report['uuid'] = CakeText::uuid();
             }
             $results = [
                 'results' => [
