@@ -707,6 +707,7 @@ class EventGraph {
                     id: node.id,
                     uuid: node.uuid,
                     Attribute: node.Attribute,
+                    event_id: node.event_id,
                     label: striped_value,
                     title: label,
                     group: group,
@@ -1614,16 +1615,23 @@ class MispInteraction {
     }
 
     can_create_reference(id) {
-        return this.nodes.get(id).group == "object";
+        var node = this.nodes.get(id)
+        return node.group == "object";
     }
 
     can_be_referenced(id) {
         var res;
-        if (this.nodes.get(id).group == "object") {
+        var node = this.nodes.get(id)
+        if (node.event_id != scope_id) {
+            showMessage('fail', 'Cannot reference a node not belonging in this event')
+            return false;
+        }
+        if (node.group == "object") {
             res = true;
-        } else if (this.nodes.get(id).group.slice(0, 9) == "attribute") {
+        } else if (node.group.slice(0, 9) == "attribute") {
             res = true;
         } else {
+            showMessage('fail', 'This node cannot be referenced')
             res = false;
         }
         return res;

@@ -6444,7 +6444,8 @@ class Event extends AppModel
                 list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
                         $reference['referenced_uuid'],
                         array('Event' => array('id' => $id)),
-                        false
+                        false,
+                        $user
                 );
                 if (!$referenced_id && !$referenced_uuid && !$referenced_type) {
                     continue;
