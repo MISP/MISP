@@ -208,7 +208,7 @@
                     <span style="margin-left: 5px; display: inline-block; font-size: large;"><?php echo __('Current Object state on older template version'); ?></span>
                 </div>
                 <div class="row" style="max-height: 800px; max-width: 800px; overflow: auto; padding: 15px;">
-                    <div style="border: 1px solid #3465a4 ; border-radius: 5px; overflow: hidden;" class="span5">
+                    <div style="border: 1px solid #3465a4 ; border-radius: 5px; overflow: auto;" class="span5">
                         <div class="blueElement" style="padding: 4px 5px;">
                             <div>
                                 <span class="bold"><?php echo __('ID') . ':'; ?></span>
@@ -229,9 +229,22 @@
                             <div style="background-color: #fcf8e3; color: black; padding: 2px; border-radius: 3px;">
                                 <span class="bold"><?php echo __('Template version') . ':'; ?></span>
                                 <span><?php echo h($object['Object']['template_version']); ?></span>
+                                <?php if ($original_template_unkown): ?>
+                                    <span class="label label-important" title="<?= __('The original object\'s template is unkown and some attributes might be lost. Please review carefully'); ?>">
+                                    <?= __('Unkown original template'); ?>
+                                    </span>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
+                            <thead>
+                                <tr>
+                                    <th><?= __('Obj. rel.') ?></th>
+                                    <th><?= __('Categ.') ?></th>
+                                    <th><?= __('Type') ?></th>
+                                    <th><?= __('Value') ?></th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 <?php foreach ($not_updateable_attribute as $attribute): ?>
                                     <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
@@ -245,7 +258,7 @@
                                         </td>
                                         <td><?php echo h($attribute['category']); ?></td>
                                         <td><?php echo h($attribute['type']); ?></td>
-                                        <td><?php echo h($attribute['value']); ?></td>
+                                        <td style="max-width:100px;" class="ellipsis-overflow"><?php echo h($attribute['value']); ?></td>
                                     </tr>
                                     <?php if (!$attribute['merge-possible']): ?>
                                         <?php
@@ -275,7 +288,7 @@
                                         <td style="white-space: nowrap;"><?php echo h($attribute['object_relation']); ?></td>
                                         <td><?php echo h($attribute['category']); ?></td>
                                         <td><?php echo h($attribute['type']); ?></td>
-                                        <td><?php echo h($attribute['value']); ?></td>
+                                        <td style="max-width:100px;" class="ellipsis-overflow"><?php echo h($attribute['value']); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -401,6 +414,7 @@
             $value_field.val(revised_value);
             $clicked.removeClass('fa-sign-in-alt fa-flip-horizontal').addClass('fa-trash-restore');
         }
+        $matching_row.find('input[type="checkbox"][name$="[save]').first().prop('checked', true).prop('disabled', false)
         $matching_row[0].scrollIntoView(false);
         $matching_row.children().effect('highlight', { queue: false, color: $value_field.val() === selected_value ? '#468847' : '#b94a48' }, 2500, function() { $(this).css('background-color', 'unset'); });
     }
