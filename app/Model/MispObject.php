@@ -321,6 +321,17 @@ class MispObject extends AppModel
             );
         }
         $newObjectAttributeCount = count($newObjectAttributes);
+        if (!empty($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']])) {
+            foreach ($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']] as $previousNewObject) {
+                if ($newObjectAttributeCount === count($previousNewObject)) {
+                    if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        $this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']][] = $newObjectAttributes;
+
         if (!isset($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']])) {
             $this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] = $this->find('all', array(
                 'recursive' => -1,
@@ -892,13 +903,13 @@ class MispObject extends AppModel
         return $this->id;
     }
 
-    public function captureObject($object, $eventId, $user, $log = false, $unpublish = true)
+    public function captureObject($object, $eventId, $user, $log = false, $unpublish = true, $breakOnDuplicate = false)
     {
         $this->create();
         if (!isset($object['Object'])) {
             $object = array('Object' => $object);
         }
-        if (!empty($object['Object']['breakOnDuplicate'])) {
+        if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
             $duplicate = $this->checkForDuplicateObjects($object, $eventId);
             if ($duplicate) {
                 $log->create();

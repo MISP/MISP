@@ -1325,7 +1325,7 @@ class Event extends AppModel
         if (!$eventReportSupportedByRemote) {
             return [];
         }
-        
+
         // Downgrade the object from connected communities to community only
         if (!$server['Server']['internal'] && $report['distribution'] == 2) {
             $report['distribution'] = 1;
@@ -1852,7 +1852,10 @@ class Event extends AppModel
             'includeServerCorrelations',
             'includeWarninglistHits',
             'noEventReports', // do not include event report in event data
-            'noShadowAttributes', // do not fetch proposals
+            'noShadowAttributes', // do not fetch proposals,
+            'limit',
+            'page',
+            'order'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -2136,6 +2139,15 @@ class Event extends AppModel
             unset($params['contain']['ShadowAttribute']);
             unset($params['contain']['Object']);
             unset($params['contain']['EventReport']);
+        }
+        if (!empty($options['limit'])) {
+            $params['limit'] = $options['limit'];
+        }
+        if (!empty($options['page'])) {
+            $params['page'] = $options['page'];
+        }
+        if (!empty($options['order'])) {
+            $params['order'] = $options['order'];
         }
         $results = $this->find('all', $params);
         if (empty($results)) {
@@ -3640,6 +3652,7 @@ class Event extends AppModel
         if (!$this->checkEventBlockRules($data)) {
             return 'Blocked by event block rules';
         }
+        $breakOnDuplicate = !empty($data['Event']['breakOnDuplicate']);
         $this->Log = ClassRegistry::init('Log');
         if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published']) && empty($data['Event']['EventReport'])) {
             $this->Log->create();
@@ -3862,8 +3875,9 @@ class Event extends AppModel
             }
             $referencesToCapture = array();
             if (!empty($data['Event']['Object'])) {
-                foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Object->captureObject($object, $this->id, $user, $this->Log, false);
+                $objectDuplicateCache = [];
+                foreach ($data['Event']['Object'] as $k => $object) {
+                    $result = $this->Object->captureObject($object, $this->id, $user, $this->Log, false, $breakOnDuplicate);
                 }
                 foreach ($data['Event']['Object'] as $object) {
                     if (isset($object['ObjectReference'])) {
@@ -7169,7 +7183,7 @@ class Event extends AppModel
             }
         }
     }
-    
+
     /**
      * extractAllTagNames Returns all tag names attached to any elements in an event
      *
