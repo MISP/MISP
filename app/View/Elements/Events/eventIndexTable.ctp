@@ -93,7 +93,7 @@
         <td style="width:30px;">
             <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
         </td>
-        <td class="shortish">
+        <td class="short">
             <?php
                 $galaxies = array();
                 if (!empty($event['GalaxyCluster'])) {
