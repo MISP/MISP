@@ -5,10 +5,8 @@
         }
     }
     echo $this->element('/genericElements/IndexTable/index_table', array(
+        'containerId' => 'clusters',
         'data' => array(
-            'paginatorOptions' => array(
-                'update' => '#clusters_div',
-            ),
             'data' => $list,
             'top_bar' => array(
                 'children' => array(
@@ -316,7 +314,7 @@
 ?>
 
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(function(){
         var passedArgsArray = <?php echo $passedArgs; ?>;
         var galaxyId = "<?php echo h($galaxy_id); ?>";
         if (passedArgsArray['context'] === undefined || passedArgsArray['context'] === "") {
@@ -327,4 +325,3 @@
         });
     });
 </script>
-<?php echo $this->Js->writeBuffer(); ?>
