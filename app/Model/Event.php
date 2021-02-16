@@ -340,7 +340,7 @@ class Event extends AppModel
                     'scope' => 'Event',
                     'requiresPublished' => 1,
                     'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
-                    'description' => __('Click this to download an a STIX document containing the STIX version of all events and attributes that you have access to.')
+                    'description' => __('Click this to download a STIX document containing the STIX version of all events and attributes that you have access to.')
             ),
             'stix2' => array(
                     'extension' => '.json',
@@ -348,7 +348,7 @@ class Event extends AppModel
                     'scope' => 'Event',
                     'requiresPublished' => 1,
                     'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
-                    'description' => __('Click this to download an a STIX2 document containing the STIX2 version of all events and attributes that you have access to.')
+                    'description' => __('Click this to download a STIX2 document containing the STIX2 version of all events and attributes that you have access to.')
             ),
             'rpz' => array(
                     'extension' => '.txt',
@@ -1571,6 +1571,12 @@ class Event extends AppModel
         return $tempConditions;
     }
 
+    /**
+     * @param array $user
+     * @param array $params
+     * @param int $result_count
+     * @return array Event IDs, when `include_attribute_count` is enabled, then it is Event ID => Attribute count
+     */
     public function filterEventIds($user, &$params = array(), &$result_count = 0)
     {
         $conditions = $this->createEventConditions($user);
@@ -1654,14 +1660,9 @@ class Event extends AppModel
                 }
             }
         }
-        $fields = array('Event.id');
-        if (!empty($params['include_attribute_count'])) {
-            $fields[] = 'Event.attribute_count';
-        }
         $find_params = array(
             'conditions' => $conditions,
             'recursive' => -1,
-            'fields' => $fields
         );
         if (isset($params['order'])) {
             $find_params['order'] = $params['order'];
@@ -1674,7 +1675,13 @@ class Event extends AppModel
                 $find_params['page'] = $params['page'];
             }
         }
-        $results = $this->find('list', $find_params);
+        if (!empty($params['include_attribute_count'])) {
+            $find_params['fields'] = array('Event.id', 'Event.attribute_count');
+            $results = $this->find('list', $find_params);
+        } else {
+            $find_params['fields'] = array('Event.id');
+            $results = $this->find('column', $find_params);
+        }
         if (!isset($params['limit'])) {
             $result_count = count($results);
         }
@@ -1845,9 +1852,10 @@ class Event extends AppModel
             'includeServerCorrelations',
             'includeWarninglistHits',
             'noEventReports', // do not include event report in event data
-            'noShadowAttributes', // do not fetch proposals
+            'noShadowAttributes', // do not fetch proposals,
             'limit',
-            'page'
+            'page',
+            'order'
         );
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -2131,6 +2139,15 @@ class Event extends AppModel
             unset($params['contain']['ShadowAttribute']);
             unset($params['contain']['Object']);
             unset($params['contain']['EventReport']);
+        }
+        if (!empty($options['limit'])) {
+            $params['limit'] = $options['limit'];
+        }
+        if (!empty($options['page'])) {
+            $params['page'] = $options['page'];
+        }
+        if (!empty($options['order'])) {
+            $params['order'] = $options['order'];
         }
         $results = $this->find('all', $params);
         if (empty($results)) {
@@ -3635,6 +3652,7 @@ class Event extends AppModel
         if (!$this->checkEventBlockRules($data)) {
             return 'Blocked by event block rules';
         }
+        $breakOnDuplicate = !empty($data['Event']['breakOnDuplicate']);
         $this->Log = ClassRegistry::init('Log');
         if (empty($data['Event']['Attribute']) && empty($data['Event']['Object']) && !empty($data['Event']['published']) && empty($data['Event']['EventReport'])) {
             $this->Log->create();
@@ -3857,8 +3875,9 @@ class Event extends AppModel
             }
             $referencesToCapture = array();
             if (!empty($data['Event']['Object'])) {
-                foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Object->captureObject($object, $this->id, $user, $this->Log, false);
+                $objectDuplicateCache = [];
+                foreach ($data['Event']['Object'] as $k => $object) {
+                    $result = $this->Object->captureObject($object, $this->id, $user, $this->Log, false, $breakOnDuplicate);
                 }
                 foreach ($data['Event']['Object'] as $object) {
                     if (isset($object['ObjectReference'])) {
@@ -5587,6 +5606,9 @@ class Event extends AppModel
             }
             $event['Object'] = $objects;
         }
+        if (!empty($result['results']['EventReport'])) {
+            $event['EventReport'] = $result['results']['EventReport'];
+        }
         foreach (array('Tag', 'Galaxy') as $field) {
             if (!empty($result['results'][$field])) {
                 $event[$field] = $result['results'][$field];
@@ -5624,30 +5646,38 @@ class Event extends AppModel
         return $attribute;
     }
 
-    public function export($user = false, $module = false, $options = array())
+    /**
+     * @param array $user
+     * @param string $module
+     * @param array $options
+     * @return array
+     * @throws Exception
+     */
+    public function export(array $user, $module, array $options = array())
     {
-        if (empty($user)) {
-            return 'Invalid user.';
-        }
         if (empty($module)) {
-            return 'Invalid module.';
+            throw new InvalidArgumentException('Invalid module.');
         }
         $this->Module = ClassRegistry::init('Module');
         $module = $this->Module->getEnabledModule($module, 'Export');
+        if (!is_array($module)) {
+            throw new NotFoundException('Invalid module.');
+        }
+        // Export module can specify additional options for event fetch
+        if (isset($module['meta']['fetch_options'])) {
+            $options = array_merge($options, $module['meta']['fetch_options']);
+        }
         $events = $this->fetchEvent($user, $options);
         if (empty($events)) {
-            return 'Invalid event.';
+            throw new NotFoundException('Invalid event.');
         }
-        $standard_format = false;
         $modulePayload = array('module' => $module['name']);
-        if (!empty($module['meta']['require_standard_format'])) {
-            $standard_format = true;
-        }
         if (isset($module['meta']['config'])) {
             foreach ($module['meta']['config'] as $conf) {
                 $modulePayload['config'][$conf] = Configure::read('Plugin.Export_' . $module['name'] . '_' . $conf);
             }
         }
+        $standard_format = !empty($module['meta']['require_standard_format']);
         if ($standard_format) {
             App::uses('JSONConverterTool', 'Tools');
             $converter = new JSONConverterTool();
@@ -5657,11 +5687,11 @@ class Event extends AppModel
         }
         $modulePayload['data'] = $events;
         $result = $this->Module->queryModuleServer($modulePayload, false, 'Export');
-        return array(
-                'data' => $result['data'],
-                'extension' => $module['mispattributes']['outputFileExtension'],
-                'response' => $module['mispattributes']['responseType']
-        );
+        return [
+            'data' => $result['data'],
+            'extension' => $module['mispattributes']['outputFileExtension'],
+            'response' => $module['mispattributes']['responseType']
+        ];
     }
 
     public function cacheSgids($user, $useCache = false)
@@ -6213,12 +6243,12 @@ class Event extends AppModel
             $this->Job->id = $jobId;
 
         }
-        $failed_attributes = $failed_objects = $failed_object_attributes = 0;
-        $saved_attributes = $saved_objects = $saved_object_attributes = 0;
+        $failed_attributes = $failed_objects = $failed_object_attributes = $failed_reports = 0;
+        $saved_attributes = $saved_objects = $saved_object_attributes = $saved_reports = 0;
         $items_count = 0;
         $failed = array();
         $recovered_uuids = array();
-        foreach (array('Attribute', 'Object') as $feature) {
+        foreach (array('Attribute', 'Object', 'EventReport') as $feature) {
             if (isset($resolved_data[$feature])) {
                 $items_count += count($resolved_data[$feature]);
             }
@@ -6434,7 +6464,27 @@ class Event extends AppModel
                 }
             }
         }
-        if ($saved_attributes > 0 || $saved_objects > 0) {
+        if (!empty($resolved_data['EventReport'])) {
+            $total_reports = count($resolved_data['EventReport']);
+            foreach ($resolved_data['EventReport'] as $i => $report) {
+                $this->EventReport->create();
+                $report['event_id'] = $id;
+                if ($this->EventReport->save($report)) {
+                    $saved_reports++;
+                } else {
+                    $failed_reports++;
+                    $lastReportError = $this->EventReport->validationErrors;
+                }
+                if ($jobId) {
+                    $current = ($i + 1);
+                    $this->Job->saveField('message', 'EventReport ' . $current . '/' . $total_reports);
+                    $this->Job->saveField('progress', ($current * 100 / $items_count));
+                }
+            }
+        } else {
+            $total_reports = 0;
+        }
+        if ($saved_attributes > 0 || $saved_objects > 0 || $saved_reports > 0) {
             $event = $this->find('first', array(
                     'conditions' => array('Event.id' => $id),
                     'recursive' => -1
@@ -6447,7 +6497,7 @@ class Event extends AppModel
             $this->save($event);
         }
         if ($event_level) {
-            return $saved_attributes + $saved_object_attributes;
+            return $saved_attributes + $saved_object_attributes + $saved_reports;
         }
         $message = '';
         if ($saved_attributes > 0) {
@@ -6492,6 +6542,17 @@ class Event extends AppModel
                 $message .= $error;
             }
             $message .= 'you can have a look at the module results view you just left, to compare.';
+        }
+        if ($saved_reports > 0) {
+            $message .= $saved_reports . ' ' . $this->__apply_inflector($saved_reports, 'eventReport') . ' created. ';
+        }
+        if ($failed_reports > 0) {
+            if ($failed_reports == 1) {
+                $reason = ' eventReport could not be saved. Reason for the failure: ' . json_encode($lastReportError) . ' ';
+            } else {
+                $reason = ' eventReport could not be saved. ';
+            }
+            $message .= $failed_reports . $reason;
         }
         if ($jobId) {
             $this->Job->saveField('message', 'Processing complete. ' . $message);

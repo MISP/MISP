@@ -1,5 +1,4 @@
-<?php echo $this->Html->script('moment-with-locales'); ?>
-
+<?= $this->Html->script('moment.min'); ?>
 <script>
 <?php
     $temp = explode('_', $this->params->controller);
@@ -49,22 +48,22 @@ $(function() {
     var $sliders_container = $("#bothSeenSliderContainer");
     var inputs_container = $('<div class="input-group input-daterange"></div>');
     // create separate date and time input
-    var date_div_fs = $('<div class="input clear" style="width: 257px"></div>').append(
+    var date_div_fs = $('<div class="input clear" style="width: 257px; margin-right: 0"></div>').append(
         $('<label><?php echo __('First seen date') . '<span class="fas fa-calendar label-icon"></span>'; ?><input id="date_fs" type="text" style="width: 240px;"></input></label>')
     );
     $(inputs_container).append(date_div_fs);
-    var date_div_ls = $('<div class="input text" style="width: 257px"></div>').append(
+    var date_div_ls = $('<div class="input text" style="width: 257px; margin-right: 0"></div>').append(
         $('<label><?php echo __('Last seen date') . '<span class="fas fa-calendar label-icon"></span>'; ?><input id="date_ls" type="text" style="width: 240px;"></input></label>')
     );
     $(inputs_container).append(date_div_ls);
     $sliders_container.append(inputs_container);
 
-    var time_div_fs = $('<div class="input clear" style="width: 257px"></div>').append(
+    var time_div_fs = $('<div class="input clear" style="width: 257px; margin-right: 0"></div>').append(
         $('<label><?php echo __('First seen time') . '<span class="fas fa-clock label-icon"></span>'; ?><input id="time_fs" type="text" style="width: 240px; text-align: center; margin-bottom: 0px" placeholder="HH:MM:SS.ssssss+TT:TT"></input></label>'),
         $('<span class="apply_css_arrow"></span>').text('<?php echo __('Expected format: HH:MM:SS.ssssss+TT:TT') ?>')
     );
     $sliders_container.append(time_div_fs);
-    var time_div_ls = $('<div class="input" style="width: 257px"></div>').append(
+    var time_div_ls = $('<div class="input" style="width: 257px; margin-right: 0"></div>').append(
         $('<label><?php echo __('Last seen time') . '<span class="fas fa-clock label-icon"></span>'; ?><input id="time_ls" type="text" style="width: 240px; text-align: center; margin-bottom: 0px" placeholder="HH:MM:SS.ssssss+TT:TT"></input></label>'),
         $('<span class="apply_css_arrow"></span>').text('<?php echo __('Expected format: HH:MM:SS.ssssss+TT:TT') ?>')
     );

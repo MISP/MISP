@@ -55,7 +55,7 @@ class CsseCovidTrendsWidget
             'date' => (empty($options['timeframe']) ? 10 : $options['timeframe']) . 'd'
         );
         $eventIds = $this->Event->filterEventIds($user, $params);
-        $eventIds = array_reverse(array_values($eventIds));
+        $eventIds = array_reverse($eventIds);
         $data = array();
         if (empty($options['type'])) {
             $options['type'] = 'confirmed';

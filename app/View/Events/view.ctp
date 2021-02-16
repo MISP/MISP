@@ -5,7 +5,7 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
     echo $this->Html->script('doT');
     echo $this->Html->script('extendext');
-    echo $this->Html->script('moment-with-locales');
+    echo $this->Html->script('moment.min');
     echo $this->Html->css('query-builder.default');
     echo $this->Html->script('query-builder');
     echo $this->Html->css('attack_matrix');
@@ -172,11 +172,11 @@
         );
         $table_data[] = array(
             'key' => __('First recorded change'),
-            'value' => (!$oldest_timestamp) ? '' : date('Y-m-d H:i:s', $oldest_timestamp)
+            'html' => !$oldest_timestamp ? '' : $this->Time->time($oldest_timestamp),
         );
         $table_data[] = array(
             'key' => __('Last change'),
-            'value' => date('Y-m-d H:i:s', $event['Event']['timestamp'])
+            'html' => $this->Time->time($event['Event']['timestamp']),
         );
         $table_data[] = array(
             'key' => __('Modification map'),

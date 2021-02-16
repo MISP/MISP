@@ -1883,6 +1883,7 @@ span.success {
     background-color: red !important;
     color: white;
     font-weight: bold;
+    padding: 3px 5px;
 }
 
 .red {
@@ -2728,4 +2729,17 @@ td.rotate + td:not(.rotate) {
 
 #eventToggleButtons button span {
     margin-right: 2px;
+}
+
+#RoleAdminEditForm fieldset {
+    margin-bottom: 1em;
+}
+
+#RoleAdminEditForm .role-permissions {
+    clear: both;
+    width: 570px;
+}
+
+#RoleAdminEditForm .role-permissions div.input {
+   width: 160px;
 }

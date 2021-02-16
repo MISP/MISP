@@ -102,12 +102,12 @@
     }
     $table_data[] = array(
         'key' => __('Created'),
-        'value' => $user['User']['date_created'] ? date('Y-m-d H:i:s', $user['User']['date_created']) : __('N/A')
+        'value' => $user['User']['date_created'] ? $this->Time->time($user['User']['date_created']) : __('N/A')
     );
     if ($admin_view) {
         $table_data[] = array(
             'key' => __('News read at'),
-            'value' => $user['User']['newsread'] ? date('Y-m-d H:i:s', $user['User']['newsread']) : __('N/A')
+            'value' => $user['User']['newsread'] ? $this->Time->time($user['User']['newsread']) : __('N/A')
         );
         $table_data[] = array(
             'key' => __('Disabled'),

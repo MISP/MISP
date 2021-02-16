@@ -3024,6 +3024,23 @@ function moduleResultsSubmit(id) {
         });
         data_collected['Attribute'] = attributes;
     }
+    if ($('.MISPEventReport').length) {
+        var reports = [];
+        $('.MISPEventReport').each(function() {
+            temp = {
+                import_report: $(this).find('.ImportMISPEventReport')[0].checked,
+                name: $(this).find('.EventReportName').text(),
+                content: $(this).find('.EventReportContent').text(),
+                uuid: $(this).find('.EventReportUUID').text(),
+                distribution: $(this).find('.EventReportDistribution').val(),
+                sharing_group_id: $(this).find('.EventReportSharingGroup').val()
+            }
+            if (temp['import_report']) {
+                reports.push(temp);
+            }
+        });
+        data_collected['EventReport'] = reports;
+    }
     $("#EventJsonObject").val(JSON.stringify(data_collected));
     var formData = $('.mainForm').serialize();
     $.ajax({
@@ -5393,7 +5410,7 @@ function saveDashboardState() {
 
 function updateDashboardWidget(element) {
     var $element = $(element);
-    if (element.length) {
+    if ($element.length) {
         var container_id = $element.attr('id').substring(7);
         var container = $element.find('.widgetContent');
         var titleText = $element.find('.widgetTitleText');
@@ -5655,3 +5672,14 @@ $('body').on('click', '.hex-value-convert', function() {
         }
     }, 'a.tag[data-tag-id]');
 })();
+
+// Highlight column for roles table
+$('td.rotate').hover(function() {
+    var $table = $(this).closest('table');
+    var t = parseInt($(this).index()) + 1;
+    $table.find('td:nth-child(' + t + ')').css('background-color', '#CFEFFF');
+}, function() {
+    var $table = $(this).closest('table');
+    var t = parseInt($(this).index()) + 1;
+    $table.find('td:nth-child(' + t + ')').css('background-color', '');
+});

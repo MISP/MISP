@@ -228,7 +228,7 @@ class Taxonomy extends AppModel
 
     // returns all tags associated to a taxonomy
     // returns all tags not associated to a taxonomy if $inverse is true
-    public function getAllTaxonomyTags($inverse = false, $user = false, $full = false)
+    public function getAllTaxonomyTags($inverse = false, $user = false, $full = false, $hideUnselectable = true)
     {
         $this->Tag = ClassRegistry::init('Tag');
         $taxonomyIdList = $this->find('column', array('fields' => array('Taxonomy.id')));
@@ -243,7 +243,7 @@ class Taxonomy extends AppModel
                 $conditions[] = array('Tag.user_id' => array(0, $user['id']));
             }
         }
-        if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
+        if (Configure::read('MISP.incoming_tags_disabled_by_default') || $hideUnselectable) {
             $conditions['Tag.hide_tag'] = 0;
         }
         if ($full) {
