@@ -21,6 +21,7 @@
                 'fields' => array('Tag.id', 'Tag.name'),
                 'sort' => array('lower(Tag.name) asc'),
             ));
+            $this->__extendedEventUUIDMapping = array();
             $this->__extended_view = $extended_view;
             $this->__lookupTables = array(
                 'analysisLevels' => $this->__eventModel->analysisLevels,
@@ -266,6 +267,7 @@
                     'node_type' => 'attribute',
                 );
                 array_push($this->__json['items'], $toPush);
+                $this->__extendedEventUUIDMapping[$toPush['event_id']] = '';
             }
 
             foreach ($object as $obj) {
@@ -290,6 +292,7 @@
                 }
 
                 array_push($this->__json['items'], $toPush);
+                $this->__extendedEventUUIDMapping[$toPush['event_id']] = '';
 
                 foreach ($obj['ObjectReference'] as $rel) {
                     $toPush = array(
@@ -303,6 +306,11 @@
                     );
                     array_push($this->__json['relations'], $toPush);
                 }
+            }
+
+            if ($this->__extended_view) {
+                $this->fetchEventUUIDFromId();
+                $this->__json['extended_event_uuid_mapping'] = $this->__extendedEventUUIDMapping;
             }
 
             return $this->__json;
@@ -546,5 +554,14 @@
                 throw new NotFoundException('No templates');
             }
             return $templates;
+        }
+
+        public function fetchEventUUIDFromId()
+        {
+            $eventUUIDs = $this->__eventModel->find('list', [
+                'conditions' => ['id' => array_keys($this->__extendedEventUUIDMapping)],
+                'fields' => ['uuid']
+            ]);
+            $this->__extendedEventUUIDMapping = $eventUUIDs;
         }
     }
