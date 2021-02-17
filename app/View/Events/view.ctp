@@ -575,7 +575,7 @@ $(function () {
     popoverStartup();
 
     $(document.body).tooltip({
-        selector: 'span[title], td[title]',
+        selector: 'span[title], td[title], time[title]',
         placement: 'top',
         container: 'body',
         delay: { show: 500, hide: 100 }
