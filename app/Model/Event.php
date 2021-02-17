@@ -6830,6 +6830,16 @@ class Event extends AppModel
                         $reference[$field] = $found[$field];
                     }
                     $event['Object'][$k]['ObjectReference'][$k2][$type] = $reference;
+                } else { // object / attribute might be from an extended event
+                    $otherEventText = __('%s from another event', $reference['referenced_type'] == 0 ? 'Attribute' : 'Object');
+                    $event['Object'][$k]['ObjectReference'][$k2][$type] = [
+                        'name' => '',
+                        'meta-category' => $otherEventText,
+                        'category' => $otherEventText,
+                        'type' => '',
+                        'value' => '',
+                        'uuid' => $reference['referenced_uuid']
+                    ];
                 }
             }
         }
