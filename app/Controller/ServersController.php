@@ -1042,35 +1042,35 @@ class ServersController extends AppController
                 $this->set('branch', $gitStatus['branch']);
                 $this->set('commit', $gitStatus['commit']);
                 $this->set('latestCommit', $gitStatus['latestCommit']);
+
                 $phpSettings = array(
                     'max_execution_time' => array(
                         'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
                         'recommended' => 300,
-                        'unit' => false
+                        'unit' => 'seconds',
                     ),
                     'memory_limit' => array(
                         'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
                         'recommended' => 2048,
-                        'unit' => 'M'
+                        'unit' => 'MB'
                     ),
                     'upload_max_filesize' => array(
                         'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
                         'recommended' => 50,
-                        'unit' => 'M'
+                        'unit' => 'MB'
                     ),
                     'post_max_size' => array(
                         'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
                         'recommended' => 50,
-                        'unit' => 'M'
+                        'unit' => 'MB'
                     )
                 );
 
                 foreach ($phpSettings as $setting => $settingArray) {
-                    $phpSettings[$setting]['value'] = ini_get($setting);
-                    if ($settingArray['unit']) {
-                        $phpSettings[$setting]['value'] = intval(rtrim($phpSettings[$setting]['value'], $phpSettings[$setting]['unit']));
-                    } else {
-                        $phpSettings[$setting]['value'] = intval($phpSettings[$setting]['value']);
+                    $phpSettings[$setting]['value'] = $this->Server->getIniSetting($setting);
+                    if ($phpSettings[$setting]['value'] && $settingArray['unit'] && $settingArray['unit'] === 'MB') {
+                        // convert basic unit to M
+                        $phpSettings[$setting]['value'] = (int) floor($phpSettings[$setting]['value'] / 1024 / 1024);
                     }
                 }
                 $this->set('phpSettings', $phpSettings);
@@ -1342,17 +1342,20 @@ class ServersController extends AppController
                     continue;
                 }
 
+                $exception = null;
                 try {
-                    $remote_event = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
-                    $remote_event_id = $remote_event[0]['id'];
+                    $remoteEvent = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
                 } catch (Exception $e) {
-                    $remote_event_id = null;
+                    $remoteEvent = null;
+                    $exception = $e->getMessage();
                 }
+                $remoteEventId = isset($remoteEvent[0]['id']) ? $remoteEvent[0]['id'] : null;
                 $remote_events[] = array(
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],
-                    "url" => isset($remote_event_id) ? $server['Server']['url']."/events/view/".$remote_event_id : $server['Server']['url'],
-                    "remote_id" => isset($remote_event_id) ? $remote_event_id : false
+                    "url" => isset($remoteEventId) ? $server['Server']['url'] . "/events/view/" . $remoteEventId : $server['Server']['url'],
+                    "remote_id" => isset($remoteEventId) ? $remoteEventId : false,
+                    "exception" => $exception,
                 );
             }
 
@@ -1652,10 +1655,6 @@ class ServersController extends AppController
 
     public function testConnection($id = false)
     {
-        if (!$this->Auth->user('Role')['perm_sync'] && !$this->Auth->user('Role')['perm_site_admin']) {
-            throw new MethodNotAllowedException('You don\'t have permission to do that.');
-        }
-
         $server = $this->Server->find('first', ['conditions' => ['Server.id' => $id]]);
         if (!$server) {
             throw new NotFoundException(__('Invalid server'));

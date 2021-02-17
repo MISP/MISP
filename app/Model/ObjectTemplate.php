@@ -31,6 +31,8 @@ class ObjectTemplate extends AppModel
     public $validate = array(
     );
 
+    public $objectsDir = APP . 'files/misp-objects/objects';
+
     public function afterFind($results, $primary = false)
     {
         foreach ($results as $k => $result) {
@@ -49,10 +51,9 @@ class ObjectTemplate extends AppModel
 
     public function update($user = false, $type = false, $force = false)
     {
-        $objectsDir = APP . 'files/misp-objects/objects';
-        $directories = glob($objectsDir . '/*', GLOB_ONLYDIR);
+        $directories = $this->getTemplateDirectoryPaths();
         foreach ($directories as $k => $dir) {
-            $dir = str_replace($objectsDir, '', $dir);
+            $dir = str_replace($this->objectsDir, '', $dir);
             $directories[$k] = $dir;
         }
         $updated = array();
@@ -60,10 +61,10 @@ class ObjectTemplate extends AppModel
             if ($type && '/' . $type != $dir) {
                 continue;
             }
-            if (!file_exists($objectsDir . DS . $dir . DS . 'definition.json')) {
+            if (!file_exists($this->objectsDir . DS . $dir . DS . 'definition.json')) {
                 continue;
             }
-            $file = new File($objectsDir . DS . $dir . DS . 'definition.json');
+            $file = new File($this->objectsDir . DS . $dir . DS . 'definition.json');
             $template = json_decode($file->read(), true);
             $file->close();
             if (!isset($template['version'])) {
@@ -315,5 +316,57 @@ class ObjectTemplate extends AppModel
             $this->save($st);
         }
         return 1;
+    }
+
+    public function getRawFromDisk($uuidOrName)
+    {
+        $template = [];
+        if (Validation::uuid($uuidOrName)) {
+            foreach ($this->readTemplatesFromDisk() as $templateFromDisk) {
+                if ($templateFromDisk['uuid'] == $uuidOrName) {
+                    $template = $templateFromDisk;
+                    break;
+                }
+            }
+        } else {
+            $allTemplateNames = $this->getTemplateDirectoryPaths(false);
+            if (in_array($uuidOrName, $allTemplateNames)) { // ensure the path is not out of scope
+                $template = $this->readTemplateFromDisk($this->getFullPathFromTemplateName($uuidOrName));
+            }
+        }
+        return $template;
+    }
+
+    private function readTemplateFromDisk($path)
+    {
+        $file = new File($path, false);
+        if (!$file->exists()) {
+            return false;
+        }
+        $template = json_decode($file->read(), true);
+        $file->close();
+        return $template;
+    }
+
+    private function readTemplatesFromDisk()
+    {
+        foreach ($this->getTemplateDirectoryPaths() as $dirpath) {
+            $filepath = $dirpath . DS . 'definition.json';
+            $template = $this->readTemplateFromDisk($filepath);
+            if (isset($template['uuid'])) {
+                yield $template;
+            }
+        }
+    }
+
+    private function getTemplateDirectoryPaths($fullPath=true)
+    {
+        $dir = new Folder($this->objectsDir, false);
+        return $dir->read(true, false, $fullPath)[0];
+    }
+
+    private function getFullPathFromTemplateName($templateName)
+    {
+        return $this->objectsDir . DS . $templateName . DS . 'definition.json';
     }
 }

@@ -346,7 +346,9 @@ class ACLComponent extends Component
                 'view' => array('*'),
             ),
             'galaxyElements' => array(
-                    'index' => array('*')
+                'delete' => array('perm_galaxy_editor'),
+                'flattenJson' => array('perm_galaxy_editor'),
+                'index' => array('*'),
             ),
             'jobs' => array(
                     'cache' => array('*'),
@@ -412,6 +414,7 @@ class ACLComponent extends Component
                 'edit' => array('perm_object_template'),
                 'delete' => array('perm_object_template'),
                 'getToggleField' => array(),
+                'getRaw' => array('perm_object_template'),
                 'objectChoice' => array('*'),
                 'objectMetaChoice' => array('perm_add'),
                 'view' => array('*'),
@@ -542,6 +545,7 @@ class ACLComponent extends Component
                     'generateCorrelation' => array(),
                     'index' => array('*'),
                     'view' => array('*'),
+                    'viewPicture' => array('*'),
             ),
             'sharingGroups' => array(
                     'add' => array('perm_sharing_group'),

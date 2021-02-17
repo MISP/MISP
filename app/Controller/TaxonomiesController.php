@@ -9,17 +9,17 @@ class TaxonomiesController extends AppController
     public $components = array('Session', 'RequestHandler');
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
-            'contain' => array(
-                'TaxonomyPredicate' => array(
-                    'fields' => array('TaxonomyPredicate.id'),
-                    'TaxonomyEntry' => array('fields' => array('TaxonomyEntry.id'))
-                )
-            ),
-            'order' => array(
-                    'Taxonomy.id' => 'DESC'
-            ),
+        'limit' => 60,
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'contain' => array(
+            'TaxonomyPredicate' => array(
+                'fields' => array('TaxonomyPredicate.id', 'TaxonomyPredicate.value'),
+                'TaxonomyEntry' => array('fields' => array('TaxonomyEntry.id', 'TaxonomyEntry.value'))
+            )
+        ),
+        'order' => array(
+                'Taxonomy.id' => 'DESC'
+        ),
     );
 
     public function index()
@@ -46,25 +46,15 @@ class TaxonomiesController extends AppController
         } else {
             $taxonomies = $this->paginate();
         }
-        $this->loadModel('Tag');
-        foreach ($taxonomies as $key => $taxonomy) {
-            $total = 0;
-            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
-                $total += empty($predicate['TaxonomyEntry']) ? 1 : count($predicate['TaxonomyEntry']);
-            }
-            $taxonomies[$key]['total_count'] = $total;
-            $taxonomies[$key]['current_count'] = $this->Tag->find('count', array(
-                'conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%', 'hide_tag' => 0),
-                'recursive' => -1,
-            ));
-            unset($taxonomies[$key]['TaxonomyPredicate']);
-        }
+
+        $taxonomies = $this->__tagCount($taxonomies);
+
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($taxonomies, $this->response->type());
-        } else {
-            $this->set('taxonomies', $taxonomies);
-            $this->set('passedArgsArray', $this->passedArgs);
         }
+
+        $this->set('taxonomies', $taxonomies);
+        $this->set('passedArgsArray', $this->passedArgs);
     }
 
     public function view($id)
@@ -467,6 +457,53 @@ class TaxonomiesController extends AppController
         $this->autoRender = false;
         $this->layout = 'ajax';
         $this->render('ajax/toggle_required');
+    }
+
+    /**
+     * Attach tag counts.
+     * @param array $taxonomies
+     * @return array
+     */
+    private function __tagCount(array $taxonomies)
+    {
+        $tags = [];
+        foreach ($taxonomies as $taxonomyPos => $taxonomy) {
+            $total = 0;
+            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+                if (isset($predicate['TaxonomyEntry']) && !empty($predicate['TaxonomyEntry'])) {
+                    foreach ($predicate['TaxonomyEntry'] as $entry) {
+                        $tag = mb_strtolower($taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value'] . '="' . $entry['value'] . '"');
+                        $tags[$tag] = $taxonomyPos;
+                        $total++;
+                    }
+                } else {
+                    $tag = mb_strtolower($taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value']);
+                    $tags[$tag] = $taxonomyPos;
+                    $total++;
+                }
+            }
+            $taxonomies[$taxonomyPos]['total_count'] = $total;
+            $taxonomies[$taxonomyPos]['current_count'] = 0;
+            unset($taxonomies[$taxonomyPos]['TaxonomyPredicate']);
+        }
+
+        $this->loadModel('Tag');
+        $existingTags = $this->Tag->find('column', [
+            'fields' => ['Tag.name'],
+            'conditions' => [
+                'lower(Tag.name)' => array_keys($tags),
+                'hide_tag' => 0
+            ],
+        ]);
+
+        foreach ($existingTags as $existingTag) {
+            $existingTag = mb_strtolower($existingTag);
+            if (isset($tags[$existingTag])) {
+                $taxonomies[$tags[$existingTag]]['current_count']++;
+            }
+        }
+
+        return $taxonomies;
     }
 
     private function __search($value)

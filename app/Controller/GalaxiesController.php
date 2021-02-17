@@ -267,6 +267,7 @@ class GalaxiesController extends AppController
     {
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
         $local = !empty($this->params['named']['local']) ? $this->params['named']['local'] : '0';
+        $eventid = !empty($this->params['named']['eventid']) ? $this->params['named']['eventid'] : '0';
         $conditions = $namespace === '0' ? array() : array('namespace' => $namespace);
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
@@ -278,14 +279,14 @@ class GalaxiesController extends AppController
         $items = array(
             array(
                 'name' => __('All clusters'),
-                'value' => $this->baseurl . "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local
+                'value' => $this->baseurl . "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'. '/local:' . $local . '/eventid:' . $eventid
             )
         );
         foreach ($galaxies as $galaxy) {
             if (!isset($galaxy['Galaxy']['kill_chain_order']) || $noGalaxyMatrix) {
                 $items[] = array(
                     'name' => h($galaxy['Galaxy']['name']),
-                    'value' => $this->baseurl . "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local,
+                    'value' => $this->baseurl . "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local . '/eventid:' . $eventid,
                     'template' => array(
                         'preIcon' => 'fa-' . $galaxy['Galaxy']['icon'],
                         'name' => $galaxy['Galaxy']['name'],
@@ -296,11 +297,12 @@ class GalaxiesController extends AppController
                 $param = array(
                     'name' => $galaxy['Galaxy']['name'],
                     'functionName' => sprintf(
-                        "getMatrixPopup('%s', '%s', '%s/local:%s')",
+                        "getMatrixPopup('%s', '%s', '%s/local:%s/eventid:%s')",
                         $target_type,
                         $target_id,
                         $galaxy['Galaxy']['id'],
-                        $local
+                        $local,
+                        $eventid
                     ),
                     'isPill' => true,
                     'isMatrix' => true
@@ -325,15 +327,17 @@ class GalaxiesController extends AppController
             'order' => array('namespace asc')
         ));
         $local = !empty($this->params['named']['local']) ? '1' : '0';
+        $eventid = !empty($this->params['named']['eventid']) ? $this->params['named']['eventid'] : '0';
         $items = array();
+        $noGalaxyMatrix = $noGalaxyMatrix ? '1' : '0';
         $items[] = array(
             'name' => __('All namespaces'),
-            'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/' . $noGalaxyMatrix . '/local:' . $local
+            'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0' . '/' . $noGalaxyMatrix . '/local:' . $local . '/eventid:' . $eventid
         );
         foreach ($namespaces as $namespace) {
             $items[] = array(
                 'name' => $namespace,
-                'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/' . $noGalaxyMatrix . '/local:' . $local
+                'value' => $this->baseurl . "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace . '/' . $noGalaxyMatrix . '/local:' . $local . '/eventid:' . $eventid
             );
         }
 

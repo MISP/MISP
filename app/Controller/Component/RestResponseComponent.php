@@ -532,7 +532,9 @@ class RestResponseComponent extends Component
                         $response['sql_dump'] = $this->Log->getDataSource()->getLog(false, false);
                     }
                 }
-                $response = json_encode($response, JSON_PRETTY_PRINT);
+                // Do not pretty print response for automatic tools
+                $flags = $this->isAutomaticTool() ? JSON_UNESCAPED_UNICODE : JSON_PRETTY_PRINT;
+                $response = json_encode($response, $flags);
             } else {
                 if ($dumpSql) {
                     $this->Log = ClassRegistry::init('Log');
@@ -580,6 +582,16 @@ class RestResponseComponent extends Component
             $cakeResponse->download($download);
         }
         return $cakeResponse;
+    }
+
+    /**
+     * Detect if request comes from automatic tool, like other MISP instance or PyMISP
+     * @return bool
+     */
+    public function isAutomaticTool()
+    {
+        $userAgent = CakeRequest::header('User-Agent');
+        return $userAgent && (substr($userAgent, 0, 6) === 'PyMISP' || substr($userAgent, 0, 4) === 'MISP');
     }
 
     private function __generateURL($action, $controller, $id)
@@ -1806,8 +1818,6 @@ class RestResponseComponent extends Component
     private function __overwriteReturnFormat($scope, $action, &$field) {
         switch($scope) {
             case "Attribute":
-                $field['values'] = array_keys(ClassRegistry::init($scope)->validFormats);
-                break;
             case "Event":
                 $field['values'] = array_keys(ClassRegistry::init($scope)->validFormats);
                 break;

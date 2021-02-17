@@ -78,7 +78,7 @@
                         'fa-icon' => 'rebel',
                         'fa-source' => 'fab',
                         'onClick' => 'popoverPopup',
-                        'onClickParams' => array('this', 'selected/attribute', 'galaxies', 'selectGalaxyNamespace')
+                        'onClickParams' => array('this', 'selected/attribute/eventid:' . h($event['Event']['id']), 'galaxies', 'selectGalaxyNamespace')
                     ),
                     array(
                         'id' => 'group-into-object-button',

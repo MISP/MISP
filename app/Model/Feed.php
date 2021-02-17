@@ -32,7 +32,10 @@ class Feed extends AppModel
             'rule' => array('urlOrExistingFilepath')
         ),
         'provider' => 'valueNotEmpty',
-        'name' => 'valueNotEmpty',
+        'name' => [
+            'rule' => 'valueNotEmpty',
+            'required' => true,
+        ],
         'event_id' => array(
             'rule' => array('numeric'),
             'message' => 'Please enter a numeric event ID or leave this field blank.',
@@ -1469,7 +1472,7 @@ class Feed extends AppModel
                     }
                 }
                 $this->create();
-                if (!$this->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default', 'lookup_visible'))) {
+                if (!$this->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default', 'lookup_visible', 'headers'))) {
                     $results['fails']++;
                 } else {
                     $results['successes']++;

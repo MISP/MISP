@@ -40,6 +40,9 @@ class ElasticSearchClient
         // Format timestamp
         $time = strftime("%Y-%m-%d %H:%M:%S", strtotime($document["Log"]["created"]));
         $document["Log"]["created"] = $time;
+        if (empty($document["Log"]["ip"])) {
+            $document["Log"]["ip"] = null;
+        }
         $params = array(
             'index' => $index,
             'type' => $document_type,

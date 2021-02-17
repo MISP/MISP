@@ -103,6 +103,9 @@ class EventReport extends AppModel
             $report = ['EventReport' => $report];
         }
         $report['EventReport']['event_id'] = $eventId;
+        if (!empty($report['EventReport']['id'])) {
+            unset($report['EventReport']['id']);
+        }
         $report = $this->captureSG($user, $report);
         $this->create();
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => $this->captureFields]);
@@ -114,7 +117,7 @@ class EventReport extends AppModel
         }
         return $errors;
     }
-    
+
     /**
      * addReport Add a report
      *
@@ -131,7 +134,7 @@ class EventReport extends AppModel
         }
         return $errors;
     }
-    
+
     /**
      * editReport Edit a report
      *
@@ -208,7 +211,7 @@ class EventReport extends AppModel
         }
         return $errors;
     }
-    
+
     /**
      * restoreReport ACL-aware method to restore a report.
      *
@@ -235,7 +238,7 @@ class EventReport extends AppModel
         }
         return $report;
     }
-    
+
     /**
      * buildACLConditions Generate ACL conditions for viewing the report
      *
@@ -299,7 +302,7 @@ class EventReport extends AppModel
         }
         return array();
     }
-    
+
     /**
      * fetchReports ACL-aware method. Basically find with ACL
      *
@@ -391,7 +394,7 @@ class EventReport extends AppModel
         }
         return true;
     }
-    
+
     public function reArrangeReport(array $report)
     {
         $rearrangeObjects = array('Event', 'SharingGroup');
@@ -548,7 +551,7 @@ class EventReport extends AppModel
         }
         return $errors;
     }
-    
+
     public function applySuggestionsInText($contentWithSuggestions, array $attribute, $value)
     {
         $textToBeReplaced = "@[suggestion]($value)";
@@ -592,7 +595,7 @@ class EventReport extends AppModel
             'attribute' => $savedAttribute
         ];
     }
-    
+
     /**
      * transformFreeTextIntoReplacement
      *
@@ -704,7 +707,7 @@ class EventReport extends AppModel
             'replacementResult' => $replacementResult,
         ];
     }
-    
+
     /**
      * extractWithReplacements Extract context information from report with special care for ATT&CK
      *

@@ -192,7 +192,7 @@
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'rest'));
     echo $this->element('genericElements/assetLoader', array(
         'js' => array(
-            'moment-with-locales',
+            'moment.min',
             'extendext',
             'doT',
             'query-builder',

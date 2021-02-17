@@ -4100,11 +4100,11 @@ msgid "Click this to download all network related attributes that you have acces
 msgstr ""
 
 #: Model/Event.php:446
-msgid "Click this to download an a STIX document containing the STIX version of all events and attributes that you have access to."
+msgid "Click this to download a STIX document containing the STIX version of all events and attributes that you have access to."
 msgstr ""
 
 #: Model/Event.php:454
-msgid "Click this to download an a STIX2 document containing the STIX2 version of all events and attributes that you have access to."
+msgid "Click this to download a STIX2 document containing the STIX2 version of all events and attributes that you have access to."
 msgstr ""
 
 #: Model/Event.php:462

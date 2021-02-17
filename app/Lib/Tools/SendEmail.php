@@ -729,14 +729,14 @@ class SendEmail
         }
 
         list($inputFile, $outputFile) = $this->createInputOutputFiles($body);
-        $result = openssl_pkcs7_sign($inputFile->pwd(), $outputFile->pwd(), $certPublicSign, $keySign, array(), 0);
+        $result = openssl_pkcs7_sign($inputFile->pwd(), $outputFile->pwd(), $certPublicSign, $keySign, array(), PKCS7_DETACHED);
         $inputFile->delete();
 
         if ($result) {
             $data = $outputFile->read();
             $outputFile->delete();
             $parts = explode("\n\n", $data);
-            return $parts[1] . "\n";
+            return $parts[4] . "\n";
 
         } else {
             $outputFile->delete();

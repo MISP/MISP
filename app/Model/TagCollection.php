@@ -63,7 +63,7 @@ class TagCollection extends AppModel
         return true;
     }
 
-    public function fetchTagCollection($user, $params = array())
+    public function fetchTagCollection(array $user, $params = array())
     {
         if (empty($user['Role']['perm_site_admin'])) {
             $params['conditions']['AND'][] = array(
@@ -104,8 +104,17 @@ class TagCollection extends AppModel
         return true;
     }
 
-    public function cullBlockedTags($user, $tagCollections)
+    /**
+     * @param array $user
+     * @param array $tagCollections
+     * @return array|
+     */
+    public function cullBlockedTags(array $user, array $tagCollections)
     {
+        if (empty($tagCollections)) {
+            return [];
+        }
+
         $single = false;
         if (!isset($tagCollections[0])) {
             $tagCollections = array(0 => $tagCollections);

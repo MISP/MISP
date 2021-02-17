@@ -415,7 +415,7 @@ class GalaxyCluster extends AppModel
                 }
                 $saveSuccess = $this->save($cluster, array('fieldList' => $fieldList));
                 if ($saveSuccess) {
-                    if (!empty($cluster['GalaxyCluster']['GalaxyElement'])) {
+                    if (isset($cluster['GalaxyCluster']['GalaxyElement'])) {
                         $elementsToSave = array();
                         foreach ($cluster['GalaxyCluster']['GalaxyElement'] as $element) { // transform cluster into Galaxy meta format
                             $elementsToSave[$element['key']][] = $element['value'];
@@ -870,25 +870,23 @@ class GalaxyCluster extends AppModel
     }
 
     /**
-     * @param string $name
+     * @param string|int $name Cluster name or ID
      * @param array $user
      * @return array|mixed
      */
     public function getCluster($name, $user)
     {
-        $isGalaxyTag = strpos($name, 'misp-galaxy:') === 0;
-        if (!$isGalaxyTag) {
-            return null;
-        }
-
         if (isset($this->__clusterCache[$name])) {
             return $this->__clusterCache[$name];
         }
-        $conditions = array();
         if (is_numeric($name)) {
-            $conditions[] = array('GalaxyCluster.id' => $name);
+            $conditions = array('GalaxyCluster.id' => $name);
         } else {
-            $conditions[] = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
+            $isGalaxyTag = strpos($name, 'misp-galaxy:') === 0;
+            if (!$isGalaxyTag) {
+                return null;
+            }
+            $conditions = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
         }
         $cluster = $this->fetchGalaxyClusters($user, array(
             'conditions' => $conditions,

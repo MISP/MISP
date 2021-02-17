@@ -105,18 +105,19 @@ class JSONConverterTool
     }
 
     /**
-     * Event to JSON stream convertor.
+     * Event to JSON convertor, but that is intended for machine to machine communication
      * @param array $event
      * @return Generator<string>
      */
     public function streamConvert(array $event)
     {
         $event = $this->convert($event, false, true);
+
         // Fast and inaccurate way how to check if event is too big for to convert in one call. This can be changed in future.
         $isBigEvent = (isset($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0) +
             (isset($event['Event']['Object']) ? count($event['Event']['Object']) : 0) > 100;
         if (!$isBigEvent) {
-            yield json_encode($event, JSON_PRETTY_PRINT);
+            yield json_encode($event, JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -127,11 +128,11 @@ class JSONConverterTool
                 yield ($firstKey === $key ? '' : ',') . json_encode($key) . ":[";
                 $firstInnerKey = key($value);
                 foreach ($value as $i => $attribute) {
-                    yield ($firstInnerKey === $i ? '' : ',')  . json_encode($attribute);
+                    yield ($firstInnerKey === $i ? '' : ',')  . json_encode($attribute, JSON_UNESCAPED_UNICODE);
                 }
                 yield "]";
             } else {
-                yield ($firstKey === $key ? '' : ',') . json_encode($key) . ":" . json_encode($value);
+                yield ($firstKey === $key ? '' : ',') . json_encode($key) . ":" . json_encode($value, JSON_UNESCAPED_UNICODE);
             }
         }
         if (isset($event['errors'])) {

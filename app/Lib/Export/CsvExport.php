@@ -6,6 +6,7 @@ class CsvExport
 	public $default_fields = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'timestamp', 'object_relation', 'attribute_tag');
 	public $default_obj_fields = array('object_uuid', 'object_name', 'object_meta-category');
 	public $requested_fields = array();
+	public $decaying_fields = array('decay_score_score', 'decay_score_decayed');
 	public $non_restrictive_export = true;
 
     public function handler($data, $options = array())
@@ -22,6 +23,9 @@ class CsvExport
 
 	public function modify_params($user, $params)
 	{
+		if (!empty($params['includeDecayScore'])) {
+			$this->enable_decaying();
+		}
 		if (empty($params['contain'])) {
 			$params['contain'] = array();
 		}
@@ -36,6 +40,11 @@ class CsvExport
 		return $params;
 	}
 
+	public function enable_decaying()
+	{
+		$this->default_fields = array_merge($this->default_fields, $this->decaying_fields);
+	}
+
 	private function __attributesHandler($attribute, $options)
 	{
 		$attribute = $this->__addMetadataToAttributeAtomic($attribute);
@@ -43,6 +52,17 @@ class CsvExport
 			$attribute['object_uuid'] = $attribute['Object']['uuid'];
 			$attribute['object_name'] = $attribute['Object']['name'];
 			$attribute['object_meta-category'] = $attribute['Object']['meta-category'];
+		}
+		if (!empty($attribute['decay_score'])) {
+			$all_scores = Hash::extract($attribute, 'decay_score.{n}.score');
+			$all_decayed = Hash::extract($attribute, 'decay_score.{n}.decayed');
+			$avg_score = array_sum($all_scores)/count($all_scores);
+			$avg_decayed = count(array_intersect([true], $all_decayed)) > 0;
+			$attribute['decay_score_score'] = $avg_score;
+			$attribute['decay_score_decayed'] = $avg_decayed;
+		} else {
+			$attribute['decay_score_score'] = 0;
+			$attribute['decay_score_decayed'] = false;
 		}
 		return $this->__addLine($attribute, $options);
 	}

@@ -10,6 +10,9 @@ if (isset($keyUsage)) {
         $dateAsString = date('Y-m-d', $date);
         $keyUsageCsv .= $dateAsString . ',' . (isset($keyUsage[$dateAsString]) ? $keyUsage[$dateAsString] : 0) . '\n';
     }
+} else {
+    $lastUsed = null;
+    $uniqueIps = null;
 }
 
 echo $this->element(
@@ -63,7 +66,7 @@ echo $this->element(
             ],
             [
                 'key' => __('Last used'),
-                'raw' => $lastUsed ? date('Y-m-d H:i:s', $lastUsed) : __('Not used yet'),
+                'raw' => $lastUsed ? $this->Time->time($lastUsed) : __('Not used yet'),
                 'requirement' => isset($keyUsage),
             ],
             [

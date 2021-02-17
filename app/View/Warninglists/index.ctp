@@ -13,6 +13,26 @@
             'top_bar' => array(
                 'children' => array(
                     array(
+                        'type' => 'simple',
+                        'children' => array(
+                            array(
+                                'url' => $baseurl . '/warninglists/index',
+                                'text' => __('All'),
+                                'active' => !isset($passedArgsArray['enabled']),
+                            ),
+                            array(
+                                'url' => $baseurl . '/warninglists/index/enabled:1',
+                                'text' => __('Enabled'),
+                                'active' => isset($passedArgsArray['enabled']) && $passedArgsArray['enabled'] === "1",
+                            ),
+                            array(
+                                'url' => $baseurl . '/warninglists/index/enabled:0',
+                                'text' => __('Disabled'),
+                                'active' => isset($passedArgsArray['enabled']) && $passedArgsArray['enabled'] === "0",
+                            )
+                        )
+                    ),
+                    array(
                         'type' => 'search',
                         'button' => __('Filter'),
                         'placeholder' => __('Enter value to search'),
@@ -56,6 +76,7 @@
                 array(
                     'name' => __('Valid attributes'),
                     'class' => 'short',
+                    'sort' => 'Warninglist.valid_attributes',
                     'data_path' => 'Warninglist.valid_attributes',
                 ),
                 array(
@@ -130,14 +151,9 @@
 ?>
 
 <script type="text/javascript">
-    $(document).ready(function() {
+    $(function() {
         $('#quickFilterButton').click(function() {
             runIndexQuickFilter();
-        });
-        $('#quickFilterField').on('keypress', function (e) {
-            if(e.which === 13) {
-                runIndexQuickFilter();
-            }
         });
     });
 </script>

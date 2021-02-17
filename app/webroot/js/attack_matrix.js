@@ -244,6 +244,9 @@
 
 	function makeTagging(tagIds) {
 		$('#GalaxyViewGalaxyMatrixForm #GalaxyTargetIds').val(JSON.stringify(tagIds));
+		if ($('#GalaxyAttributeIds').length > 0) {
+			$('#GalaxyAttributeIds').val(getSelected());
+		}
 		$('#GalaxyViewGalaxyMatrixForm').submit();
 	}
 

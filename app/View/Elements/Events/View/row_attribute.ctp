@@ -94,7 +94,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
         if (!empty($extended)):
           if ($object['event_id'] != $event['Event']['id']):
             $extensionOrg = $event['extensionEvents'][$object['event_id']]['Orgc'];
-            echo $this->OrgImg->getOrgLogo($extensionOrg['name'], 24);
+            echo $this->OrgImg->getOrgLogo($extensionOrg, 24);
           else:
             echo $this->OrgImg->getOrgLogo($event['Orgc'], 24);
           endif;
@@ -211,16 +211,16 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
             if (isset($object['Feed'])) {
                 foreach ($object['Feed'] as $feed) {
                     $relatedData = array(
-                        __('Name') => $feed['name'],
-                        __('URL') => $feed['url'],
-                        __('Provider') => $feed['provider'],
+                        __('Name') => h($feed['name']),
+                        __('URL') => h($feed['url']),
+                        __('Provider') => h($feed['provider']),
                     );
                     if (isset($feed['event_uuids'])) {
-                        $relatedData[__('Event UUIDs')] = implode('<br>', $feed['event_uuids']);
+                        $relatedData[__('Event UUIDs')] = implode('<br>', array_map('h', $feed['event_uuids']));
                     }
                     $popover = '';
                     foreach ($relatedData as $k => $v) {
-                        $popover .= '<span class="bold black">' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br>';
+                        $popover .= '<span class="bold black">' . $k . '</span>: <span class="blue">' . $v . '</span><br>';
                     }
                     if ($isSiteAdmin || $hostOrgUser) {
                         if ($feed['source_format'] === 'misp') {
@@ -418,4 +418,3 @@ if (!empty($object['ShadowAttribute'])) {
         ));
     }
 }
-

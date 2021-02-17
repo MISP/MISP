@@ -77,6 +77,11 @@
                 if (!($check1 && $check2)) {
                     unset($event['Object'][$i]);
                 }
+                foreach($obj['ObjectReference'] as $j => $rel) {
+                    if ($rel['deleted']) {
+                        unset($event['Object'][$i]['ObjectReference'][$j]);
+                    }
+                }
             }
             foreach ($event['Attribute'] as $i => $attr) {
                 $check1 = $this->__satisfy_val_filtering($attr, false);
@@ -519,7 +524,7 @@
         public function get_reference_data($uuid)
         {
             $objectReference = $this->__refModel->ObjectReference->find('all', array(
-                'conditions' => array('ObjectReference.uuid' => $uuid),
+                'conditions' => array('ObjectReference.uuid' => $uuid, 'ObjectReference.deleted' => false),
                 'recursive' => -1,
                 //'fields' => array('ObjectReference.id', 'relationship_type', 'comment', 'referenced_uuid')
                 ));
