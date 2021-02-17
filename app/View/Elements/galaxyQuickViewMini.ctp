@@ -33,15 +33,7 @@
                 $key = sprintf('<span class="blue bold">%s</span>', Inflector::humanize(h($cluster_field['key'])));
                 if (is_array($cluster_field['value'])) {
                     if ($cluster_field['key'] === 'refs') {
-                        $value = array();
-                        foreach ($cluster_field['value'] as $k => $v) {
-                            $v_name = $v;
-                            if (strlen($v_name) > 30) {
-                                $v_name = substr($v, 0, 30) . '...';
-                            }
-                            $value[$k] = '<a href="' . h($v) . '" title="' . h($v) . '">' . h($v_name) . '</a>';
-                        }
-                        $value_contents = implode("<br>", $value);
+                        continue;
                     } else if ($cluster_field['key'] === 'country') {
                         $value = array();
                         foreach ($cluster_field['value'] as $k => $v) {
