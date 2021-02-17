@@ -766,6 +766,7 @@ class EventGraph {
                 node_conf = {
                     id: node.id,
                     uuid: node.uuid,
+                    event_id: node.event_id,
                     label: striped_value,
                     title: label,
                     group: group,
@@ -1795,6 +1796,7 @@ function drawExtendedEventHull(ctx, nodes, color, text) {
         ctx.quadraticCurveTo(cp.x, cp.y, hullFinal[i].x, hullFinal[i].y);
         ctx.stroke();
     }
+    ctx.stroke();
     ctx.fill();
 
     ctx.beginPath();
