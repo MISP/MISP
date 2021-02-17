@@ -9,7 +9,7 @@
     <?php
         foreach ($galaxy['GalaxyCluster'] as $cluster):
             $cluster_fields = array();
-            if (isset($cluster['description'])) {
+            if (!empty($cluster['description'])) {
                 $cluster_fields[] = array('key' => 'description', 'value' => $cluster['description']);
             }
             if (isset($cluster['meta']['synonyms'])) {
@@ -28,7 +28,7 @@
                     }
                 }
             }
-            $popover_data = sprintf('<h4 class="blue bold">%s</h4>', h($cluster['value']));
+            $popover_data = '<h4 class="blue bold">' . h($cluster['value']) . '</h4>';
             foreach ($cluster_fields as $cluster_field) {
                 $key = sprintf('<span class="blue bold">%s</span>', Inflector::humanize(h($cluster_field['key'])));
                 if (is_array($cluster_field['value'])) {
