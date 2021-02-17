@@ -18,12 +18,9 @@
             if (isset($cluster['source'])) {
                 $cluster_fields[] = array('key' => 'source', 'value' => $cluster['source']);
             }
-            if (isset($cluster['authors'])) {
-                $cluster_fields[] = array('key' => 'authors', 'value' => $cluster['authors']);
-            }
             if (!empty($cluster['meta'])) {
                 foreach ($cluster['meta'] as $metaKey => $metaField) {
-                    if ($metaKey != 'synonyms') {
+                    if (!in_array($metaKey, ['synonyms', 'refs'], true)) {
                         $cluster_fields[] = array('key' => $metaKey, 'value' => $metaField);
                     }
                 }
@@ -32,9 +29,7 @@
             foreach ($cluster_fields as $cluster_field) {
                 $key = sprintf('<span class="blue bold">%s</span>', Inflector::humanize(h($cluster_field['key'])));
                 if (is_array($cluster_field['value'])) {
-                    if ($cluster_field['key'] === 'refs') {
-                        continue;
-                    } else if ($cluster_field['key'] === 'country') {
+                    if ($cluster_field['key'] === 'country') {
                         $value = array();
                         foreach ($cluster_field['value'] as $k => $v) {
                             $value[] = $this->Icon->countryFlag($v) . '&nbsp;' . h($v);
