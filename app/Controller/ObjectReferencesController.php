@@ -96,8 +96,16 @@ class ObjectReferencesController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->describe('ObjectReferences', 'add', false, $this->response->type());
             } else {
-                $event = $this->ObjectReference->Object->Event->find('first', array(
-                    'conditions' => array('Event.id' => $object['Event']['id']),
+                $events = $this->ObjectReference->Object->Event->find('all', array(
+                    'conditions' => array(
+                        'OR' => array(
+                            'Event.id' => $object['Event']['id'],
+                            'AND' => array(
+                                'Event.uuid' => $object['Event']['extends_uuid'],
+                                $this->ObjectReference->Object->Event->createEventConditions($this->Auth->user())
+                            )
+                        ),
+                    ),
                     'recursive' => -1,
                     'fields' => array('Event.id'),
                     'contain' => array(
@@ -115,6 +123,13 @@ class ObjectReferencesController extends AppController
                         )
                     )
                 ));
+                if (!empty($events)) {
+                    $event = $events[0];
+                }
+                for ($i=1; $i < count($events); $i++) { 
+                    $event['Attribute'] = array_merge($event['Attribute'], $events[$i]['Attribute']);
+                    $event['Object'] = array_merge($event['Object'], $events[$i]['Object']);
+                }
                 $toRearrange = array('Attribute', 'Object');
                 foreach ($toRearrange as $d) {
                     if (!empty($event[$d])) {

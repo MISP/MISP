@@ -4738,7 +4738,7 @@ function add_basic_auth() {
 
 function changeObjectReferenceSelectOption(selected, additionalData) {
     var uuid = selected;
-    var type = additionalData.type;
+    var type = additionalData.itemOptions[uuid].type;
     $('#ObjectReferenceReferencedUuid').val(uuid);
     if (type == "Attribute") {
         $('#targetData').html("");
