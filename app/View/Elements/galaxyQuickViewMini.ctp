@@ -44,11 +44,7 @@
                         $value_contents = nl2br(h(implode("\n", $cluster_field['value'])), false);
                     }
                 } else {
-                     if ($cluster_field['key'] === 'source' && filter_var($cluster_field['value'], FILTER_VALIDATE_URL)) {
-                         $value_contents = '<a href="' . h($cluster_field['value']) . '">' . h($cluster_field['value']) . '</a>';
-                     } else {
-                        $value_contents = h($cluster_field['value']);
-                     }
+                    $value_contents = h($cluster_field['value']);
                 }
                 $value = sprintf('<span class="black">%s</span>', $value_contents);
                 $popover_data .= "<span>$key: $value</span><br>";
