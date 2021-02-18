@@ -15,7 +15,6 @@
             'jquery-ui',
             'chosen.min',
             'main',
-            'jquery-jvectormap-2.0.5',
             array('print', array('media' => 'print'))
         );
         if (Configure::read('MISP.custom_css')) {
@@ -121,10 +120,6 @@
         <?php
             endif;
         ?>
-        if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
-            var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
-            $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
-        }
         });
     </script>
 </body>
