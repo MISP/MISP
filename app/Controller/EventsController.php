@@ -5312,9 +5312,43 @@ class EventsController extends AppController
         }
     }
 
+    public function addEventLock($id)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
+
+        $event = $this->Event->fetchSimpleEvent($this->Auth->User(), $id);
+        if (empty($event)) {
+            throw new MethodNotAllowedException(__('Invalid Event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new UnauthorizedException(__('You do not have permission to do that.'));
+        }
+
+        $this->loadModel('EventLock');
+        $lockId = $this->EventLock->insertLockApi($event['Event']['id'], $this->Auth->user());
+        return $this->RestResponse->viewData(['lock_id' => $lockId], $this->response->type());
+    }
+
+    public function removeEventLock($id, $lockId)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
+
+        $event = $this->Event->fetchSimpleEvent($this->Auth->User(), $id);
+        if (empty($event)) {
+            throw new MethodNotAllowedException(__('Invalid Event'));
+        }
+
+        $this->loadModel('EventLock');
+        $deleted = $this->EventLock->deleteApiLock($event['Event']['id'], $lockId, $this->Auth->user());
+        return $this->RestResponse->viewData(['deleted' => $deleted], $this->response->type());
+    }
+
     public function checkLocks($id)
     {
-        $this->loadModel('EventLock');
         $event = $this->Event->find('first', array(
             'recursive' => -1,
             'conditions' => array('Event.id' => $id),
@@ -5322,29 +5356,34 @@ class EventsController extends AppController
         ));
         $locks = array();
         if (!empty($event) && ($event['Event']['orgc_id'] == $this->Auth->user('org_id') || $this->_isSiteAdmin())) {
+            $this->loadModel('EventLock');
             $locks = $this->EventLock->checkLock($this->Auth->user(), $id);
         }
         if (!empty($locks)) {
             $temp = $locks;
             $locks = array();
             foreach ($temp as $t) {
-                if ($t['User']['id'] !== $this->Auth->user('id')) {
+                if ($t['type'] === 'user' && $t['User']['id'] !== $this->Auth->user('id')) {
                     if (!$this->_isSiteAdmin() && $t['User']['org_id'] != $this->Auth->user('org_id')) {
-                        continue;
+                        $locks[] = __('another user');
+                    } else {
+                        $locks[] = $t['User']['email'];
                     }
-                    $locks[] = $t['User']['email'];
+                } else if ($t['type'] === 'job') {
+                    $locks[] = __('background job');
+                } else if ($t['type'] === 'api') {
+                    $locks[] = __('external tool');
                 }
             }
         }
-        // TODO: i18n
-        if (!empty($locks)) {
-            $message = sprintf('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
-            $this->set('message', $message);
-            $this->layout = false;
-            $this->render('/Events/ajax/event_lock');
-        } else {
+        if (empty($locks)) {
             return $this->RestResponse->viewData('', $this->response->type(), false, true);
         }
+
+        $message = __('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
+        $this->set('message', $message);
+        $this->layout = false;
+        $this->render('/Events/ajax/event_lock');
     }
 
     public function getEditStrategy($id)

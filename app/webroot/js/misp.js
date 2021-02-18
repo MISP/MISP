@@ -5020,16 +5020,14 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
     });
 });
 
-function queryEventLock(event_id, user_org_id) {
+function queryEventLock(event_id) {
     if (tabIsActive) {
         $.ajax({
             url: baseurl + "/events/checkLocks/" + event_id,
             type: "get",
             success: function(data, statusText, xhr) {
                  if (xhr.status == 200) {
-                     if ($('#event_lock_warning').length != 0) {
-                         $('#event_lock_warning').remove();
-                     }
+                     $('#event_lock_warning').remove();
                      if (data != '') {
                          $('#main-view-container').append(data);
                      }
@@ -5037,7 +5035,7 @@ function queryEventLock(event_id, user_org_id) {
             }
         });
     }
-    setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
+    setTimeout(function() { queryEventLock(event_id); }, 5000);
 }
 
 function checkIfLoggedIn() {

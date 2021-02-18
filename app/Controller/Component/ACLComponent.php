@@ -262,7 +262,9 @@ class ACLComponent extends Component
                     'viewEventAttributes' => array('*'),
                     'viewGraph' => array('*'),
                     'viewGalaxyMatrix' => array('*'),
-                    'xml' => array('*')
+                    'xml' => array('*'),
+                'addEventLock' => ['perm_auth'],
+                'removeEventLock' => ['perm_auth'],
             ),
             'favouriteTags' => array(
                 'toggle' => array('*'),
