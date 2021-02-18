@@ -895,8 +895,13 @@ function toggleAllTaxonomyCheckboxes() {
 }
 
 function attributeListAnyAttributeCheckBoxesChecked() {
-    if ($('.select_attribute:checked').length > 0) $('.mass-select').removeClass('hidden');
-    else $('.mass-select').addClass('hidden');
+    if ($('.select_attribute:checked').length > 0) {
+        $('.mass-select').removeClass('hidden');
+        $('#create-button').removeClass('last');
+    } else {
+        $('.mass-select').addClass('hidden');
+        $('#create-button').addClass('last');
+    }
 }
 
 function listCheckboxesChecked() {
@@ -1201,12 +1206,6 @@ function removeObjectTag(context, object, tag) {
 function redirectAddObject(templateId, additionalData) {
     var eventId = additionalData['event_id'];
     window.location = baseurl + '/objects/add/' + eventId + '/' + templateId;
-}
-
-function clickCreateButton(event, type) {
-    var destination = 'attributes';
-    if (type == 'Proposal') destination = 'shadow_attributes';
-    simplePopup(baseurl + "/" + destination + "/add/" + event);
 }
 
 function openGenericModal(url, modalData, callback) {
