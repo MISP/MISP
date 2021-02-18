@@ -5327,7 +5327,12 @@ function queryDeprecatedEndpointUsage() {
 function submitDashboardForm(id) {
     var configData = $('#DashboardConfig').val();
     if (configData != '') {
-        configData = JSON.parse(configData);
+        try {
+            configData = JSON.parse(configData);
+        } catch (error) {
+            showMessage('fail', error.message)
+            return
+        }
     } else {
         configData = {};
     }

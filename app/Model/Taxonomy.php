@@ -27,19 +27,19 @@ class Taxonomy extends AppModel
     );
 
     public $hasMany = array(
-            'TaxonomyPredicate' => array(
-                'dependent' => true
-            )
+        'TaxonomyPredicate' => array(
+            'dependent' => true
+        )
     );
-
-    public function beforeValidate($options = array())
-    {
-        parent::beforeValidate();
-        return true;
-    }
 
     public function update()
     {
+        $existing = $this->find('all', array(
+            'recursive' => -1,
+            'fields' => array('version', 'enabled', 'namespace')
+        ));
+        $existing = array_column(array_column($existing, 'Taxonomy'), null, 'namespace');
+
         $directories = glob(APP . 'files' . DS . 'taxonomies' . DS . '*', GLOB_ONLYDIR);
         $updated = array();
         foreach ($directories as $dir) {
@@ -74,17 +74,13 @@ class Taxonomy extends AppModel
             if (!isset($vocab['version'])) {
                 $vocab['version'] = 1;
             }
-            $current = $this->find('first', array(
-                'conditions' => array('namespace' => $vocab['namespace']),
-                'recursive' => -1,
-                'fields' => array('version', 'enabled', 'namespace')
-            ));
-            if (empty($current) || $vocab['version'] > $current['Taxonomy']['version']) {
+            if (!isset($existing[$vocab['namespace']]) || $vocab['version'] > $existing[$vocab['namespace']]['version']) {
+                $current = isset($existing[$vocab['namespace']]) ? $existing[$vocab['namespace']] : [];
                 $result = $this->__updateVocab($vocab, $current);
                 if (is_numeric($result)) {
                     $updated['success'][$result] = array('namespace' => $vocab['namespace'], 'new' => $vocab['version']);
                     if (!empty($current)) {
-                        $updated['success'][$result]['old'] = $current['Taxonomy']['version'];
+                        $updated['success'][$result]['old'] = $current['version'];
                     }
                 } else {
                     $updated['fails'][] = array('namespace' => $vocab['namespace'], 'fail' => json_encode($result));
@@ -120,6 +116,7 @@ class Taxonomy extends AppModel
             'recursive' => -1,
             'fields' => array('version', 'enabled', 'namespace')
         ));
+        $current = empty($current) ? [] : $current['Taxonomy'];
         $result = $this->__updateVocab($vocab, $current);
         if (is_array($result)) {
             throw new Exception('Could not save taxonomy because of validation errors: ' . json_encode($result));
@@ -127,14 +124,14 @@ class Taxonomy extends AppModel
         return (int)$result;
     }
 
-    private function __updateVocab(array $vocab, $current, array $skipUpdateFields = [])
+    private function __updateVocab(array $vocab, array $current)
     {
         $enabled = 0;
         if (!empty($current)) {
-            if ($current['Taxonomy']['enabled']) {
+            if ($current['enabled']) {
                 $enabled = 1;
             }
-            $this->deleteAll(['Taxonomy.namespace' => $current['Taxonomy']['namespace']]);
+            $this->deleteAll(['Taxonomy.namespace' => $current['namespace']]);
         }
         $taxonomy = ['Taxonomy' => [
             'namespace' => $vocab['namespace'],
@@ -160,7 +157,7 @@ class Taxonomy extends AppModel
         }
         $result = $this->saveAssociated($taxonomy, ['deep' => true]);
         if ($result) {
-            $this->__updateTags($this->id, $skipUpdateFields);
+            $this->__updateTags($this->id);
             return $this->id;
         }
         return $this->validationErrors;
