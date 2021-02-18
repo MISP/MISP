@@ -201,5 +201,30 @@ class ObjectReferencesController extends AppController
 
     public function view($id)
     {
+        if (Validation::uuid($id)) {
+            $temp = $this->ObjectReference->find('first', array(
+                'recursive' => -1,
+                'fields' => array('ObjectReference.id'),
+                'conditions' => array('ObjectReference.uuid' => $id)
+            ));
+            if (empty($temp)) {
+                throw new NotFoundException('Invalid object reference');
+            }
+            $id = $temp['ObjectReference']['id'];
+        } elseif (!is_numeric($id)) {
+            throw new NotFoundException(__('Invalid object reference'));
+        }
+        $objectReference = $this->ObjectReference->find('first', array(
+            'conditions' => array('ObjectReference.id' => $id),
+            'recursive' => -1,
+        ));
+        if (empty($objectReference)) {
+            throw new NotFoundException(__('Invalid object reference.'));
+        }
+        $event = $this->ObjectReference->Object->Event->fetchSimpleEvent($this->Auth->user(), $objectReference['ObjectReference']['event_id'], ['contain' => ['Orgc']]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        return $this->RestResponse->viewData($objectReference, 'application/json');
     }
 }
