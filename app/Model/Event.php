@@ -4104,6 +4104,7 @@ class Event extends AppModel
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $nothingToChange = false;
+                            $objectRef['source_uuid'] = $object['uuid'];
                             $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user, $this->Log, $force, $nothingToChange);
                             if ($result && !$nothingToChange) {
                                 $changed = true;
