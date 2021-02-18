@@ -79,6 +79,7 @@ class AppController extends Controller
             ),
             'Security',
             'ACL',
+            'CompressedRequestHandler',
             'RestResponse',
             'Flash',
             'Toolbox',
