@@ -134,6 +134,10 @@ class Sighting extends AppModel
      */
     public function captureSightings(array $sightings, $attributeId, $eventId, array $user)
     {
+        if (!$user['Role']['perm_sighting']) {
+            return false; // User don't have permission to create sightings
+        }
+
         // Since sightings are immutable (it is not possible to change it from web interface), we can check
         // if sighting with given uuid already exists and skip them
         $existingSighting = $this->existing($sightings);
@@ -147,19 +151,21 @@ class Sighting extends AppModel
                 continue; // already exists, skip
             }
 
-            $orgId = 0;
-            if (isset($sighting['Organisation'])) {
-                if (isset($existingOrganisations[$sighting['Organisation']['uuid']])) {
-                    $orgId = $existingOrganisations[$sighting['Organisation']['uuid']];
+            $saveOnBehalfOf = $user['org_id'];
+            if ($user['Role']['perm_sync'] && isset($sighting['org_id'])) {
+                if ($sighting['org_id'] != 0 && !empty($sighting['Organisation'])) {
+                    if (isset($existingOrganisations[$sighting['Organisation']['uuid']])) {
+                        $saveOnBehalfOf = $existingOrganisations[$sighting['Organisation']['uuid']];
+                    } else {
+                        $saveOnBehalfOf = $this->Organisation->captureOrg($sighting['Organisation'], $user);
+                    }
                 } else {
-                    $orgId = $this->Organisation->captureOrg($sighting['Organisation'], $user);
+                    $saveOnBehalfOf = 0;
                 }
-            } else if (isset($user['org_id'])) {
-                $orgId = $user['org_id'];
             }
             unset($sighting['id']);
 
-            $sighting['org_id'] = $orgId;
+            $sighting['org_id'] = $saveOnBehalfOf;
             $sighting['event_id'] = $eventId;
             $sighting['attribute_id'] = $attributeId;
             $toSave[] = $sighting;
@@ -1006,25 +1012,23 @@ class Sighting extends AppModel
                 ));
             }
 
-            $saveOnBehalfOf = false;
-            if ($user['Role']['perm_sync']) {
-                if (isset($s['org_id'])) {
-                    if ($s['org_id'] != 0 && !empty($s['Organisation'])) {
-                        if (isset($existingOrganisations[$s['Organisation']['uuid']])) {
-                            $saveOnBehalfOf = $existingOrganisations[$s['Organisation']['uuid']];
-                        } else {
-                            $saveOnBehalfOf = $this->Organisation->captureOrg($s['Organisation'], $user);
-                        }
+            $saveOnBehalfOf = $user['org_id'];
+            if ($user['Role']['perm_sync'] && isset($s['org_id'])) {
+                if ($s['org_id'] != 0 && !empty($s['Organisation'])) {
+                    if (isset($existingOrganisations[$s['Organisation']['uuid']])) {
+                        $saveOnBehalfOf = $existingOrganisations[$s['Organisation']['uuid']];
                     } else {
-                        $saveOnBehalfOf = 0;
+                        $saveOnBehalfOf = $this->Organisation->captureOrg($s['Organisation'], $user);
                     }
+                } else {
+                    $saveOnBehalfOf = 0;
                 }
             }
 
             $toSave[] = [
                 'attribute_id' => $attributeId,
                 'event_id' => $eventId,
-                'org_id' => $saveOnBehalfOf === false ? $user['org_id'] : $saveOnBehalfOf,
+                'org_id' => $saveOnBehalfOf,
                 'date_sighting' => $s['date_sighting'],
                 'type' => $s['type'],
                 'source' => $s['source'],
