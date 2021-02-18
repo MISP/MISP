@@ -1,5 +1,5 @@
 <div class="taxonomy view">
-    <h2><?php echo h(strtoupper($taxonomy['namespace'])) . ' ' . __('Taxonomy Library');?></h2>
+    <h2><?= __('%s Taxonomy Library', h(strtoupper($taxonomy['namespace'])));?></h2>
     <div class="row-fluid"><div class="span8" style="margin:0">
 <?php
 $enabled = $taxonomy['enabled'] ? '<span class="green">'. __('Yes') . '</span>&nbsp;&nbsp;' : '<span class="red">' . __('No') . '</span>&nbsp;&nbsp;';
@@ -76,12 +76,12 @@ echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData
                 </td>
             <?php endif; ?>
                 <td id="tag_<?php echo h($k); ?>" class="short"><?php echo h($item['tag']); ?></td>
-                <td><?php echo h($item['expanded']); ?>&nbsp;</td>
+                <td><?php echo h($item['expanded']); ?></td>
                 <td class="short">
                     <?php echo isset($item['numerical_value']) ? h($item['numerical_value']) : ''; ?>&nbsp;
                     <?php if(isset($item['original_numerical_value'])): ?>
                         <i
-                            class="<?= $this->FontAwesome->getClass('exclamation-triangle') ?> fa-exclamation-triangle"
+                            class="<?= $this->FontAwesome->getClass('exclamation-triangle') ?>"
                             title="<?= __('Numerical value overridden by userSetting.&#10;Original numerical_value = %s', h($item['original_numerical_value'])) ?>"
                             data-value-overriden="1"
                         ></i>
@@ -91,7 +91,7 @@ echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData
                 <?php
                     if ($item['existing_tag']) {
                 ?>
-                    <a href='<?php echo $baseurl."/events/index/searchtag:". h($item['existing_tag']['Tag']['id']);?>'><?php echo h($item['events']);?></a>
+                    <a href="<?= $baseurl."/events/index/searchtag:". h($item['existing_tag']['Tag']['id']);?>"><?php echo h($item['events']);?></a>
                 <?php
                     } else {
                         echo __('N/A');
@@ -102,7 +102,7 @@ echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData
                 <?php
                     if ($item['existing_tag']):
                 ?>
-                        <a href='<?php echo $baseurl."/attributes/search/tags:". h($item['existing_tag']['Tag']['id']);?>'><?php echo h($item['attributes']);?></a>
+                        <a href="<?= $baseurl."/attributes/search/tags:". h($item['existing_tag']['Tag']['id']);?>"><?php echo h($item['attributes']);?></a>
                 <?php
                     else:
                         echo __('N/A');
@@ -120,7 +120,7 @@ echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData
                             $url = $baseurl . '/events/index/searchtag:' .  h($item['existing_tag']['Tag']['id']);
                             if ($isAclTagger) $url = $baseurl . '/tags/edit/' .  h($item['existing_tag']['Tag']['id']);
                 ?>
-                        <a href="<?php echo $url;?>" class="<?php echo $isAclTagger ? 'tagFirstHalf' : 'tag' ?>" style="background-color:<?php echo h($item['existing_tag']['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($item['existing_tag']['Tag']['colour']);?>"><?php echo h($item['existing_tag']['Tag']['name']); ?></a>
+                        <a href="<?php echo $url;?>" data-tag-id="<?= h($item['existing_tag']['Tag']['id']) ?>" class="<?php echo $isAclTagger ? 'tag tagFirstHalf' : 'tag' ?>" style="background-color:<?php echo h($item['existing_tag']['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($item['existing_tag']['Tag']['colour']);?>"><?php echo h($item['existing_tag']['Tag']['name']); ?></a>
                 <?php
                         endif;
                         echo '&nbsp;' . $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['existing_tag']['Tag']['id']), array('class' => 'fa fa-share-alt black', 'title' => __('View correlation graph'), 'aria-label' => __('View correlation graph')));

@@ -101,14 +101,15 @@ class TaxonomiesController extends AppController
         $params = $customPagination->applyRulesOnArray($taxonomy['entries'], $params, 'taxonomies');
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($taxonomy, $this->response->type());
-        } else {
-            $this->set('entries', $taxonomy['entries']);
-            $this->set('urlparams', $urlparams);
-            $this->set('passedArgs', json_encode($passedArgs));
-            $this->set('passedArgsArray', $passedArgs);
-            $this->set('taxonomy', $taxonomy['Taxonomy']);
-            $this->set('id', $id);
         }
+
+        $this->set('entries', $taxonomy['entries']);
+        $this->set('urlparams', $urlparams);
+        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgsArray', $passedArgs);
+        $this->set('taxonomy', $taxonomy['Taxonomy']);
+        $this->set('id', $id);
+        $this->set('title_for_layout', __('%s Taxonomy Library', h(strtoupper($taxonomy['Taxonomy']['namespace']))));
     }
 
     public function enable($id)
