@@ -120,6 +120,11 @@
             ),
             array(
                 'type' => 'root',
+                'text' => __('Dashboard'),
+                'url' => $baseurl . '/dashboards'
+            ),
+            array(
+                'type' => 'root',
                 'text' => __('Galaxies'),
                 'url' => $baseurl . '/galaxies/index',
                 'children' => array(
@@ -174,7 +179,6 @@
             array(
                 'type' => 'root',
                 'text' => __('Global Actions'),
-                'url' => $baseurl . '/dashboards',
                 'children' => array(
                     array(
                         'text' => __('News'),
@@ -191,10 +195,6 @@
                     array(
                         'text' => __('Set Setting'),
                         'url' => $baseurl . '/user_settings/setSetting'
-                    ),
-                    array(
-                        'text' => __('Dashboard'),
-                        'url' => $baseurl . '/dashboards'
                     ),
                     array(
                         'text' => __('Organisations'),

@@ -85,11 +85,4 @@ class EventStreamWidget
             'fields' => $fields
         ];
 	}
-
-    public function checkpermissions($user) {
-        if (in_array($user['id'], [1, 2, 3])) {
-            return true;
-        }
-        return false;
-    }
 }
