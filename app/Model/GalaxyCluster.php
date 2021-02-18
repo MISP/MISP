@@ -792,7 +792,8 @@ class GalaxyCluster extends AppModel
                 }
             }
             if ($savedCluster['GalaxyCluster']['published']) {
-                $this->publishRouter($user, $savedCluster['GalaxyCluster']['id'], $passAlong=$server['Server']['id']);
+                $passAlong = isset($server['Server']['id']) ? $server['Server']['id'] : null;
+                $this->publishRouter($user, $savedCluster['GalaxyCluster']['id'], $passAlong);
             }
         } else {
             $results['failed']++;
