@@ -154,6 +154,8 @@ class Sighting extends AppModel
                 } else {
                     $orgId = $this->Organisation->captureOrg($sighting['Organisation'], $user);
                 }
+            } else if (isset($user['org_id'])) {
+                $orgId = $user['org_id'];
             }
             unset($sighting['id']);
 
