@@ -66,6 +66,7 @@ class ObjectReferencesController extends AppController
                 'comment' => !empty($this->request->data['ObjectReference']['comment']) ? $this->request->data['ObjectReference']['comment'] : '',
                 'event_id' => $object['Event']['id'],
                 'object_uuid' => $object['Object']['uuid'],
+                'source_uuid' => $object['Object']['uuid'],
                 'object_id' => $objectId,
                 'referenced_type' => $referenced_type,
                 'uuid' => CakeText::uuid()
