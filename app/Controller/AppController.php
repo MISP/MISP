@@ -1346,6 +1346,18 @@ class AppController extends Controller
         }
         $elementCounter = 0;
         $renderView = false;
+        $responseType = empty($this->$scope->validFormats[$returnFormat][0]) ? 'json' : $this->$scope->validFormats[$returnFormat][0];
+        // halt execution if we were to query for items above the ID. Blocks the endless caching bug
+        if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
+            if ($this->__cachingOverflow($filters, $scope)) {
+                $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
+                return $this->RestResponse->viewData('', $responseType, false, true, $filename, [
+                    'X-Result-Count' => 0,
+                    'X-Export-Module-Used' => $returnFormat,
+                    'X-Response-Format' => $responseType
+                ]);
+            }
+        }
         $final = $this->$scope->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
         if (!empty($renderView) && !empty($final)) {
             $this->layout = false;
@@ -1355,10 +1367,27 @@ class AppController extends Controller
             }
             $this->render('/Events/module_views/' . $renderView);
         } else {
-            $responseType = $this->$scope->validFormats[$returnFormat][0];
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
+    }
+
+    /**
+     * Halt execution if we were to query for items above the ID. Blocks the endless caching bug.
+     *
+     * @param array $filters
+     * @param string $scope
+     * @return bool
+     */
+    private function __cachingOverflow($filters, $scope)
+    {
+        $offset = ($filters['page'] * (empty($filters['limit']) ? 60 : $filters['limit'])) + 1;
+        $max_id = $this->$scope->query(sprintf('SELECT max(id) as max_id from %s;', Inflector::tableize($scope)));
+        $max_id = intval($max_id[0][0]['max_id']);
+        if ($max_id < $offset) {
+            return true;
+        }
+        return false;
     }
 
     /**
