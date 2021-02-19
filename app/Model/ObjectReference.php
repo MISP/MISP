@@ -277,8 +277,8 @@ class ObjectReference extends AppModel
             $referenced_id = $target_object['Object']['id'];
             $referenced_uuid = $target_object['Object']['uuid'];
             if ($target_object['Object']['event_id'] != $object['Event']['id']) {
-                if (!$this->checkIfValidExtendedEvent($object, $target_object['Object']['event_id'], $user)) {
-                    throw new NotFoundException('Invalid target. Target has to be within the same event.');
+                if (!$this->isValidExtendedEventForReference($object, $target_object['Object']['event_id'], $user)) {
+                    throw new NotFoundException('Invalid target. Target has to be within the same event or extending it.');
                 }
             }
         } else {
@@ -295,8 +295,8 @@ class ObjectReference extends AppModel
                 }
             }
             if ($target_attribute['Attribute']['event_id'] != $object['Event']['id']) {
-                if (!$this->checkIfValidExtendedEvent($object, $target_attribute['Attribute']['event_id'], $user)) {
-                    throw new NotFoundException('Invalid target. Target has to be within the same event.');
+                if (!$this->isValidExtendedEventForReference($object, $target_attribute['Attribute']['event_id'], $user)) {
+                    throw new NotFoundException('Invalid target. Target has to be within the same event or extending it.');
                 }
             }
             $referenced_id = $target_attribute['Attribute']['id'];
@@ -306,7 +306,7 @@ class ObjectReference extends AppModel
         return array($referenced_id, $referenced_uuid, $referenced_type);
     }
 
-    function checkIfValidExtendedEvent($sourceEvent, $targetEventID, $user) {
+    function isValidExtendedEventForReference($sourceEvent, $targetEventID, $user) {
         if ($sourceEvent['Event']['orgc_id'] != $user['org_id']) {
             return false;
         }
