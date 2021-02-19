@@ -1833,11 +1833,10 @@ function getPopup(id, context, target, admin, popupType) {
     if (id != '') url += "/" + id;
     if (popupType == '' || typeof popupType == 'undefined') popupType = '#popover_form';
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         dataType:"html",
-        async: true,
         cache: false,
         success:function (data, textStatus) {
             $(".loading").hide();
@@ -1868,7 +1867,6 @@ function popoverPopup(clicked, id, context, target, admin) {
     // actual request //
     $.ajax({
         dataType:"html",
-        async: true,
         cache: false,
         success:function (data, textStatus) {
             if (popover.options.content !== data) {
@@ -1961,7 +1959,6 @@ function simplePopup(url, requestType, data) {
             $(".loading").show();
         },
         dataType:"html",
-        async: true,
         cache: false,
         success:function (data, textStatus) {
             $(".loading").hide();
@@ -4386,7 +4383,6 @@ function checkAttachments() {
 
 function loadTagTreemap() {
     $.ajax({
-        async:true,
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -4404,7 +4400,6 @@ function loadTagTreemap() {
 
 function quickEditEvent(id, field) {
     $.ajax({
-        async:true,
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
