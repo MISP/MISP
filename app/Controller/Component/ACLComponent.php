@@ -503,7 +503,7 @@ class ACLComponent extends Component
                     'import' => array(),
                     'index' => array(),
                     'ondemandAction' => array(),
-                    'postTest' => array('perm_sync'),
+                    'postTest' => array('*'),
                     'previewEvent' => array(),
                     'previewIndex' => array(),
                     'compareServers' => [],
