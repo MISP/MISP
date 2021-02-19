@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property GalaxyClusterRelation $GalaxyClusterRelation
+ */
 class GalaxyClusterRelationsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -174,8 +177,7 @@ class GalaxyClusterRelationsController extends AppController
                 }
             }
         }
-        $existingRelations = $this->GalaxyClusterRelation->getExistingRelationships();
-        $this->set('existingRelations', $existingRelations);
+        $this->set('existingRelations', $this->GalaxyClusterRelation->getExistingRelationships());
         $this->set('distributionLevels', $distributionLevels);
         $this->set('initialDistribution', $initialDistribution);
         $this->set('sharingGroups', $sgs);
@@ -264,6 +266,7 @@ class GalaxyClusterRelationsController extends AppController
             }
         }
         $this->request->data = $existingRelation;
+        $this->set('existingRelations', $this->GalaxyClusterRelation->getExistingRelationships());
         $this->set('distributionLevels', $distributionLevels);
         $this->set('initialDistribution', $initialDistribution);
         $this->set('sharingGroups', $sgs);
