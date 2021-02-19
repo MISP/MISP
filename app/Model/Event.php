@@ -6458,7 +6458,8 @@ class Event extends AppModel
                 list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
                         $reference['referenced_uuid'],
                         array('Event' => array('id' => $id)),
-                        false
+                        false,
+                        $user
                 );
                 if (!$referenced_id && !$referenced_uuid && !$referenced_type) {
                     continue;
@@ -6843,6 +6844,16 @@ class Event extends AppModel
                         $reference[$field] = $found[$field];
                     }
                     $event['Object'][$k]['ObjectReference'][$k2][$type] = $reference;
+                } else { // object / attribute might be from an extended event
+                    $otherEventText = __('%s from another event', $reference['referenced_type'] == 0 ? 'Attribute' : 'Object');
+                    $event['Object'][$k]['ObjectReference'][$k2][$type] = [
+                        'name' => '',
+                        'meta-category' => $otherEventText,
+                        'category' => $otherEventText,
+                        'type' => '',
+                        'value' => '',
+                        'uuid' => $reference['referenced_uuid']
+                    ];
                 }
             }
         }
