@@ -145,20 +145,18 @@ class GalaxyClusterRelation extends AppModel
 
     public function getExistingRelationships()
     {
-        $this->ObjectRelationship = ClassRegistry::init('ObjectRelationship');
-        $existingRelationships = $this->find('list', array(
+        $existingRelationships = $this->find('column', array(
             'recursive' => -1,
-            'fields' => array('referenced_galaxy_cluster_type', 'referenced_galaxy_cluster_type'),
-            'group' => array('referenced_galaxy_cluster_type')
-        ), false, false);
-        $existingRelationships = array_values($existingRelationships);
-        $objectRelationships = $this->ObjectRelationship->find('all', array(
-            'recursive' => -1,
-            'fields' => array('name')
+            'fields' => array('referenced_galaxy_cluster_type'),
+            'unique' => true,
         ));
-        $objectRelationships = Hash::extract($objectRelationships, '{n}.ObjectRelationship.name');
-        $relationShips = array_unique(array_merge($existingRelationships, $objectRelationships));
-        return $relationShips;
+        $this->ObjectRelationship = ClassRegistry::init('ObjectRelationship');
+        $objectRelationships = $this->ObjectRelationship->find('column', array(
+            'recursive' => -1,
+            'fields' => array('name'),
+            'unique' => true,
+        ));
+        return array_unique(array_merge($existingRelationships, $objectRelationships));
     }
 
     public function deleteRelations($conditions)
