@@ -895,8 +895,13 @@ function toggleAllTaxonomyCheckboxes() {
 }
 
 function attributeListAnyAttributeCheckBoxesChecked() {
-    if ($('.select_attribute:checked').length > 0) $('.mass-select').removeClass('hidden');
-    else $('.mass-select').addClass('hidden');
+    if ($('.select_attribute:checked').length > 0) {
+        $('.mass-select').removeClass('hidden');
+        $('#create-button').removeClass('last');
+    } else {
+        $('.mass-select').addClass('hidden');
+        $('#create-button').addClass('last');
+    }
 }
 
 function listCheckboxesChecked() {
@@ -1201,12 +1206,6 @@ function removeObjectTag(context, object, tag) {
 function redirectAddObject(templateId, additionalData) {
     var eventId = additionalData['event_id'];
     window.location = baseurl + '/objects/add/' + eventId + '/' + templateId;
-}
-
-function clickCreateButton(event, type) {
-    var destination = 'attributes';
-    if (type == 'Proposal') destination = 'shadow_attributes';
-    simplePopup(baseurl + "/" + destination + "/add/" + event);
 }
 
 function openGenericModal(url, modalData, callback) {
@@ -4925,6 +4924,11 @@ $(document).ready(function() {
             html: true,
             trigger: 'hover'
         });
+
+    if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
+        var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
+        $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
+    }
 });
 
 $(document.body).on("click", ".correlation-expand-button", function() {
@@ -5016,16 +5020,14 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
     });
 });
 
-function queryEventLock(event_id, user_org_id) {
+function queryEventLock(event_id) {
     if (tabIsActive) {
         $.ajax({
             url: baseurl + "/events/checkLocks/" + event_id,
             type: "get",
             success: function(data, statusText, xhr) {
                  if (xhr.status == 200) {
-                     if ($('#event_lock_warning').length != 0) {
-                         $('#event_lock_warning').remove();
-                     }
+                     $('#event_lock_warning').remove();
                      if (data != '') {
                          $('#main-view-container').append(data);
                      }
@@ -5033,7 +5035,7 @@ function queryEventLock(event_id, user_org_id) {
             }
         });
     }
-    setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
+    setTimeout(function() { queryEventLock(event_id); }, 5000);
 }
 
 function checkIfLoggedIn() {
