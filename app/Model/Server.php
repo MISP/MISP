@@ -2854,7 +2854,7 @@ class Server extends AppModel
         $allowedlistFields = array(
             'users' => array('external_auth_required', 'external_auth_key'),
         );
-        $nonCriticalColumnElements = array('is_nullable', 'collation_name');
+        $nonCriticalColumnElements = array('collation_name');
         $dbDiff = array();
         // perform schema comparison for tables
         foreach($dbExpectedSchema as $tableName => $columns) {
