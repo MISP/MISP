@@ -35,7 +35,9 @@ function rgb2hex(rgb) {
 }
 
 function xhrFailCallback(xhr) {
-    if (xhr.status === 403 || xhr.status === 405) {
+    if (xhr.status === 401) {
+        showMessage('fail', 'Unauthorized. Please reload page to log again.');
+    } else if (xhr.status === 403 || xhr.status === 405) {
         showMessage('fail', 'Not allowed.');
     } else if (xhr.status === 404) {
         showMessage('fail', 'Resource not found.');
