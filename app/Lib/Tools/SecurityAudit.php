@@ -381,13 +381,13 @@ class SecurityAudit
             if (version_compare($parts[1], '3.6', '<')) {
                 $output['System'][] = [
                     'warning',
-                    __('You are using Python %s. This version is not supported anymore, but it can be still supported by your distribution.'),
+                    __('You are using Python %s. This version is not supported anymore, but it can be still supported by your distribution.', $parts[1]),
                     'https://endoflife.date/python',
                 ];
             } else if (version_compare($parts[1], '3.7', '<')) {
                 $output['System'][] = [
                     'hint',
-                    __('You are using Python %s. This version will be not supported after 23 Dec 2021, but it can be still supported by your distribution.'),
+                    __('You are using Python %s. This version will be not supported after 23 Dec 2021, but it can be still supported by your distribution.', $parts[1]),
                     'https://endoflife.date/python',
                 ];
             }
