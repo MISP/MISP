@@ -4140,6 +4140,10 @@ class Server extends AppModel
                 $data = explode(PHP_EOL, trim($data));
                 foreach ($data as $entry) {
                     list($value, $uuid) = explode(',', $entry);
+                    if (!Validation::uuid($uuid)) {
+                        $continue = false;
+                        break;
+                    }
                     if (!empty($value)) {
                         $redis->sAdd('misp:server_cache:' . $server['Server']['id'], $value);
                         $redis->sAdd('misp:server_cache:combined', $value);
