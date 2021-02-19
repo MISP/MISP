@@ -296,6 +296,7 @@ class GalaxiesController extends AppController
             } else { // should use matrix instead
                 $param = array(
                     'name' => $galaxy['Galaxy']['name'],
+                    'value' => $this->baseurl . "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local . '/eventid:' . $eventid,
                     'functionName' => sprintf(
                         "getMatrixPopup('%s', '%s', '%s/local:%s/eventid:%s')",
                         $target_type,
