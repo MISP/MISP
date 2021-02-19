@@ -6925,13 +6925,15 @@ class Event extends AppModel
         }
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
+        unset($filters['page']);
+        unset($filters['limit']);
         foreach ($eventids_chunked as $chunk) {
             $filters['eventid'] = $chunk;
             if (!empty($filters['tags']['NOT'])) {
                 $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
                 unset($filters['tags']['NOT']);
             }
-            $result = $this->fetchEvent($user, $filters,true);
+            $result = $this->fetchEvent($user, $filters, true);
             $result = $this->Allowedlist->removeAllowedlistedFromArray($result, false);
             foreach ($result as $event) {
                 if ($jobId && $i % 10 == 0) {
