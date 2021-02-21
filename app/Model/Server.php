@@ -6220,6 +6220,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'afterHook' => 'zmqAfterHook',
                 ),
+                'ZeroMQ_host' => array(
+                    'level' => 2,
+                    'description' => __('The host that the pub/sub feature will use.'),
+                    'value' => '127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'afterHook' => 'zmqAfterHook',
+                ),
                 'ZeroMQ_port' => array(
                     'level' => 2,
                     'description' => __('The port that the pub/sub feature will use.'),
