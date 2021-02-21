@@ -1843,7 +1843,7 @@ class Event extends AppModel
             'eventsExtendingUuid',
             'extended',
             'excludeGalaxy',
-            'includeCustomGalaxyCluster',
+            'includeCustomGalaxyCluster', // not used
             'includeRelatedTags',
             'excludeLocalTags',
             'includeDecayScore',
@@ -1862,6 +1862,9 @@ class Event extends AppModel
         }
         if (!isset($options['includeEventCorrelations'])) {
             $options['includeEventCorrelations'] = true;
+        }
+        if (!isset($options['fetchFullClusters'])) {
+            $options['fetchFullClusters'] = true;
         }
         foreach ($possibleOptions as $opt) {
             if (!isset($options[$opt])) {
@@ -2209,6 +2212,7 @@ class Event extends AppModel
             }
             $this->__attachReferences($event, $fields);
             $this->__attachTags($event, $justExportableTags);
+            $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters']);
             $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
                 $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
@@ -2230,7 +2234,6 @@ class Event extends AppModel
                 }
                 $event['User']['email'] = $userEmail;
             }
-            $event = $this->massageTags($user, $event, 'Event', $options['excludeGalaxy']);
             // Let's find all the related events and attach it to the event itself
             if ($options['includeEventCorrelations']) {
                 $results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
@@ -2279,7 +2282,6 @@ class Event extends AppModel
                         unset($event['Attribute'][$key]);
                         continue;
                     }
-                    $event['Attribute'][$key] = $this->massageTags($user, $event['Attribute'][$key], 'Attribute', $options['excludeGalaxy']);
                     if ($attribute['category'] === 'Financial fraud') {
                         $event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
                     }
@@ -2379,6 +2381,104 @@ class Event extends AppModel
             }
         }
         return $results;
+    }
+
+    /**
+     * Attach galaxy clusters to event and attributes.
+     * @param array $event
+     * @param array $user
+     * @param bool $excludeGalaxy
+     * @param bool $fetchFullCluster
+     */
+    private function __attachGalaxies(array &$event, array $user, $excludeGalaxy, $fetchFullCluster)
+    {
+        $galaxyTags = [];
+        $event['Galaxy'] = [];
+        if (!$excludeGalaxy && isset($event['EventTag'])) {
+            foreach ($event['EventTag'] as $eventTag) {
+                if ($eventTag['Tag']['is_galaxy']) {
+                    $galaxyTags[$eventTag['Tag']['id']] = $eventTag['Tag']['name'];
+                }
+            }
+        }
+        if (isset($event['Attribute'])) {
+            foreach ($event['Attribute'] as &$attribute) {
+                $attribute['Galaxy'] = [];
+                if (!$excludeGalaxy && isset($attribute['AttributeTag'])) {
+                    foreach ($attribute['AttributeTag'] as $attributeTag) {
+                        if ($attributeTag['Tag']['is_galaxy']) {
+                            $galaxyTags[$attributeTag['Tag']['id']] = $attributeTag['Tag']['name'];
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($excludeGalaxy || empty($galaxyTags)) {
+            return;
+        }
+
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $clusters = $this->GalaxyCluster->getClusters($galaxyTags, $user, true, $fetchFullCluster);
+
+        if (empty($clusters)) {
+            return;
+        }
+
+        $clustersByTagNames = [];
+        foreach ($clusters as $cluster) {
+            $clustersByTagNames[mb_strtolower($cluster['GalaxyCluster']['tag_name'])] = $cluster['GalaxyCluster'];
+        }
+        unset($clusters);
+
+        if (isset($event['EventTag'])) {
+            foreach ($event['EventTag'] as $etk => $eventTag) {
+                if (!$eventTag['Tag']['is_galaxy']) {
+                    continue;
+                }
+                $tagName = mb_strtolower($eventTag['Tag']['name']);
+                if (isset($clustersByTagNames[$tagName])) {
+                    $cluster = $clustersByTagNames[$tagName];
+                    $galaxyId = $cluster['Galaxy']['id'];
+                    $cluster['local'] = isset($eventTag['local']) ? $eventTag['local'] : false;
+                    if (isset($event['Galaxy'][$galaxyId])) {
+                        unset($cluster['Galaxy']);
+                        $event['Galaxy'][$galaxyId]['GalaxyCluster'][] = $cluster;
+                    } else {
+                        $event['Galaxy'][$galaxyId] = $cluster['Galaxy'];
+                        unset($cluster['Galaxy']);
+                        $event['Galaxy'][$galaxyId]['GalaxyCluster'] = [$cluster];
+                    }
+                }
+            }
+            $event['Galaxy'] = array_values($event['Galaxy']);
+        }
+        if (isset($event['Attribute'])) {
+            foreach ($event['Attribute'] as &$attribute) {
+                if (isset($attribute['AttributeTag'])) {
+                    foreach ($attribute['AttributeTag'] as $attributeTag) {
+                        if (!$attributeTag['Tag']['is_galaxy']) {
+                            continue;
+                        }
+                        $tagName = mb_strtolower($attributeTag['Tag']['name']);
+                        if (isset($clustersByTagNames[$tagName])) {
+                            $cluster = $clustersByTagNames[$tagName];
+                            $galaxyId = $cluster['Galaxy']['id'];
+                            $cluster['local'] = isset($attributeTag['local']) ? $attributeTag['local'] : false;
+                            if (isset($attribute['Galaxy'][$galaxyId])) {
+                                unset($cluster['Galaxy']);
+                                $attribute['Galaxy'][$galaxyId]['GalaxyCluster'][] = $cluster;
+                            } else {
+                                $attribute['Galaxy'][$galaxyId] = $cluster['Galaxy'];
+                                unset($cluster['Galaxy']);
+                                $attribute['Galaxy'][$galaxyId]['GalaxyCluster'] = [$cluster];
+                            }
+                        }
+                    }
+                    $attribute['Galaxy'] = array_values($attribute['Galaxy']);
+                }
+            }
+        }
     }
 
     private function __cacheRelatedEventTags($eventTagCache, array $relatedAttribute, $excludeLocalTags)
@@ -6795,9 +6895,13 @@ class Event extends AppModel
             foreach ($event['EventTag'] as $etk => $eventTag) {
                 $tag = $this->__getCachedTag($eventTag['tag_id'], $justExportable);
                 if ($tag !== null) {
+                    $tag['local'] = empty($eventTag['local']) ? 0 : 1;
                     $event['EventTag'][$etk]['Tag'] = $tag;
+                } else {
+                    unset($event['EventTag'][$etk]);
                 }
             }
+            $event['EventTag'] = array_values($event['EventTag']);
         }
         if (!empty($event['Attribute'])) {
             foreach ($event['Attribute'] as $ak => $attribute) {
@@ -6805,9 +6909,13 @@ class Event extends AppModel
                     foreach ($attribute['AttributeTag'] as $atk => $attributeTag) {
                         $tag = $this->__getCachedTag($attributeTag['tag_id'], $justExportable);
                         if ($tag !== null) {
+                            $tag['local'] = empty($attributeTag['local']) ? 0 : 1;
                             $event['Attribute'][$ak]['AttributeTag'][$atk]['Tag'] = $tag;
+                        } else {
+                            unset($event['Attribute'][$ak]['AttributeTag'][$atk]);
                         }
                     }
+                    $event['Attribute'][$ak]['AttributeTag'] = array_values($event['Attribute'][$ak]['AttributeTag']);
                 }
             }
         }
