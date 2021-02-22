@@ -2356,7 +2356,7 @@
                 "data_type": "varchar",
                 "character_maximum_length": "255",
                 "numeric_precision": null,
-                "collation_name": "utf8_bin",
+                "collation_name": "utf8_unicode_ci",
                 "column_type": "varchar(255)",
                 "column_default": "",
                 "extra": ""

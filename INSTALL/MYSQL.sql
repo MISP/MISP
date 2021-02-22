@@ -455,7 +455,7 @@ CREATE TABLE IF NOT EXISTS `galaxy_clusters` (
   `collection_uuid` varchar(255) COLLATE utf8_bin NOT NULL,
   `type` varchar(255) COLLATE utf8_bin NOT NULL,
   `value` text COLLATE utf8_bin NOT NULL,
-  `tag_name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `tag_name` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   `description` text COLLATE utf8_bin NOT NULL,
   `galaxy_id` int(11) NOT NULL,
   `source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
