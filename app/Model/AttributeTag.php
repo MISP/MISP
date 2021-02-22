@@ -118,27 +118,43 @@ class AttributeTag extends AppModel
         }
     }
 
-    public function handleAttributeTag($attribute_id, $event_id, $tag)
+    public function handleAttributeTag($attribute_id, $event_id, array $tag)
     {
         if (empty($tag['deleted'])) {
-            $this->attachTagToAttribute($attribute_id, $event_id, $tag['id']);
+            $local = isset($tag['local']) ? $tag['local'] : false;
+            $this->attachTagToAttribute($attribute_id, $event_id, $tag['id'], $local);
         } else {
             $this->detachTagFromAttribute($attribute_id, $event_id, $tag['id']);
         }
     }
 
-    public function attachTagToAttribute($attribute_id, $event_id, $tag_id)
+    /**
+     * @param int $attribute_id
+     * @param int $event_id
+     * @param int $tag_id
+     * @param bool $local
+     * @return bool
+     * @throws Exception
+     */
+    public function attachTagToAttribute($attribute_id, $event_id, $tag_id, $local = false)
     {
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
+            'fields' => ['id'],
             'conditions' => array(
                 'tag_id' => $tag_id,
                 'attribute_id' => $attribute_id
             )
         ));
         if (empty($existingAssociation)) {
+            $data = [
+                'attribute_id' => $attribute_id,
+                'event_id' => $event_id,
+                'tag_id' => $tag_id,
+                'local' => $local ? 1 : 0,
+            ];
             $this->create();
-            if (!$this->save(array('attribute_id' => $attribute_id, 'event_id' => $event_id, 'tag_id' => $tag_id))) {
+            if (!$this->save($data)) {
                 return false;
             }
         }
@@ -149,6 +165,7 @@ class AttributeTag extends AppModel
     {
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
+            'fields' => ['id'],
             'conditions' => array(
                 'tag_id' => $tag_id,
                 'event_id' => $event_id,
