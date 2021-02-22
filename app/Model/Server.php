@@ -1536,7 +1536,7 @@ class Server extends AppModel
             return true;
         }
         if (is_executable($value)) {
-            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
+            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-pie-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
                 finfo_close($finfo);
                 return true;
             } else {
@@ -6218,6 +6218,15 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_host' => array(
+                    'level' => 2,
+                    'description' => __('The host that the pub/sub feature will use.'),
+                    'value' => '127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
                 ),
                 'ZeroMQ_port' => array(
