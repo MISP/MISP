@@ -85,16 +85,16 @@ class OpenIDConnectAuthenticate extends BaseAuthenticate {
 
     public function __construct()
     {
-        self::$client_id = Configure::read('AadAuth.client_id');
-        self::$ad_tenant =  Configure::read('AadAuth.ad_tenant');
-        self::$client_secret =  Configure::read('AadAuth.client_secret');
-        self::$redirect_uri =  Configure::read('AadAuth.redirect_uri');
-        self::$auth_provider =  Configure::read('AadAuth.auth_provider');
-        self::$auth_provider_user =  Configure::read('AadAuth.auth_provider_user');
-        self::$misp_user =  Configure::read('AadAuth.misp_user');
-        self::$misp_orgadmin =  Configure::read('AadAuth.misp_orgadmin');
-        self::$misp_siteadmin =  Configure::read('AadAuth.misp_siteadmin');
-        self::$check_ad_groups =  Configure::read('AadAuth.check_ad_groups');
+        self::$client_id = Configure::read('OICAuth.client_id');
+        self::$ad_tenant =  Configure::read('OICAuth.ad_tenant');
+        self::$client_secret =  Configure::read('OICAuth.client_secret');
+        self::$redirect_uri =  Configure::read('OICAuth.redirect_uri');
+        self::$auth_provider =  Configure::read('OICAuth.auth_provider');
+        self::$auth_provider_user =  Configure::read('OICAuth.auth_provider_user');
+        self::$misp_user =  Configure::read('OICAuth.misp_user');
+        self::$misp_orgadmin =  Configure::read('OICAuth.misp_orgadmin');
+        self::$misp_siteadmin =  Configure::read('OICAuth.misp_siteadmin');
+        self::$check_ad_groups =  Configure::read('OICAuth.check_ad_groups');
 
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
@@ -168,15 +168,15 @@ class OpenIDConnectAuthenticate extends BaseAuthenticate {
     {
         if (!headers_sent()) {
             if (!isset($_GET["code"]) and !isset($_GET["error"])) {
-                $url = self::$auth_provider . self::$ad_tenant . "/oauth2/v2.0/authorize?";
+                $url = "http://192.168.178.22:8080/auth/realms/ThreatPortal/protocol/openid-connect/auth?";
                 $url .= "state=" . session_id();
-                $url .= "&scope=User.Read";
+                $url .= "&scope=email";
                 $url .= "&response_type=code";
                 $url .= "&approval_prompt=auto";
                 $url .= "&client_id=" . self::$client_id;
                 $url .= "&redirect_uri=" . urlencode(self::$redirect_uri);
                 header("Location: " . $url);  //So off you go my dear browser and welcome back for round two after some redirects at Azure end
-                $this->_log("info", "Redirect to Azure for authentication.");
+                $this->_log("error", "Redirect to Azure for authentication.");
                 exit; // we need to exit once the header to redirect to Azure is sent
 
             }
