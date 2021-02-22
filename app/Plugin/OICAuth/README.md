@@ -3,7 +3,7 @@
 This plugin enables authentication with an identity provider using the protocol open id connect / oauth 2. Tested with:
 Keycloak v11. Others might work as well.
 
-Every user
+Every user can sign in using the idp. But the user must be present in MISP with the same email.
 
 Azure authentication code inspired by the implementation of Azure Directory authentication plugin.
 
