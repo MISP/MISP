@@ -58,7 +58,7 @@
                 echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
             }
             if (Configure::read('OICAuth') == true) {
-                echo '<div class="clear"></div><a class="btn btn-info" href="/users/login?oic=enable">Single Sign on</a>';
+                echo '<div class="clear"></div><a class="btn btn-info" href="/users/login?oic=enable">'.Configure::read('OICAuth.button_text').'</a>';
             }
         ?>
     </td>
