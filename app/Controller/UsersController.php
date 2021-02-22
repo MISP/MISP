@@ -937,8 +937,8 @@ class UsersController extends AppController
                     }
                 }
                 if (
-                    isset($this->request->data['User']['enable_password']) && $this->request->data['User']['enable_password'] != '0' &&
-                    isset($this->request->data['User']['password']) && "" != $this->request->data['User']['password']
+                    (!empty($this->request->data['User']['enable_password']) || $this->_isRest()) &&
+                    !empty($this->request->data['User']['password'])
                 ) {
                     $fields[] = 'password';
                     if ($this->_isRest() && !isset($this->request->data['User']['confirm_password'])) {
