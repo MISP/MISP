@@ -243,7 +243,8 @@ CREATE TABLE IF NOT EXISTS event_reports (
     `deleted` tinyint(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     CONSTRAINT u_uuid UNIQUE (uuid),
-    INDEX `name` (`name`)
+    INDEX `name` (`name`),
+    INDEX `event_id` (`event_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------

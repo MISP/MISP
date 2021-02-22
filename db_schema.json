@@ -7654,7 +7654,8 @@
         "event_reports": {
             "id": true,
             "uuid": true,
-            "name": false
+            "name": false,
+            "event_id": false
         },
         "event_tags": {
             "id": true,

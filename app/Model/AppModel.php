@@ -1570,6 +1570,7 @@ class AppModel extends Model
                 break;
             case 66:
                 $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY COLUMN `tag_name` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '';";
+                $indexArray[] = ['event_reports', 'event_id'];
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1824,18 +1825,19 @@ class AppModel extends Model
         }
     }
 
-    private function __addIndex($table, $field, $length = false)
+    private function __addIndex($table, $field, $length = null, $unique = false)
     {
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
         $this->Log = ClassRegistry::init('Log');
+        $index = $unique ? 'UNIQUE INDEX' : 'INDEX';
         if ($dataSource == 'Database/Postgres') {
-            $addIndex = "CREATE INDEX idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
+            $addIndex = "CREATE $index idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
         } else {
             if (!$length) {
-                $addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`);";
+                $addIndex = "ALTER TABLE `" . $table . "` ADD $index `" . $field . "` (`" . $field . "`);";
             } else {
-                $addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`(" . $length . "));";
+                $addIndex = "ALTER TABLE `" . $table . "` ADD $index `" . $field . "` (`" . $field . "`(" . $length . "));";
             }
         }
         $result = true;
@@ -1844,7 +1846,7 @@ class AppModel extends Model
         try {
             $this->query($addIndex);
         } catch (Exception $e) {
-            $duplicate = (strpos($e->getMessage(), '1061') !== false);
+            $duplicate = strpos($e->getMessage(), '1061') !== false;
             $errorMessage = $e->getMessage();
             $result = false;
         }
