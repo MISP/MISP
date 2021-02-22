@@ -4,6 +4,8 @@ App::uses('AppModel', 'Model');
 /**
  * @property EventTag $EventTag
  * @property AttributeTag $AttributeTag
+ * @property Organisation $Organisation
+ * @property User $User
  */
 class Tag extends AppModel
 {

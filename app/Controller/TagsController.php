@@ -192,8 +192,7 @@ class TagsController extends AppController
         } elseif ($this->_isRest()) {
             return $this->RestResponse->describe('Tag', 'add', false, $this->response->type());
         }
-        $this->loadModel('Organisation');
-        $temp = $this->Organisation->find('all', array(
+        $temp = $this->Tag->Organisation->find('all', array(
             'conditions' => array('local' => 1),
             'fields' => array('id', 'name'),
             'recursive' => -1
@@ -207,7 +206,7 @@ class TagsController extends AppController
         $this->set('orgs', $orgs);
         $users = array(0 => 'Unrestricted');
         if ($this->_isSiteAdmin()) {
-            $temp = $this->Organisation->User->find('all', array(
+            $temp = $this->Tag->User->find('all', array(
                 'conditions' => array('disabled' => 0),
                 'fields' => array('id', 'email'),
                 'recursive' => -1
@@ -247,14 +246,15 @@ class TagsController extends AppController
                 throw new NotFoundException('Invalid tag');
             }
         }
-        if (!$this->_isSiteAdmin()) {
-            throw new NotFoundException('You don\'t have permission to do that.');
-        }
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['Tag'])) {
                 $this->request->data = array('Tag' => $this->request->data);
             }
             $this->request->data['Tag']['id'] = $id;
+            if (!$this->_isSiteAdmin()) { // just site admin can change user_id or org_id
+                unset($this->request->data['Tag']['user_id']);
+                unset($this->request->data['Tag']['org_id']);
+            }
             if ($this->Tag->save($this->request->data)) {
                 if ($this->_isRest()) {
                     $tag = $this->Tag->find('first', array(
@@ -280,31 +280,22 @@ class TagsController extends AppController
         } elseif ($this->_isRest()) {
             return $this->RestResponse->describe('Tag', 'edit', false, $this->response->type());
         }
-        $this->loadModel('Organisation');
-        $temp = $this->Organisation->find('all', array(
-            'conditions' => array('local' => 1),
-            'fields' => array('id', 'name'),
-            'recursive' => -1
-        ));
-        $orgs = array(0 => 'Unrestricted');
-        if (!empty($temp)) {
-            foreach ($temp as $org) {
-                $orgs[$org['Organisation']['id']] = $org['Organisation']['name'];
-            }
-        }
-        $this->set('orgs', $orgs);
-        $users = array(0 => 'Unrestricted');
+
         if ($this->_isSiteAdmin()) {
-            $temp = $this->Organisation->User->find('all', array(
+            $orgs = $this->Tag->Organisation->find('list', array(
+                'conditions' => array('local' => 1),
+                'fields' => array('id', 'name'),
+                'recursive' => -1
+            ));
+            $orgs = [0 => 'Unrestricted'] + $orgs;
+            $this->set('orgs', $orgs);
+
+            $users = $this->Tag->User->find('list', array(
                 'conditions' => array('disabled' => 0),
                 'fields' => array('id', 'email'),
                 'recursive' => -1
             ));
-            if (!empty($temp)) {
-                foreach ($temp as $user) {
-                    $users[$user['User']['id']] = $user['User']['email'];
-                }
-            }
+            $users = [0 => 'Unrestricted'] + $users;
             $this->set('users', $users);
         }
         $this->request->data = $this->Tag->read(null, $id);
@@ -312,9 +303,6 @@ class TagsController extends AppController
 
     public function delete($id)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new NotFoundException('You don\'t have permission to do that.');
-        }
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }

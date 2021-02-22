@@ -7,14 +7,15 @@
         ));
         echo $this->Form->input('colour', array(
         ));
-        echo $this->Form->input('org_id', array(
+
+        if ($isSiteAdmin) {
+            echo $this->Form->input('org_id', array(
                 'options' => $orgs,
                 'label' => __('Restrict tagging to org')
-        ));
-        if ($isSiteAdmin) {
+            ));
             echo $this->Form->input('user_id', array(
-                    'options' => $users,
-                    'label' => __('Restrict tagging to user')
+                'options' => $users,
+                'label' => __('Restrict tagging to user')
             ));
         }
     ?>
