@@ -2,6 +2,9 @@
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
 
+/**
+ * @property Tag $Tag
+ */
 class GalaxyCluster extends AppModel
 {
     public $useTable = 'galaxy_clusters';
@@ -905,21 +908,33 @@ class GalaxyCluster extends AppModel
      * @param bool $fetchFullCluster
      * @return array
      */
-    public function getClusters(array $namesOrIds, array $user, $postProcess = true)
+    public function getClusters(array $namesOrIds, array $user, $postProcess = true, $fetchFullCluster = true)
     {
-        $conditions = array();
         if (count(array_filter($namesOrIds, 'is_numeric')) === count($namesOrIds)) { // all elements are numeric
-            $conditions[] = array('GalaxyCluster.id' => $namesOrIds);
+            $conditions = array('GalaxyCluster.id' => $namesOrIds);
         } else {
-            $conditions[] = array('LOWER(GalaxyCluster.tag_name)' => array_map('strtolower', $namesOrIds));
+            $conditions = array('LOWER(GalaxyCluster.tag_name)' => array_map('strtolower', $namesOrIds));
         }
-        $clusters = $this->fetchGalaxyClusters($user, array(
-            'conditions' => $conditions,
-        ), true);
+
+        $options = ['conditions' => $conditions];
+        if (!$fetchFullCluster) {
+            $options['contain'] = ['Galaxy'];
+        }
+
+        $clusters = $this->fetchGalaxyClusters($user, $options, $fetchFullCluster);
 
         if (!empty($clusters) && $postProcess) {
+            $tagNames = array_map('strtolower', array_column(array_column($clusters, 'GalaxyCluster'), 'tag_name'));
+            $tagIds = $this->Tag->find('list', [
+                'conditions' => ['LOWER(Tag.name)' => $tagNames],
+                'recursive' => -1,
+                'fields' => array('Tag.name', 'Tag.id'),
+            ]);
+            $tagIds = array_change_key_case($tagIds);
+
             foreach ($clusters as $k => $cluster) {
-                $clusters[$k] = $this->postprocess($cluster);
+                $tagName = strtolower($cluster['GalaxyCluster']['tag_name']);
+                $clusters[$k] = $this->postprocess($cluster, isset($tagIds[$tagName]) ? $tagIds[$tagName] : null);
             }
         }
 
