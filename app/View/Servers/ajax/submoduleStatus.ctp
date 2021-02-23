@@ -29,7 +29,7 @@
                         $class = 'warning';
                     }
                     $versionText = __('Outdated version');
-                    $versionText .= sprintf(_(' (%s days, %s hours older than super project)'), $status['timeDiff']->format('%a'), $status['timeDiff']->format('%h'));
+                    $versionText .= sprintf(__(' (%s days, %s hours older than super project)'), $status['timeDiff']->format('%a'), $status['timeDiff']->format('%h'));
                     break;
                 case 'younger':
                     $class = 'warning';
