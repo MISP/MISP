@@ -162,13 +162,12 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     <?php $rowId = sprintf('attribute_%s_galaxy', h($objectId)); ?>
     <td class="short" id="<?= $rowId ?>">
       <?php
-        echo $this->element('galaxyQuickViewMini', array(
+        echo $this->element('galaxyQuickViewNew', array(
           'mayModify' => $mayModify,
           'isAclTagger' => $isAclTagger,
           'data' => (!empty($object['Galaxy']) ? $object['Galaxy'] : array()),
           'target_id' => $object['id'],
           'target_type' => 'attribute',
-          'rowId' => $rowId,
         ));
       ?>
     </td>

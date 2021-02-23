@@ -106,7 +106,7 @@
                         unset($galaxy_cluster['Galaxy']);
                         $galaxies[$galaxy_id]['GalaxyCluster'][] = $galaxy_cluster;
                     }
-                    echo $this->element('galaxyQuickViewMini', array(
+                    echo $this->element('galaxyQuickViewNew', array(
                       'mayModify' => false,
                       'isAclTagger' => false,
                       'data' => $galaxies,
