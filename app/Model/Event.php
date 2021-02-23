@@ -7197,13 +7197,28 @@ class Event extends AppModel
         return true;
     }
 
+    /**
+     * Retrun array of required taxonomies and taxonomies predicates
+     * @return array
+     */
     private function getRequiredTaxonomies()
     {
         $this->Taxonomy = ClassRegistry::init('Taxonomy');
-        return $this->Taxonomy->find('column', array(
-            'conditions' => array('Taxonomy.required' => 1, 'Taxonomy.enabled' => 1),
-            'fields' => array('Taxonomy.namespace')
-        ));
+        $requiredTaxonomies = $this->Taxonomy->find('column', [
+            'conditions' => ['Taxonomy.required' => 1, 'Taxonomy.enabled' => 1],
+            'fields' => ['Taxonomy.namespace'],
+        ]);
+        $requiredPredicates = $this->Taxonomy->TaxonomyPredicate->find('all', [
+            'recursive' => -1,
+            'contain' => ['Taxonomy' => ['fields' => 'namespace']],
+            'fields' => ['TaxonomyPredicate.value'],
+            'conditions' => ['Taxonomy.enabled' => 1, 'TaxonomyPredicate.required' => 1],
+        ]);
+        foreach ($requiredPredicates as $requiredPredicate) {
+            $name = $requiredPredicate['Taxonomy']['namespace'] . ':' . $requiredPredicate['TaxonomyPredicate']['value'];
+            $requiredTaxonomies[] = $name;
+        }
+        return $requiredTaxonomies;
     }
 
     public function missingTaxonomies(array $event)
@@ -7212,6 +7227,10 @@ class Event extends AppModel
         return $this->checkMissingTaxonomies($requiredTaxonomies, $event['EventTag']);
     }
 
+    /**
+     * @param int $id
+     * @return array|bool
+     */
     public function checkIfPublishable($id)
     {
         $requiredTaxonomies = $this->getRequiredTaxonomies();
@@ -7241,9 +7260,14 @@ class Event extends AppModel
             $found = false;
             foreach ($eventTags as $tag) {
                 $splits = $this->Taxonomy->splitTagToComponents($tag['Tag']['name']);
-                if ($splits !== null && $splits['namespace'] === $requiredTaxonomy) {
-                    $found = true;
-                    break;
+                if ($splits !== null) {
+                    if (
+                        $splits['namespace'] === $requiredTaxonomy ||
+                        isset($splits['value']) && ($splits['namespace'] . ':' . $splits['predicate']) === $requiredTaxonomy
+                    ) {
+                        $found = true;
+                        break;
+                    }
                 }
             }
             if (!$found) {

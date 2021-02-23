@@ -1241,6 +1241,7 @@ CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
   `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin,
   `description` text CHARACTER SET UTF8 collate utf8_bin,
   `exclusive` tinyint(1) DEFAULT 0,
+  `required` tinyint(1) NOT NULL DEFAULT 0,
   `numerical_value` int(11) NULL,
   PRIMARY KEY (`id`),
   INDEX `taxonomy_id` (`taxonomy_id`),
