@@ -5617,19 +5617,19 @@ $('body').on('click', '.hex-value-convert', function() {
         if (tagData.TaxonomyPredicate.description) {
             $predicate.append($('<p/>').css("margin-bottom", "5px").append(
                 $('<strong/>').text('Description: '),
-                $('<span/>').text(tagData.TaxonomyPredicate.description),
+                $('<span/>').text(tagData.TaxonomyPredicate.description)
             ));
         }
         if (tagData.TaxonomyPredicate.TaxonomyEntry && tagData.TaxonomyPredicate.TaxonomyEntry[0].numerical_value) {
             $predicate.append($('<p/>').css("margin-bottom", "5px").append(
                 $('<strong/>').text('Numerical value: '),
-                $('<span/>').text(tagData.TaxonomyPredicate.TaxonomyEntry[0].numerical_value),
+                $('<span/>').text(tagData.TaxonomyPredicate.TaxonomyEntry[0].numerical_value)
             ));
         }
         var $meta = $('<div/>').append(
             $('<h3/>').text('Taxonomy: ' + tagData.Taxonomy.namespace.toUpperCase()),
             $('<p/>').css("margin-bottom", "5px").append(
-                $('<span/>').text(tagData.Taxonomy.description),
+                $('<span/>').text(tagData.Taxonomy.description)
             )
         )
         return $('<div/>').append($predicate, $meta)
