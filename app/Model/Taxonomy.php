@@ -184,19 +184,14 @@ class Taxonomy extends AppModel
 
     private function __getTaxonomy($id, $options = array('full' => false, 'filter' => false))
     {
-        $recursive = -1;
-        if ($options['full']) {
-            $recursive = 2;
-        }
-
         $filter = false;
         if (isset($options['filter'])) {
             $filter = $options['filter'];
         }
         $taxonomy_params = array(
-                'recursive' => -1,
-                'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
-                'conditions' => array('Taxonomy.id' => $id)
+            'recursive' => -1,
+            'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
+            'conditions' => array('Taxonomy.id' => $id)
         );
         $taxonomy = $this->find('first', $taxonomy_params);
         if (empty($taxonomy)) {
@@ -228,6 +223,9 @@ class Taxonomy extends AppModel
                 }
                 $entries[] = $temp;
             }
+        }
+        if (isset($taxonomy['TaxonomyPredicate'])) {
+            $taxonomy['Taxonomy']['TaxonomyPredicate'] = $taxonomy['TaxonomyPredicate'];
         }
         $taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
         if ($filter) {

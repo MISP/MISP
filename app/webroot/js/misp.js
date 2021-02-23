@@ -5458,6 +5458,43 @@ $('body').on('click', '.hex-value-convert', function() {
     }, 'a.tag[data-tag-id]');
 })();
 
+
+$(function() {
+    // @see action_toggle.ctp
+    $('input[data-action]').on('click', function() {
+        var $this = $(this);
+        $.ajax({
+            type: "get",
+            url: $this.data('action'),
+            error: function () {
+                showMessage('fail', 'Could not retrieve current state.');
+                $this.prop("checked", false);
+            },
+            success: function (data) {
+                var $tmpBox = $('<div style="display:none"></div>').insertAfter($this);
+                $tmpBox.html(data);
+                var $form = $tmpBox.find('form');
+                $.ajax({
+                    data: $form.serialize(),
+                    cache: false,
+                    type: "post",
+                    url: $form.attr('action'),
+                    success: function () {
+                        showMessage('success', 'Field updated.');
+                    },
+                    error: function () {
+                        showMessage('fail', 'Could not update field.');
+                        $this.prop("checked", false);
+                    },
+                    complete: function () {
+                        $tmpBox.remove();
+                    }
+                });
+            }
+        });
+    });
+})
+
 // Highlight column for roles table
 $('td.rotate').hover(function() {
     var $table = $(this).closest('table');
