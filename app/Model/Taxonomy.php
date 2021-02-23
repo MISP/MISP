@@ -34,11 +34,16 @@ class Taxonomy extends AppModel
 
     public function update()
     {
-        $existing = $this->find('all', array(
+        $tmp = $this->find('all', array(
             'recursive' => -1,
-            'fields' => array('version', 'enabled', 'namespace')
+            'contain' => ['TaxonomyPredicate' => ['fields' => ['value', 'required']]],
+            'fields' => ['version', 'enabled', 'namespace', 'required'],
         ));
-        $existing = array_column(array_column($existing, 'Taxonomy'), null, 'namespace');
+        $existing = [];
+        foreach ($tmp as $taxonomy) {
+            $taxonomy['Taxonomy']['predicates'] = array_column($taxonomy['TaxonomyPredicate'], 'required', 'value');
+            $existing[$taxonomy['Taxonomy']['namespace']] = $taxonomy['Taxonomy'];
+        }
 
         $directories = glob(APP . 'files' . DS . 'taxonomies' . DS . '*', GLOB_ONLYDIR);
         $updated = array();
@@ -114,9 +119,16 @@ class Taxonomy extends AppModel
         $current = $this->find('first', array(
             'conditions' => array('namespace' => $vocab['namespace']),
             'recursive' => -1,
-            'fields' => array('version', 'enabled', 'namespace')
+            'contain' => ['TaxonomyPredicate' => ['fields' => ['value', 'required']]],
+            'fields' => ['version', 'enabled', 'namespace', 'required'],
         ));
-        $current = empty($current) ? [] : $current['Taxonomy'];
+        if (!empty($current)) {
+            $current['Taxonomy']['predicates'] = array_column($current['TaxonomyPredicate'], 'required', 'value');
+            $current = $current['Taxonomy'];
+        } else {
+            $current = [];
+        }
+
         $result = $this->__updateVocab($vocab, $current);
         if (is_array($result)) {
             throw new Exception('Could not save taxonomy because of validation errors: ' . json_encode($result));
@@ -127,9 +139,13 @@ class Taxonomy extends AppModel
     private function __updateVocab(array $vocab, array $current)
     {
         $enabled = 0;
+        $required = 0;
         if (!empty($current)) {
             if ($current['enabled']) {
                 $enabled = 1;
+            }
+            if ($current['required']) {
+                $required = 1;
             }
             $this->deleteAll(['Taxonomy.namespace' => $current['namespace']]);
         }
@@ -139,9 +155,12 @@ class Taxonomy extends AppModel
             'version' => $vocab['version'],
             'exclusive' => !empty($vocab['exclusive']),
             'enabled' => $enabled,
+            'required' => $required,
         ]];
         $predicateLookup = array();
         foreach ($vocab['predicates'] as $k => $predicate) {
+            $required = isset($current['predicates'][$predicate['value']]) && $current['predicates'][$predicate['value']];
+            $predicate['required'] = $required;
             $taxonomy['Taxonomy']['TaxonomyPredicate'][$k] = $predicate;
             $predicateLookup[$predicate['value']] = $k;
         }
