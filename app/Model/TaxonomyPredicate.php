@@ -23,6 +23,10 @@ class TaxonomyPredicate extends AppModel
         ),
     );
 
+    public $belongsTo = [
+        'Taxonomy',
+    ];
+
     public $hasMany = array(
             'TaxonomyEntry' => array(
                 'dependent' => true
