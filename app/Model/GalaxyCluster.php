@@ -1404,17 +1404,16 @@ class GalaxyCluster extends AppModel
     /**
      * @param array $user
      * @param array $events
-     * @param bool $replace
-     * @param bool $fetchFullCluster
+     * @param bool $replace Remove galaxy cluster tags
      * @return array
      */
-    public function attachClustersToEventIndex(array $user, array $events, $replace = false, $fetchFullCluster = true)
+    public function attachClustersToEventIndex(array $user, array $events, $replace = false)
     {
         $clusterTagNames = [];
         foreach ($events as $event) {
             foreach ($event['EventTag'] as $eventTag) {
                 if ($eventTag['Tag']['is_galaxy']) {
-                    $clusterTagNames[strtolower($eventTag['Tag']['name'])] = true;
+                    $clusterTagNames[$eventTag['Tag']['id']] = strtolower($eventTag['Tag']['name']);
                 }
             }
         }
@@ -1424,12 +1423,10 @@ class GalaxyCluster extends AppModel
         }
 
         $options = [
-            'conditions' => ['LOWER(GalaxyCluster.tag_name)' => array_keys($clusterTagNames)],
+            'conditions' => ['LOWER(GalaxyCluster.tag_name)' => $clusterTagNames],
+            'contain' => ['Galaxy', 'GalaxyElement'],
         ];
-        if (!$fetchFullCluster) {
-            $options['contain'] = ['Galaxy'];
-        }
-        $clusters = $this->fetchGalaxyClusters($user, $options, $fetchFullCluster);
+        $clusters = $this->fetchGalaxyClusters($user, $options);
 
         $clustersByTagName = [];
         foreach ($clusters as $cluster) {
@@ -1444,7 +1441,6 @@ class GalaxyCluster extends AppModel
                 $tagName = strtolower($eventTag['Tag']['name']);
                 if (isset($clustersByTagName[$tagName])) {
                     $cluster = $this->postprocess($clustersByTagName[$tagName], $eventTag['Tag']['id']);
-                    $cluster['GalaxyCluster']['tag_id'] = $eventTag['Tag']['id'];
                     $cluster['GalaxyCluster']['local'] = $eventTag['local'];
                     $events[$k]['GalaxyCluster'][] = $cluster['GalaxyCluster'];
                     if ($replace) {
