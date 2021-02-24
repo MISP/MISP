@@ -107,7 +107,7 @@ class Role extends AppModel
             'id' => 'RolePermTagEditor',
             'text' => 'Tag Editor',
             'readonlyenabled' => false,
-            'title' => 'This permission gives users the ability to create, modify or remove tags.'
+            'title' => 'This permission gives users the ability to create tags.'
         ),
         'perm_template' => array(
             'id' => 'RolePermTemplate',
