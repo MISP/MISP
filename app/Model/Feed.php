@@ -1226,7 +1226,7 @@ class Feed extends AppModel
         $md5Values = array_map('md5', array_column($values, 'value'));
 
         $redis->del('misp:feed_cache:' . $feedId);
-        foreach (array_chunk($md5Values, 1000) as $k => $chunk) {
+        foreach (array_chunk($md5Values, 5000) as $k => $chunk) {
             $pipe = $redis->multi(Redis::PIPELINE);
             if (method_exists($redis, 'sAddArray')) {
                 $redis->sAddArray('misp:feed_cache:' . $feedId, $chunk);
@@ -1238,7 +1238,7 @@ class Feed extends AppModel
                 }
             }
             $pipe->exec();
-            $this->jobProgress($jobId, __('Feed %s: %s/%s values cached.', $feedId, $k * 1000, count($md5Values)));
+            $this->jobProgress($jobId, __('Feed %s: %s/%s values cached.', $feedId, $k * 5000, count($md5Values)));
         }
         $redis->set('misp:feed_cache_timestamp:' . $feedId, time());
         return true;
