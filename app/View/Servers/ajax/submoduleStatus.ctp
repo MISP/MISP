@@ -29,7 +29,7 @@
                         $class = 'warning';
                     }
                     $versionText = __('Outdated version');
-                    $versionText .= sprintf(_(' (%s days, %s hours older than super project)'), $status['timeDiff']->format('%a'), $status['timeDiff']->format('%h'));
+                    $versionText .= sprintf(__(' (%s days, %s hours older than super project)'), $status['timeDiff']->format('%a'), $status['timeDiff']->format('%h'));
                     break;
                 case 'younger':
                     $class = 'warning';
@@ -65,7 +65,7 @@
     </tbody>
 </table>
 <div id="submoduleGitResultDiv" class="hidden">
-    <strong><?php echo _('Update result:'); ?></strong>
+    <strong><?php echo __('Update result:'); ?></strong>
     <div class="apply_css_arrow">
         <pre id="submoduleGitResult" class="green bold" style="margin-left: 10px;"></pre>
     </div>
