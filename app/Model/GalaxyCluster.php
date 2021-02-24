@@ -918,7 +918,7 @@ class GalaxyCluster extends AppModel
 
         $options = ['conditions' => $conditions];
         if (!$fetchFullCluster) {
-            $options['contain'] = ['Galaxy'];
+            $options['contain'] = ['Galaxy', 'GalaxyElement'];
         }
 
         $clusters = $this->fetchGalaxyClusters($user, $options, $fetchFullCluster);
