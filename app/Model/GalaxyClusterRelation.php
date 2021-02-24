@@ -163,21 +163,6 @@ class GalaxyClusterRelation extends AppModel
         $this->deleteAll($conditions, false, false);
     }
 
-    public function massageRelationTag($cluster)
-    {
-        if (!empty($cluster['GalaxyCluster'][$this->alias])) {
-            foreach ($cluster['GalaxyCluster'][$this->alias] as $k => $relation) {
-                if (!empty($relation['GalaxyClusterRelationTag'])) {
-                    foreach ($relation['GalaxyClusterRelationTag'] as $relationTag) {
-                        $cluster['GalaxyCluster'][$this->alias][$k]['Tag'][] = $relationTag['Tag'];
-                    }
-                }
-                unset($cluster['GalaxyCluster'][$this->alias][$k]['GalaxyClusterRelationTag']);
-            }
-        }
-        return $cluster;
-    }
-
     /**
      * saveRelations
      *
