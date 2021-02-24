@@ -1479,7 +1479,7 @@ class EventsController extends AppController
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
         $this->set('oldest_timestamp', $oldest_timestamp);
-        $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
+        $this->set('missingTaxonomies', $this->Event->missingTaxonomies($event));
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
         $this->set('filters', $filters);

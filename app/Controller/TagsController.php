@@ -392,7 +392,7 @@ class TagsController extends AppController
         $event = $this->Tag->EventTag->Event->massageTags($this->Auth->user(), $event, 'Event', false, true);
 
         $this->set('tags', $event['EventTag']);
-        $this->set('required_taxonomies', $this->Tag->EventTag->Event->getRequiredTaxonomies());
+        $this->set('missingTaxonomies', $this->Tag->EventTag->Event->missingTaxonomies($event));
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
         $this->set('tagConflicts', $tagConflicts);
         $this->set('event', $event);
