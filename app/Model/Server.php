@@ -529,13 +529,15 @@ class Server extends AppModel
         if ($jobId) {
             $job->saveProgress($jobId, 'Pulling proposals.', 50);
         }
-        $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
+        $pulledProposals = $pulledSightings = 0;
+        if ($technique === 'full' || $technique === 'update') {
+            $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
 
-        if ($jobId) {
-            $job->saveProgress($jobId, 'Pulling sightings.', 75);
+            if ($jobId) {
+                $job->saveProgress($jobId, 'Pulling sightings.', 75);
+            }
+            $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
         }
-        $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
-
         if ($jobId) {
             $job->saveProgress($jobId, 'Pull completed.', 100);
         }
