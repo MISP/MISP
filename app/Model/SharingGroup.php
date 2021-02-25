@@ -604,18 +604,18 @@ class SharingGroup extends AppModel
                 $authorisedToSave = $this->checkIfAuthorisedToSave($user, $sg);
             }
             if (!$user['Role']['perm_site_admin'] &&
-                !($user['Role']['perm_sync'] && $syncLocal ) &&
+                !($user['Role']['perm_sync'] && $syncLocal) &&
                 !$authorisedToSave
             ) {
                 $this->Log->create();
                 $entry = array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'SharingGroup',
-                        'model_id' => $sg['SharingGroup']['uuid'],
-                        'email' => $user['email'],
-                        'action' => 'error',
-                        'user_id' => $user['id'],
-                        'title' => 'Tried to save a sharing group but the user does not belong to it.'
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'SharingGroup',
+                    'model_id' => 0,
+                    'email' => $user['email'],
+                    'action' => 'error',
+                    'user_id' => $user['id'],
+                    'title' => "Tried to save a sharing group with UUID '{$sg['SharingGroup']['uuid']}' but the user does not belong to it."
                 );
                 $this->Log->save($entry);
                 return false;
