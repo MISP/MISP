@@ -2745,3 +2745,14 @@ td.rotate + td:not(.rotate) {
 #RoleAdminEditForm .role-permissions div.input {
    width: 160px;
 }
+
+/*
+Query builder
+ */
+.query-builder .rule-value-container label {
+    margin-right: 5px;
+}
+
+.query-builder .rule-value-container label input {
+    margin-top: 0;
+}

@@ -540,7 +540,12 @@ class Taxonomy extends AppModel
 
     public function getTaxonomyForTag($tagName, $metaOnly = false, $fullTaxonomy = false)
     {
-        if (preg_match('/^([^:="]+):([^:="]+)="([^:="]+)"$/i', $tagName, $matches)) {
+        $splits = $this->splitTagToComponents($tagName);
+        if ($splits === null) {
+            return false; // not taxonomy tag
+        }
+
+        if (isset($splits['value'])) {
             $contain = array(
                 'TaxonomyPredicate' => array(
                     'TaxonomyEntry' => array()
@@ -548,32 +553,15 @@ class Taxonomy extends AppModel
             );
             if (!$fullTaxonomy) {
                 $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($matches[2]),
+                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate']),
                 );
                 $contain['TaxonomyPredicate']['TaxonomyEntry']['conditions'] = array(
-                    'LOWER(TaxonomyEntry.value)' => mb_strtolower($matches[3]),
+                    'LOWER(TaxonomyEntry.value)' => mb_strtolower($splits['value']),
                 );
             }
             $taxonomy = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($matches[1])),
-                'contain' => $contain
-            ));
-            if ($metaOnly && !empty($taxonomy)) {
-                return array('Taxonomy' => $taxonomy['Taxonomy']);
-            }
-            return $taxonomy;
-        } elseif (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
-            $pieces = explode(':', $tagName);
-            $contain = array('TaxonomyPredicate' => array());
-            if (!$fullTaxonomy) {
-                $contain['TaxonomyPredicate']['conditions'] = array(
-                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($pieces[1])
-                );
-            }
-            $taxonomy = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($pieces[0])),
+                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
                 'contain' => $contain
             ));
             if ($metaOnly && !empty($taxonomy)) {
@@ -581,20 +569,39 @@ class Taxonomy extends AppModel
             }
             return $taxonomy;
         } else {
-            return false;
+            $contain = array('TaxonomyPredicate' => array());
+            if (!$fullTaxonomy) {
+                $contain['TaxonomyPredicate']['conditions'] = array(
+                    'LOWER(TaxonomyPredicate.value)' => mb_strtolower($splits['predicate'])
+                );
+            }
+            $taxonomy = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('LOWER(Taxonomy.namespace)' => mb_strtolower($splits['namespace'])),
+                'contain' => $contain
+            ));
+            if ($metaOnly && !empty($taxonomy)) {
+                return array('Taxonomy' => $taxonomy['Taxonomy']);
+            }
+            return $taxonomy;
         }
     }
 
-    // Remove the value for triple component tags or the predicate for double components tags
+    /**
+     * Remove the value for triple component tags or the predicate for double components tags
+     * @param string $tagName
+     * @return string
+     */
     public function stripLastTagComponent($tagName)
     {
-        $shortenedTag = '';
-        if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
-            $shortenedTag = explode('=', $tagName)[0];
-        } elseif (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
-            $shortenedTag = explode(':', $tagName)[0];
+        $splits = $this->splitTagToComponents($tagName);
+        if ($splits === null) {
+            return '';
         }
-        return $shortenedTag;
+        if (isset($splits['value'])) {
+            return $splits['namespace'] . ':' . $splits['predicate'];
+        }
+        return $splits['namespace'];
     }
 
     public function checkIfNewTagIsAllowedByTaxonomy($newTagName, $tagNameList=array())
@@ -677,5 +684,25 @@ class Taxonomy extends AppModel
             }
         }
         return $conflictingTaxonomy;
+    }
+
+    /**
+     * @param string $tag
+     * @return array|null
+     */
+    public function splitTagToComponents($tag)
+    {
+        preg_match('/^([^:="]+):([^:="]+)(="([^:="]+)")?$/i', $tag, $matches);
+        if (empty($matches)) {
+            return null; // tag is not in taxonomy format
+        }
+        $splits = [
+            'namespace' => $matches[1],
+            'predicate' => $matches[2],
+        ];
+        if (isset($matches[4])) {
+            $splits['value'] = $matches[4];
+        }
+        return $splits;
     }
 }

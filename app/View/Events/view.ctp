@@ -106,7 +106,7 @@
                         'event' => $event,
                         'tags' => $event['EventTag'],
                         'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id']),
-                        'required_taxonomies' => $required_taxonomies,
+                        'missingTaxonomies' => $missingTaxonomies,
                         'tagConflicts' => $tagConflicts
                     )
                 )
@@ -527,7 +527,7 @@
     </div>
     <div id="eventreport_div" style="display: none;">
         <span class="report-title-section"><?php echo __('Event Reports');?></span>
-        <div id="eventreport_index_div"></div>
+        <div id="eventreport_content"></div>
     </div>
     <div id="clusterrelation_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>
@@ -554,8 +554,8 @@ $(function () {
     });
 
     $.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?>", function(data) {
-        $("#eventreport_index_div").html(data);
-        if ($('#eventreport_index_div table tbody > tr').length) { // open if contain a report
+        $("#eventreport_content").html(data);
+        if ($('#eventreport_content table tbody > tr').length) { // open if contain a report
             $('#eventreport_toggle').click()
         }
     });
