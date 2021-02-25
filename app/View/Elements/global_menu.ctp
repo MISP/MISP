@@ -336,6 +336,10 @@
                         'url' => $baseurl . '/admin/users/index'
                     ),
                     array(
+                        'text' => __('List Auth Keys'),
+                        'url' => $baseurl . '/auth_keys/index'
+                    ),
+                    array(
                         'text' => __('List User Settings'),
                         'url' => $baseurl . '/user_settings/index/user_id:all'
                     ),

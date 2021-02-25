@@ -1,3 +1,19 @@
+<?php
+if ($data['Object']['distribution'] != 4) {
+    $distribution = $distributionLevels[$data['Object']['distribution']];
+} else {
+    $distribution = $sharing_groups[$data['Object']['sharing_group_id']];
+}
+$tableData = [
+    ['key' => __('Name'), 'value' => $template['ObjectTemplate']['name']],
+    ['key' => __('Template version'), 'value' => $template['ObjectTemplate']['version']],
+    ['key' => __('Meta-category'), 'value' => $template['ObjectTemplate']['meta-category']],
+    ['key' => __('Distribution'), 'value' => $distribution],
+    ['key' => __('Comment'), 'value' => $data['Object']['comment']],
+    ['key' => __('First seen'), 'value' => $data['Object']['first_seen']],
+    ['key' => __('Last seen'), 'value' => $data['Object']['last_seen']],
+];
+?>
 <div class="form">
   <h3><?php echo __('Object pre-save review');?></h3>
   <p><?php echo __('Make sure that the below Object reflects your expectation before submitting it.');?></p>
@@ -18,7 +34,7 @@
     $formSettings['value'] = $cur_object_tmp_uuid;
     echo $this->Form->input('cur_object_tmp_uuid', $formSettings);
   ?>
-    <div class='hidden'>
+    <div class="hidden">
   <?php
     echo $this->Form->input('mergeIntoObject', array(
         'value' => 0,
@@ -26,97 +42,62 @@
     ));
   ?>
   </div>
-    <div style="margin-bottom:20px;">
-      <table class="table table-condensed table-striped">
-        <tbody>
+    <div class="row-fluid">
+        <div class="span8" style="margin-bottom: 2em">
+            <?= $this->element('genericElements/viewMetaTable', ['table_data' => $tableData]); ?>
+        </div>
+        <table id="attribute_table" class="table table-condensed table-striped">
+          <thead>
           <tr>
-            <td class="bold"><?php echo __('Name');?></td>
-            <td><?php echo h($template['ObjectTemplate']['name']); ?></td>
+            <th><?php echo __('Attribute');?></th>
+            <th><?php echo __('Category');?></th>
+            <th><?php echo __('Type');?></th>
+            <th><?php echo __('Value');?></th>
+            <th><?php echo __('To IDS');?></th>
+            <th><?php echo __('Comment');?></th>
+            <th><?php echo __('UUID');?></th>
+            <th><?php echo __('Distribution');?></th>
           </tr>
-          <tr>
-            <td class="bold"><?php echo __('Meta-category');?></td>
-            <td><?php echo h($template['ObjectTemplate']['meta-category']); ?></td>
-          </tr>
-          <tr>
-            <td class="bold"><?php echo __('Distribution');?></td>
-            <td><?php
-              if ($data['Object']['distribution'] != 4) {
-                echo $distributionLevels[$data['Object']['distribution']];
-              } else {
-                echo h($sharing_groups[$data['Object']['sharing_group_id']]);
-              }
-            ?></td>
-          </tr>
-          <tr>
-              <td class="bold"><?php echo __('Template version');?></td>
-              <td><?php echo h($template['ObjectTemplate']['version']); ?></td>
-          </tr>
-          <tr>
-            <td class="bold"><?php echo __('Comment');?></td>
-            <td><?php echo h($data['Object']['comment']); ?></td>
-          </tr>
-          <tr>
-            <td class="bold"><?php echo __('First seen');?></td>
-            <td><?php echo h($data['Object']['first_seen']); ?></td>
-          </tr>
-          <tr>
-            <td class="bold"><?php echo __('Last seen');?></td>
-            <td><?php echo h($data['Object']['last_seen']); ?></td>
-          </tr>
-          <tr>
-            <table id="attribute_table" class="table table-condensed table-striped">
-              <thead>
-                <th><?php echo __('Attribute');?></th>
-                <th><?php echo __('Category');?></th>
-                <th><?php echo __('Type');?></th>
-                <th><?php echo __('Value');?></th>
-                <th><?php echo __('To IDS');?></th>
-                <th><?php echo __('Comment');?></th>
-                <th><?php echo __('UUID');?></th>
-                <th><?php echo __('Distribution');?></th>
-              </thead>
-              <tbody>
-                <?php
-                  $simple_flattened_attribute = array();
-                  $simple_flattened_attribute_noval = array();
-                  $attributeFields = array('category', 'type', 'value', 'to_ids' , 'comment', 'uuid', 'distribution');
-                  if (!empty($data['Attribute'])):
-                    foreach ($data['Attribute'] as $id => $attribute):
-                      $cur_flat = h($attribute['object_relation']) . '.' . h($attribute['type']) . '.' .h($attribute['value']);
-                      $cur_flat_noval = h($attribute['object_relation']) . '.' . h($attribute['type']);
-                      $simple_flattened_attribute[$cur_flat] = $id;
-                      $simple_flattened_attribute_noval[$cur_flat_noval] = $id;
-                      echo sprintf('<tr data-curflat="%s" data-curflatnoval="%s">', h($cur_flat), h($cur_flat_noval));
-                      echo '<td>' . h($attribute['object_relation']) . '</td>';
-                      foreach ($attributeFields as $field) {
-                          if ($field === 'distribution') {
-                              if ($attribute['distribution'] != 4) {
-                                  $attribute[$field] = $distributionLevels[$attribute['distribution']];
-                              } else {
-                                  $attribute[$field] = $sharing_groups[$attribute['sharing_group_id']];
-                              }
-                          } else if ($field === 'to_ids') {
-                              $attribute[$field] = $attribute[$field] ? __('Yes') : __('No');
-                          }
-                          if (isset($attribute[$field])) {
-                              if (isset($attribute['validation'][$field])) {
-                                  echo '<td>' . h($attribute[$field]) . ' <i class="fas fa-times red" title="' . h(implode(', ', $attribute['validation'][$field])) . '"></i></td>';
-                              } else {
-                                  echo '<td>' . h($attribute[$field]) . '</td>';
-                              }
+          </thead>
+          <tbody>
+            <?php
+              $simple_flattened_attribute = array();
+              $simple_flattened_attribute_noval = array();
+              $attributeFields = array('category', 'type', 'value', 'to_ids' , 'comment', 'uuid', 'distribution');
+              if (!empty($data['Attribute'])):
+                foreach ($data['Attribute'] as $id => $attribute):
+                  $cur_flat = h($attribute['object_relation']) . '.' . h($attribute['type']) . '.' .h($attribute['value']);
+                  $cur_flat_noval = h($attribute['object_relation']) . '.' . h($attribute['type']);
+                  $simple_flattened_attribute[$cur_flat] = $id;
+                  $simple_flattened_attribute_noval[$cur_flat_noval] = $id;
+                  echo sprintf('<tr data-curflat="%s" data-curflatnoval="%s">', h($cur_flat), h($cur_flat_noval));
+                  echo '<td>' . h($attribute['object_relation']) . '</td>';
+                  foreach ($attributeFields as $field) {
+                      if ($field === 'distribution') {
+                          if ($attribute['distribution'] != 4) {
+                              $attribute[$field] = $distributionLevels[$attribute['distribution']];
                           } else {
-                              echo '<td></td>';
+                              $attribute[$field] = $sharing_groups[$attribute['sharing_group_id']];
                           }
+                      } else if ($field === 'to_ids') {
+                          $attribute[$field] = $attribute[$field] ? __('Yes') : __('No');
                       }
-                      echo '</tr>';
-                    endforeach;
-                  endif;
-                ?>
-              </tbody>
-            </table>
-          </tr>
-        </tbody>
-      </table>
+                      if (isset($attribute[$field])) {
+                          if (isset($attribute['validation'][$field])) {
+                              echo '<td>' . h($attribute[$field]) . ' <i class="fas fa-times red" title="' . h(implode(', ', $attribute['validation'][$field])) . '"></i></td>';
+                          } else {
+                              echo '<td>' . h($attribute[$field]) . '</td>';
+                          }
+                      } else {
+                          echo '<td></td>';
+                      }
+                  }
+                  echo '</tr>';
+                endforeach;
+              endif;
+            ?>
+          </tbody>
+        </table>
     </div>
 
     <?= $this->Form->button($action === 'add' ? __('Create new object') : __('Update object'), array('class' => 'btn btn-primary')); ?>
@@ -209,6 +190,4 @@ $(document).ready(function() {
     );
 });
 </script>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addObject', 'event' => $event));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addObject', 'event' => $event));

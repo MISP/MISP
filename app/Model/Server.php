@@ -754,16 +754,16 @@ class Server extends AppModel
         }
         if ($all) {
             if ($scope === 'sightings') {
+                // Used when pushing: return just eventUuids that has sightings newer than remote server
                 $this->Event = ClassRegistry::init('Event');
                 $localEvents = $this->Event->find('list', array(
-                    'recursive' => -1,
                     'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
                     'conditions' => array('Event.uuid' => array_column($eventArray, 'uuid'))
                 ));
 
-                $eventUuids = array();
+                $eventUuids = [];
                 foreach ($eventArray as $event) {
-                    if (!isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
+                    if (isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
                         $eventUuids[] = $event['uuid'];
                     }
                 }
@@ -1536,7 +1536,7 @@ class Server extends AppModel
             return true;
         }
         if (is_executable($value)) {
-            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
+            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-pie-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
                 finfo_close($finfo);
                 return true;
             } else {
@@ -6215,6 +6215,15 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_host' => array(
+                    'level' => 2,
+                    'description' => __('The host that the pub/sub feature will use.'),
+                    'value' => '127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
                 ),
                 'ZeroMQ_port' => array(
