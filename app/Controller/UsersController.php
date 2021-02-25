@@ -1138,7 +1138,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
             $user = $this->Auth->identify($this->request, $this->response);
-            if ($user) {
+            if ($user && !$user['disabled']) {
               $this->Session->write('email_otp_user', $user);
               return $this->redirect('email_otp');
             }
