@@ -671,4 +671,11 @@ class AdminShell extends AppShell
         $this->Job->saveField('message', 'Job done.');
         $this->Job->saveField('status', 4);
     }
+
+    public function updatesDone()
+    {
+        $blocking = !empty($this->args[0]);
+        $done = $this->AdminSetting->updatesDone($blocking);
+        $this->out($done ? 'True' : 'False');
+    }
 }

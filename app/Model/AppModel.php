@@ -2003,7 +2003,7 @@ class AppModel extends Model
                 }
             }
             $db_version = $db_version[0];
-            $updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
+            $updates = $this->findUpgrades($db_version['AdminSetting']['value']);
             if ($processId) {
                 $job = $this->Job->find('first', array(
                     'conditions' => array('Job.id' => $processId)
@@ -2348,7 +2348,7 @@ class AppModel extends Model
         }
     }
 
-    private function __findUpgrades($db_version)
+    public function findUpgrades($db_version)
     {
         $updates = array();
         if (strpos($db_version, '.')) {
