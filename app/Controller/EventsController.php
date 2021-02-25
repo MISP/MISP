@@ -767,7 +767,7 @@ class EventsController extends AppController
                             }
                         }
                     }
-                    $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false, false);
+                    $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
                 }
                 foreach ($events as $key => $event) {
                     if (empty($event['SharingGroup']['name'])) {
@@ -830,7 +830,7 @@ class EventsController extends AppController
         if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
             $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
         }
-        $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true, false);
+        $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true);
 
         if ($this->params['ext'] === 'csv') {
             App::uses('CsvExport', 'Export');
