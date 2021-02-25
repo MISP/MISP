@@ -1096,7 +1096,6 @@ class GalaxyCluster extends AppModel
                 }
             }
             $clusters[$i] = $this->arrangeData($clusters[$i]);
-            $clusters[$i] = $this->TargetingClusterRelation->massageRelationTag($clusters[$i]);
         }
         return $clusters;
     }
