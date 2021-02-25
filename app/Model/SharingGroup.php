@@ -153,7 +153,6 @@ class SharingGroup extends AppModel
         } else {
             return array();
         }
-
         if ($scope === 'full') {
             $sgs = $this->find('all', array(
                 'contain' => array('SharingGroupServer' => array('Server'), 'SharingGroupOrg' => array('Organisation'), 'Organisation'),
@@ -164,7 +163,9 @@ class SharingGroup extends AppModel
         } elseif ($scope === 'simplified') {
             $fieldsOrg = array('id', 'name', 'uuid');
             $fieldsServer = array('id', 'url', 'name');
-            $permissionTree = ($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0;
+            //$permissionTree = ($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0;
+            //Temporary fix: read only users used for pulling were stripping organisation data from sharing groups
+            $permissionTree = 1;
             $fieldsSharingGroup = array(
                 array(
                     'fields' => array(
