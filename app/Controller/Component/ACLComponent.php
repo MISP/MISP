@@ -533,6 +533,7 @@ class ACLComponent extends Component
                     'uploadFile' => array(),
                     'viewDeprecatedFunctionUse' => array(),
                     'killAllWorkers' => ['perm_site_admin'],
+                'cspReport' => ['*'],
             ),
             'shadowAttributes' => array(
                     'accept' => array('perm_add'),
