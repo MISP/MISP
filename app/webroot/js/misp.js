@@ -740,9 +740,6 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
         $('#temp #TagCollectionTag').val(JSON.stringify(selected_tag_ids));
         xhr({
             data: $('#TagCollectionAddTagForm').serialize(),
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
             success:function (data, textStatus) {
                 handleGenericAjaxResponse(data);
                 refreshTagCollectionRow(tag_collection_id);
@@ -5038,10 +5035,9 @@ function submit_feed_overlap_tool(feedId) {
 }
 
 function fetchFormDataAjax(url, callback, errorCallback) {
-    var formData = false;
     $.ajax({
         data: '[]',
-        success:function (data) {
+        success: function (data) {
             callback(data);
         },
         error:function() {
@@ -5050,8 +5046,7 @@ function fetchFormDataAjax(url, callback, errorCallback) {
                 errorCallback();
             }
         },
-        async: false,
-        type:"get",
+        type: "get",
         cache: false,
         url: url
     });
