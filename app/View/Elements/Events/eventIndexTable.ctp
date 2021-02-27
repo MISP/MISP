@@ -127,7 +127,7 @@
                             'event' => $event,
                             'tags' => $event['EventTag'],
                             'tagAccess' => false,
-                            'required_taxonomies' => false,
+                            'missingTaxonomies' => false,
                             'columnised' => true,
                             'static_tags_only' => 1,
                             'tag_display_style' => Configure::check('MISP.full_tags_on_event_index') ? Configure::read('MISP.full_tags_on_event_index') : 1

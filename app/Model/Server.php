@@ -754,16 +754,16 @@ class Server extends AppModel
         }
         if ($all) {
             if ($scope === 'sightings') {
+                // Used when pushing: return just eventUuids that has sightings newer than remote server
                 $this->Event = ClassRegistry::init('Event');
                 $localEvents = $this->Event->find('list', array(
-                    'recursive' => -1,
                     'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
                     'conditions' => array('Event.uuid' => array_column($eventArray, 'uuid'))
                 ));
 
-                $eventUuids = array();
+                $eventUuids = [];
                 foreach ($eventArray as $event) {
-                    if (!isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
+                    if (isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
                         $eventUuids[] = $event['uuid'];
                     }
                 }

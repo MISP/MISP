@@ -1,9 +1,7 @@
 <?php
 $indexOptions = array(
+    'containerId' => 'elements',
     'data' => array(
-        'paginatorOptions' => array(
-            'update' => '#elements_div',
-        ),
         'data' => $elements,
         'top_bar' => array(
             'children' => array(
@@ -16,7 +14,7 @@ $indexOptions = array(
                             'onClickParams' => [
                                 h($clusterId) . '/context:all',
                                 $baseurl . '/galaxy_elements/index',
-                                '#elements_div'
+                                '#elements_content'
                             ],
                         ),
                         array(
@@ -26,7 +24,7 @@ $indexOptions = array(
                             'onClickParams' => [
                                 h($clusterId) . '/context:JSONView',
                                 $baseurl . '/galaxy_elements/index',
-                                '#elements_div'
+                                '#elements_content'
                             ],
                         ),
                     )
@@ -87,8 +85,6 @@ echo $this->element('/genericElements/IndexTable/index_table', $indexOptions);
 if ($context == 'JSONView') {
     echo sprintf('<div id="elementJSONDiv" class="well well-small">%s</div>', json_encode($JSONElements));
 }
-
-echo $this->Js->writeBuffer();
 ?>
 
 <script>
