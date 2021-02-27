@@ -5298,7 +5298,8 @@ function submitGenericFormInPlace() {
             $('#genericModal').modal('hide').remove();
             $('body').append(data);
             $('#genericModal').modal();
-        }
+        },
+        error: xhrFailCallback,
     });
 }
 

@@ -145,13 +145,21 @@ class CRUDComponent extends Component
         if (empty($id)) {
             throw new NotFoundException(__('Invalid %s.', $modelName));
         }
-        $data = $this->Controller->{$modelName}->find('first',
-            isset($params['get']) ? $params['get'] : [
-                'recursive' => -1,
-                'conditions' => [
-                    'id' => $id
-            ]
-        ]);
+        $query = isset($params['get']) ? $params['get'] : [
+            'recursive' => -1,
+            'conditions' => [
+                'id' => $id
+            ],
+        ];
+        if (!empty($params['conditions'])) {
+            $query['conditions']['AND'][] = $params['conditions'];
+        }
+        /** @var Model $model */
+        $model = $this->Controller->{$modelName};
+        $data = $model->find('first', $query);
+        if (isset($params['afterFind'])) {
+            $data = $params['afterFind']($data);
+        }
         if ($this->Controller->request->is('post') || $this->Controller->request->is('put')) {
             $input = $this->Controller->request->data;
             if (empty($input[$modelName])) {
@@ -171,7 +179,10 @@ class CRUDComponent extends Component
                     $data[$modelName][$field] = $fieldData;
                 }
             }
-            if ($this->Controller->{$modelName}->save($data)) {
+            if (isset($params['beforeSave'])) {
+                $data = $params['beforeSave']($data);
+            }
+            if ($model->save($data)) {
                 $message = __('%s updated.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
@@ -182,7 +193,9 @@ class CRUDComponent extends Component
                 }
             } else {
                 if ($this->Controller->IndexFilter->isRest()) {
-
+                    $controllerName = $this->Controller->params['controller'];
+                    $actionName = $this->Controller->params['action'];
+                    $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($controllerName, $actionName, false, $model->validationErrors, 'json');
                 }
             }
         } else {
