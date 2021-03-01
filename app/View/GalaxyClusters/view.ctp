@@ -42,8 +42,14 @@ $table_data[] = array('key' => __('Cluster ID'), 'value' => $cluster['GalaxyClus
 $table_data[] = array('key' => __('Name'), 'value' => $cluster['GalaxyCluster']['value']);
 $table_data[] = array('key' => __('Parent Galaxy'), 'value' => $cluster['GalaxyCluster']['Galaxy']['name'] ? $cluster['GalaxyCluster']['Galaxy']['name'] : $cluster['GalaxyCluster']['Galaxy']['type']);
 $table_data[] = array('key' => __('Description'), 'value' => $description, 'value_class' => 'md');
-$table_data[] = array('key' => __('Published'), 'boolean' => $cluster['GalaxyCluster']['published'], 'class' => (!$cluster['GalaxyCluster']['published'] ? 'background-red bold': ''));
-$table_data[] = array('key' => __('Default'), 'boolean' => $cluster['GalaxyCluster']['default'], 'class' => (!$cluster['GalaxyCluster']['published'] ? 'black': 'black'));
+if (!$cluster['GalaxyCluster']['default']) {
+    $table_data[] = [
+        'key' => __('Published'),
+        'boolean' => $cluster['GalaxyCluster']['published'],
+        'class' => !$cluster['GalaxyCluster']['published'] ? 'background-red bold' : ''
+    ];
+}
+$table_data[] = array('key' => __('Default'), 'boolean' => $cluster['GalaxyCluster']['default'], 'class' => 'black');
 $table_data[] = array('key' => __('Version'), 'value' => $cluster['GalaxyCluster']['version']);
 $table_data[] = array('key' => __('UUID'), 'value' => $cluster['GalaxyCluster']['uuid'], 'value_class' => 'quickSelect');
 $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid'], 'value_class' => 'quickSelect');
