@@ -794,6 +794,7 @@ class GalaxyCluster extends AppModel
                 $this->GalaxyElement->captureElements($user, $cluster['GalaxyCluster']['GalaxyElement'], $savedCluster['GalaxyCluster']['id']);
             }
             if (!empty($cluster['GalaxyCluster']['GalaxyClusterRelation'])) {
+                $this->GalaxyClusterRelation->deleteAll(array('GalaxyClusterRelation.galaxy_cluster_id' => $savedCluster['GalaxyCluster']['id']));
                 $saveResult = $this->GalaxyClusterRelation->captureRelations($user, $savedCluster, $cluster['GalaxyCluster']['GalaxyClusterRelation'], $fromPull=$fromPull);
                 if ($saveResult['failed'] > 0) {
                     $results['errors'][] = __('Issues while capturing relations have been logged.');
