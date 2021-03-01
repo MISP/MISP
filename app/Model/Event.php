@@ -1372,7 +1372,7 @@ class Event extends AppModel
             $response = $HttpSocket->post($uri, $data, $request);
         } else {
             $uri = $url . '/events/view/' . $eventId . '/deleted[]:0/deleted[]:1/excludeGalaxy:1';
-            if (!empty($server['Server']['internal'])) {
+            if (empty($server['Server']['internal'])) {
                 $uri = $uri . '/excludeLocalTags:1';
             }
             $response = $HttpSocket->get($uri, [], $request);
