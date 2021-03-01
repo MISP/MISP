@@ -234,7 +234,7 @@ class EventReport extends AppModel
     {
         $this->Event = ClassRegistry::init('Event');
         if (isset($report['EventReport']['distribution']) && $report['EventReport']['distribution'] == 4) {
-            $report['EventReport'] = $this->Event->__captureSGForElement($report['EventReport'], $user);
+            $report['EventReport'] = $this->Event->captureSGForElement($report['EventReport'], $user);
         }
         return $report;
     }

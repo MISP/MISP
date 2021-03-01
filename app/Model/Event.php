@@ -3482,10 +3482,10 @@ class Event extends AppModel
         return array($bodyevent, $body);
     }
 
-    public function __captureSGForElement($element, $user, $syncLocal=false)
+    public function captureSGForElement($element, $user, $server=false)
     {
         if (isset($element['SharingGroup'])) {
-            $sg = $this->SharingGroup->captureSG($element['SharingGroup'], $user, $syncLocal);
+            $sg = $this->SharingGroup->captureSG($element['SharingGroup'], $user, $server);
             unset($element['SharingGroup']);
         } elseif (isset($element['sharing_group_id'])) {
             $sg = $this->SharingGroup->checkIfAuthorised($user, $element['sharing_group_id']) ? $element['sharing_group_id'] : false;
@@ -3502,17 +3502,17 @@ class Event extends AppModel
 
     // When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
     // or which we need to update. All of that is controlled in this method.
-    private function __captureObjects($data, $user, $syncLocal=false)
+    private function __captureObjects($data, $user, $server=false)
     {
         // First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
         if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
-            $data['Event'] = $this->__captureSGForElement($data['Event'], $user, $syncLocal);
+            $data['Event'] = $this->captureSGForElement($data['Event'], $user, $server);
         }
         if (!empty($data['Event']['Attribute'])) {
             foreach ($data['Event']['Attribute'] as $k => $a) {
                 unset($data['Event']['Attribute']['id']);
                 if (isset($a['distribution']) && $a['distribution'] == 4) {
-                    $data['Event']['Attribute'][$k] = $this->__captureSGForElement($a, $user, $syncLocal);
+                    $data['Event']['Attribute'][$k] = $this->captureSGForElement($a, $user, $server);
                     if ($data['Event']['Attribute'][$k] === false) {
                         unset($data['Event']['Attribute']);
                     }
@@ -3522,7 +3522,7 @@ class Event extends AppModel
         if (!empty($data['Event']['Object'])) {
             foreach ($data['Event']['Object'] as $k => $o) {
                 if (isset($o['distribution']) && $o['distribution'] == 4) {
-                    $data['Event']['Object'][$k] = $this->__captureSGForElement($o, $user, $syncLocal);
+                    $data['Event']['Object'][$k] = $this->captureSGForElement($o, $user, $server);
                     if ($data['Event']['Object'][$k] === false) {
                         unset($data['Event']['Object'][$k]);
                         continue;
@@ -3530,7 +3530,7 @@ class Event extends AppModel
                 }
                 foreach ($o['Attribute'] as $k2 => $a) {
                     if (isset($a['distribution']) && $a['distribution'] == 4) {
-                        $data['Event']['Object'][$k]['Attribute'][$k2] = $this->__captureSGForElement($a, $user, $syncLocal);
+                        $data['Event']['Object'][$k]['Attribute'][$k2] = $this->captureSGForElement($a, $user, $server);
                         if ($data['Event']['Object'][$k]['Attribute'][$k2] === false) {
                             unset($data['Event']['Object'][$k]['Attribute'][$k2]);
                         }
@@ -3851,7 +3851,7 @@ class Event extends AppModel
                 return $existingEvent['Event']['id'];
             } else {
                 if ($fromXml) {
-                    $data = $this->__captureObjects($data, $user, $server['Server']['internal']);
+                    $data = $this->__captureObjects($data, $user, $server);
                 }
                 if ($data === false) {
                     $failedCapture = true;
@@ -3859,7 +3859,7 @@ class Event extends AppModel
             }
         } else {
             if ($fromXml) {
-                $data = $this->__captureObjects($data, $user, $server['Server']['internal']);
+                $data = $this->__captureObjects($data, $user, $server);
             }
             if ($data === false) {
                 $failedCapture = true;
@@ -4120,7 +4120,7 @@ class Event extends AppModel
                             return(array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.'));
                         }
                     } else {
-                        $data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user, $server['Server']['internal']);
+                        $data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user, $server);
                         unset($data['Event']['SharingGroup']);
                         if ($data['Event']['sharing_group_id'] === false) {
                             return (array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.'));
