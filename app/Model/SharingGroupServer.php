@@ -98,7 +98,7 @@ class SharingGroupServer extends AppModel
     public function checkIfAuthorised($id)
     {
         $sg = $this->find('first', array(
-                'conditions' => array('sharing_group_id' => $id, 'all_orgs' => 1),
+                'conditions' => array('sharing_group_id' => $id, 'all_orgs' => 1, 'server_id' => 0),
                 'recursive' => -1,
                 'fields' => array('id'),
         ));
