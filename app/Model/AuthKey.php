@@ -142,26 +142,67 @@ class AuthKey extends AppModel
         return false;
     }
 
-    public function resetauthkey($id)
+    /**
+     * @param int $userId
+     * @param int|null $keyId
+     * @return false|string
+     * @throws Exception
+     */
+    public function resetAuthKey($userId, $keyId = null)
     {
-        $existing_authkeys = $this->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'user_id' => $id
-            ]
-        ]);
-        foreach ($existing_authkeys as $key) {
-            $key['AuthKey']['expiration'] = time();
-            $this->save($key);
+        $time = time();
+
+        if ($keyId) {
+            $currentAuthkey = $this->find('first', [
+                'recursive' => -1,
+                'conditions' => [
+                    'id' => $keyId,
+                    'user_id' => $userId,
+                ],
+            ]);
+            if (empty($currentAuthkey)) {
+                throw new RuntimeException("Key with ID $keyId for user with ID $userId not found.");
+            }
+            $currentAuthkey['AuthKey']['expiration'] = $time;
+            if (!$this->save($currentAuthkey)) {
+                throw new RuntimeException("Key with ID $keyId could not be saved.");
+            }
+            $comment = __("Created by resetting auth key %s\n%s", $keyId, $currentAuthkey['AuthKey']['comment']);
+            $allowedIps = isset($currentAuthkey['AuthKey']['allowed_ips']) ? $currentAuthkey['AuthKey']['allowed_ips'] : [];
+            return $this->createnewkey($userId, $comment, $allowedIps);
+        } else {
+            $existingAuthkeys = $this->find('all', [
+                'recursive' => -1,
+                'conditions' => [
+                    'OR' => [
+                        'expiration >' => $time,
+                        'expiration' => 0
+                    ],
+                    'user_id' => $userId
+                ]
+            ]);
+            foreach ($existingAuthkeys as $key) {
+                $key['AuthKey']['expiration'] = $time;
+                $this->save($key);
+            }
+            return $this->createnewkey($userId);
         }
-        return $this->createnewkey($id);
     }
 
-    public function createnewkey($id)
+    /**
+     * @param int $userId
+     * @param string $comment
+     * @param array $allowedIps
+     * @return false|string
+     * @throws Exception
+     */
+    public function createnewkey($userId, $comment = '', array $allowedIps = [])
     {
         $newKey = [
             'authkey' => (new RandomTool())->random_str(true, 40),
-            'user_id' => $id
+            'user_id' => $userId,
+            'comment' => $comment,
+            'allowed_ips' => empty($allowedIps) ? null : $allowedIps,
         ];
         $this->create();
         if ($this->save($newKey)) {
