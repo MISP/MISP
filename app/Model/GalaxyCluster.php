@@ -564,6 +564,15 @@ class GalaxyCluster extends AppModel
         ), array('fieldList' => array('published', 'deleted', 'version')));
     }
 
+    public function touchTimestamp($id)
+    {
+        $version = (new DateTime())->getTimestamp();
+        return $this->save(array(
+            'id' => $id,
+            'version' => $version,
+        ), array('fieldList' => array('version')));
+    }
+
     /**
      * uploadClusterToServersRouter Upload the cluster to all remote servers
      *
