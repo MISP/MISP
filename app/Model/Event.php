@@ -1483,23 +1483,23 @@ class Event extends AppModel
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->cacheSgids($user, true);
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
-            $conditions['AND']['OR'] = array(
+            $conditions['AND']['OR'] = [
                 'Event.org_id' => $user['org_id'],
-                array(
-                    'AND' => array(
+                [
+                    'AND' => [
                         'Event.distribution >' => 0,
                         'Event.distribution <' => 4,
-                        $unpublishedPrivate ? array('Event.published' => 1) : array(),
-                    ),
-                ),
-                array(
-                    'AND' => array(
+                        $unpublishedPrivate ? array('Event.published' => 1) : [],
+                    ],
+                ],
+                [
+                    'AND' => [
                         'Event.sharing_group_id' => $sgids,
                         'Event.distribution' => 4,
-                        $unpublishedPrivate ? array('Event.published' => 1) : array(),
-                    )
-                )
-            );
+                        $unpublishedPrivate ? array('Event.published' => 1) : [],
+                    ]
+                ]
+            ];
         }
         return $conditions;
     }
@@ -2189,6 +2189,7 @@ class Event extends AppModel
         }
 
         foreach ($results as $eventKey => &$event) {
+            /*
             if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
@@ -2205,6 +2206,7 @@ class Event extends AppModel
                 unset($results[$eventKey]); // Current user cannot access sharing_group associated to this event
                 continue;
             }
+            */
             if ($options['includeWarninglistHits'] || $options['enforceWarninglist']) {
                 $eventWarnings = $this->Warninglist->attachWarninglistToAttributes($event['Attribute']);
                 $this->Warninglist->attachWarninglistToAttributes($event['ShadowAttribute']);
@@ -2215,7 +2217,9 @@ class Event extends AppModel
             $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters']);
             $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
-                $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
+                if (!empty($sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'])) {
+                    $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
+                }
             }
 
             // Include information about event creator user email. This information is included for:
