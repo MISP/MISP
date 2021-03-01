@@ -621,7 +621,7 @@ class SharingGroup extends AppModel
         }
         unset($sg['Organisation']);
         $creatorOrgFound = $this->captureSGOrgs($user, $sg, $sg_id, $forceUpdate);
-        $creatorOrgFound = $this->captureSGServers($user, $sg, $sg_id, $forceUpdate) && $creatorOrgFound;
+        $creatorOrgFound = $this->captureSGServers($user, $sg, $sg_id, $forceUpdate) || $creatorOrgFound;
         if (!$creatorOrgFound && !empty($server)) {
             $this->captureCreatorOrg($user, $sg_id);
         }
