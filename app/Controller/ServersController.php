@@ -35,8 +35,11 @@ class ServersController extends AppController
 
     public function beforeFilter()
     {
+        $this->Auth->allow(['cspReport']); // cspReport must work without authentication
+
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'getApiInfo';
+        $this->Security->unlockedActions[] = 'cspReport';
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
@@ -2417,6 +2420,27 @@ misp.direct_call(relative_path, body)
             $this->set('indexes', $dbSchemaDiagnostics['indexes']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }
+    }
+
+    public function cspReport()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This action expects a POST request.');
+        }
+
+        $report = $this->Server->jsonDecode($this->request->input());
+        if (!isset($report['csp-report'])) {
+            throw new RuntimeException("Invalid report");
+        }
+
+        $message = 'CSP reported violation';
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
+        if (isset($_SERVER[$ipHeader])) {
+            $message .= ' from IP ' . $_SERVER[$ipHeader];
+        }
+        $this->log("$message: " . json_encode($report['csp-report'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return new CakeResponse(['statusCodes' => 204]);
     }
 
     public function viewDeprecatedFunctionUse()

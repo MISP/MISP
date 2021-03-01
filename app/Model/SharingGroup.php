@@ -679,7 +679,7 @@ class SharingGroup extends AppModel
      * @return int || false
      */
     public function captureSGNew($user, $sg, $syncLocal)
-    {
+    {    
         // check if current user is contained in the SG and we are in a local sync setup
         if (!empty($sg['uuid'])) {
             if (isset($this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']])) {
@@ -697,13 +697,13 @@ class SharingGroup extends AppModel
         ) {
             $this->Log->create();
             $entry = array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'SharingGroup',
-                    'model_id' => $sg['SharingGroup']['uuid'],
-                    'email' => $user['email'],
-                    'action' => 'error',
-                    'user_id' => $user['id'],
-                    'title' => 'Tried to save a sharing group but the user does not belong to it.'
+                'org' => $user['Organisation']['name'],
+                'model' => 'SharingGroup',
+                'model_id' => 0,
+                'email' => $user['email'],
+                'action' => 'error',
+                'user_id' => $user['id'],
+                'title' => "Tried to save a sharing group with UUID '{$sg['SharingGroup']['uuid']}' but the user does not belong to it."
             );
             $this->Log->save($entry);
             return false;
