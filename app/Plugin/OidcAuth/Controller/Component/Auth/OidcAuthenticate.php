@@ -63,18 +63,18 @@ class OidcAuthenticate extends BaseAuthenticate
         }
 
         if ($user) {
-            $this->log($mispUsername, 'Found in database.');
+            $this->log($mispUsername, "Found in database with ID {$user['id']}.");
 
             if ($user['org_id'] != $organisationId) {
                 $user['org_id'] = $organisationId;
                 $this->userModel()->updateField($user, 'org_id', $organisationId);
-                $this->log($mispUsername, "User organisation changed from ${user['org_id']} to $organisationId.");
+                $this->log($mispUsername, "User organisation changed from {$user['org_id']} to $organisationId.");
             }
 
             if ($user['role_id'] != $roleId) {
                 $user['role_id'] = $roleId;
                 $this->userModel()->updateField($user, 'role_id', $roleId);
-                $this->log($mispUsername, "User role changed from ${user['role_id']} to $roleId.");
+                $this->log($mispUsername, "User role changed from {$user['role_id']} to $roleId.");
             }
 
             $this->log($mispUsername, 'Logged in.');
@@ -171,6 +171,7 @@ class OidcAuthenticate extends BaseAuthenticate
      */
     private function getUserRole(array $roles, $mispUsername)
     {
+        $this->log($mispUsername, 'Provided roles: ' . implode(', ', $roles));
         $roleMapper = $this->getConfig('role_mapper');
         if (!is_array($roleMapper)) {
             throw new RuntimeException("Config option `OidcAuth.role_mapper` must be array.");
@@ -194,13 +195,11 @@ class OidcAuthenticate extends BaseAuthenticate
                         continue;
                     }
                 }
-                if ($userRole === null || $roleId < $userRole) { // role with lower ID wins
-                    $userRole = $roleId;
-                }
+                return $roleId; // first match wins
             }
         }
 
-        return $userRole;
+        return null;
     }
 
     /**

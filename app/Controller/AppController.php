@@ -123,6 +123,9 @@ class AppController extends Controller
         if (Configure::read('Security.disable_browser_cache')) {
             $this->response->disableCache();
         }
+        if (!$this->_isRest()) {
+            $this->__contentSecurityPolicy();
+        }
         $this->response->header('X-XSS-Protection', '1; mode=block');
 
         if (!empty($this->params['named']['sql'])) {
@@ -314,11 +317,11 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
-            $pre_auth_actions = array('login', 'register', 'getGpgPublicKey');
+            $preAuthActions = array('login', 'register', 'getGpgPublicKey');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
-                $pre_auth_actions[] = 'email_otp';
+                $preAuthActions[] = 'email_otp';
             }
-            if (!$this->_isControllerAction(['users' => $pre_auth_actions])) {
+            if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
@@ -683,6 +686,50 @@ class AppController extends Controller
                 // When `MISP.log_skip_db_logs_completely` is enabled, Log::createLogEntry method throws exception
             }
         }
+    }
+
+    /**
+     * Generate Content-Security-Policy HTTP header
+     */
+    private function __contentSecurityPolicy()
+    {
+        $default = [
+            'default-src' => "'self' data: 'unsafe-inline' 'unsafe-eval'",
+            'style-src' => "'self' 'unsafe-inline'",
+            'object-src' => "'none'",
+            'frame-ancestors' => "'none'",
+            'worker-src' => "'none'",
+            'child-src' => "'none'",
+            'frame-src' => "'none'",
+            'base-uri' => "'self'",
+            'img-src' => "'self' data:",
+            'font-src' => "'self'",
+            'form-action' => "'self'",
+            'connect-src' => "'self'",
+            'manifest-src' => "'none'",
+            'report-uri' => '/servers/cspReport',
+        ];
+        if (env('HTTPS')) {
+            $default['upgrade-insecure-requests'] = null;
+        }
+        $custom = Configure::read('Security.csp');
+        if ($custom === false) {
+            return;
+        }
+        if (is_array($custom)) {
+            $default = $default + $custom;
+        }
+        $header = [];
+        foreach ($default as $key => $value) {
+            if ($value !== false) {
+                if ($value === null) {
+                    $header[] = $key;
+                } else {
+                    $header[] = "$key $value";
+                }
+            }
+        }
+        $this->response->header('Content-Security-Policy', implode('; ', $header));
     }
 
     private function __rateLimitCheck()

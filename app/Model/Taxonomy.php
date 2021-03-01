@@ -692,7 +692,7 @@ class Taxonomy extends AppModel
      */
     public function splitTagToComponents($tag)
     {
-        preg_match('/^([^:="]+):([^:="]+)(="([^:="]+"))?$/i', $tag, $matches);
+        preg_match('/^([^:="]+):([^:="]+)(="([^:="]+)")?$/i', $tag, $matches);
         if (empty($matches)) {
             return null; // tag is not in taxonomy format
         }
