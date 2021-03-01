@@ -1260,7 +1260,7 @@ class AppController extends Controller
 
     private function __sessionMassage()
     {
-        if (!empty(Configure::read('MISP.uuid'))) {
+        if (empty(Configure::read('Session.cookie')) && !empty(Configure::read('MISP.uuid'))) {
             Configure::write('Session.cookie', 'MISP-' . Configure::read('MISP.uuid'));
         }
         if (!empty(Configure::read('Session.cookieTimeout')) || !empty(Configure::read('Session.timeout'))) {
