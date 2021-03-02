@@ -286,6 +286,14 @@ class Server extends AppModel
                     $event['Event']['distribution'] = '1';
                     break;
             }
+            // We remove local tags obtained via pull
+            if (isset($event['Event']['Tag'])) {
+                foreach ($event['Event']['Tag'] as $key => $a) {
+                    if ($a['local']) {
+                        unset($event['Event']['Tag'][$key]);
+                    }
+                }
+            }
             if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
                 foreach ($event['Event']['Attribute'] as $key => $a) {
                     switch ($a['distribution']) {
@@ -295,6 +303,14 @@ class Server extends AppModel
                         case '2':
                             $event['Event']['Attribute'][$key]['distribution'] = '1';
                             break;
+                    }
+                    // We remove local tags obtained via pull
+                    if (isset($a['Tag'])) {
+                        foreach ($a['Tag'] as $k => $v) {
+                            if ($v['local']) {
+                                unset($event['Event']['Attribute'][$key]['Tag'][$k]);
+                            }
+                        }
                     }
                 }
             }
@@ -317,6 +333,14 @@ class Server extends AppModel
                                 case '2':
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '1';
                                     break;
+                            }
+                            // We remove local tags obtained via pull
+                            if (isset($a['Tag'])) {
+                                foreach ($a['Tag'] as $k => $v) {
+                                    if ($v['local']) {
+                                        unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
+                                    }
+                                }
                             }
                         }
                     }
