@@ -649,10 +649,12 @@ class SharingGroup extends AppModel
             return false;
         }
         if (empty($sg['modified']) || $sg['modified'] > $existingSG['SharingGroup']['modified']) {
-            $isLocalSync = $user['Role']['perm_sync'] && !empty($existingSG['SharingGroup']['local']);
+            // consider the local field being set to be equivalent to an event's locked == 0 state
+            $isUpdatableBySync = $user['Role']['perm_sync'] && empty($existingSG['SharingGroup']['local']);
+            // TODO: reconsider this, org admins will be blocked from legitimate edits if they have sync permissions.
+            // We need a mechanism to check whether we're in sync context.
             $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id'];
-            if ($isLocalSync || $isSGOwner || $user['Role']['perm_site_admin']) {
-                $sg_id = (int)$existingSG['SharingGroup']['id'];
+            if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
                 $editedSG = $existingSG['SharingGroup'];
                 $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'active', 'roaming'];
                 foreach ($attributes as $a) {
@@ -679,7 +681,7 @@ class SharingGroup extends AppModel
      * @return int || false
      */
     public function captureSGNew($user, $sg, $syncLocal)
-    {    
+    {
         // check if current user is contained in the SG and we are in a local sync setup
         if (!empty($sg['uuid'])) {
             if (isset($this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']])) {
