@@ -4,6 +4,7 @@ App::uses('GpgTool', 'Tools');
 
 /**
  * @property-read array $serverSettings
+ * @property Organisation $Organisation
  */
 class Server extends AppModel
 {
@@ -1235,16 +1236,23 @@ class Server extends AppModel
         return true;
     }
 
+    /**
+     * @return array
+     */
     public function getCurrentServerSettings()
     {
-        $this->Module = ClassRegistry::init('Module');
         $serverSettings = $this->serverSettings;
         $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
         $serverSettings = $this->readModuleSettings($serverSettings, $moduleTypes);
         return $serverSettings;
     }
 
-    private function readModuleSettings($serverSettings, $moduleTypes)
+    /**
+     * @param array $serverSettings
+     * @param array $moduleTypes
+     * @return array
+     */
+    private function readModuleSettings(array $serverSettings, array $moduleTypes)
     {
         $this->Module = ClassRegistry::init('Module');
         foreach ($moduleTypes as $moduleType) {
@@ -1253,12 +1261,12 @@ class Server extends AppModel
                 foreach ($results as $module => $data) {
                     foreach ($data as $result) {
                         $setting = array('level' => 1, 'errorMessage' => '');
-                        if ($result['type'] == 'boolean') {
+                        if ($result['type'] === 'boolean') {
                             $setting['test'] = 'testBool';
                             $setting['type'] = 'boolean';
                             $setting['description'] = __('Enable or disable the %s module.', $module);
                             $setting['value'] = false;
-                        } elseif ($result['type'] == 'orgs') {
+                        } elseif ($result['type'] === 'orgs') {
                             $setting['description'] = __('Restrict the %s module to the given organisation.', $module);
                             $setting['value'] = 0;
                             $setting['test'] = 'testLocalOrg';
@@ -1335,15 +1343,11 @@ class Server extends AppModel
 
     public function serverSettingsRead($unsorted = false)
     {
-        $this->Module = ClassRegistry::init('Module');
         $serverSettings = $this->getCurrentServerSettings();
         $currentSettings = Configure::read();
-        if (Configure::read('Plugin.Enrichment_services_enable')) {
-            $this->readModuleSettings($serverSettings, array('Enrichment'));
-        }
         $finalSettingsUnsorted = $this->__serverSettingsRead($serverSettings, $currentSettings);
         foreach ($finalSettingsUnsorted as $key => $temp) {
-            if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
+            if (isset($this->__settingTabMergeRules[$temp['tab']])) {
                 $finalSettingsUnsorted[$key]['tab'] = $this->__settingTabMergeRules[$temp['tab']];
             }
         }
