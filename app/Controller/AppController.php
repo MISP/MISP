@@ -1453,10 +1453,10 @@ class AppController extends Controller
         if ($this->userRole['perm_site_admin']) {
             return true;
         }
-        if ($this->userRole['perm_modify_org'] && $event['Event']['orgc_id'] == $this->Auth->user('org_id')) {
+        if ($this->userRole['perm_modify_org'] && $event['Event']['orgc_id'] == $this->Auth->user()['org_id']) {
             return true;
         }
-        if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')) {
+        if ($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user()['id']) {
             return true;
         }
         return false;
