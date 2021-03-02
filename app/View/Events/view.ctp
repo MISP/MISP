@@ -561,4 +561,3 @@ $(function () {
     });
 });
 </script>
-<input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />
