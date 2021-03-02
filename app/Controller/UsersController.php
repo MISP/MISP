@@ -1138,7 +1138,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
             $user = $this->Auth->identify($this->request, $this->response);
-            if ($user) {
+            if ($user && !$user['disabled']) {
               $this->Session->write('email_otp_user', $user);
               return $this->redirect('email_otp');
             }
@@ -1693,7 +1693,7 @@ class UsersController extends AppController
 
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
             $stored_otp = $redis->get('misp:otp:' . $user_id);
-            if (!empty($stored_otp) && $this->request->data['User']['otp'] == $stored_otp) {
+            if (!empty($stored_otp) && trim($this->request->data['User']['otp']) == $stored_otp) {
                 // we invalidate the previously generated OTP
                 $redis->del('misp:otp:' . $user_id);
                 // We login the user with CakePHP
