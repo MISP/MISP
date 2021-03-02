@@ -641,7 +641,7 @@ class SharingGroup extends AppModel
      * @param array $existingSG
      * @param array $sg
      * @param boolean syncLocal
-     * @return int || false || true
+     * @return int|false|true
      */
     public function captureSGExisting($user, $existingSG, $sg, $syncLocal)
     {
@@ -649,10 +649,9 @@ class SharingGroup extends AppModel
             return false;
         }
         if (empty($sg['modified']) || $sg['modified'] > $existingSG['SharingGroup']['modified']) {
-            $isLocalSync = $user['Role']['perm_sync'] && !empty($existingSG['SharingGroup']['local']);
+            $isNonLocalSync = $user['Role']['perm_sync'] && isset($existingSG['SharingGroup']['local']) && empty($existingSG['SharingGroup']['local']);
             $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id'];
-            if ($isLocalSync || $isSGOwner || $user['Role']['perm_site_admin']) {
-                $sg_id = (int)$existingSG['SharingGroup']['id'];
+            if ($isNonLocalSync || $isSGOwner || $user['Role']['perm_site_admin']) {
                 $editedSG = $existingSG['SharingGroup'];
                 $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'active', 'roaming'];
                 foreach ($attributes as $a) {
@@ -662,12 +661,9 @@ class SharingGroup extends AppModel
                 }
                 $this->save($editedSG);
                 return true;
-            } else {
-                return $existingSG['SharingGroup']['id'];
             }
-        } else {
-            return $existingSG['SharingGroup']['id'];
         }
+        return $existingSG['SharingGroup']['id'];
     }
 
     /*
