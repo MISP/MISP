@@ -98,7 +98,6 @@
     <?php
         endif;
     ?>
-        var tabIsActive = true;
         var baseurl = '<?php echo $baseurl; ?>';
         var here = '<?php
                 if (substr($this->params['action'], 0, 6) === 'admin_') {
@@ -107,12 +106,6 @@
                     echo $baseurl . '/' . h($this->params['controller']) . '/' . h($this->params['action']);
                 }
             ?>';
-        $(function(){
-            $(window).blur(function() {
-                tabIsActive = false;
-            }).focus(function() {
-                tabIsActive = true;
-            });
         <?php
             if (!Configure::read('MISP.disable_auto_logout') && isset($me) && $me):
         ?>
@@ -120,7 +113,6 @@
         <?php
             endif;
         ?>
-        });
     </script>
 </body>
 </html>
