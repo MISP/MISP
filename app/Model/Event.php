@@ -2190,6 +2190,7 @@ class Event extends AppModel
 
         foreach ($results as $eventKey => &$event) {
             /*
+            // REMOVING THIS FOR NOW - users should see data they own, even if they're not in the sharing group.
             if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();

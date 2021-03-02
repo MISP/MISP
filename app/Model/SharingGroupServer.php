@@ -94,7 +94,7 @@ class SharingGroupServer extends AppModel
         return $sgs;
     }
 
-    // pass a sharing group ID, returns true if it has an attached server object with "all_orgs" ticked
+    // pass a sharing group ID, returns true if it has the local server object attached with "all_orgs" set
     public function checkIfAuthorised($id)
     {
         $sg = $this->find('first', array(
