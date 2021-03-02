@@ -586,7 +586,7 @@ class SharingGroup extends AppModel
      * @param array $server
      * @return int || false
      */
-    public function captureSG($sg, $user, $server = false)
+    public function captureSG(array $sg, array $user, $server = false)
     {
         $syncLocal = false;
         if (!empty($server) && !empty($server['Server']['local'])) {
@@ -594,13 +594,8 @@ class SharingGroup extends AppModel
         }
         $this->Log = ClassRegistry::init('Log');
         $existingSG = !isset($sg['uuid']) ? null : $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('SharingGroup.uuid' => $sg['uuid']),
-                'contain' => array(
-                    'Organisation',
-                    'SharingGroupServer' => array('Server'),
-                    'SharingGroupOrg' => array('Organisation')
-                )
+            'recursive' => -1,
+            'conditions' => array('SharingGroup.uuid' => $sg['uuid']),
         ));
         $forceUpdate = false;
         $sg_id = 0;
@@ -613,7 +608,9 @@ class SharingGroup extends AppModel
                 return false;
             }
         } else {
+            $this->log("Editing existing {$existingSG['SharingGroup']['name']}");
             $existingCaptureResult = $this->captureSGExisting($user, $existingSG, $sg, $syncLocal);
+            $this->log("Editing existing {$existingSG['SharingGroup']['name']}: $existingCaptureResult");
             if ($existingCaptureResult !== true) {
                 return $existingCaptureResult;
             }
@@ -641,9 +638,9 @@ class SharingGroup extends AppModel
      * @param array $existingSG
      * @param array $sg
      * @param boolean syncLocal
-     * @return int || false || true
+     * @return int|false|true
      */
-    public function captureSGExisting($user, $existingSG, $sg, $syncLocal)
+    public function captureSGExisting(array $user, array $existingSG, array $sg, $syncLocal)
     {
         if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id']) && !$user['Role']['perm_sync']) {
             return false;
@@ -651,8 +648,9 @@ class SharingGroup extends AppModel
         if (empty($sg['modified']) || $sg['modified'] > $existingSG['SharingGroup']['modified']) {
             $isLocalSync = $user['Role']['perm_sync'] && !empty($existingSG['SharingGroup']['local']);
             $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id'];
+            $this->log(json_encode($existingSG['SharingGroup']));
+            $this->log(json_encode(compact('isLocalSync', 'isSGOwner')));
             if ($isLocalSync || $isSGOwner || $user['Role']['perm_site_admin']) {
-                $sg_id = (int)$existingSG['SharingGroup']['id'];
                 $editedSG = $existingSG['SharingGroup'];
                 $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'active', 'roaming'];
                 foreach ($attributes as $a) {
@@ -660,14 +658,13 @@ class SharingGroup extends AppModel
                         $editedSG[$a] = $sg[$a];
                     }
                 }
-                $this->save($editedSG);
+                if (!$this->save($editedSG)) {
+                    throw new Exception(json_encode($this->validationErrors));
+                }
                 return true;
-            } else {
-                return $existingSG['SharingGroup']['id'];
             }
-        } else {
-            return $existingSG['SharingGroup']['id'];
         }
+        return $existingSG['SharingGroup']['id'];
     }
 
     /*
