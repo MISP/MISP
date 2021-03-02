@@ -1693,7 +1693,7 @@ class UsersController extends AppController
 
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
             $stored_otp = $redis->get('misp:otp:' . $user_id);
-            if (!empty($stored_otp) && $this->request->data['User']['otp'] == $stored_otp) {
+            if (!empty($stored_otp) && trim($this->request->data['User']['otp']) == $stored_otp) {
                 // we invalidate the previously generated OTP
                 $redis->del('misp:otp:' . $user_id);
                 // We login the user with CakePHP
