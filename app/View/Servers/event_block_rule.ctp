@@ -5,6 +5,7 @@
         'form' => $this->Form,
         'data' => array(
             'title' => __('Set event block rules'),
+            'description' => __('Event block rules allow you to add a simple tag filter to block events from being added or synced. Events with a tag that matches any of the tags in the rule list will be blocked. It is not possible to add more complex rules with boolean logic (NOT, AND).'),
             'model' => $modelForForm,
             'fields' => array(
                 array(
