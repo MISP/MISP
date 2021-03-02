@@ -1,5 +1,5 @@
 <div class="footer <?php echo $debugMode;?>">
-    <div id="shortcutsListContainer" class="<?php echo $debugMode ? 'hidden': ''; ?>">
+    <div id="shortcutsListContainer" class="<?php echo $debugMode == 'debugOn' ? 'hidden': ''; ?>">
         <div id="triangle"></div>
         <div id="shortcutsList">
             <span> <?php echo __('Keyboard shortcuts for this page'); ?>:</span><br>
