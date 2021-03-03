@@ -26,7 +26,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
     private $__queryVersion = '126';
-    public $pyMispVersion = '2.4.138';
+    public $pyMispVersion = '2.4.140';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -717,7 +717,7 @@ class AppController extends Controller
             return;
         }
         if (is_array($custom)) {
-            $default = $default + $custom;
+            $default = $custom + $default;
         }
         $header = [];
         foreach ($default as $key => $value) {
@@ -729,7 +729,8 @@ class AppController extends Controller
                 }
             }
         }
-        $this->response->header('Content-Security-Policy', implode('; ', $header));
+        $header = Configure::read('Security.csp_enforce') ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
+        $this->response->header($header, implode('; ', $header));
     }
 
     private function __rateLimitCheck()

@@ -61,13 +61,20 @@ class SecurityAudit
         if (empty(Configure::read('Security.disable_browser_cache'))) {
             $output['Browser'][] = [
                 'warning',
-                __('Browser cache is enabled. Attacker can obtain sensitive data from user cache. You can disable cache by setting `Security.disable_browser_cache` to `false`.'),
+                __('Browser cache is enabled. Attacker can obtain sensitive data from user cache. You can disable cache by setting `Security.disable_browser_cache` to `true`.'),
             ];
         }
         if (empty(Configure::read('Security.check_sec_fetch_site_header'))) {
             $output['Browser'][] = [
                 'warning',
                 __('MISP server is not checking `Sec-Fetch` HTTP headers. This is protection against CSRF for moder browsers. You can enable this checks by setting `Security.check_sec_fetch_site_header` to `true`.'),
+            ];
+        }
+        if (empty(Configure::read('Security.csp_enforce'))) {
+            $output['Browser'][] = [
+                'warning',
+                __('Content security policies (CSP) are not enforced. Consider enabling them by setting `Security.csp_enforce` to `true`.'),
+                'https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP',
             ];
         }
         if (Configure::read('Security.disable_form_security')) {
