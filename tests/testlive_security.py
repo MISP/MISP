@@ -54,8 +54,11 @@ def login(url: str, email: str, password: str) -> requests.Session:
     r.raise_for_status()
 
     parsed = fromstring(r.text)
-    form = parsed.forms[0]
 
+    if len(parsed.forms) != 1:
+        raise Exception("Login form not found in: " + r.text)
+
+    form = parsed.forms[0]
     form_fields = form.fields
 
     login_form = {}
@@ -637,6 +640,28 @@ class TestSecurity(unittest.TestCase):
         # Password should be still the same
         self.assertIsInstance(login(url, self.test_usr.email, self.test_usr_password), requests.Session)
 
+    def test_change_pw_by_site_admin(self):
+        old_password = self.test_usr_password
+        new_password = str(uuid.uuid4())
+        check_response(self.admin_misp_connector.update_user({"password": new_password}, self.test_usr.id))
+
+        self.assertFalse(login(url, self.test_usr.email, old_password), "Old password should not works")
+        self.assertIsInstance(login(url, self.test_usr.email, new_password), requests.Session)
+
+        # Set password back to original
+        self.admin_misp_connector.update_user({"password": old_password}, self.test_usr.id)
+
+    def test_change_pw_by_org_admin(self):
+        old_password = self.test_usr_password
+        new_password = str(uuid.uuid4())
+        check_response(self.org_admin_misp_connector.update_user({"password": new_password}, self.test_usr.id))
+
+        self.assertFalse(login(url, self.test_usr.email, old_password), "Old password should not works")
+        self.assertIsInstance(login(url, self.test_usr.email, new_password), requests.Session)
+
+        # Set password back to original
+        self.org_admin_misp_connector.update_user({"password": old_password}, self.test_usr.id)
+
     def test_change_pw_disabled_by_org_admin(self):
         with self.__setting("MISP.disable_user_password_change", True):
             self.org_admin_misp_connector.update_user({"password": str(uuid.uuid4())}, self.test_usr.id)
@@ -897,7 +922,7 @@ class TestSecurity(unittest.TestCase):
         config["Security"]["auth_enforced"] = True
         with self.__setting(config):
             # Form login should not work when shibb is enforced, because form doesn't exists
-            with self.assertRaises(IndexError):
+            with self.assertRaises(Exception):
                 login(url, self.test_usr.email, self.test_usr_password)
 
     def test_shibb_enforced_api_login(self):
