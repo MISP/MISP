@@ -3,6 +3,7 @@
     <div class="row-fluid"><div class="span8" style="margin:0">
 <?php
 $enabled = $taxonomy['enabled'] ? '<span class="green">'. __('Yes') . '</span>&nbsp;&nbsp;' : '<span class="red">' . __('No') . '</span>&nbsp;&nbsp;';
+$required = $taxonomy['required'] ? '<span class="green">'. __('Yes') . '</span>' : '<span class="red">' . __('No') . '</span>';
 if ($isSiteAdmin) {
     if ($taxonomy['enabled']) {
         $enabled .= $this->Form->postLink(__('(disable)'), array('action' => 'disable', h($taxonomy['id'])), array('title' => __('Disable')), (__('Are you sure you want to disable this taxonomy library?')));
@@ -10,17 +11,32 @@ if ($isSiteAdmin) {
         $enabled .= $this->Form->postLink(__('(enable)'), array('action' => 'enable', h($taxonomy['id'])), array('title' => __('Enable')), (__('Are you sure you want to enable this taxonomy library?')));
     }
 }
+
 $tableData = [
     ['key' => __('ID'), 'value' => $taxonomy['id']],
     ['key' => __('Namespace'), 'value' => $taxonomy['namespace']],
     ['key' => __('Description'), 'value' => $taxonomy['description']],
     ['key' => __('Version'), 'value' => $taxonomy['version']],
     ['key' => __('Enabled'), 'html' => $enabled],
+    ['key' => __('Required'), 'html' => $required],
 ];
+
+$requiredPredicates = '';
+foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+    if (empty($predicate['TaxonomyEntry'])) {
+        continue;
+    }
+    $checked = $predicate['required'] ? ' checked="checked"' : '';
+    $requiredPredicates .= '<label style="display: inline-block"><input type="checkbox" data-action="' . $baseurl  . '/taxonomies/toggleRequiredPredicate/' . h($predicate['id']) .'"' . $checked . '> ' . h(Inflector::humanize($predicate['value'])) . '</label><br>';
+}
+
+if (!empty($requiredPredicates)) {
+    $tableData[] = ['key' => __('Required predicates'), 'html' => $requiredPredicates];
+}
+
 echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData]);
 ?>
     </div></div>
-    <br>
     <div class="pagination">
         <ul>
         <?php
@@ -177,7 +193,7 @@ echo $this->element('genericElements/viewMetaTable', ['table_data' => $tableData
 </div>
 <script type="text/javascript">
     $(function(){
-        $('input:checkbox').removeAttr('checked');
+        $('#attributeList input:checkbox').removeAttr('checked');
         $('.mass-select').hide();
         $('.select_taxonomy, .select_all').click(function(){
             taxonomyListAnyCheckBoxesChecked();

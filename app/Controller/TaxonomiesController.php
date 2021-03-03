@@ -434,11 +434,39 @@ class TaxonomiesController extends AppController
         }
     }
 
+    public function toggleRequiredPredicate($id)
+    {
+        $taxonomyPredicate = $this->Taxonomy->TaxonomyPredicate->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('TaxonomyPredicate.id' => $id),
+            'contain' => ['TaxonomyEntry'],
+        ));
+        if (empty($taxonomyPredicate) || empty($taxonomyPredicate['TaxonomyEntry'])) {
+            return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleRequiredPredicate', $id, 'Invalid Taxonomy Predicate', $this->response->type());
+        }
+        if ($this->request->is('post')) {
+            $taxonomyPredicate['TaxonomyPredicate']['required'] = $this->request->data['Taxonomy']['required'];
+            $result = $this->Taxonomy->TaxonomyPredicate->save($taxonomyPredicate);
+            if ($result) {
+                return $this->RestResponse->saveSuccessResponse('Taxonomy', 'toggleRequiredPredicate', $id, $this->response->type());
+            } else {
+                return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleRequiredPredicate', $id, $this->validationError, $this->response->type());
+            }
+        }
+
+        $this->set('required', !$taxonomyPredicate['TaxonomyPredicate']['required']);
+        $this->set('url', $this->baseurl . '/taxonomies/toggleRequiredPredicate/' . $id);
+        $this->set('id', $id);
+        $this->autoRender = false;
+        $this->layout = 'ajax';
+        $this->render('ajax/toggle_required');
+    }
+
     public function toggleRequired($id)
     {
         $taxonomy = $this->Taxonomy->find('first', array(
             'recursive' => -1,
-            'conditions' => array('Taxonomy.id' => $id)
+            'conditions' => array('Taxonomy.id' => $id),
         ));
         if (empty($taxonomy)) {
             return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleRequired', $id, 'Invalid Taxonomy', $this->response->type());
@@ -454,6 +482,7 @@ class TaxonomiesController extends AppController
         }
 
         $this->set('required', !$taxonomy['Taxonomy']['required']);
+        $this->set('url', $this->baseurl . '/taxonomies/toggleRequired/' . $id);
         $this->set('id', $id);
         $this->autoRender = false;
         $this->layout = 'ajax';
