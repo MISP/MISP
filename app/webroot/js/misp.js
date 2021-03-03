@@ -4808,7 +4808,7 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
 });
 
 function queryEventLock(event_id) {
-    if (tabIsActive) {
+    if (!document.hidden) {
         $.ajax({
             url: baseurl + "/events/checkLocks/" + event_id,
             type: "get",
@@ -4826,7 +4826,7 @@ function queryEventLock(event_id) {
 }
 
 function checkIfLoggedIn() {
-    if (tabIsActive) {
+    if (!document.hidden) {
         $.get(baseurl + "/users/checkIfLoggedIn.json")
             .fail(function (xhr) {
                 if (xhr.status === 403) {
