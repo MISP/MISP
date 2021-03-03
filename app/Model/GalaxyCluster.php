@@ -915,7 +915,7 @@ class GalaxyCluster extends AppModel
             if (!$isGalaxyTag) {
                 return null;
             }
-            $conditions = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
+            $conditions = array('GalaxyCluster.tag_name' => $name);
         }
         $cluster = $this->fetchGalaxyClusters($user, array(
             'conditions' => $conditions,
@@ -943,7 +943,7 @@ class GalaxyCluster extends AppModel
         if (count(array_filter($namesOrIds, 'is_numeric')) === count($namesOrIds)) { // all elements are numeric
             $conditions = array('GalaxyCluster.id' => $namesOrIds);
         } else {
-            $conditions = array('LOWER(GalaxyCluster.tag_name)' => array_map('strtolower', $namesOrIds));
+            $conditions = array('GalaxyCluster.tag_name' => $namesOrIds);
         }
 
         $options = ['conditions' => $conditions];
@@ -1470,7 +1470,7 @@ class GalaxyCluster extends AppModel
         foreach ($events as $event) {
             foreach ($event['EventTag'] as $eventTag) {
                 if ($eventTag['Tag']['is_galaxy']) {
-                    $clusterTagNames[$eventTag['Tag']['id']] = strtolower($eventTag['Tag']['name']);
+                    $clusterTagNames[$eventTag['Tag']['id']] = $eventTag['Tag']['name'];
                 }
             }
         }
@@ -1480,7 +1480,7 @@ class GalaxyCluster extends AppModel
         }
 
         $options = [
-            'conditions' => ['LOWER(GalaxyCluster.tag_name)' => $clusterTagNames],
+            'conditions' => ['GalaxyCluster.tag_name' => $clusterTagNames],
             'contain' => ['Galaxy', 'GalaxyElement'],
         ];
         $clusters = $this->fetchGalaxyClusters($user, $options);
