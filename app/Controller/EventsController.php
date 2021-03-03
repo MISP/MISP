@@ -1224,6 +1224,11 @@ class EventsController extends AppController
         $this->render('/Elements/eventattribute');
     }
 
+    /**
+     * @param array $event
+     * @param bool $continue
+     * @param int $fromEvent
+     */
     private function __viewUI($event, $continue, $fromEvent)
     {
         $this->loadModel('Taxonomy');
@@ -1278,9 +1283,9 @@ class EventsController extends AppController
         // set the pivot data
         $this->helpers[] = 'Pivot';
         if ($continue) {
-            $data = $this->__continuePivoting($event['Event']['id'], $event['Event']['info'], $event['Event']['date'], $fromEvent);
+            $this->__continuePivoting($event['Event']['id'], $event['Event']['info'], $event['Event']['date'], $fromEvent);
         } else {
-            $data = $this->__startPivoting($event['Event']['id'], $event['Event']['info'], $event['Event']['date']);
+            $this->__startPivoting($event['Event']['id'], $event['Event']['info'], $event['Event']['date']);
         }
         $pivot = $this->Session->read('pivot_thread');
         $this->__arrangePivotVertical($pivot);
@@ -1626,24 +1631,61 @@ class EventsController extends AppController
         $this->__viewUI($event, $continue, $fromEvent);
     }
 
+    /**
+     * @param int $id
+     * @param string $info
+     * @param string $date
+     */
     private function __startPivoting($id, $info, $date)
     {
-        $this->Session->write('pivot_thread', null);
-        $initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'height' => 0, 'children' => array(), 'deletable' => true);
-        $this->Session->write('pivot_thread', $initial_pivot);
+        $initialPivot = [
+            'id' => $id,
+            'info' => $info,
+            'date' => $date,
+            'depth' => 0,
+            'height' => 0,
+            'children' => [],
+            'deletable' => true,
+        ];
+        $this->Session->write('pivot_thread', $initialPivot);
     }
 
+    /**
+     * @param int $id
+     * @param string $info
+     * @param string $date
+     * @param int $fromEvent
+     */
     private function __continuePivoting($id, $info, $date, $fromEvent)
     {
         $pivot = $this->Session->read('pivot_thread');
-        $newPivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => null, 'children' => array(), 'deletable' => true);
+        if (!is_array($pivot)) {
+            $this->__startPivoting($id, $info, $date);
+            return;
+        }
+
+        $newPivot = [
+            'id' => $id,
+            'info' => $info,
+            'date' => $date,
+            'depth' => null,
+            'children' => [],
+            'deletable' => true,
+        ];
         if (!$this->__checkForPivot($pivot, $id)) {
             $pivot = $this->__insertPivot($pivot, $fromEvent, $newPivot, 0);
         }
         $this->Session->write('pivot_thread', $pivot);
     }
 
-    private function __insertPivot($pivot, $oldId, $newPivot, $depth)
+    /**
+     * @param array $pivot
+     * @param int $oldId
+     * @param array $newPivot
+     * @param int $depth
+     * @return array
+     */
+    private function __insertPivot(array $pivot, $oldId, array $newPivot, $depth)
     {
         $depth++;
         if ($pivot['id'] == $oldId) {
@@ -1659,7 +1701,12 @@ class EventsController extends AppController
         return $pivot;
     }
 
-    private function __checkForPivot($pivot, $id)
+    /**
+     * @param array $pivot
+     * @param int $id
+     * @return bool
+     */
+    private function __checkForPivot(array $pivot, $id)
     {
         if ($id == $pivot['id']) {
             return true;
