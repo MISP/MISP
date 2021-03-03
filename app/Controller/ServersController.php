@@ -2434,9 +2434,9 @@ misp.direct_call(relative_path, body)
         }
 
         $message = 'CSP reported violation';
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        if (isset($_SERVER[$ipHeader])) {
-            $message .= ' from IP ' . $_SERVER[$ipHeader];
+        $remoteIp = $this->_remoteIp();
+        if ($remoteIp) {
+            $message .= ' from IP ' . $remoteIp;
         }
         $this->log("$message: " . json_encode($report['csp-report'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 

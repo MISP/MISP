@@ -125,8 +125,8 @@ class AppController extends Controller
         }
         if (!$this->_isRest()) {
             $this->__contentSecurityPolicy();
+            $this->response->header('X-XSS-Protection', '1; mode=block');
         }
-        $this->response->header('X-XSS-Protection', '1; mode=block');
 
         if (!empty($this->params['named']['sql'])) {
             $this->sql_dump = intval($this->params['named']['sql']);
@@ -446,22 +446,9 @@ class AppController extends Controller
                 } else {
                     // User not authenticated correctly
                     // reset the session information
-                    $redis = $this->User->setupRedis();
-                    // Do not log every fail, but just once per hour
-                    if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $authKeyToStore)) {
-                        $redis->setex('misp:auth_fail_throttling:' . $authKeyToStore, 3600, 1);
+                    if ($this->_shouldLog($authKeyToStore)) {
                         $this->loadModel('Log');
-                        $this->Log->create();
-                        $log = array(
-                            'org' => 'SYSTEM',
-                            'model' => 'User',
-                            'model_id' => 0,
-                            'email' => 'SYSTEM',
-                            'action' => 'auth_fail',
-                            'title' => "Failed authentication using API key ($authKeyToStore)",
-                            'change' => null,
-                        );
-                        $this->Log->save($log);
+                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed authentication using API key ($authKeyToStore)");
                     }
                     $this->Session->destroy();
                 }
@@ -548,8 +535,10 @@ class AppController extends Controller
         }
 
         if ($user['disabled']) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by disabled user.');
+            if ($this->_shouldLog('disabled:' . $user['id'])) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], 'Login attempt by disabled user.');
+            }
 
             $this->Auth->logout();
             if ($this->_isRest()) {
@@ -565,8 +554,30 @@ class AppController extends Controller
         if (isset($user['authkey_expiration']) && $user['authkey_expiration']) {
             $time = isset($_SERVER['REQUEST_TIME']) ? $_SERVER['REQUEST_TIME'] : time();
             if ($user['authkey_expiration'] < $time) {
+                if ($this->_shouldLog('expired:' . $user['authkey_id'])) {
+                    $this->Log = ClassRegistry::init('Log');
+                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt by expired auth key {$user['authkey_id']}.");
+                }
                 $this->Auth->logout();
                 throw new ForbiddenException('Auth key is expired');
+            }
+        }
+
+        if (!empty($user['allowed_ips'])) {
+            App::uses('CidrTool', 'Tools');
+            $cidrTool = new CidrTool($user['allowed_ips']);
+            $remoteIp = $this->_remoteIp();
+            if ($remoteIp === null) {
+                $this->Auth->logout();
+                throw new ForbiddenException('Auth key is limited to IP address, but IP address not found');
+            }
+            if (!$cidrTool->contains($remoteIp)) {
+                if ($this->_shouldLog('not_allowed_ip:' . $user['authkey_id'] . ':' . $remoteIp)) {
+                    $this->Log = ClassRegistry::init('Log');
+                    $this->Log->createLogEntry($user, 'auth_fail', 'User', $user['id'], "Login attempt from not allowed IP address for auth key {$user['authkey_id']}.");
+                }
+                $this->Auth->logout();
+                throw new ForbiddenException('It is not possible to use this Auth key from your IP address');
             }
         }
 
@@ -632,7 +643,7 @@ class AppController extends Controller
             return;
         }
 
-        $remoteAddress = trim($_SERVER['REMOTE_ADDR']);
+        $remoteAddress = $this->_remoteIp();
 
         $pipe = $redis->multi(Redis::PIPELINE);
         // keep for 30 days
@@ -680,11 +691,7 @@ class AppController extends Controller
                 $change .= PHP_EOL . 'Request body: ' . $payload;
             }
             $this->Log = ClassRegistry::init('Log');
-            try {
-                $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
-            } catch (Exception $e) {
-                // When `MISP.log_skip_db_logs_completely` is enabled, Log::createLogEntry method throws exception
-            }
+            $this->Log->createLogEntry($user, 'request', 'User', $user['id'], 'Paranoid log entry', $change);
         }
     }
 
@@ -1500,17 +1507,47 @@ class AppController extends Controller
             throw new RuntimeException("User with ID {$sessionUser['id']} not exists.");
         }
         if (isset($sessionUser['authkey_id'])) {
+            // Reload authkey
             $this->loadModel('AuthKey');
-            if (!$this->AuthKey->exists($sessionUser['authkey_id'])) {
+            $authKey = $this->AuthKey->find('first', [
+                'conditions' => ['id' => $sessionUser['authkey_id'], 'user_id' => $user['id']],
+                'fields' => ['id', 'expiration', 'allowed_ips'],
+                'recursive' => -1,
+            ]);
+            if (empty($authKey)) {
                 throw new RuntimeException("Auth key with ID {$sessionUser['authkey_id']} not exists.");
             }
+            $user['authkey_id'] = $authKey['AuthKey']['id'];
+            $user['authkey_expiration'] = $authKey['AuthKey']['expiration'];
+            $user['allowed_ips'] = $authKey['AuthKey']['allowed_ips'];
         }
-        foreach (['authkey_id', 'authkey_expiration', 'logged_by_authkey'] as $copy) {
-            if (isset($sessionUser[$copy])) {
-                $user[$copy] = $sessionUser[$copy];
-            }
+        if (isset($sessionUser['logged_by_authkey'])) {
+            $user['logged_by_authkey'] = $sessionUser['logged_by_authkey'];
         }
         $this->Auth->login($user);
         return $user;
+    }
+
+    /**
+     * @return string|null
+     */
+    protected function _remoteIp()
+    {
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
+        return isset($_SERVER[$ipHeader]) ? trim($_SERVER[$ipHeader]) : null;
+    }
+
+    /**
+     * @param string $key
+     * @return bool Returns true if the same log defined by $key was not stored in last hour
+     */
+    protected function _shouldLog($key)
+    {
+        $redis = $this->User->setupRedis();
+        if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
+            $redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
+            return true;
+        }
+        return false;
     }
 }

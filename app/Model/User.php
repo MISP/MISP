@@ -1106,7 +1106,7 @@ class User extends AppModel
         return $results;
     }
 
-    public function resetauthkey($user, $id, $alert = false)
+    public function resetauthkey($user, $id, $alert = false, $keyId = null)
     {
         $this->id = $id;
         if (!$id || !$this->exists($id)) {
@@ -1123,8 +1123,7 @@ class User extends AppModel
             $this->extralog(
                     $user,
                     'reset_auth_key',
-                    sprintf(
-                        __('Authentication key for user %s (%s) updated.'),
+                    __('Authentication key for user %s (%s) updated.',
                         $updatedUser['User']['id'],
                         $updatedUser['User']['email']
                     ),
@@ -1133,7 +1132,7 @@ class User extends AppModel
             );
         } else {
             $this->AuthKey = ClassRegistry::init('AuthKey');
-            $newkey = $this->AuthKey->resetauthkey($id);
+            $newkey = $this->AuthKey->resetAuthKey($id, $keyId);
         }
         if ($alert) {
             $baseurl = Configure::read('MISP.external_baseurl');
