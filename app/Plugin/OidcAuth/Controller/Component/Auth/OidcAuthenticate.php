@@ -72,9 +72,9 @@ class OidcAuthenticate extends BaseAuthenticate
             }
 
             if ($user['role_id'] != $roleId) {
-                $user['role_id'] = $roleId;
                 $this->userModel()->updateField($user, 'role_id', $roleId);
                 $this->log($mispUsername, "User role changed from {$user['role_id']} to $roleId.");
+                $user['role_id'] = $roleId;
             }
 
             $this->log($mispUsername, 'Logged in.');
@@ -182,20 +182,18 @@ class OidcAuthenticate extends BaseAuthenticate
         ]);
         $roleNameToId = array_change_key_case($roleNameToId); // normalize role names to lowercase
 
-        $userRole = null;
-        foreach ($roles as $role) {
-            if (isset($roleMapper[$role])) {
-                $roleId = $roleMapper[$role];
-                if (!is_numeric($roleId)) {
-                    $roleId = mb_strtolower($roleId);
-                    if (isset($roleNameToId[$roleId])) {
-                        $roleId = $roleNameToId[$roleId];
+        foreach ($roleMapper as $oidcRole => $mispRole) {
+            if (in_array($oidcRole, $roles, true)) {
+                if (!is_numeric($mispRole)) {
+                    $mispRole = mb_strtolower($mispRole);
+                    if (isset($roleNameToId[$mispRole])) {
+                        $mispRole = $roleNameToId[$mispRole];
                     } else {
-                        $this->log($mispUsername, "MISP Role with name `$roleId` not found, skipping.");
+                        $this->log($mispUsername, "MISP Role with name `$mispRole` not found, skipping.");
                         continue;
                     }
                 }
-                return $roleId; // first match wins
+                return $mispRole; // first match wins
             }
         }
 
