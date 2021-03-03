@@ -296,6 +296,7 @@ class GalaxiesController extends AppController
             } else { // should use matrix instead
                 $param = array(
                     'name' => $galaxy['Galaxy']['name'],
+                    'value' => $this->baseurl . "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'] . '/local:' . $local . '/eventid:' . $eventid,
                     'functionName' => sprintf(
                         "getMatrixPopup('%s', '%s', '%s/local:%s/eventid:%s')",
                         $target_type,
@@ -585,8 +586,7 @@ class GalaxiesController extends AppController
             'conditions' => array('Galaxy.id' => $galaxyId)
         ));
         App::uses('ClusterRelationsGraphTool', 'Tools');
-        $grapher = new ClusterRelationsGraphTool();
-        $grapher->construct($this->Auth->user(), $this->Galaxy->GalaxyCluster);
+        $grapher = new ClusterRelationsGraphTool($this->Auth->user(), $this->Galaxy->GalaxyCluster);
         $relations = $grapher->getNetwork($clusters);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->type());

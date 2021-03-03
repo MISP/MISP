@@ -649,12 +649,14 @@ class SharingGroup extends AppModel
             return false;
         }
         if (empty($sg['modified']) || $sg['modified'] > $existingSG['SharingGroup']['modified']) {
-            $isLocalSync = $user['Role']['perm_sync'] && !empty($existingSG['SharingGroup']['local']);
+            // consider the local field being set to be equivalent to an event's locked == 0 state
+            $isUpdatableBySync = $user['Role']['perm_sync'] && empty($existingSG['SharingGroup']['local']);
+            // TODO: reconsider this, org admins will be blocked from legitimate edits if they have sync permissions.
+            // We need a mechanism to check whether we're in sync context.
             $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id'];
-            if ($isLocalSync || $isSGOwner || $user['Role']['perm_site_admin']) {
-                $sg_id = (int)$existingSG['SharingGroup']['id'];
+            if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
                 $editedSG = $existingSG['SharingGroup'];
-                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'active', 'roaming'];
+                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming'];
                 foreach ($attributes as $a) {
                     if (isset($sg[$a])) {
                         $editedSG[$a] = $sg[$a];
@@ -697,13 +699,13 @@ class SharingGroup extends AppModel
         ) {
             $this->Log->create();
             $entry = array(
-                    'org' => $user['Organisation']['name'],
-                    'model' => 'SharingGroup',
-                    'model_id' => $sg['SharingGroup']['uuid'],
-                    'email' => $user['email'],
-                    'action' => 'error',
-                    'user_id' => $user['id'],
-                    'title' => 'Tried to save a sharing group but the user does not belong to it.'
+                'org' => $user['Organisation']['name'],
+                'model' => 'SharingGroup',
+                'model_id' => 0,
+                'email' => $user['email'],
+                'action' => 'error',
+                'user_id' => $user['id'],
+                'title' => "Tried to save a sharing group with UUID '{$sg['SharingGroup']['uuid']}' but the user does not belong to it."
             );
             $this->Log->save($entry);
             return false;

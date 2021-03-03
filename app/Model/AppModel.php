@@ -41,7 +41,8 @@ class AppModel extends Model
 
     public $inserted_ids = array();
 
-    private $__redisConnection = null;
+    /** @var null|Redis */
+    private static $__redisConnection = null;
 
     private $__profiler = array();
 
@@ -2477,8 +2478,8 @@ class AppModel extends Model
      */
     public function setupRedisWithException()
     {
-        if ($this->__redisConnection) {
-            return $this->__redisConnection;
+        if (self::$__redisConnection) {
+            return self::$__redisConnection;
         }
 
         if (!class_exists('Redis')) {
@@ -2503,7 +2504,7 @@ class AppModel extends Model
             throw new Exception("Could not select Redis database $database: {$redis->getLastError()}");
         }
 
-        $this->__redisConnection = $redis;
+        self::$__redisConnection = $redis;
         return $redis;
     }
 

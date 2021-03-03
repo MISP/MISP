@@ -376,13 +376,14 @@ class ObjectsController extends AppController
                 'ObjectTemplateElement'
             )
         ));
-        if (empty($template) && !$this->_isRest()) {
-            $this->Flash->error('Object cannot be edited, no valid template found.');
+        if (empty($template) && !$this->_isRest() && !$update_template_available) {
+            $this->Flash->error('Object cannot be edited, no valid template found. ', ['params' => ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')]]);
             $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
         }
         $templateData = $this->MispObject->resolveUpdatedTemplate($template, $object, $update_template_available);
         $this->set('updateable_attribute', $templateData['updateable_attribute']);
         $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
+        $this->set('original_template_unkown', $templateData['original_template_unkown']);
         if (!empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
             $revisedObjectData = $this->Session->read('object_being_created');
             if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed session data is for the correct object

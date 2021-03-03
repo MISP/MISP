@@ -111,9 +111,9 @@ let keyboardShortcutsManager = {
 	}
 }
 
-// Inits the keyboard shortcut manager's main routine.
-$(document).ready(() => keyboardShortcutsManager.init());
-
-// Inits the click event on the keyboard shortcut triangle at the bottom of the screen.
-$('#triangle').click(keyboardShortcutsManager.onTriangleClick);
+// Inits the keyboard shortcut manager's main routine and the click event on the keyboard shortcut triangle at the bottom of the screen.
+$(document).ready(function(){
+        keyboardShortcutsManager.init();
+        $('#triangle').click(keyboardShortcutsManager.onTriangleClick);
+});
 

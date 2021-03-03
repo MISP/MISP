@@ -2582,9 +2582,10 @@ class AttributesController extends AppController
         }
         $totalAttributes = $this->Attribute->find('count', array());
         $attributes = $this->Attribute->find('all', array(
-                'recursive' => -1,
-                'fields' => array($type, 'COUNT(id) as attribute_count'),
-                'group' => array($type)
+            'recursive' => -1,
+            'fields' => array($type, 'COUNT(id) as attribute_count'),
+            'group' => array($type),
+            'order' => ''
         ));
         $results = array();
         foreach ($attributes as $attribute) {

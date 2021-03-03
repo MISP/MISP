@@ -29,7 +29,8 @@
         "ext-bcmath": "For faster validating IBAN numbers",
         "ext-rdkafka": "Required for publishing events to Kafka broker",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
-        "aws/aws-sdk-php": "To upload samples to S3"
+        "aws/aws-sdk-php": "To upload samples to S3",
+        "jumbojett/openid-connect-php": "For OIDC authentication"
     },
     "config": {
         "vendor-dir": "Vendor",

@@ -997,7 +997,7 @@ class Feed extends AppModel
      * @return bool
      * @throws Exception
      */
-    public function saveFreetextFeedData($feed, $data, $user, $jobId = false)
+    public function saveFreetextFeedData(array $feed, array $data, array $user, $jobId = false)
     {
         $this->Event = ClassRegistry::init('Event');
 
@@ -1040,25 +1040,14 @@ class Feed extends AppModel
             }
         }
         if ($feed['Feed']['fixed_event']) {
-            $existsAttributes = $this->Event->Attribute->find('all', array(
+            $existsAttributesValueToId = $this->Event->Attribute->find('list', array(
                 'conditions' => array(
                     'Attribute.deleted' => 0,
                     'Attribute.event_id' => $event['Event']['id']
                 ),
                 'recursive' => -1,
-                'fields' => array('id', 'value1', 'value2')
+                'fields' => array('value', 'id')
             ));
-            $existsAttributesValueToId = array();
-            foreach ($existsAttributes as $t) {
-                if (!empty($t['Attribute']['value2'])) {
-                    $value = $t['Attribute']['value1'] . '|' . $t['Attribute']['value2'];
-                } else {
-                    $value = $t['Attribute']['value1'];
-                }
-                // Since event values are unique, it is OK to put value into key
-                $existsAttributesValueToId[$value] = $t['Attribute']['id'];
-            }
-            unset($existsAttributes);
 
             // Create event diff. After this cycle, `$data` will contains just attributes that do not exists in current
             // event and in `$existsAttributesValueToId` will contains just attributes that do not exists in current feed.
@@ -1098,7 +1087,6 @@ class Feed extends AppModel
             return true;
         }
 
-        $data = array_values($data);
         $uniqueValues = array();
         foreach ($data as $key => $value) {
             if (isset($uniqueValues[$value['value']])) {

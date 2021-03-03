@@ -265,7 +265,7 @@ class ObjectReference extends AppModel
         return true;
     }
 
-    public function getReferencedInfo($referencedUuid, $object, $strict = true)
+    public function getReferencedInfo($referencedUuid, $object, $strict = true, $user=[])
     {
         $referenced_type = 1;
         $target_object = $this->Object->find('first', array(
@@ -277,7 +277,9 @@ class ObjectReference extends AppModel
             $referenced_id = $target_object['Object']['id'];
             $referenced_uuid = $target_object['Object']['uuid'];
             if ($target_object['Object']['event_id'] != $object['Event']['id']) {
-                throw new NotFoundException('Invalid target. Target has to be within the same event.');
+                if (!$this->isValidExtendedEventForReference($object, $target_object['Object']['event_id'], $user)) {
+                    throw new NotFoundException('Invalid target. Target has to be within the same event or extending it.');
+                }
             }
         } else {
             $target_attribute = $this->Object->Attribute->find('first', array(
@@ -293,12 +295,28 @@ class ObjectReference extends AppModel
                 }
             }
             if ($target_attribute['Attribute']['event_id'] != $object['Event']['id']) {
-                throw new NotFoundException('Invalid target. Target has to be within the same event.');
+                if (!$this->isValidExtendedEventForReference($object, $target_attribute['Attribute']['event_id'], $user)) {
+                    throw new NotFoundException('Invalid target. Target has to be within the same event or extending it.');
+                }
             }
             $referenced_id = $target_attribute['Attribute']['id'];
             $referenced_uuid = $target_attribute['Attribute']['uuid'];
             $referenced_type = 0;
         }
         return array($referenced_id, $referenced_uuid, $referenced_type);
+    }
+
+    function isValidExtendedEventForReference($sourceEvent, $targetEventID, $user) {
+        if ($sourceEvent['Event']['orgc_id'] != $user['org_id']) {
+            return false;
+        }
+        $targetEventFromExtension = $this->Object->Event->find('first', [
+            'conditions' => [
+                'Event.uuid' => $sourceEvent['Event']['extends_uuid'],
+            ],
+            'recursive' => -1,
+            'fields' => ['id']
+        ]);
+        return !empty($targetEventFromExtension) && $targetEventFromExtension['Event']['id'] == $targetEventID;
     }
 }

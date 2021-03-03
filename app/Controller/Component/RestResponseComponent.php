@@ -1890,10 +1890,13 @@ class RestResponseComponent extends Component
     }
     private function __overwriteRoleId($scope, $action, &$field) {
         $this->{$scope} = ClassRegistry::init("Role");
-        $roles = $this->{$scope}->find('column', array(
-            'fields' => array('name')
+        $roles = $this->{$scope}->find('list', array(
+            'fields' => array('id', 'name')
         ));
-        $field['values'] = $roles;
+        $field['values'] = [];
+        foreach ($roles as $id => $name) {
+            $field['values'][] = ['label' => $name, 'value' => $id];
+        }
     }
     private function __overwriteSeen($scope, $action, &$field) {
         if ($action == 'restSearch') {

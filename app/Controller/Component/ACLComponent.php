@@ -262,7 +262,9 @@ class ACLComponent extends Component
                     'viewEventAttributes' => array('*'),
                     'viewGraph' => array('*'),
                     'viewGalaxyMatrix' => array('*'),
-                    'xml' => array('*')
+                    'xml' => array('*'),
+                'addEventLock' => ['perm_auth'],
+                'removeEventLock' => ['perm_auth'],
             ),
             'favouriteTags' => array(
                 'toggle' => array('*'),
@@ -495,7 +497,7 @@ class ACLComponent extends Component
                     'getSubmodulesStatus' => array(),
                     'getSubmoduleQuickUpdateForm' => array(),
                     'getWorkers' => array(),
-                    'getVersion' => array('*'),
+                    'getVersion' => array('perm_auth'),
                     'idTranslator' => ['OR' => [
                         'host_org_user',
                         'perm_site_admin',
@@ -531,6 +533,7 @@ class ACLComponent extends Component
                     'uploadFile' => array(),
                     'viewDeprecatedFunctionUse' => array(),
                     'killAllWorkers' => ['perm_site_admin'],
+                'cspReport' => ['*'],
             ),
             'shadowAttributes' => array(
                     'accept' => array('perm_add'),

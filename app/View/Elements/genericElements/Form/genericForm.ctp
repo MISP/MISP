@@ -52,7 +52,7 @@
                     }
                     $params['class'] = $class;
                 } else {
-                    if (!empty($fieldData['type']) && $fieldData['type'] != 'checkbox') {
+                    if (!empty($fieldData['type']) && ($fieldData['type'] !== 'checkbox' || $fieldData['type'] !== 'radio')) {
                         $params['class'] = 'span6';
                     }
                 }

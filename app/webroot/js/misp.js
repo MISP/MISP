@@ -35,13 +35,32 @@ function rgb2hex(rgb) {
 }
 
 function xhrFailCallback(xhr) {
-    if (xhr.status === 403 || xhr.status === 405) {
+    if (xhr.status === 401) {
+        showMessage('fail', 'Unauthorized. Please reload page to log again.');
+    } else if (xhr.status === 403 || xhr.status === 405) {
         showMessage('fail', 'Not allowed.');
     } else if (xhr.status === 404) {
         showMessage('fail', 'Resource not found.');
     } else {
         showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details.');
     }
+}
+
+function xhr(options) {
+    options.beforeSend = options.beforeSend || function() {
+        $(".loading").show();
+    };
+    options.complete = options.complete || function() {
+        $(".loading").hide();
+    }
+    options.error = options.error || xhrFailCallback;
+    options.cache = options.cache || false;
+
+    if (!options.url.startsWith('http://') && !options.url.startsWith('https://')) {
+        options.url = baseurl + options.url;
+    }
+
+    return $.ajax(options);
 }
 
 function deleteObject(type, action, id) {
@@ -70,7 +89,7 @@ function fetchAddSightingForm(type, attribute_id, onvalue) {
     $.get(url, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
-    });
+    }).fail(xhrFailCallback);
 }
 
 function flexibleAddSighting(clicked, type, attribute_id, event_id, placement) {
@@ -101,7 +120,7 @@ function publishPopup(id, type, scope) {
     $.get(baseurl + "/" + scope + "/" + action + "/" + id, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
-    });
+    }).fail(xhrFailCallback);
 }
 
 function delegatePopup(id) {
@@ -165,12 +184,9 @@ function submitDeletion(context_id, action, type, id) {
     var context = 'event';
     if (type == 'template_elements') context = 'template';
     var formData = $('#PromptForm').serialize();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
-        success:function (data, textStatus) {
+        success:function (data) {
             if (type == 'eventGraph') {
                 showMessage('success', 'Network has been deleted');
                 reset_graph_history();
@@ -184,9 +200,8 @@ function submitDeletion(context_id, action, type, id) {
             $("#confirmation_box").fadeOut();
             $("#gray_out").fadeOut();
         },
-        type:"post",
-        cache: false,
-        url: baseurl + "/" + type + "/" + action + "/" + id,
+        type: "post",
+        url: "/" + type + "/" + action + "/" + id,
     });
 }
 
@@ -198,10 +213,7 @@ function removeSighting(caller) {
         context = 'event';
     }
     var formData = $('#PromptForm').serialize();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
         success:function (data, textStatus) {
             handleGenericAjaxResponse(data);
@@ -209,15 +221,14 @@ function removeSighting(caller) {
             updateIndex(id, 'event');
             $.get(baseurl + "/sightings/listSightings/" + rawid + "/" + context + org, function(data) {
                 $("#sightingsData").html(data);
-            });
+            }).fail(xhrFailCallback);
         },
         complete:function() {
             $(".loading").hide();
             $("#confirmation_box").fadeOut();
         },
         type:"post",
-        cache: false,
-        url: baseurl + "/sightings/quickDelete/" + id + "/" + rawid + "/" + context,
+        url: "/sightings/quickDelete/" + id + "/" + rawid + "/" + context,
     });
 }
 
@@ -262,12 +273,9 @@ function toggleSetting(e, setting, id) {
     }
     $(dataDiv).val(id);
     var formData = $(formID).serialize();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
-        success:function (data, textStatus) {
+        success:function (data) {
             var result = data;
             if (result.success) {
                 var setting = false;
@@ -283,7 +291,7 @@ function toggleSetting(e, setting, id) {
         complete:function() {
             $.get(replacementForm, function(data) {
                 $('#hiddenFormDiv').html(data);
-            });
+            }).fail(xhrFailCallback);
             $(".loading").hide();
             $("#confirmation_box").fadeOut();
             $("#gray_out").fadeOut();
@@ -291,8 +299,7 @@ function toggleSetting(e, setting, id) {
         error:function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
         },
-        type:"post",
-        cache: false,
+        type: "post",
         url: $(formID).attr('action'),
     });
 }
@@ -306,11 +313,7 @@ function initiatePasswordReset(id) {
 
 function submitPasswordReset(id) {
     var formData = $('#PromptForm').serialize();
-    var url = baseurl + "/users/initiatePasswordReset/" + id;
-    $.ajax({
-        beforeSend: function () {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
         success: function (data) {
             handleGenericAjaxResponse(data);
@@ -321,8 +324,7 @@ function submitPasswordReset(id) {
             $("#gray_out").fadeOut();
         },
         type: "post",
-        cache: false,
-        url: url,
+        url: "/users/initiatePasswordReset/" + id,
     });
 }
 
@@ -335,22 +337,14 @@ function submitMessageForm(url, form, target) {
 }
 
 function submitGenericForm(url, form, target) {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: $('#' + form).serialize(),
         success:function (data, textStatus) {
             $('#top').html(data);
             showMessage("success", "Message added.");
         },
-        complete:function() {
-            $(".loading").hide();
-        },
-        error: xhrFailCallback,
-        type:"post",
-        cache: false,
-        url:url,
+        type: "post",
+        url: url,
     });
 }
 
@@ -375,12 +369,9 @@ function toggleCorrelation(id, skip_reload) {
     if (typeof skip_reload === "undefined") {
         skip_reload = false;
     }
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: $('#PromptForm').serialize(),
-        success:function (data, textStatus) {
+        success:function (data) {
             handleGenericAjaxResponse(data, skip_reload);
             $("#correlation_toggle_" + id).prop('checked', !$("#correlation_toggle_" + id).is(':checked'));
         },
@@ -390,8 +381,7 @@ function toggleCorrelation(id, skip_reload) {
             $("#gray_out").fadeOut();
         },
         type:"post",
-        cache: false,
-        url: baseurl + '/attributes/toggleCorrelation/' + id,
+        url: '/attributes/toggleCorrelation/' + id,
     });
 }
 
@@ -399,10 +389,7 @@ function toggleToIDS(id, skip_reload) {
     if (typeof skip_reload === "undefined") {
         skip_reload = false;
     }
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: $('#PromptForm').serialize(),
         success:function (data, textStatus) {
             handleGenericAjaxResponse(data, skip_reload);
@@ -414,8 +401,7 @@ function toggleToIDS(id, skip_reload) {
             $("#gray_out").fadeOut();
         },
         type:"post",
-        cache: false,
-        url: baseurl + '/attributes/editField/' + id ,
+        url: '/attributes/editField/' + id ,
     });
 }
 
@@ -438,17 +424,12 @@ function updateIndex(id, context, newPage) {
         div = "#attributes_div";
     }
     if (context == 'template') {
-        url = baseurl + "/template_elements/index/" + id;
+        url = "/template_elements/index/" + id;
         div = "#templateElements";
     }
-    $.ajax({
-        beforeSend: function () {
-            $(".loading").show();
-        },
-        dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+    xhr({
+        dataType: "html",
+        success:function (data) {
             $(div).html(data);
             if (typeof genericPopupCallback !== "undefined") {
                 genericPopupCallback("success");
@@ -485,6 +466,7 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
             }
             popoverStartup(); // reactive popovers
         },
+        error: xhrFailCallback,
         url: baseurl + "/attributes/fetchViewValue/" + id + "/" + field,
     });
 }
@@ -508,6 +490,7 @@ function updateObjectFieldOnSuccess(name, type, id, field, event) {
                 $('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
             }
         },
+        error: xhrFailCallback,
         url: baseurl + "/objects/fetchViewValue/" + id + "/" + field,
     });
 }
@@ -527,21 +510,13 @@ function activateField(type, id, field, event) {
     }
     var name = '#' + type + '_' + id + '_' + field;
     var container_name = '#' + containerName + '_' + id + '_' + field;
-    $.ajax({
-        beforeSend: function() {
-            $(".loading").show();
-        },
+    xhr({
         dataType: "html",
-        cache: false,
         success: function (data) {
             $(container_name + '_placeholder').html(data);
             postActivationScripts(name, type, id, field, event);
         },
-        url: baseurl + "/" + objectType + "/fetchEditForm/" + id + "/" + field,
-        complete: function() {
-            $(".loading").hide();
-        },
-        error: xhrFailCallback
+        url: "/" + objectType + "/fetchEditForm/" + id + "/" + field,
     });
 }
 
@@ -622,8 +597,8 @@ function addSighting(type, attribute_id, event_id) {
                 updateIndex(event_id, 'event');
             }
         },
-        error: function() {
-            showMessage('fail', 'Request failed for an unknown reason.');
+        error: function(xhr) {
+            xhrFailCallback(xhr);
             updateIndex(event_id, 'event');
         },
         type: "post",
@@ -666,8 +641,8 @@ function submitForm(type, id, field, context) {
         success:function (data, textStatus) {
             handleAjaxEditResponse(data, name, type, id, field, context);
         },
-        error:function() {
-            showMessage('fail', 'Request failed for an unknown reason.');
+        error:function(xhr) {
+            xhrFailCallback(xhr);
             updateIndex(context, 'event');
         },
         type:"post",
@@ -676,7 +651,7 @@ function submitForm(type, id, field, context) {
     $(name + '_field').unbind("keyup");
     $(name + '_form').unbind("focusout");
     return false;
-};
+}
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
@@ -684,35 +659,30 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
     if (undefined != addData['local'] && addData['local']) {
         localFlag = '/local:1';
     }
-    url = baseurl + "/events/addTag/" + event_id + localFlag;
+    var url = baseurl + "/events/addTag/" + event_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
         $('body').append($('<div id="temp"/>').html(formData));
         $('#temp #EventTag').val(JSON.stringify(selected_tag_ids));
-        $.ajax({
+        xhr({
             data: $('#EventAddTagForm').serialize(),
-            cache: false,
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
-            success:function (data, textStatus) {
+            success: function (data) {
                 loadEventTags(event_id);
                 loadGalaxies(event_id, 'event');
                 handleGenericAjaxResponse(data);
             },
-            error:function() {
+            error: function() {
                 showMessage('fail', 'Could not add tag.');
                 loadEventTags(event_id);
                 loadGalaxies(event_id, 'event');
             },
-            complete:function() {
-                $('#temp').remove();
+            complete: function() {
                 $("#popover_form").fadeOut();
                 $("#gray_out").fadeOut();
                 $(".loading").hide();
                 $('#temp').remove();
             },
-            type:"post",
-            url:url
+            type: "post",
+            url: url
         });
     });
 }
@@ -723,19 +693,16 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     if (undefined != addData['local'] && addData['local']) {
         localFlag = '/local:1';
     }
-    url = baseurl + "/attributes/addTag/" + attribute_id + localFlag;
+    var url = baseurl + "/attributes/addTag/" + attribute_id + localFlag;
     fetchFormDataAjax(url, function(formData) {
         $('body').append($('<div id="temp"/>').html(formData));
         $('#temp #AttributeTag').val(JSON.stringify(selected_tag_ids));
         if (attribute_id == 'selected') {
             $('#AttributeAttributeIds').val(getSelected());
         }
-        $.ajax({
+        xhr({
             data: $('#AttributeAddTagForm').serialize(),
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
-            success:function (data, textStatus) {
+            success:function (data) {
                 if (attribute_id == 'selected') {
                     updateIndex(0, 'event');
                 } else {
@@ -771,11 +738,8 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     fetchFormDataAjax(url, function(formData) {
         $('body').append($('<div id="temp"/>').html(formData));
         $('#temp #TagCollectionTag').val(JSON.stringify(selected_tag_ids));
-        $.ajax({
+        xhr({
             data: $('#TagCollectionAddTagForm').serialize(),
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
             success:function (data, textStatus) {
                 handleGenericAjaxResponse(data);
                 refreshTagCollectionRow(tag_collection_id);
@@ -807,7 +771,6 @@ function refreshTagCollectionRow(tag_collection_id) {
             $('[data-row-id="' + tag_collection_id + '"]').replaceWith(data);
         }
     });
-
 }
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
@@ -895,8 +858,13 @@ function toggleAllTaxonomyCheckboxes() {
 }
 
 function attributeListAnyAttributeCheckBoxesChecked() {
-    if ($('.select_attribute:checked').length > 0) $('.mass-select').removeClass('hidden');
-    else $('.mass-select').addClass('hidden');
+    if ($('.select_attribute:checked').length > 0) {
+        $('.mass-select').removeClass('hidden');
+        $('#create-button').removeClass('last');
+    } else {
+        $('.mass-select').addClass('hidden');
+        $('#create-button').addClass('last');
+    }
 }
 
 function listCheckboxesChecked() {
@@ -927,7 +895,7 @@ function multiSelectDeleteEvents() {
     $.get(baseurl + "/events/delete/" + JSON.stringify(selected), function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
-    });
+    }).fail(xhrFailCallback);
 }
 
 function multiSelectToggleFeeds(on, cache) {
@@ -943,7 +911,7 @@ function multiSelectToggleFeeds(on, cache) {
     $.get(baseurl + "/feeds/toggleSelected/" + on + "/" + cache + "/" + JSON.stringify(selected), function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
-    });
+    }).fail(xhrFailCallback);
 }
 
 function multiSelectDeleteEventBlocklist(on, cache) {
@@ -959,7 +927,7 @@ function multiSelectDeleteEventBlocklist(on, cache) {
     $.get(baseurl + "/eventBlocklists/massDelete?ids=" + JSON.stringify(selected), function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
-    });
+    }).fail(xhrFailCallback);
 }
 
 function multiSelectAction(event, context) {
@@ -1002,14 +970,10 @@ function multiSelectAction(event, context) {
         } else {
             var url = baseurl + "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
         }
-        $.ajax({
+        xhr({
             data: formData,
-            cache: false,
             type:"POST",
             url: url,
-            beforeSend: function () {
-                $(".loading").show();
-            },
             success: function (data) {
                 updateIndex(event, 'event');
                 var result = handleGenericAjaxResponse(data);
@@ -1017,10 +981,6 @@ function multiSelectAction(event, context) {
                     eventUnpublish();
                 }
             },
-            complete: function () {
-                $(".loading").hide();
-            },
-            error: xhrFailCallback,
         });
     }
     return false;
@@ -1036,7 +996,7 @@ function addSelectedTaxonomies(taxonomy) {
     $.get(baseurl + "/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
-    });
+    }).fail(xhrFailCallback);
 }
 
 function proposeObjectsFromSelectedAttributes(clicked, event_id) {
@@ -1048,14 +1008,14 @@ function hideSelectedTags(taxonomy) {
 	$.get(baseurl + "/taxonomies/taxonomyMassHide/"+taxonomy, function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
-	});
+	}).fail(xhrFailCallback);
 }
 
 function unhideSelectedTags(taxonomy) {
 	$.get(baseurl + "/taxonomies/taxonomyMassUnhide/"+taxonomy, function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
-	});
+	}).fail(xhrFailCallback);
 }
 
 function submitMassTaxonomyTag() {
@@ -1095,7 +1055,7 @@ function loadEventTags(id) {
     $.ajax({
         dataType:"html",
         cache: false,
-        success:function (data, textStatus) {
+        success:function (data) {
             $(".eventTagContainer").html(data);
         },
         url: baseurl + "/tags/showEventTag/" + id,
@@ -1106,7 +1066,7 @@ function loadGalaxies(id, scope) {
     $.ajax({
         dataType:"html",
         cache: false,
-        success:function (data, textStatus) {
+        success:function (data) {
             if (scope == 'event') {
                 $("#galaxies_div").html(data);
             } else if (scope == 'attribute') {
@@ -1121,7 +1081,7 @@ function loadTagCollectionTags(id) {
     $.ajax({
         dataType:"html",
         cache: false,
-        success:function (data, textStatus) {
+        success:function (data) {
             $(".tagCollectionTagContainer").html(data);
         },
         url: baseurl + "/tags/showEventTag/" + id,
@@ -1132,21 +1092,14 @@ function removeEventTag(event, tag) {
     var answer = confirm("Are you sure you want to remove this tag from the event?");
     if (answer) {
         var formData = $('#removeTag_' + tag).serialize();
-        $.ajax({
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
+        xhr({
             data: formData,
             type:"POST",
-            cache: false,
-            url: baseurl + "/events/removeTag/" + event + '/' + tag,
-            success:function (data, textStatus) {
+            url: "/events/removeTag/" + event + '/' + tag,
+            success:function (data) {
                 loadEventTags(event);
                 handleGenericAjaxResponse(data);
             },
-            complete:function() {
-                $(".loading").hide();
-            }
         });
     }
     return false;
@@ -1156,9 +1109,10 @@ function loadAttributeTags(id) {
     $.ajax({
         dataType:"html",
         cache: false,
-        success:function (data, textStatus) {
+        success:function (data) {
             $("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
         },
+        error: xhrFailCallback,
         url: baseurl + "/tags/showAttributeTag/" + id
     });
 }
@@ -1166,20 +1120,16 @@ function loadAttributeTags(id) {
 function removeObjectTagPopup(clicked, context, object, tag) {
     $.get(baseurl + "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
         openPopover(clicked, data);
-    });
+    }).fail(xhrFailCallback);
 }
 
 function removeObjectTag(context, object, tag) {
     var formData = $('#PromptForm').serialize();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
         type:"POST",
-        cache: false,
-        url: baseurl + "/" + context.toLowerCase() + "s/removeTag/" + object + '/' + tag,
-        success:function (data, textStatus) {
+        url: "/" + context.toLowerCase() + "s/removeTag/" + object + '/' + tag,
+        success:function (data) {
             $("#confirmation_box").fadeOut();
             $("#gray_out").fadeOut();
             if (context == 'Attribute') {
@@ -1191,9 +1141,6 @@ function removeObjectTag(context, object, tag) {
             }
             handleGenericAjaxResponse(data);
         },
-        complete:function() {
-            $(".loading").hide();
-        }
     });
     return false;
 }
@@ -1201,12 +1148,6 @@ function removeObjectTag(context, object, tag) {
 function redirectAddObject(templateId, additionalData) {
     var eventId = additionalData['event_id'];
     window.location = baseurl + '/objects/add/' + eventId + '/' + templateId;
-}
-
-function clickCreateButton(event, type) {
-    var destination = 'attributes';
-    if (type == 'Proposal') destination = 'shadow_attributes';
-    simplePopup(baseurl + "/" + destination + "/add/" + event);
 }
 
 function openGenericModal(url, modalData, callback) {
@@ -1351,7 +1292,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 updateIndex(update_context_id, 'event');
                 $.get(baseurl + "/sightings/listSightings/" + id + "/attribute", function(data) {
                     $("#sightingsData").html(data);
-                });
+                }).fail(xhrFailCallback);
                 $('.sightingsToggle').removeClass('btn-primary');
                 $('.sightingsToggle').addClass('btn-inverse');
                 $('#sightingsListAllToggle').removeClass('btn-inverse');
@@ -1402,7 +1343,6 @@ function handleAjaxModalResponse(response, context_id, url, referer, context, co
         }
         var savedArray = saveValuesForPersistance();
         $.ajax({
-            async:true,
             dataType:"html",
             success:function (data, textStatus) {
                 $('#genericModal').remove();
@@ -1444,7 +1384,6 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
     } else {
         var savedArray = saveValuesForPersistance();
         $.ajax({
-            async:true,
             dataType:"html",
             success:function (data, textStatus) {
                 $("#popover_form").html(data);
@@ -1502,17 +1441,12 @@ function toggleHistogramType(type, old) {
 }
 
 function updateHistogram(selected) {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+        success:function (data) {
             $("#histogram").html(data);
         },
-        url: baseurl + "/users/histogram/" + selected,
+        url: "/users/histogram/" + selected,
     });
 }
 
@@ -1561,18 +1495,13 @@ function tagFieldChange() {
     $("#addTagField").hide();
 }
 
-function appendTemplateTag(selected_id) {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+function appendTemplateTag(selected_id)     {
+    xhr({
+        dataType: "html",
+        success: function (data) {
             $("#tags").append(data);
         },
-        url: baseurl + "/tags/viewTag/" + selected_id,
+        url: "/tags/viewTag/" + selected_id,
     });
     updateSelectedTags();
 }
@@ -1606,8 +1535,7 @@ function saveElementSorting(order) {
         data: order,
         dataType:"json",
         contentType: "application/json",
-        cache: false,
-        success:function (data, textStatus) {
+        success:function (data) {
             handleGenericAjaxResponse(data);
         },
         type:"post",
@@ -1834,11 +1762,10 @@ function getPopup(id, context, target, admin, popupType) {
     if (id != '') url += "/" + id;
     if (popupType == '' || typeof popupType == 'undefined') popupType = '#popover_form';
     $.ajax({
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(".loading").show();
         },
         dataType:"html",
-        async: true,
         cache: false,
         success:function (data, textStatus) {
             $(".loading").hide();
@@ -1869,15 +1796,14 @@ function popoverPopup(clicked, id, context, target, admin) {
     // actual request //
     $.ajax({
         dataType:"html",
-        async: true,
         cache: false,
-        success:function (data, textStatus) {
+        success:function (data) {
             if (popover.options.content !== data) {
                 popover.options.content =  data;
                 $clicked.popover('show');
             }
         },
-        error:function(jqXHR, textStatus, errorThrown ) {
+        error:function(jqXHR ) {
             var errorJSON = '';
             try {
                 errorJSON = JSON.parse(jqXHR.responseText);
@@ -1928,16 +1854,10 @@ function submitPopover(clicked) {
         $form = $('[data-dismissid="' + dismissid + '"]').closest('form');
     }
     if ($form.data('ajax')) {
-        $.ajax({
+        xhr({
             data: $form.serialize(),
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
-            success:function (data, textStatus) {
+            success:function () {
                 location.reload();
-            },
-            error:function() {
-                showMessage('fail', 'Could not perform query.');
             },
             complete:function() {
                 $(".loading").hide();
@@ -1957,20 +1877,13 @@ function simplePopup(url, requestType, data) {
     requestType = requestType === undefined ? 'GET' : requestType
     data = data === undefined ? [] : data
     $("#gray_out").fadeIn();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         dataType:"html",
-        async: true,
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
+        success:function (data) {
             $("#popover_form").html(data);
             openPopup("#popover_form");
         },
         error:function(xhr) {
-            $(".loading").hide();
             $("#gray_out").fadeOut();
             xhrFailCallback(xhr);
         },
@@ -2304,18 +2217,12 @@ function runIndexQuickFilterFixed(preserveParams, url, target) {
     }
 
     if (target !== undefined) {
-        $.ajax({
-            beforeSend: function () {
-                $(".loading").show();
-            },
+        xhr({
             success: function (data) {
                 $(target).html(data);
             },
             error: function() {
                 showMessage('fail', 'Could not fetch the requested data.');
-            },
-            complete: function() {
-                $(".loading").hide();
             },
             type: "get",
             url: url
@@ -2613,20 +2520,14 @@ function serverSettingsActivateField(setting, id) {
     resetForms();
     $('.inline-field-placeholder').hide();
     var fieldName = "#setting_" + getSubGroupFromSetting(setting) + "_" + id;
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         dataType:"html",
-        cache: false,
-        success:function (data, textStatus) {
-            $(".loading").hide();
-            $(fieldName + "_placeholder").html(data);
+        success: function (data) {
+            $(fieldName + "_placeholder").html(data).show();
             $(fieldName + "_solid").hide();
-            $(fieldName + "_placeholder").show();
             serverSettingsPostActivationScripts(fieldName, setting, id);
         },
-        url: baseurl + "/servers/serverSettingsEdit/" + setting + "/" + id,
+        url: "/servers/serverSettingsEdit/" + setting + "/" + id,
     });
 }
 
@@ -2838,21 +2739,13 @@ function freetextImportResultsSubmit(id, count) {
     }
     $("#AttributeJsonObject").val(JSON.stringify(attributeArray));
     var formData = $(".mainForm").serialize();
-    $.ajax({
+    xhr({
         type: "post",
-        cache: false,
-        url: baseurl + "/events/saveFreeText/" + id,
+        url: "/events/saveFreeText/" + id,
         data: formData,
-        beforeSend: function () {
-            $(".loading").show();
-        },
         success: function () {
             window.location = baseurl + '/events/view/' + id;
         },
-        complete: function() {
-            $(".loading").hide();
-        },
-        error: xhrFailCallback,
     });
 }
 
@@ -3043,40 +2936,26 @@ function moduleResultsSubmit(id) {
     }
     $("#EventJsonObject").val(JSON.stringify(data_collected));
     var formData = $('.mainForm').serialize();
-    $.ajax({
+    xhr({
         type: "post",
-        cache: false,
-        url: baseurl + "/events/handleModuleResults/" + id,
+        url: "/events/handleModuleResults/" + id,
         data: formData,
-        beforeSend: function () {
-            $(".loading").show();
-        },
         success: function () {
             window.location = baseurl + '/events/view/' + id;
         },
-        complete: function() {
-            $(".loading").hide();
-        },
-        error: xhrFailCallback,
     });
 }
 
 function objectTemplateViewContent(context, id) {
-    var url = baseurl + "/objectTemplateElements/viewElements/" + id + "/" + context;
-    $.ajax({
+    var url = "/objectTemplateElements/viewElements/" + id + "/" + context;
+    xhr({
         url: url,
         type:'GET',
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
         error: function(){
-            $('#ajaxContent').html('An error has occured, please reload the page.');
+            $('#ajaxContent').html('An error has occurred, please reload the page.');
         },
         success: function(response){
             $('#ajaxContent').html(response);
-        },
-        complete: function() {
-            $(".loading").hide();
         },
     });
 
@@ -3092,20 +2971,14 @@ function organisationViewContent(context, id) {
     } else if (context === 'sharing_groups') {
         action = "/sharing_groups/index/searchorg:";
     }
-    $.ajax({
-        url: baseurl + action + id,
+    xhr({
+        url: action + id,
         type:'GET',
-        beforeSend: function () {
-            $(".loading").show();
-        },
         error: function(){
-            $('#ajaxContent').html('An error has occured, please reload the page.');
+            $('#ajaxContent').html('An error has occurred, please reload the page.');
         },
         success: function(response){
             $('#ajaxContent').html(response);
-        },
-        complete: function() {
-            $(".loading").hide();
         },
     });
 }
@@ -3397,7 +3270,7 @@ function runOnDemandAction(element, url, target, postFormField) {
         url: url,
         type: type,
         data: data,
-        beforeSend: function (XMLHttpRequest) {
+        beforeSend: function () {
             $(elementContainer).html('Running...');
         },
         error: function(response) {
@@ -3617,21 +3490,12 @@ function getTextColour(hex) {
 function gpgSelect(fingerprint) {
     $("#popover_form").fadeOut();
     $("#gray_out").fadeOut();
-    $.ajax({
+    xhr({
         type: "get",
-        url: baseurl + "/users/fetchGpgKey/" + fingerprint,
-        beforeSend: function () {
-            $(".loading").show();
-        },
+        url: "/users/fetchGpgKey/" + fingerprint,
         success: function (data) {
             $("#UserGpgkey").val(data);
             showMessage('success', "Key found!");
-        },
-        error: function (data, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
-        },
-        complete: function () {
-            $(".loading").hide();
         },
     });
 }
@@ -3642,23 +3506,16 @@ function lookupPGPKey(emailFieldName) {
 }
 
 function zeroMQServerAction(action) {
-    $.ajax({
+    xhr({
         type: "get",
-        url: baseurl + "/servers/" + action + "ZeroMQServer/",
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+        url: "/servers/" + action + "ZeroMQServer/",
         success: function (data) {
-            $(".loading").hide();
             if (action !== 'status') {
                 window.location.reload();
             } else {
                 $("#confirmation_box").html(data);
                 openPopup("#confirmation_box");
             }
-        },
-        error: function (data, textStatus, errorThrown) {
-            showMessage('fail', textStatus + ": " + errorThrown);
         }
     });
 }
@@ -3849,19 +3706,14 @@ function filterAttributes(filter, event_id) {
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     }
     if (deleted) url += '/deleted:true';
-    $.ajax({
+    xhr({
         type: "get",
         url: url,
-        beforeSend: function() {
-            $(".loading").show();
-        },
         success: function(data) {
             $("#attributes_div").html(data);
-            $(".loading").hide();
         },
         error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
-            $(".loading").hide();
         }
     });
 }
@@ -3905,21 +3757,15 @@ function pivotObjectReferences(url, uuid) {
     }
 
     url += '/focus:' + uuid;
-    $.ajax({
+    xhr({
         type: "get",
         url: url,
-        beforeSend: function () {
-            $(".loading").show();
-        },
         success: function (data) {
             $("#attributes_div").html(data);
         },
         error: function() {
             showMessage('fail', 'Something went wrong - could not fetch attributes.');
         },
-        complete: function() {
-            $(".loading").hide();
-        }
     });
 }
 
@@ -3952,15 +3798,9 @@ function toggleBoolFilter(url, param) {
 
     url += buildFilterURL(res);
     url = url.replace(/view\//i, 'viewEventAttributes/');
-    $.ajax({
+    xhr({
         type: "get",
         url: url,
-        beforeSend: function () {
-            $(".loading").show();
-        },
-        complete: function () {
-            $(".loading").hide();
-        },
         success:function (data) {
             $("#attributes_div").html(data);
             querybuilderTool = undefined;
@@ -4135,25 +3975,17 @@ function showEnrichmentPopover(type, id) {
 
 // add the same as below for click popup
 $(document).on("click", ".eventViewAttributePopup", function() {
-    clearTimeout(hoverEnrichmentPopoverTimer); // stop potentional popover loading
+    clearTimeout(hoverEnrichmentPopoverTimer); // stop potential popover loading
 
     var type = $(this).attr('data-object-type');
     var id = $(this).attr('data-object-id');
     if (!(type + "_" + id in ajaxResults["persistent"])) { // not in cache
-        $.ajax({
-            beforeSend: function() {
-                $(".loading").show();
-            },
+        xhr({
             success: function (html) {
                 ajaxResults["persistent"][type + "_" + id] = html; // save to cache
                 showEnrichmentPopover(type, id);
             },
-            error: xhrFailCallback,
-            complete: function() {
-                $(".loading").hide();
-            },
-            cache: false,
-            url: baseurl + "/attributes/hoverEnrichment/" + id + "/1",
+            url: "/attributes/hoverEnrichment/" + id + "/1",
         });
     } else {
         showEnrichmentPopover(type, id);
@@ -4190,15 +4022,10 @@ function serverOwnerOrganisationChange(host_org_id) {
 }
 
 function requestAPIAccess() {
-    url = baseurl + "/users/request_API/";
-    $.ajax({
+    xhr({
         type:"get",
-        url:url,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+        url: "/users/request_API/",
         success:function (data) {
-            $(".loading").hide();
             handleGenericAjaxResponse(data);
         },
         error:function() {
@@ -4363,10 +4190,7 @@ function checkOrphanedAttributes() {
 }
 
 function checkAttachments() {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         success:function (data, textStatus) {
             var color = 'red';
             var text = ' (Bad links detected)';
@@ -4376,48 +4200,28 @@ function checkAttachments() {
             }
             $("#orphanedFileCount").html('<span class="' + color + '">' + data + text + '</span>');
         },
-        complete:function() {
-            $(".loading").hide();
-        },
         type:"get",
-        cache: false,
-        url: baseurl + "/attributes/checkAttachments/",
+        url: "/attributes/checkAttachments/",
     });
 }
 
 function loadTagTreemap() {
-    $.ajax({
-        async:true,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         success:function (data, textStatus) {
             $(".treemapdiv").html(data);
         },
-        complete:function() {
-            $(".loading").hide();
-        },
         type:"get",
-        cache: false,
-        url: baseurl + "/users/tagStatisticsGraph",
+        url: "/users/tagStatisticsGraph",
     });
 }
 
 function quickEditEvent(id, field) {
-    $.ajax({
-        async:true,
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
+    xhr({
+        success:function (data) {
             $("#" + field + "Field").html(data);
         },
-        complete:function() {
-            $(".loading").hide();
-        },
         type:"get",
-        cache: false,
-        url: baseurl + "/events/quickEdit/" + id + "/" + field,
+        url: "/events/quickEdit/" + id + "/" + field,
     });
 }
 
@@ -4453,7 +4257,7 @@ $('#eventToggleButtons button').click(function() {
         if (loadUrl) {
             $.get(loadUrl, function(data) {
                 $('#' + element + '_div').html(data);
-            });
+            }).fail(xhrFailCallback);
         }
     }
 });
@@ -4529,7 +4333,7 @@ function checkAndSetPublishedInfo(skip_reload) {
                 $('.published').addClass('hidden');
                 $('.not-published').removeClass('hidden');
             }
-        });
+        }).fail(xhrFailCallback);
     }
 }
 
@@ -4560,7 +4364,7 @@ function closeScreenshot() {
 function loadSightingGraph(id, scope) {
     $.get(baseurl + "/sightings/viewSightings/" + id + "/" + scope, function(data) {
         $("#sightingsData").html(data);
-    });
+    }).fail(xhrFailCallback)
 }
 
 function checkRolePerms() {
@@ -4580,19 +4384,15 @@ function updateMISP() {
     $.get(baseurl + "/servers/update", function(data) {
         $("#confirmation_box").html(data);
         openPopup("#confirmation_box");
-    });
+    }).fail(xhrFailCallback)
 }
 
 function submitMISPUpdate() {
     var formData = $('#PromptForm').serialize();
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: formData,
-        success:function (data, textStatus) {
-            $('#gitResult').text(data);
-            $('#gitResult').removeClass('hidden');
+        success:function (data) {
+            $('#gitResult').text(data).removeClass('hidden');
         },
         complete:function() {
             $(".loading").hide();
@@ -4600,8 +4400,7 @@ function submitMISPUpdate() {
             $("#gray_out").fadeOut();
         },
         type:"post",
-        cache: false,
-        url: baseurl + "/servers/update",
+        url: "/servers/update",
     });
 }
 
@@ -4738,7 +4537,7 @@ function add_basic_auth() {
 
 function changeObjectReferenceSelectOption(selected, additionalData) {
     var uuid = selected;
-    var type = additionalData.type;
+    var type = additionalData.itemOptions[uuid].type;
     $('#ObjectReferenceReferencedUuid').val(uuid);
     if (type == "Attribute") {
         $('#targetData').html("");
@@ -4855,25 +4654,18 @@ $(document).ready(function() {
         $.get(url + '/' + id, function(data) {
             $('#popover_form').html(data);
             openPopup('#popover_form');
-        });
+        }).fail(xhrFailCallback)
     });
     $('.servers_default_role_checkbox').click(function() {
         var id = $(this).data("id");
         var state = $(this).is(":checked");
         $(".servers_default_role_checkbox").not(this).attr('checked', false);
-        $.ajax({
-            beforeSend: function (XMLHttpRequest) {
-                $(".loading").show();
-            },
-            success:function (data, textStatus) {
+        xhr({
+            success:function (data) {
                 handleGenericAjaxResponse(data);
             },
-            complete:function() {
-                $(".loading").hide();
-            },
             type:"get",
-            cache: false,
-            url: baseurl + '/admin/roles/set_default/' + (state ? id : ""),
+            url: '/admin/roles/set_default/' + (state ? id : ""),
         });
     });
     $('.add_object_attribute_row').click(function() {
@@ -4887,7 +4679,7 @@ $(document).ready(function() {
             $('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
             var $added_row = $('#row_' + object_relation + '_expand').prev().prev();
             $added_row.find('select.Attribute_value_select option:first').attr('disabled', true);
-        });
+        }).fail(xhrFailCallback);
     });
     $('.quickToggleCheckbox').toggle(function() {
         var url = $(this).data('checkbox-url');
@@ -4925,6 +4717,11 @@ $(document).ready(function() {
             html: true,
             trigger: 'hover'
         });
+
+    if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
+        var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
+        $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
+    }
 });
 
 $(document.body).on("click", ".correlation-expand-button", function() {
@@ -4998,13 +4795,7 @@ $(document.body).on('click', '.quickSelect', function() {
 $(document.body).on('click', 'a[data-paginator]', function (e) {
     e.preventDefault();
     var paginatorTarget = $(this).attr('data-paginator');
-    $.ajax({
-        beforeSend: function () {
-            $(".loading").show();
-        },
-        complete: function () {
-            $(".loading").hide();
-        },
+    xhr({
         dataType: "html",
         success: function (data) {
             $(paginatorTarget).html(data);
@@ -5016,16 +4807,14 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
     });
 });
 
-function queryEventLock(event_id, user_org_id) {
+function queryEventLock(event_id) {
     if (tabIsActive) {
         $.ajax({
             url: baseurl + "/events/checkLocks/" + event_id,
             type: "get",
             success: function(data, statusText, xhr) {
                  if (xhr.status == 200) {
-                     if ($('#event_lock_warning').length != 0) {
-                         $('#event_lock_warning').remove();
-                     }
+                     $('#event_lock_warning').remove();
                      if (data != '') {
                          $('#main-view-container').append(data);
                      }
@@ -5033,7 +4822,7 @@ function queryEventLock(event_id, user_org_id) {
             }
         });
     }
-    setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
+    setTimeout(function() { queryEventLock(event_id); }, 5000);
 }
 
 function checkIfLoggedIn() {
@@ -5076,19 +4865,19 @@ function syntaxHighlightJson(json, indent) {
     json = JSON.stringify(json, undefined, indent);
     json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/(?:\r\n|\r|\n)/g, '<br>').replace(/ /g, '&nbsp;');
     return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-            var cls = 'json_number';
-            if (/^"/.test(match)) {
-                    if (/:$/.test(match)) {
-                            cls = 'json_key';
-                    } else {
-                            cls = 'json_string';
-                    }
-            } else if (/true|false/.test(match)) {
-                    cls = 'json_boolean';
-            } else if (/null/.test(match)) {
-                    cls = 'json_null';
-            }
-            return '<span class="' + cls + '">' + match + '</span>';
+        var cls = 'json_number';
+        if (/^"/.test(match)) {
+                if (/:$/.test(match)) {
+                        cls = 'json_key';
+                } else {
+                        cls = 'json_string';
+                }
+        } else if (/true|false/.test(match)) {
+                cls = 'json_boolean';
+        } else if (/null/.test(match)) {
+                cls = 'json_null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
     });
 }
 
@@ -5219,7 +5008,6 @@ function generic_picker_move(scope, direction) {
     }
 }
 
-
 function submit_feed_overlap_tool(feedId) {
     var result = {"Feed": [], "Server": []};
     $('#FeedLeft').children().each(function() {
@@ -5228,10 +5016,7 @@ function submit_feed_overlap_tool(feedId) {
     $('#ServerLeft').children().each(function() {
         result.Server.push($(this).val());
     });
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
+    xhr({
         data: result,
         success:function (data, textStatus) {
             if (!isNaN(data)) {
@@ -5244,20 +5029,15 @@ function submit_feed_overlap_tool(feedId) {
         error:function() {
             handleGenericAjaxResponse({'saved':false, 'errors':['Could not complete the requested action.']});
         },
-        complete:function() {
-            $(".loading").hide();
-        },
         type:"post",
-        cache: false,
-        url: baseurl + "/feeds/feedCoverage/" + feedId,
+        url: "/feeds/feedCoverage/" + feedId,
     });
 }
 
 function fetchFormDataAjax(url, callback, errorCallback) {
-    var formData = false;
     $.ajax({
         data: '[]',
-        success:function (data, textStatus) {
+        success: function (data) {
             callback(data);
         },
         error:function() {
@@ -5266,8 +5046,7 @@ function fetchFormDataAjax(url, callback, errorCallback) {
                 errorCallback();
             }
         },
-        async: false,
-        type:"get",
+        type: "get",
         cache: false,
         url: url
     });
@@ -5327,7 +5106,12 @@ function queryDeprecatedEndpointUsage() {
 function submitDashboardForm(id) {
     var configData = $('#DashboardConfig').val();
     if (configData != '') {
-        configData = JSON.parse(configData);
+        try {
+            configData = JSON.parse(configData);
+        } catch (error) {
+            showMessage('fail', error.message)
+            return
+        }
     } else {
         configData = {};
     }
@@ -5458,7 +5242,7 @@ function setHomePage() {
     $.ajax({
         type: 'GET',
         url: baseurl + '/userSettings/setHomePage',
-        success:function (data, textStatus) {
+        success:function (data) {
             $('#ajax_hidden_container').html(data);
             var currentPage = $('#setHomePage').data('current-page');
             $('#UserSettingPath').val(currentPage);
@@ -5466,7 +5250,7 @@ function setHomePage() {
                 type: 'POST',
                 url: baseurl + '/userSettings/setHomePage',
                 data: $('#UserSettingSetHomePageForm').serialize(),
-                success:function (data, textStatus) {
+                success:function (data) {
                     showMessage('success', 'Homepage set.');
                     $('#setHomePage').addClass('orange');
                 },

@@ -2,15 +2,13 @@
     <ul>
     <?php
         $this->Paginator->options(array(
-                'update' => '#clusters_div',
-                'evalScripts' => true,
-                'before' => '$(".progress").show()',
-                'complete' => '$(".progress").hide()',
+            'data-paginator' => '#ajaxContent',
         ));
 
-        echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-        echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-        echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+        $paginator = $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+        $paginator .= $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+        $paginator .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+        echo $paginator;
     ?>
     </ul>
 </div>
@@ -25,18 +23,17 @@
         <th><?php echo __('Sane defaults');?></th>
         <th><?php echo __('List of valid Values');?></th>
         <th><?php echo __('Disable correlation');?></th>
-        <th class="actions"><?php echo __('Actions');?></th>
     </tr>
 <?php
   $listItems = array('category', 'sane_default', 'values_list');
     foreach ($list as $k => $item):
 ?>
         <tr>
-            <td class="short bold"><?php echo h($item['ObjectTemplateElement']['object_relation']); ?>&nbsp;</td>
-      <td class="short"><?php echo h($item['ObjectTemplateElement']['type']); ?>&nbsp;</td>
-            <td class="short"><span class="icon-<?php echo $item['ObjectTemplateElement']['multiple'] ? 'ok' : 'remove'; ?>"></span></td>
-      <td class="short"><?php echo h($item['ObjectTemplateElement']['ui-priority']); ?>&nbsp;</td>
-      <td><?php echo h($item['ObjectTemplateElement']['description']); ?>&nbsp;</td>
+            <td class="short bold"><?php echo h($item['ObjectTemplateElement']['object_relation']); ?></td>
+            <td class="short"><?php echo h($item['ObjectTemplateElement']['type']); ?></td>
+            <td class="short"><span class="fa fa-<?php echo $item['ObjectTemplateElement']['multiple'] ? 'check' : 'times'; ?>"></span></td>
+            <td class="short"><?php echo h($item['ObjectTemplateElement']['ui-priority']); ?></td>
+            <td><?php echo h($item['ObjectTemplateElement']['description']); ?></td>
       <?php
         foreach ($listItems as $listItem):
       ?>
@@ -44,7 +41,7 @@
       <?php
             if (!empty($item['ObjectTemplateElement'][$listItem])) {
               foreach ($item['ObjectTemplateElement'][$listItem] as $value) {
-                echo h($value) . '</br>';
+                echo h($value) . '<br>';
               }
             }
       ?>
@@ -52,10 +49,7 @@
       <?php
         endforeach;
       ?>
-            <td class="short"><span class="icon-<?php echo empty($item['ObjectTemplateElement']['disable_correlation']) ? 'remove': 'ok'; ?>">&nbsp;</td>
-            <td class="short action-links">
-                &nbsp;
-            </td>
+            <td class="short"><span class="fa fa-<?php echo empty($item['ObjectTemplateElement']['disable_correlation']) ? 'times': 'check'; ?>"></td>
         </tr>
     <?php
         endforeach;
@@ -68,16 +62,7 @@
 </p>
 <div class="pagination">
     <ul>
-    <?php
-        echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-        echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-        echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-    ?>
+    <?= $paginator ?>
     </ul>
 </div>
 
-<script type="text/javascript">
-    $(document).ready(function(){
-    });
-</script>
-<?php echo $this->Js->writeBuffer(); ?>

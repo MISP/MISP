@@ -286,6 +286,14 @@ class Server extends AppModel
                     $event['Event']['distribution'] = '1';
                     break;
             }
+            // We remove local tags obtained via pull
+            if (isset($event['Event']['Tag'])) {
+                foreach ($event['Event']['Tag'] as $key => $a) {
+                    if ($a['local']) {
+                        unset($event['Event']['Tag'][$key]);
+                    }
+                }
+            }
             if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
                 foreach ($event['Event']['Attribute'] as $key => $a) {
                     switch ($a['distribution']) {
@@ -295,6 +303,14 @@ class Server extends AppModel
                         case '2':
                             $event['Event']['Attribute'][$key]['distribution'] = '1';
                             break;
+                    }
+                    // We remove local tags obtained via pull
+                    if (isset($a['Tag'])) {
+                        foreach ($a['Tag'] as $k => $v) {
+                            if ($v['local']) {
+                                unset($event['Event']['Attribute'][$key]['Tag'][$k]);
+                            }
+                        }
                     }
                 }
             }
@@ -317,6 +333,14 @@ class Server extends AppModel
                                 case '2':
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '1';
                                     break;
+                            }
+                            // We remove local tags obtained via pull
+                            if (isset($a['Tag'])) {
+                                foreach ($a['Tag'] as $k => $v) {
+                                    if ($v['local']) {
+                                        unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
+                                    }
+                                }
                             }
                         }
                     }
@@ -756,16 +780,16 @@ class Server extends AppModel
         }
         if ($all) {
             if ($scope === 'sightings') {
+                // Used when pushing: return just eventUuids that has sightings newer than remote server
                 $this->Event = ClassRegistry::init('Event');
                 $localEvents = $this->Event->find('list', array(
-                    'recursive' => -1,
                     'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
                     'conditions' => array('Event.uuid' => array_column($eventArray, 'uuid'))
                 ));
 
-                $eventUuids = array();
+                $eventUuids = [];
                 foreach ($eventArray as $event) {
-                    if (!isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
+                    if (isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
                         $eventUuids[] = $event['uuid'];
                     }
                 }
@@ -2856,7 +2880,7 @@ class Server extends AppModel
         $allowedlistFields = array(
             'users' => array('external_auth_required', 'external_auth_key'),
         );
-        $nonCriticalColumnElements = array('is_nullable', 'collation_name');
+        $nonCriticalColumnElements = array('collation_name');
         $dbDiff = array();
         // perform schema comparison for tables
         foreach($dbExpectedSchema as $tableName => $columns) {
@@ -3769,17 +3793,14 @@ class Server extends AppModel
         return true;
     }
 
-    public function getLatestGitRemote()
-    {
-        return exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
-    }
-
     public function getCurrentGitStatus()
     {
+        $latestCommit = exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
+
         $status = array();
         $status['commit'] = exec('git rev-parse HEAD');
         $status['branch'] = $this->getCurrentBranch();
-        $status['latestCommit'] = $this->getLatestGitremote();
+        $status['latestCommit'] = $latestCommit;
         return $status;
     }
 
