@@ -4938,6 +4938,7 @@ class EventsController extends AppController
         if (!$event) {
             throw new NotFoundException(__('Invalid event.'));
         }
+        $mayModify = $this->__canModifyEvent($event);
         $eventId = $event['Event']['id'];
 
         $this->loadModel('Module');
@@ -5108,7 +5109,7 @@ class EventsController extends AppController
         $this->set('module', $module);
         $this->set('eventId', $eventId);
         $this->set('event', $event);
-        $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('mayModify', $mayModify);
     }
 
     public function exportModule($module, $id, $standard = false)
