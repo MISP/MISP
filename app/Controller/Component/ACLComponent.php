@@ -687,7 +687,7 @@ class ACLComponent extends Component
                     'register' => array('*'),
                     'registrations' => array('perm_site_admin'),
                     'resetAllSyncAuthKeys' => array(),
-                    'resetauthkey' => array('*'),
+                    'resetauthkey' => ['AND' => ['self_management_enabled', 'perm_auth']],
                     'request_API' => array('*'),
                     'routeafterlogin' => array('*'),
                     'statistics' => array('*'),
