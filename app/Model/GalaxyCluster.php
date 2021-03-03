@@ -832,11 +832,30 @@ class GalaxyCluster extends AppModel
         return $element;
     }
 
-    public function attachExtendByInfo($user, $cluster)
+    /**
+     * @param array $user
+     * @param array $clusters
+     * @return void
+     */
+    public function attachExtendByInfo(array $user, array &$clusters)
     {
-        $extensions = $this->fetchGalaxyClusters($user, array('conditions' => array('extends_uuid' => $cluster['GalaxyCluster']['uuid'])));
-        $cluster['GalaxyCluster']['extended_by'] = $extensions;
-        return $cluster;
+        if (empty($clusters)) {
+            return;
+        }
+
+        $clusterUuids = array_column(array_column($clusters, 'GalaxyCluster'), 'uuid');
+        $extensions = $this->fetchGalaxyClusters($user, [
+            'conditions' => ['extends_uuid' => $clusterUuids],
+        ]);
+        foreach ($clusters as &$cluster) {
+            $extendedBy = [];
+            foreach ($extensions as $extension) {
+                if ($cluster['GalaxyCluster']['uuid'] === $extension['GalaxyCluster']['extends_uuid']) {
+                    $extendedBy[] = $extension;
+                }
+            }
+            $cluster['GalaxyCluster']['extended_by'] = $extendedBy;
+        }
     }
 
     public function attachExtendFromInfo($user, $cluster)
