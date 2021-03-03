@@ -729,7 +729,8 @@ class AppController extends Controller
                 }
             }
         }
-        $this->response->header('Content-Security-Policy', implode('; ', $header));
+        $header = Configure::read('Security.csp_enforce') ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
+        $this->response->header($header, implode('; ', $header));
     }
 
     private function __rateLimitCheck()
