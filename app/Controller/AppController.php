@@ -717,7 +717,7 @@ class AppController extends Controller
             return;
         }
         if (is_array($custom)) {
-            $default = $default + $custom;
+            $default = $custom + $default;
         }
         $header = [];
         foreach ($default as $key => $value) {
