@@ -293,6 +293,7 @@
         <b><?= __('Memory allocator') ?>:</b> <?= $redisInfo['mem_allocator'] ?><br>
         <b><?= __('Memory usage') ?>:</b> <?= $redisInfo['used_memory_human'] ?>B<br>
         <b><?= __('Peak memory usage') ?>:</b> <?= $redisInfo['used_memory_peak_human'] ?>B<br>
+        <b><?= __('Fragmentation ratio') ?>:</b> <?= $redisInfo['mem_fragmentation_ratio'] ?>B<br>
         <b><?= __('Total system memory') ?>:</b> <?= $redisInfo['total_system_memory_human'] ?>B
         <?php elseif ($redisInfo['extensionVersion']): ?>
         <span class="red bold">Redis is not available. <?= $redisInfo['connection_error'] ?></span>
