@@ -94,26 +94,19 @@ class AppController extends Controller
     public function beforeFilter()
     {
         $this->_setupBaseurl();
-        $this->Auth->loginRedirect = $this->baseurl. '/users/routeafterlogin';
+        $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
 
         $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
         $this->Auth->logoutRedirect = $customLogout ?: ($this->baseurl . '/users/login');
 
         $this->__sessionMassage();
-        if (Configure::read('Security.allow_cors')) {
-            // Add CORS headers
-            $this->response->cors($this->request,
-                    explode(',', Configure::read('Security.cors_origins')),
-                    ['*'],
-                    ['Origin', 'Content-Type', 'Authorization', 'Accept']);
 
-            if ($this->request->is('options')) {
-                // Stop here!
-                // CORS only needs the headers
-                $this->response->send();
-                $this->_stop();
-            }
+        // If server is running behind reverse proxy, PHP will not recognize that user is accessing site by HTTPS connection.
+        // By setting `Security.force_https` to `true`, session cookie will be set as Secure and CSP headers will upgrade insecure requests.
+        if (Configure::read('Security.force_https')) {
+            $_SERVER['HTTPS'] = 'on';
         }
+        $this->__cors();
         if (Configure::read('Security.check_sec_fetch_site_header')) {
             $secFetchSite = $this->request->header('Sec-Fetch-Site');
             if ($secFetchSite !== false && $secFetchSite !== 'same-origin' && ($this->request->is('post') || $this->request->is('put') || $this->request->is('ajax'))) {
@@ -738,6 +731,24 @@ class AppController extends Controller
         }
         $headerName = Configure::read('Security.csp_enforce') ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
         $this->response->header($headerName, implode('; ', $header));
+    }
+
+    private function __cors()
+    {
+        if (Configure::read('Security.allow_cors')) {
+            // Add CORS headers
+            $this->response->cors($this->request,
+                explode(',', Configure::read('Security.cors_origins')),
+                ['*'],
+                ['Origin', 'Content-Type', 'Authorization', 'Accept']);
+
+            if ($this->request->is('options')) {
+                // Stop here!
+                // CORS only needs the headers
+                $this->response->send();
+                $this->_stop();
+            }
+        }
     }
 
     private function __rateLimitCheck()
