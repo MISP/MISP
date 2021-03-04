@@ -85,7 +85,7 @@ class SecurityAudit
         }
         $sessionConfig = Configure::read('Session');
         if (isset($sessionConfig['ini']['session.cookie_secure']) && !$sessionConfig['ini']['session.cookie_secure']) {
-            $output['Browser'][] = ['error', __('Setting session cookie is not secure is never good idea.')];
+            $output['Browser'][] = ['error', __('Setting session cookie as not secure is never good idea.')];
         }
 
         if (empty(Configure::read('Security.advanced_authkeys'))) {
