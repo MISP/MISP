@@ -18,8 +18,6 @@
 <?php echo __('A lot of the heavier tasks are a burden to users, in that their actions can cause long delays (and in some cases timeouts) while the application logic is executing. To alleviate this, long processes have been (if enabled) moved to background jobs, meaning that their execution happens asynchronously in the background, allowing the user to freely interact with the platform whilst the request is being processed.');?>
 <h3><?php echo __('MISP Instance');?></h3>
 <?php echo __('A MISP instance is an installation of the MISP software and the connected database. All the data visible to the users is stored locally in the database and data that is shareable (based on the distribution settings) can be synchronised with other instances via the Sync actions. The instance that you are reading this manual on will be refered to as "this instance" or "your instance". The instances that your instance synchronises with will be refered to as "remote instances".');?>
-<h3><?php echo __('Organisation administrators and Site administrators');?></h3>
-<?php echo __('We have two types of administrators, site and organisation admins. The former has access to every administrator feature for all the data located on the system including global features such as the creation and modification of user roles and instance links, whilst organisation admins can administer users, events and logs of their own respective organisations.');?><br />
 <h3><?php echo __('Pivot path');?></h3>
 <?php echo __('The (branching) path taken by a user from event to event while following correlation links. This is represented by the branching graph in the event view.');?>
 <h3><?php echo __('Pivoting');?></h3>
