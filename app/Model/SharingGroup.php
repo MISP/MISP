@@ -145,7 +145,7 @@ class SharingGroup extends AppModel
         } else {
             $ids = array_unique(array_merge(
                 $this->SharingGroupServer->fetchAllAuthorised(),
-                $this->SharingGroupOrg->fetchAllAuthorised($user['Organisation']['id'])
+                $this->SharingGroupOrg->fetchAllAuthorised($user['org_id'])
             ));
         }
         if (!empty($ids)) {
