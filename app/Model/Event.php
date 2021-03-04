@@ -911,39 +911,6 @@ class Event extends AppModel
     }
 
     /**
-     * @param array $sightings
-     * @param array $server
-     * @param string $eventUuid
-     * @param HttpSocket|null $HttpSocket
-     * @return bool
-     * @throws JsonException
-     */
-    public function uploadSightingsToServer(array $sightings, array $server, $eventUuid, HttpSocket $HttpSocket = null)
-    {
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $server['Server']['url'] . '/sightings/bulkSaveSightings/' . $eventUuid;
-        foreach ($sightings as &$sighting) {
-            if (!isset($sighting['org_id'])) {
-                $sighting['org_id'] = '0';
-            }
-        }
-        $data = json_encode($sightings);
-        if (!empty(Configure::read('Security.sync_audit'))) {
-            $pushLogEntry = sprintf(
-                "==============================================================\n\n[%s] Pushing Sightings for Event #%s to Server #%d:\n\n%s\n\n",
-                date("Y-m-d H:i:s"),
-                $eventUuid,
-                $server['Server']['id'],
-                $data
-            );
-            file_put_contents(APP . 'files/scripts/tmp/debug_server_' . $server['Server']['id'] . '.log', $pushLogEntry, FILE_APPEND);
-        }
-        $response = $HttpSocket->post($uri, $data, $request);
-        return $response->isOk();
-    }
-
-    /**
      * @param array $event
      * @param array $server
      * @param HttpSocket $HttpSocket
@@ -4378,35 +4345,40 @@ class Event extends AppModel
         }
 
         $this->Sighting = ClassRegistry::init('Sighting');
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
+        App::uses('ServerSyncTool', 'Tools');
 
         $failedServers = [];
         foreach ($servers as $server) {
+            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+            try {
+                if ($serverSync->eventExists($event) === false) {
+                    continue;
+                }
+            } catch (Exception $e) {}
+
             $fakeSyncUser = [
                 'org_id' => $server['Server']['remote_org_id'],
                 'Role' => [
                     'perm_site_admin' => 0,
                 ],
             ];
-            $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, false, true);
-            if (!empty($sightings)) {
-                $HttpSocket = $syncTool->setupHttpSocket($server);
 
-                try {
-                    // Check if event exists on remote server so we don't push data that are useless
-                    $request = $this->setupSyncRequest($server);
-                    $exists = $HttpSocket->head($server['Server']['url'] . '/events/view/' . $event['Event']['uuid'], [], $request);
-                    if ($exists->code == '404') {
-                        continue;
-                    }
-                } catch (Exception $e) {
-                    $this->logException("Could not check if event {$event['Event']['uuid']} exists on remote server {$server['Server']['id']}", $e, LOG_NOTICE);
-                }
+            $sightingsUuids = $this->Sighting->fetchUuidsForEvent($event, $fakeSyncUser);
+            if (empty($sightingsUuids)) {
+                continue;
+            }
 
-                if (!$this->uploadSightingsToServer($sightings, $server, $event['Event']['uuid'], $HttpSocket)) {
-                    $failedServers[] = $server['Server']['url'];
+            try {
+                // Filter out sightings that already exists on remote server
+                $existingSightings = $serverSync->filterSightingUuidsForPush($event, $sightingsUuids);
+                $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, ['NOT' => ['Sighting.uuid' => $existingSightings]], true);
+                if (empty($sightings)) {
+                    continue;
                 }
+                $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
+            } catch (Exception $e) {
+                $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
+                $failedServers[] = $server['Server']['url'];
             }
         }
         if (!empty($failedServers)) {

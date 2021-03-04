@@ -548,6 +548,25 @@ class Sighting extends AppModel
     }
 
     /**
+     * @param array $event
+     * @param array $user
+     * @return array
+     */
+    public function fetchUuidsForEvent(array $event, array $user)
+    {
+        $conditions = $this->createConditions($user, $event);
+        if ($conditions === false) {
+            return [];
+        }
+        $conditions['Sighting.event_id'] = $event['Event']['id'];
+
+        return $this->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['Sighting.uuid'],
+        ]);
+    }
+
+    /**
      * @param array $event Just 'Event' object is enough
      * @param array $user
      * @param array|int|null $attribute Attribute model or attribute ID
@@ -557,7 +576,13 @@ class Sighting extends AppModel
      */
     public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
     {
-        $conditions = array('Sighting.event_id' => $event['Event']['id']);
+        $conditions = $this->createConditions($user, $event);
+        if ($conditions === false) {
+            return [];
+        }
+
+        $contain = [];
+        $conditions['Sighting.event_id'] = $event['Event']['id'];
         if (isset($attribute['Attribute']['id'])) {
             $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
         } elseif (is_numeric($attribute)) {
@@ -569,19 +594,6 @@ class Sighting extends AppModel
             ]);
         }
 
-        $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
-        if (!$ownEvent) {
-            $sightingsPolicy = $this->sightingsPolicy();
-            if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
-                $conditions['Sighting.org_id'] = $user['org_id'];
-            } elseif ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                if (!$this->isReporter($event['Event']['id'], $user['org_id'])) {
-                    return array();
-                }
-            } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
-                $conditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
-            }
-        }
         if ($extraConditions !== false) {
             $conditions['AND'] = $extraConditions;
         }
@@ -1215,5 +1227,28 @@ class Sighting extends AppModel
         } else {
             return "to_char(date(to_timestamp(Sighting.date_sighting)), 'YYYY-MM-DD')"; // PostgreSQL
         }
+    }
+
+    /**
+     * @param array $user
+     * @param array $event
+     * @return array|false
+     */
+    private function createConditions(array $user, array $event)
+    {
+        $sightingsPolicy = $this->sightingsPolicy();
+        $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
+        if (!$ownEvent) {
+            if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
+                return ['Sighting.org_id' => $user['org_id']];
+            } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+                if (!$this->isReporter($event['Event']['id'], $user['org_id'])) {
+                    return false;
+                }
+            } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+                return ['Sighting.org_id' => [$user['org_id'], Configure::read('MISP.host_org_id')]];
+            }
+        }
+        return [];
     }
 }
