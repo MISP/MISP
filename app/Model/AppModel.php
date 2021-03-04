@@ -2727,26 +2727,26 @@ class AppModel extends Model
 
     /**
      * @param array $server
+     * @param string $model
      * @return array[]
      * @throws JsonException
      */
     protected function setupSyncRequest(array $server, $model = 'Server')
     {
         $version = implode('.', $this->checkMISPVersion());
+        $commit = $this->checkMIPSCommit();
         $request = array(
             'header' => array(
                 'Authorization' => $server[$model]['authkey'],
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
                 'MISP-version' => $version,
+                'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
             )
         );
-
-        $commit = $this->checkMIPSCommit();
         if ($commit) {
             $request['header']['commit'] = $commit;
         }
-        $request['header']['User-Agent'] = 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit);
         return $request;
     }
 

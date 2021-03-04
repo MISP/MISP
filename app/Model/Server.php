@@ -5701,6 +5701,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
+                'force_https' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('If enabled, MISP server will consider all requests as secure. This is usually useful when you run MISP behind reverse proxy that terminates HTTPS.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
                 'email_otp_enabled' => array(
                     'level'=> 2,
                     'description' => __('Enable two step authentication with a OTP sent by email. Requires e-mailing to be enabled. Warning: You cannot use it in combination with external authentication plugins.'),

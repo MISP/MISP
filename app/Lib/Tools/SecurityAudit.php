@@ -77,8 +77,15 @@ class SecurityAudit
                 'https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP',
             ];
         }
-        if (Configure::read('Security.disable_form_security')) {
-            $output['Browser'][] = ['error', __('Disabling form security is never a good idea.')];
+        if (!env('HTTPS') && strpos(Configure::read('MISP.baseurl'), 'https://') === 0) {
+            $output['Browser'][] = [
+                'error',
+                __('MISP base URL is set to https://, but MISP things that the connection is insecure. This usually happens when server is running behind reverse proxy. By setting `Security.force_https` to `true`, session cookie will be set as Secure and CSP headers will upgrade insecure requests.'),
+            ];
+        }
+        $sessionConfig = Configure::read('Session');
+        if (isset($sessionConfig['ini']['session.cookie_secure']) && !$sessionConfig['ini']['session.cookie_secure']) {
+            $output['Browser'][] = ['error', __('Setting session cookie as not secure is never good idea.')];
         }
 
         if (empty(Configure::read('Security.advanced_authkeys'))) {
