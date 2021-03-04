@@ -1125,7 +1125,7 @@ class Server extends AppModel
      * @param  array $server
      * @param  array $user
      * @param  string|int $technique Either the 'full' string or the event id
-     * @param  bool  $event
+     * @param  array|bool  $event
      * @return array List of successfully pushed clusters
      */
     public function syncGalaxyClusters($HttpSocket, array $server, array $user, $technique='full', $event=false)
