@@ -293,7 +293,7 @@
         <b><?= __('Memory allocator') ?>:</b> <?= $redisInfo['mem_allocator'] ?><br>
         <b><?= __('Memory usage') ?>:</b> <?= $redisInfo['used_memory_human'] ?>B<br>
         <b><?= __('Peak memory usage') ?>:</b> <?= $redisInfo['used_memory_peak_human'] ?>B<br>
-        <b><?= __('Fragmentation ratio') ?>:</b> <?= $redisInfo['mem_fragmentation_ratio'] ?>B<br>
+        <b><?= __('Fragmentation ratio') ?>:</b> <?= $redisInfo['mem_fragmentation_ratio'] ?><br>
         <b><?= __('Total system memory') ?>:</b> <?= $redisInfo['total_system_memory_human'] ?>B
         <?php elseif ($redisInfo['extensionVersion']): ?>
         <span class="red bold">Redis is not available. <?= $redisInfo['connection_error'] ?></span>
@@ -435,23 +435,18 @@
     <p><?php echo __('This tool tests the various module systems and whether they are reachable based on the module settings.');?></p>
     <div class="diagnostics-box">
     <?php
-        foreach ($moduleTypes as $type):
-    ?>
-
-            <?php
-                $colour = 'red';
-                if (isset($moduleErrors[$moduleStatus[$type]])) {
-                    $message = $moduleErrors[$moduleStatus[$type]];
-                } else {
-                    $message = h($moduleStatus[$type]);
-                }
-                if ($moduleStatus[$type] === 0) {
-                    $colour = 'green';
-                }
-                echo $type . __(' module system') . '…<span style="color:' . $colour . ';">' . $message . '</span>';
-            ?>
-    <?php
-        endforeach;
+        foreach ($moduleTypes as $type) {
+            $colour = 'red';
+            if (isset($moduleErrors[$moduleStatus[$type]])) {
+                $message = $moduleErrors[$moduleStatus[$type]];
+            } else {
+                $message = h($moduleStatus[$type]);
+            }
+            if ($moduleStatus[$type] === 0) {
+                $colour = 'green';
+            }
+            echo $type . __(' module system') . '…<span style="color:' . $colour . ';">' . $message . '</span><br>';
+        }
     ?>
     </div>
 
