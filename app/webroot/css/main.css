@@ -47,9 +47,16 @@ h3{
     font-size: 18px;
     line-height: 20px;
 }
-pre {
-    font-size: 11px;
 
+code {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: .875em;
+}
+
+pre {
+    font-size: 12px;
 }
 
 .ellipsis-overflow {
