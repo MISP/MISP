@@ -3533,11 +3533,13 @@ class Event extends AppModel
                         continue;
                     }
                 }
-                foreach ($o['Attribute'] as $k2 => $a) {
-                    if (isset($a['distribution']) && $a['distribution'] == 4) {
-                        $data['Event']['Object'][$k]['Attribute'][$k2] = $this->captureSGForElement($a, $user, $server);
-                        if ($data['Event']['Object'][$k]['Attribute'][$k2] === false) {
-                            unset($data['Event']['Object'][$k]['Attribute'][$k2]);
+                if (!empty($o['Attribute'])) {
+                    foreach ($o['Attribute'] as $k2 => $a) {
+                        if (isset($a['distribution']) && $a['distribution'] == 4) {
+                            $data['Event']['Object'][$k]['Attribute'][$k2] = $this->captureSGForElement($a, $user, $server);
+                            if ($data['Event']['Object'][$k]['Attribute'][$k2] === false) {
+                                unset($data['Event']['Object'][$k]['Attribute'][$k2]);
+                            }
                         }
                     }
                 }
