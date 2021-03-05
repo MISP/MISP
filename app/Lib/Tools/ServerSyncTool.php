@@ -123,7 +123,7 @@ class ServerSyncTool
      */
     private function post($url, $data, $logMessage = null)
     {
-        $data = json_encode($data);
+        $data = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         if ($logMessage && !empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(

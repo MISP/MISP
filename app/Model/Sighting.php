@@ -550,38 +550,50 @@ class Sighting extends AppModel
     /**
      * @param array $event
      * @param array $user
-     * @return array
+     * @return Generator<array>
      */
-    public function fetchUuidsForEvent(array $event, array $user)
+    public function fetchUuidsForEventToPush(array $event, array $user)
     {
         $conditions = $this->createConditions($user, $event);
         if ($conditions === false) {
-            return [];
+            return null;
         }
         $conditions['Sighting.event_id'] = $event['Event']['id'];
 
-        return $this->find('column', [
-            'conditions' => $conditions,
-            'fields' => ['Sighting.uuid'],
-        ]);
+        while (true) {
+            $uuids = $this->find('column', [
+                'conditions' => $conditions,
+                'fields' => ['Sighting.uuid'],
+                'limit' => 250000,
+                'order' => ['Sighting.uuid'],
+            ]);
+            $count = count($uuids);
+            if ($count === 0) {
+                return null;
+            }
+            yield $uuids;
+            if ($count !== 250000) {
+                return;
+            }
+            $conditions['Sighting.uuid >'] = $uuids[$count - 1];
+        }
     }
 
     /**
      * @param array $event Just 'Event' object is enough
      * @param array $user
      * @param array|int|null $attribute Attribute model or attribute ID
-     * @param array|bool $extraConditions
+     * @param array|bool $extraQuery
      * @param bool $forSync
      * @return array|int
      */
-    public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
+    public function attachToEvent(array $event, array $user, $attribute = null, $extraQuery = false, $forSync = false)
     {
         $conditions = $this->createConditions($user, $event);
         if ($conditions === false) {
             return [];
         }
 
-        $contain = [];
         $conditions['Sighting.event_id'] = $event['Event']['id'];
         if (isset($attribute['Attribute']['id'])) {
             $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
@@ -594,13 +606,21 @@ class Sighting extends AppModel
             ]);
         }
 
-        if ($extraConditions !== false) {
-            $conditions['AND'] = $extraConditions;
-        }
-        $sightings = $this->find('all', array(
+        $query = [
             'conditions' => $conditions,
             'recursive' => -1,
-        ));
+        ];
+        if (isset($extraQuery['conditions'])) {
+            $query['conditions']['AND'] = $extraQuery['conditions'];
+        }
+        if (isset($extraQuery['limit'])) {
+            $query['limit'] = $extraQuery['limit'];
+        }
+        if (isset($extraQuery['order'])) {
+            $query['order'] = $extraQuery['order'];
+        }
+
+        $sightings = $this->find('all', $query);
         if (empty($sightings)) {
             return [];
         }

@@ -4344,38 +4344,10 @@ class Event extends AppModel
             return true;
         }
 
-        $this->Sighting = ClassRegistry::init('Sighting');
-        App::uses('ServerSyncTool', 'Tools');
-
         $failedServers = [];
         foreach ($servers as $server) {
-            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
             try {
-                if ($serverSync->eventExists($event) === false) {
-                    continue;
-                }
-            } catch (Exception $e) {}
-
-            $fakeSyncUser = [
-                'org_id' => $server['Server']['remote_org_id'],
-                'Role' => [
-                    'perm_site_admin' => 0,
-                ],
-            ];
-
-            $sightingsUuids = $this->Sighting->fetchUuidsForEvent($event, $fakeSyncUser);
-            if (empty($sightingsUuids)) {
-                continue;
-            }
-
-            try {
-                // Filter out sightings that already exists on remote server
-                $existingSightings = $serverSync->filterSightingUuidsForPush($event, $sightingsUuids);
-                $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, ['NOT' => ['Sighting.uuid' => $existingSightings]], true);
-                if (empty($sightings)) {
-                    continue;
-                }
-                $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
+                $this->pushSightingsToServer($server, $event);
             } catch (Exception $e) {
                 $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
                 $failedServers[] = $server['Server']['url'];
@@ -4385,6 +4357,48 @@ class Event extends AppModel
             return $failedServers;
         }
         return true;
+    }
+
+    /**
+     * @param array $server
+     * @param array $event
+     * @throws HttpClientJsonException
+     * @throws JsonException
+     */
+    private function pushSightingsToServer(array $server, array $event)
+    {
+        App::uses('ServerSyncTool', 'Tools');
+        if (!isset($this->Sighting)) {
+            $this->Sighting = ClassRegistry::init('Sighting');
+        }
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        try {
+            if ($serverSync->eventExists($event) === false) {
+                return;
+            }
+        } catch (Exception $e) {}
+
+        $fakeSyncUser = [
+            'org_id' => $server['Server']['remote_org_id'],
+            'Role' => [
+                'perm_site_admin' => 0,
+            ],
+        ];
+
+        foreach ($this->Sighting->fetchUuidsForEventToPush($event, $fakeSyncUser) as $sightingsUuids) {
+            // Filter out sightings that already exists on remote server
+            $existingSightings = $serverSync->filterSightingUuidsForPush($event, $sightingsUuids);
+            $sightingToPush = array_diff($sightingsUuids, $existingSightings);
+            if (empty($sightingToPush)) {
+                continue;
+            }
+
+            $query = [
+                'conditions' => ['Sighting.uuid' => $sightingToPush],
+            ];
+            $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, $query, true);
+            $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
+        }
     }
 
     /**
@@ -4458,7 +4472,8 @@ class Event extends AppModel
                     'includeAttachments' => true,
                     'includeAllTags' => true,
                     'deleted' => array(0,1),
-                    'excludeGalaxy' => 1
+                    'excludeGalaxy' => 1,
+                    'noSightings' => true, // sightings are pushed separately
                 ));
                 if (!empty($server['Server']['internal'])) {
                     $params['excludeLocalTags'] = 0;
@@ -4475,6 +4490,13 @@ class Event extends AppModel
                 );
                 $this->Server->syncGalaxyClusters($HttpSocket, $server, $fakeSyncUser, $technique=$event['Event']['id'], $event=$event);
                 $thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
+                if ($thisUploaded === 'Success') {
+                    try {
+                        $this->pushSightingsToServer($server, $event); // push sighting by method that check for duplicates
+                    } catch (Exception $e) {
+                        $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
+                    }
+                }
                 if (isset($this->data['ShadowAttribute'])) {
                     $this->Server->syncProposals($HttpSocket, $server, null, $id, $this);
                 }
