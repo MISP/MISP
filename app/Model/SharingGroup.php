@@ -713,12 +713,12 @@ class SharingGroup extends AppModel
         $this->create();
         $newSG = array();
         $date = date('Y-m-d H:i:s');
-        if (empty($sg['name']) || empty($sg['releasability'])) {
+        if (empty($sg['name'])) {
             return false;
         }
         $newSG = [
             'name' => $sg['name'],
-            'releasability' => $sg['releasability'],
+            'releasability' => !isset($sg['releasability']) ? '' : $sg['releasability'],
             'description' => !isset($sg['description']) ? '' : $sg['description'],
             'uuid' => !isset($sg['uuid']) ? CakeText::uuid() : $sg['uuid'],
             'organisation_uuid' => !isset($sg['organisation_uuid']) ? $user['Organisation']['uuid'] : $sg['organisation_uuid'],
