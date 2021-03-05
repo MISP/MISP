@@ -1,4 +1,4 @@
-function getShortcutsDefinition() {
+function getShortcutsDefinition(controller, action) {
     var shortcuts = [
         {
             "key": "l",
@@ -13,11 +13,17 @@ function getShortcutsDefinition() {
             "action": function () {
                 document.location.href = baseurl + '/events/add';
             }
+        },
+        {
+            "key": "?",
+            "description": "Show this help",
+            "action": function () {
+                $('#triangle').click();
+            }
         }
     ];
 
-    var $body = $(document.body);
-    if ($body.data('controller') === 'events' && $body.data('action') === 'view') {
+    if (controller === 'events' && action === 'view') {
         shortcuts.push({
             "key": "t",
             "description": "Open the tag selection modal",
@@ -46,9 +52,7 @@ function getShortcutsDefinition() {
                 $('#quickFilterField').focus();
             }
         });
-    }
-
-    if ($body.data('controller') === 'events' && $body.data('action') === 'index') {
+    } else if (controller === 'events' && action === 'index') {
         shortcuts.push({
             "key": "s",
             "description": "Focus the filter events bar",
