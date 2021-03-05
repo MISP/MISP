@@ -217,6 +217,10 @@ class ComplexTypeTool
         $iocArray = array_merge($iocArray, $this->__returnOddElements($quotedText));
         $resultArray = array();
         foreach ($iocArray as $ioc) {
+            // remove trailing .
+            $ioc = rtrim($ioc, '.');
+            // remove brackets if enclosed
+            $ioc = trim($ioc, '()');
             $ioc = str_replace("\xc2\xa0", '', $ioc); // remove non breaking space
             $ioc = trim($ioc, $charactersToTrim);
             $ioc = preg_replace('/\p{C}+/u', '', $ioc);
