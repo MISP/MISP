@@ -88,7 +88,7 @@ class AttributeTag extends AppModel
     {
         $this->delete($id);
     }
-    
+
     /**
      * handleAttributeTags
      *
@@ -248,9 +248,12 @@ class AttributeTag extends AppModel
             }
         } else {
             $allowed_tag_lookup_table = array_flip($allowedTags);
-            $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array(
-                'Attribute.event_id' => $eventId
-            )));
+            $attributes = $this->Attribute->fetchAttributes($user, array(
+                'conditions' => array(
+                    'Attribute.event_id' => $eventId
+                ),
+                'flatten' => 1
+            ));
             $scores = array('scores' => array(), 'maxScore' => 0);
             foreach ($attributes as $attribute) {
                 foreach ($attribute['AttributeTag'] as $tag) {
