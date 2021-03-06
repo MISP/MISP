@@ -480,11 +480,8 @@ class EventShell extends AppShell
     {
         list($eventId, $userId) = $this->args;
 
-        $user = $this->User->getUserById($userId);
-        if (empty($user)) {
-            $this->error("User with ID $userId not found.");
-        }
-        $eventForUser = $this->Event->fetchEvent($this->User->rearrangeToAuthForm($user), [
+        $user = $this->getUser($userId);
+        $eventForUser = $this->Event->fetchEvent($user, [
             'eventid' => $eventId,
             'includeAllTags' => true,
             'includeEventCorrelations' => true,
@@ -496,13 +493,13 @@ class EventShell extends AppShell
             $this->error("Event with ID $eventId not exists or given user don't have permission to access it.");
         }
 
-        $emailTemplate = $this->Event->prepareAlertEmail($eventForUser[0], $this->User->rearrangeToAuthForm($user));
+        $emailTemplate = $this->Event->prepareAlertEmail($eventForUser[0], $user);
 
         App::uses('SendEmail', 'Tools');
         App::uses('GpgTool', 'Tools');
         $sendEmail = new SendEmail(GpgTool::initializeGpg());
         $sendEmail->setTransport('Debug');
-        $result = $sendEmail->sendToUser($user, null, $emailTemplate);
+        $result = $sendEmail->sendToUser(['User' => $user], null, $emailTemplate);
 
         echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
     }
