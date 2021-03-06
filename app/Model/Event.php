@@ -7340,7 +7340,7 @@ class Event extends AppModel
     /**
      * extractAllTagNames Returns all tag names attached to any elements in an event
      *
-     * @param  mixed $event
+     * @param  array $event
      * @return array All tag names in the event
      */
     public function extractAllTagNames(array $event)
@@ -7370,10 +7370,12 @@ class Event extends AppModel
         }
         if (!empty($event['Object'])) {
             foreach ($event['Object'] as $object) {
-                foreach ($object['Attribute'] as $attribute) {
-                    foreach ($attribute['AttributeTag'] as $attributeTag) {
-                        $tagName = $attributeTag['Tag']['name'];
-                        $tags[$tagName] = $tagName;
+                if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $attribute) {
+                        foreach ($attribute['AttributeTag'] as $attributeTag) {
+                            $tagName = $attributeTag['Tag']['name'];
+                            $tags[$tagName] = $tagName;
+                        }
                     }
                 }
             }
