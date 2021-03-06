@@ -838,27 +838,7 @@ class EventsController extends AppController
             return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
         }
 
-        $user = $this->Auth->user();
-        $user = $this->Event->User->fillKeysToUser($user);
-
-        if (empty($user['gpgkey']) && Configure::read('GnuPG.onlyencrypted')) {
-            // No GnuPG
-            if (Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
-                // No GnuPG and No SMIME
-                $this->Flash->info(__('No X.509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile.'));
-            } elseif (!Configure::read('SMIME.enabled')) {
-                $this->Flash->info(__('No GnuPG key set in your profile. To receive emails, submit your public key in your profile.'));
-            }
-        } elseif ($this->Auth->user('autoalert') && empty($user['gpgkey']) && Configure::read('GnuPG.bodyonlyencrypted')) {
-            // No GnuPG & autoalert
-            if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
-                // No GnuPG and No SMIME & autoalert
-                $this->Flash->info(__('No X.509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile.'));
-            } elseif (!Configure::read('SMIME.enabled')) {
-                $this->Flash->info(__('No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
-            }
-        }
-
+        $this->__noKeyNotification();
         $this->set('events', $events);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
@@ -873,6 +853,34 @@ class EventsController extends AppController
             $this->autoRender = false;
             $this->layout = false;
             $this->render('ajax/index');
+        }
+    }
+
+    private function __noKeyNotification()
+    {
+        $onlyEncrypted = Configure::read('GnuPG.onlyencrypted');
+        $bodyOnlyEncrypted = Configure::read('GnuPG.bodyonlyencrypted');
+        if (!$onlyEncrypted && !$bodyOnlyEncrypted) {
+            return;
+        }
+
+        $user = $this->Event->User->fillKeysToUser($this->Auth->user());
+        if (!empty($user['gpgkey'])) {
+            return; // use has PGP key
+        }
+
+        if ($onlyEncrypted) {
+            if (Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
+                $this->Flash->info(__('No X.509 certificate or PGP key set in your profile. To receive emails, submit your public certificate or PGP key in your profile.'));
+            } elseif (!Configure::read('SMIME.enabled')) {
+                $this->Flash->info(__('No PGP key set in your profile. To receive emails, submit your public key in your profile.'));
+            }
+        } elseif ($bodyOnlyEncrypted && $user['autoalert']) {
+            if (Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
+                $this->Flash->info(__('No X.509 certificate or PGP key set in your profile. To receive attributes in emails, submit your public certificate or PGP key in your profile.'));
+            } elseif (!Configure::read('SMIME.enabled')) {
+                $this->Flash->info(__('No PGP key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
+            }
         }
     }
 

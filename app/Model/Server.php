@@ -4739,6 +4739,14 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
+                'email_from_name' => [
+                    'level' => 2,
+                    'description' => __('Notification e-mail sender name.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ],
                 'taxii_sync' => array(
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
@@ -4856,12 +4864,20 @@ class Server extends AppModel
                 ),
                 'extended_alert_subject' => array(
                     'level' => 1,
-                    'description' => __('enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by GnuPG, so only enable it if you accept that part of the event description will be sent out in clear-text.'),
+                    'description' => __('Enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by GnuPG, so only enable it if you accept that part of the event description will be sent out in clear-text.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                'event_alert_metadata_only' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Send just event metadata (attributes and objects will be omitted) for event alert.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
                 'default_event_distribution' => array(
                     'level' => 0,
                     'description' => __('The default distribution setting for events (0-3).'),
