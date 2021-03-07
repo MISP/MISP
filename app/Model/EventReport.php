@@ -234,7 +234,7 @@ class EventReport extends AppModel
     {
         $this->Event = ClassRegistry::init('Event');
         if (isset($report['EventReport']['distribution']) && $report['EventReport']['distribution'] == 4) {
-            $report['EventReport'] = $this->Event->__captureSGForElement($report['EventReport'], $user);
+            $report['EventReport'] = $this->Event->captureSGForElement($report['EventReport'], $user);
         }
         return $report;
     }
@@ -463,15 +463,17 @@ class EventReport extends AppModel
         $objects = [];
         $templateConditions = [];
         foreach ($event['Object'] as $k => $object) {
-            foreach ($object['Attribute'] as &$objectAttribute) {
-                unset($objectAttribute['ShadowAttribute']);
-                $objectAttribute['object_uuid'] = $object['uuid'];
-                $attributes[$objectAttribute['uuid']] = $objectAttribute;
+            if (isset($object['Attribute'])) {
+                foreach ($object['Attribute'] as &$objectAttribute) {
+                    unset($objectAttribute['ShadowAttribute']);
+                    $objectAttribute['object_uuid'] = $object['uuid'];
+                    $attributes[$objectAttribute['uuid']] = $objectAttribute;
 
-                foreach ($objectAttribute['AttributeTag'] as $at) {
-                    $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                    foreach ($objectAttribute['AttributeTag'] as $at) {
+                        $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                    }
+                    $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
                 }
-                $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
             }
             $objects[$object['uuid']] = $object;
 

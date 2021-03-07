@@ -1033,6 +1033,7 @@ class Attribute extends AppModel
             case 'first-name':
             case 'middle-name':
             case 'last-name':
+            case 'full-name':
                 $returnValue = true;
                 break;
             case 'link':
@@ -4075,6 +4076,10 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
+        if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
+            $this->Sighting = ClassRegistry::init('Sighting');
+            $this->Sighting->captureSightings($attribute['Sighting'], $attribute['id'], $eventId, $user);
+        }
         $fieldList = $this->editableFields;
         if (empty($existingAttribute)) {
             $addableFieldList = array('event_id', 'type', 'uuid');
@@ -4659,7 +4664,7 @@ class Attribute extends AppModel
             ),
             'Person' => array(
                 'desc' => __('A human being - natural person'),
-                'types' => array('first-name', 'middle-name', 'last-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other', 'phone-number', 'identity-card-number', 'anonymised', 'email', 'pgp-public-key', 'pgp-private-key')
+                'types' => array('first-name', 'middle-name', 'last-name', 'full-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other', 'phone-number', 'identity-card-number', 'anonymised', 'email', 'pgp-public-key', 'pgp-private-key')
             ),
             'Other' => array(
                 'desc' => __('Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future'),
@@ -4841,6 +4846,7 @@ class Attribute extends AppModel
             'first-name' => array('desc' => __('First name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
             'middle-name' => array('desc' => __('Middle name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
             'last-name' => array('desc' => __('Last name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
+            'full-name' => array('desc' => __('Full name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
             'date-of-birth' => array('desc' => __('Date of birth of a natural person (in YYYY-MM-DD format)'), 'default_category' => 'Person', 'to_ids' => 0),
             'place-of-birth' => array('desc' => __('Place of birth of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
             'gender' => array('desc' => __('The gender of a natural person (Male, Female, Other, Prefer not to say)'), 'default_category' => 'Person', 'to_ids' => 0),

@@ -41,7 +41,7 @@ class ObjectReferencesController extends AppController
             'recursive' => -1,
             'contain' => array(
                 'Event' => array(
-                    'fields' => array('Event.id', 'Event.orgc_id', 'Event.user_id')
+                    'fields' => array('Event.id', 'Event.orgc_id', 'Event.user_id', 'Event.extends_uuid')
                 )
             )
         ));
@@ -54,7 +54,7 @@ class ObjectReferencesController extends AppController
             if (!isset($this->request->data['ObjectReference'])) {
                 $this->request->data['ObjectReference'] = $this->request->data;
             }
-            list($referenced_id, $referenced_uuid, $referenced_type) = $this->ObjectReference->getReferencedInfo($this->request->data['ObjectReference']['referenced_uuid'], $object);
+            list($referenced_id, $referenced_uuid, $referenced_type) = $this->ObjectReference->getReferencedInfo($this->request->data['ObjectReference']['referenced_uuid'], $object, true, $this->Auth->user());
             $relationship_type = empty($this->request->data['ObjectReference']['relationship_type']) ? '' : $this->request->data['ObjectReference']['relationship_type'];
             if (!empty($this->request->data['ObjectReference']['relationship_type_select']) && $this->request->data['ObjectReference']['relationship_type_select'] !== 'custom') {
                 $relationship_type = $this->request->data['ObjectReference']['relationship_type_select'];
@@ -97,8 +97,16 @@ class ObjectReferencesController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->describe('ObjectReferences', 'add', false, $this->response->type());
             } else {
-                $event = $this->ObjectReference->Object->Event->find('first', array(
-                    'conditions' => array('Event.id' => $object['Event']['id']),
+                $events = $this->ObjectReference->Object->Event->find('all', array(
+                    'conditions' => array(
+                        'OR' => array(
+                            'Event.id' => $object['Event']['id'],
+                            'AND' => array(
+                                'Event.uuid' => $object['Event']['extends_uuid'],
+                                $this->ObjectReference->Object->Event->createEventConditions($this->Auth->user())
+                            )
+                        ),
+                    ),
                     'recursive' => -1,
                     'fields' => array('Event.id'),
                     'contain' => array(
@@ -116,6 +124,13 @@ class ObjectReferencesController extends AppController
                         )
                     )
                 ));
+                if (!empty($events)) {
+                    $event = $events[0];
+                }
+                for ($i=1; $i < count($events); $i++) { 
+                    $event['Attribute'] = array_merge($event['Attribute'], $events[$i]['Attribute']);
+                    $event['Object'] = array_merge($event['Object'], $events[$i]['Object']);
+                }
                 $toRearrange = array('Attribute', 'Object');
                 foreach ($toRearrange as $d) {
                     if (!empty($event[$d])) {
@@ -201,5 +216,30 @@ class ObjectReferencesController extends AppController
 
     public function view($id)
     {
+        if (Validation::uuid($id)) {
+            $temp = $this->ObjectReference->find('first', array(
+                'recursive' => -1,
+                'fields' => array('ObjectReference.id'),
+                'conditions' => array('ObjectReference.uuid' => $id)
+            ));
+            if (empty($temp)) {
+                throw new NotFoundException('Invalid object reference');
+            }
+            $id = $temp['ObjectReference']['id'];
+        } elseif (!is_numeric($id)) {
+            throw new NotFoundException(__('Invalid object reference'));
+        }
+        $objectReference = $this->ObjectReference->find('first', array(
+            'conditions' => array('ObjectReference.id' => $id),
+            'recursive' => -1,
+        ));
+        if (empty($objectReference)) {
+            throw new NotFoundException(__('Invalid object reference.'));
+        }
+        $event = $this->ObjectReference->Object->Event->fetchSimpleEvent($this->Auth->user(), $objectReference['ObjectReference']['event_id'], ['contain' => ['Orgc']]);
+        if (!$event) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        return $this->RestResponse->viewData($objectReference, 'application/json');
     }
 }

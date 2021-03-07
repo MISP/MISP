@@ -9,7 +9,7 @@
     <?php
         foreach ($galaxy['GalaxyCluster'] as $cluster):
             $cluster_fields = array();
-            if (isset($cluster['description'])) {
+            if (!empty($cluster['description'])) {
                 $cluster_fields[] = array('key' => 'description', 'value' => $cluster['description']);
             }
             if (isset($cluster['meta']['synonyms'])) {
@@ -18,31 +18,18 @@
             if (isset($cluster['source'])) {
                 $cluster_fields[] = array('key' => 'source', 'value' => $cluster['source']);
             }
-            if (isset($cluster['authors'])) {
-                $cluster_fields[] = array('key' => 'authors', 'value' => $cluster['authors']);
-            }
             if (!empty($cluster['meta'])) {
                 foreach ($cluster['meta'] as $metaKey => $metaField) {
-                    if ($metaKey != 'synonyms') {
+                    if (!in_array($metaKey, ['synonyms', 'refs'], true)) {
                         $cluster_fields[] = array('key' => $metaKey, 'value' => $metaField);
                     }
                 }
             }
-            $popover_data = sprintf('<h4 class="blue bold">%s</h4>', h($cluster['value']));
+            $popover_data = '<h4 class="blue bold">' . h($cluster['value']) . '</h4>';
             foreach ($cluster_fields as $cluster_field) {
                 $key = sprintf('<span class="blue bold">%s</span>', Inflector::humanize(h($cluster_field['key'])));
                 if (is_array($cluster_field['value'])) {
-                    if ($cluster_field['key'] === 'refs') {
-                        $value = array();
-                        foreach ($cluster_field['value'] as $k => $v) {
-                            $v_name = $v;
-                            if (strlen($v_name) > 30) {
-                                $v_name = substr($v, 0, 30) . '...';
-                            }
-                            $value[$k] = '<a href="' . h($v) . '" title="' . h($v) . '">' . h($v_name) . '</a>';
-                        }
-                        $value_contents = implode("<br>", $value);
-                    } else if ($cluster_field['key'] === 'country') {
+                    if ($cluster_field['key'] === 'country') {
                         $value = array();
                         foreach ($cluster_field['value'] as $k => $v) {
                             $value[] = $this->Icon->countryFlag($v) . '&nbsp;' . h($v);
@@ -52,11 +39,7 @@
                         $value_contents = nl2br(h(implode("\n", $cluster_field['value'])), false);
                     }
                 } else {
-                     if ($cluster_field['key'] === 'source' && filter_var($cluster_field['value'], FILTER_VALIDATE_URL)) {
-                         $value_contents = '<a href="' . h($cluster_field['value']) . '">' . h($cluster_field['value']) . '</a>';
-                     } else {
-                        $value_contents = h($cluster_field['value']);
-                     }
+                    $value_contents = h($cluster_field['value']);
                 }
                 $value = sprintf('<span class="black">%s</span>', $value_contents);
                 $popover_data .= "<span>$key: $value</span><br>";

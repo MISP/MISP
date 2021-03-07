@@ -14,6 +14,26 @@ class ServerShell extends AppShell
     public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
     public $tasks = array('ConfigLoad');
 
+    public function list()
+    {
+        $this->ConfigLoad->execute();
+        $res = ['servers'=>[]];
+        $servers = $this->Server->find('all', [
+            'fields' => ['Server.id', 'Server.name', 'Server.url'],
+            'recursive' => 0
+        ]);
+        foreach ($servers as $server) {
+            echo sprintf(
+                '%sServer #%s :: %s :: %s',
+                PHP_EOL,
+                $server['Server']['id'],
+                $server['Server']['name'],
+                $server['Server']['url']
+            );
+        }
+        echo PHP_EOL;
+    }
+
     public function listServers()
     {
         $this->ConfigLoad->execute();

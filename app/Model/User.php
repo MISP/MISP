@@ -7,6 +7,8 @@ App::uses('SendEmail', 'Tools');
 
 /**
  * @property Log $Log
+ * @property Organisation $Organisation
+ * @property Role $Role
  */
 class User extends AppModel
 {

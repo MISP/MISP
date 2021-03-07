@@ -93,6 +93,35 @@ class SyncTool
     }
 
     /**
+     * @param array $server
+     * @return array|void
+     * @throws Exception
+     */
+    public static function getServerCaCertificateInfo(array $server)
+    {
+        if (!$server['Server']['cert_file']) {
+            return;
+        }
+
+        $caCertificate = new File(APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '.pem');
+        if (!$caCertificate->exists()) {
+            throw new Exception("Certificate file '{$caCertificate->pwd()}' doesn't exists.");
+        }
+
+        $certificateContent = $caCertificate->read();
+        if ($certificateContent === false) {
+            throw new Exception("Could not read '{$caCertificate->pwd()}' file with certificate.");
+        }
+
+        $certificate = openssl_x509_read($certificateContent);
+        if (!$certificate) {
+            throw new Exception("Couldn't read certificate: " . openssl_error_string());
+        }
+
+        return self::parseCertificate($certificate);
+    }
+
+    /**
      * @param string $certificateContent PEM encoded certificate and private key.
      * @return array
      * @throws Exception
@@ -101,11 +130,11 @@ class SyncTool
     {
         $certificate = openssl_x509_read($certificateContent);
         if (!$certificate) {
-            throw new Exception("Could't parse certificate: " . openssl_error_string());
+            throw new Exception("Couldn't read certificate: " . openssl_error_string());
         }
         $privateKey = openssl_pkey_get_private($certificateContent);
         if (!$privateKey) {
-            throw new Exception("Could't get private key from certificate: " . openssl_error_string());
+            throw new Exception("Couldn't get private key from certificate: " . openssl_error_string());
         }
         $verify = openssl_x509_check_private_key($certificate, $privateKey);
         if (!$verify) {
@@ -123,7 +152,7 @@ class SyncTool
     {
         $parsed = openssl_x509_parse($certificate);
         if (!$parsed) {
-            throw new Exception("Could't get parse X.509 certificate: " . openssl_error_string());
+            throw new Exception("Couldn't get parse X.509 certificate: " . openssl_error_string());
         }
         $currentTime = new DateTime();
         $output = [

@@ -576,8 +576,22 @@ class SharingGroup extends AppModel
         return $results;
     }
 
-    public function captureSG($sg, $user, $syncLocal=false)
+    /*
+     * Capture a sharing group
+     * Return false if something goes wrong
+     * Return an integer with the sharing group's ID, irregardless of the need to update or not
+     *
+     * @param array $sg
+     * @param array $user
+     * @param array $server
+     * @return int || false
+     */
+    public function captureSG($sg, $user, $server = false)
     {
+        $syncLocal = false;
+        if (!empty($server) && !empty($server['Server']['local'])) {
+            $syncLocal = true;
+        }
         $this->Log = ClassRegistry::init('Log');
         $existingSG = !isset($sg['uuid']) ? null : $this->find('first', array(
                 'recursive' => -1,
@@ -588,136 +602,219 @@ class SharingGroup extends AppModel
                     'SharingGroupOrg' => array('Organisation')
                 )
         ));
-        $force = false;
+        $forceUpdate = false;
+        $sg_id = 0;
         if (empty($existingSG)) {
             if (!$user['Role']['perm_sharing_group']) {
                 return false;
             }
-            // check if current user is contained in the SG and we are in a local sync setup
-            if (!empty($sg['uuid'])) {
-                if (isset($this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']])) {
-                    $authorisedToSave = $this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']];
-                } else {
-                    $authorisedToSave = $this->checkIfAuthorisedToSave($user, $sg);
-                    $this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']] = $authorisedToSave;
-                }
-            } else {
-                $authorisedToSave = $this->checkIfAuthorisedToSave($user, $sg);
-            }
-            if (!$user['Role']['perm_site_admin'] &&
-                !($user['Role']['perm_sync'] && $syncLocal ) &&
-                !$authorisedToSave
-            ) {
-                $this->Log->create();
-                $entry = array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'SharingGroup',
-                        'model_id' => $sg['SharingGroup']['uuid'],
-                        'email' => $user['email'],
-                        'action' => 'error',
-                        'user_id' => $user['id'],
-                        'title' => 'Tried to save a sharing group but the user does not belong to it.'
-                );
-                $this->Log->save($entry);
+            $sg_id = $this->captureSGNew($user, $sg, $syncLocal);
+            if ($sg_id === false) {
                 return false;
             }
-            $this->create();
-            $newSG = array();
-            $attributes = array(
-                'name' => array(),
-                'releasability' => array(),
-                'description' => array('default' => ''),
-                'uuid' => array('default' => CakeText::uuid()),
-                'organisation_uuid' => array('default' => $user['Organisation']['uuid']),
-                'created' => array('default' => $date = date('Y-m-d H:i:s')),
-                'modified' => array('default' => $date = date('Y-m-d H:i:s')),
-                'active' => array('default' => 1),
-                'roaming' => array('default' => false),
-            );
-            foreach (array_keys($attributes) as $a) {
-                if (isset($sg[$a])) {
-                    $newSG[$a] = $sg[$a];
-                } else {
-                    if (!isset($attributes[$a]['default'])) {
-                        return false;
-                    } else {
-                        $newSG[$a] = $attributes[$a]['default'];
-                    }
-                }
-            }
-            $newSG['local'] = 0;
-            $newSG['sync_user_id'] = $user['id'];
-            if (!$user['Role']['perm_sync']) {
-                $newSG['org_id'] = $user['org_id'];
-            } else {
-                if (!isset($sg['Organisation'])) {
-                    if (!isset($sg['SharingGroupOrg'])) {
-                        $sg['SharingGroupOrg'] = array(array(
-                            'extend' => 1,
-                            'uuid' => $user['Organisation']['uuid'],
-                            'name' => $user['Organisation']['name'],
-                        ));
-                        $newSG['org_id'] = $user['org_id'];
-                    } else {
-                        // Try to capture the creator organisation using the organisation_uuid if the org is contained in the SG (in some rare cases pre 2.4.86 the lack of this could occur)
-                        foreach ($sg['SharingGroupOrg'] as $k => $org) {
-                            if (!isset($org['Organisation'])) {
-                                $org['Organisation'] = $org;
-                            }
-                            if (isset($org['Organisation'][0])) {
-                                $org['Organisation'] = $org['Organisation'][0];
-                            }
-                            if (isset($sg['organisation_uuid'])) {
-                                if ($org['Organisation']['uuid'] == $sg['organisation_uuid']) {
-                                    $newSG['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user);
-                                }
-                            } else {
-                                $newSG['org_id'] = $user['org_id'];
-                            }
-                        }
-                    }
-                } else {
-                    $newSG['org_id'] = $this->Organisation->captureOrg($sg['Organisation'], $user);
-                }
-            }
-            if (empty($newSG['org_id'])) {
-                return false;
-            }
-            if (!$this->save($newSG)) {
-                return false;
-            }
-            $sgids = $this->id;
         } else {
-            if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id']) && !$user['Role']['perm_sync']) {
-                return false;
+            $existingCaptureResult = $this->captureSGExisting($user, $existingSG, $sg, $syncLocal);
+            if ($existingCaptureResult !== true) {
+                return $existingCaptureResult;
             }
-            if (empty($sg['modified']) || $sg['modified'] > $existingSG['SharingGroup']['modified']) {
-                if (
-                    ($user['Role']['perm_sync'] && isset($existingSG['SharingGroup']['local']) && $existingSG['SharingGroup']['local'] == 0) ||
-                    ((!$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id']) || $user['Role']['perm_site_admin'])
-                ) {
-                    $force = true;
-                }
-                if ($force) {
-                    $sgids = $existingSG['SharingGroup']['id'];
-                    $editedSG = $existingSG['SharingGroup'];
-                    $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'active', 'roaming'];
-                    foreach ($attributes as $a) {
-                        if (isset($sg[$a])) {
-                            $editedSG[$a] = $sg[$a];
-                        }
+            $forceUpdate = true;
+        }
+        unset($sg['Organisation']);
+        $creatorOrgFound = $this->captureSGOrgs($user, $sg, $sg_id, $forceUpdate);
+        $creatorOrgFound = $this->captureSGServers($user, $sg, $sg_id, $forceUpdate) || $creatorOrgFound;
+        if (!$creatorOrgFound && !empty($server)) {
+            $this->captureCreatorOrg($user, $sg_id);
+        }
+        if (!empty($existingSG)) {
+            return $existingSG[$this->alias]['id'];
+        }
+        return $this->id;
+    }
+
+    /*
+     * Capture updates for an existing sharing group
+     * Return true if updates are occuring
+     * Return false if something goes wrong
+     * Return an integer if no update is done but the sharing group can be attached
+     *
+     * @param array $user
+     * @param array $existingSG
+     * @param array $sg
+     * @param boolean syncLocal
+     * @return int || false || true
+     */
+    public function captureSGExisting($user, $existingSG, $sg, $syncLocal)
+    {
+        if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id']) && !$user['Role']['perm_sync']) {
+            return false;
+        }
+        if (empty($sg['modified']) || $sg['modified'] > $existingSG['SharingGroup']['modified']) {
+            // consider the local field being set to be equivalent to an event's locked == 0 state
+            $isUpdatableBySync = $user['Role']['perm_sync'] && empty($existingSG['SharingGroup']['local']);
+            // TODO: reconsider this, org admins will be blocked from legitimate edits if they have sync permissions.
+            // We need a mechanism to check whether we're in sync context.
+            $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id'];
+            if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
+                $editedSG = $existingSG['SharingGroup'];
+                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming'];
+                foreach ($attributes as $a) {
+                    if (isset($sg[$a])) {
+                        $editedSG[$a] = $sg[$a];
                     }
-                    $this->save($editedSG);
-                } else {
-                    return $existingSG['SharingGroup']['id'];
                 }
+                $this->save($editedSG);
+                return true;
             } else {
                 return $existingSG['SharingGroup']['id'];
             }
+        } else {
+            return $existingSG['SharingGroup']['id'];
         }
-        unset($sg['Organisation']);
+    }
+
+    /*
+     * Capture a new sharing group, rather than update an existing one
+     *
+     * @param array $user
+     * @param array $sg
+     * @param boolean syncLocal
+     * @return int || false
+     */
+    public function captureSGNew($user, $sg, $syncLocal)
+    {
+        // check if current user is contained in the SG and we are in a local sync setup
+        if (!empty($sg['uuid'])) {
+            if (isset($this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']])) {
+                $authorisedToSave = $this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']];
+            } else {
+                $authorisedToSave = $this->checkIfAuthorisedToSave($user, $sg);
+                $this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']] = $authorisedToSave;
+            }
+        } else {
+            $authorisedToSave = $this->checkIfAuthorisedToSave($user, $sg);
+        }
+        if (!$user['Role']['perm_site_admin'] &&
+            !($user['Role']['perm_sync'] && $syncLocal ) &&
+            !$authorisedToSave
+        ) {
+            $this->Log->create();
+            $entry = array(
+                'org' => $user['Organisation']['name'],
+                'model' => 'SharingGroup',
+                'model_id' => 0,
+                'email' => $user['email'],
+                'action' => 'error',
+                'user_id' => $user['id'],
+                'title' => "Tried to save a sharing group with UUID '{$sg['SharingGroup']['uuid']}' but the user does not belong to it."
+            );
+            $this->Log->save($entry);
+            return false;
+        }
+        $this->create();
+        $newSG = array();
+        $date = date('Y-m-d H:i:s');
+        if (empty($sg['name'])) {
+            return false;
+        }
+        $newSG = [
+            'name' => $sg['name'],
+            'releasability' => !isset($sg['releasability']) ? '' : $sg['releasability'],
+            'description' => !isset($sg['description']) ? '' : $sg['description'],
+            'uuid' => !isset($sg['uuid']) ? CakeText::uuid() : $sg['uuid'],
+            'organisation_uuid' => !isset($sg['organisation_uuid']) ? $user['Organisation']['uuid'] : $sg['organisation_uuid'],
+            'created' => !isset($sg['created']) ? $date : $sg['created'],
+            'modified' => !isset($sg['modified']) ? $date : $sg['modified'],
+            'active' => !isset($sg['active']) ? 1 : $sg['active'],
+            'roaming' => !isset($sg['description']) ? false : $sg['description'],
+            'local' => 0,
+            'sync_user_id' => $user['id'],
+            'org_id' => $user['Role']['perm_sync'] ? $this->__retrieveOrgIdFromCapturedSG($user, $sg) : $user['org_id']
+        ];
+        if (empty($newSG['org_id'])) {
+            return false;
+        }
+        if (!$this->save($newSG)) {
+            return false;
+        }
+        return (int)$this->id;
+    }
+
+    /*
+     * When trying to capture a sharing group, capture the org_id
+     * For older MISP instances (<2.4.86) we might need to deduce it from the org list
+     *
+     * @param array $user
+     * @param array $sg
+     * @return int || false
+     */
+    private function __retrieveOrgIdFromCapturedSG($user, $sg)
+    {
+        if (!isset($sg['Organisation'])) {
+            if (!isset($sg['SharingGroupOrg'])) {
+                $sg['SharingGroupOrg'] = array(array(
+                    'extend' => 1,
+                    'uuid' => $user['Organisation']['uuid'],
+                    'name' => $user['Organisation']['name'],
+                ));
+                return $user['org_id'];
+            } else {
+                foreach ($sg['SharingGroupOrg'] as $k => $org) {
+                    if (!isset($org['Organisation'])) {
+                        $org['Organisation'] = $org;
+                    }
+                    if (isset($org['Organisation'][0])) {
+                        $org['Organisation'] = $org['Organisation'][0];
+                    }
+                    if (isset($sg['organisation_uuid'])) {
+                        if ($org['Organisation']['uuid'] == $sg['organisation_uuid']) {
+                            return $this->Organisation->captureOrg($org['Organisation'], $user);
+                        }
+                    } else {
+                        return $user['org_id'];
+                    }
+                }
+            }
+        } else {
+            return $this->Organisation->captureOrg($sg['Organisation'], $user);
+        }
+        return false;
+    }
+
+    /*
+     * we've pulled a sharing group from a remote server, but are not part of the SG
+     * This can happen when we have access to the data on the remote by being inherently included in the exchange
+     * Add our org to the sharing group!
+     *
+     * @param array $user
+     * @param int $sg_id
+     * @return void
+     */
+    public function captureCreatorOrg(array $user, int $sg_id)
+    {
+        $this->SharingGroupOrg->create();
+        $this->SharingGroupOrg->save(
+            [
+                'sharing_group_id' => $sg_id,
+                'org_id' => $user['org_id'],
+                'extend' => false
+            ]
+        );
+    }
+
+    /*
+     * Capture orgs of a sharing group. If the creator org is contained in the list, return true
+     * Otherwise return false
+     *
+     * @param array $user
+     * @param array $sg
+     * @param int $sg_id
+     * @param bool $force
+     * @return void
+     */
+    public function captureSGOrgs(array $user, array $sg, int $sg_id, bool $force)
+    {
+        $creatorOrgFound = false;
         if (!empty($sg['SharingGroupOrg'])) {
-            $creatorOrgFound = false;
             if (isset($sg['SharingGroupOrg']['id'])) {
                 $temp = $sg['SharingGroupOrg'];
                 unset($sg['SharingGroupOrg']);
@@ -746,7 +843,7 @@ class SharingGroup extends AppModel
                     ));
                     if (empty($temp)) {
                         $this->SharingGroupOrg->create();
-                        $this->SharingGroupOrg->save(array('sharing_group_id' => $sgids, 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'], 'extend' => $org['extend']));
+                        $this->SharingGroupOrg->save(array('sharing_group_id' => $sg_id, 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'], 'extend' => $org['extend']));
                     } else {
                         if ($temp['SharingGroupOrg']['extend'] != $sg['SharingGroupOrg'][$k]['extend']) {
                             $temp['SharingGroupOrg']['extend'] = $sg['SharingGroupOrg'][$k]['extend'];
@@ -755,10 +852,16 @@ class SharingGroup extends AppModel
                     }
                 } else {
                     $this->SharingGroupOrg->create();
-                    $this->SharingGroupOrg->save(array('sharing_group_id' => $sgids, 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'], 'extend' => $org['extend']));
+                    $this->SharingGroupOrg->save(array('sharing_group_id' => $sg_id, 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'], 'extend' => $org['extend']));
                 }
             }
         }
+        return $creatorOrgFound;
+    }
+
+    public function captureSGServers(array $user, array $sg, int $sg_id, bool $force)
+    {
+        $creatorOrgFound = false;
         if (!empty($sg['SharingGroupServer'])) {
             if (isset($sg['SharingGroupServer']['id'])) {
                 $temp = $sg['SharingGroupServer'];
@@ -793,7 +896,7 @@ class SharingGroup extends AppModel
                         ));
                         if (empty($temp)) {
                             $this->SharingGroupServer->create();
-                            $this->SharingGroupServer->save(array('sharing_group_id' => $sgids, 'server_id' => $sg['SharingGroupServer'][$k]['server_id'], 'all_orgs' => empty($server['all_orgs']) ? 0 : $server['all_orgs']));
+                            $this->SharingGroupServer->save(array('sharing_group_id' => $sg_id, 'server_id' => $sg['SharingGroupServer'][$k]['server_id'], 'all_orgs' => empty($server['all_orgs']) ? 0 : $server['all_orgs']));
                         } else {
                             if ($temp['SharingGroupServer']['all_orgs'] != $sg['SharingGroupServer'][$k]['all_orgs']) {
                                 $temp['SharingGroupServer']['all_orgs'] = $sg['SharingGroupServer'][$k]['all_orgs'];
@@ -802,15 +905,12 @@ class SharingGroup extends AppModel
                         }
                     } else {
                         $this->SharingGroupServer->create();
-                        $this->SharingGroupServer->save(array('sharing_group_id' => $sgids, 'server_id' => $sg['SharingGroupServer'][$k]['server_id'], 'all_orgs' => empty($server['all_orgs']) ? 0 : $server['all_orgs']));
+                        $this->SharingGroupServer->save(array('sharing_group_id' => $sg_id, 'server_id' => $sg['SharingGroupServer'][$k]['server_id'], 'all_orgs' => empty($server['all_orgs']) ? 0 : $server['all_orgs']));
                     }
                 }
             }
         }
-        if (!empty($existingSG)) {
-            return $existingSG[$this->alias]['id'];
-        }
-        return $this->id;
+        return $creatorOrgFound;
     }
 
     // Correct an issue that existed pre 2.4.49 where a pulled sharing group can end up not being visible to the sync user

@@ -106,7 +106,7 @@
                         'event' => $event,
                         'tags' => $event['EventTag'],
                         'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id']),
-                        'required_taxonomies' => $required_taxonomies,
+                        'missingTaxonomies' => $missingTaxonomies,
                         'tagConflicts' => $tagConflicts
                     )
                 )
@@ -124,6 +124,25 @@
                 'value_class' => 'threat-level-' . strtolower($event['ThreatLevel']['name']),
             );
         }
+        $sharingGroupHtml = false;
+        $hideDistributionGraph = false;
+        if ($event['Event']['distribution'] == 4) {
+            if (!empty($event['SharingGroup'])) {
+                $sharingGroupHtml = sprintf(
+                    '<a href="%s%s">%s</a>',
+                    $baseurl . '/sharing_groups/view/',
+                    h($event['SharingGroup']['id']),
+                    h($event['SharingGroup']['name'])
+                );
+            } else {
+                $sharingGroupHtml = sprintf(
+                    '<span class="red bold">%s</span>: %s',
+                    __('Undisclosed sharing group'),
+                    __('your organisation is the local owner of this event, however it is not explicitly listed in the sharing group.')
+                );
+                $hideDistributionGraph = true;
+            }
+        }
         $table_data[] = array(
             'key' => __('Analysis'),
             'key_title' => $eventDescriptions['analysis']['desc'],
@@ -135,19 +154,19 @@
             'html' => sprintf(
                 '%s %s %s %s',
                 ($event['Event']['distribution'] == 4) ?
-                    sprintf('<a href="%s%s">%s</a>', $baseurl . '/sharing_groups/view/', h($event['SharingGroup']['id']), h($event['SharingGroup']['name'])) :
+                    $sharingGroupHtml :
                     h($distributionLevels[$event['Event']['distribution']]),
-                sprintf(
+                $hideDistributionGraph ? '' : sprintf(
                     '<span id="distribution_graph_bar" style="margin-left: 5px;" data-object-id="%s" data-object-context="event"></span>',
                     h($event['Event']['id'])
                 ),
-                sprintf(
+                $hideDistributionGraph ? '' : sprintf(
                     '<it class="%s" data-object-id="%s" data-object-context="event" data-shown="false"></it><div style="display: none">%s</div>',
                     'useCursorPointer fa fa-info-circle distribution_graph',
                     h($event['Event']['id']),
                     $this->element('view_event_distribution_graph')
                 ),
-                sprintf(
+                $hideDistributionGraph ? '' : sprintf(
                     '<it type="button" id="showAdvancedSharingButton" title="%s" class="%s" aria-hidden="true" style="margin-left: 5px;"></it>',
                     __('Toggle advanced sharing network viewer'),
                     'fa fa-share-alt useCursorPointer'
@@ -527,7 +546,7 @@
     </div>
     <div id="eventreport_div" style="display: none;">
         <span class="report-title-section"><?php echo __('Event Reports');?></span>
-        <div id="eventreport_index_div"></div>
+        <div id="eventreport_content"></div>
     </div>
     <div id="clusterrelation_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
     </div>
@@ -540,7 +559,7 @@
 <script type="text/javascript">
 var showContext = false;
 $(function () {
-    queryEventLock('<?php echo h($event['Event']['id']); ?>', '<?php echo h($me['org_id']); ?>');
+    queryEventLock('<?php echo h($event['Event']['id']); ?>');
     popoverStartup();
 
     $("th, td, dt, div, span, li").tooltip({
@@ -554,8 +573,8 @@ $(function () {
     });
 
     $.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?>", function(data) {
-        $("#eventreport_index_div").html(data);
-        if ($('#eventreport_index_div table tbody > tr').length) { // open if contain a report
+        $("#eventreport_content").html(data);
+        if ($('#eventreport_content table tbody > tr').length) { // open if contain a report
             $('#eventreport_toggle').click()
         }
     });

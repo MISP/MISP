@@ -767,7 +767,7 @@ class EventsController extends AppController
                             }
                         }
                     }
-                    $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false, false);
+                    $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, false);
                 }
                 foreach ($events as $key => $event) {
                     if (empty($event['SharingGroup']['name'])) {
@@ -830,7 +830,7 @@ class EventsController extends AppController
         if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
             $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
         }
-        $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true, false);
+        $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true);
 
         if ($this->params['ext'] === 'csv') {
             App::uses('CsvExport', 'Export');
@@ -1025,7 +1025,17 @@ class EventsController extends AppController
         if (isset($filters['focus'])) {
             $this->set('focus', $filters['focus']);
         }
-        $conditions = array('eventid' => $id);
+        $conditions = [
+            'eventid' => $id,
+            'includeFeedCorrelations' => true,
+            'includeWarninglistHits' => true,
+            'fetchFullClusters' => false,
+            'includeAllTags' => true,
+            'includeGranularCorrelations' => true,
+            'includeEventCorrelations' => false,
+            'noEventReports' => true, // event reports for view are loaded dynamically
+            'noSightings' => true,
+        ];
         if (isset($filters['extended'])) {
             $conditions['extended'] = 1;
             $this->set('extended', 1);
@@ -1048,21 +1058,11 @@ class EventsController extends AppController
         if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
             $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
         }
-        $conditions['includeFeedCorrelations'] = true;
-        $conditions['includeWarninglistHits'] = true;
         if (!isset($filters['includeServerCorrelations'])) {
             $conditions['includeServerCorrelations'] = 1;
-            if ($this->_isRest()) {
-                $conditions['includeServerCorrelations'] = 0;
-            }
         } else {
             $conditions['includeServerCorrelations'] = $filters['includeServerCorrelations'];
         }
-        $conditions['includeAllTags'] = true;
-        $conditions['includeGranularCorrelations'] = 1;
-        $conditions['includeEventCorrelations'] = false;
-        $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
-        $conditions['noSightings'] = true;
         if (!empty($filters['includeRelatedTags'])) {
             $this->set('includeRelatedTags', 1);
             $conditions['includeRelatedTags'] = 1;
@@ -1479,7 +1479,7 @@ class EventsController extends AppController
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
         $this->set('oldest_timestamp', $oldest_timestamp);
-        $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
+        $this->set('missingTaxonomies', $this->Event->missingTaxonomies($event));
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
         $this->set('filters', $filters);
@@ -1512,6 +1512,7 @@ class EventsController extends AppController
             $conditions['includeAllTags'] = true;
             $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
             $conditions['noSightings'] = true;
+            $conditions['fetchFullClusters'] = false;
         }
         $deleted = 0;
         if (isset($this->params['named']['deleted'])) {
@@ -4669,8 +4670,7 @@ class EventsController extends AppController
         $this->loadModel('GalaxyCluster');
         $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.id' => $clusterIds)), $full=true);
         App::uses('ClusterRelationsGraphTool', 'Tools');
-        $grapher = new ClusterRelationsGraphTool();
-        $grapher->construct($this->Auth->user(), $this->GalaxyCluster);
+        $grapher = new ClusterRelationsGraphTool($this->Auth->user(), $this->GalaxyCluster);
         $relations = $grapher->getNetwork($clusters, $keepNotLinkedClusters=true, $includeReferencingRelation=true);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($relations, $this->response->type());
@@ -5312,9 +5312,43 @@ class EventsController extends AppController
         }
     }
 
+    public function addEventLock($id)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
+
+        $event = $this->Event->fetchSimpleEvent($this->Auth->User(), $id);
+        if (empty($event)) {
+            throw new MethodNotAllowedException(__('Invalid Event'));
+        }
+        if (!$this->__canModifyEvent($event)) {
+            throw new UnauthorizedException(__('You do not have permission to do that.'));
+        }
+
+        $this->loadModel('EventLock');
+        $lockId = $this->EventLock->insertLockApi($event['Event']['id'], $this->Auth->user());
+        return $this->RestResponse->viewData(['lock_id' => $lockId], $this->response->type());
+    }
+
+    public function removeEventLock($id, $lockId)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This endpoint requires a POST request.');
+        }
+
+        $event = $this->Event->fetchSimpleEvent($this->Auth->User(), $id);
+        if (empty($event)) {
+            throw new MethodNotAllowedException(__('Invalid Event'));
+        }
+
+        $this->loadModel('EventLock');
+        $deleted = $this->EventLock->deleteApiLock($event['Event']['id'], $lockId, $this->Auth->user());
+        return $this->RestResponse->viewData(['deleted' => $deleted], $this->response->type());
+    }
+
     public function checkLocks($id)
     {
-        $this->loadModel('EventLock');
         $event = $this->Event->find('first', array(
             'recursive' => -1,
             'conditions' => array('Event.id' => $id),
@@ -5322,29 +5356,34 @@ class EventsController extends AppController
         ));
         $locks = array();
         if (!empty($event) && ($event['Event']['orgc_id'] == $this->Auth->user('org_id') || $this->_isSiteAdmin())) {
+            $this->loadModel('EventLock');
             $locks = $this->EventLock->checkLock($this->Auth->user(), $id);
         }
         if (!empty($locks)) {
             $temp = $locks;
             $locks = array();
             foreach ($temp as $t) {
-                if ($t['User']['id'] !== $this->Auth->user('id')) {
+                if ($t['type'] === 'user' && $t['User']['id'] !== $this->Auth->user('id')) {
                     if (!$this->_isSiteAdmin() && $t['User']['org_id'] != $this->Auth->user('org_id')) {
-                        continue;
+                        $locks[] = __('another user');
+                    } else {
+                        $locks[] = $t['User']['email'];
                     }
-                    $locks[] = $t['User']['email'];
+                } else if ($t['type'] === 'job') {
+                    $locks[] = __('background job');
+                } else if ($t['type'] === 'api') {
+                    $locks[] = __('external tool');
                 }
             }
         }
-        // TODO: i18n
-        if (!empty($locks)) {
-            $message = sprintf('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
-            $this->set('message', $message);
-            $this->layout = false;
-            $this->render('/Events/ajax/event_lock');
-        } else {
+        if (empty($locks)) {
             return $this->RestResponse->viewData('', $this->response->type(), false, true);
         }
+
+        $message = __('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
+        $this->set('message', $message);
+        $this->layout = false;
+        $this->render('/Events/ajax/event_lock');
     }
 
     public function getEditStrategy($id)

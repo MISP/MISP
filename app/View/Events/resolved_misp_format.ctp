@@ -77,8 +77,8 @@
                     )
                 );
             }
-            $table_data[] = array('key' => __('#Resolved Attributes'), 'value' => $count);
-            $table_data[] = array('key' => __('#Resolved Reports'), 'value' => $report_count);
+            $table_data[] = array('key' => __('# of resolved Attributes'), 'value' => $count);
+            $table_data[] = array('key' => __('# of resolved Reports'), 'value' => $report_count);
             echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data));
         }
         $attributeFields = array('category', 'type', 'value', 'uuid');

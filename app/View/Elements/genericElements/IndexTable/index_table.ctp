@@ -35,13 +35,15 @@
             }
         }
     }
+
+    $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : [];
+    if ($ajax && isset($containerId)) {
+        $paginationData['data-paginator'] = "#{$containerId}_content";
+    }
+    $this->Paginator->options($paginationData);
+
     $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
     if (!$skipPagination) {
-        $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : array();
-        if ($ajax && isset($containerId)) {
-            $paginationData['data-paginator'] = "#{$containerId}_content";
-        }
-        $this->Paginator->options($paginationData);
         $paginatonLinks = $this->element('/genericElements/IndexTable/pagination_links');
         echo $paginatonLinks;
     }

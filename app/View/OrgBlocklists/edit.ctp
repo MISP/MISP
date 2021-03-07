@@ -1,8 +1,7 @@
 <div class="orgBlocklist form">
 <?php echo $this->Form->create('OrgBlocklist');?>
     <fieldset>
-        <legend><?php echo __('Edit Event Blocklist Entries');?></legend>
-        <p><?php echo __('List of all the event UUIDs that you wish to block from being entered.');?></p>
+        <legend><?php echo __('Edit Organisation Blocklist Entries');?></legend>
     <?php
         echo $this->Form->input('uuids', array(
                 'type' => 'textarea',

@@ -391,7 +391,9 @@ class GalaxyClustersController extends AppController
 
             if (empty($cluster['GalaxyCluster']['authors'])) {
                 $cluster['GalaxyCluster']['authors'] = [];
-            } else {
+            } else if (is_array($cluster['GalaxyCluster']['authors'])) {
+                // This is as intended, move on 
+            }else {
                 $decoded = json_decode($cluster['GalaxyCluster']['authors'], true);
                 if (is_null($decoded)) { // authors might be comma separated
                     $decoded = array_map('trim', explode(',', $cluster['GalaxyCluster']['authors']));
@@ -703,6 +705,9 @@ class GalaxyClustersController extends AppController
     {
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
+            if (!empty($this->request->data['hard'])) {
+                $hard = true;
+            }
             $result = $this->GalaxyCluster->deleteCluster($cluster['GalaxyCluster']['id'], $hard=$hard);
             $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
             if ($result) {
@@ -712,7 +717,7 @@ class GalaxyClustersController extends AppController
                     $hard ? __(' and added to the block list') : ''
                 );
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $this->response->type());
+                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $this->response->type(), $message);
                 } else {
                     $this->Flash->success($message);
                     $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxyId));
@@ -720,7 +725,7 @@ class GalaxyClustersController extends AppController
             } else {
                 $message = __('Galaxy cluster could not be %s deleted.', $hard ? __('hard') : __('soft'));
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $message, $this->response->type(), $message);
                 } else {
                     $this->Flash->error($message);
                     $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxyId));
