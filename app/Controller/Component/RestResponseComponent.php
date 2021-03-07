@@ -48,7 +48,15 @@ class RestResponseComponent extends Component
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
                 'params' => array()
-            )
+            ),
+            'addTag' => array(
+                'description' => "Add a tag or a tag collection to an attribute.",
+                'mandatory' => array('attribute', 'tag')
+            ),
+            'removeTag' => array(
+                'description' => "Remove a tag from an attribute.",
+                'mandatory' => array('attribute', 'tag')
+            ),
         ),
         'Community' => array(
             'requestAccess' => array(
@@ -80,7 +88,15 @@ class RestResponseComponent extends Component
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags', 'threat_level_id'),
                 'params' => array()
-            )
+            ),
+            'addTag' => array(
+                'description' => "Add a tag or a tag collection to an event.",
+                'mandatory' => array('event', 'tag')
+            ),
+            'removeTag' => array(
+                'description' => "Remove a tag from an event.",
+                'mandatory' => array('event', 'tag')
+            ),
         ),
         'EventGraph' => array(
             'add' => array(
@@ -944,6 +960,13 @@ class RestResponseComponent extends Component
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('Should the warning list be enforced. Adds `blocked` field for matching attributes')
             ),
+            'event' => array(
+                'input' => 'number',
+                'type' => 'integer',
+                'operators' => array('equal', 'not_equal'),
+		'validation' => array('min' => 0, 'step' => 1),
+		'help' => __('Event id')
+            ),
             'event_id' => array(
                 'input' => 'number',
                 'type' => 'integer',
@@ -1671,12 +1694,6 @@ class RestResponseComponent extends Component
                 'operators' => array('equal'),
                 'help' => __('Not supported (warninglist->checkvalues) expect an array')
             ),
-            'event' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('Not supported (removeTag)')
-            ),
             'push_rules' => array(
                 'input' => 'text',
                 'type' => 'string',
@@ -1801,6 +1818,9 @@ class RestResponseComponent extends Component
                                     case "last_seen":
                                         $this->__overwriteSeen($scope, $action, $fieldsConstraint[$field]);
                                         break;
+                                    case "attribute":
+                                        $this->__overwriteAttribute($scope, $action, $fieldsConstraint[$field]);
+                                        break;
                                     default:
                                         break;
                                 }
@@ -1880,6 +1900,11 @@ class RestResponseComponent extends Component
 
         if ($action == 'attachTagToObject') {
             $field['help'] = __('Also supports array of tags');
+        }
+    }
+    private function __overwriteAttribute($scope, $action, &$field){
+        if ($action == 'addTag' || $action == 'removeTag') {
+            $field['help'] = __('Attribute id');
         }
     }
     private function __overwriteNationality($scope, $action, &$field) {
