@@ -3037,6 +3037,34 @@ class AppModel extends Model
     }
 
     /**
+     * Optimised version of CakePHP _findList method when just one or two fields are set from same model
+     * @param string $state
+     * @param array $query
+     * @param array $results
+     * @return array
+     */
+    protected function _findList($state, $query, $results = [])
+    {
+        if ($state === 'before') {
+            return parent::_findList($state, $query, $results);
+        }
+
+        if (empty($results)) {
+            return [];
+        }
+
+        if ($query['list']['groupPath'] === null) {
+            $keyPath = explode('.', $query['list']['keyPath']);
+            $valuePath = explode('.', $query['list']['valuePath']);
+            if ($keyPath[1] === $valuePath[1]) { // same model
+                return array_column(array_column($results, $keyPath[1]), $valuePath[2], $keyPath[2]);
+            }
+        }
+
+        return parent::_findList($state, $query, $results);
+    }
+
+    /**
      * Find method that allows to fetch just one column from database.
      * @param $state
      * @param $query
