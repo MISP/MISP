@@ -510,24 +510,16 @@ class Event extends AppModel
     public function afterSave($created, $options = array())
     {
         if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
-            $db = $this->getDataSource();
-
-            $updateCorrelation = array();
-            if (isset($this->data['Event']['date'])) {
-                $updateCorrelation['Correlation.date'] = $db->value($this->data['Event']['date']);
-            }
-            if (isset($this->data['Event']['info'])) {
-                $updateCorrelation['Correlation.info'] = $db->value($this->data['Event']['info']);
-            }
+            $updateCorrelation = [];
             if (isset($this->data['Event']['distribution'])) {
-                $updateCorrelation['Correlation.distribution'] = $db->value($this->data['Event']['distribution']);
+                $updateCorrelation['Correlation.distribution'] = (int)$this->data['Event']['distribution'];
             }
             if (isset($this->data['Event']['sharing_group_id'])) {
-                $updateCorrelation['Correlation.sharing_group_id'] = $db->value($this->data['Event']['sharing_group_id']);
+                $updateCorrelation['Correlation.sharing_group_id'] = (int)$this->data['Event']['sharing_group_id'];
             }
             if (!empty($updateCorrelation)) {
                 $this->Correlation = ClassRegistry::init('Correlation');
-                $this->Correlation->updateAll($updateCorrelation, array('Correlation.event_id' => intval($this->data['Event']['id'])));
+                $this->Correlation->updateAll($updateCorrelation, ['Correlation.event_id' => (int)$this->data['Event']['id']]);
             }
         }
         if (empty($this->data['Event']['unpublishAction']) && empty($this->data['Event']['skip_zmq']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
