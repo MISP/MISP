@@ -6207,7 +6207,6 @@ class Event extends AppModel
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
-
         }
         $failed_attributes = $failed_objects = $failed_object_attributes = $failed_reports = 0;
         $saved_attributes = $saved_objects = $saved_object_attributes = $saved_reports = 0;
@@ -6244,7 +6243,7 @@ class Event extends AppModel
                         foreach ($attribute['Tag'] as $tag) {
                             $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
                             if ($tag_id) {
-                                $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $id, $tag_id);
+                                $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $id, $tag_id, !empty($tag['local']));
                             }
                         }
                     }
@@ -6581,7 +6580,7 @@ class Event extends AppModel
                 foreach ($attribute['Tag'] as $tag) {
                     $tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
                     if ($tag_id) {
-                        $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $event_id, $tag_id);
+                        $this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $event_id, $tag_id, !empty($tag['local']));
                     }
                 }
             }
