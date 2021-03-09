@@ -5374,7 +5374,7 @@ class EventsController extends AppController
             throw new MethodNotAllowedException('This endpoint requires a POST request.');
         }
 
-        $event = $this->Event->fetchSimpleEvent($this->Auth->User(), $id);
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid Event'));
         }
