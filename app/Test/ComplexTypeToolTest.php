@@ -94,6 +94,15 @@ EOT;
         $this->assertEquals('ip-dst', $results[0]['default_type']);
     }
 
+    public function testCheckFreeTextIpv4Bracket(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('we also saw an IP address (8.8.8.8).');
+        $this->assertCount(1, $results);
+        $this->assertEquals('8.8.8.8', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
     public function testCheckFreeTextIpv4WithPort(): void
     {
         $complexTypeTool = new ComplexTypeTool();
@@ -495,6 +504,24 @@ EOT;
             $results = $complexTypeTool->checkFreeText($char);
             $this->assertCount(0, $results);
         }
+    }
+
+    public function testCheckFreeTextNonBreakableSpace(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText("127.0.0.1\xc2\xa0127.0.0.2");
+        $this->assertCount(2, $results);
+        $this->assertEquals('127.0.0.1', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
+    }
+
+    public function testCheckFreeTextQuoted(): void
+    {
+        $complexTypeTool = new ComplexTypeTool();
+        $results = $complexTypeTool->checkFreeText('="127.0.0.1",="127.0.0.2","","1"');
+        $this->assertCount(2, $results);
+        $this->assertEquals('127.0.0.1', $results[0]['value']);
+        $this->assertEquals('ip-dst', $results[0]['default_type']);
     }
 
     public function testCheckFreeTextRemoveDuplicates(): void
