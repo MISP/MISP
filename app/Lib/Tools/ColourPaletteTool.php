@@ -66,7 +66,11 @@ class ColourPaletteTool
     // pass the element's id from the list along to get a colour for a single item
     public function generatePaletteFromString($string, $items, $onlySpecific = false)
     {
-        $hue = $this->__stringToNumber($string);
+        if (Validation::uuid($string)) {
+            $hue = $this->__uuidToNumber($string);
+        } else {
+            $hue = $this->__stringToNumber($string);
+        }
         $saturation = 1;
         $steps = 80 / $items;
         $results = array();
@@ -90,5 +94,13 @@ class ColourPaletteTool
             $number += ord($string[$i]);
         }
         return $number % 100 / 100;
+    }
+
+    private function __uuidToNumber($string)
+    {
+        $part = explode('-', $string)[4];
+        $number = hexdec($part);
+        $max = hexdec('ffffffffffff');
+        return round($number / $max, 2);
     }
 }
