@@ -757,7 +757,7 @@ class User extends AppModel
             'conditions' => $conditions,
             'recursive' => -1,
             'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id', 'disabled'),
-            'contain' => ['Role' => ['fields' => ['perm_site_admin', 'perm_audit']], 'Organisation' => ['fields' => ['id']]],
+            'contain' => ['Role' => ['fields' => ['perm_site_admin', 'perm_audit']], 'Organisation' => ['fields' => ['id', 'name']]],
         ));
         foreach ($users as $k => $user) {
             $user = $user['User'];
@@ -786,7 +786,7 @@ class User extends AppModel
      * the remaining two parameters are the e-mail subject and a secondary user object which will be used as the replyto address if set. If it is set and an encryption key for the replyTo user exists, then his/her public key will also be attached
      *
      * @param array $user
-     * @param string $body
+     * @param SendEmailTemplate|string $body
      * @param string|false $bodyNoEnc
      * @param string $subject
      * @param array|false $replyToUser
@@ -800,13 +800,14 @@ class User extends AppModel
             return true;
         }
 
-        $this->Log = ClassRegistry::init('Log');
+        $this->loadLog();
         $replyToLog = $replyToUser ? ' from ' . $replyToUser['User']['email'] : '';
 
         $gpg = $this->initializeGpg();
         $sendEmail = new SendEmail($gpg);
+
         try {
-            $encrypted = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc ?: null, $replyToUser ?: array());
+            $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
         } catch (SendEmailException $e) {
             $this->logException("Exception during sending e-mail", $e);
@@ -823,9 +824,9 @@ class User extends AppModel
             return false;
         }
 
-        $logTitle = $encrypted ? 'Encrypted email' : 'Email';
+        $logTitle = $result['encrypted'] ? 'Encrypted email' : 'Email';
         // Intentional two spaces to pass test :)
-        $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $subject . '".';
+        $logTitle .= $replyToLog  . '  to ' . $user['User']['email'] . ' sent, titled "' . $result['subject'] . '".';
 
         $this->Log->create();
         $this->Log->save(array(

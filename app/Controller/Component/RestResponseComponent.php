@@ -48,7 +48,15 @@ class RestResponseComponent extends Component
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
                 'params' => array()
-            )
+            ),
+            'addTag' => array(
+                'description' => "Add a tag or a tag collection to an attribute.",
+                'mandatory' => array('attribute', 'tag')
+            ),
+            'removeTag' => array(
+                'description' => "Remove a tag from an attribute.",
+                'mandatory' => array('attribute', 'tag')
+            ),
         ),
         'Community' => array(
             'requestAccess' => array(
@@ -80,7 +88,15 @@ class RestResponseComponent extends Component
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'excludeLocalTags', 'threat_level_id'),
                 'params' => array()
-            )
+            ),
+            'addTag' => array(
+                'description' => "Add a tag or a tag collection to an event.",
+                'mandatory' => array('event', 'tag')
+            ),
+            'removeTag' => array(
+                'description' => "Remove a tag from an event.",
+                'mandatory' => array('event', 'tag')
+            ),
         ),
         'EventGraph' => array(
             'add' => array(
@@ -270,10 +286,9 @@ class RestResponseComponent extends Component
                 'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
                 'params' => array('tag_id')
             ),
-            'removeTag' => array(
-                'description' => "POST a request object in JSON format to this API to create detach a tag from an event. #FIXME Function does not exists",
-                'mandatory' => array('event', 'tag'),
-                'params' => array('tag_id')
+            'removeTagFromObject' => array(
+                'description' => "Untag an event or attribute. Tag can be the id or the name.",
+                'mandatory' => array('uuid', 'tag')
             ),
             'attachTagToObject' => array(
                 'description' => "Attach a Tag to an object, refenced by an UUID. Tag can either be a tag id or a tag name.",
@@ -943,6 +958,13 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('Should the warning list be enforced. Adds `blocked` field for matching attributes')
+            ),
+            'event' => array(
+                'input' => 'number',
+                'type' => 'integer',
+                'operators' => array('equal', 'not_equal'),
+		'validation' => array('min' => 0, 'step' => 1),
+		'help' => __('Event id')
             ),
             'event_id' => array(
                 'input' => 'number',
@@ -1671,12 +1693,6 @@ class RestResponseComponent extends Component
                 'operators' => array('equal'),
                 'help' => __('Not supported (warninglist->checkvalues) expect an array')
             ),
-            'event' => array(
-                'input' => 'text',
-                'type' => 'string',
-                'operators' => array('equal'),
-                'help' => __('Not supported (removeTag)')
-            ),
             'push_rules' => array(
                 'input' => 'text',
                 'type' => 'string',
@@ -1801,6 +1817,9 @@ class RestResponseComponent extends Component
                                     case "last_seen":
                                         $this->__overwriteSeen($scope, $action, $fieldsConstraint[$field]);
                                         break;
+                                    case "attribute":
+                                        $this->__overwriteAttribute($scope, $action, $fieldsConstraint[$field]);
+                                        break;
                                     default:
                                         break;
                                 }
@@ -1880,6 +1899,11 @@ class RestResponseComponent extends Component
 
         if ($action == 'attachTagToObject') {
             $field['help'] = __('Also supports array of tags');
+        }
+    }
+    private function __overwriteAttribute($scope, $action, &$field){
+        if ($action == 'addTag' || $action == 'removeTag') {
+            $field['help'] = __('Attribute id');
         }
     }
     private function __overwriteNationality($scope, $action, &$field) {

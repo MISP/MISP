@@ -2678,7 +2678,12 @@ class AttributesController extends AppController
                             }
                         }
                     } else {
-                        $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                        $conditions = array('LOWER(Tag.name)' => strtolower(trim($tag_id)));
+                        if (!$this->_isSiteAdmin()) {
+                            $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                            $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
+                        }
+                        $tag = $this->Attribute->AttributeTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
                         if (empty($tag)) {
                             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
                         }

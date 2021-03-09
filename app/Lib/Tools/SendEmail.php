@@ -3,6 +3,36 @@ App::uses('CakeEmail', 'Network/Email');
 
 class SendEmailException extends Exception {}
 
+class CakeEmailBody
+{
+    /** @var string|null */
+    public $html;
+
+    /** @var string|null */
+    public $text;
+
+    public function __construct($text = null, $html = null)
+    {
+        $this->html = $html;
+        $this->text = $text;
+    }
+
+    /**
+     * @return string
+     */
+    public function format()
+    {
+        if (!empty($this->html) && !empty($this->text)) {
+            return 'both';
+        }
+
+        if (!empty($this->html)) {
+            return 'html';
+        }
+        return 'text';
+    }
+}
+
 /**
  * Class CakeEmailExtended
  *
@@ -14,7 +44,7 @@ class SendEmailException extends Exception {}
 class CakeEmailExtended extends CakeEmail
 {
     /**
-     * @var MimeMultipart|MessagePart
+     * @var MimeMultipart|MessagePart|CakeEmailBody
      */
     private $body;
 
@@ -30,7 +60,7 @@ class CakeEmailExtended extends CakeEmail
             $headers['Content-Type'] = $this->body->getContentType();
         } else if ($this->body instanceof MessagePart) {
             $headers = array_merge($headers, $this->body->getHeaders());
-        } else {
+        } else if ($this->_emailFormat !== 'both') { // generate correct content-type header for 'text' or 'html' format
             $headers['Content-Type'] = 'multipart/mixed; boundary="' . $this->boundary() . '"';
         }
 
@@ -71,18 +101,40 @@ class CakeEmailExtended extends CakeEmail
             return $this->body->render();
         } else if ($this->body instanceof MessagePart) {
             return $this->body->render(false);
+        } else if ($this->body instanceof CakeEmailBody) {
+            return $this->_render([]); // @see _renderTemplates
         }
 
-        return  $this->_render($this->_wrap($this->body));
+        throw new InvalidArgumentException("Expected that body is instance of MimeMultipart, MessagePart or CakeEmailBody, " . gettype($this->body) . " given.");
     }
 
-    // This is hack how to force CakeEmail to always generate multipart message.
     protected function _renderTemplates($content)
     {
+        if (!$this->body instanceof CakeEmailBody) {
+            throw new InvalidArgumentException("Expected instance of CakeEmailBody, " . gettype($this->body) . " given.");
+        }
+
         $this->_boundary = md5(uniqid());
-        $output = parent::_renderTemplates($content);
-        $output[''] = '';
-        return $output;
+
+        $rendered = [];
+        if (!empty($this->body->text)) {
+            $rendered['text'] = $this->body->text;
+        }
+        if (!empty($this->body->html)) {
+            $rendered['html'] = $this->body->html;
+        }
+
+        foreach ($rendered as $type => $content) {
+            $content = str_replace(array("\r\n", "\r"), "\n", $content);
+            $content = $this->_encodeString($content, $this->charset);
+            $content = $this->_wrap($content);
+            $content = implode("\n", $content);
+            $rendered[$type] = rtrim($content, "\n");
+        }
+
+        // This is hack how to force CakeEmail to always generate multipart message.
+        $rendered[''] = '';
+        return $rendered;
     }
 
     protected function _render($content)
@@ -101,7 +153,7 @@ class CakeEmailExtended extends CakeEmail
         if ($content !== null) {
             throw new InvalidArgumentException("Content must be null for CakeEmailExtended.");
         }
-        return parent::send($this->body);
+        return parent::send();
     }
 
     public function __toString()
@@ -252,10 +304,11 @@ class MessagePart
 
 class SendEmail
 {
-    /**
-     * @var CryptGpgExtended
-     */
+    /** @var CryptGpgExtended */
     private $gpg;
+
+    /** @var string|null */
+    private $transport;
 
     /**
      * @param CryptGpgExtended|null $gpg
@@ -272,6 +325,14 @@ class SendEmail
     }
 
     /**
+     * @param string $transport
+     */
+    public function setTransport($transport)
+    {
+        $this->transport = $transport;
+    }
+
+    /**
      * @param array $params
      * @return array|bool
      * @throws Crypt_GPG_Exception
@@ -285,7 +346,8 @@ class SendEmail
             }
         }
 
-        $params['body'] = str_replace('\n', PHP_EOL, $params['body']); // TODO: Why this?
+        $body = str_replace('\n', PHP_EOL, $params['body']); // TODO: Why this?
+        $body = new CakeEmailBody($body);
 
         $attachments = array();
         if (!empty($params['requestor_gpgkey'])) {
@@ -306,9 +368,13 @@ class SendEmail
         $email->returnPath(Configure::read('MISP.email'));
         $email->to($params['to']);
         $email->subject($params['subject']);
-        $email->emailFormat('text');
-        $email->body($params['body']);
+        $email->emailFormat($body->format());
+        $email->body($body);
         $email->attachments($attachments);
+
+        if ($this->transport) {
+            $email->transport($this->transport);
+        }
 
         $mock = false;
         if (!empty(Configure::read('MISP.disable_emailing')) || !empty($params['mock'])) {
@@ -352,16 +418,20 @@ class SendEmail
     /**
      * @param array $user
      * @param string $subject
-     * @param string $body
-     * @param string|null $bodyWithoutEncryption
+     * @param SendEmailTemplate|string $body
+     * @param string|false $bodyWithoutEncryption
      * @param array $replyToUser
-     * @return bool True if e-mail is encrypted, false if not.
+     * @return array
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      * @throws SendEmailException
      */
-    public function sendToUser(array $user, $subject, $body, $bodyWithoutEncryption = null, array $replyToUser = array())
+    public function sendToUser(array $user, $subject, $body, $bodyWithoutEncryption = false, array $replyToUser = array())
     {
+        if ($body instanceof SendEmailTemplate && $bodyWithoutEncryption !== false) {
+            throw new InvalidArgumentException("When body is instance of SendEmailTemplate, \$bodyWithoutEncryption must be false.");
+        }
+
         if (Configure::read('MISP.disable_emailing')) {
             throw new SendEmailException('Emailing is currently disabled on this instance.');
         }
@@ -378,14 +448,36 @@ class SendEmail
             throw new SendEmailException('Encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.');
         }
 
-        // If 'bodyonlyencrypted' is enabled and the user has no encryption key, use the alternate body (if it exists)
-        if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSmime && !$canEncryptGpg && $bodyWithoutEncryption) {
-            $body = $bodyWithoutEncryption;
+        // If 'GnuPG.bodyonlyencrypted' is enabled and the user has no encryption key, use the alternate body
+        $hideDetails = Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSmime && !$canEncryptGpg;
+
+        if ($body instanceof SendEmailTemplate) {
+            $body->set('canEncryptSmime', $canEncryptSmime);
+            $body->set('canEncryptGpg', $canEncryptGpg);
+            $bodyContent = $body->render($hideDetails);
+            $subject = $body->subject() ?: $subject; // Get generated subject from template
+        } else {
+            if ($hideDetails && $bodyWithoutEncryption) {
+                $body = $bodyWithoutEncryption;
+            }
+            $bodyContent = new CakeEmailBody($body);
         }
 
-        $body = str_replace('\n', PHP_EOL, $body); // TODO: Why this?
+        $email = $this->create($user, $subject, $bodyContent, [], $replyToUser);
 
-        $email = $this->create($user, $subject, $body, array(), $replyToUser);
+        if ($this->transport) {
+            $email->transport($this->transport);
+        }
+
+        // Generate `In-Reply-To` and `References` headers to group emails
+        if ($body instanceof SendEmailTemplate && $body->referenceId()) {
+            $reference = sha1($body->referenceId() . '|' .  Configure::read('MISP.uuid'));
+            $reference = "<$reference@{$email->domain()}>";
+            $email->addHeaders([
+                'In-Reply-To' => $reference,
+                'References' => $reference,
+            ]);
+        }
 
         $signed = false;
         if (Configure::read('GnuPG.sign')) {
@@ -454,8 +546,11 @@ class SendEmail
         }
 
         try {
-            $email->send();
-            return $encrypted;
+            return [
+                'contents' => $email->send(),
+                'encrypted' => $encrypted,
+                'subject' => $subject,
+            ];
         } catch (Exception $e) {
             throw new SendEmailException('The message could not be sent.', 0, $e);
         }
@@ -499,14 +594,22 @@ class SendEmail
     /**
      * @param array $user User model
      * @param string $subject
-     * @param string $body
+     * @param CakeEmailBody $body
      * @param array $attachments
      * @param array $replyToUser User model
      * @return CakeEmailExtended
      */
-    private function create(array $user, $subject, $body, array $attachments = array(), array $replyToUser = array())
+    private function create(array $user, $subject, CakeEmailBody $body, array $attachments = array(), array $replyToUser = array())
     {
         $email = new CakeEmailExtended();
+
+        $fromEmail = Configure::read('MISP.email');
+
+        // Set correct domain when sending email from CLI
+        $fromEmailParts = explode('@', $fromEmail, 2);
+        if (isset($fromEmailParts[1])) {
+            $email->domain($fromEmailParts[1]);
+        }
 
         // We must generate message ID by own, because CakeEmail returns different message ID for every call of
         // getHeaders() method.
@@ -530,11 +633,11 @@ class SendEmail
             $email->replyTo(Configure::read('MISP.email_reply_to'));
         }
 
-        $email->from(Configure::read('MISP.email'));
-        $email->returnPath(Configure::read('MISP.email')); // TODO?
+        $email->from($fromEmail, Configure::read('MISP.email_from_name'));
+        $email->returnPath($fromEmail); // TODO?
         $email->to($user['User']['email']);
         $email->subject($subject);
-        $email->emailFormat('text');
+        $email->emailFormat($body->format());
         $email->body($body);
 
         foreach ($attachments as $key => $value) {
@@ -558,14 +661,15 @@ class SendEmail
 
         $messagePart = new MessagePart();
         $messagePart->addHeader('Content-Type', array(
-            'multipart/mixed',
+            $email->emailFormat() === 'both' ? 'multipart/alternative' : 'multipart/mixed',
             'boundary="' . $email->boundary() . '"',
             'protected-headers="v1"',
         ));
 
-        // Protect User-Facing Headers according to https://tools.ietf.org/id/draft-autocrypt-lamps-protected-headers-01.html
+        // Protect User-Facing Headers and Structural Headers according to
+        // https://tools.ietf.org/id/draft-autocrypt-lamps-protected-headers-02.html
         $originalHeaders = $email->getHeaders(array('subject', 'from', 'to'));
-        $protectedHeaders = array('From', 'To', 'Date', 'Message-ID', 'Subject', 'Reply-To');
+        $protectedHeaders = ['From', 'To', 'Date', 'Message-ID', 'Subject', 'Reply-To', 'In-Reply-To', 'References'];
         foreach ($protectedHeaders as $header) {
             if (isset($originalHeaders[$header])) {
                 $messagePart->addHeader($header, $originalHeaders[$header]);
@@ -654,7 +758,7 @@ class SendEmail
 
         $messagePart = new MessagePart();
         $messagePart->addHeader('Content-Type', array(
-            'multipart/mixed',
+            $email->emailFormat() === 'both' ? 'multipart/alternative' : 'multipart/mixed',
             'boundary="' . $email->boundary() . '"',
         ));
         $messagePart->setPayload($renderedEmail);
