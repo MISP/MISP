@@ -1842,6 +1842,7 @@ class Event extends AppModel
             'blockedAttributeTags',
             'eventsExtendingUuid',
             'extended',
+            'extensionList',
             'excludeGalaxy',
             'includeCustomGalaxyCluster', // not used
             'includeRelatedTags',
@@ -2385,6 +2386,11 @@ class Event extends AppModel
                 $results[$k] = $this->__mergeExtensions($user, $result, $options);
             }
         }
+        if ($options['extensionList']) {
+            foreach ($results as $k => $result) {
+                $results[$k] = $this->__fetchEventsExtendingEvent($user, $result, $options);
+            }
+        }
         return $results;
     }
 
@@ -2569,6 +2575,37 @@ class Event extends AppModel
      * @return array
      * @throws Exception
      */
+    private function __fetchEventsExtendingEvent(array $user, array $event, array $options)
+    {
+        $extensions = $this->fetchEvent($user, [
+            'eventsExtendingUuid' => $event['Event']['uuid'],
+            'sgReferenceOnly' => $options['sgReferenceOnly'],
+            'metadata' => 1
+        ]);
+        $extensionList = [];
+        foreach ($extensions as $extension) {
+            $extensionList[] = [
+                'id' => $extension['Event']['id'],
+                'uuid' => $extension['Event']['uuid'],
+                'info' => $extension['Event']['info'],
+                'Orgc' => [
+                    'id' => $extension['Orgc']['id'],
+                    'uuid' => $extension['Orgc']['uuid'],
+                    'name' => $extension['Orgc']['name']
+                ]
+            ];
+        }
+        $event['Event']['ExtendedBy'] = $extensionList;
+        return $event;
+    }
+
+    /**
+     * @param array $user
+     * @param array $event
+     * @param array $options
+     * @return array
+     * @throws Exception
+     */
     private function __mergeExtensions(array $user, array $event, array $options)
     {
         $extensions = $this->fetchEvent($user, [
@@ -2602,7 +2639,7 @@ class Event extends AppModel
                 $event[$thingToMerge] = array_merge($event[$thingToMerge], $extensionEvent[$thingToMerge]);
             }
             // Merge event reports if requested
-            if (!$options['noEventReports']) {
+            if (!$options['noEventReports'] && isset($event['EventReport'])) {
                 $event['EventReport'] = array_merge($event['EventReport'], $extensionEvent['EventReport']);
             }
             // Merge just tags that are not already in main event
