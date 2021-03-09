@@ -2038,7 +2038,8 @@ class ServersController extends AppController
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket($params);
         $view_data = array();
-        $temp_headers = explode("\n", $request['header']);
+
+        $temp_headers = empty($request['header']) ? [] : explode("\n", $request['header']);
         $request['header'] = array(
             'Authorization' => $this->Auth->user('authkey'),
             'Accept' => 'application/json',
