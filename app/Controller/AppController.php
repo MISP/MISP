@@ -232,7 +232,7 @@ class AppController extends Controller
                 if (isset($this->components['Security'])) {
                     $this->Security->csrfCheck = false;
                 }
-                if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
+                if ($this->__loginByAuthKey() === false && $this->Auth->user() === null) {
                     throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                 }
             } elseif (!$this->Session->read(AuthComponent::$sessionKey)) {
