@@ -4467,19 +4467,6 @@ class Event extends AppModel
         }
     }
 
-    public function __getPrioWorkerIfPossible()
-    {
-        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-        $workers = $this->ResqueStatus->getWorkers();
-        $workerType = 'default';
-        foreach ($workers as $worker) {
-            if ($worker['queue'] === 'prio') {
-                $workerType = 'prio';
-            }
-        }
-        return $workerType;
-    }
-
     public function publishRouter($id, $passAlong = null, $user, $scope = 'events')
     {
         if (Configure::read('MISP.background_jobs')) {
@@ -4493,14 +4480,14 @@ class Event extends AppModel
             $job = ClassRegistry::init('Job');
             $job->create();
             $data = array(
-                    'worker' => $this->__getPrioWorkerIfPossible(),
-                    'job_type' => 'publish_event',
-                    'job_input' => 'Event ID: ' . $id,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => $message
+                'worker' => 'prio',
+                'job_type' => 'publish_event',
+                'job_input' => 'Event ID: ' . $id,
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
+                'message' => $message
             );
             $job->save($data);
             $jobId = $job->id;
@@ -5914,14 +5901,14 @@ class Event extends AppModel
             $job = ClassRegistry::init('Job');
             $job->create();
             $data = array(
-                    'worker' => $this->__getPrioWorkerIfPossible(),
-                    'job_type' => 'enrichment',
-                    'job_input' => 'Event ID: ' . $options['event_id'] . ' modules: ' . json_encode($options['modules']),
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $options['user']['org_id'],
-                    'org' => $options['user']['Organisation']['name'],
-                    'message' => 'Enriching event.',
+                'worker' => 'prio',
+                'job_type' => 'enrichment',
+                'job_input' => 'Event ID: ' . $options['event_id'] . ' modules: ' . json_encode($options['modules']),
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $options['user']['org_id'],
+                'org' => $options['user']['Organisation']['name'],
+                'message' => 'Enriching event.',
             );
             $job->save($data);
             $jobId = $job->id;
@@ -6685,19 +6672,19 @@ class Event extends AppModel
         return $this->processModuleResultsData($user, $resolved_data, $id, $default_comment = '');
     }
 
-    private function __initiateProcessJob($user, $id, $format = 'freetext')
+    private function __initiateProcessJob(array $user, $id, $format = 'freetext')
     {
         $job = ClassRegistry::init('Job');
         $job->create();
         $data = array(
-                'worker' => 'default',
-                'job_type' => __('process_' . $format . '_data'),
-                'job_input' => 'Event: ' . $id,
-                'status' => 0,
-                'retries' => 0,
-                'org_id' => $user['org_id'],
-                'org' => $user['Organisation']['name'],
-                'message' => 'Processing...'
+            'worker' => 'prio',
+            'job_type' => 'process_' . $format . '_data',
+            'job_input' => 'Event: ' . $id,
+            'status' => 0,
+            'retries' => 0,
+            'org_id' => $user['org_id'],
+            'org' => $user['Organisation']['name'],
+            'message' => 'Processing...'
         );
         $job->save($data);
         $randomFileName = $this->generateRandomFileName() . '.json';

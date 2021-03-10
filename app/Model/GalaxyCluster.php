@@ -459,14 +459,14 @@ class GalaxyCluster extends AppModel
             $job = ClassRegistry::init('Job');
             $job->create();
             $data = array(
-                    'worker' => $this->Event->__getPrioWorkerIfPossible(),
-                    'job_type' => 'publish_galaxy_clusters',
-                    'job_input' => 'Cluster ID: ' . $clusterId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => $message
+                'worker' => 'prio',
+                'job_type' => 'publish_galaxy_clusters',
+                'job_input' => 'Cluster ID: ' . $clusterId,
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
+                'message' => $message
             );
             $job->save($data);
             $jobId = $job->id;

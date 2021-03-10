@@ -3924,16 +3924,15 @@ class Server extends AppModel
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
-            $eventModel = ClassRegistry::init('Event');
             $data = array(
-                    'worker' => $eventModel->__getPrioWorkerIfPossible(),
-                    'job_type' => __('update_after_pull'),
-                    'job_input' => __('Updating: ' . $submodule_name),
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Update the database after PULLing the submodule(s).',
+                'worker' => 'prio',
+                'job_type' => __('update_after_pull'),
+                'job_input' => __('Updating: ' . $submodule_name),
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
+                'message' => 'Update the database after PULLing the submodule(s).',
             );
             $job->save($data);
             $jobId = $job->id;
