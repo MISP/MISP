@@ -3618,28 +3618,7 @@ class EventsController extends AppController
                     );
                 }
             }
-            foreach ($resultArray as $key => $result) {
-                if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
-                    $pieces = explode('|', $result['value']);
-                    if (in_array($result['default_type'], $this->Event->Attribute->primaryOnlyCorrelatingTypes)) {
-                        $or = array('Attribute.value1' => $pieces[0],
-                                    'Attribute.value2' => $pieces[0]);
-                    } else {
-                        $or = array('Attribute.value1' => $pieces,
-                                    'Attribute.value2' => $pieces);
-                    }
-                } else {
-                    $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
-                }
-                $options = array(
-                    'conditions' => array('OR' => $or),
-                    'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                    'order' => false,
-                    'limit' => 11,
-                    'flatten' => 1
-                );
-                $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
-            }
+            $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
             $resultArray = array_values($resultArray);
             $typeCategoryMapping = array();
             foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
@@ -4922,20 +4901,8 @@ class EventsController extends AppController
                 $typeCategoryMapping[$type][$k] = $k;
             }
         }
+        $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
         foreach ($resultArray as $key => $result) {
-            if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
-                $pieces = explode('|', $result['value']);
-                $or = array('Attribute.value1' => $pieces,
-                            'Attribute.value2' => $pieces);
-            } else {
-                $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
-            }
-            $options = array(
-                'conditions' => array('OR' => $or),
-                'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                'order' => false
-            );
-            $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
             if (isset($result['data'])) {
                 App::uses('FileAccessTool', 'Tools');
                 $fileAccessTool = new FileAccessTool();
@@ -5123,21 +5090,7 @@ class EventsController extends AppController
                                 $typeCategoryMapping[$type][$k] = $k;
                             }
                         }
-                        foreach ($resultArray as $key => $result) {
-                            if ($has_pipe = strpos($result['default_type'], '|') !== false || $result['default_type'] === 'malware-sample') {
-                                $pieces = explode('|', $result['value']);
-                                $or = array('Attribute.value1' => $pieces,
-                                            'Attribute.value2' => $pieces);
-                            } else {
-                                $or = array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']);
-                            }
-                            $options = array(
-                                'conditions' => array('OR' => $or),
-                                'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                                'order' => false
-                            );
-                            $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
-                        }
+                        $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
                         $this->set('event', $event);
                         $this->set('resultArray', $resultArray);
                         $this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
