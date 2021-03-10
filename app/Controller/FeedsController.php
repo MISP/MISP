@@ -690,8 +690,7 @@ class FeedsController extends AppController
         }
         $this->set('events', $events);
         $this->loadModel('Event');
-        $threat_levels = $this->Event->ThreatLevel->find('all');
-        $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+        $this->set('threatLevels', $this->Event->ThreatLevel->list());
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
@@ -798,8 +797,7 @@ class FeedsController extends AppController
                     $this->set($alias, $currentModel->{$variable});
                 }
             }
-            $threat_levels = $this->Event->ThreatLevel->find('all');
-            $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+            $this->set('threatLevels', $this->Event->ThreatLevel->list());
         } else {
             if ($event === 'blocked') {
                 throw new MethodNotAllowedException(__('This event is blocked by the Feed filters.'));

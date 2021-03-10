@@ -590,13 +590,7 @@ class EventsController extends AppController
                         $searchTermInternal = $searchTerm;
                         if ($searchTerm == 'threatlevel') {
                             $searchTermInternal = 'threat_level_id';
-                            $threatLevels = $this->Event->ThreatLevel->find('all', array(
-                                'recursive' => -1,
-                                'fields' => array('id', 'name'),
-                            ));
-                            foreach ($threatLevels as $tl) {
-                                $terms[$tl['ThreatLevel']['id']] = $tl['ThreatLevel']['name'];
-                            }
+                            $terms = $this->Event->ThreatLevel->list();
                         } elseif ($searchTerm == 'analysis') {
                             $terms = $this->Event->analysisLevels;
                         } else {
@@ -4765,8 +4759,7 @@ class EventsController extends AppController
         );
 
         $this->set('events', $this->paginate());
-        $threat_levels = $this->Event->ThreatLevel->find('all');
-        $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+        $this->set('threatLevels', $this->Event->ThreatLevel->list());
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
