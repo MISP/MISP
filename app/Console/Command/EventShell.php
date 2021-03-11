@@ -162,7 +162,7 @@ class EventShell extends AppShell
         $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->getUser($userId);
         $id = $this->args[1];
         $this->Job->id = $id;
         $this->Job->saveField('progress', 1);
@@ -309,7 +309,6 @@ class EventShell extends AppShell
         }
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'published () => (1)');
     }
 
@@ -333,7 +332,6 @@ class EventShell extends AppShell
         }
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'publish_sightings', 'Event', $id, 'Sightings for event (' . $id . '): published.', 'publish_sightings updated');
     }
 
@@ -357,7 +355,6 @@ class EventShell extends AppShell
         }
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'publish', 'GalaxyCluster', $clusterId, 'GalaxyCluster (' . $clusterId . '): published.', 'published () => (1)');
     }
 
@@ -409,7 +406,6 @@ class EventShell extends AppShell
 	echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'enrichment', 'Event', $eventId, 'Event (' . $eventId . '): enriched.', 'enriched () => (1)');
     }
 
