@@ -581,6 +581,188 @@
     },
     {
         "Feed": {
+            "name": "DNS recursion desired",
+            "provider": "dataplane.org",
+            "url": "https:\/\/dataplane.org\/dnsrd.txt",
+            "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+            "enabled": true,
+            "distribution": "3",
+            "default": false,
+            "source_format": "csv",
+            "fixed_event": true,
+            "delta_merge": false,
+            "publish": false,
+            "override_ids": false,
+            "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+            "input_source": "network",
+            "delete_local_file": false,
+            "lookup_visible": false
+        },
+        "Tag": {
+            "name": "osint:source-type=\"block-or-filter-list\"",
+            "colour": "#004f89",
+            "exportable": true,
+            "hide_tag": false
+        }
+    },
+    {
+        "Feed": {
+            "name": "DNS recursion desired IN ANY",
+            "provider": "dataplane.org",
+            "url": "https:\/\/dataplane.org\/dnsrdany.txt",
+            "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+            "enabled": true,
+            "distribution": "3",
+            "default": false,
+            "source_format": "csv",
+            "fixed_event": true,
+            "delta_merge": false,
+            "publish": false,
+            "override_ids": false,
+            "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+            "input_source": "network",
+            "delete_local_file": false,
+            "lookup_visible": false
+        },
+        "Tag": {
+            "name": "osint:source-type=\"block-or-filter-list\"",
+            "colour": "#004f89",
+            "exportable": true,
+            "hide_tag": false
+        }
+    },
+    {
+        "Feed": {
+            "name": "DNS CH TXT version.bind",
+            "provider": "dataplane.org",
+            "url": "https:\/\/dataplane.org\/dnsversion.txt",
+            "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+            "enabled": true,
+            "distribution": "3",
+            "default": false,
+            "source_format": "csv",
+            "fixed_event": true,
+            "delta_merge": false,
+            "publish": false,
+            "override_ids": false,
+            "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+            "input_source": "network",
+            "delete_local_file": false,
+            "lookup_visible": false
+        },
+        "Tag": {
+            "name": "osint:source-type=\"block-or-filter-list\"",
+            "colour": "#004f89",
+            "exportable": true,
+            "hide_tag": false
+        }
+    },
+    {
+        "Feed": {
+            "name": "IP protocol 41",
+            "provider": "dataplane.org",
+            "url": "https:\/\/dataplane.org\/proto41.txt",
+            "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+            "enabled": true,
+            "distribution": "3",
+            "default": false,
+            "source_format": "csv",
+            "fixed_event": true,
+            "delta_merge": false,
+            "publish": false,
+            "override_ids": false,
+            "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+            "input_source": "network",
+            "delete_local_file": false,
+            "lookup_visible": false
+        },
+        "Tag": {
+            "name": "osint:source-type=\"block-or-filter-list\"",
+            "colour": "#004f89",
+            "exportable": true,
+            "hide_tag": false
+        }
+    },
+    {
+        "Feed": {
+            "name": "SMTP data",
+            "provider": "dataplane.org",
+            "url": "https:\/\/dataplane.org\/smtpdata.txt",
+            "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+            "enabled": true,
+            "distribution": "3",
+            "default": false,
+            "source_format": "csv",
+            "fixed_event": true,
+            "delta_merge": false,
+            "publish": false,
+            "override_ids": false,
+            "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+            "input_source": "network",
+            "delete_local_file": false,
+            "lookup_visible": false
+        },
+        "Tag": {
+            "name": "osint:source-type=\"block-or-filter-list\"",
+            "colour": "#004f89",
+            "exportable": true,
+            "hide_tag": false
+        }
+    },
+    {
+        "Feed": {
+            "name": "SMTP greet",
+            "provider": "dataplane.org",
+            "url": "https:\/\/dataplane.org\/smtpgreet.txt",
+            "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+            "enabled": true,
+            "distribution": "3",
+            "default": false,
+            "source_format": "csv",
+            "fixed_event": true,
+            "delta_merge": false,
+            "publish": false,
+            "override_ids": false,
+            "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+            "input_source": "network",
+            "delete_local_file": false,
+            "lookup_visible": false
+        },
+        "Tag": {
+            "name": "osint:source-type=\"block-or-filter-list\"",
+            "colour": "#004f89",
+            "exportable": true,
+            "hide_tag": false
+        }
+    },
+    {
+        "Feed": {
+            "name": "TELNET login",
+            "provider": "dataplane.org",
+            "url": "https:\/\/dataplane.org\/telnetlogin.txt",
+            "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+            "enabled": true,
+            "distribution": "3",
+            "default": false,
+            "source_format": "csv",
+            "fixed_event": true,
+            "delta_merge": false,
+            "publish": false,
+            "override_ids": false,
+            "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+            "input_source": "network",
+            "delete_local_file": false,
+            "lookup_visible": false
+        },
+        "Tag": {
+            "name": "osint:source-type=\"block-or-filter-list\"",
+            "colour": "#004f89",
+            "exportable": true,
+            "hide_tag": false
+        }
+    },
+    {
+        "Feed": {
             "name": "All current domains belonging to known malicious DGAs",
             "provider": "osint.bambenekconsulting.com",
             "url": "https:\/\/osint.bambenekconsulting.com\/feeds\/dga-feed-high.csv",
