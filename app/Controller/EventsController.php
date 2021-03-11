@@ -2579,7 +2579,7 @@ class EventsController extends AppController
             throw new NotFoundException(__('Invalid event'));
         }
         if ($this->request->is('post') || $this->request->is('put')) {
-            $result = $this->Event->publishRouter($event['Event']['id'], null, $this->Auth->user(), 'sightings');
+            $result = $this->Event->publishSightingsRouter($event['Event']['id'],  $this->Auth->user());
             if (!Configure::read('MISP.background_jobs')) {
                 if (!is_array($result)) {
                     // redirect to the view event page

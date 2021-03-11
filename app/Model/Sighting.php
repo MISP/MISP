@@ -550,15 +550,19 @@ class Sighting extends AppModel
     /**
      * @param array $event
      * @param array $user
+     * @param array $sightingsUuidsToPush
      * @return Generator<array>
      */
-    public function fetchUuidsForEventToPush(array $event, array $user)
+    public function fetchUuidsForEventToPush(array $event, array $user, array $sightingsUuidsToPush = [])
     {
         $conditions = $this->createConditions($user, $event);
         if ($conditions === false) {
             return null;
         }
         $conditions['Sighting.event_id'] = $event['Event']['id'];
+        if (!empty($sightingsUuidsToPush)) {
+            $conditions['Sighting.uuid'] = $sightingsUuidsToPush;
+        }
 
         while (true) {
             $uuids = $this->find('column', [
@@ -583,11 +587,11 @@ class Sighting extends AppModel
      * @param array $event Just 'Event' object is enough
      * @param array $user
      * @param array|int|null $attribute Attribute model or attribute ID
-     * @param array|bool $extraQuery
+     * @param array|bool $extraConditions
      * @param bool $forSync
      * @return array|int
      */
-    public function attachToEvent(array $event, array $user, $attribute = null, $extraQuery = false, $forSync = false)
+    public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
     {
         $conditions = $this->createConditions($user, $event);
         if ($conditions === false) {
@@ -606,21 +610,13 @@ class Sighting extends AppModel
             ]);
         }
 
-        $query = [
+        if ($extraConditions !== false) {
+            $conditions['AND'] = $extraConditions;
+        }
+        $sightings = $this->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1,
-        ];
-        if (isset($extraQuery['conditions'])) {
-            $query['conditions']['AND'] = $extraQuery['conditions'];
-        }
-        if (isset($extraQuery['limit'])) {
-            $query['limit'] = $extraQuery['limit'];
-        }
-        if (isset($extraQuery['order'])) {
-            $query['order'] = $extraQuery['order'];
-        }
-
-        $sightings = $this->find('all', $query);
+        ));
         if (empty($sightings)) {
             return [];
         }
@@ -725,7 +721,7 @@ class Sighting extends AppModel
             }
             ++$sightingsAdded;
             if ($publish) {
-                $this->Event->publishRouter($sighting['event_id'], null, $user, 'sightings');
+                $this->Event->publishSightingsRouter($sighting['event_id'],  $user);
             }
         }
         return $sightingsAdded;
@@ -1097,7 +1093,8 @@ class Sighting extends AppModel
         }
 
         if ($this->saveMany($toSave)) {
-            $this->Event->publishRouter($event['Event']['id'], $passAlong, $user, 'sightings');
+            $existingUuids = array_column($toSave, 'uuid');
+            $this->Event->publishSightingsRouter($event['Event']['id'], $user, $passAlong, $existingUuids);
             return count($toSave);
         } else {
             return 0;

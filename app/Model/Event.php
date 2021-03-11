@@ -4317,10 +4317,11 @@ class Event extends AppModel
      * New variant of uploadEventToServersRouter (since 2.4.137) for pushing sightings.
      * @param array $event with event tags and whole sharing group
      * @param null|int $passAlong Server ID that should be skipped from uploading.
+     * @param array $sightingsUuidsToPush
      * @return array|bool
      * @throws Exception
      */
-    private function uploadEventSightingsToServersRouter(array $event, $passAlong = null)
+    private function uploadEventSightingsToServersRouter(array $event, $passAlong, array $sightingsUuidsToPush)
     {
         $this->Server = ClassRegistry::init('Server');
         $conditions = ['Server.push_sightings' => 1];
@@ -4347,7 +4348,7 @@ class Event extends AppModel
         $failedServers = [];
         foreach ($servers as $server) {
             try {
-                $this->pushSightingsToServer($server, $event);
+                $this->pushSightingsToServer($server, $event, $sightingsUuidsToPush);
             } catch (Exception $e) {
                 $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
                 $failedServers[] = $server['Server']['url'];
@@ -4362,10 +4363,12 @@ class Event extends AppModel
     /**
      * @param array $server
      * @param array $event
+     * @param array $sightingsUuidsToPush
      * @throws HttpClientJsonException
      * @throws JsonException
+     * @throws Exception
      */
-    private function pushSightingsToServer(array $server, array $event)
+    private function pushSightingsToServer(array $server, array $event, array $sightingsUuidsToPush = [])
     {
         App::uses('ServerSyncTool', 'Tools');
         if (!isset($this->Sighting)) {
@@ -4374,7 +4377,7 @@ class Event extends AppModel
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
         try {
             if ($serverSync->eventExists($event) === false) {
-                return;
+                return; // skip if event not exists on remote server
             }
         } catch (Exception $e) {}
 
@@ -4385,18 +4388,17 @@ class Event extends AppModel
             ],
         ];
 
-        foreach ($this->Sighting->fetchUuidsForEventToPush($event, $fakeSyncUser) as $sightingsUuids) {
+        // Process sightings in batch to keep memory requirements low
+        foreach ($this->Sighting->fetchUuidsForEventToPush($event, $fakeSyncUser, $sightingsUuidsToPush) as $batch) {
             // Filter out sightings that already exists on remote server
-            $existingSightings = $serverSync->filterSightingUuidsForPush($event, $sightingsUuids);
-            $sightingToPush = array_diff($sightingsUuids, $existingSightings);
-            if (empty($sightingToPush)) {
+            $existingSightings = $serverSync->filterSightingUuidsForPush($event, $batch);
+            $newSightings = array_diff($batch, $existingSightings);
+            if (empty($newSightings)) {
                 continue;
             }
 
-            $query = [
-                'conditions' => ['Sighting.uuid' => $sightingToPush],
-            ];
-            $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, $query, true);
+            $conditions = ['Sighting.uuid' => $newSightings];
+            $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, $conditions, true);
             $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
         }
     }
@@ -4516,48 +4518,81 @@ class Event extends AppModel
         }
     }
 
-    public function publishRouter($id, $passAlong = null, $user, $scope = 'events')
+    /**
+     * @param int $id Event ID
+     * @param array $user
+     * @param int|null $passAlong Server ID that should be skipped when pushing sightings.
+     * @param array $sightingUuids Push just sightings with these UUIDs
+     * @return array|bool
+     * @throws Exception
+     */
+    public function publishSightingsRouter($id, array $user, $passAlong = null, array $sightingUuids = [])
     {
         if (Configure::read('MISP.background_jobs')) {
-            $job_type = 'publish_' . $scope;
-            $function = 'publish';
-            $message = 'Publishing.';
-            if ($scope === 'sightings') {
-                $message = 'Publishing sightings.';
-                $function = 'publish_sightings';
-            }
             $job = ClassRegistry::init('Job');
+            $message = empty($sightingUuids) ? __('Publishing sightings.') : __('Publishing %s sightings.', count($sightingUuids));
             $job->create();
-            $data = array(
+            $job->save([
                 'worker' => 'prio',
                 'job_type' => 'publish_event',
                 'job_input' => 'Event ID: ' . $id,
-                'status' => 0,
-                'retries' => 0,
                 'org_id' => $user['org_id'],
                 'org' => $user['Organisation']['name'],
-                'message' => $message
+                'message' => $message,
+            ]);
+
+            $command = ['publish_sightings', $id, $passAlong, $job->id, $user['id']];
+            if (!empty($sightingUuids)) {
+                $randomFileName = $this->generateRandomFileName() . '.json';
+                App::uses('File', 'Utility');
+                $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
+                $writeResult = $tempFile->write(json_encode($sightingUuids));
+                if (!$writeResult) {
+                    throw new Exception("Could not write file content");
+                }
+                $command[] = $randomFileName;
+            }
+
+            $processId = CakeResque::enqueue('prio', 'EventShell', $command, true);
+            $job->saveField('process_id', $processId);
+            return $processId;
+        }
+
+        return $this->publish_sightings($id, $passAlong, $sightingUuids);
+    }
+
+    public function publishRouter($id, $passAlong = null, $user)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $data = array(
+                    'worker' => 'prio',
+                    'job_type' => 'publish_event',
+                    'job_input' => 'Event ID: ' . $id,
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => $user['org_id'],
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Publishing.'
             );
             $job->save($data);
             $jobId = $job->id;
             $process_id = CakeResque::enqueue(
                     'prio',
                     'EventShell',
-                    array($function, $id, $passAlong, $jobId, $user['id']),
+                    array('publish', $id, $passAlong, $jobId, $user['id']),
                     true
             );
             $job->saveField('process_id', $process_id);
             return $process_id;
-        } elseif ($scope === 'sightings') {
-            $result = $this->publish_sightings($id, $passAlong);
-            return $result;
         } else {
             $result = $this->publish($id, $passAlong);
             return $result;
         }
     }
 
-    public function publish_sightings($id, $passAlong = null, $jobId = null)
+    public function publish_sightings($id, $passAlong = null, array $sightingsUuidsToPush = [])
     {
         if (is_numeric($id)) {
             $condition = array('Event.id' => $id);
@@ -4572,18 +4607,16 @@ class Event extends AppModel
         if (empty($event)) {
             return false;
         }
-        if ($jobId) {
-            $this->Behaviors->unload('SysLogLogable.SysLogLogable');
-        } else {
-            // update the DB to set the sightings timestamp
-            // for background jobs, this should be done already
-            $fieldList = array('id', 'info', 'sighting_timestamp');
-            $event['Event']['sighting_timestamp'] = time();
-            $event['Event']['skip_zmq'] = 1;
-            $event['Event']['skip_kafka'] = 1;
-            $this->save($event, array('fieldList' => $fieldList));
-        }
-        return $this->uploadEventSightingsToServersRouter($event, $passAlong);
+
+        // update the DB to set the sightings timestamp
+        // for background jobs, this should be done already
+        $fieldList = array('id', 'info', 'sighting_timestamp');
+        $event['Event']['sighting_timestamp'] = time();
+        $event['Event']['skip_zmq'] = 1;
+        $event['Event']['skip_kafka'] = 1;
+        $this->save($event, array('fieldList' => $fieldList));
+
+        return $this->uploadEventSightingsToServersRouter($event, $passAlong, $sightingsUuidsToPush);
     }
 
     // Performs all the actions required to publish an event
