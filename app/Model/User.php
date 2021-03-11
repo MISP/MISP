@@ -1028,16 +1028,15 @@ class User extends AppModel
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
-            $eventModel = ClassRegistry::init('Event');
             $data = array(
-                    'worker' => $eventModel->__getPrioWorkerIfPossible(),
-                    'job_type' => __('reset_all_sync_api_keys'),
-                    'job_input' => __('Reseting all API keys'),
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Issuing new API keys to all sync users.',
+                'worker' => 'prio',
+                'job_type' => __('reset_all_sync_api_keys'),
+                'job_input' => __('Reseting all API keys'),
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
+                'message' => 'Issuing new API keys to all sync users.',
             );
             $job->save($data);
             $jobId = $job->id;

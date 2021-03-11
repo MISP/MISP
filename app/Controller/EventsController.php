@@ -5712,14 +5712,14 @@ class EventsController extends AppController
                 $job = ClassRegistry::init('Job');
                 $job->create();
                 $data = array(
-                        'worker' => $this->Event->__getPrioWorkerIfPossible(),
-                        'job_type' => $job_type,
-                        'job_input' => sprintf('Event ID: %s', $id),
-                        'status' => 0,
-                        'retries' => 0,
-                        'org_id' => 0,
-                        'org' => 'ADMIN',
-                        'message' => $message
+                    'worker' => 'prio',
+                    'job_type' => $job_type,
+                    'job_input' => sprintf('Event ID: %s', $id),
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => 0,
+                    'org' => 'ADMIN',
+                    'message' => $message
                 );
                 $job->save($data);
                 $jobId = $job->id;
