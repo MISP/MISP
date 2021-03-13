@@ -957,7 +957,7 @@ class AppController extends Controller
         }
         foreach ($data as $k => $v) {
             if (!is_array($data[$k])) {
-                $data[$k] = trim($data[$k]);
+                $data[$k] = trim((string) $data[$k]);
                 if (strpos($data[$k], '||')) {
                     $data[$k] = explode('||', $data[$k]);
                 }

@@ -2492,7 +2492,7 @@ class AppModel extends Model
         $pass = Configure::read('MISP.redis_password');
 
         $redis = new Redis();
-        if (!$redis->connect($host, $port)) {
+        if (!$redis->connect($host, (int) $port)) {
             throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
         }
         if (!empty($pass)) {

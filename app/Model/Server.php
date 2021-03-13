@@ -3403,7 +3403,7 @@ class Server extends AppModel
                 throw new MethodNotAllowedException('Non numeric PID found.');
             }
             if ($procAccessible) {
-                $alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
+                $alive = $correct_user ? (file_exists('/proc/' . addslashes((string) $pid))) : false;
             } else {
                 $alive = 'N/A';
             }
