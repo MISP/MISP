@@ -1,23 +1,22 @@
 <?php
-
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Job $Job
+ */
 class JobsController extends AppController
 {
     public $components = array('Security' ,'RequestHandler', 'Session');
 
     public $paginate = array(
-            'limit' => 20,
-            'order' => array(
-                    'Job.id' => 'desc'
-            ),
+        'limit' => 20,
+        'order' => array(
+            'Job.id' => 'desc'
+        ),
     );
 
     public function index($queue = false)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         if (!Configure::read('MISP.background_jobs')) {
             throw new NotFoundException('Background jobs are not enabled on this instance.');
         }
@@ -26,21 +25,18 @@ class JobsController extends AppController
         $workers = $this->Server->workerDiagnostics($issueCount);
         $this->recursive = 0;
         $queues = array('email', 'default', 'cache', 'prio', 'update');
-        if ($queue && in_array($queue, $queues)) {
+        if ($queue && in_array($queue, $queues, true)) {
             $this->paginate['conditions'] = array('Job.worker' => $queue);
         }
         $jobs = $this->paginate();
         foreach ($jobs as &$job) {
             if ($job['Job']['process_id'] !== false) {
                 $job['Job']['job_status'] = $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id']));
-                $job['Job']['failed'] = false;
-                if ($job['Job']['status'] === 'Failed') {
-                    $job['Job']['failed'] = true;
-                }
+                $job['Job']['failed'] = $job['Job']['job_status'] === 'Failed';
             } else {
-                $job['Job']['status'] = 'Unknown';
+                $job['Job']['job_status'] = 'Unknown';
             }
-            $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'] ? true : false;
+            $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
         }
         $this->set('list', $jobs);
         $this->set('queue', $queue);
@@ -63,34 +59,30 @@ class JobsController extends AppController
         switch ($status) {
             case 1:
                 return 'Waiting';
-                break;
             case 2:
                 return 'Running';
-                break;
             case 3:
                 return 'Failed';
-                break;
             case 4:
                 return 'Completed';
-                break;
             default:
                 return 'Unknown';
-                break;
         }
     }
 
     public function getGenerateCorrelationProgress($id)
     {
-        if (!self::_isSiteAdmin()) {
-            throw new NotFoundException();
-        }
-        $progress = $this->Job->findById($id);
+        $progress = $this->Job->find('first', [
+            'fields' => ['progress'],
+            'conditions' => ['id' => $id],
+            'recursive' => -1,
+        ]);
         if (!$progress) {
             $progress = 0;
         } else {
-            $progress = $progress['Job']['progress'];
+            $progress = (int)$progress['Job']['progress'];
         }
-        return new CakeResponse(array('body' => json_encode($progress), 'type' => 'json'));
+        return $this->RestResponse->viewData($progress, 'json');
     }
 
     public function getProgress($type)

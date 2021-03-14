@@ -355,7 +355,7 @@ class ACLComponent extends Component
             'jobs' => array(
                     'cache' => array('*'),
                     'getError' => array(),
-                    'getGenerateCorrelationProgress' => array('*'),
+                    'getGenerateCorrelationProgress' => array(),
                     'getProgress' => array('*'),
                     'index' => array(),
                     'clearJobs' => array()
