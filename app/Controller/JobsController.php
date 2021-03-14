@@ -38,6 +38,9 @@ class JobsController extends AppController
             }
             $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
         }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($jobs, $this->response->type());
+        }
         $this->set('list', $jobs);
         $this->set('queue', $queue);
     }
