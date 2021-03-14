@@ -75,17 +75,19 @@ class JobsController extends AppController
 
     public function getGenerateCorrelationProgress($id)
     {
-        $progress = $this->Job->find('first', [
-            'fields' => ['progress'],
+        $job = $this->Job->find('first', [
+            'fields' => ['progress', 'process_id'],
             'conditions' => ['id' => $id],
             'recursive' => -1,
         ]);
-        if (!$progress) {
-            $progress = 0;
-        } else {
-            $progress = (int)$progress['Job']['progress'];
+        if (!$job) {
+            throw new NotFoundException("Job with ID `$id` not found");
         }
-        return $this->RestResponse->viewData($progress, 'json');
+        $output = [
+            'job_status' => $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id'])),
+            'progress' => (int)$job['Job']['progress'],
+        ];
+        return $this->RestResponse->viewData($output, 'json');
     }
 
     public function getProgress($type)

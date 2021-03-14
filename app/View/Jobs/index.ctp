@@ -35,12 +35,15 @@
                 if (!document.hidden) {
                     $.getJSON('<?php echo $baseurl; ?>/jobs/getGenerateCorrelationProgress/' + id, function(data) {
                         var x = document.getElementById("bar" + id);
-                        x.style.width = data+"%";
-                        if (data > 0 && data < 100) {
-                            x.innerHTML = data + "%";
-                        }
-                        if (data == 100) {
-                            x.innerHTML = "<?php echo __('Completed.');?>";
+                        if (data.progress == 0) {
+                            x.innerText = data.job_status;
+                        } else if (data.progress > 0 && data.progress < 100) {
+                            x.style.width = data.progress + "%";
+                            x.innerText = data.progress + "%";
+                        } else if (data.progress == 100) {
+                            x.style.width = "100%";
+                            x.innerText = "<?php echo __('Completed.');?>";
+                            x.parentElement.className = "progress";
                             clearInterval(intervalArray[k]);
                         }
                     });
@@ -118,6 +121,7 @@
         } else if ($item['Job']['progress'] == 0) {
             $progress_bar_type = 'progress progress-striped progress-queued active';
             $progress_message = $item['Job']['job_status'] === 'Running' ? __('Running') : __('Queued');
+            $startRefreshing = true;
         } else {
             $progress = h($item['Job']['progress']);
             if ($item['Job']['progress'] == 100) {
