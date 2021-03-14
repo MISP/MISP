@@ -66,10 +66,8 @@ jobs:
         run: |
               git submodule update --init --recursive
               sudo apt-get -y update
-              if [[ $php_version == "7.4" ]]; then
-                # Repo is missing for unknown reason
-                LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
-              fi
+              # Repo is missing for unknown reason
+              LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
               sudo apt-get -y install curl python3 python3-zmq python3-requests python3-pip python3-nose python3-redis python3-lxml apache2 libapache2-mod-php$php_version libfuzzy-dev
               sudo pip3 install virtualenv # virtualenv must be instaled from pip and not from ubuntu pacckages
               sudo pip3 install --upgrade -r requirements.txt
