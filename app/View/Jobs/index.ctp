@@ -96,7 +96,6 @@
             <th><?php echo $this->Paginator->sort('message');?></th>
             <th><?php echo $this->Paginator->sort('Org.name', __('Organisation name'));?></th>
             <th><?php echo $this->Paginator->sort('status');?></th>
-            <th><?php echo $this->Paginator->sort('retries', __('Retries'));?></th>
             <th><?php echo $this->Paginator->sort('progress');?></th>
         </tr>
 <?php
@@ -145,7 +144,6 @@
                 endif;
             ?>
             </td>
-            <td class="short"><?php echo h($item['Job']['retries']); ?></td>
             <td style="width:200px;">
                 <div class="<?php echo $progress_bar_type; ?>" style="margin-bottom: 0px;">
                   <div id="bar<?php echo h($item['Job']['id']); ?>" class="bar" style="width: <?php echo $progress; ?>%;">
