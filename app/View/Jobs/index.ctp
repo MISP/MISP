@@ -66,6 +66,12 @@
                             'active' => $queue === 'default'
                         ),
                         array(
+                            'url' => $baseurl . '/jobs/index/prio',
+                            'text' => __('Prio'),
+                            'title' => __('Show prio queue'),
+                            'active' => $queue === 'prio'
+                        ),
+                        array(
                             'url' => $baseurl . '/jobs/index/email',
                             'text' => __('Email'),
                             'titles' => __('Show email queue'),

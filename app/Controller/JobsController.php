@@ -10,6 +10,7 @@ class JobsController extends AppController
 
     public $paginate = array(
         'limit' => 20,
+        'recursive' => 0,
         'order' => array(
             'Job.id' => 'desc'
         ),
@@ -23,7 +24,6 @@ class JobsController extends AppController
         $this->loadModel('Server');
         $issueCount = 0;
         $workers = $this->Server->workerDiagnostics($issueCount);
-        $this->recursive = 0;
         $queues = array('email', 'default', 'cache', 'prio', 'update');
         if ($queue && in_array($queue, $queues, true)) {
             $this->paginate['conditions'] = array('Job.worker' => $queue);
@@ -144,11 +144,12 @@ class JobsController extends AppController
     public function clearJobs($type = 'completed')
     {
         if ($this->request->is('post')) {
-            $conditions = array('Job.progress' => 100);
-            $message = __('All completed jobs have been purged');
-            if ($type == 'all') {
+            if ($type === 'all') {
                 $conditions = array('Job.id !=' => 0);
                 $message = __('All jobs have been purged');
+            } else {
+                $conditions = array('Job.progress' => 100);
+                $message = __('All completed jobs have been purged');
             }
             $this->Job->deleteAll($conditions, false);
             $this->Flash->success($message);
