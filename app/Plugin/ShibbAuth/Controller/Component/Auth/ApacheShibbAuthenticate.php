@@ -74,7 +74,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
         $orgTag = Configure::read('ApacheShibbAuth.OrgTag');
         $groupTag = Configure::read('ApacheShibbAuth.GroupTag');
         $groupRoleMatching = Configure::read('ApacheShibbAuth.GroupRoleMatching');
-        $blockRoleModifications = Configure::check('ApacheShibbAuth.GroupRoleMatching') ? Configure::read('ApacheShibbAuth.GroupRoleMatching') : false;
+        $blockRoleModifications = Configure::check('ApacheShibbAuth.BlockRoleModifications') ? Configure::read('ApacheShibbAuth.BlockRoleModifications') : false;
 
         // Get user values
         if (!isset($_SERVER[$mailTag])) {
