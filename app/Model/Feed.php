@@ -210,7 +210,7 @@ class Feed extends AppModel
      * @return array
      * @throws Exception
      */
-    public function getManifest($feed, HttpSocket $HttpSocket = null)
+    public function getManifest(array $feed, HttpSocket $HttpSocket = null)
     {
         $events = $this->downloadManifest($feed, $HttpSocket);
         $events = $this->__filterEventsIndex($events, $feed);
@@ -661,13 +661,19 @@ class Feed extends AppModel
         return true;
     }
 
-    private function __filterEventsIndex($events, $feed)
+    private function __filterEventsIndex(array $events, array $feed)
     {
         $filterRules = $this->__prepareFilterRules($feed);
         if (!$filterRules) {
             $filterRules = array();
         }
         foreach ($events as $k => $event) {
+            if (isset($event['orgc']) && !isset($event['Orgc'])) { // fix key case
+                $event['Orgc'] = $event['orgc'];
+                unset($event['orgc']);
+                $events[$k] = $event;
+            }
+
             if (isset($filterRules['orgs']['OR']) && !empty($filterRules['orgs']['OR']) && !in_array($event['Orgc']['name'], $filterRules['orgs']['OR'])) {
                 unset($events[$k]);
                 continue;
@@ -770,7 +776,13 @@ class Feed extends AppModel
         return $result;
     }
 
-    private function __prepareEvent($event, $feed, $filterRules)
+    /**
+     * @param array $event
+     * @param array $feed
+     * @param array $filterRules
+     * @return array|string
+     */
+    private function __prepareEvent($event, array $feed, $filterRules)
     {
         if (isset($event['response'])) {
             $event = $event['response'];
@@ -779,7 +791,11 @@ class Feed extends AppModel
             $event = $event[0];
         }
         if (!isset($event['Event']['uuid'])) {
-            throw new Exception("Event uuid field missing.");
+            throw new InvalidArgumentException("Event UUID field missing.");
+        }
+        if (isset($event['Event']['orgc']) && !isset($event['Event']['Orgc'])) { // fix key case
+            $event['Event']['Orgc'] = $event['Event']['orgc'];
+            unset($event['Event']['orgc']);
         }
         $event['Event']['distribution'] = $feed['Feed']['distribution'];
         $event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];

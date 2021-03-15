@@ -57,7 +57,7 @@ $tableData[] = [
         if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
         $serverName = $server['Server']['name'] ? '"' . $server['Server']['name'] . '" (' . $server['Server']['url'] . ')' : '"' . $server['Server']['url'] . '"';
     ?>
-    <h4 class="visibleDL notPublished" ><?php echo __('You are currently viewing an event on the remote instance %s ', h($serverName));?></h4>
+    <h4 class="visibleDL notPublished"><?php echo __('You are currently viewing an event on the remote instance %s ', h($serverName));?></h4>
     <div class="row-fluid">
         <div class="span8">
             <h2><?php echo nl2br(h($title)); ?></h2>
