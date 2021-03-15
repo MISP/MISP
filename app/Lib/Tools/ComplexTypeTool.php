@@ -246,6 +246,16 @@ class ComplexTypeTool
      */
     private function __resolveType($raw_input)
     {
+        // Check if value is clean IP without doing expensive operations.
+        if (filter_var($raw_input, FILTER_VALIDATE_IP)) {
+            return [
+                'types' => ['ip-dst', 'ip-src', 'ip-src/ip-dst'],
+                'to_ids' => true,
+                'default_type' => 'ip-dst',
+                'value' => $raw_input,
+            ];
+        }
+
         $input = array('raw' => $raw_input);
 
         // Check hashes before refang and port extracting, it is not necessary for hashes. This speedups parsing
