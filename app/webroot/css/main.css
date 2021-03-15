@@ -2481,6 +2481,19 @@ table tr:hover .down-expand-button {
     text-align: left;
 }
 
+ul.correlations {
+    margin:0;
+}
+
+ul.correlations li {
+    padding-right: 0;
+    padding-left:0;
+}
+
+ul.correlations li span, ul.correlations li a {
+    margin-right:3px;
+}
+
 .break-word {
     word-wrap: break-word;
 }
