@@ -7,7 +7,7 @@ if ($key === 'refs' &&
 ) {
     echo '<a href="' . h($value) . '" rel="noreferrer noopener">' . h($value) . '</a>';
 } else if ($key === 'country') {
-    echo $this->Icon->countryFlag($item['GalaxyElement']['value']) . ' ' . h($value);
+    echo $this->Icon->countryFlag($value) . ' ' . h($value);
 } else {
     echo h($value);
 }
