@@ -2189,13 +2189,13 @@ class Server extends AppModel
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: Tried to modify server settings but current config is broken.',
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'error',
+                'user_id' => 0,
+                'title' => 'Error: Tried to modify server settings but current config is broken.',
             ));
             return false;
         }
@@ -2234,7 +2234,7 @@ class Server extends AppModel
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
-            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'
+            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth',
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
@@ -2247,7 +2247,7 @@ class Server extends AppModel
         }
         if (empty(Configure::read('MISP.server_settings_skip_backup_rotate'))) {
             $randomFilename = $this->generateRandomFileName();
-            // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
+            // To protect us from 2 admin users having a concurrent file write to the config file, solar flares and the bogeyman
             file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
             rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
             $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
@@ -2257,14 +2257,14 @@ class Server extends AppModel
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
                 $this->Log->save(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => $id,
-                        'email' => 'SYSTEM',
-                        'action' => 'error',
-                        'user_id' => 0,
-                        'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
-                ));
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => 0,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
+               ));
                 return false;
             }
         } else {
