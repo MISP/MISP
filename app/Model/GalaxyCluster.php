@@ -818,7 +818,7 @@ class GalaxyCluster extends AppModel
     {
         $this->Event = ClassRegistry::init('Event');
         if (isset($element[$model]['distribution']) && $element[$model]['distribution'] == 4) {
-            $element[$model] = $this->Event->__captureSGForElement($element[$model], $user);
+            $element[$model] = $this->Event->captureSGForElement($element[$model], $user);
         }
         // first we want to see how the creator organisation is encoded
         // The options here are either by passing an organisation object along or simply passing a string along
