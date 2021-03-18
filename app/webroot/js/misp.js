@@ -2841,7 +2841,8 @@ function moduleResultsSubmit(id) {
                         $(this).find('.objectAttributeTag').each(function() {
                             tags.push({
                                 name: $(this).attr('title'),
-                                colour: rgb2hex($(this).css('background-color'))
+                                colour: rgb2hex($(this).css('background-color')),
+                                local: $(this).data('local'),
                             });
                         });
                         attribute['Tag'] = tags;
@@ -2900,7 +2901,8 @@ function moduleResultsSubmit(id) {
                 $(this).find('.attributeTag').each(function() {
                     tags.push({
                         name: $(this).attr('title'),
-                        colour: rgb2hex($(this).css('background-color'))
+                        colour: rgb2hex($(this).css('background-color')),
+                        local: $(this).data('local'),
                     });
                 });
                 temp['Tag'] = tags;
