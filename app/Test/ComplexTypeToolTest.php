@@ -520,4 +520,12 @@ EOT;
             $this->assertEquals('127.0.0.1', $complexTypeTool->refangValue($test, 'ip-src'));
         }
     }
+
+    // see #7214
+    public function testRefangKeepBackslashes(): void
+    {
+        $text = 'http://googlechromeupdater.twilightparadox.com/html?DVXNSTHORF=fd6f240590734406be3bd35ca3622ea0;GRIBOOZ0LN=a3bf23855b0b40dda08f709fabb60d32;\..\..\..\./mshtml,RunHTMLApplication';
+        $complexTypeTool = new ComplexTypeTool();
+        $this->assertEquals($text, $complexTypeTool->refangValue($text, 'url'));
+    }
 }
