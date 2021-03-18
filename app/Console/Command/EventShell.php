@@ -365,8 +365,9 @@ class EventShell extends AppShell
     {
         $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['enrichment'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Run enrichment'] . PHP_EOL);
         }
+
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $eventId = $this->args[1];
