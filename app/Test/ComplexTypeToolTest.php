@@ -516,7 +516,7 @@ EOT;
     public function testRefangValueDot(): void
     {
         $complexTypeTool = new ComplexTypeTool();
-        foreach (['127.0.0.1', '127[.]0.0.1', '127[.]0[.]0[.]1', '127[dot]0[dot]0[dot]1', '127(dot)0(dot)0(dot)1', '127\.0.0.1'] as $test) {
+        foreach (['127.0.0.1', '127[.]0.0.1', '127[.]0[.]0[.]1', '127[dot]0[dot]0[dot]1', '127(dot)0(dot)0(dot)1'] as $test) {
             $this->assertEquals('127.0.0.1', $complexTypeTool->refangValue($test, 'ip-src'));
         }
     }
