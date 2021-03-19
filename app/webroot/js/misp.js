@@ -4807,22 +4807,21 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
     });
 });
 
-function queryEventLock(event_id) {
+function queryEventLock(event_id, timestamp) {
     if (!document.hidden) {
         $.ajax({
-            url: baseurl + "/events/checkLocks/" + event_id,
-            type: "get",
+            url: baseurl + "/events/checkLocks/" + event_id + "/" + timestamp,
             success: function(data, statusText, xhr) {
                  if (xhr.status == 200) {
                      $('#event_lock_warning').remove();
-                     if (data != '') {
-                         $('#main-view-container').append(data);
-                     }
+                     $('#main-view-container').append(data);
+                 } else if (xhr.status == 204) {
+                     $('#event_lock_warning').remove();
                  }
             }
         });
     }
-    setTimeout(function() { queryEventLock(event_id); }, 5000);
+    setTimeout(function() { queryEventLock(event_id, timestamp); }, 5000);
 }
 
 function checkIfLoggedIn() {
