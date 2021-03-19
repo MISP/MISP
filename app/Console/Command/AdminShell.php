@@ -463,7 +463,7 @@ class AdminShell extends AppShell
     {
         $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
-            echo 'MISP apikey command line tool.' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake change_authkey [email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake change_authkey [email] [authkey]' . PHP_EOL;
+            echo 'MISP apikey command line tool' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Admin change_authkey [user_email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Admin change_authkey [user_email] [authkey]' . PHP_EOL;
             die();
         }
 
@@ -557,8 +557,7 @@ class AdminShell extends AppShell
         $this->ConfigLoad->execute();
         if (empty($this->args[0])) {
             echo sprintf(
-                __("MISP mass sync authkey reset command line tool.\n\nUsage: %sConsole/cake resetSyncAuthkeys [user_id]") . "\n\n",
-                APP
+                __("MISP mass sync authkey reset command line tool" . PHP_EOL . "Usage: %sConsole/cake Admin resetSyncAuthkeys [user_id]" . PHP_EOL), APP
             );
             die();
         }

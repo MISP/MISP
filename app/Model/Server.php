@@ -144,7 +144,7 @@ class Server extends AppModel
                     'Change authkey' => 'MISP/app/Console/cake Admin change_authkey [user_email] [authkey]',
                     'Set baseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
                     'Change password' => 'MISP/app/Console/cake Password [email] [new_password] [--override_password_change]',
-                    'Clear Bruteforce Entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
+                    'Clear Bruteforce entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
                     'Clean caches' => 'MISP/app/Console/cake Admin cleanCaches',
                     'Set database version' => 'MISP/app/Console/cake Admin setDatabaseVersion [version]',
                     'Run database update' => 'MISP/app/Console/cake Admin updateDatabase',
@@ -152,7 +152,7 @@ class Server extends AppModel
                     'Update all JSON structures' => 'MISP/app/Console/cake Admin updateJSON',
                     'Update Galaxy definitions' => 'MISP/app/Console/cake Admin updateGalaxies',
                     'Update taxonomy definitions' => 'MISP/app/Console/cake Admin updateTaxonomies',
-                    'Update object templates' => 'MISP/app/Console/cake Admin updateObjectTemplates',
+                    'Update object templates' => 'MISP/app/Console/cake Admin updateObjectTemplates [user_id]',
                     'Update Warninglists' => 'MISP/app/Console/cake Admin updateWarningLists',
                     'Update Noticelists' => 'MISP/app/Console/cake Admin updateNoticeLists',
                     'Set default role' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]',
@@ -169,6 +169,8 @@ class Server extends AppModel
                     'Reset sync authkeys' => 'MISP/app/Console/cake Admin resetSyncAuthkeys [user_id]',
                     'Purge feed events' => 'MISP/app/Console/cake Admin purgeFeedEvents [user_id] [feed_id]',
                     'Dump current database schema' => 'MISP/app/Console/cake Admin dumpCurrentDatabaseSchema',
+                    'Scan attachment' => 'MISP/app/Console/cake Admin scanAttachment [input] [attribute_id] [job_id]',
+                    'Clean excluded correlations' => 'MISP/app/Console/cake Admin cleanExcludedCorrelations [job_id]',
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')
@@ -181,7 +183,6 @@ class Server extends AppModel
                     'Cache server' => 'MISP/app/Console/cake Server cacheServer [user_id] [feed_id|all|csv|text|misp] [job_id]',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp] [job_id]',
                     'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp] [job_id]',
-                    'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
                     'Test' => 'MISP/app/Console/cake Server test [server_id]',
                     'List' => 'MISP/app/Console/cake Server list',
                     'Enqueue pull' => 'MISP/app/Console/cake Server enqueuePull [timestamp] [user_id] [task_id]',
@@ -191,6 +192,26 @@ class Server extends AppModel
                 ),
                 'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
                 'header' => __('Automating certain console tasks')
+            ),
+            'event_management_tasks' => array(
+                'data' => array(
+                    'Publish event' => 'MISP/app/Console/cake Event publish [event_id] [pass_along] [job_id] [user_id]',
+                    'Publish sightings' => 'MISP/app/Console/cake Event publish_sightings [event_id] [pass_along] [job_id] [user_id]',
+                    'Publish Galaxy clusters' => 'MISP/app/Console/cake Event publish_galaxy_clusters [cluster_id] [job_id] [user_id] [pass_along]',
+                    'Cache event' => 'MISP/app/Console/cake Event cache [user_id] [event_id] [export_type]',
+                    'Cache bro' => 'MISP/app/Console/cake Event cachebro [user_id] [event_id]',
+                    'Recover event' => 'MISP/app/Console/cake Event recoverEvent [job_id] [event_id]',
+                    'Alert email' => 'MISP/app/Console/cake Event alertemail [user_id] [job_id] [event_id] [old_publish]',
+                    'Contact email' => 'MISP/app/Console/cake Event contactemail [event_id] [message] [all] [user_id] [process_id]',
+                    'Posts email' => 'MISP/app/Console/cake Event postsemail [user_id] [post_id] [event_id] [title] [message] [process_id]',
+                    'Enqueue caching' => 'MISP/app/Console/cake Event enqueueCaching [timestamp]',
+                    'Do publish' => 'MISP/app/Console/cake Event doPublish [event_id]',
+                    'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
+                    'Process free text' => 'MISP/app/Console/cake Event processfreetext [input]',
+                    'Process module result' => 'MISP/app/Console/cake Event processmoduleresult [input]',
+                ),
+                'description' => __('The events can be managed via the CLI in addition to the UI / API management tools'),
+                'header' => __('Managing the events')
             ),
             'worker_management_tasks' => array(
                 'data' => array(
@@ -202,7 +223,7 @@ class Server extends AppModel
                 ),
                 'description' => __('The background workers can be managed via the CLI in addition to the UI / API management tools'),
                 'header' => __('Managing the background workers')
-            )
+            ),
         );
     }
 

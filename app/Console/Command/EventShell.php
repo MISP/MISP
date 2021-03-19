@@ -77,6 +77,10 @@ class EventShell extends AppShell
     public function doPublish()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Do publish'] . PHP_EOL);
+        }
+
         $id = $this->args[0];
         $this->Event->id = $id;
         if (!$this->Event->exists()) {
@@ -107,6 +111,10 @@ class EventShell extends AppShell
     public function cache()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache event'] . PHP_EOL);
+        }
+
         $timeStart = time();
         $userId = $this->args[0];
         $id = $this->args[1];
@@ -160,6 +168,10 @@ class EventShell extends AppShell
     public function cachebro()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache bro'] . PHP_EOL);
+        }
+
         $timeStart = time();
         $userId = $this->args[0];
         $user = $this->User->getAuthUser($userId);
@@ -197,6 +209,10 @@ class EventShell extends AppShell
     public function alertemail()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Alert email'] . PHP_EOL);
+        }
+
         $userId = $this->args[0];
         $jobId = $this->args[1];
         $eventId = $this->args[2];
@@ -208,6 +224,11 @@ class EventShell extends AppShell
     public function contactemail()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
+            empty($this->args[3]) || empty($this->args[4])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Contact email'] . PHP_EOL);
+        }
+
         $id = $this->args[0];
         $message = $this->args[1];
         $all = $this->args[2];
@@ -222,6 +243,11 @@ class EventShell extends AppShell
     public function postsemail()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
+            empty($this->args[3]) || empty($this->args[4]) || empty($this->args[5])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Posts email'] . PHP_EOL);
+        }
+
         $userId = $this->args[0];
         $postId = $this->args[1];
         $eventId = $this->args[2];
@@ -239,6 +265,10 @@ class EventShell extends AppShell
     public function enqueueCaching()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Enqueue caching'] . PHP_EOL);
+        }
+
         $timestamp = $this->args[0];
         $task = $this->Task->findByType('cache_exports');
 
@@ -292,6 +322,10 @@ class EventShell extends AppShell
     public function publish()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event'] . PHP_EOL);
+        }
+
         $id = $this->args[0];
         $passAlong = $this->args[1];
         $jobId = $this->args[2];
@@ -316,6 +350,10 @@ class EventShell extends AppShell
     public function publish_sightings()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish sightings'] . PHP_EOL);
+        }
+
         $id = $this->args[0];
         $passAlong = $this->args[1];
         $jobId = $this->args[2];
@@ -340,6 +378,10 @@ class EventShell extends AppShell
     public function publish_galaxy_clusters()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || empty($this->args[3])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish Galaxy clusters'] . PHP_EOL);
+        }
+
         $clusterId = $this->args[0];
         $jobId = $this->args[1];
         $userId = $this->args[2];
@@ -365,7 +407,7 @@ class EventShell extends AppShell
     {
         $this->ConfigLoad->execute();
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Run enrichment'] . PHP_EOL);
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run enrichment'] . PHP_EOL);
         }
 
         $userId = $this->args[0];
@@ -417,6 +459,10 @@ class EventShell extends AppShell
     public function processfreetext()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process free text'] . PHP_EOL);
+        }
+
         $inputFile = $this->args[0];
         $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
         $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
@@ -438,6 +484,10 @@ class EventShell extends AppShell
     public function processmoduleresult()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process module result'] . PHP_EOL);
+        }
+
         $inputFile = $this->args[0];
         $tempDir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
         $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
@@ -456,6 +506,10 @@ class EventShell extends AppShell
     public function recoverEvent()
     {
         $this->ConfigLoad->execute();
+        if (empty($this->args[0]) || empty($this->args[1])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Recover event'] . PHP_EOL);
+        }
+
         $jobId = $this->args[0];
         $id = $this->args[1];
         $job = $this->Job->read(null, $jobId);
