@@ -1009,9 +1009,22 @@ class EventsController extends AppController
             $tagJSON[] = array('id' => $tagId, 'value' => $tagName);
         }
 
-        $rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'sharinggroup', 'analysis', 'attribute', 'hasproposal');
+        $rules = [
+            'published' => __('Published'),
+            'eventid' => __('Event ID'),
+            'tag' => __('Tag'),
+            'date' => __('Date'),
+            'eventinfo' => __('Event info'),
+            'threatlevel' => __('Threat level'),
+            'distribution' => __('Distribution'),
+            'sharinggroup' => __('Sharing group'),
+            'analysis' => __('Analysis'),
+            'attribute' => __('Attribute'),
+            'hasproposal' => __('Has proposal'),
+        ];
+
         if ($this->_isSiteAdmin()) {
-            $rules[] = 'email';
+            $rules['email'] = __('Email');
         }
         if (Configure::read('MISP.showorg')) {
             $orgs = $this->Event->Orgc->find('list', array(
@@ -1020,13 +1033,12 @@ class EventsController extends AppController
             ));
             $this->set('showorg', true);
             $this->set('orgs', $orgs);
-            $rules[] = 'org';
+            $rules['org'] = __('Organisation');
         } else {
             $this->set('showorg', false);
         }
         $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true);
         $this->set('sharingGroups', $sharingGroups);
-        $rules = $this->_arrayToValuesIndexArray($rules);
         $this->set('tags', $tagNames);
         $this->set('tagJSON', json_encode($tagJSON));
         $this->set('rules', $rules);
