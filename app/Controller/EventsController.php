@@ -811,29 +811,21 @@ class EventsController extends AppController
                 unset($events[$k]['SharingGroup']);
             }
         }
-        $events = $this->Event->attachTagsToEvents($events);
-        if (Configure::read('MISP.showCorrelationsOnIndex')) {
-            $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
-        }
-        if (Configure::read('MISP.showSightingsCountOnIndex')) {
-            $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
-        }
-        if (Configure::read('MISP.showProposalsCountOnIndex')) {
-            $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
-        }
-        if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
-            $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
-        }
-        $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true);
 
         if ($this->params['ext'] === 'csv') {
+            $events = $this->__attachInfoToEvents(['tags'], $events);
             App::uses('CsvExport', 'Export');
             $export = new CsvExport();
             return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
         }
 
+        list($possibleColumns, $enabledColumns) = $this->__indexColumns();
+        $events = $this->__attachInfoToEvents($enabledColumns, $events);
+
         $this->__noKeyNotification();
         $this->set('events', $events);
+        $this->set('possibleColumns', $possibleColumns);
+        $this->set('columns', $enabledColumns);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
@@ -848,6 +840,79 @@ class EventsController extends AppController
             $this->layout = false;
             $this->render('ajax/index');
         }
+    }
+
+    private function __indexColumns()
+    {
+        $possibleColumns = [];
+
+        if ($this->_isSiteAdmin() && !Configure::read('MISP.showorgalternate')) {
+            $possibleColumns[] = 'owner_org';
+        }
+
+        if (Configure::read('MISP.tagging')) {
+            $possibleColumns[] = 'clusters';
+            $possibleColumns[] = 'tags';
+        }
+
+        $possibleColumns[] = 'attribute_count';
+
+        if (Configure::read('MISP.showCorrelationsOnIndex')) {
+            $possibleColumns[] = 'correlations';
+        }
+
+        if (Configure::read('MISP.showSightingsCountOnIndex')) {
+            $possibleColumns[] = 'sightings';
+        }
+
+        if (Configure::read('MISP.showProposalsCountOnIndex')) {
+            $possibleColumns[] = 'proposals';
+        }
+
+        if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
+            $possibleColumns[] = 'discussion';
+        }
+
+        if ($this->_isSiteAdmin()) {
+            $possibleColumns[] = 'creator_user';
+        }
+
+        $userEnabledColumns = $this->User->UserSetting->getValueForUser($this->Auth->user()['id'], 'event_index_hide_columns');
+        if ($userEnabledColumns === null) {
+            $userEnabledColumns = [];
+        }
+
+        $enabledColumns = array_diff($possibleColumns, $userEnabledColumns);
+
+        return [$possibleColumns, $enabledColumns];
+    }
+
+    private function __attachInfoToEvents(array $columns, array $events)
+    {
+        $user = $this->Auth->user();
+
+        if (in_array('tags', $columns, true) || in_array('clusters', $columns, true)) {
+            $events = $this->Event->attachTagsToEvents($events);
+            $events = $this->GalaxyCluster->attachClustersToEventIndex($user, $events, true);
+        }
+
+        if (in_array('correlations', $columns, true)) {
+            $events = $this->Event->attachCorrelationCountToEvents($user, $events);
+        }
+
+        if (in_array('sightings', $columns, true)) {
+            $events = $this->Event->attachSightingsCountToEvents($user, $events);
+        }
+
+        if (in_array('proposals', $columns, true)) {
+            $events = $this->Event->attachProposalsCountToEvents($user, $events);
+        }
+
+        if (in_array('discussion', $columns, true)) {
+            $events = $this->Event->attachDiscussionsCountToEvents($user, $events);
+        }
+
+        return $events;
     }
 
     private function __noKeyNotification()

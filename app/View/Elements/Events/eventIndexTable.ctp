@@ -16,49 +16,31 @@
             <th class="filter"><?php echo $this->Paginator->sort('Org', 'Source org'); ?></th>
             <th class="filter"><?php echo $this->Paginator->sort('Org', 'Member org'); ?></th>
         <?php
-            else:
-                if (Configure::read('MISP.showorg') || $isAdmin):
+            elseif (Configure::read('MISP.showorg') || $isAdmin):
         ?>
-                    <th class="filter"><?php echo $this->Paginator->sort('Org', __('Creator org')); ?></th>
+            <th class="filter"><?php echo $this->Paginator->sort('Org', __('Creator org')); ?></th>
         <?php
                 endif;
-                if ($isSiteAdmin):
-        ?>
-            <th class="filter"><?php echo $this->Paginator->sort('owner org', __('Owner org'));?></th>
-        <?php
-                endif;
-            endif;
             $date = time();
             $day = 86400;
         ?>
-        <th><?php echo $this->Paginator->sort('id', __('ID'), array('direction' => 'desc'));?></th>
-        <th><?php echo __('Clusters');?></th>
-        <?php if (Configure::read('MISP.tagging')): ?>
-            <th class="filter"><?php echo __('Tags');?></th>
-        <?php endif; ?>
-        <th title="<?php echo __('Attribute Count');?>"><?php echo $this->Paginator->sort('attribute_count', __('#Attr.'));?></th>
-        <?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-            <th title="<?php echo __('Correlation Count');?>"><?php echo __('#Corr.');?></th>
-        <?php endif; ?>
-        <?php if (Configure::read('MISP.showSightingsCountOnIndex')):?>
-            <th title="<?php echo __('Sigthing Count');?>"><?php echo __('#Sightings');?></th>
-        <?php endif; ?>
-        <?php if (Configure::read('MISP.showProposalsOnIndex')):?>
-            <th title="<?php echo __('Proposal Count');?>"><?php echo __('#Prop');?></th>
-        <?php endif; ?>
-        <?php if (Configure::read('MISP.showDiscussionsCountOnIndex')):?>
-            <th title="<?php echo __('Post Count');?>"><?php echo __('#Posts');?></th>
-        <?php endif; ?>
-        <?php if ($isSiteAdmin): ?>
-        <th><?php echo $this->Paginator->sort('user_id', __('Creator user'));?></th>
-        <?php endif; ?>
-        <th class="filter"><?php echo $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
-        <th class="filter"><?php echo $this->Paginator->sort('info');?></th>
-        <th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
-            <?php echo $this->Paginator->sort('distribution');?>
+
+        <?php if (in_array('owner_org', $columns, true)): ?><th class="filter"><?= $this->Paginator->sort('owner org', __('Owner org')) ?></th><?php endif; ?>
+        <th><?= $this->Paginator->sort('id', __('ID'), ['direction' => 'desc']) ?></th>
+        <?php if (in_array('clusters', $columns, true)): ?><th><?= __('Clusters') ?></th><?php endif; ?>
+        <?php if (in_array('tags', $columns, true)): ?><th><?= __('Tags') ?></th><?php endif; ?>
+        <?php if (in_array('attribute_count', $columns, true)): ?><th title="<?= __('Attribute Count') ?>"><?= $this->Paginator->sort('attribute_count', __('#Attr.')) ?></th><?php endif; ?>
+        <?php if (in_array('correlations', $columns, true)): ?><th title="<?= __('Correlation Count')  ?>"><?= __('#Corr.') ?></th><?php endif; ?>
+        <?php if (in_array('sightings', $columns, true)): ?><th title="<?= __('Sighting Count')?>"><?= __('#Sightings') ?></th><?php endif; ?>
+        <?php if (in_array('proposals', $columns, true)): ?><th title="<?= __('Proposal Count') ?>"><?= __('#Prop') ?></th><?php endif; ?>
+        <?php if (in_array('discussion', $columns, true)): ?><th title="<?= __('Post Count') ?>"><?= __('#Posts') ?></th><?php endif; ?>
+        <?php if (in_array('creator_user', $columns, true)): ?><th><?= $this->Paginator->sort('user_id', __('Creator user')) ?></th><?php endif; ?>
+        <th class="filter"><?= $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
+        <th class="filter"><?= $this->Paginator->sort('info');?></th>
+        <th title="<?= $eventDescriptions['distribution']['desc'];?>">
+            <?= $this->Paginator->sort('distribution');?>
         </th>
         <th class="actions"><?php echo __('Actions');?></th>
-
     </tr>
     <?php foreach ($events as $event): ?>
     <tr <?php if ($event['Event']['distribution'] == 0) echo 'class="privateRed"'?> id="event_<?php echo h($event['Event']['id']);?>">
@@ -85,7 +67,7 @@
                 <?= $this->OrgImg->getOrgLogo($event['Orgc'], 24) ?>
             </td>
         <?php endif;?>
-        <?php if ($isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
+        <?php if (in_array('owner_org', $columns, true) || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
             <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Org']['id'];?>'">
                 <?= $this->OrgImg->getOrgLogo($event['Org'], 24) ?>
             </td>
@@ -93,16 +75,16 @@
         <td style="width:30px;">
             <a href="<?= $baseurl."/events/view/".$event['Event']['id'] ?>" class="threat-level-<?= strtolower($event['ThreatLevel']['name']) ?>"><?= $event['Event']['id'] ?></a>
         </td>
+        <?php if (in_array('clusters', $columns, true)): ?>
         <td class="short">
             <?php
                 $galaxies = array();
                 if (!empty($event['GalaxyCluster'])) {
-                    foreach ($event['GalaxyCluster'] as $gk => $galaxy_cluster) {
+                    foreach ($event['GalaxyCluster'] as $galaxy_cluster) {
                         $galaxy_id = $galaxy_cluster['Galaxy']['id'];
                         if (!isset($galaxies[$galaxy_id])) {
                             $galaxies[$galaxy_id] = $galaxy_cluster['Galaxy'];
                         }
-                        $galaxy_id = $galaxy_cluster['Galaxy']['id'];
                         unset($galaxy_cluster['Galaxy']);
                         $galaxies[$galaxy_id]['GalaxyCluster'][] = $galaxy_cluster;
                     }
@@ -118,53 +100,51 @@
                 }
             ?>
         </td>
-        <?php
-            if (Configure::read('MISP.tagging')) {
-                echo sprintf(
-                    '<td class="shortish">%s</td>',
-                    $this->element(
-                        'ajaxTags',
-                        array(
-                            'event' => $event,
-                            'tags' => $event['EventTag'],
-                            'tagAccess' => false,
-                            'localTagAccess' => false,
-                            'missingTaxonomies' => false,
-                            'columnised' => true,
-                            'static_tags_only' => 1,
-                            'tag_display_style' => Configure::check('MISP.full_tags_on_event_index') ? Configure::read('MISP.full_tags_on_event_index') : 1
-                        )
-                    )
-                );
-            }
-        ?>
-        <td style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-            <?php echo $event['Event']['attribute_count']; ?>&nbsp;
+        <?php endif; ?>
+        <?php if (in_array('tags', $columns, true)): ?>
+        <td class="shortish">
+            <?= $this->element('ajaxTags', [
+                    'event' => $event,
+                    'tags' => $event['EventTag'],
+                    'tagAccess' => false,
+                    'localTagAccess' => false,
+                    'missingTaxonomies' => false,
+                    'columnised' => true,
+                    'static_tags_only' => 1,
+                    'tag_display_style' => Configure::check('MISP.full_tags_on_event_index') ? Configure::read('MISP.full_tags_on_event_index') : 1
+                ]);
+            ?>
         </td>
-        <?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
+        <?php endif; ?>
+        <?php if (in_array('attribute_count', $columns, true)): ?>
+        <td style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
+            <?= $event['Event']['attribute_count']; ?>
+        </td>
+        <?php endif; ?>
+        <?php if (in_array('correlations', $columns, true)): ?>
             <td class="bold" style="width:30px;">
                 <?php if (!empty($event['Event']['correlation_count'])): ?>
-                    <a href="<?php echo $baseurl."/events/view/" . h($event['Event']['id']) . '/correlation:1';?>" title="<?php echo h($event['Event']['correlation_count']) . __(' correlation(s). Show filtered event with correlation only.');?>">
-                        <?php echo h($event['Event']['correlation_count']); ?>&nbsp;
+                    <a href="<?php echo $baseurl."/events/view/" . h($event['Event']['id']) . '/correlation:1';?>" title="<?= __n('%s correlation', '%s correlations', $event['Event']['correlation_count'], $event['Event']['correlation_count']), '. ' . __('Show filtered event with correlation only.');?>">
+                        <?php echo h($event['Event']['correlation_count']); ?>
                     </a>
                 <?php endif; ?>
             </td>
         <?php endif; ?>
-        <?php if (Configure::read('MISP.showSightingsCountOnIndex')):?>
+        <?php if (in_array('sightings', $columns, true)): ?>
             <td class="bold" style="width:30px;">
                 <?php if (!empty($event['Event']['sightings_count'])): ?>
                     <a href="<?php echo $baseurl."/events/view/" . h($event['Event']['id']) . '/sighting:1';?>" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s). Show filtered event with sighting(s) only.';?>">
-                        <?php echo h($event['Event']['sightings_count']); ?>&nbsp;
+                        <?php echo h($event['Event']['sightings_count']); ?>
                     </a>
                 <?php endif; ?>
             </td>
         <?php endif; ?>
-        <?php if (Configure::read('MISP.showProposalsOnIndex')): ?>
+        <?php if (in_array('proposals', $columns, true)): ?>
             <td class="bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . __(' proposal(s)');?>">
-                <?php echo !empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : ''; ?>&nbsp;
+                <?php echo !empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : ''; ?>
             </td>
         <?php endif;?>
-        <?php if (Configure::read('MISP.showDiscussionsCountOnIndex')): ?>
+        <?php if (in_array('discussion', $columns, true)): ?>
             <td class="bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . __(' proposal(s)');?>">
                 <?php
                     if (!empty($event['Event']['post_count'])) {
@@ -176,19 +156,19 @@
                         $post_count = '';
                     }
                 ?>
-                <span style=" white-space: nowrap;"><?php echo $post_count?></span>&nbsp;
+                <span style=" white-space: nowrap;"><?php echo $post_count?></span>
             </td>
         <?php endif;?>
-        <?php if ($isSiteAdmin): ?>
+        <?php if (in_array('creator_user', $columns, true)): ?>
             <td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-                <?php echo h($event['User']['email']); ?>&nbsp;
+                <?php echo h($event['User']['email']); ?>
             </td>
         <?php endif; ?>
         <td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-            <?php echo $event['Event']['date']; ?>&nbsp;
+            <?php echo $event['Event']['date']; ?>
         </td>
         <td ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-            <?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
+            <?php echo nl2br(h($event['Event']['info'])); ?>
         </td>
         <td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="location.href ='<?php echo $baseurl; ?>/events/view/<?php echo $event['Event']['id'];?>'" title="<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : __('All');?>">
             <?php if ($event['Event']['distribution'] == 4):?>
