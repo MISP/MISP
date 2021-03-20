@@ -561,8 +561,13 @@ class Event extends AppModel
         return $events;
     }
 
-    // gets the logged in user + an array of events, attaches the correlation count to each
-    public function attachCorrelationCountToEvents($user, $events)
+    /**
+     * Gets the logged in user + an array of events, attaches the correlation count to each
+     * @param array $user
+     * @param array $events
+     * @return array
+     */
+    public function attachCorrelationCountToEvents(array $user, array $events)
     {
         $sgids = $this->SharingGroup->fetchAllAuthorised($user);
         if (!isset($sgids) || empty($sgids)) {
@@ -571,30 +576,28 @@ class Event extends AppModel
         $this->Correlation = ClassRegistry::init('Correlation');
         $eventIds = array_column(array_column($events, 'Event'), 'id');
         $conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
-        $correlations = $this->Correlation->find('all', array(
-            'fields' => array('Correlation.1_event_id', 'count(distinct(Correlation.event_id)) as count'),
+        $this->Correlation->virtualFields['count'] = 'count(distinct(Correlation.event_id))';
+        $correlations = $this->Correlation->find('list', array(
+            'fields' => array('Correlation.1_event_id', 'Correlation.count'),
             'conditions' => $conditionsCorrelation,
-            'recursive' => -1,
             'group' => array('Correlation.1_event_id'),
         ));
-        $correlations = Hash::combine($correlations, '{n}.Correlation.1_event_id', '{n}.0.count');
         foreach ($events as &$event) {
             $event['Event']['correlation_count'] = isset($correlations[$event['Event']['id']]) ? $correlations[$event['Event']['id']] : 0;
         }
         return $events;
     }
 
-    public function attachSightingsCountToEvents($user, $events)
+    public function attachSightingsCountToEvents(array $user, array $events)
     {
         $eventIds = array_column(array_column($events, 'Event'), 'id');
         $this->Sighting = ClassRegistry::init('Sighting');
-        $sightings = $this->Sighting->find('all', array(
-            'fields' => array('Sighting.event_id', 'count(distinct(Sighting.id)) as count'),
+        $this->Sighting->virtualFields['count'] = 'count(Sighting.id)';
+        $sightings = $this->Sighting->find('list', array(
+            'fields' => array('Sighting.event_id', 'Sighting.count'),
             'conditions' => array('event_id' => $eventIds),
-            'recursive' => -1,
             'group' => array('event_id')
         ));
-        $sightings = Hash::combine($sightings, '{n}.Sighting.event_id', '{n}.0.count');
         foreach ($events as $key => $event) {
             $events[$key]['Event']['sightings_count'] = isset($sightings[$event['Event']['id']]) ? $sightings[$event['Event']['id']] : 0;
         }
