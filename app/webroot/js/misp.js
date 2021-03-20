@@ -5277,10 +5277,10 @@ function setHomePage() {
     });
 }
 
-function changeLocationFromIndexDblclick(row_index) {
-    var href = $('table tr[data-row-id=\"' + row_index + '\"] .dblclickActionElement').attr('href')
+$(document.body).on('dblclick', '.dblclickElement', function() {
+    var href = $(this).closest('tr').find('.dblclickActionElement').attr('href');
     window.location = href;
-}
+});
 
 function loadClusterRelations(clusterId) {
     if (clusterId !== undefined) {
