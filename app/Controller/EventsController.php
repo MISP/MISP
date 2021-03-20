@@ -1000,19 +1000,21 @@ class EventsController extends AppController
             }
         }
         $this->set('filtering', json_encode($filtering));
-        $tagNames = $this->Event->EventTag->Tag->find('list', array('recursive' => -1, 'fields' => ['Tag.id', 'Tag.name']));
-        $tagJSON = array();
+
+        $tagNames = $this->Event->EventTag->Tag->find('list', [
+            'fields' => ['Tag.id', 'Tag.name'],
+        ]);
+        $tagJSON = [];
         foreach ($tagNames as $tagId => $tagName) {
-            $tagJSON[] = array('id' => $tagId, 'value' => h($tagName));
+            $tagJSON[] = array('id' => $tagId, 'value' => $tagName);
         }
+
         $rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'sharinggroup', 'analysis', 'attribute', 'hasproposal');
         if ($this->_isSiteAdmin()) {
             $rules[] = 'email';
         }
         if (Configure::read('MISP.showorg')) {
             $orgs = $this->Event->Orgc->find('list', array(
-                'conditions' => array(),
-                'recursive' => -1,
                 'fields' => array('Orgc.id', 'Orgc.name'),
                 'sort' => array('lower(Orgc.name) asc')
             ));
