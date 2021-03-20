@@ -9,6 +9,9 @@
 
 App::uses('AppController', 'Controller');
 
+/**
+ * @property UserSetting $UserSetting
+ */
 class UserSettingsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -28,6 +31,7 @@ class UserSettingsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
+        $this->Security->unlockedActions[] = 'eventIndexColumnToggle';
     }
 
     public function index()
@@ -346,5 +350,34 @@ class UserSettingsController extends AppController
         } else {
             $this->layout = false;
         }
+    }
+
+    public function eventIndexColumnToggle($columnName)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('Expecting POST request.'));
+        }
+
+        $hideColumns = $this->UserSetting->getValueForUser($this->Auth->user()['id'], 'event_index_hide_columns');
+        if ($hideColumns === null) {
+            $hideColumns = [];
+        }
+
+        if (($key = array_search($columnName, $hideColumns, true)) !== false) {
+            unset($hideColumns[$key]);
+            $hideColumns = array_values($hideColumns);
+        } else {
+            $hideColumns[] = $columnName;
+        }
+
+        $setting = array(
+            'UserSetting' => array(
+                'user_id' => $this->Auth->user()['id'],
+                'setting' => 'event_index_hide_columns',
+                'value' => json_encode($hideColumns)
+            )
+        );
+        $this->UserSetting->setSetting($this->Auth->user(), $setting);
+        return $this->RestResponse->saveSuccessResponse('UserSettings', 'eventIndexColumnToggle', false, 'json', 'Column visibility switched');
     }
 }

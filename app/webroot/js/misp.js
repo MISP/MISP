@@ -3722,6 +3722,16 @@ function filterAttributes(filter, event_id) {
     });
 }
 
+function eventIndexColumnsToggle(columnName) {
+    xhr({
+        url: "/userSettings/eventIndexColumnToggle/" + columnName,
+        method: "post",
+        success: function () {
+            window.location.reload(); // update page
+        }
+    });
+}
+
 // Find object or attribute by UUID on current page
 function findObjectByUuid(uuid) {
     var $tr = null;
