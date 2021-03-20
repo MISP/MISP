@@ -806,12 +806,6 @@ class EventsController extends AppController
             $this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
         }
 
-        foreach ($events as $k => $event) {
-            if (empty($event['SharingGroup']['name'])) {
-                unset($events[$k]['SharingGroup']);
-            }
-        }
-
         if ($this->params['ext'] === 'csv') {
             $events = $this->__attachInfoToEvents(['tags'], $events);
             App::uses('CsvExport', 'Export');
