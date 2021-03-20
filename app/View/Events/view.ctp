@@ -530,9 +530,15 @@
     <div id="pivots_div">
         <?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
     </div>
-    <div id="galaxies_div" class="info_container">
-        <h4 class="blue"><?php echo __('Galaxies');?></h4>
-        <?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger, 'data' => $event['Galaxy'], 'target_id' => $event['Event']['id'], 'target_type' => 'event')); ?>
+    <div id="galaxies_div">
+        <span class="title-section"><?= __('Galaxies') ?></span>
+        <?= $this->element('galaxyQuickViewNew', [
+            'mayModify' => $mayModify,
+            'isAclTagger' => $isAclTagger,
+            'data' => $event['Galaxy'],
+            'target_id' => $event['Event']['id'],
+            'target_type' => 'event'
+        ]); ?>
     </div>
     <div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
         <?php echo $this->element('view_event_graph'); ?>

@@ -1827,6 +1827,8 @@ function popoverPopup(clicked, id, context, target, admin) {
 
 // create a confirm popover on the clicked html node.
 function popoverConfirm(clicked, message, placement) {
+    event.preventDefault();
+
     var $clicked = $(clicked);
     var popoverContent = '<div>';
         popoverContent += message === undefined ? '' : '<p>' + message + '</p>';
@@ -4710,15 +4712,18 @@ $(document).ready(function() {
         }
     });
 
-    // For galaxyQuickViewMini.ctp
-    $('.expandable[data-clusterid]')
-        .on('click', function() {
-            loadClusterRelations($(this).data('clusterid'));
-        })
-        .popover({
-            html: true,
-            trigger: 'hover'
-        });
+    // For galaxyQuickViewNew.ctp
+    $(document.body).on('click', '*[data-clusterid]', function() {
+        loadClusterRelations($(this).data('clusterid'));
+    });
+    $(document.body).popover({
+        selector: '.galaxyQuickView ul li b',
+        html: true,
+        trigger: 'hover',
+        container: 'body',
+    }).on('shown', function() {
+        $('.tooltip').not(":last").remove();
+    });
 
     if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
         var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
