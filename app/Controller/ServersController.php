@@ -181,6 +181,7 @@ class ServersController extends AppController
 
         $this->loadModel('Event');
         $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+        $this->__removeGalaxyClusterTags($event);
         $this->params->params['paging'] = array('Server' => $params);
         $this->set('event', $event);
         $this->set('server', $server);
@@ -203,6 +204,26 @@ class ServersController extends AppController
         }
         $this->set('threatLevels', $this->Event->ThreatLevel->list());
         $this->set('title_for_layout', __('Remote event preview'));
+    }
+
+    private function __removeGalaxyClusterTags(array &$event)
+    {
+        $galaxyTagIds = [];
+        foreach ($event['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
+                $galaxyTagIds[$galaxyCluster['tag_id']] = true;
+            }
+        }
+
+        if (empty($galaxyTagIds)) {
+            return;
+        }
+
+        foreach ($event['Tag'] as $k => $eventTag) {
+            if (isset($galaxyTagIds[$eventTag['id']])) {
+                unset($event['Tag'][$k]);
+            }
+        }
     }
 
     public function compareServers()

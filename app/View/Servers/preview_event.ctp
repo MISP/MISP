@@ -93,6 +93,15 @@ $tableData[] = [
     <?php endif; ?>
     </div>
     <br />
+    <?php if (!empty($event['Galaxy'])): ?>
+    <div id="galaxies_div">
+        <span class="title-section"><?= __('Galaxies') ?></span>
+        <?= $this->element('galaxyQuickViewNew', [
+            'data' => $event['Galaxy'],
+            'preview' => true,
+        ]); ?>
+    </div>
+    <?php endif; ?>
     <div id="attributes_div">
         <?php echo $this->element('Servers/eventattribute'); ?>
     </div>

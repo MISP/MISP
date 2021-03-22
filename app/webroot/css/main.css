@@ -1980,15 +1980,63 @@ a.discrete {
     margin-top: 15px;
 }
 
-.info_container {
-    border: 1px solid #0088cc;
-    border-radius: 7px;
-    box-shadow: 0px 0px 6px #B2B2B2;
-    padding-left:10px;
-    padding-right:10px;
-    padding-bottom:10px;
-    width: 400px;
-    height: 100%;
+#galaxies_div {
+    position: relative;
+    padding: 35px 15px 15px 15px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    width: 40em;
+}
+
+#galaxies_div > .title-section {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    padding: 3px 7px;
+    font-weight: bold;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    color: #6b6b6b;
+    border-radius: 3px 0 3px 0;
+}
+
+#galaxies_div .galaxyQuickView ul {
+    font-size: 13px;
+}
+
+.galaxyQuickView {
+    padding-bottom: 4px;
+}
+
+.galaxyQuickView h3 {
+    font-size: 14px;
+    color: #0088cc;
+    margin-bottom: 0;
+    margin-top: 2px;
+}
+
+.galaxyQuickView ul {
+    list-style: none;
+    color: #0088cc;
+    margin: 0 0 0 8px;
+    font-size: 12px;
+}
+
+.galaxyQuickView ul a, .galaxyQuickView h3 a {
+    font-size: 12px;
+}
+
+button.addGalaxy {
+    line-height: 10px;
+    padding: 2px;
+    margin-right: 5px;
+    margin-top: 1px;
+}
+
+button.addGalaxy .fa-plus {
+    font-size: 11px;
+    line-height: 13px;
 }
 
 .info_container_form {
@@ -1999,20 +2047,6 @@ a.discrete {
     width: 438px;
     height: 100%;
     margin-bottom:10px;
-}
-
-.info_container_key {
-    vertical-align:text-top;
-    width:100px;
-    padding-bottom:10px;
-}
-
-.info_container_value {
-    vertical-align:text-top;
-    display:inline-block;
-    width:300px;
-    padding-bottom:10px;
-    word-wrap:break-word;
 }
 
 .bottomGap {
@@ -2552,7 +2586,6 @@ table tr:hover .down-expand-button {
     font-weight: 900;
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-smoothing: antialiased;
-    display: inline-block;
     font-style: normal;
     font-variant: normal;
     text-rendering: auto;
