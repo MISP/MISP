@@ -2245,11 +2245,13 @@ class Server extends AppModel
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
+        $previous_file_perm = substr(sprintf('%o', fileperms(APP . 'Config' . DS . 'config.php')), -4);
         if (empty(Configure::read('MISP.server_settings_skip_backup_rotate'))) {
             $randomFilename = $this->generateRandomFileName();
             // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
             file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
             rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
+            chmod(APP . 'Config' . DS . 'config.php', octdec($previous_file_perm));
             $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
             // if the saved config file is empty, restore the backup.
             if (strlen($config_saved) < 20) {
