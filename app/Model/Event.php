@@ -2985,9 +2985,18 @@ class Event extends AppModel
     public function set_filter_value(&$params, $conditions, $options, $keys = array('Attribute.value1', 'Attribute.value2'))
     {
         if (!empty($params['value'])) {
+            $valueParts = explode('|', $params['value'], 2);
+            if (count($valueParts) == 2) {
+                $params[$options['filter']] = array_merge([$params[$options['filter']]], $valueParts);
+            }
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], $keys);
-
+            $tmpConditions = $this->generic_add_filter([], $params[$options['filter']], $keys)['AND'][0];
+            // Allows searching for ['value1' => [full, part1], 'value2' => [full, part2]]
+            unset(
+                $tmpConditions['OR']['OR']['Attribute.value1'][2], // remove part2 from value1
+                $tmpConditions['OR']['OR']['Attribute.value2'][1]  // remove part1 from value2
+            );
+            $conditions['AND'][] = $tmpConditions;
         }
         return $conditions;
     }
