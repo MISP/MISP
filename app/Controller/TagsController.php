@@ -885,7 +885,6 @@ class TagsController extends AppController
             $failedMessage = __('Failed to attach %s tags. Reasons: %s', count($fails), json_encode($fails,  JSON_FORCE_OBJECT));
         }
         if ($successes > 0) {
-            $message = __('Successfully attached %s tags to %s (%s)', $successes, $objectType, $object[$objectType]['id']);
             $message .= !empty($fails) ? PHP_EOL . $failedMessage : '';
             return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);
         } else {
