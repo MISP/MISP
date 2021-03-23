@@ -18,7 +18,7 @@
         </dd>
         <dt><?php echo __('Attributes'); ?></dt>
         <dd><?php echo h($stats['attribute_count']);
-            if ($stats['event_count_month']) echo ' <span style="color:green">(+' . h($stats['attribute_count_month']) . ')</span>&nbsp;';
+            if ($stats['attribute_count_month']) echo ' <span style="color:green">(+' . h($stats['attribute_count_month']) . ')</span>&nbsp;';
             else echo ' <span style="color:red">(0)</span>&nbsp;';?>
         </dd>
         <dt><?php echo __('Attributes / event'); ?></dt>
