@@ -2996,6 +2996,8 @@ class Event extends AppModel
                 $tmpConditions['OR']['OR']['Attribute.value1'][2], // remove part2 from value1
                 $tmpConditions['OR']['OR']['Attribute.value2'][1]  // remove part1 from value2
             );
+            $tmpConditions['OR']['OR']['Attribute.value1'] = array_values($tmpConditions['OR']['OR']['Attribute.value1']);
+            $tmpConditions['OR']['OR']['Attribute.value2'] = array_values($tmpConditions['OR']['OR']['Attribute.value2']);
             $conditions['AND'][] = $tmpConditions;
         }
         return $conditions;
