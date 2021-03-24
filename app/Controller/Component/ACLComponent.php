@@ -727,6 +727,7 @@ class ACLComponent extends Component
             ),
             'eventGraph' => array(
                     'view' => array('*'),
+                    'viewPicture' => array('*'),
                     'add' => array('perm_add'),
                     'delete' => array('perm_modify'),
             )
