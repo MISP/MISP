@@ -85,7 +85,6 @@ enableReposRHEL () {
   sudo subscription-manager refresh
   sudo subscription-manager repos --enable rhel-7-server-optional-rpms
   sudo subscription-manager repos --enable rhel-7-server-extras-rpms
-  #sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
 }
 # <snippet-end 0_RHEL_SCL.sh>
 ```
@@ -147,7 +146,7 @@ enableEPEL () {
 ### 2/ Dependencies
 
 !!! note
-    This guide installs PHP 7.2 from SCL
+    This guide installs PHP 7.4 from Remi's Repo
 
 !!! warning
     [PHP 5.6 and 7.0 aren't supported since December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In the future only PHP7 will be supported.
@@ -170,33 +169,30 @@ yumInstallCoreDeps () {
   wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
   chmod +x mariadb_repo_setup
   sudo ./mariadb_repo_setup
+  rm mariadb_repo_setup
   sudo yum install MariaDB-server
 
   WWW_USER="apache"
   SUDO_WWW="sudo -H -u $WWW_USER"
-  RUN_PHP="php72"
-  PHP_INI="/etc/opt/remi/php72/php.ini"
-  # Install PHP 7.2 from Remi's repo, see https://rpms.remirepo.net/enterprise/7/php72/x86_64/repoview/
-  sudo yum install php72 php72-php-fpm php72-php-devel \
-                   php72-php-mysqlnd \
-                   php72-php-mbstring \
-                   php72-php-xml \
-                   php72-php-bcmath \
-                   php72-php-opcache \
-                   php72-php-zip \
-                   php72-php-pear \
-                   php72-php-gd -y
+  PHP_INI="/etc/opt/remi/php74/php.ini"
+  # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/7/php74/x86_64/repoview/
+  sudo yum install php74 php74-php-fpm php74-php-devel \
+                   php74-php-mysqlnd \
+                   php74-php-mbstring \
+                   php74-php-xml \
+                   php74-php-bcmath \
+                   php74-php-opcache \
+                   php74-php-zip \
+                   php74-php-pear \
+                   php74-php-gd -y
 
   # Python 3.6 is now available in RHEL 7.7 base
   sudo yum install python3 python3-devel -y
 
-  sudo systemctl enable --now php72-php-fpm.service
+  sudo systemctl enable --now php74-php-fpm.service
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
 ```
-
-!!! notice
-    $RUN_PHP makes php available for you if using php72. e.g: sudo $RUN_PHP -v ; for PEAR: "php72-pear list | grep Crypt_GPG"
 
 ```bash
 # <snippet-begin 0_yumInstallHaveged.sh>
@@ -275,40 +271,6 @@ installCoreRHEL () {
   # install redis
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
-  # lief needs manual compilation
-  ##sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
-
-  ##cd $PATH_TO_MISP/app/files/scripts/lief
-  ##$SUDO_WWW git config core.filemode false
-  ##$SUDO_WWW mkdir build
-  ##cd build
-  ##$SUDO_WWW cmake3 \
-  ##-DLIEF_PYTHON_API=on \
-  ##-DPYTHON_VERSION=3.6 \
-  ##-DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
-  ##-DLIEF_DOC=off \
-  ##-DCMAKE_BUILD_TYPE=Release \
-  ##..
-  ##$SUDO_WWW make -j3 pyLIEF
-
-  ##if [ $? == 2 ]; then
-  ##  # In case you get "internal compiler error: Killed (program cc1plus)"
-  ##  # You ran out of memory.
-  ##  # Create some swap
-  ##  TEMP_DIR=$(mktemp -d)
-  ##  TEMP_SWAP=${TEMP_DIR}/swap.img
-  ##  sudo dd if=/dev/zero of=${TEMP_SWAP} bs=1024k count=4000
-  ##  sudo mkswap ${TEMP_SWAP}
-  ##  sudo swapon ${TEMP_SWAP}
-  ##  # And compile again
-  ##  ${SUDO_WWW} make -j3 pyLIEF
-  ##  sudo swapoff ${TEMP_SWAP}
-  ##  sudo rm -r ${TEMP_DIR}
-  ##fi
-
-  # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
-  ##echo $PATH_TO_MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee $PATH_TO_MISP/venv/lib/python3.6/site-packages/lief.pth
-
   # install magic, pydeep, lief
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara lief
 
@@ -338,11 +300,9 @@ installCoreRHEL () {
 
   # Enable dependencies detection in the diagnostics page
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
-  # OBSOLETE?
-  # The LD_LIBRARY_PATH setting is needed for rh-git218 to work
-  echo "env[PATH] = /opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/remi/php72/php-fpm.d/www.conf
-  sudo systemctl restart php72-php-fpm.service
+  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/remi/php74/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/remi/php74/php-fpm.d/www.conf
+  sudo systemctl restart php74-php-fpm.service
   umask $UMASK
 }
 # <snippet-end 1_mispCoreInstall_RHEL.sh>
@@ -364,20 +324,20 @@ installCake_RHEL ()
   cd $PATH_TO_MISP/app
   # Update composer.phar (optional)
   #EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
-  #$SUDO_WWW $RUN_PHP -- php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  #$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-  #$SUDO_WWW $RUN_PHP "php composer-setup.php"
-  #$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
-  $SUDO_WWW $RUN_PHP composer.phar install
+  #$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  #$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  #$SUDO_WWW php composer-setup.php
+  #$SUDO_WWW php -r "unlink('composer-setup.php');"
+  $SUDO_WWW php composer.phar install
 
-  sudo yum install php72-php-pecl-redis php72-php-pecl-ssdeep php72-php-pecl-gnupg -y
+  sudo yum install php74-php-pecl-redis php74-php-pecl-ssdeep php74-php-pecl-gnupg -y
 
-  sudo systemctl restart php72-php-fpm.service
+  sudo systemctl restart php74-php-fpm.service
 
   # If you have not yet set a timezone in php.ini
-  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/remi/php72/php.d/timezone.ini
+  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/remi/php74/php.d/timezone.ini
 
-  # Recommended: Change some PHP settings in /etc/opt/remi/php72/php.ini
+  # Recommended: Change some PHP settings in /etc/opt/remi/php74/php.ini
   # max_execution_time = 300
   # memory_limit = 2048M
   # upload_max_filesize = 50M
@@ -386,7 +346,7 @@ installCake_RHEL ()
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
-  sudo systemctl restart rh-php72-php-fpm.service
+  sudo systemctl restart rh-php74-php-fpm.service
 
   # To use the scheduler worker for scheduled tasks, do the following:
   sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
@@ -678,13 +638,13 @@ EOF
 configWorkersRHEL () {
   echo "[Unit]
   Description=MISP background workers
-  After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
+  After=mariadb.service redis.service php74-php-fpm.service
 
   [Service]
   Type=forking
   User=$WWW_USER
   Group=$WWW_USER
-  ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 $PATH_TO_MISP/app/Console/worker/start.sh
+  ExecStart=$PATH_TO_MISP/app/Console/worker/start.sh
   Restart=always
   RestartSec=10
 
