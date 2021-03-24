@@ -1555,6 +1555,9 @@ class AppController extends Controller
      */
     protected function _shouldLog($key)
     {
+        if (Configure::read('Security.log_each_individual_auth_fail')) {
+            return true;
+        }
         $redis = $this->User->setupRedis();
         if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
             $redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
