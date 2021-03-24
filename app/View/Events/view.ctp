@@ -537,6 +537,7 @@
             'mayModify' => $mayModify,
             'isAclTagger' => $isAclTagger,
             'data' => $event['Galaxy'],
+            'event' => $event,
             'target_id' => $event['Event']['id'],
             'target_type' => 'event'
         ]); ?>

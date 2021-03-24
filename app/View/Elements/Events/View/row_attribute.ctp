@@ -176,6 +176,7 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
           'mayModify' => $mayModify,
           'isAclTagger' => $isAclTagger,
           'data' => (!empty($object['Galaxy']) ? $object['Galaxy'] : array()),
+          'event' => $event,
           'target_id' => $object['id'],
           'target_type' => 'attribute',
         ));

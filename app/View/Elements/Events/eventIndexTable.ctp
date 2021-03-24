@@ -110,6 +110,7 @@
                       'mayModify' => false,
                       'isAclTagger' => false,
                       'data' => $galaxies,
+                      'event' => $event,
                       'target_id' => $event['Event']['id'],
                       'target_type' => 'event',
                       'static_tags_only' => 1
