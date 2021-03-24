@@ -707,7 +707,7 @@
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "text",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             }
         ],
