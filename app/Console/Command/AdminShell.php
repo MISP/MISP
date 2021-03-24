@@ -189,6 +189,20 @@ class AdminShell extends AppShell
         echo $message . PHP_EOL;
     }
 
+    public function enableTaxonomyTags()
+    {
+        if (empty($this->args[0]) || !is_numeric($this->args[0])) {
+            echo 'Usage: ' . APP . '/cake ' . 'Admin enableTaxonomyTags [taxonomy_id]' . PHP_EOL;
+	} else {
+            $result = $this->Taxonomy->addTags(intval($this->args[0]));
+	    if ($result) {
+                echo 'Taxonomy tags enabled' . PHP_EOL;
+	    } else {
+                echo 'Could not enable taxonomy tags' . PHP_EOL;
+            }
+        }
+    }
+
     public function updateWarningLists()
     {
         $this->ConfigLoad->execute();
