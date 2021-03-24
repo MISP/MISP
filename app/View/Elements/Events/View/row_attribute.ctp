@@ -143,7 +143,17 @@ $quickEdit = function($fieldName) use ($editScope, $object, $event) {
     </td>
     <td class="short">
       <div class="attributeTagContainer">
-        <?php echo $this->element('ajaxTags', array('attributeId' => $object['id'], 'tags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']), 'context' => $context, 'scope' => 'attribute', 'tagConflicts' => isset($object['tagConflicts']) ? $object['tagConflicts'] : array())); ?>
+        <?php echo $this->element(
+          'ajaxTags',
+          array('attributeId' => $object['id'],
+            'tags' => $object['AttributeTag'],
+            'tagAccess' => ($isSiteAdmin || $mayModify),
+            'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
+            'context' => $context,
+            'scope' => 'attribute',
+            'tagConflicts' => isset($object['tagConflicts']) ? $object['tagConflicts'] : array()
+          )
+        ); ?>
       </div>
     </td>
     <?php

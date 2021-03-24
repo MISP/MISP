@@ -127,6 +127,7 @@
                             'event' => $event,
                             'tags' => $event['EventTag'],
                             'tagAccess' => false,
+                            'localTagAccess' => false,
                             'missingTaxonomies' => false,
                             'columnised' => true,
                             'static_tags_only' => 1,
