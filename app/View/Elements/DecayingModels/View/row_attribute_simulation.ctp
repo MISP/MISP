@@ -60,6 +60,7 @@
             'isSiteAdmin' => false, // prevent add button
             'isAclTagger' => false,
             'data' => !empty($object['Galaxy']) ? $object['Galaxy'] : array(),
+            'event' => $object,
             'target_id' => $object['id'],
             'target_type' => 'attribute'
         ));

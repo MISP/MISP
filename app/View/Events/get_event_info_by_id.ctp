@@ -19,7 +19,7 @@
         if ($fieldData === 'Tag') {
           echo '<div><span class="blue bold">Tags</span>: ';
           if (!empty($event['EventTag'])) {
-            echo '<span>' . $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'], 'static_tags_only' => true)) . '</span>';
+            echo '<span>' . $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'], 'static_tags_only' => true, 'tagAccess' => false, 'localTagAccess' => false)) . '</span>';
           }
           echo '</div>';
         } else {

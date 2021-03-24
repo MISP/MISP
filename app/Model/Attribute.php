@@ -4252,7 +4252,7 @@ class Attribute extends AppModel
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
-                    'timestamp' => array('function' => 'set_filter_timestamp'),
+                    'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
                     'first_seen' => array('function' => 'set_filter_seen'),
                     'last_seen' => array('function' => 'set_filter_seen'),

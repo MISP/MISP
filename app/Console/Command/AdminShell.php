@@ -169,16 +169,24 @@ class AdminShell extends AppShell
         }
     }
 
-    # FIXME: Make Taxonomy->update() return a status string on API if successful
     public function updateTaxonomies()
     {
         $this->ConfigLoad->execute();
         $result = $this->Taxonomy->update();
-        if ($result) {
-            echo 'Taxonomies updated' . PHP_EOL;
-        } else {
-            echo 'Could not update Taxonomies' . PHP_EOL;
+        $successes = count(!empty($result['success']) ? $result['success'] : []);
+        $fails = count(!empty($result['fails']) ? $result['fails'] : []);
+        $message = '';
+        if ($successes == 0 && $fails == 0) {
+            $message = __('All taxonomies are up to date already.');
+        } elseif ($successes == 0 && $fails > 0) {
+            $message = __('Could not update any of the taxonomies.');
+        } elseif ($successes > 0 ) {
+            $message = __('Successfully updated %s taxonomies.', $successes);
+            if ($fails != 0) {
+                $message .= __(' However, could not update %s taxonomies.', $fails);
+            }
         }
+        echo $message . PHP_EOL;
     }
 
     public function updateWarningLists()

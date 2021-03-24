@@ -7,8 +7,15 @@ if (isset($preview) && $preview) {
 } else {
     $preview = false;
 }
+$tagAccess = ($isSiteAdmin || ($mayModify && $isAclTagger));
+if (empty($local_tag_off) || !empty($event)) {
+    $localTagAccess = ($isSiteAdmin || ($mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id'))) && $isAclTagger;
+} else {
+    $localTagAccess = false;
+}
 
-$editButtonsEnabled = !(isset($static_tags_only) && $static_tags_only);
+$editButtonsEnabled = empty($static_tags_only) && $tagAccess;
+$editButtonsLocalEnabled = empty($static_tags_only) && $localTagAccess && empty($local_tag_off);
 
 $sortClusters = function (array $clusters) {
     usort($clusters, function (array $a, array $b) {
@@ -94,7 +101,7 @@ $generatePopover = function (array $cluster) use ($normalizeKey) {
             <a href="<?= $baseurl ?>/galaxy_clusters/view/<?= h($cluster['id']) ?>" class="black fa fa-search" title="<?= __('View details about this cluster') ?>" aria-label="<?= __('View cluster') ?>"></a>
             <a href="<?= $baseurl ?>/events/index/searchtag:<?= h($cluster['tag_id']) ?>" class="black fa fa-list" title="<?= __('View all events containing this cluster') ?>" aria-label="<?= __('View all events containing this cluster') ?>"></a>
             <?php endif ;?>
-            <?php if ($editButtonsEnabled && ($isSiteAdmin || ($mayModify && $isAclTagger))) {
+            <?php if ($editButtonsEnabled || ($editButtonsLocalEnabled && $cluster['local'])) {
 echo $this->Form->create(false, [
     'id' => false, // prevent duplicate ids
     'url' => $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'],
@@ -115,7 +122,7 @@ echo $this->Form->end();
 </div>
 <?php endif; ?>
 <?php
-if ($editButtonsEnabled && ($isSiteAdmin || ($mayModify && $isAclTagger))) {
+if ($editButtonsEnabled) {
     echo sprintf(
         '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="false" role="button" tabindex="0" aria-label="' . __('Add new cluster') . '" title="' . __('Add new cluster') . '">%s</button>',
         'useCursorPointer btn btn-inverse addGalaxy',
@@ -125,11 +132,7 @@ if ($editButtonsEnabled && ($isSiteAdmin || ($mayModify && $isAclTagger))) {
     );
 }
 
-if (
-    $editButtonsEnabled &&
-    (!isset($local_tag_off) || !$local_tag_off) &&
-    ($isSiteAdmin || ($isAclTagger && $hostOrgUser))
-) {
+if ($editButtonsLocalEnabled) {
     echo sprintf(
         '<button class="%s" data-target-type="%s" data-target-id="%s" data-local="true" role="button" tabindex="0" aria-label="' . __('Add new local cluster') . '" title="' . __('Add new local cluster') . '">%s</button>',
         'useCursorPointer btn btn-inverse addGalaxy',

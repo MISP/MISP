@@ -71,7 +71,8 @@
                         $this->element('ajaxTags', array(
                             'event' => $event,
                             'tags' => $event['Tag'],
-                            'tagAccess' => ($isSiteAdmin || $me['org_id'] == $event['Event']['orgc_id']),
+                            'tagAccess' => false,
+                            'localTagAccess' => false,
                             'static_tags_only' => 1
                         ))
                     )

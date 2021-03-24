@@ -98,6 +98,7 @@ $tableData[] = [
         <span class="title-section"><?= __('Galaxies') ?></span>
         <?= $this->element('galaxyQuickViewNew', [
             'data' => $event['Galaxy'],
+            'event' => $event,
             'preview' => true,
         ]); ?>
     </div>

@@ -105,7 +105,8 @@
                     array(
                         'event' => $event,
                         'tags' => $event['EventTag'],
-                        'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id']),
+                        'tagAccess' => ($isSiteAdmin || $mayModify),
+                        'localTagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id'] || (int)$me['org_id'] === Configure::read('MISP.host_org_id')),
                         'missingTaxonomies' => $missingTaxonomies,
                         'tagConflicts' => $tagConflicts
                     )
@@ -536,6 +537,7 @@
             'mayModify' => $mayModify,
             'isAclTagger' => $isAclTagger,
             'data' => $event['Galaxy'],
+            'event' => $event,
             'target_id' => $event['Event']['id'],
             'target_type' => 'event'
         ]); ?>
