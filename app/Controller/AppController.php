@@ -226,6 +226,10 @@ class AppController extends Controller
                     $this->Security->csrfCheck = false;
                 }
                 if ($this->__loginByAuthKey() === false || $this->Auth->user() === null) {
+                    if ($this->__loginByAuthKey() === null) {
+                        $this->loadModel('Log');
+                        $this->Log->createLogEntry('SYSTEM', 'auth_fail', 'User', 0, "Failed API authentication. No authkey was provided.");
+                    }
                     throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
                 }
             } elseif (!$this->Session->read(AuthComponent::$sessionKey)) {
