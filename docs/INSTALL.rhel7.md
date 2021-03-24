@@ -280,13 +280,15 @@ installCoreRHEL () {
     # In case you get "internal compiler error: Killed (program cc1plus)"
     # You ran out of memory.
     # Create some swap
-    sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
-    sudo mkswap /var/swap.img
-    sudo swapon /var/swap.img
+    TEMP_DIR=$(mktemp -d)
+    TEMP_SWAP=${TEMP_DIR}/swap.img
+    sudo dd if=/dev/zero of=${TEMP_SWAP} bs=1024k count=4000
+    sudo mkswap ${TEMP_SWAP}
+    sudo swapon ${TEMP_SWAP}
     # And compile again
-    $SUDO_WWW make -j3 pyLIEF
-    sudo swapoff /var/swap.img
-    sudo rm /var/swap.img
+    ${SUDO_WWW} make -j3 pyLIEF
+    sudo swapoff ${TEMP_SWAP}
+    sudo rm -r ${TEMP_DIR}
   fi
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled

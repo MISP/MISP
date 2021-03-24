@@ -4076,10 +4076,6 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
-        if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
-            $this->Sighting = ClassRegistry::init('Sighting');
-            $this->Sighting->captureSightings($attribute['Sighting'], $attribute['id'], $eventId, $user);
-        }
         $fieldList = $this->editableFields;
         if (empty($existingAttribute)) {
             $addableFieldList = array('event_id', 'type', 'uuid');
@@ -4105,6 +4101,10 @@ class Attribute extends AppModel
             ));
             return $this->validationErrors;
         } else {
+            if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
+                $this->Sighting = ClassRegistry::init('Sighting');
+                $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
+            }
             if ($user['Role']['perm_tagger']) {
                 /*
                     We should uncomment the line below in the future once we have tag soft-delete
