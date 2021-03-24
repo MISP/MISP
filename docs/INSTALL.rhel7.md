@@ -85,7 +85,7 @@ enableReposRHEL () {
   sudo subscription-manager refresh
   sudo subscription-manager repos --enable rhel-7-server-optional-rpms
   sudo subscription-manager repos --enable rhel-7-server-extras-rpms
-  sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
+  #sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
 }
 # <snippet-end 0_RHEL_SCL.sh>
 ```
@@ -139,7 +139,6 @@ enableEPEL () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
   sudo yum install yum-utils
-  sudo subscription-manager repos --enable=rhel-7-server-optional-rpms
   sudo yum-config-manager --enable remi-php72
 }
 # <snippet-end 0_RHEL_EPEL.sh>
@@ -175,9 +174,9 @@ yumInstallCoreDeps () {
 
   WWW_USER="apache"
   SUDO_WWW="sudo -H -u $WWW_USER"
-  RUN_PHP="/usr/bin/scl enable php72"
+  RUN_PHP="php72"
   PHP_INI="/etc/opt/remi/php72/php.ini"
-  # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/ Obsolete?
+  # Install PHP 7.2 from Remi's repo, see https://rpms.remirepo.net/enterprise/7/php72/x86_64/repoview/
   sudo yum install php72 php72-php-fpm php72-php-devel \
                    php72-php-mysqlnd \
                    php72-php-mbstring \
@@ -185,6 +184,7 @@ yumInstallCoreDeps () {
                    php72-php-bcmath \
                    php72-php-opcache \
                    php72-php-zip \
+                   php72-php-pear \
                    php72-php-gd -y
 
   # Python 3.6 is now available in RHEL 7.7 base
@@ -196,7 +196,7 @@ yumInstallCoreDeps () {
 ```
 
 !!! notice
-    $RUN_PHP makes php available for you if using php72. e.g: sudo $RUN_PHP "pear list | grep Crypt_GPG"
+    $RUN_PHP makes php available for you if using php72. e.g: sudo $RUN_PHP -v ; for PEAR: "php72-pear list | grep Crypt_GPG"
 
 ```bash
 # <snippet-begin 0_yumInstallHaveged.sh>
@@ -242,17 +242,17 @@ installCoreRHEL () {
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
   $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
+  ##$SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
-  
+
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
   $SUDO_WWW git config core.filemode false
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-  
+
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   $SUDO_WWW git config core.filemode false
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
@@ -276,41 +276,41 @@ installCoreRHEL () {
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
 
   # lief needs manual compilation
-  sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
+  ##sudo yum install devtoolset-7 cmake3 cppcheck libcxx-devel -y
 
-  cd $PATH_TO_MISP/app/files/scripts/lief
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW mkdir build
-  cd build
-  $SUDO_WWW scl enable devtoolset-7 "bash -c 'cmake3 \
-  -DLIEF_PYTHON_API=on \
-  -DPYTHON_VERSION=3.6 \
-  -DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
-  -DLIEF_DOC=off \
-  -DCMAKE_BUILD_TYPE=Release \
-  ..'"
-  $SUDO_WWW make -j3 pyLIEF
+  ##cd $PATH_TO_MISP/app/files/scripts/lief
+  ##$SUDO_WWW git config core.filemode false
+  ##$SUDO_WWW mkdir build
+  ##cd build
+  ##$SUDO_WWW cmake3 \
+  ##-DLIEF_PYTHON_API=on \
+  ##-DPYTHON_VERSION=3.6 \
+  ##-DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
+  ##-DLIEF_DOC=off \
+  ##-DCMAKE_BUILD_TYPE=Release \
+  ##..
+  ##$SUDO_WWW make -j3 pyLIEF
 
-  if [ $? == 2 ]; then
-    # In case you get "internal compiler error: Killed (program cc1plus)"
-    # You ran out of memory.
-    # Create some swap
-    TEMP_DIR=$(mktemp -d)
-    TEMP_SWAP=${TEMP_DIR}/swap.img
-    sudo dd if=/dev/zero of=${TEMP_SWAP} bs=1024k count=4000
-    sudo mkswap ${TEMP_SWAP}
-    sudo swapon ${TEMP_SWAP}
-    # And compile again
-    ${SUDO_WWW} make -j3 pyLIEF
-    sudo swapoff ${TEMP_SWAP}
-    sudo rm -r ${TEMP_DIR}
-  fi
+  ##if [ $? == 2 ]; then
+  ##  # In case you get "internal compiler error: Killed (program cc1plus)"
+  ##  # You ran out of memory.
+  ##  # Create some swap
+  ##  TEMP_DIR=$(mktemp -d)
+  ##  TEMP_SWAP=${TEMP_DIR}/swap.img
+  ##  sudo dd if=/dev/zero of=${TEMP_SWAP} bs=1024k count=4000
+  ##  sudo mkswap ${TEMP_SWAP}
+  ##  sudo swapon ${TEMP_SWAP}
+  ##  # And compile again
+  ##  ${SUDO_WWW} make -j3 pyLIEF
+  ##  sudo swapoff ${TEMP_SWAP}
+  ##  sudo rm -r ${TEMP_DIR}
+  ##fi
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
-  echo $PATH_TO_MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee $PATH_TO_MISP/venv/lib/python3.6/site-packages/lief.pth
+  ##echo $PATH_TO_MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee $PATH_TO_MISP/venv/lib/python3.6/site-packages/lief.pth
 
-  # install magic, pydeep
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
+  # install magic, pydeep, lief
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara lief
 
   # install PyMISP
   cd $PATH_TO_MISP/PyMISP
@@ -319,6 +319,7 @@ installCoreRHEL () {
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   # BROKEN: This needs to be tested on RHEL/CentOS
   ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+  sudo yum install libcaca-devel
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
   [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
@@ -326,12 +327,12 @@ installCoreRHEL () {
   cd gtcaca
   $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_CMD cmake .. && $SUDO_CMD make
+  $SUDO_CMD cmake3 .. && $SUDO_CMD make
   sudo make install
   cd ../../faup
   $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_CMD cmake .. && $SUDO_CMD make
+  $SUDO_CMD cmake3 .. && $SUDO_CMD make
   sudo make install
   sudo ldconfig
 
@@ -367,27 +368,16 @@ installCake_RHEL ()
   #$SUDO_WWW $RUN_PHP -- php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
   #$SUDO_WWW $RUN_PHP "php composer-setup.php"
   #$SUDO_WWW $RUN_PHP -- php -r "unlink('composer-setup.php');"
-  $SUDO_WWW $RUN_PHP "php composer.phar install"
+  $SUDO_WWW $RUN_PHP composer.phar install
 
-  ## sudo yum install php-redis -y
-  sudo scl enable rh-php72 'pecl channel-update pecl.php.net'
-  sudo scl enable rh-php72 'yes no|pecl install redis'
-  echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-redis.ini
+  sudo yum install php72-php-pecl-redis php72-php-pecl-ssdeep php72-php-pecl-gnupg -y
 
-  sudo ln -s /usr/lib64/libfuzzy.so /usr/lib/libfuzzy.so
-  sudo scl enable rh-php72 'pecl install ssdeep'
-  echo "extension=ssdeep.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-ssdeep.ini
-
-  # Install gnupg extension
-  sudo yum install gpgme-devel -y
-  sudo scl enable rh-php72 'pecl install gnupg'
-  echo "extension=gnupg.so" |sudo tee /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
-  sudo systemctl restart rh-php72-php-fpm.service
+  sudo systemctl restart php72-php-fpm.service
 
   # If you have not yet set a timezone in php.ini
-  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/rh/rh-php72/php.d/timezone.ini
+  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/remi/php72/php.d/timezone.ini
 
-  # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
+  # Recommended: Change some PHP settings in /etc/opt/remi/php72/php.ini
   # max_execution_time = 300
   # memory_limit = 2048M
   # upload_max_filesize = 50M
@@ -438,64 +428,31 @@ permissions_RHEL () {
 ```bash
 # <snippet-begin 1_prepareDB_RHEL.sh>
 prepareDB_RHEL () {
-  RUN_MYSQL="/usr/bin/scl enable rh-mariadb102"
-  # Enable, start and secure your mysql database server
-  sudo systemctl enable --now rh-mariadb102-mariadb.service
-  echo [mysqld] |sudo tee /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
-  echo bind-address=127.0.0.1 |sudo tee -a /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
-  sudo systemctl restart rh-mariadb102-mariadb
+  sudo systemctl enable --now mariadb.service
+  echo [mysqld] |sudo tee /etc/my.cnf.d/bind-address.cnf
+  echo bind-address=127.0.0.1 |sudo tee -a /etc/my.cnf.d/bind-address.cnf
+  sudo systemctl restart mariadb
 
-  sudo yum install expect -y
+  # Kill the anonymous users
+  sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'localhost'"
+  # Because our hostname varies we'll use some Bash magic here.
+  sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'$(hostname)'"
+  # Kill off the demo database
+  sudo mysql -h $DBHOST -e "DROP DATABASE IF EXISTS test"
+  # No root remote logins
+  sudo mysql -h $DBHOST -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+  # Make sure that NOBODY can access the server without a password
+  sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+  # Make our changes take effect
+  sudo mysql -h $DBHOST -e "FLUSH PRIVILEGES"
 
-  ## The following needs some thoughts about scl enable foo
-  #if [[ ! -e /var/opt/rh/rh-mariadb102/lib/mysql/misp/users.ibd ]]; then
-
-  # We ask interactively your password if not run as root
-  pw=""
-  if [[ "$EUID" -ne 0 ]]; then
-    read -s -p "Enter sudo password: " pw
-  fi
-
-  expect -f - <<-EOF
-    set timeout 10
-
-    spawn sudo scl enable rh-mariadb102 mysql_secure_installation
-    expect {
-      "*sudo*" {
-        send "$pw\r"
-        exp_continue
-      }
-      "Enter current password for root (enter for none):" {
-        send -- "\r"
-      }
-    }
-    expect "Set root password?"
-    send -- "y\r"
-    expect "New password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Re-enter new password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Remove anonymous users?"
-    send -- "y\r"
-    expect "Disallow root login remotely?"
-    send -- "y\r"
-    expect "Remove test database and access to it?"
-    send -- "y\r"
-    expect "Reload privilege tables now?"
-    send -- "y\r"
-    expect eof
-EOF
-
-  sudo yum remove tcl expect -y
-
-  sudo systemctl restart rh-mariadb102-mariadb
-
-  scl enable rh-mariadb102 "mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'CREATE DATABASE $DBNAME;'"
-  scl enable rh-mariadb102 "mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';\""
-  scl enable rh-mariadb102 "mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e \"GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';\""
-  scl enable rh-mariadb102 "mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'"
-
-  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | sudo scl enable rh-mariadb102 "mysql -h $DBHOST -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES;"
+  # Import the empty MISP database from MYSQL.sql
+  ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -h $DBHOST -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
 }
 # <snippet-end 1_prepareDB_RHEL.sh>
 ```
