@@ -3077,6 +3077,9 @@ class Event extends AppModel
             );
             foreach ($filters[$options['filter']] as $f) {
                 $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
+                if (!empty($options['pop'])) {
+                    unset($params[$options['filter']]);
+                }
             }
         }
         return $conditions;
