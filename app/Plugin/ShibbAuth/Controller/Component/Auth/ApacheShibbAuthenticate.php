@@ -127,7 +127,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
                 $user = $this->updateUserRole($roleChanged, $user, $roleId, $userModel);
             }
             $user = $this->updateUserOrg($org, $user, $userModel);
-            CakeLog::info("User `$mispUsername` logged in.");
+            $userModel->extralog($user, 'login');
             return $user;
         }
 
@@ -145,8 +145,9 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
         // save user
         $userModel->save($userData);
         CakeLog::info("User `$mispUsername` saved in database.");
-        CakeLog::info("User `$mispUsername` logged in.");
-        return $this->_findUser($mispUsername);
+        $user = $this->_findUser($mispUsername);
+        $userModel->extralog($user, 'login');
+        return $user;
     }
 
     /**

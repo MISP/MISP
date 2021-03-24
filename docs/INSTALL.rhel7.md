@@ -28,6 +28,11 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
 
 !!! notice
+    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
+    Which explains why you will see the use of shell *functions* in various steps.
+    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
+
+!!! notice
     Maintenance for CentOS 7 will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
     CentOS 7-1908 [NetInstallURL](http://mirror.centos.org/centos/7/os/x86_64/)
 
@@ -108,6 +113,7 @@ sudo yum install deltarpm -y
 ```bash
 # Because (neo)vim is just so practical
 sudo yum install neovim -y
+# For RHEL, it's vim
 ```
 
 ## 1.5.c/ Install ntpdate (optional)
@@ -126,11 +132,15 @@ yumUpdate () {
 # <snippet-end 0_yum-update.sh>
 ```
 
-## 1.6/ **[RHEL]** Install the EPEL repo
+## 1.6/ **[RHEL]** Install the EPEL and remi repo
 ```bash
 # <snippet-begin 0_RHEL_EPEL.sh>
 enableEPEL () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
+  sudo yum install yum-utils
+  sudo subscription-manager repos --enable=rhel-7-server-optional-rpms
+  sudo yum-config-manager --enable remi-php72
 }
 # <snippet-end 0_RHEL_EPEL.sh>
 ```
@@ -148,40 +158,45 @@ enableEPEL () {
 # <snippet-begin 0_yumInstallCoreDeps.sh>
 yumInstallCoreDeps () {
   # Install the dependencies:
-  sudo yum install gcc git zip rh-git218 \
-                   httpd24 \
+  sudo yum install gcc git zip \
                    mod_ssl \
-                   rh-redis32 \
-                   rh-mariadb102 \
+                   redis \
                    libxslt-devel zlib-devel ssdeep-devel -y
 
   # Enable and start redis
-  sudo systemctl enable --now rh-redis32-redis.service
+  sudo systemctl enable --now redis.service
+
+  # Install MariaDB
+  sudo yum install wget
+  wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
+  chmod +x mariadb_repo_setup
+  sudo ./mariadb_repo_setup
+  sudo yum install MariaDB-server
 
   WWW_USER="apache"
   SUDO_WWW="sudo -H -u $WWW_USER"
-  RUN_PHP="/usr/bin/scl enable rh-php72"
-  PHP_INI="/etc/opt/rh/rh-php72/php.ini"
-  # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/
-  sudo yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel \
-                   rh-php72-php-mysqlnd \
-                   rh-php72-php-mbstring \
-                   rh-php72-php-xml \
-                   rh-php72-php-bcmath \
-                   rh-php72-php-opcache \
-                   rh-php72-php-zip \
-                   rh-php72-php-gd -y
+  RUN_PHP="/usr/bin/scl enable php72"
+  PHP_INI="/etc/opt/remi/php72/php.ini"
+  # Install PHP 7.2 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php72/ Obsolete?
+  sudo yum install php72 php72-php-fpm php72-php-devel \
+                   php72-php-mysqlnd \
+                   php72-php-mbstring \
+                   php72-php-xml \
+                   php72-php-bcmath \
+                   php72-php-opcache \
+                   php72-php-zip \
+                   php72-php-gd -y
 
   # Python 3.6 is now available in RHEL 7.7 base
   sudo yum install python3 python3-devel -y
 
-  sudo systemctl enable --now rh-php72-php-fpm.service
+  sudo systemctl enable --now php72-php-fpm.service
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
 ```
 
 !!! notice
-    $RUN_PHP makes php available for you if using rh-php72. e.g: sudo $RUN_PHP "pear list | grep Crypt_GPG"
+    $RUN_PHP makes php available for you if using php72. e.g: sudo $RUN_PHP "pear list | grep Crypt_GPG"
 
 ```bash
 # <snippet-begin 0_yumInstallHaveged.sh>
@@ -280,13 +295,15 @@ installCoreRHEL () {
     # In case you get "internal compiler error: Killed (program cc1plus)"
     # You ran out of memory.
     # Create some swap
-    sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
-    sudo mkswap /var/swap.img
-    sudo swapon /var/swap.img
+    TEMP_DIR=$(mktemp -d)
+    TEMP_SWAP=${TEMP_DIR}/swap.img
+    sudo dd if=/dev/zero of=${TEMP_SWAP} bs=1024k count=4000
+    sudo mkswap ${TEMP_SWAP}
+    sudo swapon ${TEMP_SWAP}
     # And compile again
-    $SUDO_WWW make -j3 pyLIEF
-    sudo swapoff /var/swap.img
-    sudo rm /var/swap.img
+    ${SUDO_WWW} make -j3 pyLIEF
+    sudo swapoff ${TEMP_SWAP}
+    sudo rm -r ${TEMP_DIR}
   fi
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
@@ -320,10 +337,11 @@ installCoreRHEL () {
 
   # Enable dependencies detection in the diagnostics page
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
+  # OBSOLETE?
   # The LD_LIBRARY_PATH setting is needed for rh-git218 to work
-  echo "env[PATH] = /opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
-  sudo systemctl restart rh-php72-php-fpm.service
+  echo "env[PATH] = /opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/remi/php72/php-fpm.d/www.conf
+  sudo systemctl restart php72-php-fpm.service
   umask $UMASK
 }
 # <snippet-end 1_mispCoreInstall_RHEL.sh>
