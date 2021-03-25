@@ -138,7 +138,7 @@ enableEPEL () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
   sudo yum install yum-utils -y
-  sudo yum-config-manager --enable remi-php72
+  sudo yum-config-manager --enable remi-php74
 }
 # <snippet-end 0_RHEL_EPEL.sh>
 ```
@@ -185,6 +185,9 @@ yumInstallCoreDeps () {
                    php74-php-zip \
                    php74-php-pear \
                    php74-php-gd -y
+
+  # cake has php baked in, thus we link to it
+  sudo ln -s /usr/bin/php74 /usr/bin/php
 
   # Python 3.6 is now available in RHEL 7.7 base
   sudo yum install python3 python3-devel -y
@@ -280,8 +283,7 @@ installCoreRHEL () {
 
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   # BROKEN: This needs to be tested on RHEL/CentOS
-  ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
-  sudo yum install libcaca-devel -y
+  sudo yum install libcaca-devel cmake3 -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
   [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
