@@ -6249,7 +6249,8 @@ class Event extends AppModel
             foreach ($resolved_data['Tag'] as $tag) {
                 $tag_id = $this->EventTag->Tag->captureTag($tag, $user);
                 if ($tag_id) {
-                    $this->EventTag->attachTagToEvent($id, $tag_id);
+                    $tag['id'] = $tag_id;
+                    $this->EventTag->attachTagToEvent($id, $tag);
                 }
             }
         }

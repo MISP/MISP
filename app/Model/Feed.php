@@ -1132,7 +1132,7 @@ class Feed extends AppModel
             $this->Event->publishRouter($event['Event']['id'], null, $user);
         }
         if ($feed['Feed']['tag_id']) {
-            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], $feed['Feed']['tag_id']);
+            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $feed['Feed']['tag_id']]);
         }
         return true;
     }
