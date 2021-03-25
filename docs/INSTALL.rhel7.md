@@ -174,8 +174,6 @@ yumInstallCoreDeps () {
   rm mariadb_repo_setup
   sudo yum install MariaDB-server -y
 
-  WWW_USER="apache"
-  SUDO_WWW="sudo -H -u $WWW_USER"
   PHP_INI="/etc/opt/remi/php74/php.ini"
   # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/7/php74/x86_64/repoview/
   sudo yum install php74 php74-php-fpm php74-php-devel \
@@ -412,7 +410,7 @@ prepareDB_RHEL () {
   # Make sure that NOBODY can access the server without a password
   sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
   # Make our changes take effect
-  sudo mysql -h $DBHOST -e "FLUSH PRIVILEGES"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES"
 
   sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
   sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
