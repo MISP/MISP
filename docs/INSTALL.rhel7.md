@@ -136,8 +136,8 @@ yumUpdate () {
 # <snippet-begin 0_RHEL_EPEL.sh>
 enableEPEL () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
-  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
-  sudo yum install yum-utils
+  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
+  sudo yum install yum-utils -y
   sudo yum-config-manager --enable remi-php72
 }
 # <snippet-end 0_RHEL_EPEL.sh>
@@ -165,12 +165,12 @@ yumInstallCoreDeps () {
   sudo systemctl enable --now redis.service
 
   # Install MariaDB
-  sudo yum install wget
+  sudo yum install wget -y
   wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
   chmod +x mariadb_repo_setup
   sudo ./mariadb_repo_setup
   rm mariadb_repo_setup
-  sudo yum install MariaDB-server
+  sudo yum install MariaDB-server -y
 
   WWW_USER="apache"
   SUDO_WWW="sudo -H -u $WWW_USER"
@@ -281,7 +281,7 @@ installCoreRHEL () {
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   # BROKEN: This needs to be tested on RHEL/CentOS
   ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
-  sudo yum install libcaca-devel
+  sudo yum install libcaca-devel -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
   [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
