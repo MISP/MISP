@@ -136,9 +136,9 @@ yumUpdate () {
 # <snippet-begin 0_RHEL_EPEL.sh>
 enableEPEL () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
-  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
-  sudo yum install yum-utils
-  sudo yum-config-manager --enable remi-php72
+  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
+  sudo yum install yum-utils -y
+  sudo yum-config-manager --enable remi-php74
 }
 # <snippet-end 0_RHEL_EPEL.sh>
 ```
@@ -165,12 +165,12 @@ yumInstallCoreDeps () {
   sudo systemctl enable --now redis.service
 
   # Install MariaDB
-  sudo yum install wget
+  sudo yum install wget -y
   wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
   chmod +x mariadb_repo_setup
   sudo ./mariadb_repo_setup
   rm mariadb_repo_setup
-  sudo yum install MariaDB-server
+  sudo yum install MariaDB-server -y
 
   WWW_USER="apache"
   SUDO_WWW="sudo -H -u $WWW_USER"
@@ -185,6 +185,9 @@ yumInstallCoreDeps () {
                    php74-php-zip \
                    php74-php-pear \
                    php74-php-gd -y
+
+  # cake has php baked in, thus we link to it
+  sudo ln -s /usr/bin/php74 /usr/bin/php
 
   # Python 3.6 is now available in RHEL 7.7 base
   sudo yum install python3 python3-devel -y
@@ -280,8 +283,7 @@ installCoreRHEL () {
 
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   # BROKEN: This needs to be tested on RHEL/CentOS
-  ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
-  sudo yum install libcaca-devel
+  sudo yum install libcaca-devel cmake3 -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
   [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
@@ -346,7 +348,7 @@ installCake_RHEL ()
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
-  sudo systemctl restart rh-php74-php-fpm.service
+  sudo systemctl restart php74-php-fpm.service
 
   # To use the scheduler worker for scheduled tasks, do the following:
   sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
