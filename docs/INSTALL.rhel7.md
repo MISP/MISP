@@ -184,6 +184,8 @@ yumInstallCoreDeps () {
                    php74-php-opcache \
                    php74-php-zip \
                    php74-php-pear \
+                   php74-php-brotli \
+                   php74-php-intl \
                    php74-php-gd -y
 
   # cake has php baked in, thus we link to it
@@ -344,7 +346,7 @@ installCake_RHEL ()
   # memory_limit = 2048M
   # upload_max_filesize = 50M
   # post_max_size = 50M
-  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit session.sid_length session.use_strict_mode
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
@@ -463,13 +465,12 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/tmp
   sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Plugin/CakeResque/tmp
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/cake
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+  sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh"
+  sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py"
+  sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py"
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
-  sudo chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*
-  find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
+  sudo sh -c "chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*"
+  sudo find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
   # Only run these if you want to be able to update MISP from the web interface
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
@@ -592,6 +593,7 @@ configMISP_RHEL () {
 
   # If you want to be able to change configuration parameters from the webinterface:
   sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config/config.php
+  sudo chmod 660 $PATH_TO_MISP/app/Config/config.php
   sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config/config.php
 
   # Generate a GPG encryption key.
