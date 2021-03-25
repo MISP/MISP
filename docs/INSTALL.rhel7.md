@@ -348,7 +348,7 @@ installCake_RHEL ()
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
-  sudo systemctl restart rh-php74-php-fpm.service
+  sudo systemctl restart php74-php-fpm.service
 
   # To use the scheduler worker for scheduled tasks, do the following:
   sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
