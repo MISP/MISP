@@ -184,6 +184,8 @@ yumInstallCoreDeps () {
                    php74-php-opcache \
                    php74-php-zip \
                    php74-php-pear \
+                   php74-php-brotli \
+                   php74-php-intl \
                    php74-php-gd -y
 
   # cake has php baked in, thus we link to it
@@ -344,7 +346,7 @@ installCake_RHEL ()
   # memory_limit = 2048M
   # upload_max_filesize = 50M
   # post_max_size = 50M
-  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit session.sid_length session.use_strict_mode
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
@@ -591,6 +593,7 @@ configMISP_RHEL () {
 
   # If you want to be able to change configuration parameters from the webinterface:
   sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config/config.php
+  sudo chmod 660 $PATH_TO_MISP/app/Config/config.php
   sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config/config.php
 
   # Generate a GPG encryption key.
