@@ -416,49 +416,26 @@ prepareDB_RHEL () {
   echo bind-address=127.0.0.1 |sudo tee -a /etc/my.cnf.d/bind-address.cnf
   sudo systemctl restart mariadb
 
-  sudo yum install expect -y
+  # Kill the anonymous users
+  sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'localhost'"
+  # Because our hostname varies we'll use some Bash magic here.
+  sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'$(hostname)'"
+  # Kill off the demo database
+  sudo mysql -h $DBHOST -e "DROP DATABASE IF EXISTS test"
+  # No root remote logins
+  sudo mysql -h $DBHOST -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+  # Make sure that NOBODY can access the server without a password
+  sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+  # Make our changes take effect
+  sudo mysql -h $DBHOST -e "FLUSH PRIVILEGES"
 
-  ## The following needs some thoughts about scl enable foo
-  #if [[ ! -e /var/opt/rh/rh-mariadb102/lib/mysql/misp/users.ibd ]]; then
-
-  # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-  pw="Password1234"
-
-  expect -f - <<-EOF
-    set timeout 10
-
-    spawn sudo mysql_secure_installation
-    expect "*?assword*"
-    send -- "$pw\r"
-    expect "Enter current password for root (enter for none):"
-    send -- "\r"
-    expect "Set root password?"
-    send -- "y\r"
-    expect "New password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Re-enter new password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Remove anonymous users?"
-    send -- "y\r"
-    expect "Disallow root login remotely?"
-    send -- "y\r"
-    expect "Remove test database and access to it?"
-    send -- "y\r"
-    expect "Reload privilege tables now?"
-    send -- "y\r"
-    expect eof
-EOF
-
-  sudo yum remove tcl expect -y
-
-  sudo systemctl restart mariadb
-
-  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';"
-  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'
-
-  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -h $DBHOST -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES;"
+  # Import the empty MISP database from MYSQL.sql
+  ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -h $DBHOST -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
 }
 # <snippet-end 1_prepareDB_RHEL.sh>
 ```
