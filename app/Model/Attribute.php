@@ -4865,7 +4865,7 @@ class Attribute extends AppModel
             //'remarks' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
             'travel-details' => array('desc' => __('Travel details'), 'default_category' => 'Person', 'to_ids' => 0),
             'payment-details' => array('desc' => __('Payment details'), 'default_category' => 'Person', 'to_ids' => 0),
-            'place-port-of-original-embarkation' => array('desc' => __('The orignal port of embarkation'), 'default_category' => 'Person', 'to_ids' => 0),
+            'place-port-of-original-embarkation' => array('desc' => __('The original port of embarkation'), 'default_category' => 'Person', 'to_ids' => 0),
             'place-port-of-clearance' => array('desc' => __('The port of clearance'), 'default_category' => 'Person', 'to_ids' => 0),
             'place-port-of-onward-foreign-destination' => array('desc' => __('A Port where the passenger is transiting to'), 'default_category' => 'Person', 'to_ids' => 0),
             'passenger-name-record-locator-number' => array('desc' => __('The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.'), 'default_category' => 'Person', 'to_ids' => 0),
