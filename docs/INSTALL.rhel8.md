@@ -110,7 +110,6 @@ enableEPEL () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
   sudo yum install yum-utils -y
-  sudo yum-config-manager --enable remi-php74
 }
 # <snippet-end 0_RHEL_EPEL.sh>
 ```
@@ -158,8 +157,20 @@ yumInstallCoreDeps () {
                    php74-php-brotli \
                    php74-php-intl \
                    php74-php-gd -y
+
+  # cake has php baked in, thus we link to it
+  sudo ln -s /usr/bin/php74 /usr/bin/php
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
+```
+
+```bash
+# <snippet-begin 0_yumInstallHaveged.sh>
+# GPG needs lots of entropy, haveged provides entropy
+# /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
+sudo yum install haveged -y
+sudo systemctl enable --now haveged.service
+# <snippet-end 0_yumInstallHaveged.sh>
 ```
 
 !!! notice
@@ -179,10 +190,10 @@ TODO: Add a CentOS/RHEL rng thing, à la haveged (not in base anymore) or simila
 ```bash
 # <snippet-begin 1_mispCoreInstall_RHEL.sh>
 installCoreRHEL () {
-  # Download MISP using git in the /var/www/ directory.
-  sudo mkdir $PATH_TO_MISP
-  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP
-  cd /var/www
+  # Download MISP using git in the $PATH_TO_MISP directory.
+  sudo mkdir -p $(dirname $PATH_TO_MISP)
+  sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
+  cd $(dirname $PATH_TO_MISP)
   $SUDO_WWW git clone https://github.com/MISP/MISP.git
   cd $PATH_TO_MISP
 
@@ -282,7 +293,7 @@ installCoreRHEL () {
 
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   # BROKEN: This needs to be tested on RHEL/CentOS
-  ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+  sudo yum install libcaca-devel cmake3 -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
   [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
@@ -303,7 +314,6 @@ installCoreRHEL () {
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
   echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/remi/php74/php-fpm.d/www.conf
   sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/remi/php74/php-fpm.d/www.conf
-  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/remi/php74/php-fpm.d/www.conf
   sudo systemctl restart php74-php-fpm.service
   umask $UMASK
 }
@@ -339,7 +349,7 @@ installCake_RHEL ()
   echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/php-fpm.d/timezone.ini
   sudo ln -s ../php-fpm.d/timezone.ini /etc/php.d/99-timezone.ini
 
-  # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
+  # Recommended: Change some PHP settings in /etc/opt/remi/php74/php.ini
   # max_execution_time = 300
   # memory_limit = 2048M
   # upload_max_filesize = 50M
@@ -350,7 +360,7 @@ installCake_RHEL ()
   done
   sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
   sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
-  sudo systemctl restart php-fpm.service
+  sudo systemctl restart php74-php-fpm.service
 
   # To use the scheduler worker for scheduled tasks, do the following:
   sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
@@ -638,122 +648,39 @@ EOF
     The email address should match the one set in the config.php configuration file
     Make sure that you use the same settings in the MISP Server Settings tool
 
-## 9.06/ Use MISP's background workers
-## 9.06a/ Create a systemd unit for the workers
-```bash
-echo "[Unit]
-Description=MISP background workers
-After=mariadb.service redis.service fpm.service
-
-[Service]
-Type=forking
-User=apache
-Group=apache
-ExecStart=/var/www/MISP/app/Console/worker/start.sh
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-workers.service
-```
-
-Make the workers' script executable and reload the systemd units :
-```bash
-sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
-sudo systemctl daemon-reload
-sudo checkmodule -M -m -o /tmp/workerstartsh.mod $PATH_TO_MISP/INSTALL/workerstartsh.te
-sudo semodule_package -o /tmp/workerstartsh.pp -m /tmp/workerstartsh.mod
-sudo semodule -i /tmp/workerstartsh.pp
-```
-
-## 9.06b/ Start the workers and enable them on boot
-```bash
-sudo systemctl enable --now misp-workers.service
-```
-
-## 9.07/ misp-modules (Broken on RHEL8)
-
-Here are CentOS 8 packages of openjpeg2-devel: https://centos.pkgs.org/8/centos-powertools-x86_64/openjpeg2-devel-2.3.0-8.el8.x86_64.rpm.html
+## 9.06/ Use MISP background workers
 
 ```bash
-# some misp-modules dependencies
-sudo yum install openjpeg2-devel -y
+# <snippet-begin 3_configWorkers_RHEL.sh>
+configWorkersRHEL () {
+  echo "[Unit]
+  Description=MISP background workers
+  After=mariadb.service redis.service php74-php-fpm.service
 
-sudo chmod 2777 /usr/local/src
-sudo chown root:users /usr/local/src
-cd /usr/local/src/
-$SUDO_WWW git clone https://github.com/MISP/misp-modules.git
-cd misp-modules
-sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-core poppler-cpp-devel -y
-# pip install
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
-## poppler/cpp/poppler-document.h missing, under my current setup I cannot find it in the repos.
+  [Service]
+  Type=forking
+  User=$WWW_USER
+  Group=$WWW_USER
+  ExecStart=$PATH_TO_MISP/app/Console/worker/start.sh
+  Restart=always
+  RestartSec=10
 
-echo "[Unit]
-Description=MISP modules
-After=misp-workers.service
+  [Install]
+  WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-workers.service
 
-[Service]
-Type=simple
-User=apache
-Group=apache
-ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules –l 127.0.0.1 –s\"
-Restart=always
-RestartSec=10
+  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+  sudo systemctl daemon-reload
 
-[Install]
-WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-modules.service
-
-sudo systemctl daemon-reload
-# Test misp-modules
-$SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s
-sudo systemctl enable --now misp-modules
-
-  # Enable Enrichment, set better timeouts
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
-  # TODO:"Investigate why the next one fails"
-  #$SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_asn_history_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pdf_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_docx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_xlsx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pptx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ods_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_odt_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
-
-  # Enable Import modules, set better timeout
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_port" 6666
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_mispjson_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_openiocimport_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
-
-  # Enable Export modules, set better timeout
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
+  sudo systemctl enable --now misp-workers.service
+}
+# <snippet-end 3_configWorkers_RHEL.sh>
 ```
 
-{!generic/misp-dashboard-centos.md!}
+{!generic/misp-modules-centos.md!}
 
 {!generic/MISP_CAKE_init.md!}
+
+{!generic/misp-dashboard-centos.md!}
 
 {!generic/INSTALL.done.md!}
 
@@ -762,7 +689,7 @@ sudo systemctl enable --now misp-modules
 ### 11/ LIEF Installation
 *lief* is required for the Advanced Attachment Handler and requires manual compilation
 
-The installation is explained in section **[3.01](https://misp.github.io/MISP/xINSTALL.rhel8/#301-download-misp-code-using-git-in-varwww-directory)**
+The installation is explained in section **[3.01](https://misp.github.io/MISP/INSTALL.rhel8/#301-download-misp-code-using-git-in-varwww-directory)**
 
 ### 12/ Known Issues
 ## 12.01/ Workers cannot be started or restarted from the web page
@@ -771,7 +698,7 @@ Possible also due to package being installed via SCL, attempting to start worker
 systemctl restart misp-workers.service
 ```
 
-!!! note 
+!!! note
     No other functions were tested after the conclusion of this install. There may be issue that aren't addressed<br />
     via this guide and will need additional investigation.
 
