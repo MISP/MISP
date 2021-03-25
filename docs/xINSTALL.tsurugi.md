@@ -409,10 +409,12 @@ function installMISPonTsurugi() {
   a2ensite misp-ssl
   a2ensite misp-dashboard
 
-  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit session.sid_length session.use_strict_mode
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
       sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 
   systemctl restart apache2
 

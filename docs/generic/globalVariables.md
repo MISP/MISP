@@ -84,8 +84,8 @@ MISPvars () {
   post_max_size="50M"
   max_execution_time="300"
   memory_limit="2048M"
-  session.sid_length="32"
-  session.use_strict_mode="1"
+  session0sid_length="32"
+  session0use_strict_mode="1"
 
   CAKE="${PATH_TO_MISP}/app/Console/cake"
 

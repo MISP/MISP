@@ -30,6 +30,11 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
 
 !!! notice
+    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
+    Which explains why you will see the use of shell *functions* in various steps.
+    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
+
+!!! notice
     Maintenance for CentOS 8 will end on: December 31st, 2021 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
     CentOS 8 [NetInstallURL](http://mirrorlist.centos.org/?release=8&arch=x86_64&repo=BaseOS)
 
@@ -69,6 +74,7 @@ sudo hostnamectl set-hostname misp.local # Your choice, in a production environm
 ```
 
 ## 1.3/ **[RHEL]** Register the system for updates with Red Hat Subscription Manager
+Can be skipped if the Machine hsa been registered during install phase.
 ```bash
 # <snippet-begin 0_RHEL_register.sh>
 sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
@@ -151,6 +157,7 @@ yumInstallCoreDeps () {
        php-opcache \
        php-json \
        php-zip \
+       php-intl \
        php-gd -y
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
@@ -355,10 +362,12 @@ installCake_RHEL ()
   # memory_limit = 2048M
   # upload_max_filesize = 50M
   # post_max_size = 50M
-  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit session.sid_length session.use_strict_mode
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
   sudo systemctl restart php-fpm.service
 
   # To use the scheduler worker for scheduled tasks, do the following:
