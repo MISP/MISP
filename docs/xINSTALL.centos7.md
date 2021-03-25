@@ -264,7 +264,7 @@ echo 'date.timezone = "Europe/Luxembourg"' |sudo tee /etc/opt/rh/rh-php72/php.d/
 # memory_limit = 2048M
 # upload_max_filesize = 50M
 # post_max_size = 50M
-for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit session.sid_length session.use_strict_mode
 do
     sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
 done
