@@ -85,6 +85,8 @@ sudo subscription-manager register --auto-attach # register your system to an ac
 ```bash
 # <snippet-begin 0_RHEL_SCL.sh>
 sudo subscription-manager refresh 
+# The following is needed for -devel repos and ONLY for misp-modules, ignore if not needed
+sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
 # Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
 # <snippet-end 0_RHEL_SCL.sh>
 ```
@@ -110,6 +112,7 @@ enableEPEL () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
   sudo yum install yum-utils -y
+  sudo dnf module enable php:remi-7.4 -y
 }
 # <snippet-end 0_RHEL_EPEL.sh>
 ```
@@ -137,8 +140,7 @@ yumInstallCoreDeps () {
                    python3-devel python3-pip python3-virtualenv \
                    python3-policycoreutils \
                    policycoreutils-python-utils \
-                   libxslt-devel zlib-devel -y
-  # ssdeep-devel available: dnf install https://extras.getpagespeed.com/release-el8-latest.rpm
+                   libxslt-devel zlib-devel ssdeep-devel -y
   sudo alternatives --set python /usr/bin/python3
 
   # Enable and start redis
@@ -146,19 +148,19 @@ yumInstallCoreDeps () {
 
   PHP_INI="/etc/opt/remi/php74/php.ini"
   # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/8/php74/x86_64/repoview/
-  sudo yum install php74 php74-php-fpm php74-php-devel \
-                   php74-php-mysqlnd \
-                   php74-php-mbstring \
-                   php74-php-xml \
-                   php74-php-bcmath \
-                   php74-php-opcache \
-                   php74-php-zip \
-                   php74-php-pear \
-                   php74-php-brotli \
-                   php74-php-intl \
-                   php74-php-gd -y
+  sudo yum install php php-fpm php-devel \
+                   php-mysqlnd \
+                   php-mbstring \
+                   php-xml \
+                   php-bcmath \
+                   php-opcache \
+                   php-zip \
+                   php-pear \
+                   php-brotli \
+                   php-intl \
+                   php-gd -y
 
-  # cake has php baked in, thus we link to it
+  # cake has php baked in, thus we link to it, ignore if this fails or exists.
   sudo ln -s /usr/bin/php74 /usr/bin/php
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
@@ -179,7 +181,7 @@ sudo systemctl enable --now haveged.service
 
 ## 2.05/ Start the PHP FPM service and enable to start on boot
 ```bash
-sudo systemctl enable --now php74-php-fpm.service
+sudo systemctl enable --now php-fpm.service
 ```
 
 TODO: Add a CentOS/RHEL rng thing, à la haveged (not in base anymore) or similar.
@@ -315,6 +317,8 @@ installCoreRHEL () {
   echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/remi/php74/php-fpm.d/www.conf
   sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/remi/php74/php-fpm.d/www.conf
   sudo systemctl restart php74-php-fpm.service
+  # TODO investigate: listen = 127.0.0.1:9000
+
   umask $UMASK
 }
 # <snippet-end 1_mispCoreInstall_RHEL.sh>
@@ -341,9 +345,9 @@ installCake_RHEL ()
   #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
-  sudo yum install php74-php-pecl-redis php74-php-pecl-ssdeep php74-php-pecl-gnupg -y
+  sudo yum install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
 
-  sudo systemctl restart php74-php-fpm.service
+  sudo systemctl restart php-fpm.service
 
   # If you have not yet set a timezone in php.ini
   echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/php-fpm.d/timezone.ini
@@ -360,7 +364,7 @@ installCake_RHEL ()
   done
   sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
   sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
-  sudo systemctl restart php74-php-fpm.service
+  sudo systemctl restart php-fpm.service
 
   # To use the scheduler worker for scheduled tasks, do the following:
   sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
@@ -655,7 +659,7 @@ EOF
 configWorkersRHEL () {
   echo "[Unit]
   Description=MISP background workers
-  After=mariadb.service redis.service php74-php-fpm.service
+  After=mariadb.service redis.service php-fpm.service
 
   [Service]
   Type=forking
