@@ -117,7 +117,7 @@ installDepsPhp72 () {
   php-intl php-bcmath \
   php-gd
 
-  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit session.sid_length session.use_strict_mode
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done

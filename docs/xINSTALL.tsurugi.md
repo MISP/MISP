@@ -118,6 +118,9 @@ function installMISPonTsurugi() {
   post_max_size=50M
   max_execution_time=300
   memory_limit=2048M
+  session.sid_length=32
+  session.use_strict_mode=1
+
   PHP_INI=/etc/php/7.0/apache2/php.ini
 
   # apt config
@@ -406,7 +409,7 @@ function installMISPonTsurugi() {
   a2ensite misp-ssl
   a2ensite misp-dashboard
 
-  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit session.sid_length session.use_strict_mode
   do
       sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
