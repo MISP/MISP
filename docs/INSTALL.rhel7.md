@@ -1,9 +1,17 @@
 # INSTALLATION INSTRUCTIONS for RHEL 7.x and CentOS 7.x
 -------------------------
 
-### -1/ Installer and Manual install instructions
+### -2/ RHEL7/CentOS7 - status
+-------------------------
+!!! notice
+    MISP-core and misp-modules Tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210326
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
+!!! notice
+    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
+    Which explains why you will see the use of shell *functions* in various steps.
+    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
+
+### -1/ Installer and Manual install instructions
 
 !!! warning
     In the **future**, to install MISP on a fresh RHEL 7 install all you need to do is:
@@ -19,9 +27,12 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     ```
     **The above does NOT work yet**
 
-### 0/ Overview and Assumptions
+!!! notice
+    If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
 
 {!generic/community.md!}
+
+### 0/ Overview and Assumptions
 
 {!generic/rhelVScentos.md!}
 

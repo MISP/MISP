@@ -1,9 +1,17 @@
 # INSTALLATION INSTRUCTIONS for RHEL 8.x, CentOS8/Stream
 -------------------------
 
-### -1/ Installer and Manual install instructions
+### -2/ RHEL8/CentOS8 - status
+-------------------------
+!!! notice
+    MISP-core and misp-modules Tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210326
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.rhel8/).
+!!! notice
+    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
+    Which explains why you will see the use of shell *functions* in various steps.
+    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
+
+### -1/ Installer and Manual install instructions
 
 !!! warning
     In the **future**, to install MISP on a fresh RHEL 8 install all you need to do is:
@@ -19,20 +27,18 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     ```
     **The above does NOT work yet**
 
-### 0/ Overview and Assumptions
+!!! notice
+    If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel8/).
 
 {!generic/community.md!}
+
+### 0/ Overview and Assumptions
 
 {!generic/rhelVScentos.md!}
 
 !!! warning
     The core MISP team cannot verify if this guide is working or not. Please help us in keeping it up to date and accurate.
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
-
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
 
 !!! notice
     Maintenance for CentOS 8 will end on: December 31st, 2021 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
@@ -132,6 +138,8 @@ enableEPEL_REMI () {
 # <snippet-begin 0_yumInstallCoreDeps.sh>
 yumInstallCoreDeps () {
   # Install the dependencies:
+  PHP_BASE="/etc/"
+  PHP_INI="/etc/php.ini"
   sudo yum install @httpd -y
   sudo yum install gcc git zip \
                    httpd \
@@ -253,9 +261,9 @@ installCoreRHEL () {
 
   # lief needs manual compilation
   sudo yum groupinstall "Development Tools" -y
-  [[ ${DISTRI} == 'rhel' ]] && sudo yum install cmake3 -y && CMAKE_BIN='cmake3'
+  [[ ${DISTRI} == 'rhel8.3' ]] && sudo yum install cmake3 -y && CMAKE_BIN='cmake3'
   [[ ${DISTRI} == 'centos8stream' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
-  [[ ${DISTRI} == 'centos' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
+  [[ ${DISTRI} == 'centos8' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
 
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW git config core.filemode false

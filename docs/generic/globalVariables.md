@@ -16,13 +16,6 @@ MISPvars () {
   DIST_VER="$(. /etc/os-release && echo "$VERSION_ID")"
   DISTRI=${FLAVOUR}${DIST_VER}${STREAM}
 
-  # Assess the php.ini location
-  [[ ${DISTRI} == 'rhel' ]] && PHP_INI="/etc/opt/remi/php74/php.ini" && PHP_BASE=/etc/opt/remi/php74/
-  [[ ${DISTRI} == 'centos8' ]] && PHP_INI="/etc/php.ini" && PHP_BASE=/etc/
-  [[ ${DISTRI} == 'centos8stream' ]] && PHP_INI="/etc/php.ini" && PHP_BASE=/etc/
-  # default to /etc/php/*/php.ini
-  PHP_INI="${PHP_INI:-/etc/php/*/apache2/php.ini}"
-
   # The web server user
   # RHEL/CentOS
   if [[ -f "/etc/redhat-release" ]]; then
