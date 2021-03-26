@@ -10,6 +10,19 @@ MISPvars () {
   MISP_USER="${MISP_USER:-misp}"
   MISP_PASSWORD="${MISP_PASSWORD:-$(openssl rand -hex 32)}"
 
+  # Cheap distribution detector
+  FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
+  STREAM="$(. /etc/os-release && echo "$NAME"| grep -o -i stream |tr '[:upper:]' '[:lower:]')"
+  DIST_VER="$(. /etc/os-release && echo "$VERSION_ID")"
+  DISTRI=${FLAVOUR}${DIST_VER}${STREAM}
+
+  # Assess the php.ini location
+  [[ ${DISTRI} == 'rhel' ]] && PHP_INI="/etc/opt/remi/php74/php.ini" && PHP_BASE=/etc/opt/remi/php74/
+  [[ ${DISTRI} == 'centos8' ]] && PHP_INI="/etc/php.ini" && PHP_BASE=/etc/
+  [[ ${DISTRI} == 'centos8stream' ]] && PHP_INI="/etc/php.ini" && PHP_BASE=/etc/
+  # default to /etc/php/*/php.ini
+  PHP_INI="${PHP_INI:-/etc/php/*/apache2/php.ini}"
+
   # The web server user
   # RHEL/CentOS
   if [[ -f "/etc/redhat-release" ]]; then
