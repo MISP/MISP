@@ -1,4 +1,4 @@
-# INSTALLATION INSTRUCTIONS for RHEL 8.x and partially Fedora Server 30
+# INSTALLATION INSTRUCTIONS for RHEL 8.x, CentOS8/Stream
 -------------------------
 
 ### -1/ Installer and Manual install instructions
@@ -105,16 +105,18 @@ yumUpdate () {
 # <snippet-end 0_yum-update.sh>
 ```
 
-## 1.6/ **[RHEL]** Install the EPEL and remi repo
+## 1.6/ Install the EPEL and remi repo
 ```bash
-# <snippet-begin 0_RHEL_EPEL.sh>
-enableEPEL () {
+# <snippet-begin 0_EPEL_REMI.sh>
+enableEPEL_REMI () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
   sudo yum install yum-utils -y
   sudo dnf module enable php:remi-7.4 -y
+  [[ ${DISTRI} == "centos8stream" ]] &&sudo dnf config-manager --set-enabled powertools
+  [[ ${DISTRI} == "centos8" ]] &&sudo dnf config-manager --set-enabled powertools
 }
-# <snippet-end 0_RHEL_EPEL.sh>
+# <snippet-end 0_EPEL_REMI.sh>
 ```
 
 ### 2/ Dependencies
@@ -146,7 +148,6 @@ yumInstallCoreDeps () {
   # Enable and start redis
   sudo systemctl enable --now redis.service
 
-  PHP_INI="/etc/opt/remi/php74/php.ini"
   # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/8/php74/x86_64/repoview/
   sudo yum install php php-fpm php-devel \
                    php-mysqlnd \
@@ -160,8 +161,8 @@ yumInstallCoreDeps () {
                    php-intl \
                    php-gd -y
 
-  # cake has php baked in, thus we link to it, ignore if this fails or exists.
-  sudo ln -s /usr/bin/php74 /usr/bin/php
+  # cake has php baked in, thus we link to it if necessary.
+  [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
 ```
@@ -252,13 +253,15 @@ installCoreRHEL () {
 
   # lief needs manual compilation
   sudo yum groupinstall "Development Tools" -y
-  sudo yum install cmake3 -y
+  [[ ${DISTRI} == 'rhel' ]] && sudo yum install cmake3 -y && CMAKE_BIN='cmake3'
+  [[ ${DISTRI} == 'centos8stream' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
+  [[ ${DISTRI} == 'centos' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
 
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW git config core.filemode false
   $SUDO_WWW mkdir build
   cd build
-  $SUDO_WWW cmake3 \
+  $SUDO_WWW ${CMAKE_BIN} \
   -DLIEF_PYTHON_API=on \
   -DPYTHON_VERSION=3.6 \
   -DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
@@ -295,7 +298,7 @@ installCoreRHEL () {
 
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   # BROKEN: This needs to be tested on RHEL/CentOS
-  sudo yum install libcaca-devel cmake3 -y
+  sudo yum install libcaca-devel -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
   [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
@@ -303,21 +306,22 @@ installCoreRHEL () {
   cd gtcaca
   $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_CMD cmake .. && $SUDO_CMD make
+  $SUDO_CMD ${CMAKE_BIN} .. && $SUDO_CMD make
   sudo make install
   cd ../../faup
   $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_CMD cmake .. && $SUDO_CMD make
+  $SUDO_CMD ${CMAKE_BIN} .. && $SUDO_CMD make
   sudo make install
   sudo ldconfig
 
   # Enable dependencies detection in the diagnostics page
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
-  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/remi/php74/php-fpm.d/www.conf
-  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/remi/php74/php-fpm.d/www.conf
-  sudo systemctl restart php74-php-fpm.service
-  # TODO investigate: listen = 127.0.0.1:9000
+  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a ${PHP_BASE}/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' ${PHP_BASE}/php-fpm.d/www.conf  # TODO check if below is different on RHEL8 php74-php-fpm.service also dbl check paths
+  sudo sed -i.org -e 's/^\(listen =\) \/run\/php-fpm\/www\.sock/\1 127.0.0.1:9000/' ${PHP_BASE}/php-fpm.d/www.conf
+
+  sudo systemctl restart php-fpm.service
 
   umask $UMASK
 }
