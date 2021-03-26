@@ -998,6 +998,7 @@ class AttributesController extends AppController
             'includeAllTags' => false,
             'includeAttributeUuid' => true,
             'flatten' => true,
+            'deleted' => [0, 1]
         );
 
         if ($this->_isRest()) {
@@ -1505,7 +1506,6 @@ class AttributesController extends AppController
                 'request' => $this->request,
                 'named_params' => $this->params['named'],
                 'paramArray' => $paramArray,
-                'ordered_url_params' => @compact($paramArray),
                 'additional_delimiters' => PHP_EOL
             );
             $exception = false;
@@ -2582,9 +2582,10 @@ class AttributesController extends AppController
         }
         $totalAttributes = $this->Attribute->find('count', array());
         $attributes = $this->Attribute->find('all', array(
-                'recursive' => -1,
-                'fields' => array($type, 'COUNT(id) as attribute_count'),
-                'group' => array($type)
+            'recursive' => -1,
+            'fields' => array($type, 'COUNT(id) as attribute_count'),
+            'group' => array($type),
+            'order' => ''
         ));
         $results = array();
         foreach ($attributes as $attribute) {
@@ -2677,7 +2678,12 @@ class AttributesController extends AppController
                             }
                         }
                     } else {
-                        $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                        $conditions = array('LOWER(Tag.name)' => strtolower(trim($tag_id)));
+                        if (!$this->_isSiteAdmin()) {
+                            $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                            $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
+                        }
+                        $tag = $this->Attribute->AttributeTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
                         if (empty($tag)) {
                             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
                         }

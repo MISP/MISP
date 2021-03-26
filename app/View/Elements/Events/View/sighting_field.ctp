@@ -9,9 +9,9 @@ if (isset($sightingsData['data'][$objectId])) {
         foreach ($typeData['orgs'] as $org => $orgData) {
             $extra = $org === $me['Organisation']['name'] ? ' class="bold"' : "";
             if ($type == 'expiration') {
-                $html .= '<span' . $extra . '>' . h($org) . '</span>: <span class="orange bold">' . date('Y-m-d H:i:s', $orgData['date']) . '</span><br>';
+                $html .= '<span' . $extra . '>' . h($org) . '</span>: <span class="orange bold">' . $this->Time->time($orgData['date']) . '</span><br>';
             } else {
-                $html .= '<span' . $extra . '>' . h($org) . '</span>: <span class="' . ($type === 'sighting' ? 'green' : 'red') . ' bold">' . h($orgData['count']) . ' (' . date('Y-m-d H:i:s', $orgData['date']) . ')</span><br>';
+                $html .= '<span' . $extra . '>' . h($org) . '</span>: <span class="' . ($type === 'sighting' ? 'green' : 'red') . ' bold">' . h($orgData['count']) . ' (' . $this->Time->time($orgData['date']) . ')</span><br>';
             }
         }
     }

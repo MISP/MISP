@@ -41,7 +41,6 @@ class TagsController extends AppController
             'request' => $this->request,
             'named_params' => $this->params['named'],
             'paramArray' => ['favouritesOnly', 'filter', 'searchall', 'name', 'search', 'exclude_statistics'],
-            'ordered_url_params' => @compact($paramArray)
         );
         $exception = false;
         $passedArgsArray = $this->_harvestParameters($filterData, $exception);
@@ -140,9 +139,6 @@ class TagsController extends AppController
 
     public function add()
     {
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
-            throw new NotFoundException('You don\'t have permission to do that.');
-        }
         if ($this->request->is('post')) {
             if (!isset($this->request->data['Tag'])) {
                 $this->request->data = array('Tag' => $this->request->data);
@@ -193,31 +189,22 @@ class TagsController extends AppController
         } elseif ($this->_isRest()) {
             return $this->RestResponse->describe('Tag', 'add', false, $this->response->type());
         }
-        $this->loadModel('Organisation');
-        $temp = $this->Organisation->find('all', array(
+
+        $orgs = $this->Tag->Organisation->find('list', array(
             'conditions' => array('local' => 1),
             'fields' => array('id', 'name'),
-            'recursive' => -1
+            'order' => 'name',
         ));
-        $orgs = array(0 => 'Unrestricted');
-        if (!empty($temp)) {
-            foreach ($temp as $org) {
-                $orgs[$org['Organisation']['id']] = $org['Organisation']['name'];
-            }
-        }
+        $orgs = [0 => 'Unrestricted'] + $orgs;
         $this->set('orgs', $orgs);
-        $users = array(0 => 'Unrestricted');
+
         if ($this->_isSiteAdmin()) {
-            $temp = $this->Organisation->User->find('all', array(
+            $users = $this->Tag->User->find('list', array(
                 'conditions' => array('disabled' => 0),
                 'fields' => array('id', 'email'),
-                'recursive' => -1
+                'order' => 'email',
             ));
-            if (!empty($temp)) {
-                foreach ($temp as $user) {
-                    $users[$user['User']['id']] = $user['User']['email'];
-                }
-            }
+            $users = [0 => 'Unrestricted'] + $users;
             $this->set('users', $users);
         }
     }
@@ -247,9 +234,6 @@ class TagsController extends AppController
             if (!$this->Tag->exists()) {
                 throw new NotFoundException('Invalid tag');
             }
-        }
-        if (!$this->_isSiteAdmin()) {
-            throw new NotFoundException('You don\'t have permission to do that.');
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['Tag'])) {
@@ -281,41 +265,28 @@ class TagsController extends AppController
         } elseif ($this->_isRest()) {
             return $this->RestResponse->describe('Tag', 'edit', false, $this->response->type());
         }
-        $this->loadModel('Organisation');
-        $temp = $this->Organisation->find('all', array(
+
+        $orgs = $this->Tag->Organisation->find('list', array(
             'conditions' => array('local' => 1),
             'fields' => array('id', 'name'),
-            'recursive' => -1
+            'order' => 'name',
         ));
-        $orgs = array(0 => 'Unrestricted');
-        if (!empty($temp)) {
-            foreach ($temp as $org) {
-                $orgs[$org['Organisation']['id']] = $org['Organisation']['name'];
-            }
-        }
+        $orgs = [0 => 'Unrestricted'] + $orgs;
         $this->set('orgs', $orgs);
-        $users = array(0 => 'Unrestricted');
-        if ($this->_isSiteAdmin()) {
-            $temp = $this->Organisation->User->find('all', array(
-                'conditions' => array('disabled' => 0),
-                'fields' => array('id', 'email'),
-                'recursive' => -1
-            ));
-            if (!empty($temp)) {
-                foreach ($temp as $user) {
-                    $users[$user['User']['id']] = $user['User']['email'];
-                }
-            }
-            $this->set('users', $users);
-        }
+
+        $users = $this->Tag->User->find('list', array(
+            'conditions' => array('disabled' => 0),
+            'fields' => array('id', 'email'),
+            'order' => 'email',
+        ));
+        $users = [0 => 'Unrestricted'] + $users;
+        $this->set('users', $users);
+
         $this->request->data = $this->Tag->read(null, $id);
     }
 
     public function delete($id)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new NotFoundException('You don\'t have permission to do that.');
-        }
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
@@ -344,79 +315,33 @@ class TagsController extends AppController
 
     public function view($id)
     {
-        if ($this->_isRest()) {
-            $contain = array('EventTag' => array('fields' => 'event_id'));
-            $contain['AttributeTag'] = array('fields' => 'attribute_id');
-            $tag = $this->Tag->find('first', array(
-                    'conditions' => array('id' => $id),
-                    'recursive' => -1,
-                    'contain' => $contain
-            ));
-            if (empty($tag)) {
-                throw new MethodNotAllowedException('Invalid Tag');
-            }
-            if (empty($tag['EventTag'])) {
-                $tag['Tag']['count'] = 0;
-            } else {
-                $eventIDs = array();
-                foreach ($tag['EventTag'] as $eventTag) {
-                    $eventIDs[] = $eventTag['event_id'];
-                }
-                $conditions = array('Event.id' => $eventIDs);
-                if (!$this->_isSiteAdmin()) {
-                    $conditions = array_merge(
-                        $conditions,
-                        array('OR' => array(
-                                array('AND' => array(
-                                        array('Event.distribution >' => 0),
-                                        array('Event.published =' => 1)
-                                )),
-                                array('Event.orgc_id' => $this->Auth->user('org_id'))
-                        ))
-                );
-                }
-                $events = $this->Tag->EventTag->Event->find('all', array(
-                        'fields' => array('Event.id', 'Event.distribution', 'Event.orgc_id'),
-                        'conditions' => $conditions
-                ));
-                $tag['Tag']['count'] = count($events);
-            }
-            unset($tag['EventTag']);
-            if (empty($tag['AttributeTag'])) {
-                $tag['Tag']['attribute_count'] = 0;
-            } else {
-                $attributeIDs = array();
-                foreach ($tag['AttributeTag'] as $attributeTag) {
-                    $attributeIDs[] = $attributeTag['attribute_id'];
-                }
-                $conditions = array('Attribute.id' => $attributeIDs);
-                if (!$this->_isSiteAdmin()) {
-                    $conditions = array_merge(
-                        $conditions,
-                        array('OR' => array(
-                            array('AND' => array(
-                                array('Attribute.deleted =' => 0),
-                                array('Attribute.distribution >' => 0),
-                                array('Event.distribution >' => 0),
-                                array('Event.published =' => 1)
-                            )),
-                            array('Event.orgc_id' => $this->Auth->user('org_id'))
-                        ))
-                    );
-                }
-                $attributes = $this->Tag->AttributeTag->Attribute->find('all', array(
-                    'fields'     => array('Attribute.id', 'Attribute.deleted', 'Attribute.distribution', 'Event.id', 'Event.distribution', 'Event.orgc_id'),
-                    'contain'    => array('Event' => array('fields' => array('id', 'distribution', 'orgc_id'))),
-                    'conditions' => $conditions
-                ));
-                $tag['Tag']['attribute_count'] = count($attributes);
-            }
-            unset($tag['AttributeTag']);
-            $this->set('Tag', $tag['Tag']);
-            $this->set('_serialize', 'Tag');
-        } else {
+        if (!$this->_isRest()) {
             throw new MethodNotAllowedException('This action is only for REST users.');
         }
+
+        $tag = $this->Tag->find('first', array(
+            'conditions' => array('id' => $id),
+            'recursive' => -1,
+            'contain' => ['AttributeTag' => ['fields' => 'attribute_id']],
+        ));
+        if (empty($tag)) {
+            throw new MethodNotAllowedException('Invalid Tag');
+        }
+
+        $tag['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user());
+
+        if (empty($tag['AttributeTag'])) {
+            $tag['Tag']['attribute_count'] = 0;
+        } else {
+            $attributeIDs = array_column($tag['AttributeTag'], 'attribute_id');
+            $tag['Tag']['attribute_count'] = count($this->Tag->AttributeTag->Attribute->fetchAttributes($this->Auth->user(), [
+                'conditions' => ['Attribute.id' => $attributeIDs],
+                'list' => true,
+            ]));
+        }
+        unset($tag['AttributeTag']);
+
+        return $this->RestResponse->viewData($tag['Tag'], $this->response->type());
     }
 
     public function showEventTag($id)
@@ -439,7 +364,7 @@ class TagsController extends AppController
         $event = $this->Tag->EventTag->Event->massageTags($this->Auth->user(), $event, 'Event', false, true);
 
         $this->set('tags', $event['EventTag']);
-        $this->set('required_taxonomies', $this->Tag->EventTag->Event->getRequiredTaxonomies());
+        $this->set('missingTaxonomies', $this->Tag->EventTag->Event->missingTaxonomies($event));
         $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['EventTag']);
         $this->set('tagConflicts', $tagConflicts);
         $this->set('event', $event);

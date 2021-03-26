@@ -121,14 +121,10 @@
         <?php
             if (!Configure::read('MISP.disable_auto_logout') and $me):
         ?>
-                checkIfLoggedIn();
+                //checkIfLoggedIn();
         <?php
             endif;
         ?>
-        if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
-            var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
-            $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
-        }
         });
     </script>
 </body>

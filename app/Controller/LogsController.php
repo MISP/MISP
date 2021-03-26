@@ -108,7 +108,7 @@ class LogsController extends AppController
     }
 
     // Shows a minimalistic history for the currently selected event
-    public function event_index($id)
+    public function event_index($id, $org = null)
     {
         $this->loadModel('Event');
         $event = $this->Event->fetchEvent($this->Auth->user(), array(
@@ -183,6 +183,10 @@ class LogsController extends AppController
             );
         }
 
+        if ($org) {
+            $conditions['org'] = $org;
+        }
+
         $this->paginate['fields'] = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org', 'email');
         $this->paginate['conditions'] = $conditions;
 
@@ -194,7 +198,7 @@ class LogsController extends AppController
                 'fields' => array('User.email')
             ));
             foreach ($list as $k => $item) {
-                if (!in_array($item['Log']['email'], $orgEmails)) {
+                if (!in_array($item['Log']['email'], $orgEmails, true)) {
                     $list[$k]['Log']['email'] = '';
                 }
             }
@@ -367,6 +371,8 @@ class LogsController extends AppController
                 'EventTag',
                 'Feed',
                 'DecayingModel',
+                'EventGraph',
+                'EventReport',
                 'MispObject',
                 'Organisation',
                 'Post',

@@ -56,7 +56,7 @@ class GalaxyClustersController extends AppController
             $contextConditions['GalaxyCluster.deleted'] = true;
         }
 
-        $this->set('passedArgsArray', array('context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''));
+        $this->set('passedArgs', json_encode(array('context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : '')));
         $this->set('context', $filters['context']);
         $searchConditions = array();
         if (empty($filters['searchall'])) {
@@ -391,7 +391,9 @@ class GalaxyClustersController extends AppController
 
             if (empty($cluster['GalaxyCluster']['authors'])) {
                 $cluster['GalaxyCluster']['authors'] = [];
-            } else {
+            } else if (is_array($cluster['GalaxyCluster']['authors'])) {
+                // This is as intended, move on 
+            }else {
                 $decoded = json_decode($cluster['GalaxyCluster']['authors'], true);
                 if (is_null($decoded)) { // authors might be comma separated
                     $decoded = array_map('trim', explode(',', $cluster['GalaxyCluster']['authors']));
@@ -703,6 +705,9 @@ class GalaxyClustersController extends AppController
     {
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'delete', $throwErrors=true, $full=false);
         if ($this->request->is('post')) {
+            if (!empty($this->request->data['hard'])) {
+                $hard = true;
+            }
             $result = $this->GalaxyCluster->deleteCluster($cluster['GalaxyCluster']['id'], $hard=$hard);
             $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
             if ($result) {
@@ -712,7 +717,7 @@ class GalaxyClustersController extends AppController
                     $hard ? __(' and added to the block list') : ''
                 );
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $this->response->type());
+                    return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $this->response->type(), $message);
                 } else {
                     $this->Flash->success($message);
                     $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxyId));
@@ -720,7 +725,7 @@ class GalaxyClustersController extends AppController
             } else {
                 $message = __('Galaxy cluster could not be %s deleted.', $hard ? __('hard') : __('soft'));
                 if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $message, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $cluster['GalaxyCluster']['id'], $message, $this->response->type(), $message);
                 } else {
                     $this->Flash->error($message);
                     $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxyId));
@@ -967,7 +972,7 @@ class GalaxyClustersController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be reached via AJAX.');
         }
-        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', true, true);
         $existingRelations = $this->GalaxyCluster->GalaxyClusterRelation->getExistingRelationships();
         $cluster = $this->GalaxyCluster->attachClusterToRelations($this->Auth->user(), $cluster);
 
@@ -978,12 +983,8 @@ class GalaxyClustersController extends AppController
 
         $this->set('existingRelations', $existingRelations);
         $this->set('cluster', $cluster);
-        $relations = $this->GalaxyCluster->GalaxyClusterRelation->fetchRelations($this->Auth->user(), array(
-            'conditions' => array(
-                'GalaxyClusterRelation.galaxy_cluster_uuid' => $cluster['GalaxyCluster']['uuid']
-            ),
-            'contain' => array('SharingGroup', 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'))
-        ));
+        $relations = $cluster['GalaxyCluster']['GalaxyClusterRelation'];
+        $this->set('passedArgs', json_encode([]));
         $this->set('relations', $relations);
         $this->set('tree', $tree);
         $this->loadModel('Attribute');

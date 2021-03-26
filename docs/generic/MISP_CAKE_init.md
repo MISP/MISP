@@ -39,6 +39,7 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.email" "$GPG_EMAIL_ADDRESS"
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.password" "$GPG_PASSPHRASE"
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.obscure_subject" true
   # FIXME: what if we have not gpg binary but a gpg2 one?
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.binary" "$(which gpg)"
 
@@ -67,6 +68,9 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_anonymise_as" 1
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_range" 365
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_sighting_db_enable" false
+
+  # Plugin Enrichment hover defaults
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_popover_only" false
 
   # Plugin CustomAuth tuneable
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.CustomAuth_disable_logout" false
@@ -102,8 +106,10 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.enableEventBlocklisting" true
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.enableOrgBlocklisting" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_client_ip" false
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_client_ip" true
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_auth" false
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_user_ips" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.log_user_ips_authkeys" true
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disableUserSelfManagement" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disable_user_login_change" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.disable_user_password_change" false
@@ -135,6 +141,16 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_length" 12
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators."
+
+  # Appease the security audit, #hardening
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.disable_browser_cache" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.check_sec_fetch_site_header" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.csp_enforce" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.advanced_authkeys" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.do_not_log_authkeys" true
+
+  # Appease the security audit, #loggin
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.username_in_response_header" true
 
   # It is possible to updateMISP too, only here for reference how to to that on the CLI.
   ## $SUDO_WWW $RUN_PHP -- $CAKE Admin updateMISP

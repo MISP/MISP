@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
+App::uses('SecurityAudit', 'Tools');
 
 /**
  * @property Server $Server
@@ -34,8 +35,11 @@ class ServersController extends AppController
 
     public function beforeFilter()
     {
+        $this->Auth->allow(['cspReport']); // cspReport must work without authentication
+
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'getApiInfo';
+        $this->Security->unlockedActions[] = 'cspReport';
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
@@ -938,253 +942,254 @@ class ServersController extends AppController
 
     public function serverSettings($tab=false)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
+        if (!$this->request->is('get')) {
+            throw new MethodNotAllowedException('Just GET method is allowed.');
         }
-        if ($this->request->is('Get')) {
-            $tabs = array(
-                    'MISP' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-                    'Encryption' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-                    'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-                    'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-                    'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
-            );
-            $writeableErrors = array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable'));
-            $readableErrors = array(0 => __('OK'), 1 => __('not readable'));
-            $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
-            $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
-            $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
-            $stixOperational = array(0 => __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.'), 1 => __('OK'));
-            $stixVersion = array(0 => __('Incorrect STIX version installed, found $current, expecting $expected'), 1 => __('OK'));
-            $stix2Version = array(0 => __('Incorrect STIX2 version installed, found $current, expecting $expected'), 1 => __('OK'));
-            $cyboxVersion = array(0 => __('Incorrect CyBox version installed, found $current, expecting $expected'), 1 => __('OK'));
-            $mixboxVersion = array(0 => __('Incorrect mixbox version installed, found $current, expecting $expected'), 1 => __('OK'));
-            $maecVersion = array(0 => __('Incorrect maec version installed, found $current, expecting $expected'), 1 => __('OK'));
-            $pymispVersion = array(0 => __('Incorrect PyMISP version installed, found $current, expecting $expected'), 1 => __('OK'));
-            $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
-            $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
+        $tabs = array(
+            'MISP' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+            'Encryption' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+            'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+            'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+            'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
+        );
+        $writeableErrors = array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable'));
+        $readableErrors = array(0 => __('OK'), 1 => __('not readable'));
+        $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
+        $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
+        $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
+        $stixOperational = array(0 => __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.'), 1 => __('OK'));
+        $stixVersion = array(0 => __('Incorrect STIX version installed, found $current, expecting $expected'), 1 => __('OK'));
+        $stix2Version = array(0 => __('Incorrect STIX2 version installed, found $current, expecting $expected'), 1 => __('OK'));
+        $cyboxVersion = array(0 => __('Incorrect CyBox version installed, found $current, expecting $expected'), 1 => __('OK'));
+        $mixboxVersion = array(0 => __('Incorrect mixbox version installed, found $current, expecting $expected'), 1 => __('OK'));
+        $maecVersion = array(0 => __('Incorrect maec version installed, found $current, expecting $expected'), 1 => __('OK'));
+        $pymispVersion = array(0 => __('Incorrect PyMISP version installed, found $current, expecting $expected'), 1 => __('OK'));
+        $sessionErrors = array(0 => __('OK'), 1 => __('High'), 2 => __('Alternative setting used'), 3 => __('Test failed'));
+        $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
 
-            $finalSettings = $this->Server->serverSettingsRead();
-            $issues = array(
-                'errors' => array(
-                        0 => array(
-                                'value' => 0,
-                                'description' => __('MISP will not operate correctly or will be unsecure until these issues are resolved.')
-                        ),
-                        1 => array(
-                                'value' => 0,
-                                'description' => __('Some of the features of MISP cannot be utilised until these issues are resolved.')
-                        ),
-                        2 => array(
-                                'value' => 0,
-                                'description' => __('There are some optional tweaks that could be done to improve the looks of your MISP instance.')
-                        ),
+        $finalSettings = $this->Server->serverSettingsRead();
+        $issues = array(
+            'errors' => array(
+                0 => array(
+                    'value' => 0,
+                    'description' => __('MISP will not operate correctly or will be unsecure until these issues are resolved.')
                 ),
-                'deprecated' => array(),
-                'overallHealth' => 3,
-            );
-            $dumpResults = array();
-            $tempArray = array();
-            foreach ($finalSettings as $k => $result) {
-                if ($result['level'] == 3) {
-                    $issues['deprecated']++;
+                1 => array(
+                    'value' => 0,
+                    'description' => __('Some of the features of MISP cannot be utilised until these issues are resolved.')
+                ),
+                2 => array(
+                    'value' => 0,
+                    'description' => __('There are some optional tweaks that could be done to improve the looks of your MISP instance.')
+                ),
+            ),
+            'deprecated' => array(),
+            'overallHealth' => 3,
+        );
+        $dumpResults = array();
+        $tempArray = array();
+        foreach ($finalSettings as $k => $result) {
+            if ($result['level'] == 3) {
+                $issues['deprecated']++;
+            }
+            $tabs[$result['tab']]['count']++;
+            if (isset($result['error']) && $result['level'] < 3) {
+                $issues['errors'][$result['level']]['value']++;
+                if ($result['level'] < $issues['overallHealth']) {
+                    $issues['overallHealth'] = $result['level'];
                 }
-                $tabs[$result['tab']]['count']++;
-                if (isset($result['error']) && $result['level'] < 3) {
-                    $issues['errors'][$result['level']]['value']++;
-                    if ($result['level'] < $issues['overallHealth']) {
-                        $issues['overallHealth'] = $result['level'];
-                    }
-                    $tabs[$result['tab']]['errors']++;
-                    if ($result['level'] < $tabs[$result['tab']]['severity']) {
-                        $tabs[$result['tab']]['severity'] = $result['level'];
-                    }
-                }
-                if (isset($result['optionsSource']) && is_callable($result['optionsSource'])) {
-                    $result['options'] = $result['optionsSource']();
-                }
-                $dumpResults[] = $result;
-                if ($result['tab'] == $tab) {
-                    if (isset($result['subGroup'])) {
-                        $tempArray[$result['subGroup']][] = $result;
-                    } else {
-                        $tempArray['general'][] = $result;
-                    }
+                $tabs[$result['tab']]['errors']++;
+                if ($result['level'] < $tabs[$result['tab']]['severity']) {
+                    $tabs[$result['tab']]['severity'] = $result['level'];
                 }
             }
-            $finalSettings = $tempArray;
-            // Diagnostics portion
-            $diagnostic_errors = 0;
-            App::uses('File', 'Utility');
-            App::uses('Folder', 'Utility');
-            if ($tab === 'files') {
-                $files = $this->__manageFiles();
-                $this->set('files', $files);
+            if (isset($result['optionsSource']) && is_callable($result['optionsSource'])) {
+                $result['options'] = $result['optionsSource']();
             }
-            // Only run this check on the diagnostics tab
-            if ($tab === 'diagnostics' || $tab === 'download' || $this->_isRest()) {
-                $php_ini = php_ini_loaded_file();
-                $this->set('php_ini', $php_ini);
-
-                $attachmentTool = new AttachmentTool();
-                try {
-                    $advanced_attachments = $attachmentTool->checkAdvancedExtractionStatus($this->Server->getPythonVersion());
-                } catch (Exception $e) {
-                    $this->log($e->getMessage(), LOG_NOTICE);
-                    $advanced_attachments = false;
+            $dumpResults[] = $result;
+            if ($result['tab'] == $tab) {
+                if (isset($result['subGroup'])) {
+                    $tempArray[$result['subGroup']][] = $result;
+                } else {
+                    $tempArray['general'][] = $result;
                 }
-
-                $this->set('advanced_attachments', $advanced_attachments);
-                // check if the current version of MISP is outdated or not
-                $version = $this->__checkVersion();
-                $this->set('version', $version);
-                $gitStatus = $this->Server->getCurrentGitStatus();
-                $this->set('branch', $gitStatus['branch']);
-                $this->set('commit', $gitStatus['commit']);
-                $this->set('latestCommit', $gitStatus['latestCommit']);
-                $phpSettings = array(
-                    'max_execution_time' => array(
-                        'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
-                        'recommended' => 300,
-                        'unit' => false
-                    ),
-                    'memory_limit' => array(
-                        'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
-                        'recommended' => 2048,
-                        'unit' => 'M'
-                    ),
-                    'upload_max_filesize' => array(
-                        'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
-                        'recommended' => 50,
-                        'unit' => 'M'
-                    ),
-                    'post_max_size' => array(
-                        'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
-                        'recommended' => 50,
-                        'unit' => 'M'
-                    )
-                );
-
-                foreach ($phpSettings as $setting => $settingArray) {
-                    $phpSettings[$setting]['value'] = ini_get($setting);
-                    if ($settingArray['unit']) {
-                        $phpSettings[$setting]['value'] = intval(rtrim($phpSettings[$setting]['value'], $phpSettings[$setting]['unit']));
-                    } else {
-                        $phpSettings[$setting]['value'] = intval($phpSettings[$setting]['value']);
-                    }
-                }
-                $this->set('phpSettings', $phpSettings);
-
-                if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) {
-                    $diagnostic_errors++;
-                }
-
-                // check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
-                $stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion, $maecVersion, $stix2Version, $pymispVersion);
-
-                $yaraStatus = $this->Server->yaraDiagnostics($diagnostic_errors);
-
-                // if GnuPG is set up in the settings, try to encrypt a test message
-                $gpgStatus = $this->Server->gpgDiagnostics($diagnostic_errors);
-
-                // if the message queue pub/sub is enabled, check whether the extension works
-                $zmqStatus = $this->Server->zmqDiagnostics($diagnostic_errors);
-
-                // if Proxy is set up in the settings, try to connect to a test URL
-                $proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
-
-                // get the DB diagnostics
-                $dbDiagnostics = $this->Server->dbSpaceUsage();
-                $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
-
-                $redisInfo = $this->Server->redisInfo();
-
-                $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
-                foreach ($moduleTypes as $type) {
-                    $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
-                }
-
-                // check the size of the session table
-                $sessionCount = 0;
-                $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
-                $this->set('sessionCount', $sessionCount);
-
-                $this->loadModel('AttachmentScan');
-                try {
-                    $attachmentScan = ['status' => true, 'software' => $this->AttachmentScan->diagnostic()];
-                } catch (Exception $e) {
-                    $attachmentScan = ['status' => false, 'error' => $e->getMessage()];
-                }
-
-                $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan');
-            } else {
-                $view = [];
             }
-            // check whether the files are writeable
-            $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
-            $writeableFiles = $this->Server->writeableFilesDiagnostics($diagnostic_errors);
-            $readableFiles = $this->Server->readableFilesDiagnostics($diagnostic_errors);
-            $extensions = $this->Server->extensionDiagnostics();
-
-            // check if the encoding is not set to utf8
-            $dbEncodingStatus = $this->Server->databaseEncodingDiagnostics($diagnostic_errors);
-
-            $view = array_merge($view, compact('diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'readableErrors', 'writeableDirs', 'writeableFiles', 'readableFiles', 'extensions', 'dbEncodingStatus'));
-            $this->set($view);
-
-            $workerIssueCount = 4;
-            $worker_array = array();
-            if (Configure::read('MISP.background_jobs')) {
-                $workerIssueCount = 0;
-                $worker_array = $this->Server->workerDiagnostics($workerIssueCount);
-            }
-            $this->set('worker_array', $worker_array);
-            if ($tab == 'download' || $this->_isRest()) {
-                foreach ($dumpResults as $key => $dr) {
-                    unset($dumpResults[$key]['description']);
-                }
-                $dump = array(
-                        'version' => $version,
-                        'phpSettings' => $phpSettings,
-                        'gpgStatus' => $gpgErrors[$gpgStatus['status']],
-                        'proxyStatus' => $proxyErrors[$proxyStatus],
-                        'zmqStatus' => $zmqStatus,
-                        'stix' => $stix,
-                        'moduleStatus' => $moduleStatus,
-                        'writeableDirs' => $writeableDirs,
-                        'writeableFiles' => $writeableFiles,
-                        'readableFiles' => $readableFiles,
-                        'dbDiagnostics' => $dbDiagnostics,
-                        'dbSchemaDiagnostics' => $dbSchemaDiagnostics,
-                        'redisInfo' => $redisInfo,
-                        'finalSettings' => $dumpResults,
-                        'extensions' => $extensions,
-                        'workers' => $worker_array
-                );
-                foreach ($dump['finalSettings'] as $k => $v) {
-                    if (!empty($v['redacted'])) {
-                        $dump['finalSettings'][$k]['value'] = '*****';
-                    }
-                }
-                $this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
-                $this->response->type('json');
-                $this->response->download('MISP.report.json');
-                return $this->response;
-            }
-
-            $priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
-            $this->set('priorities', $priorities);
-            $this->set('workerIssueCount', $workerIssueCount);
-            $priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
-            $this->set('priorityErrorColours', $priorityErrorColours);
-            $this->set('phpversion', phpversion());
-            $this->set('phpmin', $this->phpmin);
-            $this->set('phprec', $this->phprec);
-            $this->set('phptoonew', $this->phptoonew);
-            $this->set('pythonmin', $this->pythonmin);
-            $this->set('pythonrec', $this->pythonrec);
-            $this->set('pymisp', $this->pymisp);
         }
+        $finalSettings = $tempArray;
+        // Diagnostics portion
+        $diagnostic_errors = 0;
+        App::uses('File', 'Utility');
+        App::uses('Folder', 'Utility');
+        if ($tab === 'files') {
+            $files = $this->Server->grabFiles();
+            $this->set('files', $files);
+        }
+        // Only run this check on the diagnostics tab
+        if ($tab === 'diagnostics' || $tab === 'download' || $this->_isRest()) {
+            $php_ini = php_ini_loaded_file();
+            $this->set('php_ini', $php_ini);
+
+            $attachmentTool = new AttachmentTool();
+            try {
+                $advanced_attachments = $attachmentTool->checkAdvancedExtractionStatus($this->Server->getPythonVersion());
+            } catch (Exception $e) {
+                $this->log($e->getMessage(), LOG_NOTICE);
+                $advanced_attachments = false;
+            }
+
+            $this->set('advanced_attachments', $advanced_attachments);
+            // check if the current version of MISP is outdated or not
+            $version = $this->__checkVersion();
+            $this->set('version', $version);
+            $gitStatus = $this->Server->getCurrentGitStatus();
+            $this->set('branch', $gitStatus['branch']);
+            $this->set('commit', $gitStatus['commit']);
+            $this->set('latestCommit', $gitStatus['latestCommit']);
+
+            $phpSettings = array(
+                'max_execution_time' => array(
+                    'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
+                    'recommended' => 300,
+                    'unit' => 'seconds',
+                ),
+                'memory_limit' => array(
+                    'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
+                    'recommended' => 2048,
+                    'unit' => 'MB'
+                ),
+                'upload_max_filesize' => array(
+                    'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
+                    'recommended' => 50,
+                    'unit' => 'MB'
+                ),
+                'post_max_size' => array(
+                    'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
+                    'recommended' => 50,
+                    'unit' => 'MB'
+                )
+            );
+
+            foreach ($phpSettings as $setting => $settingArray) {
+                $phpSettings[$setting]['value'] = $this->Server->getIniSetting($setting);
+                if ($phpSettings[$setting]['value'] && $settingArray['unit'] && $settingArray['unit'] === 'MB') {
+                    // convert basic unit to M
+                    $phpSettings[$setting]['value'] = (int) floor($phpSettings[$setting]['value'] / 1024 / 1024);
+                }
+            }
+            $this->set('phpSettings', $phpSettings);
+
+            if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) {
+                $diagnostic_errors++;
+            }
+
+            // check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
+            $stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion, $maecVersion, $stix2Version, $pymispVersion);
+
+            $yaraStatus = $this->Server->yaraDiagnostics($diagnostic_errors);
+
+            // if GnuPG is set up in the settings, try to encrypt a test message
+            $gpgStatus = $this->Server->gpgDiagnostics($diagnostic_errors);
+
+            // if the message queue pub/sub is enabled, check whether the extension works
+            $zmqStatus = $this->Server->zmqDiagnostics($diagnostic_errors);
+
+            // if Proxy is set up in the settings, try to connect to a test URL
+            $proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
+
+            // get the DB diagnostics
+            $dbDiagnostics = $this->Server->dbSpaceUsage();
+            $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
+
+            $redisInfo = $this->Server->redisInfo();
+
+            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+            foreach ($moduleTypes as $type) {
+                $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
+            }
+
+            // check the size of the session table
+            $sessionCount = 0;
+            $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
+            $this->set('sessionCount', $sessionCount);
+
+            $this->loadModel('AttachmentScan');
+            try {
+                $attachmentScan = ['status' => true, 'software' => $this->AttachmentScan->diagnostic()];
+            } catch (Exception $e) {
+                $attachmentScan = ['status' => false, 'error' => $e->getMessage()];
+            }
+
+            $securityAudit = (new SecurityAudit())->run($this->Server);
+
+            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'redisInfo', 'attachmentScan', 'securityAudit');
+        } else {
+            $view = [];
+        }
+
+        // check whether the files are writeable
+        $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
+        $writeableFiles = $this->Server->writeableFilesDiagnostics($diagnostic_errors);
+        $readableFiles = $this->Server->readableFilesDiagnostics($diagnostic_errors);
+        $extensions = $this->Server->extensionDiagnostics();
+
+        // check if the encoding is not set to utf8
+        $dbEncodingStatus = $this->Server->databaseEncodingDiagnostics($diagnostic_errors);
+
+        $view = array_merge($view, compact('diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'readableErrors', 'writeableDirs', 'writeableFiles', 'readableFiles', 'extensions', 'dbEncodingStatus'));
+        $this->set($view);
+
+        $workerIssueCount = 4;
+        $worker_array = array();
+        if (Configure::read('MISP.background_jobs')) {
+            $workerIssueCount = 0;
+            $worker_array = $this->Server->workerDiagnostics($workerIssueCount);
+        }
+        $this->set('worker_array', $worker_array);
+        if ($tab === 'download' || $this->_isRest()) {
+            foreach ($dumpResults as $key => $dr) {
+                unset($dumpResults[$key]['description']);
+            }
+            $dump = array(
+                'version' => $version,
+                'phpSettings' => $phpSettings,
+                'gpgStatus' => $gpgErrors[$gpgStatus['status']],
+                'proxyStatus' => $proxyErrors[$proxyStatus],
+                'zmqStatus' => $zmqStatus,
+                'stix' => $stix,
+                'moduleStatus' => $moduleStatus,
+                'writeableDirs' => $writeableDirs,
+                'writeableFiles' => $writeableFiles,
+                'readableFiles' => $readableFiles,
+                'dbDiagnostics' => $dbDiagnostics,
+                'dbSchemaDiagnostics' => $dbSchemaDiagnostics,
+                'redisInfo' => $redisInfo,
+                'finalSettings' => $dumpResults,
+                'extensions' => $extensions,
+                'workers' => $worker_array
+            );
+            foreach ($dump['finalSettings'] as $k => $v) {
+                if (!empty($v['redacted'])) {
+                    $dump['finalSettings'][$k]['value'] = '*****';
+                }
+            }
+            $this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
+            $this->response->type('json');
+            $this->response->download('MISP.report.json');
+            return $this->response;
+        }
+
+        $priorities = array(0 => 'Critical', 1 => 'Recommended', 2 => 'Optional', 3 => 'Deprecated');
+        $this->set('priorities', $priorities);
+        $this->set('workerIssueCount', $workerIssueCount);
+        $priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
+        $this->set('priorityErrorColours', $priorityErrorColours);
+        $this->set('phpversion', phpversion());
+        $this->set('phpmin', $this->phpmin);
+        $this->set('phprec', $this->phprec);
+        $this->set('phptoonew', $this->phptoonew);
+        $this->set('pythonmin', $this->pythonmin);
+        $this->set('pythonrec', $this->pythonrec);
+        $this->set('pymisp', $this->pymisp);
     }
 
     public function startWorker($type)
@@ -1250,9 +1255,6 @@ class ServersController extends AppController
 
     private function __checkVersion()
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
         try {
@@ -1342,17 +1344,20 @@ class ServersController extends AppController
                     continue;
                 }
 
+                $exception = null;
                 try {
-                    $remote_event = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
-                    $remote_event_id = $remote_event[0]['id'];
+                    $remoteEvent = $this->Event->downloadEventFromServer($local_event['Event']['uuid'], $server, null, true);
                 } catch (Exception $e) {
-                    $remote_event_id = null;
+                    $remoteEvent = null;
+                    $exception = $e->getMessage();
                 }
+                $remoteEventId = isset($remoteEvent[0]['id']) ? $remoteEvent[0]['id'] : null;
                 $remote_events[] = array(
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],
-                    "url" => isset($remote_event_id) ? $server['Server']['url']."/events/view/".$remote_event_id : $server['Server']['url'],
-                    "remote_id" => isset($remote_event_id) ? $remote_event_id : false
+                    "url" => isset($remoteEventId) ? $server['Server']['url'] . "/events/view/" . $remoteEventId : $server['Server']['url'],
+                    "remote_id" => isset($remoteEventId) ? $remoteEventId : false,
+                    "exception" => $exception,
                 );
             }
 
@@ -1362,10 +1367,8 @@ class ServersController extends AppController
         $this->set('title_for_layout', __('Event ID translator'));
     }
 
-    public function getSubmodulesStatus() {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
+    public function getSubmodulesStatus()
+    {
         $this->set('submodules', $this->Server->getSubmodulesGitStatus());
         $this->render('ajax/submoduleStatus');
     }
@@ -1384,9 +1387,6 @@ class ServersController extends AppController
 
     public function serverSettingsEdit($setting_name, $id = false, $forceSave = false)
     {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
         if (!isset($setting_name)) {
             throw new MethodNotAllowedException();
         }
@@ -1518,15 +1518,6 @@ class ServersController extends AppController
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
     }
 
-    private function __manageFiles()
-    {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
-        }
-        $files = $this->Server->grabFiles();
-        return $files;
-    }
-
     public function deleteFile($type, $filename)
     {
         if (!$this->_isSiteAdmin()) {
@@ -1652,10 +1643,6 @@ class ServersController extends AppController
 
     public function testConnection($id = false)
     {
-        if (!$this->Auth->user('Role')['perm_sync'] && !$this->Auth->user('Role')['perm_site_admin']) {
-            throw new MethodNotAllowedException('You don\'t have permission to do that.');
-        }
-
         $server = $this->Server->find('first', ['conditions' => ['Server.id' => $id]]);
         if (!$server) {
             throw new NotFoundException(__('Invalid server'));
@@ -1704,23 +1691,17 @@ class ServersController extends AppController
                     $result['status'] = 8;
                     return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
                 }
-                return new CakeResponse(
-                        array(
-                        'body'=> json_encode(
-                            array(
-                                'status' => 1,
-                                'local_version' => implode('.', $local_version),
-                                'version' => implode('.', $version),
-                                'mismatch' => $mismatch,
-                                'newer' => $newer,
-                                'post' => isset($post) ? $post['status'] : 'too old',
-                                'response_encoding' => isset($post['content-encoding']) ? $post['content-encoding'] : null,
-                                'client_certificate' => $result['client_certificate'],
-                                )
-                            ),
-                            'type' => 'json'
-                        )
-                    );
+                return $this->RestResponse->viewData([
+                    'status' => 1,
+                    'local_version' => implode('.', $local_version),
+                    'version' => implode('.', $version),
+                    'mismatch' => $mismatch,
+                    'newer' => $newer,
+                    'post' => isset($post) ? $post['status'] : 'too old',
+                    'response_encoding' => isset($post['content-encoding']) ? $post['content-encoding'] : null,
+                    'request_encoding' => isset($result['info']['request_encoding']) ? $result['info']['request_encoding'] : null,
+                    'client_certificate' => $result['client_certificate'],
+                ], 'json');
             } else {
                 $result['status'] = 3;
             }
@@ -1800,17 +1781,15 @@ class ServersController extends AppController
 
     public function getVersion()
     {
-        if (!$this->userRole['perm_auth']) {
-            throw new MethodNotAllowedException('This action requires API access.');
-        }
         $versionArray = $this->Server->checkMISPVersion();
-        $this->set('response', array(
+        $response = [
             'version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'],
             'perm_sync' => $this->userRole['perm_sync'],
             'perm_sighting' => $this->userRole['perm_sighting'],
             'perm_galaxy_editor' => $this->userRole['perm_galaxy_editor'],
-        ));
-        $this->set('_serialize', 'response');
+            'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
+        ];
+        return $this->RestResponse->viewData($response, $this->response->type());
     }
 
     public function getPyMISPVersion()
@@ -2059,7 +2038,8 @@ class ServersController extends AppController
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket($params);
         $view_data = array();
-        $temp_headers = explode("\n", $request['header']);
+
+        $temp_headers = empty($request['header']) ? [] : explode("\n", $request['header']);
         $request['header'] = array(
             'Authorization' => $this->Auth->user('authkey'),
             'Accept' => 'application/json',
@@ -2441,6 +2421,27 @@ misp.direct_call(relative_path, body)
             $this->set('indexes', $dbSchemaDiagnostics['indexes']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }
+    }
+
+    public function cspReport()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This action expects a POST request.');
+        }
+
+        $report = $this->Server->jsonDecode($this->request->input());
+        if (!isset($report['csp-report'])) {
+            throw new RuntimeException("Invalid report");
+        }
+
+        $message = 'CSP reported violation';
+        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
+        if (isset($_SERVER[$ipHeader])) {
+            $message .= ' from IP ' . $_SERVER[$ipHeader];
+        }
+        $this->log("$message: " . json_encode($report['csp-report'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return new CakeResponse(['statusCodes' => 204]);
     }
 
     public function viewDeprecatedFunctionUse()

@@ -491,7 +491,7 @@ class StixFromMISPParser(StixParser):
 
     def parse_indicator_object(self, indicator):
         misp_object, object_type = self.create_misp_object(indicator)
-        pattern = indicator.pattern.replace('\\\\', '\\').strip('[]').split(' AND ')
+        pattern = self._handle_pattern(indicator.pattern).replace('\\\\', '\\').split(' AND ')
         try:
             attributes = getattr(self, stix2misp_mapping.objects_mapping[object_type]['pattern'])(pattern)
         except KeyError:
@@ -1270,7 +1270,7 @@ class ExternalStixParser(StixParser):
             self.misp_event.add_object(**misp_object)
 
     def parse_usual_indicator(self, indicator, separator):
-        pattern = tuple(part.strip() for part in indicator.pattern.strip('[]').split(separator))
+        pattern = tuple(part.strip() for part in self._handle_pattern(indicator.pattern).split(separator))
         types = self._parse_pattern_types(pattern)
         try:
             getattr(self, stix2misp_mapping.pattern_mapping[types])(indicator, separator)
@@ -1664,7 +1664,7 @@ class ExternalStixParser(StixParser):
     def parse_domain_ip_port_pattern(self, indicator, separator):
         attributes = []
         references = defaultdict(dict)
-        for pattern_part in indicator.pattern.strip('[]').split(separator):
+        for pattern_part in self._handle_pattern(indicator.pattern).split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type not in stix2misp_mapping.domain_ip_mapping:
                 if any(pattern_type.startswith(f'network-traffic:{feature}_ref') for feature in ('src', 'dst')):
@@ -1689,7 +1689,7 @@ class ExternalStixParser(StixParser):
     def parse_email_message_pattern(self, indicator, separator):
         attributes = []
         attachments = defaultdict(dict)
-        for pattern_part in indicator.pattern.strip('[]').split(separator):
+        for pattern_part in self._handle_pattern(indicator.pattern).split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type not in stix2misp_mapping.email_mapping:
                 if pattern_type.startswith('email-message:body_multipart'):
@@ -1721,7 +1721,7 @@ class ExternalStixParser(StixParser):
         attributes = []
         attachment = {}
         extensions = defaultdict(lambda: defaultdict(dict))
-        for pattern_part in indicator.pattern.strip('[]').split(separator):
+        for pattern_part in self._handle_pattern(indicator.pattern).split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type in stix2misp_mapping.attachment_types:
                 attachment[pattern_type] = pattern_value.strip("'")
@@ -1812,7 +1812,7 @@ class ExternalStixParser(StixParser):
         protocols = []
         references = defaultdict(dict)
         extensions = defaultdict(dict)
-        for pattern_part in indicator.pattern.strip('[]').split(separator):
+        for pattern_part in self._handle_pattern(indicator.pattern).split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if pattern_type in stix2misp_mapping.network_traffic_mapping:
                 attribute = deepcopy(stix2misp_mapping.network_traffic_mapping[pattern_type])
@@ -1845,7 +1845,7 @@ class ExternalStixParser(StixParser):
         attributes = []
         parent = {}
         child = defaultdict(set)
-        for pattern_part in indicator.pattern.strip('[]').split(separator):
+        for pattern_part in self._handle_pattern(indicator.pattern).split(separator):
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
             if 'parent_' in pattern_type:
                 child[pattern_type.split('.')[-1]].add(pattern_value)
@@ -1888,7 +1888,7 @@ class ExternalStixParser(StixParser):
 
     def parse_user_account_pattern(self, indicator, separator):
         attributes = []
-        pattern = indicator.pattern.strip('[]').split(separator)
+        pattern = self._handle_pattern(indicator.pattern).split(separator)
         object_name, mapping = self._fetch_user_account_type_pattern(pattern)
         for pattern_part in pattern:
             pattern_type, pattern_value = self.get_type_and_value_from_pattern(pattern_part)
@@ -1915,7 +1915,7 @@ class ExternalStixParser(StixParser):
     ################################################################################
 
     def add_attributes_from_indicator(self, indicator, attribute_type, separator):
-        patterns = indicator.pattern.strip('[]').split(separator)
+        patterns = self._handle_pattern(indicator.pattern).split(separator)
         if len(patterns) == 1:
             _, value = self.get_type_and_value_from_pattern(patterns[0])
             attribute = MISPAttribute()
@@ -2017,6 +2017,10 @@ class ExternalStixParser(StixParser):
         if isinstance(_force_object, (list, tuple)):
             return attribute['object_relation'] in _force_object
         return _force_object
+
+    @staticmethod
+    def _handle_pattern(pattern):
+        return pattern.strip().strip('[]')
 
     @staticmethod
     def _parse_observable_types(observable_objects):

@@ -922,23 +922,13 @@ class UsersController extends AppController
                         continue;
                     }
                     if ($field != 'password') {
-                        array_push($fields, $field);
-                    }
-                }
-                $fieldsOldValues = array();
-                foreach ($fields as $field) {
-                    if ($field == 'enable_password') {
-                        continue;
-                    }
-                    if ($field != 'confirm_password') {
-                        $fieldsOldValues[$field] = $this->User->field($field);
-                    } else {
-                        $fieldsOldValues[$field] = $this->User->field('password');
+                        $fields[] = $field;
                     }
                 }
                 if (
-                    isset($this->request->data['User']['enable_password']) && $this->request->data['User']['enable_password'] != '0' &&
-                    isset($this->request->data['User']['password']) && "" != $this->request->data['User']['password']
+                    (!empty($this->request->data['User']['enable_password']) || $this->_isRest()) &&
+                    !empty($this->request->data['User']['password']) &&
+                    $this->__canChangePassword()
                 ) {
                     $fields[] = 'password';
                     if ($this->_isRest() && !isset($this->request->data['User']['confirm_password'])) {
@@ -958,6 +948,12 @@ class UsersController extends AppController
                     }
                 }
                 $fields[] = 'date_modified'; // time will be inserted in `beforeSave` action
+
+                $fieldsOldValues = $this->User->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['id' => $id],
+                ])['User'];
+
                 if ($this->User->save($this->request->data, true, $fields)) {
                     // newValues to array
                     $fieldsNewValues = array();
@@ -967,7 +963,7 @@ class UsersController extends AppController
                         }
                         if ($field !== 'confirm_password') {
                             $newValue = $this->data['User'][$field];
-                            if (gettype($newValue) == 'array') {
+                            if (is_array($newValue)) {
                                 $newValueStr = '';
                                 $cP = 0;
                                 foreach ($newValue as $newValuePart) {
@@ -989,6 +985,9 @@ class UsersController extends AppController
                     // compare
                     $fieldsResult = array();
                     foreach ($fields as $field) {
+                        if ($field === 'date_modified') {
+                            continue;
+                        }
                         if (isset($fieldsOldValues[$field]) && $fieldsOldValues[$field] != $fieldsNewValues[$field]) {
                             if ($field != 'confirm_password' && $field != 'enable_password') {
                                 $fieldsResult[$field] = array($fieldsOldValues[$field], $fieldsNewValues[$field]);
@@ -1138,7 +1137,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
             $user = $this->Auth->identify($this->request, $this->response);
-            if ($user) {
+            if ($user && !$user['disabled']) {
               $this->Session->write('email_otp_user', $user);
               return $this->redirect('email_otp');
             }
@@ -1693,7 +1692,7 @@ class UsersController extends AppController
 
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
             $stored_otp = $redis->get('misp:otp:' . $user_id);
-            if (!empty($stored_otp) && $this->request->data['User']['otp'] == $stored_otp) {
+            if (!empty($stored_otp) && trim($this->request->data['User']['otp']) == $stored_otp) {
                 // we invalidate the previously generated OTP
                 $redis->del('misp:otp:' . $user_id);
                 // We login the user with CakePHP

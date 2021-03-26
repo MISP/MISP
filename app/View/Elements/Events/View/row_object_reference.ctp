@@ -34,7 +34,7 @@
   foreach ($object['ObjectReference'] as $reference):
     if (isset($reference['Object'])) {
       $uuid = $reference['Object']['uuid'];
-      $output = ' (' . $reference['Object']['name'] . ': ' . $reference['Object']['name'] . ')';
+      $output = ' (' . $reference['Object']['meta-category'] . ': ' . $reference['Object']['name'] . ')';
       $objectType = 'Object';
     } else {
       $uuid = $reference['Attribute']['uuid'];

@@ -57,6 +57,9 @@
             if (Configure::read('ApacheShibbAuth') == true) {
                 echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
             }
+            if (Configure::read('AadAuth') == true) {
+                echo '<div class="clear"></div><a class="btn btn-info" href="/users/login?AzureAD=enable">Login with AzureAD</a>';
+            }            
         ?>
     </td>
     <td style="width:250px;padding-left:50px">

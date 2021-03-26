@@ -25,8 +25,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'DataPathCollector');
 
-    private $__queryVersion = '122';
-    public $pyMispVersion = '2.4.137';
+    private $__queryVersion = '126';
+    public $pyMispVersion = '2.4.140';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -79,6 +79,7 @@ class AppController extends Controller
             ),
             'Security',
             'ACL',
+            'CompressedRequestHandler',
             'RestResponse',
             'Flash',
             'Toolbox',
@@ -121,6 +122,9 @@ class AppController extends Controller
         }
         if (Configure::read('Security.disable_browser_cache')) {
             $this->response->disableCache();
+        }
+        if (!$this->_isRest()) {
+            $this->__contentSecurityPolicy();
         }
         $this->response->header('X-XSS-Protection', '1; mode=block');
 
@@ -313,11 +317,11 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
-            $pre_auth_actions = array('login', 'register', 'getGpgPublicKey');
+            $preAuthActions = array('login', 'register', 'getGpgPublicKey');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
-                $pre_auth_actions[] = 'email_otp';
+                $preAuthActions[] = 'email_otp';
             }
-            if (!$this->_isControllerAction(['users' => $pre_auth_actions])) {
+            if (!$this->_isControllerAction(['users' => $preAuthActions, 'servers' => ['cspReport']])) {
                 if (!$this->request->is('ajax')) {
                     $this->Session->write('pre_login_requested_url', $this->here);
                 }
@@ -682,6 +686,51 @@ class AppController extends Controller
                 // When `MISP.log_skip_db_logs_completely` is enabled, Log::createLogEntry method throws exception
             }
         }
+    }
+
+    /**
+     * Generate Content-Security-Policy HTTP header
+     */
+    private function __contentSecurityPolicy()
+    {
+        $default = [
+            'default-src' => "'self' data: 'unsafe-inline' 'unsafe-eval'",
+            'style-src' => "'self' 'unsafe-inline'",
+            'object-src' => "'none'",
+            'frame-ancestors' => "'none'",
+            'worker-src' => "'none'",
+            'child-src' => "'none'",
+            'frame-src' => "'none'",
+            'base-uri' => "'self'",
+            'img-src' => "'self' data:",
+            'font-src' => "'self'",
+            'form-action' => "'self'",
+            'connect-src' => "'self'",
+            'manifest-src' => "'none'",
+            'report-uri' => '/servers/cspReport',
+        ];
+        if (env('HTTPS')) {
+            $default['upgrade-insecure-requests'] = null;
+        }
+        $custom = Configure::read('Security.csp');
+        if ($custom === false) {
+            return;
+        }
+        if (is_array($custom)) {
+            $default = $custom + $default;
+        }
+        $header = [];
+        foreach ($default as $key => $value) {
+            if ($value !== false) {
+                if ($value === null) {
+                    $header[] = $key;
+                } else {
+                    $header[] = "$key $value";
+                }
+            }
+        }
+        $headerName = Configure::read('Security.csp_enforce') ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
+        $this->response->header($headerName, implode('; ', $header));
     }
 
     private function __rateLimitCheck()
@@ -1346,6 +1395,18 @@ class AppController extends Controller
         }
         $elementCounter = 0;
         $renderView = false;
+        $responseType = empty($this->$scope->validFormats[$returnFormat][0]) ? 'json' : $this->$scope->validFormats[$returnFormat][0];
+        // halt execution if we were to query for items above the ID. Blocks the endless caching bug
+        if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
+            if ($this->__cachingOverflow($filters, $scope)) {
+                $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
+                return $this->RestResponse->viewData('', $responseType, false, true, $filename, [
+                    'X-Result-Count' => 0,
+                    'X-Export-Module-Used' => $returnFormat,
+                    'X-Response-Format' => $responseType
+                ]);
+            }
+        }
         $final = $this->$scope->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
         if (!empty($renderView) && !empty($final)) {
             $this->layout = false;
@@ -1355,10 +1416,27 @@ class AppController extends Controller
             }
             $this->render('/Events/module_views/' . $renderView);
         } else {
-            $responseType = $this->$scope->validFormats[$returnFormat][0];
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
         }
+    }
+
+    /**
+     * Halt execution if we were to query for items above the ID. Blocks the endless caching bug.
+     *
+     * @param array $filters
+     * @param string $scope
+     * @return bool
+     */
+    private function __cachingOverflow($filters, $scope)
+    {
+        $offset = ($filters['page'] * (empty($filters['limit']) ? 60 : $filters['limit'])) + 1;
+        $max_id = $this->$scope->query(sprintf('SELECT max(id) as max_id from %s;', Inflector::tableize($scope)));
+        $max_id = intval($max_id[0][0]['max_id']);
+        if ($max_id < $offset) {
+            return true;
+        }
+        return false;
     }
 
     /**

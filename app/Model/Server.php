@@ -286,6 +286,14 @@ class Server extends AppModel
                     $event['Event']['distribution'] = '1';
                     break;
             }
+            // We remove local tags obtained via pull
+            if (isset($event['Event']['Tag'])) {
+                foreach ($event['Event']['Tag'] as $key => $a) {
+                    if ($a['local']) {
+                        unset($event['Event']['Tag'][$key]);
+                    }
+                }
+            }
             if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
                 foreach ($event['Event']['Attribute'] as $key => $a) {
                     switch ($a['distribution']) {
@@ -295,6 +303,14 @@ class Server extends AppModel
                         case '2':
                             $event['Event']['Attribute'][$key]['distribution'] = '1';
                             break;
+                    }
+                    // We remove local tags obtained via pull
+                    if (isset($a['Tag'])) {
+                        foreach ($a['Tag'] as $k => $v) {
+                            if ($v['local']) {
+                                unset($event['Event']['Attribute'][$key]['Tag'][$k]);
+                            }
+                        }
                     }
                 }
             }
@@ -317,6 +333,14 @@ class Server extends AppModel
                                 case '2':
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '1';
                                     break;
+                            }
+                            // We remove local tags obtained via pull
+                            if (isset($a['Tag'])) {
+                                foreach ($a['Tag'] as $k => $v) {
+                                    if ($v['local']) {
+                                        unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
+                                    }
+                                }
                             }
                         }
                     }
@@ -529,13 +553,15 @@ class Server extends AppModel
         if ($jobId) {
             $job->saveProgress($jobId, 'Pulling proposals.', 50);
         }
-        $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
+        $pulledProposals = $pulledSightings = 0;
+        if ($technique === 'full' || $technique === 'update') {
+            $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
 
-        if ($jobId) {
-            $job->saveProgress($jobId, 'Pulling sightings.', 75);
+            if ($jobId) {
+                $job->saveProgress($jobId, 'Pulling sightings.', 75);
+            }
+            $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
         }
-        $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
-
         if ($jobId) {
             $job->saveProgress($jobId, 'Pull completed.', 100);
         }
@@ -754,16 +780,16 @@ class Server extends AppModel
         }
         if ($all) {
             if ($scope === 'sightings') {
+                // Used when pushing: return just eventUuids that has sightings newer than remote server
                 $this->Event = ClassRegistry::init('Event');
                 $localEvents = $this->Event->find('list', array(
-                    'recursive' => -1,
                     'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
                     'conditions' => array('Event.uuid' => array_column($eventArray, 'uuid'))
                 ));
 
-                $eventUuids = array();
+                $eventUuids = [];
                 foreach ($eventArray as $event) {
-                    if (!isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
+                    if (isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
                         $eventUuids[] = $event['uuid'];
                     }
                 }
@@ -1536,7 +1562,7 @@ class Server extends AppModel
             return true;
         }
         if (is_executable($value)) {
-            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
+            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-pie-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
                 finfo_close($finfo);
                 return true;
             } else {
@@ -2854,7 +2880,7 @@ class Server extends AppModel
         $allowedlistFields = array(
             'users' => array('external_auth_required', 'external_auth_key'),
         );
-        $nonCriticalColumnElements = array('is_nullable', 'collation_name');
+        $nonCriticalColumnElements = array('collation_name');
         $dbDiff = array();
         // perform schema comparison for tables
         foreach($dbExpectedSchema as $tableName => $columns) {
@@ -3435,6 +3461,32 @@ class Server extends AppModel
         return $settings;
     }
 
+    /**
+     * Return PHP setting in basic unit (bytes).
+     * @param string $setting
+     * @return string|int|null
+     */
+    public function getIniSetting($setting)
+    {
+        $value = ini_get($setting);
+        if ($value === '') {
+            return null;
+        }
+
+        switch ($setting) {
+            case 'memory_limit':
+            case 'upload_max_filesize':
+            case 'post_max_size':
+                return (int)preg_replace_callback('/(-?\d+)(.?)/', function ($m) {
+                    return $m[1] * pow(1024, strpos('BKMG', $m[2]));
+                }, strtoupper($value));
+            case 'max_execution_time':
+                return (int)$value;
+            default:
+                return $value;
+        }
+    }
+
     public function killWorker($pid, $user)
     {
         if (!is_numeric($pid)) {
@@ -3741,17 +3793,14 @@ class Server extends AppModel
         return true;
     }
 
-    public function getLatestGitRemote()
-    {
-        return exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
-    }
-
     public function getCurrentGitStatus()
     {
+        $latestCommit = exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
+
         $status = array();
         $status['commit'] = exec('git rev-parse HEAD');
         $status['branch'] = $this->getCurrentBranch();
-        $status['latestCommit'] = $this->getLatestGitremote();
+        $status['latestCommit'] = $latestCommit;
         return $status;
     }
 
@@ -4114,6 +4163,10 @@ class Server extends AppModel
                 $data = explode(PHP_EOL, trim($data));
                 foreach ($data as $entry) {
                     list($value, $uuid) = explode(',', $entry);
+                    if (!Validation::uuid($uuid)) {
+                        $continue = false;
+                        break;
+                    }
                     if (!empty($value)) {
                         $redis->sAdd('misp:server_cache:' . $server['Server']['id'], $value);
                         $redis->sAdd('misp:server_cache:combined', $value);
@@ -5416,7 +5469,7 @@ class Server extends AppModel
                 ),
                 'obscure_subject' => array(
                     'level' => 2,
-                    'description' => __('When enabled, subject in signed and encrypted e-mails will not send in unencrypted form.'),
+                    'description' => __('When enabled, the subject in signed and encrypted e-mails will not be sent in unencrypted form.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
@@ -5516,11 +5569,19 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Disabling this setting will remove all form tampering protection. Do not set this setting pretty much ever. You were warned.'),
                     'value' => false,
-                    'errorMessage' => 'This setting leaves your users open to CSRF attacks. Do not please consider disabling this setting.',
+                    'errorMessage' => 'This setting leaves your users open to CSRF attacks. Please consider disabling this setting.',
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'csp_enforce' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enforce CSP. Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks, including Cross Site Scripting (XSS) and data injection attacks. When disabled, violations will be just logged.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
                 'salt' => array(
                     'level' => 0,
                     'description' => __('The salt used for the hashed passwords. You cannot reset this from the GUI, only manually from the settings.php file. Keep in mind, this will invalidate all passwords in the database.'),
@@ -5559,7 +5620,7 @@ class Server extends AppModel
                 ],
                 'auth_enforced' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('This optional can be enabled if external auth provider is used and when set to true, it will disable default form authentication.'),
+                    'description' => __('This optionally can be enabled if an external auth provider is used. When set to true, it will disable the default form authentication.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
@@ -6188,6 +6249,15 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_host' => array(
+                    'level' => 2,
+                    'description' => __('The host that the pub/sub feature will use.'),
+                    'value' => '127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
                 ),
                 'ZeroMQ_port' => array(

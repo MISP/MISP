@@ -6,9 +6,8 @@
             'fields' => array(
                 array(
                     'name' => __('Id'),
-                    'sort' => 'id',
                     'class' => 'short',
-                    'data_path' => 'GalaxyClusterRelation.id',
+                    'data_path' => 'id',
                 ),
                 array(
                     'name' => __('Default'),
@@ -18,23 +17,21 @@
                 ),
                 array(
                     'name' => __('Galaxy Cluster Target (galaxy :: cluster)'),
-                    'sort' => 'TargetCluster.tag_name',
                     'element' => 'galaxy_cluster_link',
-                    'data_path' => 'TargetCluster',
-                    'data_path_relation' => 'GalaxyClusterRelation',
-                    'url_params_data_paths' => 'TargetCluster.id',
+                    'data_path' => 'GalaxyCluster',
+                    'data_path_relation' => '',
+                    'url_params_data_paths' => 'GalaxyCluster.id',
                     'url' => $baseurl . '/galaxy_clusters/view'
                 ),
                 array(
                     'name' => __('Relationship Type'),
-                    'sort' => 'type',
                     'class' => 'short',
-                    'data_path' => 'GalaxyClusterRelation.referenced_galaxy_cluster_type',
+                    'data_path' => 'referenced_galaxy_cluster_type',
                 ),
                 array(
                     'name' => __('Relationship Tag'),
                     'class' => 'short',
-                    'data_path' => 'GalaxyClusterRelationTag.{n}.Tag',
+                    'data_path' => 'Tag',
                     'element' => 'tags',
                     'elementParams' => array(
                         'searchScope' => 'taxonomy'
@@ -43,18 +40,16 @@
                 ),
                 array(
                     'name' => __('Distribution'),
-                    'sort' => 'distribution',
-                    'data_path' => 'GalaxyClusterRelation.distribution',
+                    'data_path' => 'distribution',
                     'element' => 'distribution_levels',
                 ),
             ),
-            'title' => __('Galaxy Cluster Relationships'),
             'actions' => array(
                 array(
                     'title' => 'Edit',
                     'url' => '/galaxy_cluster_relations/edit',
                     'url_params_data_paths' => array(
-                        'GalaxyClusterRelation.id'
+                        'id'
                     ),
                     'icon' => 'edit',
                     'complex_requirement' => array(
@@ -71,7 +66,7 @@
                     'title' => 'Delete',
                     'url' => '/galaxy_cluster_relations/delete',
                     'url_params_data_paths' => array(
-                        'GalaxyClusterRelation.id'
+                        'id'
                     ),
                     'postLink' => true,
                     'postLinkConfirm' => __('Are you sure you want to delete the Relationship?'),

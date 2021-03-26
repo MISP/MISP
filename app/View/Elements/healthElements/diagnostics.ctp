@@ -115,6 +115,38 @@
         ?>
     </div>
 
+    <h3><?= __('Security Audit') ?></h3>
+    <?php if (empty($securityAudit)):
+        echo __('Congratulation, your instance pass all security checks.');
+    else: ?>
+    <table class="table table-condensed table-bordered" style="width: 40vw">
+        <thead>
+        <tr>
+            <th><?= __('Area') ?></th>
+            <th><?= __('Level') ?></th>
+            <th><?= __('Message') ?></th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($securityAudit as $field => $errors): foreach ($errors as $error): list($level, $message) = $error; ?>
+        <tr>
+            <?php if (isset($field)): ?><th rowspan="<?= count($errors) ?>" style="white-space: nowrap;"><?= h($field) ?></th><?php unset($field); endif; ?>
+            <td style="text-align: center">
+                <?php if ($level === 'error'): ?>
+                <i class="red fa fa-times" role="img" aria-label="<?= __('Error') ?>" title="<?= __('Error') ?>"></i>
+                <?php elseif ($level === 'warning'): ?>
+                <i class="fas fa-exclamation-triangle" style="color: #c09853;" role="img" aria-label="<?= __('Warning') ?>" title="<?= __('Warning') ?>"></i>
+                <?php elseif ($level === 'hint'): ?>
+                <i class="fas fa-lightbulb" style="color: #FCC111" role="img" aria-label="<?= __('Hint') ?>"  title="<?= __('Hint') ?>"></i>
+                <?php endif; ?>
+            </td>
+            <td><?= h($message) ?><?php if (isset($error[2])): ?> <a href="<?= h($error[2]) ?>"><?= __('More info') ?></a><?php endif; ?></td>
+        </tr>
+        <?php endforeach; endforeach; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
+
     <h3><?php echo __('PHP Settings');?></h3>
     <?php
         $phpcolour = 'green';
@@ -160,11 +192,11 @@
     <p><?php echo __('The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.');?></p>
     <?php
         foreach ($phpSettings as $settingName => &$phpSetting):
-            echo $settingName . ' (<span class="bold">' . $phpSetting['value'] . ($phpSetting['unit'] ? $phpSetting['unit'] : '') . '</span>' .')' . '…';
+            echo $settingName . ' (<b>' . $phpSetting['value'] . ($phpSetting['unit'] ? ' ' . $phpSetting['unit'] : '') . '</b>' .')' . '…';
             if ($phpSetting['value'] < $phpSetting['recommended']) $pass = false;
             else $pass = true;
     ?>
-    <span style="color:<?php echo $pass ? 'green': 'orange'; ?>"><?php echo $pass ? __('OK') : __('Low'); ?> (recommended: <?php echo strval($phpSetting['recommended']) . ($phpSetting['unit'] ? $phpSetting['unit'] : '') . ')'; ?></span><br />
+    <span style="color:<?php echo $pass ? 'green': 'orange'; ?>"><?php echo $pass ? __('OK') : __('Low'); ?> (recommended: <?php echo strval($phpSetting['recommended']) . ($phpSetting['unit'] ? ' ' . $phpSetting['unit'] : '') . ')'; ?></span><br>
     <?php
         endforeach;
     ?>

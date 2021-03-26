@@ -20,7 +20,7 @@ bash /tmp/INSTALL.sh -c
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20200501 (works with **Ubuntu 18.10/19.04** too)
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210324 (works with **Ubuntu 18.10/19.04** too)
 
 !!! notice
     This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
@@ -121,6 +121,8 @@ installDepsPhp72 () {
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 }
 # <snippet-end 0_installDepsPhp72.sh>
 ```

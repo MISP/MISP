@@ -30,6 +30,11 @@ form button.btn[disabled] {
     cursor: not-allowed;
 }
 
+.btn-group > .btn.last {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
 /*.close{
     float:none;
 }*/
@@ -114,7 +119,6 @@ pre {
     border-left: none;
     border-right: 6px solid #fff;
     border-bottom: 6px solid transparent;
-    left: 10px;
     top: 1px;
     left: -6px;
 }
@@ -205,9 +209,9 @@ div.actions h3 {
   color:#777;
 }
 
-div.input{
+div.input {
     float:left;
-    width: 230px;
+    margin-right: 10px;
 }
 
 div.forminfo{
@@ -1423,7 +1427,6 @@ span.success {
     border: 1px solid #ddd !important;
     border-bottom:0px !important;
     line-height:14px !important;
-    margin-right:0px !important;
     margin-bottom:1px !important;
     float:right;
 }
@@ -1449,7 +1452,6 @@ span.success {
     width:34px;
     padding-left:3px;
     margin:0px !important;
-    margin-bottom:1px !important;
     border: 1px solid #ddd !important;
     border-bottom:0px !important;
     margin-right:200px !important;
@@ -1755,7 +1757,6 @@ span.success {
     line-height:40px;
     background-color: #FFFFFF;
     padding:0px !important;
-    padding-right:0px !important;
     border: 1px dashed black !important;
     -webkit-radius: 8px;
     -moz-border-radius: 8px;
@@ -1883,6 +1884,7 @@ span.success {
     background-color: red !important;
     color: white;
     font-weight: bold;
+    padding: 3px 5px;
 }
 
 .red {
@@ -2189,11 +2191,12 @@ table.table.table-striped tr.deleted_row td {
 }
 
 .popover {
-    max-width:33%;
+    max-width: 33%;
+    color: #333333;
 }
 
 .checkbox input[type=checkbox] {
-    margin-top:0px;
+    margin-top:3px;
 }
 
 .simplepre {
@@ -2668,10 +2671,6 @@ table tr:hover .down-expand-button {
     margin-top: 3px;
 }
 
-.user-edit-checkboxes .checkbox input[type="checkbox"] {
-    margin-top: 4px;
-}
-
 .user-edit-checkboxes label {
     display: inline;
 }
@@ -2728,4 +2727,32 @@ td.rotate + td:not(.rotate) {
     background-color: #f7f7f9;
     width: 400px;
     padding: .3em 0.5em;
+}
+
+#eventToggleButtons button span {
+    margin-right: 2px;
+}
+
+#RoleAdminEditForm fieldset {
+    margin-bottom: 1em;
+}
+
+#RoleAdminEditForm .role-permissions {
+    clear: both;
+    width: 570px;
+}
+
+#RoleAdminEditForm .role-permissions div.input {
+   width: 160px;
+}
+
+/*
+Query builder
+ */
+.query-builder .rule-value-container label {
+    margin-right: 5px;
+}
+
+.query-builder .rule-value-container label input {
+    margin-top: 0;
 }

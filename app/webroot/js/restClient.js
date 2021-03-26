@@ -466,7 +466,7 @@ function findPropertyFromValue(token) {
 
 function findMatchingHints(str, allHints) {
     allHints = allHints.map(function(str) {
-        var strArray = typeof str === "object" ? str.value.split('&quot;') : str.split('&quot;')
+        var strArray = typeof str === "object" ? String(str.value).split('&quot;') : str.split('&quot;')
         return {
             text: strArray.join('\\\"'), // transforms quoted elements into escaped quote
             renderText: typeof str === "object" ? str.label : strArray.join('\"'),

@@ -120,6 +120,11 @@
             ),
             array(
                 'type' => 'root',
+                'text' => __('Dashboard'),
+                'url' => $baseurl . '/dashboards'
+            ),
+            array(
+                'type' => 'root',
                 'text' => __('Galaxies'),
                 'url' => $baseurl . '/galaxies/index',
                 'children' => array(
@@ -165,16 +170,16 @@
                         'text' => __('List Noticelists'),
                         'url' => $baseurl . '/noticelists/index'
                     ),
-                    [
+                    array(
                         'text' => __('List Correlation Exclusions'),
-                        'url' => $baseurl . '/correlation_exclusions/index'
-                    ]
+			'url' => $baseurl . '/correlation_exclusions/index',
+			'requirement' => $canAccess('correlation_exclusions', 'index'),
+                    )
                 )
             ),
             array(
                 'type' => 'root',
                 'text' => __('Global Actions'),
-                'url' => $baseurl . '/dashboards',
                 'children' => array(
                     array(
                         'text' => __('News'),
@@ -191,10 +196,6 @@
                     array(
                         'text' => __('Set Setting'),
                         'url' => $baseurl . '/user_settings/setSetting'
-                    ),
-                    array(
-                        'text' => __('Dashboard'),
-                        'url' => $baseurl . '/dashboards'
                     ),
                     array(
                         'text' => __('Organisations'),
@@ -334,6 +335,10 @@
                     array(
                         'text' => __('List Users'),
                         'url' => $baseurl . '/admin/users/index'
+                    ),
+                    array(
+                        'text' => __('List Auth Keys'),
+                        'url' => $baseurl . '/auth_keys/index'
                     ),
                     array(
                         'text' => __('List User Settings'),

@@ -10,14 +10,9 @@ class ComplexTypeTool
             'types' => array('link', 'url')
         ),
         array(
-            'from' => '/(\[\.\]|\[dot\]|\(dot\)|\\\\\.)/',
+            'from' => '/(\[\.\]|\[dot\]|\(dot\))/',
             'to' => '.',
             'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
-        ),
-        array(
-            'from' => '/\.+/',
-            'to' => '.',
-            'types' => array('ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
         ),
         array(
             'from' => '/\[hxxp:\/\/\]/',

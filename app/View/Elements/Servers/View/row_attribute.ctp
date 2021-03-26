@@ -27,7 +27,7 @@
     </td>
     <td class="short">
       <div id = "Attribute_<?php echo $object['id']; ?>_category_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_category_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'category', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_category_solid" class="inline-field-solid">
         <?php echo h($object['category']); ?>
       </div>
     </td>
@@ -41,31 +41,16 @@
       ?>
       <div></div>
       <div id = "Attribute_<?php echo $object['id']; ?>_type_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_type_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'type', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_type_solid" class="inline-field-solid">
         <?php echo h($object['type']); ?>
       </div>
     </td>
     <td id="Attribute_<?php echo h($object['id']); ?>_container" class="showspaces limitedWidth shortish">
       <div id="Attribute_<?php echo $object['id']; ?>_value_placeholder" class="inline-field-placeholder"></div>
-      <?php
-        if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']) $editable = ' ondblclick="activateField(\'Attribute\', \'' . $object['id'] . '\', \'value\', \'' . $event['Event']['id'] . '\');"';
-        else $editable = '';
-      ?>
-      <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
+      <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid">
         <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="Attribute" data-object-id="' . h($object['id']) . '"'?>>
-          <?php
-            echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
-          ?>
+          <?= $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)); ?>
         </span>
-        <?php
-        if (isset($object['warnings'])) {
-            $temp = '';
-            foreach ($object['warnings'] as $warning) {
-                $temp .= '<span class="bold">' . h($warning['match']) . ':</span> <span class="red">' . h($warning['warninglist_name']) . '</span><br>';
-            }
-            echo ' <span aria-label="' . __('warning') . '" role="img" tabindex="0" class="fa fa-exclamation-triangle" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover" data-placement="right">&nbsp;</span>';
-        }
-        ?>
       </div>
     </td>
     <td class="shortish">
@@ -78,7 +63,7 @@
     </td>
     <td class="showspaces bitwider">
       <div id = "Attribute_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
         <?php echo nl2br(h($object['comment'])); ?>&nbsp;
       </div>
     </td>
@@ -136,7 +121,7 @@
     </td>
     <td class="short">
       <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'to_ids', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_solid" class="inline-field-solid">
         <?php echo $object['to_ids'] ? __('Yes') : __('No'); ?>
       </div>
     </td>
