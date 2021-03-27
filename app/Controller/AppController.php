@@ -808,7 +808,7 @@ class AppController extends Controller
      * Configure the debugMode view parameter
      */
     protected function _setupDebugMode() {
-        $this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
+        $this->set('debugMode', (Configure::read('debug') >= 1) ? 'debugOn' : 'debugOff');
     }
 
     /*
