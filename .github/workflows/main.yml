@@ -227,6 +227,8 @@ jobs:
 
               pushd tests
               ./curl_tests_GH.sh $AUTH $HOST
+              cp ../PyMISP/tests/keys.py .
+              python test_simple.py
               popd
 
               pushd PyMISP
