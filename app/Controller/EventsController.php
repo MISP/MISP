@@ -255,7 +255,7 @@ class EventsController extends AppController
         return $result;
     }
 
-    private function __setIndexFilterConditions($passedArgs, $urlparams)
+    private function __setIndexFilterConditions($passedArgs, &$urlparams)
     {
         $passedArgsArray = array();
         foreach ($passedArgs as $k => $v) {
@@ -806,34 +806,20 @@ class EventsController extends AppController
             $this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
         }
 
-        foreach ($events as $k => $event) {
-            if (empty($event['SharingGroup']['name'])) {
-                unset($events[$k]['SharingGroup']);
-            }
-        }
-        $events = $this->Event->attachTagsToEvents($events);
-        if (Configure::read('MISP.showCorrelationsOnIndex')) {
-            $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
-        }
-        if (Configure::read('MISP.showSightingsCountOnIndex')) {
-            $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
-        }
-        if (Configure::read('MISP.showProposalsCountOnIndex')) {
-            $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
-        }
-        if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
-            $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
-        }
-        $events = $this->GalaxyCluster->attachClustersToEventIndex($this->Auth->user(), $events, true);
-
         if ($this->params['ext'] === 'csv') {
+            $events = $this->__attachInfoToEvents(['tags'], $events);
             App::uses('CsvExport', 'Export');
             $export = new CsvExport();
             return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
         }
 
+        list($possibleColumns, $enabledColumns) = $this->__indexColumns();
+        $events = $this->__attachInfoToEvents($enabledColumns, $events);
+
         $this->__noKeyNotification();
         $this->set('events', $events);
+        $this->set('possibleColumns', $possibleColumns);
+        $this->set('columns', $enabledColumns);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
@@ -848,6 +834,79 @@ class EventsController extends AppController
             $this->layout = false;
             $this->render('ajax/index');
         }
+    }
+
+    private function __indexColumns()
+    {
+        $possibleColumns = [];
+
+        if ($this->_isSiteAdmin() && !Configure::read('MISP.showorgalternate')) {
+            $possibleColumns[] = 'owner_org';
+        }
+
+        if (Configure::read('MISP.tagging')) {
+            $possibleColumns[] = 'clusters';
+            $possibleColumns[] = 'tags';
+        }
+
+        $possibleColumns[] = 'attribute_count';
+
+        if (Configure::read('MISP.showCorrelationsOnIndex')) {
+            $possibleColumns[] = 'correlations';
+        }
+
+        if (Configure::read('MISP.showSightingsCountOnIndex')) {
+            $possibleColumns[] = 'sightings';
+        }
+
+        if (Configure::read('MISP.showProposalsCountOnIndex')) {
+            $possibleColumns[] = 'proposals';
+        }
+
+        if (Configure::read('MISP.showDiscussionsCountOnIndex')) {
+            $possibleColumns[] = 'discussion';
+        }
+
+        if ($this->_isSiteAdmin()) {
+            $possibleColumns[] = 'creator_user';
+        }
+
+        $userEnabledColumns = $this->User->UserSetting->getValueForUser($this->Auth->user()['id'], 'event_index_hide_columns');
+        if ($userEnabledColumns === null) {
+            $userEnabledColumns = [];
+        }
+
+        $enabledColumns = array_diff($possibleColumns, $userEnabledColumns);
+
+        return [$possibleColumns, $enabledColumns];
+    }
+
+    private function __attachInfoToEvents(array $columns, array $events)
+    {
+        $user = $this->Auth->user();
+
+        if (in_array('tags', $columns, true) || in_array('clusters', $columns, true)) {
+            $events = $this->Event->attachTagsToEvents($events);
+            $events = $this->GalaxyCluster->attachClustersToEventIndex($user, $events, true);
+        }
+
+        if (in_array('correlations', $columns, true)) {
+            $events = $this->Event->attachCorrelationCountToEvents($user, $events);
+        }
+
+        if (in_array('sightings', $columns, true)) {
+            $events = $this->Event->attachSightingsCountToEvents($user, $events);
+        }
+
+        if (in_array('proposals', $columns, true)) {
+            $events = $this->Event->attachProposalsCountToEvents($user, $events);
+        }
+
+        if (in_array('discussion', $columns, true)) {
+            $events = $this->Event->attachDiscussionsCountToEvents($user, $events);
+        }
+
+        return $events;
     }
 
     private function __noKeyNotification()
@@ -941,31 +1000,45 @@ class EventsController extends AppController
             }
         }
         $this->set('filtering', json_encode($filtering));
-        $tagNames = $this->Event->EventTag->Tag->find('list', array('recursive' => -1, 'fields' => ['Tag.id', 'Tag.name']));
-        $tagJSON = array();
+
+        $tagNames = $this->Event->EventTag->Tag->find('list', [
+            'fields' => ['Tag.id', 'Tag.name'],
+        ]);
+        $tagJSON = [];
         foreach ($tagNames as $tagId => $tagName) {
-            $tagJSON[] = array('id' => $tagId, 'value' => h($tagName));
+            $tagJSON[] = array('id' => $tagId, 'value' => $tagName);
         }
-        $rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'sharinggroup', 'analysis', 'attribute', 'hasproposal');
+
+        $rules = [
+            'published' => __('Published'),
+            'eventid' => __('Event ID'),
+            'tag' => __('Tag'),
+            'date' => __('Date'),
+            'eventinfo' => __('Event info'),
+            'threatlevel' => __('Threat level'),
+            'distribution' => __('Distribution'),
+            'sharinggroup' => __('Sharing group'),
+            'analysis' => __('Analysis'),
+            'attribute' => __('Attribute'),
+            'hasproposal' => __('Has proposal'),
+        ];
+
         if ($this->_isSiteAdmin()) {
-            $rules[] = 'email';
+            $rules['email'] = __('Email');
         }
         if (Configure::read('MISP.showorg')) {
             $orgs = $this->Event->Orgc->find('list', array(
-                'conditions' => array(),
-                'recursive' => -1,
                 'fields' => array('Orgc.id', 'Orgc.name'),
                 'sort' => array('lower(Orgc.name) asc')
             ));
             $this->set('showorg', true);
             $this->set('orgs', $orgs);
-            $rules[] = 'org';
+            $rules['org'] = __('Organisation');
         } else {
             $this->set('showorg', false);
         }
         $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true);
         $this->set('sharingGroups', $sharingGroups);
-        $rules = $this->_arrayToValuesIndexArray($rules);
         $this->set('tags', $tagNames);
         $this->set('tagJSON', json_encode($tagJSON));
         $this->set('rules', $rules);

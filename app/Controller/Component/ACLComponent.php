@@ -706,7 +706,8 @@ class ACLComponent extends Component
                     'setSetting' => array('*'),
                     'getSetting' => array('*'),
                     'delete' => array('*'),
-                    'setHomePage' => array('*')
+                    'setHomePage' => array('*'),
+                'eventIndexColumnToggle' => ['*'],
             ),
             'warninglists' => array(
                     'checkValue' => array('perm_auth'),
