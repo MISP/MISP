@@ -86,13 +86,13 @@ class EventGraph {
     bind_listener() {
         var that = this;
         this.network.on("selectNode", function (params) {
-            that.network.moveTo({
-                position: {
-                    x: params.pointer.canvas.x,
-                    y: params.pointer.canvas.y
-                },
-                animation: true,
-            });
+            // that.network.moveTo({
+            //     position: {
+            //         x: params.pointer.canvas.x,
+            //         y: params.pointer.canvas.y
+            //     },
+            //     animation: true,
+            // });
         });
 
         this.network.on("dragStart", function (params) {
@@ -717,7 +717,7 @@ class EventGraph {
                     group: group,
                     mass: 5,
                     icon: {
-                        color: stringToRGB(label),
+                        color: node.color,
                         face: '"Font Awesome 5 Free"',
                         code: that.get_FA_icon(node['meta-category']),
                     }

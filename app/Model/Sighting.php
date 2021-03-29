@@ -536,7 +536,6 @@ class Sighting extends AppModel
      */
     public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
     {
-        $contain = [];
         $conditions = array('Sighting.event_id' => $event['Event']['id']);
         if (isset($attribute['Attribute']['id'])) {
             $conditions['Sighting.attribute_id'] = $attribute['Attribute']['id'];
@@ -547,8 +546,6 @@ class Sighting extends AppModel
                 'conditions' => ['Attribute.id' => $attribute],
                 'fields' => ['Attribute.uuid']
             ]);
-        } else {
-            $contain['Attribute'] = ['fields' => 'Attribute.uuid'];
         }
 
         $ownEvent = $user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id'];
@@ -570,18 +567,29 @@ class Sighting extends AppModel
         $sightings = $this->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1,
-            'contain' => $contain,
         ));
         if (empty($sightings)) {
-            return array();
+            return [];
         }
-        foreach ($sightings as $k => $sighting) {
-            if (isset($sighting['Attribute']['uuid'])) {
-                $sighting['Sighting']['attribute_uuid'] = $sighting['Attribute']['uuid'];
-            } else {
-                $sighting['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
+        if ($attribute === null) {
+            // Do not add attribute uuid in contain query, joining is slow and takes more memory
+            $attributeUuids = $this->Attribute->find('all', [
+                'conditions' => ['Attribute.event_id' => $event['Event']['id']],
+                'fields' => ['Attribute.id', 'Attribute.uuid'],
+                'recursive' => -1,
+            ]);
+            // `array_column` is much faster than find('list')
+            $attributeUuids = array_column(array_column($attributeUuids, 'Attribute'), 'uuid', 'id');
+            foreach ($sightings as $k => $sighting) {
+                $sighting['Sighting']['attribute_uuid'] = $attributeUuids[$sighting['Sighting']['attribute_id']];
+                $sightings[$k] = $sighting;
             }
-            $sightings[$k] = $sighting;
+            unset($attributeUuids);
+        } else {
+            foreach ($sightings as $k => $sighting) {
+                $sighting['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
+                $sightings[$k] = $sighting;
+            }
         }
         return $this->attachOrgToSightings($sightings, $user, $forSync);
     }

@@ -15,65 +15,72 @@ if (isset($keyUsage)) {
     $uniqueIps = null;
 }
 
-echo $this->element(
-    'genericElements/SingleViews/single_view',
-    [
-        'title' => 'Auth key view',
-        'data' => $data,
-        'fields' => [
-            [
-                'key' => __('ID'),
-                'path' => 'AuthKey.id'
-            ],
-            [
-                'key' => __('UUID'),
-                'path' => 'AuthKey.uuid',
-            ],
-            [
-                'key' => __('Auth Key'),
-                'path' => 'AuthKey',
-                'type' => 'authkey'
-            ],
-            [
-                'key' => __('User'),
-                'path' => 'User.id',
-                'pathName' => 'User.email',
-                'model' => 'users',
-                'type' => 'model'
-            ],
-            [
-                'key' => __('Comment'),
-                'path' => 'AuthKey.comment'
-            ],
-            [
-                'key' => __('Created'),
-                'path' => 'AuthKey.created',
-                'type' => 'datetime'
-            ],
-            [
-                'key' => __('Expiration'),
-                'path' => 'AuthKey.expiration',
-                'type' => 'expiration'
-            ],
-            [
-                'key' => __('Key usage'),
-                'type' => 'sparkline',
-                'path' => 'AuthKey.id',
-                'csv' => [
-                    'data' => $keyUsageCsv,
-                ],
-                'requirement' => isset($keyUsage),
-            ],
-            [
-                'key' => __('Last used'),
-                'raw' => $lastUsed ? $this->Time->time($lastUsed) : __('Not used yet'),
-                'requirement' => isset($keyUsage),
-            ],
-            [
-                'key' => __('Unique IPs'),
-                'raw' => $uniqueIps,
-                'requirement' => isset($keyUsage),
-            ]
+echo $this->element('genericElements/SingleViews/single_view', [
+    'title' => 'Auth key view',
+    'data' => $data,
+    'fields' => [
+        [
+            'key' => __('ID'),
+            'path' => 'AuthKey.id'
         ],
-    ]
-);
+        [
+            'key' => __('UUID'),
+            'path' => 'AuthKey.uuid',
+        ],
+        [
+            'key' => __('Auth Key'),
+            'path' => 'AuthKey',
+            'type' => 'authkey'
+        ],
+        [
+            'key' => __('User'),
+            'path' => 'User.id',
+            'pathName' => 'User.email',
+            'model' => 'users',
+            'type' => 'model'
+        ],
+        [
+            'key' => __('Comment'),
+            'path' => 'AuthKey.comment'
+        ],
+        [
+            'key' => __('Allowed IPs'),
+            'type' => 'custom',
+            'function' => function (array $data) {
+                if (is_array($data['AuthKey']['allowed_ips'])) {
+                    return implode("<br>", array_map('h', $data['AuthKey']['allowed_ips']));
+                }
+                return __('All');
+            }
+        ],
+        [
+            'key' => __('Created'),
+            'path' => 'AuthKey.created',
+            'type' => 'datetime'
+        ],
+        [
+            'key' => __('Expiration'),
+            'path' => 'AuthKey.expiration',
+            'type' => 'expiration'
+        ],
+        [
+            'key' => __('Key usage'),
+            'type' => 'sparkline',
+            'path' => 'AuthKey.id',
+            'csv' => [
+                'data' => $keyUsageCsv,
+            ],
+            'requirement' => isset($keyUsage),
+        ],
+        [
+            'key' => __('Last used'),
+            'raw' => $lastUsed ? $this->Time->time($lastUsed) : __('Not used yet'),
+            'requirement' => isset($keyUsage),
+        ],
+        [
+            'key' => __('Unique IPs'),
+            'raw' => $uniqueIps,
+            'requirement' => isset($keyUsage),
+        ]
+    ],
+]);

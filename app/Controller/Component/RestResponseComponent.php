@@ -286,10 +286,9 @@ class RestResponseComponent extends Component
                 'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
                 'params' => array('tag_id')
             ),
-            'removeTag' => array(
-                'description' => "POST a request object in JSON format to this API to create detach a tag from an event. #FIXME Function does not exists",
-                'mandatory' => array('event', 'tag'),
-                'params' => array('tag_id')
+            'removeTagFromObject' => array(
+                'description' => "Untag an event or attribute. Tag can be the id or the name.",
+                'mandatory' => array('uuid', 'tag')
             ),
             'attachTagToObject' => array(
                 'description' => "Attach a Tag to an object, refenced by an UUID. Tag can either be a tag id or a tag name.",

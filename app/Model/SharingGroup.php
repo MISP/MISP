@@ -705,7 +705,7 @@ class SharingGroup extends AppModel
                 'email' => $user['email'],
                 'action' => 'error',
                 'user_id' => $user['id'],
-                'title' => "Tried to save a sharing group with UUID '{$sg['SharingGroup']['uuid']}' but the user does not belong to it."
+                'title' => "Tried to save a sharing group with UUID '{$sg['uuid']}' but the user does not belong to it."
             );
             $this->Log->save($entry);
             return false;
