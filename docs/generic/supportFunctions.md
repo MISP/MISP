@@ -672,6 +672,8 @@ installDepsPhp70 () {
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 }
 # <snippet-end 0_installDepsPhp70.sh>
 

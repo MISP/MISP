@@ -29,6 +29,13 @@ class EventShell extends AppShell
                 ],
             )
         ));
+        $parser->addSubcommand('testEventNotificationEmail', [
+            'help' => __('Generate event notification email in EML format.'),
+            'arguments' => [
+                'event_id' => ['help' => __('Event ID'), 'required' => true],
+                'user_id' => ['help' => __('User ID'), 'required' => true],
+            ],
+        ]);
         return $parser;
     }
 
@@ -162,7 +169,7 @@ class EventShell extends AppShell
         $this->ConfigLoad->execute();
         $timeStart = time();
         $userId = $this->args[0];
-        $user = $this->User->getAuthUser($userId);
+        $user = $this->getUser($userId);
         $id = $this->args[1];
         $this->Job->id = $id;
         $this->Job->saveField('progress', 1);
@@ -309,7 +316,6 @@ class EventShell extends AppShell
         }
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'published () => (1)');
     }
 
@@ -333,7 +339,6 @@ class EventShell extends AppShell
         }
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'publish_sightings', 'Event', $id, 'Sightings for event (' . $id . '): published.', 'publish_sightings updated');
     }
 
@@ -357,7 +362,6 @@ class EventShell extends AppShell
         }
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'publish', 'GalaxyCluster', $clusterId, 'GalaxyCluster (' . $clusterId . '): published.', 'published () => (1)');
     }
 
@@ -409,7 +413,6 @@ class EventShell extends AppShell
 	echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->create();
         $log->createLogEntry($user, 'enrichment', 'Event', $eventId, 'Event (' . $eventId . '): enriched.', 'enriched () => (1)');
     }
 
@@ -467,6 +470,34 @@ class EventShell extends AppShell
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         $job['Job']['message'] = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
         $this->Job->save($job);
+    }
+
+    public function testEventNotificationEmail()
+    {
+        list($eventId, $userId) = $this->args;
+
+        $user = $this->getUser($userId);
+        $eventForUser = $this->Event->fetchEvent($user, [
+            'eventid' => $eventId,
+            'includeAllTags' => true,
+            'includeEventCorrelations' => true,
+            'noEventReports' => true,
+            'noSightings' => true,
+            'metadata' => Configure::read('MISP.event_alert_metadata_only') ?: false,
+        ]);
+        if (empty($eventForUser)) {
+            $this->error("Event with ID $eventId not exists or given user don't have permission to access it.");
+        }
+
+        $emailTemplate = $this->Event->prepareAlertEmail($eventForUser[0], $user);
+
+        App::uses('SendEmail', 'Tools');
+        App::uses('GpgTool', 'Tools');
+        $sendEmail = new SendEmail(GpgTool::initializeGpg());
+        $sendEmail->setTransport('Debug');
+        $result = $sendEmail->sendToUser(['User' => $user], null, $emailTemplate);
+
+        echo $result['contents']['headers'] . "\n\n" . $result['contents']['message'] . "\n";
     }
 
     /**
