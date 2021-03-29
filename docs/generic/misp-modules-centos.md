@@ -21,7 +21,7 @@ mispmodulesRHEL () {
   # some misp-modules dependencies for RHEL<8
   sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-devel -y
   # some misp-modules dependencies for RHEL8
-  sudo dnf install https://packages.endpoint.com/rhel/8/main/x86_64/endpoint-repo-8-1.ep8.noarch.rpm
+  sudo dnf install https://packages.endpoint.com/rhel/8/main/x86_64/endpoint-repo-8-1.ep8.noarch.rpm -y
   sudo yum install zbar-devel opencv-devel -y
 
   echo "[Unit]

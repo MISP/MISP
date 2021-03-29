@@ -10,6 +10,12 @@ MISPvars () {
   MISP_USER="${MISP_USER:-misp}"
   MISP_PASSWORD="${MISP_PASSWORD:-$(openssl rand -hex 32)}"
 
+  # Cheap distribution detector
+  FLAVOUR="$(. /etc/os-release && echo "$ID"| tr '[:upper:]' '[:lower:]')"
+  STREAM="$(. /etc/os-release && echo "$NAME"| grep -o -i stream |tr '[:upper:]' '[:lower:]')"
+  DIST_VER="$(. /etc/os-release && echo "$VERSION_ID")"
+  DISTRI=${FLAVOUR}${DIST_VER}${STREAM}
+
   # The web server user
   # RHEL/CentOS
   if [[ -f "/etc/redhat-release" ]]; then
