@@ -1405,6 +1405,7 @@ class Attribute extends AppModel
         // prepare the conditions
         $conditions = array(
                 'Attribute.event_id !=' => $attribute['event_id'],
+                'Attribute.deleted !=' => 1,
                 );
 
         // prevent issues with empty fields
