@@ -3,7 +3,7 @@
 If you are doing a manual install, copy and pasting from this document, please do the following before starting:
 
 ```bash
-eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | grep -A31337 -m1 -e 'snippet-begin' | grep -v \`\`\`)"
+eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | awk '/^# <snippet-begin/,0' | grep -v \`\`\`)"
 MISPvars
 ```
 
@@ -13,7 +13,7 @@ MISPvars
 
 ```bash
 # <snippet-begin 0_global-vars.sh>
-# $ eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | grep -A31337 -m1 -e 'snippet-begin' | grep -v \`\`\`)"
+# $ eval "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/docs/generic/globalVariables.md | awk '/^# <snippet-begin/,0' | grep -v \`\`\`)"
 # $ MISPvars
 MISPvars () {
   debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours" 2> /dev/null
