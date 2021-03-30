@@ -590,7 +590,7 @@ class EventsController extends AppController
                         $searchTermInternal = $searchTerm;
                         if ($searchTerm == 'threatlevel') {
                             $searchTermInternal = 'threat_level_id';
-                            $terms = $this->Event->ThreatLevel->list();
+                            $terms = $this->Event->ThreatLevel->listThreatLevels();
                         } elseif ($searchTerm == 'analysis') {
                             $terms = $this->Event->analysisLevels;
                         } else {
@@ -4694,7 +4694,7 @@ class EventsController extends AppController
             $this->render('/Elements/view_galaxy_matrix');
         }
     }
-    
+
     // Displays all the cluster relations for the provided event
     public function viewClusterRelations($eventId)
     {
@@ -4759,7 +4759,7 @@ class EventsController extends AppController
         );
 
         $this->set('events', $this->paginate());
-        $this->set('threatLevels', $this->Event->ThreatLevel->list());
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
