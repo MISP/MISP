@@ -694,7 +694,7 @@ class FeedsController extends AppController
         }
         $this->set('events', $events);
         $this->loadModel('Event');
-        $this->set('threatLevels', $this->Event->ThreatLevel->list());
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);

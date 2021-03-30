@@ -124,7 +124,7 @@ class ServersController extends AppController
         }
 
         $this->loadModel('Event');
-        $this->set('threatLevels', $this->Event->ThreatLevel->list());
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
@@ -202,7 +202,7 @@ class ServersController extends AppController
                 $this->set($alias, $currentModel->{$variable});
             }
         }
-        $this->set('threatLevels', $this->Event->ThreatLevel->list());
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         $this->set('title_for_layout', __('Remote event preview'));
     }
 
