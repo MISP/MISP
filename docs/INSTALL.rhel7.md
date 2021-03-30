@@ -112,6 +112,9 @@ centosEPEL () {
   # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
   # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
   sudo yum install centos-release-scl -y
+  sudo yum install yum-utils -y
+  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
+  sudo yum-config-manager --enable remi-php74
 }
 # <snippet-end 0_CentOS_EPEL.sh>
 ```
@@ -169,6 +172,8 @@ enableEPEL () {
 # <snippet-begin 0_yumInstallCoreDeps.sh>
 yumInstallCoreDeps () {
   # Install the dependencies:
+  PHP_BASE="/etc/"
+  PHP_INI="/etc/php.ini"
   sudo yum install gcc git zip \
                    mod_ssl \
                    redis \
@@ -185,27 +190,26 @@ yumInstallCoreDeps () {
   rm mariadb_repo_setup
   sudo yum install MariaDB-server -y
 
-  PHP_INI="/etc/opt/remi/php74/php.ini"
   # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/7/php74/x86_64/repoview/
-  sudo yum install php74 php74-php-fpm php74-php-devel \
-                   php74-php-mysqlnd \
-                   php74-php-mbstring \
-                   php74-php-xml \
-                   php74-php-bcmath \
-                   php74-php-opcache \
-                   php74-php-zip \
-                   php74-php-pear \
-                   php74-php-brotli \
-                   php74-php-intl \
-                   php74-php-gd -y
+  sudo yum install php php-fpm php-devel \
+                   php-mysqlnd \
+                   php-mbstring \
+                   php-xml \
+                   php-bcmath \
+                   php-opcache \
+                   php-zip \
+                   php-pear \
+                   php-brotli \
+                   php-intl \
+                   php-gd -y
 
-  # cake has php baked in, thus we link to it
-  sudo ln -s /usr/bin/php74 /usr/bin/php
+  # cake has php baked in, thus we link to it if necessary.
+  [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
 
   # Python 3.6 is now available in RHEL 7.7 base
   sudo yum install python3 python3-devel -y
 
-  sudo systemctl enable --now php74-php-fpm.service
+  sudo systemctl enable --now php-fpm.service
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
 ```
@@ -315,9 +319,11 @@ installCoreRHEL () {
 
   # Enable dependencies detection in the diagnostics page
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
-  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/opt/remi/php74/php-fpm.d/www.conf
-  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/remi/php74/php-fpm.d/www.conf
-  sudo systemctl restart php74-php-fpm.service
+  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a ${PHP_BASE}/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' ${PHP_BASE}/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^\(listen =\) \/run\/php-fpm\/www\.sock/\1 127.0.0.1:9000/' ${PHP_BASE}/php-fpm.d/www.conf
+
+  sudo systemctl restart php-fpm.service
   umask $UMASK
 }
 # <snippet-end 1_mispCoreInstall_RHEL.sh>
@@ -345,14 +351,15 @@ installCake_RHEL ()
   #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
-  sudo yum install php74-php-pecl-redis php74-php-pecl-ssdeep php74-php-pecl-gnupg -y
+  sudo yum install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
 
-  sudo systemctl restart php74-php-fpm.service
+  sudo systemctl restart php-fpm.service
 
   # If you have not yet set a timezone in php.ini
-  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/opt/remi/php74/php.d/timezone.ini
+  echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/php-fpm.d/timezone.ini
+  sudo ln -s ../php-fpm.d/timezone.ini /etc/php.d/99-timezone.ini
 
-  # Recommended: Change some PHP settings in /etc/opt/remi/php74/php.ini
+  # Recommended: Change some PHP settings in /etc/php.ini
   # max_execution_time = 300
   # memory_limit = 2048M
   # upload_max_filesize = 50M
@@ -363,7 +370,7 @@ installCake_RHEL ()
   done
   sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
   sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
-  sudo systemctl restart php74-php-fpm.service
+  sudo systemctl restart php-fpm.service
 
   # To use the scheduler worker for scheduled tasks, do the following:
   sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
@@ -655,7 +662,7 @@ EOF
 configWorkersRHEL () {
   echo "[Unit]
   Description=MISP background workers
-  After=mariadb.service redis.service php74-php-fpm.service
+  After=mariadb.service redis.service php-fpm.service
 
   [Service]
   Type=forking
