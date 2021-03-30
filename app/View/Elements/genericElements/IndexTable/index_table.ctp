@@ -62,19 +62,15 @@
     $options = isset($data['options']) ? $data['options'] : array();
     $actions = isset($data['actions']) ? $data['actions'] : array();
     $dblclickActionArray = isset($data['actions']) ? Hash::extract($data['actions'], '{n}[dbclickAction]') : array();
-    $dbclickAction = '';
     foreach ($data['data'] as $k => $data_row) {
         $primary = null;
         if (!empty($data['primary_id_path'])) {
             $primary = Hash::extract($data_row, $data['primary_id_path'])[0];
         }
-        if (!empty($dblclickActionArray)) {
-            $dbclickAction = sprintf("changeLocationFromIndexDblclick(%s)", $k);
-        }
         $rows .= sprintf(
             '<tr data-row-id="%s" %s %s>%s</tr>',
             h($k),
-            empty($dbclickAction) ? '' : 'ondblclick="' . $dbclickAction . '"',
+            empty($dblclickActionArray) ? '' : 'class="dblclickElement"',
             empty($primary) ? '' : 'data-primary-id="' . $primary . '"',
             $this->element(
                 '/genericElements/IndexTable/' . $row_element,
