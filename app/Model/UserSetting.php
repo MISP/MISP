@@ -92,6 +92,9 @@ class UserSetting extends AppModel
                 'false-positive:risk="medium"' => 99
             )
         ),
+        'event_index_hide_columns' => [
+            'placeholder' => ['clusters'],
+        ],
     );
 
     // massage the data before we send it off for validation before saving anything

@@ -3123,6 +3123,7 @@ class Attribute extends AppModel
         } else {
             $options['includeDecayScore'] = true;
         }
+        //Add EventTags to attributes to take them into account when calculating decay score
         if ($options['includeDecayScore']) {
             $options['includeEventTags'] = true;
         }
