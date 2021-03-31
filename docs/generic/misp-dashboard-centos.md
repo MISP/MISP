@@ -2,7 +2,7 @@
 --------------
 
 !!! warning
-    Currently defunct due to upstream dependency changes
+    A valid MaxMind DB key is required.
 
 !!! warning
     Does not work on RHEL 8
@@ -68,24 +68,6 @@ mispDashboard () {
 
   # Add misp-dashboard to rc.local to start on boot.
   sudo sed -i -e '$i \sudo -u apache bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
-
-  # Enable ZeroMQ for misp-dashboard
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 }
 # <snippet-end 4_misp-dashboardRHEL.sh>
 ```

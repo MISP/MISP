@@ -443,6 +443,7 @@ then
     sudo chmod u+x /etc/rc.local
 fi
 ```
+
 {!generic/MISP_CAKE_init.md!}
 
 ```bash
@@ -453,6 +454,8 @@ sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 ```
 
 {!generic/misp-modules-debian.md!}
+
+{!generic/misp-modules-cake.md!}
 
 ```bash
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
@@ -496,6 +499,8 @@ sudo service apache2 restart
 ```
 
 {!generic/misp-dashboard-debian.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/viper-debian.md!}
 
