@@ -685,9 +685,13 @@ configWorkersRHEL () {
 
 {!generic/misp-modules-centos.md!}
 
+{!generic/misp-modules-cake.md!}
+
 {!generic/MISP_CAKE_init.md!}
 
 {!generic/misp-dashboard-centos.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/INSTALL.done.md!}
 

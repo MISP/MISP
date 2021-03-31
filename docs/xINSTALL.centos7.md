@@ -599,6 +599,8 @@ sudo sed -i -e '$i \sudo -u apache ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.
 
 {!generic/misp-dashboard-centos.md!}
 
+{!generic/misp-dashboard-cake.md!}
+
 {!generic/MISP_CAKE_init.md!}
 
 {!generic/INSTALL.done.md!}

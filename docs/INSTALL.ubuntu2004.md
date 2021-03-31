@@ -507,6 +507,8 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 
 {!generic/misp-modules-debian.md!}
 
+{!generic/misp-modules-cake.md!}
+
 {!generic/INSTALL.done.md!}
 
 {!generic/recommended.actions.md!}
@@ -533,6 +535,8 @@ installKafka () {
 ```
 
 {!generic/misp-dashboard-debian.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/viper-debian.md!}
 
