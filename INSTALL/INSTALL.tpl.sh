@@ -88,6 +88,7 @@
 ## 2_logRotation.sh ##
 ## 2_backgroundWorkers.sh ##
 ## 3_misp-modules.sh ##
+## 3_misp-modules-cake.sh ##
 ## 4_misp-dashboard.sh ##
 ## 4_misp-dashboard-cake.sh ##
 ## 5_mail_to_misp.sh ##
@@ -147,12 +148,12 @@ generateInstaller () {
   cp ../INSTALL.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu2004.md INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian10.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md INSTALL.rhel7.md`; do
+  for f in `echo INSTALL.ubuntu2004.md INSTALL.ubuntu1804.md xINSTALL.debian10.md xINSTALL.tsurugi.md INSTALL.rhel7.md INSTALL.rhel8.md`; do
     xsnippet . ../../docs/${f}
   done
 
   # Pull out code snippets from generic Install Documents
-  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md misp-modules-centos.md`; do
+  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-dashboard-centos.md misp-dashboard-cake.md misp-modules-debian.md misp-modules-centos.md misp-modules-cake.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
     xsnippet . ../../docs/generic/${f}
   done
 
@@ -181,6 +182,7 @@ generateInstaller () {
   perl -pe 's/^## 2_logRotation.sh ##/`cat 2_logRotation.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_backgroundWorkers.sh ##/`cat 2_backgroundWorkers.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 3_misp-modules-cake.sh ##/`cat 3_misp-modules-cake.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.tpl.sh
@@ -661,7 +663,7 @@ installMISPRHEL () {
     fi 
     
     debug "Enabling Extras Repos (SCL)"
-    if [[ "${FLAVOUR}" == "rhel" ]]; then
+    if [[ "${DISTRI}" == "rhel7" ]]; then
       sudo subscription-manager register --auto-attach
       enableReposRHEL
       enableEPEL
@@ -782,13 +784,19 @@ fi
 SUPPORT_MAP="
 x86_64-centos-7
 x86_64-rhel-7
-x86_64-fedora-30
+x86_64-centos-8
+x86_64-rhel-8
+x86_64-fedora-33
 x86_64-debian-stretch
 x86_64-debian-buster
 x86_64-ubuntu-bionic
 x86_64-ubuntu-focal
 x86_64-ubuntu-hirsute
 x86_64-kali-2020.4
+x86_64-kali-2021.1
+x86_64-kali-2021.2
+x86_64-kali-2021.3
+x86_64-kali-2021.4
 armv6l-raspbian-stretch
 armv7l-raspbian-stretch
 armv7l-debian-jessie
@@ -893,7 +901,7 @@ if [[ "${FLAVOUR}" == "kali" ]]; then
 fi
 
 # If RHEL/CentOS is detected, run appropriate script
-if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
+if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]] || [[ "${FLAVOUR}" == "fedora" ]]; then
   installMISPRHEL
   echo "Installation done !"
   exit

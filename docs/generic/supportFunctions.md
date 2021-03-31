@@ -155,12 +155,13 @@ checkFlavour () {
       fi
       echo "${FLAVOUR} support is experimental at the moment"
     ;;
-    rhel|ol|sles)
+    rhel|ol|sles|fedora)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        # FIXME: On fedora the trimming fails
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
-	dist_version=${dist_version:0:1}  # Only interested about major version
+        dist_version=${dist_version:0:1}  # Only interested about major version
       fi
-      # Only tested for RHEL 7 so far 
+      # FIXME: Only tested for RHEL 7 so far 
       echo "${FLAVOUR} support is experimental at the moment"
     ;;
     *)
@@ -230,7 +231,7 @@ EOF
 
 checkInstaller () {
   # Workaround: shasum is not available on RHEL, only checking sha512
-  if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
+  if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]] || [[ "${FLAVOUR}" == "fedora" ]]; then
   INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
   /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
         chsum=$(cat /tmp/INSTALL.sh.sha512)

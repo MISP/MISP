@@ -1,7 +1,7 @@
 # INSTALLATION INSTRUCTIONS for RHEL 8.x, CentOS8/Stream
 -------------------------
 
-### -2/ RHEL8/CentOS8 - status
+### -2/ RHEL8/CentOS8/CentOS_Stream/Fedora33 - status
 -------------------------
 !!! notice
     MISP-core and misp-modules Tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210326
@@ -14,7 +14,7 @@
 ### -1/ Installer and Manual install instructions
 
 !!! warning
-    In the **future**, to install MISP on a fresh RHEL 8 install all you need to do is:
+    In the **future**, to install MISP on a fresh RHEL 8 or CentOS 8 install all you need to do is:
 
     ```bash
     # Please check the installer options first to make the best choice for your install
@@ -116,13 +116,18 @@ yumUpdate () {
 ## 1.6/ Install the EPEL and remi repo
 ```bash
 # <snippet-begin 0_EPEL_REMI.sh>
-enableEPEL_REMI () {
+enableEPEL_REMI_8 () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
   sudo yum install yum-utils -y
   sudo dnf module enable php:remi-7.4 -y
-  [[ ${DISTRI} == "centos8stream" ]] &&sudo dnf config-manager --set-enabled powertools
-  [[ ${DISTRI} == "centos8" ]] &&sudo dnf config-manager --set-enabled powertools
+  [[ ${DISTRI} == "centos8stream" ]] && sudo dnf config-manager --set-enabled powertools
+  [[ ${DISTRI} == "centos8" ]] && sudo dnf config-manager --set-enabled powertools
+}
+enableREMI_f33 () {
+  sudo yum install http://rpms.remirepo.net/fedora/remi-release-33.rpm
+  sudo yum install yum-utils -y
+  sudo dnf module enable php:remi-7.4 -y
 }
 # <snippet-end 0_EPEL_REMI.sh>
 ```
@@ -218,7 +223,8 @@ installCoreRHEL () {
   $SUDO_WWW git config core.filemode false
 
   # Create a python3 virtualenv
-  $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv
+  [[ -e $(which virtualenv-3 2>/dev/null) ]] && $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv
+  [[ -e $(which virtualenv 2>/dev/null) ]] && $SUDO_WWW virtualenv -p python3 $PATH_TO_MISP/venv
   sudo mkdir /usr/share/httpd/.cache
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
@@ -263,7 +269,7 @@ installCoreRHEL () {
 
   # lief needs manual compilation
   sudo yum groupinstall "Development Tools" -y
-  [[ ${DISTRI} == 'rhel8.3' ]] && sudo yum install cmake3 -y && CMAKE_BIN='cmake3'
+  [[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'rhel8.3' ]] && sudo yum install cmake3 -y && CMAKE_BIN='cmake3'
   [[ ${DISTRI} == 'centos8stream' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
   [[ ${DISTRI} == 'centos8' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
 
