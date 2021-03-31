@@ -85,17 +85,22 @@ sudo hostnamectl set-hostname misp.local # Your choice, in a production environm
 Can be skipped if the Machine has been registered during install phase.
 ```bash
 # <snippet-begin 0_RHEL_register.sh>
-sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+registerRHEL () {
+  sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+}
 # <snippet-end 0_RHEL_register.sh>
 ```
 
 ## 1.4/ **[RHEL]** Enable the optional repos (obsolete in v8)
 ```bash
 # <snippet-begin 0_RHEL_SCL.sh>
-sudo subscription-manager refresh 
-# The following is needed for -devel repos and ONLY for misp-modules, ignore if not needed
-sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
-# Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
+enableOptionalRHEL8 () {
+  sudo subscription-manager refresh 
+
+  # The following is needed for -devel repos and ONLY for misp-modules, ignore if not needed
+  sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
+  # Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
+}
 # <snippet-end 0_RHEL_SCL.sh>
 ```
 
@@ -124,6 +129,7 @@ enableEPEL_REMI_8 () {
   [[ ${DISTRI} == "centos8stream" ]] && sudo dnf config-manager --set-enabled powertools
   [[ ${DISTRI} == "centos8" ]] && sudo dnf config-manager --set-enabled powertools
 }
+
 enableREMI_f33 () {
   sudo yum install http://rpms.remirepo.net/fedora/remi-release-33.rpm
   sudo yum install yum-utils -y
@@ -184,10 +190,12 @@ yumInstallCoreDeps () {
 
 ```bash
 # <snippet-begin 0_yumInstallHaveged.sh>
-# GPG needs lots of entropy, haveged provides entropy
-# /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
-sudo yum install haveged -y
-sudo systemctl enable --now haveged.service
+installEntropyRHEL () {
+  # GPG needs lots of entropy, haveged provides entropy
+  # /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
+  sudo yum install haveged -y
+  sudo systemctl enable --now haveged.service
+}
 # <snippet-end 0_yumInstallHaveged.sh>
 ```
 
@@ -200,14 +208,12 @@ sudo systemctl enable --now haveged.service
 sudo systemctl enable --now php-fpm.service
 ```
 
-TODO: Add a CentOS/RHEL rng thing, à la haveged (not in base anymore) or similar.
-
 ### 3/ MISP code
 ## 3.01/ Download MISP code using git in /var/www/ directory
 
 ```bash
 # <snippet-begin 1_mispCoreInstall_RHEL.sh>
-installCoreRHEL () {
+installCoreRHEL8 () {
   # Download MISP using git in the $PATH_TO_MISP directory.
   sudo mkdir -p $(dirname $PATH_TO_MISP)
   sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
@@ -269,7 +275,7 @@ installCoreRHEL () {
 
   # lief needs manual compilation
   sudo yum groupinstall "Development Tools" -y
-  [[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'rhel8.3' ]] && sudo yum install cmake3 -y && CMAKE_BIN='cmake3'
+  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo yum install cmake3 -y && CMAKE_BIN='cmake3'
   [[ ${DISTRI} == 'centos8stream' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
   [[ ${DISTRI} == 'centos8' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
 
@@ -303,6 +309,7 @@ installCoreRHEL () {
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
   echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
+  [[ "${DISTRI}" == "fedora33" ]] && (echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.9/site-packages/lief.pth)
 
   # install magic, pydeep
 ##$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara

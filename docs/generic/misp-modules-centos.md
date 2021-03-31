@@ -4,10 +4,10 @@
 # <snippet-begin 3_misp-modules_RHEL.sh>
 mispmodulesRHEL () {
   # some misp-modules dependencies for RHEL<8
-  [[ "${DIST_VER}" =~ ^[7].* ]] && sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python-devel redhat-rpm-config -y
+  [[ "${DIST_VER}" =~ ^[7].* ]] && sudo yum install openjpeg-devel gcc-c++ poppler-cpp-devel pkgconfig python3-devel redhat-rpm-config -y
 
   # some misp-modules dependencies for RHEL8
-  ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DIST_VER}" =~ ^[8].* ]]) && sudo yum install openjpeg2-devel gcc-c++ poppler-cpp-devel pkgconfig python2-devel redhat-rpm-config -y
+  ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DIST_VER}" =~ ^[8].* ]]) && sudo yum install openjpeg2-devel gcc-c++ poppler-cpp-devel pkgconfig python3-devel redhat-rpm-config -y
 
   sudo chmod 2777 /usr/local/src
   sudo chown root:users /usr/local/src
