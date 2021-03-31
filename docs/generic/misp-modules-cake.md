@@ -1,3 +1,4 @@
+```bash
 # <snippet-begin 3_misp-modules-cake.sh>
 modulesCAKE () {
   # Enable Enrichment, set better timeouts
@@ -42,3 +43,4 @@ modulesCAKE () {
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Export_pdfexport_enabled" true
 }
 # <snippet-end 3_misp-modules-cake.sh>
+```

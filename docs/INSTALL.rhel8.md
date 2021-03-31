@@ -44,6 +44,8 @@
     Maintenance for CentOS 8 will end on: December 31st, 2021 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
     CentOS 8 [NetInstallURL](http://mirrorlist.centos.org/?release=8&arch=x86_64&repo=BaseOS)
 
+{!generic/manual-install-notes.md!}
+
 This document details the steps to install MISP on Red Hat Enterprise Linux 8.x (RHEL 8.x) and CentOS 8.x.
 At time of this writing it was tested on versions 8.0 for RHEL.
 This is a joint RHEL/CentOS install guide. The authors tried to make it contextually evident what applies to which flavor.
