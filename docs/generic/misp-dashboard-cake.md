@@ -1,3 +1,4 @@
+```bash
 # <snippet-begin 4_misp-dashboard-cake.sh>
 dashboardCAKE () {
   # Enable ZeroMQ for misp-dashboard
@@ -19,3 +20,4 @@ dashboardCAKE () {
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 }
 # <snippet-end 4_misp-dashboard-cake.sh>
+```

@@ -1,11 +1,11 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 18.04.4-server
+## for Ubuntu 18.04.5-server
 
 ### -1/ Installer and Manual install instructions
 
 Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
 
-To install MISP on a fresh Ubuntu 18.04, all you need to do is the following:
+To install MISP on a *fresh* Ubuntu 18.04, all you need to do is the following:
 
 ```bash
 # Please check the installer options first to make the best choice for your install
@@ -20,12 +20,9 @@ bash /tmp/INSTALL.sh -c
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210324 (works with **Ubuntu 18.10/19.04** too)
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210324 (works with **Ubuntu 19.04/20.04/21.04** too)
 
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
+{!generic/manual-install-notes.md!}
 
 !!! notice
     If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
@@ -37,7 +34,7 @@ bash /tmp/INSTALL.sh -c
 
 #### Install a minimal Ubuntu 18.04-server system with the software:
 - OpenSSH server
-- This guide assumes a user name of 'misp' with sudo working
+- This guide assumes a user name of 'misp' with sudo working but can be overwritten by setting the environment variable: *${MISP_USER}*
 
 #### Make sure your system is up2date
 ```bash
