@@ -10,16 +10,16 @@
 ############################################################
 #INSTALLATION INSTRUCTIONS                                #
 ##########################################################
-#------------------------- for Debian Flavored Linux Distributions
+#------------------------- for Linux Distributions
 #
 #-------------------------------------------------------|
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
-#    20200513: Ubuntu 20.04 tested and working. -- sCl
-#    20200412: Ubuntu 18.04.4 tested and working. -- sCl
-#    20190302: Ubuntu 18.04.2 tested and working. -- sCl
-#    20190208: Kali Linux tested and working. -- sCl
+#  20210401: Ubuntu 21.04      tested and working. -- sCl
+#  20210401: Ubuntu 20.04.2    tested and working. -- sCl
+#  20210401: Ubuntu 18.04.5    tested and working. -- sCl
+#  20210331: Kali Linux 2021.1 tested and working. -- sCl
 #
 #
 #-------------------------------------------------------------------------------------------------|
