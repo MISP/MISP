@@ -709,11 +709,11 @@ configWorkersRHEL () {
 # <snippet-end 3_configWorkers_RHEL.sh>
 ```
 
+{!generic/MISP_CAKE_init.md!}
+
 {!generic/misp-modules-centos.md!}
 
 {!generic/misp-modules-cake.md!}
-
-{!generic/MISP_CAKE_init.md!}
 
 {!generic/misp-dashboard-centos.md!}
 

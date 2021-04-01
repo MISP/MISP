@@ -90,13 +90,13 @@ sudo subscription-manager register --auto-attach # register your system to an ac
 
 ## 1.4/ **[RHEL]** Enable the optional, extras and Software Collections (SCL) repos
 ```bash
-# <snippet-begin 0_RHEL_SCL.sh>
-enableReposRHEL () {
+# <snippet-begin 0_RHEL7_SCL.sh>
+enableReposRHEL7 () {
   sudo subscription-manager refresh
   sudo subscription-manager repos --enable rhel-7-server-optional-rpms
   sudo subscription-manager repos --enable rhel-7-server-extras-rpms
 }
-# <snippet-end 0_RHEL_SCL.sh>
+# <snippet-end 0_RHEL7_SCL.sh>
 ```
 
 ## 1.4c/ **[CentOS]** Enable EPEL for additional dependencies
@@ -146,14 +146,14 @@ yumUpdate () {
 
 ## 1.6/ **[RHEL]** Install the EPEL and remi repo
 ```bash
-# <snippet-begin 0_RHEL_EPEL.sh>
+# <snippet-begin 0_RHEL7_EPEL.sh>
 enableEPEL () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
   sudo yum install yum-utils -y
   sudo yum-config-manager --enable remi-php74
 }
-# <snippet-end 0_RHEL_EPEL.sh>
+# <snippet-end 0_RHEL7_EPEL.sh>
 ```
 
 ### 2/ Dependencies
@@ -224,8 +224,8 @@ sudo systemctl enable --now haveged.service
 ## 3.01/ Download MISP code using git in /var/www/ directory
 
 ```bash
-# <snippet-begin 1_mispCoreInstall_RHEL.sh>
-installCoreRHEL () {
+# <snippet-begin 1_mispCoreInstall_RHEL7.sh>
+installCoreRHEL7 () {
   # Download MISP using git in the $PATH_TO_MISP directory.
   sudo mkdir -p $(dirname $PATH_TO_MISP)
   sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
@@ -323,7 +323,7 @@ installCoreRHEL () {
   sudo systemctl restart php-fpm.service
   umask $UMASK
 }
-# <snippet-end 1_mispCoreInstall_RHEL.sh>
+# <snippet-end 1_mispCoreInstall_RHEL7.sh>
 ```
 
 ### 4/ CakePHP
@@ -377,9 +377,9 @@ installCake_RHEL ()
 
 ### 5/ Set file permissions
 ```bash
-# <snippet-begin 2_permissions_RHEL.sh>
+# <snippet-begin 2_permissions_RHEL7.sh>
 # Main function to fix permissions to something sane
-permissions_RHEL () {
+permissions_RHEL7 () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
   ## ? chown -R root:$WWW_USER $PATH_TO_MISP
   sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
@@ -400,7 +400,7 @@ permissions_RHEL () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/orgs
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/custom
 }
-# <snippet-end 2_permissions_RHEL.sh>
+# <snippet-end 2_permissions_RHEL7.sh>
 ```
 
 ### 6/ Create database and user
@@ -680,11 +680,11 @@ configWorkersRHEL () {
 # <snippet-end 3_configWorkers_RHEL.sh>
 ```
 
+{!generic/MISP_CAKE_init.md!}
+
 {!generic/misp-modules-centos.md!}
 
 {!generic/misp-modules-cake.md!}
-
-{!generic/MISP_CAKE_init.md!}
 
 {!generic/misp-dashboard-centos.md!}
 
