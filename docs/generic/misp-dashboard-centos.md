@@ -5,7 +5,7 @@
     A valid MaxMind DB key is required.
 
 !!! warning
-    Does not work on RHEL 8
+    Does not work fully on RHEL 8
 
 ```bash
 # <snippet-begin 4_misp-dashboardRHEL.sh>
@@ -21,9 +21,11 @@ mispDashboard () {
   sudo -H /var/www/misp-dashboard/install_dependencies.sh
   sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
   sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/httpd/conf/httpd.conf
-  sudo yum install rh-python36-mod_wsgi -y
-  sudo cp /opt/rh/httpd24/root/usr/lib64/httpd/modules/mod_rh-python36-wsgi.so /etc/httpd/modules/
-  sudo cp /opt/rh/httpd24/root/etc/httpd/conf.modules.d/10-rh-python36-wsgi.conf /etc/httpd/conf.modules.d/
+  # TODO: Check if this works on 7.x
+  [[ "${DIST_VER}" =~ ^[7].* ]] && sudo yum install rh-python36-mod_wsgi -y
+  [[ "${DIST_VER}" =~ ^[7].* ]] && sudo cp /opt/rh/httpd24/root/usr/lib64/httpd/modules/mod_rh-python36-wsgi.so /etc/httpd/modules/
+  [[ "${DIST_VER}" =~ ^[7].* ]] && sudo cp /opt/rh/httpd24/root/etc/httpd/conf.modules.d/10-rh-python36-wsgi.conf /etc/httpd/conf.modules.d/
+  ([[ "${DISTRI}" == "fedora33" ]] || [[ "${DIST_VER}" =~ ^[8].* ]]) && sudo yum install python3-mod_wsgi -y
 
   echo "<VirtualHost *:8001>
       ServerAdmin admin@misp.local

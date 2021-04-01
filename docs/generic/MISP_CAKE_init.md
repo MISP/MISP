@@ -27,13 +27,13 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Session.cookieTimeout" 3600
 
   # Change base url, either with this CLI command or in the UI
-  $SUDO_WWW $RUN_PHP -- $CAKE Baseurl $MISP_BASEURL
+  [[ ! -z ${MISP_BASEURL} ]] && $SUDO_WWW $RUN_PHP -- $CAKE Baseurl $MISP_BASEURL
   # example: 'baseurl' => 'https://<your.FQDN.here>',
   # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
   # 'baseurl' => '',
   # The base url of the application (in the format https://www.mymispinstance.com) as visible externally/by other MISPs.
   # MISP will encode this URL in sharing groups when including itself. If this value is not set, the baseurl is used as a fallback.
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.external_baseurl" $MISP_BASEURL
+  [[ ! -z ${MISP_BASEURL} ]] && $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.external_baseurl" $MISP_BASEURL
 
   # Enable GnuPG
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "GnuPG.email" "$GPG_EMAIL_ADDRESS"
@@ -69,8 +69,54 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_range" 365
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Sightings_sighting_db_enable" false
 
-  # Plugin Enrichment hover defaults
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_popover_only" false
+  # Set API_Required modules to false
+  for PLUG in $(echo "Plugin.Enrichment_cuckoo_submit_enabled
+                      Plugin.Enrichment_vmray_submit_enabled
+                      Plugin.Enrichment_circl_passivedns_enabled
+                      Plugin.Enrichment_circl_passivessl_enabled
+                      Plugin.Enrichment_domaintools_enabled
+                      Plugin.Enrichment_eupi_enabled
+                      Plugin.Enrichment_farsight_passivedns_enabled
+                      Plugin.Enrichment_passivetotal_enabled
+                      Plugin.Enrichment_passivetotal_enabled
+                      Plugin.Enrichment_virustotal_enabled
+                      Plugin.Enrichment_whois_enabled
+                      Plugin.Enrichment_shodan_enabled
+                      Plugin.Enrichment_geoip_asn_enabled
+                      Plugin.Enrichment_geoip_city_enabled
+                      Plugin.Enrichment_geoip_country_enabled
+                      Plugin.Enrichment_iprep_enabled
+                      Plugin.Enrichment_otx_enabled
+                      Plugin.Enrichment_vulndb_enabled
+                      Plugin.Enrichment_crowdstrike_falcon_enabled
+                      Plugin.Enrichment_onyphe_enabled
+                      Plugin.Enrichment_xforceexchange_enabled
+                      Plugin.Enrichment_vulners_enabled
+                      Plugin.Enrichment_macaddress_io_enabled
+                      Plugin.Enrichment_intel471_enabled
+                      Plugin.Enrichment_backscatter_io_enabled
+                      Plugin.Enrichment_hibp_enabled
+                      Plugin.Enrichment_greynoise_enabled
+                      Plugin.Enrichment_joesandbox_submit_enabled
+                      Plugin.Enrichment_virustotal_public_enabled
+                      Plugin.Enrichment_apiosintds_enabled
+                      Plugin.Enrichment_urlscan_enabled
+                      Plugin.Enrichment_securitytrails_enabled
+                      Plugin.Enrichment_apivoid_enabled
+                      Plugin.Enrichment_assemblyline_submit_enabled
+                      Plugin.Enrichment_assemblyline_query_enabled
+                      Plugin.Enrichment_ransomcoindb_enabled
+                      Plugin.Enrichment_lastline_query_enabled
+                      Plugin.Enrichment_sophoslabs_intelix_enabled
+                      Plugin.Enrichment_cytomic_orion_enabled
+                      Plugin.Enrichment_censys_enrich_enabled
+                      Plugin.Enrichment_trustar_enrich_enabled
+                      Plugin.Enrichment_recordedfuture_enabled
+                      Plugin.ElasticSearch_logging_enable
+                      Plugin.S3_enable"); do
+
+    ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting ${PLUG} false
+  done
 
   # Plugin CustomAuth tuneable
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.CustomAuth_disable_logout" false
@@ -87,6 +133,52 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_ns" "localhost."
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_ns_alt" ""
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.RPZ_email" "root.localhost"
+
+  # Kafka settings
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_brokers" "kafka:9092"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_rdkafka_config" "/etc/rdkafka.ini"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_include_attachments" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_event_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_event_notifications_topic" "misp_event"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_event_publish_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_event_publish_notifications_topic" "misp_event_publish"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_object_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_object_notifications_topic" "misp_object"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_object_reference_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_object_reference_notifications_topic" "misp_object_reference"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_attribute_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_attribute_notifications_topic" "misp_attribute"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_shadow_attribute_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_shadow_attribute_notifications_topic" "misp_shadow_attribute"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_tag_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_tag_notifications_topic" "misp_tag"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_sighting_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_sighting_notifications_topic" "misp_sighting"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_user_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_user_notifications_topic" "misp_user"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_organisation_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_organisation_notifications_topic" "misp_organisation"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_audit_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.Kafka_audit_notifications_topic" "misp_audit"
+
+  # ZeroMQ settings
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_host" "127.0.0.1"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_port" 50000
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_include_attachments" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
 
   # Force defaults to make MISP Server Settings less RED
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.language" "eng"
@@ -128,6 +220,7 @@ coreCAKE () {
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.welcome_text_bottom" "Welcome to MISP on $FLAVOUR, change this message in MISP Settings"
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.attachments_dir" "$PATH_TO_MISP/app/files"
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.download_attachments_on_load" true
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.event_alert_metadata_only" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.title_text" "MISP"
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.terms_download" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "MISP.showorgalternate" false
@@ -136,6 +229,7 @@ coreCAKE () {
   # Force defaults to make MISP Server Settings less GREEN
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "debug" 0
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.auth_enforced" false
+  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.log_each_individual_auth_fail" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.rest_client_baseurl" ""
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.advanced_authkeys" false
   $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Security.password_policy_length" 12
