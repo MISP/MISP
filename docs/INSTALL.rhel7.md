@@ -25,7 +25,7 @@
     wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
     bash /tmp/INSTALL.sh -c
     ```
-    **The above does NOT work yet**
+    **The above does NOT fully work yet**
 
 !!! notice
     If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
@@ -37,17 +37,14 @@
 {!generic/rhelVScentos.md!}
 
 !!! warning
-    The core MISP team cannot verify if this guide is working or not. Please help us in keeping it up to date and accurate.
+    The core MISP team cannot easily verify if this guide is working or not. Please help us in keeping it up to date and accurate.
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
-
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
 
 !!! notice
     Maintenance for CentOS 7 will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
     CentOS 7-1908 [NetInstallURL](http://mirror.centos.org/centos/7/os/x86_64/)
+
+{!generic/manual-install-notes.md!}
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x) and CentOS 7.x.
 At time of this writing it was tested on versions 7.6 for both.
@@ -685,9 +682,13 @@ configWorkersRHEL () {
 
 {!generic/misp-modules-centos.md!}
 
+{!generic/misp-modules-cake.md!}
+
 {!generic/MISP_CAKE_init.md!}
 
 {!generic/misp-dashboard-centos.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/INSTALL.done.md!}
 
