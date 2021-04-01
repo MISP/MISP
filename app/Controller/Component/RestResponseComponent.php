@@ -428,6 +428,16 @@ class RestResponseComponent extends Component
         return $result;
     }
 
+    public function getScopedApiInfo($user)
+    {
+        $api = $this->getAllApis($user);
+        $scopedApi = [];
+        foreach ($api as $apiEntry) {
+            $scopeApi[$apiEntry['controller']][] = $apiEntry;
+        }
+        return $scopeApi;
+    }
+
     /**
      * Use a relative path to check if the current api has a description
      * @param string $relative_path
