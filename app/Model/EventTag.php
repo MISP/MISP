@@ -85,25 +85,25 @@ class EventTag extends AppModel
     public function handleEventTag($event_id, $tag, &$nothingToChange = false)
     {
         if (empty($tag['deleted'])) {
-            $result = $this->attachTagToEvent($event_id, $tag['id'], $nothingToChange);
+            $result = $this->attachTagToEvent($event_id, $tag, $nothingToChange);
         } else {
             $result = $this->detachTagFromEvent($event_id, $tag['id'], $nothingToChange);
         }
         return $result;
     }
 
-    public function attachTagToEvent($event_id, $tag_id, &$nothingToChange = false)
+    public function attachTagToEvent($event_id, $tag, &$nothingToChange = false)
     {
         $existingAssociation = $this->find('first', array(
             'recursive' => -1,
             'conditions' => array(
-                'tag_id' => $tag_id,
+                'tag_id' => $tag['id'],
                 'event_id' => $event_id
             )
         ));
         if (empty($existingAssociation)) {
             $this->create();
-            if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag_id))) {
+            if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag['id'], 'local' => !empty($tag['local'])))) {
                 return false;
             }
         } else {

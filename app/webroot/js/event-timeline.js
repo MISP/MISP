@@ -66,11 +66,11 @@ var options = {
     onMove: function(item, callback) {
         var newStart = moment(item.start.toISOString());
         var newEnd = (item.end !== undefined && item.end !== null) ? moment(item.end.toISOString()) : null;
-        var c1 = item.first_seen !== null ? !item.first_seen.isSame(newStart) : true;
-        var c2 = item.last_seen !== null ? !item.last_seen.isSame(newEnd) && item.seen_enabled : true;
-        if (c1) {
+        var fsChanged = item.first_seen !== null ? !item.first_seen.isSame(newStart) : true;
+        var lsChanged = item.last_seen !== null ? !item.last_seen.isSame(newEnd) && item.seen_enabled : false;
+        if (fsChanged) {
             if (item.first_seen === null) {
-                if (!c2) {
+                if (!lsChanged) {
                     update_seen(item, 'first', newStart, true, undefined);
                 } else {
                     update_seen(
@@ -92,14 +92,14 @@ var options = {
                     );
                 }
             } else {
-                update_seen(item, 'first', newStart, false, function() {
-                    if (c2) {
+                update_seen(item, 'first', newStart, !lsChanged, function() {
+                    if (lsChanged) {
                         update_seen(item, 'last', newEnd, true, undefined);
                     }
                 });
             }
         }
-        if (c2 && !c1) {
+        if (lsChanged && !fsChanged) {
           update_seen(item, 'last', newEnd, true, undefined);
         }
     }
@@ -304,7 +304,7 @@ function fetch_form_and_submit(itemType, item, seenType, value, reflect, callbac
                         if (contain_seen_attribute(item)) {
                             reflect_change(true, itemType, item.id, item);
                         } else {
-                            reflect_change(false, itemType, item.id, item);
+                            reflect_change(true, itemType, item.id, item);
                         }
                     }
                     form.remove()

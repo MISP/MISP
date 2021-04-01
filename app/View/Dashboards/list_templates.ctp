@@ -91,12 +91,3 @@
     ));
     echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'dashboard', 'menuItem' => 'dashboardTemplateIndex'));
-?>
-<script type="text/javascript">
-    var passedArgsArray = <?php echo json_encode($passedArgs); ?>;
-    $(document).ready(function() {
-        $('#quickFilterButton').click(function() {
-            runIndexQuickFilter();
-        });
-    });
-</script>

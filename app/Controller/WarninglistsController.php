@@ -9,20 +9,20 @@ class WarninglistsController extends AppController
     public $components = array('Session', 'RequestHandler');
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
-            'contain' => array(
-                'WarninglistType'
-            ),
-            'order' => array(
-                'Warninglist.id' => 'DESC'
-            ),
+        'limit' => 60,
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
+        'contain' => array(
+            'WarninglistType'
+        ),
+        'order' => array(
+            'Warninglist.id' => 'DESC'
+        ),
+        'recursive' => -1,
     );
 
     public function index()
     {
-        $filters = $this->IndexFilter->harvestParameters(['value']);
-        $this->paginate['recursive'] = -1;
+        $filters = $this->IndexFilter->harvestParameters(['value', 'enabled']);
         if (!empty($filters['value'])) {
             $this->paginate['conditions'] = [
                 'OR' => [
@@ -32,20 +32,20 @@ class WarninglistsController extends AppController
                     ]
                 ];
         }
+        if (isset($filters['enabled'])) {
+            $this->paginate['conditions'][] = ['Warninglist.enabled' => $filters['enabled']];
+        }
         $warninglists = $this->paginate();
         foreach ($warninglists as &$warninglist) {
-            $warninglist['Warninglist']['valid_attributes'] = array();
-            foreach ($warninglist['WarninglistType'] as $type) {
-                $warninglist['Warninglist']['valid_attributes'][] = $type['type'];
-            }
-            $warninglist['Warninglist']['valid_attributes'] = implode(', ', $warninglist['Warninglist']['valid_attributes']);
+            $validAttributes = array_column($warninglist['WarninglistType'], 'type');
+            $warninglist['Warninglist']['valid_attributes'] = implode(', ', $validAttributes);
             unset($warninglist['WarninglistType']);
         }
         if ($this->_isRest()) {
-            $this->set('Warninglists', $warninglists);
-            $this->set('_serialize', array('Warninglists'));
+            return $this->RestResponse->viewData(['Warninglists' => $warninglists], $this->response->type());
         } else {
             $this->set('warninglists', $warninglists);
+            $this->set('passedArgsArray', $filters);
         }
     }
 

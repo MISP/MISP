@@ -4,6 +4,7 @@ App::uses('GpgTool', 'Tools');
 
 /**
  * @property-read array $serverSettings
+ * @property Organisation $Organisation
  */
 class Server extends AppModel
 {
@@ -286,6 +287,14 @@ class Server extends AppModel
                     $event['Event']['distribution'] = '1';
                     break;
             }
+            // We remove local tags obtained via pull
+            if (isset($event['Event']['Tag'])) {
+                foreach ($event['Event']['Tag'] as $key => $a) {
+                    if ($a['local']) {
+                        unset($event['Event']['Tag'][$key]);
+                    }
+                }
+            }
             if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
                 foreach ($event['Event']['Attribute'] as $key => $a) {
                     switch ($a['distribution']) {
@@ -295,6 +304,14 @@ class Server extends AppModel
                         case '2':
                             $event['Event']['Attribute'][$key]['distribution'] = '1';
                             break;
+                    }
+                    // We remove local tags obtained via pull
+                    if (isset($a['Tag'])) {
+                        foreach ($a['Tag'] as $k => $v) {
+                            if ($v['local']) {
+                                unset($event['Event']['Attribute'][$key]['Tag'][$k]);
+                            }
+                        }
                     }
                 }
             }
@@ -317,6 +334,14 @@ class Server extends AppModel
                                 case '2':
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '1';
                                     break;
+                            }
+                            // We remove local tags obtained via pull
+                            if (isset($a['Tag'])) {
+                                foreach ($a['Tag'] as $k => $v) {
+                                    if ($v['local']) {
+                                        unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
+                                    }
+                                }
                             }
                         }
                     }
@@ -529,13 +554,15 @@ class Server extends AppModel
         if ($jobId) {
             $job->saveProgress($jobId, 'Pulling proposals.', 50);
         }
-        $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
+        $pulledProposals = $pulledSightings = 0;
+        if ($technique === 'full' || $technique === 'update') {
+            $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $server);
 
-        if ($jobId) {
-            $job->saveProgress($jobId, 'Pulling sightings.', 75);
+            if ($jobId) {
+                $job->saveProgress($jobId, 'Pulling sightings.', 75);
+            }
+            $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
         }
-        $pulledSightings = $eventModel->Sighting->pullSightings($user, $server);
-
         if ($jobId) {
             $job->saveProgress($jobId, 'Pull completed.', 100);
         }
@@ -754,16 +781,16 @@ class Server extends AppModel
         }
         if ($all) {
             if ($scope === 'sightings') {
+                // Used when pushing: return just eventUuids that has sightings newer than remote server
                 $this->Event = ClassRegistry::init('Event');
                 $localEvents = $this->Event->find('list', array(
-                    'recursive' => -1,
                     'fields' => array('Event.uuid', 'Event.sighting_timestamp'),
                     'conditions' => array('Event.uuid' => array_column($eventArray, 'uuid'))
                 ));
 
-                $eventUuids = array();
+                $eventUuids = [];
                 foreach ($eventArray as $event) {
-                    if (!isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
+                    if (isset($localEvents[$event['uuid']]) && $localEvents[$event['uuid']] > $event['sighting_timestamp']) {
                         $eventUuids[] = $event['uuid'];
                     }
                 }
@@ -1098,7 +1125,7 @@ class Server extends AppModel
      * @param  array $server
      * @param  array $user
      * @param  string|int $technique Either the 'full' string or the event id
-     * @param  bool  $event
+     * @param  array|bool  $event
      * @return array List of successfully pushed clusters
      */
     public function syncGalaxyClusters($HttpSocket, array $server, array $user, $technique='full', $event=false)
@@ -1233,16 +1260,23 @@ class Server extends AppModel
         return true;
     }
 
+    /**
+     * @return array
+     */
     public function getCurrentServerSettings()
     {
-        $this->Module = ClassRegistry::init('Module');
         $serverSettings = $this->serverSettings;
         $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
         $serverSettings = $this->readModuleSettings($serverSettings, $moduleTypes);
         return $serverSettings;
     }
 
-    private function readModuleSettings($serverSettings, $moduleTypes)
+    /**
+     * @param array $serverSettings
+     * @param array $moduleTypes
+     * @return array
+     */
+    private function readModuleSettings(array $serverSettings, array $moduleTypes)
     {
         $this->Module = ClassRegistry::init('Module');
         foreach ($moduleTypes as $moduleType) {
@@ -1251,12 +1285,12 @@ class Server extends AppModel
                 foreach ($results as $module => $data) {
                     foreach ($data as $result) {
                         $setting = array('level' => 1, 'errorMessage' => '');
-                        if ($result['type'] == 'boolean') {
+                        if ($result['type'] === 'boolean') {
                             $setting['test'] = 'testBool';
                             $setting['type'] = 'boolean';
                             $setting['description'] = __('Enable or disable the %s module.', $module);
                             $setting['value'] = false;
-                        } elseif ($result['type'] == 'orgs') {
+                        } elseif ($result['type'] === 'orgs') {
                             $setting['description'] = __('Restrict the %s module to the given organisation.', $module);
                             $setting['value'] = 0;
                             $setting['test'] = 'testLocalOrg';
@@ -1333,15 +1367,11 @@ class Server extends AppModel
 
     public function serverSettingsRead($unsorted = false)
     {
-        $this->Module = ClassRegistry::init('Module');
         $serverSettings = $this->getCurrentServerSettings();
         $currentSettings = Configure::read();
-        if (Configure::read('Plugin.Enrichment_services_enable')) {
-            $this->readModuleSettings($serverSettings, array('Enrichment'));
-        }
         $finalSettingsUnsorted = $this->__serverSettingsRead($serverSettings, $currentSettings);
         foreach ($finalSettingsUnsorted as $key => $temp) {
-            if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
+            if (isset($this->__settingTabMergeRules[$temp['tab']])) {
                 $finalSettingsUnsorted[$key]['tab'] = $this->__settingTabMergeRules[$temp['tab']];
             }
         }
@@ -1536,7 +1566,7 @@ class Server extends AppModel
             return true;
         }
         if (is_executable($value)) {
-            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
+            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-pie-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
                 finfo_close($finfo);
                 return true;
             } else {
@@ -2159,13 +2189,13 @@ class Server extends AppModel
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $id,
-                    'email' => 'SYSTEM',
-                    'action' => 'error',
-                    'user_id' => 0,
-                    'title' => 'Error: Tried to modify server settings but current config is broken.',
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'error',
+                'user_id' => 0,
+                'title' => 'Error: Tried to modify server settings but current config is broken.',
             ));
             return false;
         }
@@ -2204,7 +2234,7 @@ class Server extends AppModel
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookieTimeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
-            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'
+            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth', 'AadAuth'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
@@ -2215,11 +2245,13 @@ class Server extends AppModel
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
+        $previous_file_perm = substr(sprintf('%o', fileperms(APP . 'Config' . DS . 'config.php')), -4);
         if (empty(Configure::read('MISP.server_settings_skip_backup_rotate'))) {
             $randomFilename = $this->generateRandomFileName();
-            // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
+            // To protect us from 2 admin users having a concurrent file write to the config file, solar flares and the bogeyman
             file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
             rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
+            chmod(APP . 'Config' . DS . 'config.php', octdec($previous_file_perm));
             $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
             // if the saved config file is empty, restore the backup.
             if (strlen($config_saved) < 20) {
@@ -2227,14 +2259,14 @@ class Server extends AppModel
                 $this->Log = ClassRegistry::init('Log');
                 $this->Log->create();
                 $this->Log->save(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => $id,
-                        'email' => 'SYSTEM',
-                        'action' => 'error',
-                        'user_id' => 0,
-                        'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
-                ));
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => 0,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
+               ));
                 return false;
             }
         } else {
@@ -2854,7 +2886,7 @@ class Server extends AppModel
         $allowedlistFields = array(
             'users' => array('external_auth_required', 'external_auth_key'),
         );
-        $nonCriticalColumnElements = array('is_nullable', 'collation_name');
+        $nonCriticalColumnElements = array('collation_name');
         $dbDiff = array();
         // perform schema comparison for tables
         foreach($dbExpectedSchema as $tableName => $columns) {
@@ -3435,6 +3467,32 @@ class Server extends AppModel
         return $settings;
     }
 
+    /**
+     * Return PHP setting in basic unit (bytes).
+     * @param string $setting
+     * @return string|int|null
+     */
+    public function getIniSetting($setting)
+    {
+        $value = ini_get($setting);
+        if ($value === '') {
+            return null;
+        }
+
+        switch ($setting) {
+            case 'memory_limit':
+            case 'upload_max_filesize':
+            case 'post_max_size':
+                return (int)preg_replace_callback('/(-?\d+)(.?)/', function ($m) {
+                    return $m[1] * pow(1024, strpos('BKMG', $m[2]));
+                }, strtoupper($value));
+            case 'max_execution_time':
+                return (int)$value;
+            default:
+                return $value;
+        }
+    }
+
     public function killWorker($pid, $user)
     {
         if (!is_numeric($pid)) {
@@ -3741,17 +3799,14 @@ class Server extends AppModel
         return true;
     }
 
-    public function getLatestGitRemote()
-    {
-        return exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
-    }
-
     public function getCurrentGitStatus()
     {
+        $latestCommit = exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
+
         $status = array();
         $status['commit'] = exec('git rev-parse HEAD');
         $status['branch'] = $this->getCurrentBranch();
-        $status['latestCommit'] = $this->getLatestGitremote();
+        $status['latestCommit'] = $latestCommit;
         return $status;
     }
 
@@ -3871,16 +3926,15 @@ class Server extends AppModel
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
-            $eventModel = ClassRegistry::init('Event');
             $data = array(
-                    'worker' => $eventModel->__getPrioWorkerIfPossible(),
-                    'job_type' => __('update_after_pull'),
-                    'job_input' => __('Updating: ' . $submodule_name),
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => 'Update the database after PULLing the submodule(s).',
+                'worker' => 'prio',
+                'job_type' => __('update_after_pull'),
+                'job_input' => __('Updating: ' . $submodule_name),
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
+                'message' => 'Update the database after PULLing the submodule(s).',
             );
             $job->save($data);
             $jobId = $job->id;
@@ -4114,6 +4168,10 @@ class Server extends AppModel
                 $data = explode(PHP_EOL, trim($data));
                 foreach ($data as $entry) {
                     list($value, $uuid) = explode(',', $entry);
+                    if (!Validation::uuid($uuid)) {
+                        $continue = false;
+                        break;
+                    }
                     if (!empty($value)) {
                         $redis->sAdd('misp:server_cache:' . $server['Server']['id'], $value);
                         $redis->sAdd('misp:server_cache:combined', $value);
@@ -4682,6 +4740,14 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean',
                 ),
+                'email_from_name' => [
+                    'level' => 2,
+                    'description' => __('Notification e-mail sender name.'),
+                    'value' => '',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ],
                 'taxii_sync' => array(
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
@@ -4799,12 +4865,20 @@ class Server extends AppModel
                 ),
                 'extended_alert_subject' => array(
                     'level' => 1,
-                    'description' => __('enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by GnuPG, so only enable it if you accept that part of the event description will be sent out in clear-text.'),
+                    'description' => __('Enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by GnuPG, so only enable it if you accept that part of the event description will be sent out in clear-text.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                'event_alert_metadata_only' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Send just event metadata (attributes and objects will be omitted) for event alert.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
                 'default_event_distribution' => array(
                     'level' => 0,
                     'description' => __('The default distribution setting for events (0-3).'),
@@ -5416,7 +5490,7 @@ class Server extends AppModel
                 ),
                 'obscure_subject' => array(
                     'level' => 2,
-                    'description' => __('When enabled, subject in signed and encrypted e-mails will not send in unencrypted form.'),
+                    'description' => __('When enabled, the subject in signed and encrypted e-mails will not be sent in unencrypted form.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
@@ -5516,11 +5590,19 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('Disabling this setting will remove all form tampering protection. Do not set this setting pretty much ever. You were warned.'),
                     'value' => false,
-                    'errorMessage' => 'This setting leaves your users open to CSRF attacks. Do not please consider disabling this setting.',
+                    'errorMessage' => 'This setting leaves your users open to CSRF attacks. Please consider disabling this setting.',
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'csp_enforce' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Enforce CSP. Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks, including Cross Site Scripting (XSS) and data injection attacks. When disabled, violations will be just logged.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
                 'salt' => array(
                     'level' => 0,
                     'description' => __('The salt used for the hashed passwords. You cannot reset this from the GUI, only manually from the settings.php file. Keep in mind, this will invalidate all passwords in the database.'),
@@ -5531,6 +5613,14 @@ class Server extends AppModel
                     'editable' => false,
                     'redacted' => true
                 ),
+                'log_each_individual_auth_fail' =>[
+                    'level' => 1,
+                    'description' => __('By default API authentication failures that happen within the same hour for the same key are omitted and a single log entry is generated. This allows administrators to more easily keep track of attackers that try to brute force API authentication, by reducing the noise generated by expired API keys. On the other hand, this makes little sense for internal MISP instances where detecting the misconfiguration of tools becomes more interesting, so if you fall into the latter category, enable this feature.'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
                 'advanced_authkeys' => array(
                     'level' => 0,
                     'description' => __('Advanced authkeys will allow each user to create and manage a set of authkeys for themselves, each with individual expirations and comments. API keys are stored in a hashed state and can no longer be recovered from MISP. Users will be prompted to note down their key when creating a new authkey. You can generate a new set of API keys for all users on demand in the diagnostics page, or by triggering %s.', sprintf('<a href="%s/servers/serverSettings/diagnostics#advanced_authkey_update">%s</a>', $this->baseurl, __('the advanced upgrade'))),
@@ -5559,7 +5649,7 @@ class Server extends AppModel
                 ],
                 'auth_enforced' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('This optional can be enabled if external auth provider is used and when set to true, it will disable default form authentication.'),
+                    'description' => __('This optionally can be enabled if an external auth provider is used. When set to true, it will disable the default form authentication.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
@@ -5630,6 +5720,15 @@ class Server extends AppModel
                 'check_sec_fetch_site_header' => [
                     'level' => 0,
                     'description' => __('If enabled, any POST, PUT or AJAX request will be allow just when Sec-Fetch-Site header is not defined or contains "same-origin".'),
+                    'value' => false,
+                    'errorMessage' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
+                'force_https' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('If enabled, MISP server will consider all requests as secure. This is usually useful when you run MISP behind reverse proxy that terminates HTTPS.'),
                     'value' => false,
                     'errorMessage' => '',
                     'test' => 'testBool',
@@ -6188,6 +6287,15 @@ class Server extends AppModel
                     'errorMessage' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'afterHook' => 'zmqAfterHook',
+                ),
+                'ZeroMQ_host' => array(
+                    'level' => 2,
+                    'description' => __('The host that the pub/sub feature will use.'),
+                    'value' => '127.0.0.1',
+                    'errorMessage' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
                     'afterHook' => 'zmqAfterHook',
                 ),
                 'ZeroMQ_port' => array(

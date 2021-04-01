@@ -201,7 +201,7 @@
     if ($canEdit) {
         echo $this->element('genericElements/assetLoader', array(
             'js' => array(
-                'moment-with-locales',
+                'moment.min',
                 'codemirror/codemirror',
                 'codemirror/modes/markdown',
                 'codemirror/addons/simplescrollbars',
@@ -221,4 +221,4 @@
     if (!empty($additionalMarkdownElements)) {
         echo $this->element($additionalMarkdownElements['path'], $additionalMarkdownElements['variables']);
     }
-?>
+

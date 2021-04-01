@@ -55,11 +55,12 @@
     ?>
     <td class="short" id="attribute_<?php echo h($object['id']); ?>_galaxy">
       <?php
-        echo $this->element('galaxyQuickViewMini', array(
+        echo $this->element('galaxyQuickViewNew', array(
             'mayModify' => false,
             'isSiteAdmin' => false, // prevent add button
             'isAclTagger' => false,
-            'data' => (!empty($object['Galaxy']) ? $object['Galaxy'] : array()),
+            'data' => !empty($object['Galaxy']) ? $object['Galaxy'] : array(),
+            'event' => $object,
             'target_id' => $object['id'],
             'target_type' => 'attribute'
         ));

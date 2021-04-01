@@ -32,6 +32,10 @@ class HttpSocketResponseExtended extends HttpSocketResponse
     {
         parent::parseResponse($message);
 
+        if ($this->body === '') {
+            return; // skip decoding body if is empty
+        }
+
         $contentEncoding = $this->getHeader('Content-Encoding');
         if ($contentEncoding === 'gzip' && function_exists('gzdecode')) {
             $this->body = gzdecode($this->body);
@@ -107,7 +111,7 @@ class HttpSocketExtended extends HttpSocket
         }
         // Convert connection timeout to SocketException
         if (!empty($this->lastError)) {
-            throw new SocketException($this->lastError['msg']);
+            throw new SocketException($this->lastError['str']);
         }
         return $response;
     }

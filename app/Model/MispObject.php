@@ -321,6 +321,17 @@ class MispObject extends AppModel
             );
         }
         $newObjectAttributeCount = count($newObjectAttributes);
+        if (!empty($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']])) {
+            foreach ($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']] as $previousNewObject) {
+                if ($newObjectAttributeCount === count($previousNewObject)) {
+                    if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        $this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']][] = $newObjectAttributes;
+
         if (!isset($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']])) {
             $this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] = $this->find('all', array(
                 'recursive' => -1,
@@ -892,13 +903,13 @@ class MispObject extends AppModel
         return $this->id;
     }
 
-    public function captureObject($object, $eventId, $user, $log = false, $unpublish = true)
+    public function captureObject($object, $eventId, $user, $log = false, $unpublish = true, $breakOnDuplicate = false)
     {
         $this->create();
         if (!isset($object['Object'])) {
             $object = array('Object' => $object);
         }
-        if (!empty($object['Object']['breakOnDuplicate'])) {
+        if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
             $duplicate = $this->checkForDuplicateObjects($object, $eventId);
             if ($duplicate) {
                 $log->create();
@@ -912,8 +923,8 @@ class MispObject extends AppModel
                         'title' => 'Object dropped due to it being a duplicate and breakOnDuplicate being requested for Event ' . $eventId,
                         'change' => 'Duplicate object found.',
                 ));
+                return true;
             }
-            return true;
         }
         if (empty($log)) {
             $log = ClassRegistry::init('Log');
@@ -1233,64 +1244,90 @@ class MispObject extends AppModel
             'updateable_attribute' => false,
             'not_updateable_attribute' => false,
             'newer_template_version' => false,
+            'original_template_unkown' => false,
             'template' => $template
         );
-        if (!empty($template)) {
-            $newer_template = $this->ObjectTemplate->find('first', array(
-                'conditions' => array(
-                    'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
-                    'ObjectTemplate.version >' => $object['Object']['template_version'],
-                ),
-                'recursive' => -1,
-                'contain' => array(
-                    'ObjectTemplateElement'
-                ),
-                'order' => array('ObjectTemplate.version DESC')
-            ));
-            if (!empty($newer_template)) {
-              $toReturn['newer_template_version'] = $newer_template['ObjectTemplate']['version'];
-              // ignore IDs for comparison
-              $cur_template_temp = Hash::remove(Hash::remove($template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
-              $newer_template_temp = Hash::remove(Hash::remove($newer_template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
+        $newer_template = $this->ObjectTemplate->find('first', array(
+            'conditions' => array(
+                'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+                'ObjectTemplate.version >' => $object['Object']['template_version'],
+            ),
+            'recursive' => -1,
+            'contain' => array(
+                'ObjectTemplateElement'
+            ),
+            'order' => array('ObjectTemplate.version DESC')
+        ));
+        $template_difference = array();
+        if (!empty($newer_template)) {
+            $toReturn['newer_template_version'] = !$newer_template['ObjectTemplate']['version'];
+            $newer_template_temp = Hash::remove(Hash::remove($newer_template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
+            if (!empty($template)) {
+                // ignore IDs for comparison
+                $cur_template_temp = Hash::remove(Hash::remove($template['ObjectTemplateElement'], '{n}.id'), '{n}.object_template_id');
 
-              $template_difference = array();
-              // check how current template is included in the newer
-              foreach ($cur_template_temp as $cur_obj_rel) {
-                  $flag_sim = false;
-                  foreach ($newer_template_temp as $newer_obj_rel) {
-                      $tmp = Hash::diff($cur_obj_rel, $newer_obj_rel);
-                      if (count($tmp) == 0) {
-                          $flag_sim = true;
-                          break;
-                      }
-                  }
-                  if (!$flag_sim) {
-                      $template_difference[] = $cur_obj_rel;
-                  }
-              }
-
-              $toReturn['updateable_attribute'] = $object['Attribute'];
-              $toReturn['not_updateable_attribute'] = array();
-            } else {
-              $toReturn['newer_template_version'] = false;
-            }
-            if (!empty($template_difference)) { // older template not completely embeded in newer
-                foreach ($template_difference as $temp_diff_element) {
-                    foreach ($object['Attribute'] as $i => $attribute) {
-                        if (
-                            $attribute['object_relation'] == $temp_diff_element['object_relation']
-                            && $attribute['type'] == $temp_diff_element['type']
-                        ) { // This attribute cannot be merged automatically
-                            $attribute['merge-possible'] = false;
-                            $toReturn['not_updateable_attribute'][] = $attribute;
-                            unset($toReturn['updateable_attribute'][$i]);
+                // check how current template is included in the newer
+                foreach ($cur_template_temp as $cur_obj_rel) {
+                    $flag_sim = false;
+                    foreach ($newer_template_temp as $newer_obj_rel) {
+                        $tmp = Hash::diff($cur_obj_rel, $newer_obj_rel);
+                        if (count($tmp) == 0) {
+                            $flag_sim = true;
+                            break;
                         }
+                    }
+                    if (!$flag_sim) {
+                        $template_difference[] = $cur_obj_rel;
+                    }
+                }
+            } else { // original template unkown
+                $toReturn['original_template_unkown'] = true;
+                $unmatched_attributes = array();
+                foreach ($object['Attribute'] as $i => $attribute) {
+                    $flag_match = false;
+                    foreach ($newer_template_temp as $newer_obj_rel) {
+                        if (
+                            $newer_obj_rel['object_relation'] == $attribute['object_relation'] &&
+                            $newer_obj_rel['type'] == $attribute['type']
+                        ) {
+                            $flag_match = true;
+                            break;
+                        }
+                    }
+                    if (!$flag_match) {
+                        $unmatched_attributes[] = $attribute;
+                    }
+                }
+
+                // simulate unkown template from the attribute
+                foreach ($unmatched_attributes as $unmatched_attribute) {
+                    $template_difference[] = [
+                        'object_relation' => $unmatched_attribute['object_relation'],
+                        'type' => $unmatched_attribute['type']
+                    ];
+                }
+            }
+            $toReturn['updateable_attribute'] = $object['Attribute'];
+            $toReturn['not_updateable_attribute'] = array();
+        } else {
+            $toReturn['newer_template_version'] = false;
+        }
+        if (!empty($template_difference)) { // older template not completely embeded in newer
+            foreach ($template_difference as $temp_diff_element) {
+                foreach ($object['Attribute'] as $i => $attribute) {
+                    if (
+                        $attribute['object_relation'] == $temp_diff_element['object_relation']
+                        && $attribute['type'] == $temp_diff_element['type']
+                    ) { // This attribute cannot be merged automatically
+                        $attribute['merge-possible'] = false;
+                        $toReturn['not_updateable_attribute'][] = $attribute;
+                        unset($toReturn['updateable_attribute'][$i]);
                     }
                 }
             }
-            if ($update_template_available) { // template version bump requested
-                $toReturn['template'] = $newer_template; // bump the template version
-            }
+        }
+        if ($update_template_available) { // template version bump requested
+            $toReturn['template'] = $newer_template; // bump the template version
         }
         return $toReturn;
     }

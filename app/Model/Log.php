@@ -199,7 +199,7 @@ class Log extends AppModel
      * @param int $modelId
      * @param string $title
      * @param string|array $change
-     * @return array
+     * @return array|null
      * @throws Exception
      * @throws InvalidArgumentException
      */
@@ -238,6 +238,10 @@ class Log extends AppModel
         ));
 
         if (!$result) {
+            if ($action === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
+                return null;
+            }
+
             throw new Exception("Cannot save log because of validation errors: " . json_encode($this->validationErrors));
         }
 

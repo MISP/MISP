@@ -45,10 +45,10 @@
                 ],
                 [
                     'name' => __('Hidden'),
-                    'sort' => 'Tag.hidden',
+                    'sort' => 'Tag.hide_tag',
                     'element' => 'boolean',
                     'class' => 'short',
-                    'data_path' => 'Tag.hidden',
+                    'data_path' => 'Tag.hide_tag',
                 ],
                 [
                     'name' => __('Name'),
@@ -83,7 +83,6 @@
                 ],
                 [
                     'name' => __('Tagged events'),
-                    'sort' => 'Tag.count',
                     'class' => 'short',
                     'element' => 'count',
                     'data_path' => 'Tag.count',
@@ -91,7 +90,6 @@
                 ],
                 [
                     'name' => __('Tagged attributes'),
-                    'sort' => 'Tag.attribute_count',
                     'class' => 'short',
                     'element' => 'count',
                     'data_path' => 'Tag.attribute_count',

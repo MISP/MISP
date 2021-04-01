@@ -15,7 +15,7 @@
     }
 ?>
 
-<div class='view'>
+<div class="view">
     <div class="row-fluid">
         <div class="span8">
             <h2>
@@ -26,7 +26,7 @@
             <?php echo $kco; ?>
         </div>
     </div>
-    <div id="clusters_div"></div>
+    <div id="clusters_content"></div>
 </div>
 
 <script type="text/javascript">
@@ -45,7 +45,7 @@ $(function () {
         }
     ?>
     $.get("<?php echo h($uri);?>", function(data) {
-        $("#clusters_div").html(data);
+        $("#clusters_content").html(data);
     }).fail(xhrFailCallback);
 
     var $kco = $('#killChainOrder');

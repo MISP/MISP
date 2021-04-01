@@ -32,7 +32,7 @@
 
         function queueInterval(k, id) {
             intervalArray[k] = setInterval(function() {
-                if (tabIsActive) {
+                if (!document.hidden) {
                     $.getJSON('<?php echo $baseurl; ?>/jobs/getGenerateCorrelationProgress/' + id, function(data) {
                         var x = document.getElementById("bar" + id);
                         x.style.width = data+"%";
@@ -127,8 +127,8 @@
 ?>
         <tr>
             <td class="short"><?php echo h($item['Job']['id']); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Job']['date_created']); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Job']['date_modified']); ?>&nbsp;</td>
+            <td class="short"><?= $this->Time->time($item['Job']['date_created']) ?></td>
+            <td class="short"><?= $this->Time->time($item['Job']['date_modified']) ?></td>
             <td class="short"><?php echo h($item['Job']['process_id']); ?>&nbsp;</td>
             <td class="short"><?php echo h($item['Job']['worker']); ?>&nbsp;</td>
             <td class="short"><?php echo h($item['Job']['job_type']); ?>&nbsp;</td>

@@ -22,7 +22,8 @@
         'functionName' => '', // function to be called on submit
         'submitButtonText' => 'Submit',
         'disabledSubmitButton' => false, // wether to not draw the submit button
-        'flag_redraw_chosen' => false // should chosen picker be redraw at drawing time
+        'flag_redraw_chosen' => false, // should chosen picker be redraw at drawing time
+        'redraw_debounce_time' => 200,
     );
     /**
     * Supported default option in <Option> fields:
@@ -98,17 +99,34 @@ function setupChosen(id, redrawChosen) {
     // hack to add template into the div
     var $chosenContainer = $elem.parent().find('.chosen-container');
     $elem.on('chosen:searchdone chosen:picked keyup change', function(e) {
-        redrawChosenWithTemplate($elem, $chosenContainer, e.type)
+        redrawChosenWithTemplateDebounced(true, $elem, $chosenContainer, e.type)
     });
 
     if (redrawChosen) {
-        redrawChosenWithTemplate($elem, $chosenContainer);
+        redrawChosenWithTemplateDebounced(false, $elem, $chosenContainer);
     }
 
     if ($elem.prop('multiple')) {
         $elem.filter('[autofocus]').trigger('chosen:open');
     } else {
         $elem.filter('[autofocus]').trigger('chosen:activate');
+    }
+}
+
+var debounceTimer;
+function redrawChosenWithTemplateDebounced(useDebounce, $select, $chosenContainer, eventType) {
+    if (useDebounce) {
+        clearTimeout(debounceTimer);
+        var timerValue = <?= $defaults['redraw_debounce_time'] ?>;
+        var resultCount = $select.data('chosen').search_results.children().length;
+        if (resultCount <= 20) {
+            timerValue = 0
+        }
+        debounceTimer = setTimeout(function() {
+            redrawChosenWithTemplate($select, $chosenContainer, eventType);
+        }, timerValue);
+    } else {
+        redrawChosenWithTemplate($select, $chosenContainer, eventType);
     }
 }
 

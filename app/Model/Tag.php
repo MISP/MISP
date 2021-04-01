@@ -1,6 +1,10 @@
 <?php
 App::uses('AppModel', 'Model');
 
+/**
+ * @property EventTag $EventTag
+ * @property AttributeTag $AttributeTag
+ */
 class Tag extends AppModel
 {
     public $useTable = 'tags';
@@ -177,8 +181,8 @@ class Tag extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $conditions['Tag.org_id'] = array(0, $user['User']['org_id']);
-            $conditions['Tag.user_id'] = array(0, $user['User']['id']);
+            $conditions['Tag.org_id'] = array(0, $user['org_id']);
+            $conditions['Tag.user_id'] = array(0, $user['id']);
             $conditions['Tag.hide_tag'] = 0;
         }
         return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));

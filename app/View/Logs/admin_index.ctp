@@ -87,7 +87,7 @@
             <td class="short"><?php
                 if (isset($orgSearch) && $orgSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['org']), $orgSearchReplacePairs));
                 else echo (h($item['Log']['org'])); ?>&nbsp;</td>
-            <td class="short"><?php echo h($item['Log']['created']); ?>&nbsp;</td>
+            <td class="short"><?= $this->Time->time($item['Log']['created']) ?>&nbsp;</td>
             <td class="short"><?php
                 if (isset($modelSearch) && $modelSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['model']), $modelSearchReplacePairs));
                 else echo (h($item['Log']['model'])); ?>&nbsp;</td>

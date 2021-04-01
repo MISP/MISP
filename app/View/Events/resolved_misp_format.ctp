@@ -54,6 +54,7 @@
             }
             $attributes_count = isset($event['Attribute']) ? count($event['Attribute']) : 0;
             $objects_count = isset($event['Object']) ? count($event['Object']) : 0;
+            $report_count = isset($event['EventReport']) ? count($event['EventReport']) : 0;
             if (!empty($event['Object'])) {
                 foreach ($event['Object'] as $object) {
                     if (!empty($object['Attribute'])) {
@@ -70,18 +71,68 @@
                         $this->element('ajaxTags', array(
                             'event' => $event,
                             'tags' => $event['Tag'],
-                            'tagAccess' => ($isSiteAdmin || $me['org_id'] == $event['Event']['orgc_id']),
+                            'tagAccess' => false,
+                            'localTagAccess' => false,
                             'static_tags_only' => 1
                         ))
                     )
                 );
             }
-            $table_data[] = array('key' => __('#Resolved Attributes'), 'value' => $count);
+            $table_data[] = array('key' => __('# of resolved Attributes'), 'value' => $count);
+            $table_data[] = array('key' => __('# of resolved Reports'), 'value' => $report_count);
             echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data));
         }
         $attributeFields = array('category', 'type', 'value', 'uuid');
         $header_present = false;
         $typesWithData = array('attachment', 'malware-sample');
+    ?>
+    <?php if (!empty($event['EventReport'])): ?>
+      <table class="table table-striped table-condensed">
+      <thead>
+        <tr>
+          <th><?= __('Import') ?></th>
+          <th><?= __('Name') ?></th>
+          <th class="hidden"><?php echo __('UUID');?></th>
+          <th><?= __('Content') ?></th>
+          <th><?= __('Distribution') ?></th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach($event['EventReport'] as $report): ?>
+          <tr class="MISPEventReport">
+              <td class="short" style="width:40px;text-align:center;">
+                <input type="checkbox" class="ImportMISPEventReport" checked />
+              </td>
+            <td class="EventReportName"><?= h($report['name']); ?></td>
+            <td class="EventReportUUID hidden"><?= h($report['uuid']); ?></td>
+            <td class="EventReportContent ellipsis-overflow" style="max-width:800px;">
+              <?= h($report['content']); ?>
+            </td>
+            <td class="short" style="width:40px;text-align:center;">
+              <select class='EventReportDistribution' style='padding:0px;height:20px;margin-bottom:0px;'>
+              <?php
+                  foreach ($distributions as $distKey => $distValue) {
+                      echo '<option value="' . h($distKey) . '" ' . ($distKey == $report['distribution'] ? 'selected="selected"' : '') . '>' . h($distValue) . '</option>';
+                  }
+              ?>
+              </select>
+              <div style="display:none;">
+                <select class='EventReportSharingGroup' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                  <?php
+                  foreach ($sgs as $sgKey => $sgValue) {
+                      echo '<option value="' . h($sgKey) . '" ' . ($sgKey == $report['sharing_group_id'] ? 'selected="selected"' : '') . '>' . h($sgValue) . '</option>';
+                  }
+                  ?>
+                </select>
+              </div>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+      <table>
+    <?php endif; ?>
+
+    <?php
         if (!empty($event['Object'])) {
     ?>
     <table class="table table-striped table-condensed">
@@ -126,7 +177,15 @@
                     }
                 ?>
                 <span class="bold"><?php echo __('UUID: ');?></span><span class="ObjectUUID"><?php echo h($object['uuid']); ?></span><br />
-                <span class="bold"><?php echo __('Meta Category: ');?></span><span class="ObjectMetaCategory"><?php echo h($object['meta-category']); ?></span>
+                <span class="bold"><?php echo __('Meta Category: ');?></span><span class="ObjectMetaCategory"><?php echo h($object['meta-category']); ?></span><br />
+                <?php
+                    if (!empty($object['first_seen'])) {
+                        echo '<span class="bold">First seen: </span><span class="ObjectFirstSeen">' . h($object['first_seen']) . '</span><br/>';
+                    }
+                    if (!empty($object['last_seen'])) {
+                        echo '<span class="bold">Last seen: </span><span class="ObjectLastSeen">' . h($object['last_seen']) . '</span><br/>';
+                    }
+                ?>
               </div>
               <span class="bold"><?php echo __('References: ')?></span>
               <?php
@@ -230,7 +289,7 @@
                 ?>
                 <span style="display:inline-block;">
                   <span style="padding:1px;display:flex;white-space:nowrap;margin-right:2px;word-wrap:break-word;">
-                    <span class="objectAttributeTag" style="display:inline-block;background-color:<?php echo h($color); ?>;color:white;" title="<?php echo h($tag['name']); ?>">
+                    <span class="objectAttributeTag" data-local="<?= !empty($tag['local']) ? 1 : 0 ?>" style="display:inline-block;background-color:<?php echo h($color); ?>;color:white;" title="<?php echo h($tag['name']); ?>">
                     <?php echo h($tagText); ?>
                     </span>
                   </span>
@@ -340,7 +399,7 @@
               ?>
               <span style="display:inline-block;">
                 <span style="padding:1px;display:flex;white-space:nowrap;margin-right:2px;word-wrap:break-word;">
-                  <span class="attributeTag" style="display:inline-block;background-color:<?php echo h($color); ?>;color:white;" title="<?php echo h($tag['name']); ?>">
+                  <span class="attributeTag" data-local="<?= !empty($tag['local']) ? 1 : 0 ?>" style="display:inline-block;background-color:<?php echo h($color); ?>;color:white;" title="<?php echo h($tag['name']); ?>">
                   <?php echo h($tagText); ?>
                   </span>
                 </span>
@@ -389,7 +448,7 @@
 </div>
 <script type="text/javascript">
     $(function() {
-      $('.AttributeDistribution, .ObjectDistribution').change(function() {
+      $('.AttributeDistribution, .ObjectDistribution, .EventReportDistribution').change(function() {
           if ($(this).val() == 4) {
               $(this).next().show();
           } else {

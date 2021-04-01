@@ -828,6 +828,52 @@ class ShadowAttributesController extends AppController
         $this->set('_serialize', array('ShadowAttribute'));
     }
 
+    public function viewPicture($id, $thumbnail=false)
+    {
+        $conditions['ShadowAttribute.id'] = $id;
+        $conditions['ShadowAttribute.type'] = 'attachment';
+        $options = array(
+            'conditions' => $conditions,
+            'includeAllTags' => false,
+            'includeAttributeUuid' => true,
+            'flatten' => true,
+            'deleted' => [0, 1]
+        );
+
+        
+        $sa = $this->ShadowAttribute->find('first', array(
+            'recursive' => -1,
+            'contain' => ['Event', 'Attribute'], // required because of conditions
+            'fields' => array(
+                'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen',
+            ),
+            'conditions' => $conditions,
+        ));
+        if (empty($sa)) {
+            throw new NotFoundException(__('Invalid proposal.'));
+        }
+        
+        if (!$this->ShadowAttribute->Attribute->isImage($sa['ShadowAttribute'])) {
+            throw new NotFoundException("ShadowAttribute is not an image.");
+        }
+        if ($this->_isRest()) {
+            if ($this->ShadowAttribute->typeIsAttachment($sa['ShadowAttribute']['type'])) {
+                $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($sa['ShadowAttribute']);
+                $sa['ShadowAttribute']['data'] = $encodedFile;
+            }
+        }
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($sa['ShadowAttribute']['data'], $this->response->type());
+        } else {
+            $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 200;
+            $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 200;
+            $imageData = $this->ShadowAttribute->getPictureData($sa, $thumbnail, $width, $height);
+            $extension = pathinfo($sa['ShadowAttribute']['value'], PATHINFO_EXTENSION);
+            return new CakeResponse(array('body' => $imageData, 'type' => strtolower($extension)));
+        }
+    }
+
     public function index($eventId = false)
     {
         $conditions = array();

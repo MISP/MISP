@@ -150,3 +150,11 @@ span.misp-element-wrapper.object {
 .popover {
     z-index: 1060;
 }
+
+#suggestion-container select{
+    margin-bottom: 0;
+}
+
+#suggestion-container .input-append, #suggestion-container .input-prepend{
+    margin-bottom: 0;
+}

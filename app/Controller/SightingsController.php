@@ -223,7 +223,7 @@ class SightingsController extends AppController
         }
     }
 
-    // takes a sighting ID
+    // takes a sighting ID or UUID
     public function delete($id)
     {
         if (!$this->userRole['perm_modify_org']) {
@@ -232,22 +232,22 @@ class SightingsController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This action can only be accessed via a post request.');
         }
-        $id = $this->Toolbox->findIdByUuid($this->Sighting, $id);
-        $conditions = array('Sighting.id' => $id);
-        $sighting = $this->Sighting->find('first', array('conditions' => $conditions, 'recursive' => -1));
+        $sighting = $this->Sighting->find('first', array(
+            'conditions' => Validation::uuid($id) ? ['Sighting.uuid' => $id] : ['Sighting.id' => $id],
+            'recursive' => -1,
+            'fields' => ['id', 'org_id'],
+        ));
         if (empty($sighting)) {
             throw new NotFoundException('Invalid sighting.');
         }
-        if (!$this->_isSiteAdmin()) {
-            if ($sighting['Sighting']['org_id'] != $this->Auth->user('org_id')) {
-                throw new NotFoundException('Invalid sighting.');
-            }
+        if (!$this->_isSiteAdmin() && $sighting['Sighting']['org_id'] != $this->Auth->user('org_id')) {
+            throw new NotFoundException('Invalid sighting.');
         }
         $result = $this->Sighting->delete($sighting['Sighting']['id']);
         if (!$result) {
             return $this->RestResponse->saveFailResponse('Sighting', 'delete', $id, 'Could not delete the Sighting.');
         } else {
-            return $this->RestResponse->saveSuccessResponse('Sighting', 'delete', $id, false, 'Sighting successfuly deleted.');
+            return $this->RestResponse->saveSuccessResponse('Sighting', 'delete', $id, false, 'Sighting successfully deleted.');
         }
     }
 

@@ -33,10 +33,8 @@
             ?>
         </div>
         <div class="input clear"></div>
-        <?php
-            $counter = 1;
-            foreach ($permFlags as $k => $flag):
-        ?>
+        <div class="role-permissions">
+        <?php foreach ($permFlags as $k => $flag): ?>
                 <div class="permFlags<?php echo ' ' . ($flag['readonlyenabled'] ? 'readonlyenabled' : 'readonlydisabled'); ?>">
         <?php
                     echo $this->Form->input($k, array(
@@ -48,23 +46,17 @@
                         ),
                         'label' => $flag['text'],
                     ));
-                    if ($counter%3 == 0) echo "<div class='input clear'></div>";
-                    $counter++;
-        ?>
+                    ?>
                 </div>
-        <?php
-            endforeach;
-        ?>
+        <?php endforeach; ?>
+        </div>
     </fieldset>
 <?php
     echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
     echo $this->Form->end();
 ?>
 </div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'editRole'));
-?>
-
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'editRole')); ?>
 <script type="text/javascript">
     $(function() {
         checkRolePerms();
@@ -77,4 +69,3 @@
         });
     });
 </script>
-<?php echo $this->Js->writeBuffer();

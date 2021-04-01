@@ -191,7 +191,8 @@
                     'name' => __('Tag'),
                     'class' => 'short',
                     'data_path' => 'Tag',
-                    'element' => 'tags'
+                    'element' => 'tags',
+                    'scope' => 'feeds'
                 ),
                 array(
                     'name' => __('Visible'),

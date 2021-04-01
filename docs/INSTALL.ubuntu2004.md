@@ -1,11 +1,11 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 20.04-server
+## for Ubuntu 20.04.2.0-server
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
 
-To install MISP on a fresh Ubuntu 20.04, all you need to do is the following:
+To install MISP on a *fresh* Ubuntu 20.04, all you need to do is the following:
 
 ```bash
 # Please check the installer options first to make the best choice for your install
@@ -20,12 +20,9 @@ bash /tmp/INSTALL.sh -c
 ### 0/ MISP Ubuntu 20.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20200501
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210331
 
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
+{!generic/manual-install-notes.md!}
 
 !!! notice
     If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
@@ -37,7 +34,7 @@ bash /tmp/INSTALL.sh -c
 
 #### Install a minimal Ubuntu 20.04-server system with the software:
 - OpenSSH server
-- This guide assumes a user name of 'misp' with sudo working
+- This guide assumes a user name of 'misp' with sudo working but can be overwritten by setting the environment variable: *${MISP_USER}*
 
 #### Make sure your system is up2date
 ```bash
@@ -121,6 +118,8 @@ installDepsPhp74 () {
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 }
 # <snippet-end 0_installDepsPhp74.sh>
 ```
@@ -505,6 +504,8 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 
 {!generic/misp-modules-debian.md!}
 
+{!generic/misp-modules-cake.md!}
+
 {!generic/INSTALL.done.md!}
 
 {!generic/recommended.actions.md!}
@@ -531,6 +532,8 @@ installKafka () {
 ```
 
 {!generic/misp-dashboard-debian.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/viper-debian.md!}
 
