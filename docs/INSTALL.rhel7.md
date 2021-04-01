@@ -25,7 +25,7 @@
     wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
     bash /tmp/INSTALL.sh -c
     ```
-    **The above does NOT work yet**
+    **The above does NOT fully work yet**
 
 !!! notice
     If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
@@ -37,17 +37,14 @@
 {!generic/rhelVScentos.md!}
 
 !!! warning
-    The core MISP team cannot verify if this guide is working or not. Please help us in keeping it up to date and accurate.
+    The core MISP team cannot easily verify if this guide is working or not. Please help us in keeping it up to date and accurate.
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
-
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
 
 !!! notice
     Maintenance for CentOS 7 will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
     CentOS 7-1908 [NetInstallURL](http://mirror.centos.org/centos/7/os/x86_64/)
+
+{!generic/manual-install-notes.md!}
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x) and CentOS 7.x.
 At time of this writing it was tested on versions 7.6 for both.
@@ -93,13 +90,13 @@ sudo subscription-manager register --auto-attach # register your system to an ac
 
 ## 1.4/ **[RHEL]** Enable the optional, extras and Software Collections (SCL) repos
 ```bash
-# <snippet-begin 0_RHEL_SCL.sh>
-enableReposRHEL () {
+# <snippet-begin 0_RHEL7_SCL.sh>
+enableReposRHEL7 () {
   sudo subscription-manager refresh
   sudo subscription-manager repos --enable rhel-7-server-optional-rpms
   sudo subscription-manager repos --enable rhel-7-server-extras-rpms
 }
-# <snippet-end 0_RHEL_SCL.sh>
+# <snippet-end 0_RHEL7_SCL.sh>
 ```
 
 ## 1.4c/ **[CentOS]** Enable EPEL for additional dependencies
@@ -149,14 +146,14 @@ yumUpdate () {
 
 ## 1.6/ **[RHEL]** Install the EPEL and remi repo
 ```bash
-# <snippet-begin 0_RHEL_EPEL.sh>
+# <snippet-begin 0_RHEL7_EPEL.sh>
 enableEPEL () {
   sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
   sudo yum install yum-utils -y
   sudo yum-config-manager --enable remi-php74
 }
-# <snippet-end 0_RHEL_EPEL.sh>
+# <snippet-end 0_RHEL7_EPEL.sh>
 ```
 
 ### 2/ Dependencies
@@ -227,8 +224,8 @@ sudo systemctl enable --now haveged.service
 ## 3.01/ Download MISP code using git in /var/www/ directory
 
 ```bash
-# <snippet-begin 1_mispCoreInstall_RHEL.sh>
-installCoreRHEL () {
+# <snippet-begin 1_mispCoreInstall_RHEL7.sh>
+installCoreRHEL7 () {
   # Download MISP using git in the $PATH_TO_MISP directory.
   sudo mkdir -p $(dirname $PATH_TO_MISP)
   sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
@@ -326,7 +323,7 @@ installCoreRHEL () {
   sudo systemctl restart php-fpm.service
   umask $UMASK
 }
-# <snippet-end 1_mispCoreInstall_RHEL.sh>
+# <snippet-end 1_mispCoreInstall_RHEL7.sh>
 ```
 
 ### 4/ CakePHP
@@ -380,9 +377,9 @@ installCake_RHEL ()
 
 ### 5/ Set file permissions
 ```bash
-# <snippet-begin 2_permissions_RHEL.sh>
+# <snippet-begin 2_permissions_RHEL7.sh>
 # Main function to fix permissions to something sane
-permissions_RHEL () {
+permissions_RHEL7 () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
   ## ? chown -R root:$WWW_USER $PATH_TO_MISP
   sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
@@ -403,7 +400,7 @@ permissions_RHEL () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/orgs
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/custom
 }
-# <snippet-end 2_permissions_RHEL.sh>
+# <snippet-end 2_permissions_RHEL7.sh>
 ```
 
 ### 6/ Create database and user
@@ -683,11 +680,15 @@ configWorkersRHEL () {
 # <snippet-end 3_configWorkers_RHEL.sh>
 ```
 
-{!generic/misp-modules-centos.md!}
-
 {!generic/MISP_CAKE_init.md!}
 
+{!generic/misp-modules-centos.md!}
+
+{!generic/misp-modules-cake.md!}
+
 {!generic/misp-dashboard-centos.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/INSTALL.done.md!}
 
