@@ -1,6 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Dashboard $Dashboard
+ */
 class DashboardsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
@@ -147,47 +150,50 @@ class DashboardsController extends AppController
 
     public function renderWidget($widget_id, $force = false)
     {
-        if ($this->request->is('post')) {
-            if (empty($this->request->data['data'])) {
-                $this->request->data = array('data' => $this->request->data);
-
-            }
-            if (empty($this->request->data['data'])) {
-                throw new MethodNotAllowedException(__('You need to specify the widget to use along with the configuration.'));
-            }
-            $value = $this->request->data['data'];
-            $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $value['widget']);
-            $this->layout = false;
-            $this->set('title', $dashboardWidget->title);
-            $redis = $this->Dashboard->setupRedis();
-            $org_scope = $this->_isSiteAdmin() ? 0 : $this->Auth->user('org_id');
-            $lookup_hash = hash('sha256', $value['widget'] . $value['config']);
-            $data = $redis->get('misp:dashboard:' . $org_scope . ':' . $lookup_hash);
-            if (!isset($dashboardWidget->cacheLifetime)) {
-                $dashboardWidget->cacheLifetime = false;
-            }
-            if (empty($dashboardWidget->cacheLifetime) || empty($data)) {
-                $data = $dashboardWidget->handler($this->Auth->user(), json_decode($value['config'], true));
-                if (!empty($dashboardWidget->cacheLifetime)) {
-                    $redis->set('misp:dashboard:' . $org_scope . ':' . $lookup_hash, json_encode(array('data' => $data)));
-                    $redis->expire('misp:dashboard:' . $org_scope . ':' . $lookup_hash, $dashboardWidget->cacheLifetime);
-                }
-            } else {
-                $data = json_decode($data, true)['data'];
-            }
-            $valueConfig = json_decode($value['config'], true);
-            $config = array(
-                'render' => $dashboardWidget->render,
-                'autoRefreshDelay' => empty($dashboardWidget->autoRefreshDelay) ? false : $dashboardWidget->autoRefreshDelay,
-                'widget_config' => empty($valueConfig['widget_config']) ? array() : $valueConfig['widget_config']
-            );
-            $this->set('widget_id', $widget_id);
-            $this->set('data', $data);
-            $this->set('config', $config);
-            $this->render('widget_loader');
-        } else {
+        if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('This endpoint can only be reached via POST requests.'));
         }
+
+        @session_write_close(); // allow concurrent AJAX requests (session hold lock by default)
+
+        if (empty($this->request->data['data'])) {
+            $this->request->data = array('data' => $this->request->data);
+        }
+        if (empty($this->request->data['data'])) {
+            throw new MethodNotAllowedException(__('You need to specify the widget to use along with the configuration.'));
+        }
+        $value = $this->request->data['data'];
+        $valueConfig = json_decode($value['config'], true);
+        $dashboardWidget = $this->Dashboard->loadWidget($this->Auth->user(), $value['widget']);
+
+        $redis = $this->Dashboard->setupRedis();
+        $org_scope = $this->_isSiteAdmin() ? 0 : $this->Auth->user('org_id');
+        $lookup_hash = hash('sha256', $value['widget'] . $value['config']);
+        $cacheKey = 'misp:dashboard:' . $org_scope . ':' . $lookup_hash;
+        $data = $redis->get($cacheKey);
+        if (!isset($dashboardWidget->cacheLifetime)) {
+            $dashboardWidget->cacheLifetime = false;
+        }
+        if (empty($dashboardWidget->cacheLifetime) || empty($data)) {
+            $data = $dashboardWidget->handler($this->Auth->user(), $valueConfig);
+            if (!empty($dashboardWidget->cacheLifetime)) {
+                $redis->setex($cacheKey, $dashboardWidget->cacheLifetime, json_encode(array('data' => $data)));
+            }
+        } else {
+            $data = json_decode($data, true)['data'];
+        }
+        $config = array(
+            'render' => $dashboardWidget->render,
+            'autoRefreshDelay' => empty($dashboardWidget->autoRefreshDelay) ? false : $dashboardWidget->autoRefreshDelay,
+            'widget_config' => empty($valueConfig['widget_config']) ? array() : $valueConfig['widget_config']
+        );
+
+        $this->layout = false;
+        $this->set('title', $dashboardWidget->title);
+        $this->set('widget_id', $widget_id);
+        $this->set('data', $data);
+        $this->set('config', $config);
+        $this->render('widget_loader');
     }
 
     public function import()
@@ -392,7 +398,7 @@ class DashboardsController extends AppController
                     $element['User']['email'] = '';
                 }
             }
-            $this->set('passedArgs', $this->passedArgs);
+            $this->set('passedArgs', json_encode($this->passedArgs));
             $this->set('data', $data);
         }
     }

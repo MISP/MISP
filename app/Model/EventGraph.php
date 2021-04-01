@@ -53,4 +53,18 @@ class EventGraph extends AppModel
         }
         return true;
     }
+
+    public function getPictureData($eventGraph)
+    {
+        $b64 = str_replace('data:image/png;base64,', '', $eventGraph['EventGraph']['preview_img']);
+        $imageDecoded = base64_decode($b64);
+        $source = imagecreatefromstring($imageDecoded);
+        imagesavealpha($source, true);
+        ob_start();
+        imagepng($source, null, 9);
+        $imageData = ob_get_contents();
+        ob_end_clean();
+        imagedestroy($source);
+        return $imageData;
+    }
 }

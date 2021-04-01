@@ -115,6 +115,38 @@
         ?>
     </div>
 
+    <h3><?= __('Security Audit') ?></h3>
+    <?php if (empty($securityAudit)):
+        echo __('Congratulation, your instance pass all security checks.');
+    else: ?>
+    <table class="table table-condensed table-bordered" style="width: 40vw">
+        <thead>
+        <tr>
+            <th><?= __('Area') ?></th>
+            <th><?= __('Level') ?></th>
+            <th><?= __('Message') ?></th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($securityAudit as $field => $errors): foreach ($errors as $error): list($level, $message) = $error; ?>
+        <tr>
+            <?php if (isset($field)): ?><th rowspan="<?= count($errors) ?>" style="white-space: nowrap;"><?= h($field) ?></th><?php unset($field); endif; ?>
+            <td style="text-align: center">
+                <?php if ($level === 'error'): ?>
+                <i class="red fa fa-times" role="img" aria-label="<?= __('Error') ?>" title="<?= __('Error') ?>"></i>
+                <?php elseif ($level === 'warning'): ?>
+                <i class="fas fa-exclamation-triangle" style="color: #c09853;" role="img" aria-label="<?= __('Warning') ?>" title="<?= __('Warning') ?>"></i>
+                <?php elseif ($level === 'hint'): ?>
+                <i class="fas fa-lightbulb" style="color: #FCC111" role="img" aria-label="<?= __('Hint') ?>"  title="<?= __('Hint') ?>"></i>
+                <?php endif; ?>
+            </td>
+            <td><?= h($message) ?><?php if (isset($error[2])): ?> <a href="<?= h($error[2]) ?>"><?= __('More info') ?></a><?php endif; ?></td>
+        </tr>
+        <?php endforeach; endforeach; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
+
     <h3><?php echo __('PHP Settings');?></h3>
     <?php
         $phpcolour = 'green';
@@ -156,15 +188,14 @@
     <p><span class="bold"><?php echo __('PHP ini path');?></span>:… <span class="green"><?php echo h($php_ini); ?></span><br />
     <span class="bold"><?php echo __('PHP Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
     <span class="bold"><?php echo __('PHP CLI Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['cli']['phpcolour']; ?>"><?php echo h($phpversions['cli']['phpversion']) . ' (' . $phpversions['cli']['phptext'] . ')';?></span></p>
-    <p class="red bold"><?php echo __('Please note that the support for Python versions below 3.6 and below PHP 7.2 has been dropped as of 2020-01-01 and are henceforth considered unsupported. More info: ');?><a href="https://secure.php.net/supported-versions.php">PHP</a>, <a href="https://www.python.org/dev/peps/pep-0373">Python</a>.</p>
     <p><?php echo __('The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.');?></p>
     <?php
         foreach ($phpSettings as $settingName => &$phpSetting):
-            echo $settingName . ' (<span class="bold">' . $phpSetting['value'] . ($phpSetting['unit'] ? $phpSetting['unit'] : '') . '</span>' .')' . '…';
+            echo $settingName . ' (<b>' . $phpSetting['value'] . ($phpSetting['unit'] ? ' ' . $phpSetting['unit'] : '') . '</b>' .')' . '…';
             if ($phpSetting['value'] < $phpSetting['recommended']) $pass = false;
             else $pass = true;
     ?>
-    <span style="color:<?php echo $pass ? 'green': 'orange'; ?>"><?php echo $pass ? __('OK') : __('Low'); ?> (recommended: <?php echo strval($phpSetting['recommended']) . ($phpSetting['unit'] ? $phpSetting['unit'] : '') . ')'; ?></span><br />
+    <span style="color:<?php echo $pass ? 'green': 'orange'; ?>"><?php echo $pass ? __('OK') : __('Low'); ?> (recommended: <?php echo strval($phpSetting['recommended']) . ($phpSetting['unit'] ? ' ' . $phpSetting['unit'] : '') . ')'; ?></span><br>
     <?php
         endforeach;
     ?>
@@ -204,9 +235,8 @@
         </tbody>
     </table>
 
-    <?php
-        echo '<div style="width:400px;">';
-        echo $this->element('/genericElements/IndexTable/index_table', array(
+    <div style="width:400px;">
+    <?= $this->element('/genericElements/IndexTable/index_table', array(
             'data' => array(
                 'data' => $dbDiagnostics,
                 'skip_pagination' => 1,
@@ -234,25 +264,27 @@
                 'description' => __('Size of each individual table on disk, along with the size that can be freed via SQL optimize. Make sure that you always have at least 3x the size of the largest table in free space in order for the update scripts to work as expected.')
             )
         ));
-        echo '</div>';
     ?>
-        <h4><?php echo __('Schema status');?></h4>
-        <div id="schemaStatusDiv" style="width: 70vw; padding-left: 10px;">
-            <?php echo $this->element('/healthElements/db_schema_diagnostic', array(
-                'checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'],
-                'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
-                'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
-                'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
-                'error' => $dbSchemaDiagnostics['error'],
-                'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time'],
-                'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
-                'updateLocked' => $dbSchemaDiagnostics['update_locked'],
-                'dataSource' => $dbSchemaDiagnostics['dataSource'],
-                'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
-                'dbIndexDiagnostics' => $dbSchemaDiagnostics['diagnostic_index'],
-                'indexes' => $dbSchemaDiagnostics['indexes'],
-            )); ?>
-        </div>
+    </div>
+
+    <h4><?php echo __('Schema status');?></h4>
+    <div id="schemaStatusDiv" style="width: 70vw; padding-left: 10px;">
+        <?= $this->element('/healthElements/db_schema_diagnostic', array(
+            'checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'],
+            'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
+            'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
+            'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
+            'error' => $dbSchemaDiagnostics['error'],
+            'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time'],
+            'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
+            'updateLocked' => $dbSchemaDiagnostics['update_locked'],
+            'dataSource' => $dbSchemaDiagnostics['dataSource'],
+            'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
+            'dbIndexDiagnostics' => $dbSchemaDiagnostics['diagnostic_index'],
+            'indexes' => $dbSchemaDiagnostics['indexes'],
+        )); ?>
+    </div>
+
     <h3><?= __("Redis info") ?></h3>
     <div class="diagnostics-box">
         <b><?= __('PHP extension version') ?>:</b> <?= $redisInfo['extensionVersion'] ?: ('<span class="red bold">' . __('Not installed.') . '</span>') ?><br>
@@ -261,6 +293,7 @@
         <b><?= __('Memory allocator') ?>:</b> <?= $redisInfo['mem_allocator'] ?><br>
         <b><?= __('Memory usage') ?>:</b> <?= $redisInfo['used_memory_human'] ?>B<br>
         <b><?= __('Peak memory usage') ?>:</b> <?= $redisInfo['used_memory_peak_human'] ?>B<br>
+        <b><?= __('Fragmentation ratio') ?>:</b> <?= $redisInfo['mem_fragmentation_ratio'] ?><br>
         <b><?= __('Total system memory') ?>:</b> <?= $redisInfo['total_system_memory_human'] ?>B
         <?php elseif ($redisInfo['extensionVersion']): ?>
         <span class="red bold">Redis is not available. <?= $redisInfo['connection_error'] ?></span>
@@ -400,26 +433,23 @@
     </div>
     <h3><?php echo __('Module System');?></h3>
     <p><?php echo __('This tool tests the various module systems and whether they are reachable based on the module settings.');?></p>
+    <div class="diagnostics-box">
     <?php
-        foreach ($moduleTypes as $type):
+        foreach ($moduleTypes as $type) {
+            $colour = 'red';
+            if (isset($moduleErrors[$moduleStatus[$type]])) {
+                $message = $moduleErrors[$moduleStatus[$type]];
+            } else {
+                $message = h($moduleStatus[$type]);
+            }
+            if ($moduleStatus[$type] === 0) {
+                $colour = 'green';
+            }
+            echo $type . __(' module system') . '…<span style="color:' . $colour . ';">' . $message . '</span><br>';
+        }
     ?>
-        <div class="diagnostics-box">
-            <?php
-                $colour = 'red';
-                if (isset($moduleErrors[$moduleStatus[$type]])) {
-                    $message = $moduleErrors[$moduleStatus[$type]];
-                } else {
-                    $message = h($moduleStatus[$type]);
-                }
-                if ($moduleStatus[$type] === 0) {
-                    $colour = 'green';
-                }
-                echo $type . __(' module system') . '…<span style="color:' . $colour . ';">' . $message . '</span>';
-            ?>
-        </div>
-    <?php
-        endforeach;
-    ?>
+    </div>
+
     <h3><?php echo __('Session table');?></h3>
     <p><?php echo __('This tool checks how large your database\'s session table is. <br />Sessions in CakePHP rely on PHP\'s garbage collection for clean-up and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below.');?></p>
     <div class="diagnostics-box">

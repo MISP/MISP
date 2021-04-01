@@ -102,7 +102,6 @@
     <?php
         endif;
     ?>
-        var tabIsActive = true;
         var baseurl = '<?php echo $baseurl; ?>';
         var here = '<?php
                 if (substr($this->params['action'], 0, 6) === 'admin_') {
@@ -111,25 +110,13 @@
                     echo $baseurl . '/' . h($this->params['controller']) . '/' . h($this->params['action']);
                 }
             ?>';
-        $(document).ready(function(){
-            $(window).blur(function() {
-                tabIsActive = false;
-            });
-            $(window).focus(function() {
-                tabIsActive = true;
-            });
         <?php
             if (!Configure::read('MISP.disable_auto_logout') and $me):
         ?>
-                checkIfLoggedIn();
+                //checkIfLoggedIn();
         <?php
             endif;
         ?>
-        if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
-            var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
-            $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
-        }
-        });
     </script>
 </body>
 </html>

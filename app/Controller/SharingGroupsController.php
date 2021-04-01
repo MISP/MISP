@@ -608,7 +608,7 @@ class SharingGroupsController extends AppController
                 }
             }
         }
-        if (false === $addServer) {
+        if (false === $removeServer) {
             return $this->RestResponse->saveFailResponse('SharingGroup', $this->action, false, 'Server is not in the sharing group.', $this->response->type());
         }
         $result = $this->SharingGroup->SharingGroupServer->delete($removeServer);

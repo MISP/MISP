@@ -9,7 +9,7 @@
                             <div class="templateGlass"></div>
                             <div class ="templateElementHeaderText" style="width:100%;">
                                 <div style="float:left;width:83%;"><?php echo $newsItem['User']['email'] ? h($newsItem['User']['email']) : 'Administrator'; ?></div>
-                                <div style="float:left;width:17%;"><?php echo date('Y-m-d H:i:s', $newsItem['News']['date_created']); ?></div>
+                                <div style="float:left;width:17%;"><?= $this->Time->time($newsItem['News']['date_created']); ?></div>
                             </div>
                         </div>
                         <div style="padding:6px;">

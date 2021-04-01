@@ -1,9 +1,17 @@
-# INSTALLATION INSTRUCTIONS for RHEL 8.x and partially Fedora Server 30
+# INSTALLATION INSTRUCTIONS for RHEL 8.x, CentOS8/Stream
 -------------------------
 
-### -1/ Installer and Manual install instructions
+### -2/ RHEL8/CentOS8 - status
+-------------------------
+!!! notice
+    MISP-core and misp-modules Tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210326
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.rhel8/).
+!!! notice
+    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
+    Which explains why you will see the use of shell *functions* in various steps.
+    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
+
+### -1/ Installer and Manual install instructions
 
 !!! warning
     In the **future**, to install MISP on a fresh RHEL 8 install all you need to do is:
@@ -19,9 +27,12 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     ```
     **The above does NOT work yet**
 
-### 0/ Overview and Assumptions
+!!! notice
+    If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel8/).
 
 {!generic/community.md!}
+
+### 0/ Overview and Assumptions
 
 {!generic/rhelVScentos.md!}
 
@@ -69,20 +80,20 @@ sudo hostnamectl set-hostname misp.local # Your choice, in a production environm
 ```
 
 ## 1.3/ **[RHEL]** Register the system for updates with Red Hat Subscription Manager
+Can be skipped if the Machine has been registered during install phase.
 ```bash
 # <snippet-begin 0_RHEL_register.sh>
 sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
 # <snippet-end 0_RHEL_register.sh>
 ```
 
-## 1.4/ **[RHEL]** Enable the optional, extras and Software Collections (SCL) repos
+## 1.4/ **[RHEL]** Enable the optional repos (obsolete in v8)
 ```bash
 # <snippet-begin 0_RHEL_SCL.sh>
-# To be confirmed, no access to RHSCL
 sudo subscription-manager refresh 
-sudo subscription-manager repos --enable rhel-8-server-optional-rpms
-sudo subscription-manager repos --enable rhel-8-server-extras-rpms
-sudo subscription-manager repos --enable rhel-server-rhscl-8-rpms
+# The following is needed for -devel repos and ONLY for misp-modules, ignore if not needed
+sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
+# Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
 # <snippet-end 0_RHEL_SCL.sh>
 ```
 
@@ -91,31 +102,33 @@ sudo subscription-manager repos --enable rhel-server-rhscl-8-rpms
 sudo yum install drpm -y
 ```
 
-## 1.5.b/ Install vim (optional)
-```bash
-# Because vim is just so practical
-sudo yum install vim -y
-```
-
 ## 1.5/ Update the system and reboot
 ```bash
 # <snippet-begin 0_yum-update.sh>
-sudo yum update -y
+yumUpdate () {
+  sudo yum update -y
+}
 # <snippet-end 0_yum-update.sh>
 ```
 
-## 1.6/ **[RHEL]** Install the EPEL repo
-
+## 1.6/ Install the EPEL and remi repo
 ```bash
-# <snippet-begin 0_RHEL_EPEL.sh>
-sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
-# <snippet-end 0_RHEL_EPEL.sh>
+# <snippet-begin 0_EPEL_REMI.sh>
+enableEPEL_REMI () {
+  sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
+  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
+  sudo yum install yum-utils -y
+  sudo dnf module enable php:remi-7.4 -y
+  [[ ${DISTRI} == "centos8stream" ]] &&sudo dnf config-manager --set-enabled powertools
+  [[ ${DISTRI} == "centos8" ]] &&sudo dnf config-manager --set-enabled powertools
+}
+# <snippet-end 0_EPEL_REMI.sh>
 ```
 
 ### 2/ Dependencies
 
 !!! note
-    This guide installs PHP 7.2 from SCL
+    This guide installs PHP 7.4 from Remi's repo
 
 !!! warning
     [PHP 5.6 and 7.0 aren't supported since December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In the future only PHP7 will be supported.
@@ -125,6 +138,8 @@ sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noa
 # <snippet-begin 0_yumInstallCoreDeps.sh>
 yumInstallCoreDeps () {
   # Install the dependencies:
+  PHP_BASE="/etc/"
+  PHP_INI="/etc/php.ini"
   sudo yum install @httpd -y
   sudo yum install gcc git zip \
                    httpd \
@@ -135,33 +150,43 @@ yumInstallCoreDeps () {
                    python3-devel python3-pip python3-virtualenv \
                    python3-policycoreutils \
                    policycoreutils-python-utils \
-                   libxslt-devel zlib-devel -y
-  # ssdeep-devel available: dnf install https://extras.getpagespeed.com/release-el8-latest.rpm
+                   libxslt-devel zlib-devel ssdeep-devel -y
   sudo alternatives --set python /usr/bin/python3
 
   # Enable and start redis
   sudo systemctl enable --now redis.service
 
-  PHP_INI=/etc/php.ini
-  sudo yum install php php-fpm php-devel php-pear \
-       php-mysqlnd \
-       php-mbstring \
-       php-xml \
-       php-bcmath \
-       php-opcache \
-       php-json \
-       php-zip \
-       php-gd -y
+  # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/8/php74/x86_64/repoview/
+  sudo yum install php php-fpm php-devel \
+                   php-mysqlnd \
+                   php-mbstring \
+                   php-xml \
+                   php-bcmath \
+                   php-opcache \
+                   php-zip \
+                   php-pear \
+                   php-brotli \
+                   php-intl \
+                   php-gd -y
+
+  # cake has php baked in, thus we link to it if necessary.
+  [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
 }
 # <snippet-end 0_yumInstallCoreDeps.sh>
 ```
 
-!!! notice
-    MISP 2.4 requires PHP 5.6 as a minimum, we need a higher version than base RHEL provides.<br />
-    This guide installs PHP 7.2
+```bash
+# <snippet-begin 0_yumInstallHaveged.sh>
+# GPG needs lots of entropy, haveged provides entropy
+# /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
+sudo yum install haveged -y
+sudo systemctl enable --now haveged.service
+# <snippet-end 0_yumInstallHaveged.sh>
+```
 
 !!! notice
-    If we want to use httpd from RHEL base we can use the rh-php72-php-fpm service instead
+    MISP 2.4 requires PHP 5.6 as a minimum, we need a higher version than base RHEL provides.<br />
+    This guide installs PHP 7.4
 
 ## 2.05/ Start the PHP FPM service and enable to start on boot
 ```bash
@@ -176,17 +201,12 @@ TODO: Add a CentOS/RHEL rng thing, à la haveged (not in base anymore) or simila
 ```bash
 # <snippet-begin 1_mispCoreInstall_RHEL.sh>
 installCoreRHEL () {
-  # Download MISP using git in the /var/www/ directory.
-  sudo mkdir $PATH_TO_MISP
-  sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP
-  cd /var/www
+  # Download MISP using git in the $PATH_TO_MISP directory.
+  sudo mkdir -p $(dirname $PATH_TO_MISP)
+  sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
+  cd $(dirname $PATH_TO_MISP)
   $SUDO_WWW git clone https://github.com/MISP/MISP.git
   cd $PATH_TO_MISP
-  ##$SUDO_WWW git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
-  # if the last shortcut doesn't work, specify the latest version manually
-  # example: git checkout tags/v2.4.XY
-  # the message regarding a "detached HEAD state" is expected behaviour
-  # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
   # Fetch submodules
   $SUDO_WWW git submodule update --init --recursive
@@ -212,6 +232,11 @@ installCoreRHEL () {
   # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
   UMASK=$(umask)
   umask 0022
+
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW git config core.filemode false
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   $SUDO_WWW git config core.filemode false
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
@@ -236,13 +261,15 @@ installCoreRHEL () {
 
   # lief needs manual compilation
   sudo yum groupinstall "Development Tools" -y
-  sudo yum install cmake3 -y
+  [[ ${DISTRI} == 'rhel8.3' ]] && sudo yum install cmake3 -y && CMAKE_BIN='cmake3'
+  [[ ${DISTRI} == 'centos8stream' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
+  [[ ${DISTRI} == 'centos8' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
 
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW git config core.filemode false
   $SUDO_WWW mkdir build
   cd build
-  $SUDO_WWW cmake3 \
+  $SUDO_WWW ${CMAKE_BIN} \
   -DLIEF_PYTHON_API=on \
   -DPYTHON_VERSION=3.6 \
   -DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
@@ -255,13 +282,15 @@ installCoreRHEL () {
     # In case you get "internal compiler error: Killed (program cc1plus)"
     # You ran out of memory.
     # Create some swap
-    sudo dd if=/dev/zero of=/var/swap.img bs=1024k count=4000
-    sudo mkswap /var/swap.img
-    sudo swapon /var/swap.img
+    TEMP_DIR=$(mktemp -d)
+    TEMP_SWAP=${TEMP_DIR}/swap.img
+    sudo dd if=/dev/zero of=${TEMP_SWAP} bs=1024k count=4000
+    sudo mkswap ${TEMP_SWAP}
+    sudo swapon ${TEMP_SWAP}
     # And compile again
-    $SUDO_WWW make -j3 pyLIEF
-    sudo swapoff /var/swap.img
-    sudo rm /var/swap.img
+    ${SUDO_WWW} make -j3 pyLIEF
+    sudo swapoff ${TEMP_SWAP}
+    sudo rm -r ${TEMP_DIR}
   fi
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
@@ -277,7 +306,7 @@ installCoreRHEL () {
 
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   # BROKEN: This needs to be tested on RHEL/CentOS
-  ##sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
+  sudo yum install libcaca-devel -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
   [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
@@ -285,25 +314,24 @@ installCoreRHEL () {
   cd gtcaca
   $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_CMD cmake .. && $SUDO_CMD make
+  $SUDO_CMD ${CMAKE_BIN} .. && $SUDO_CMD make
   sudo make install
   cd ../../faup
   $SUDO_CMD mkdir -p build
   cd build
-  $SUDO_CMD cmake .. && $SUDO_CMD make
+  $SUDO_CMD ${CMAKE_BIN} .. && $SUDO_CMD make
   sudo make install
   sudo ldconfig
 
-  # Enable python3 for php-fpm
-  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/php-fpm.d/www.conf
+  # Enable dependencies detection in the diagnostics page
+  # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
+  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a ${PHP_BASE}/php-fpm.d/www.conf
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' ${PHP_BASE}/php-fpm.d/www.conf  # TODO check if below is different on RHEL8 php74-php-fpm.service also dbl check paths
+  sudo sed -i.org -e 's/^\(listen =\) \/run\/php-fpm\/www\.sock/\1 127.0.0.1:9000/' ${PHP_BASE}/php-fpm.d/www.conf
+
   sudo systemctl restart php-fpm.service
 
   umask $UMASK
-
-  # Enable dependencies detection in the diagnostics page
-  # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
-  echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a /etc/php-fpm.d/www.conf
-  sudo systemctl restart php-fpm.service
 }
 # <snippet-end 1_mispCoreInstall_RHEL.sh>
 ```
@@ -329,26 +357,15 @@ installCake_RHEL ()
   #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
-  ## sudo yum install php-redis -y
-  sudo pecl channel-update pecl.php.net
-  sudo pecl install redis
-  echo "extension=redis.so" |sudo tee /etc/php-fpm.d/redis.ini
-  sudo ln -s /etc/php-fpm.d/redis.ini /etc/php.d/99-redis.ini
-  sudo systemctl restart php-fpm.service
+  sudo yum install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
 
-  # Install gnupg extension
-  # NOT working on RHEL 8 gpgme-devel not provided
-  ##sudo yum install gpgme-devel -y
-  ##sudo pecl install gnupg
-  ##echo "extension=gnupg.so" |sudo tee /etc/opt/rh/rh-php72/php-fpm.d/gnupg.ini
-  ##sudo ln -s /etc/opt/rh/rh-php72/php-fpm.d/gnupg.ini /etc/opt/rh/rh-php72/php.d/99-gnupg.ini
-  ##sudo systemctl restart rh-php72-php-fpm.service
+  sudo systemctl restart php-fpm.service
 
   # If you have not yet set a timezone in php.ini
   echo 'date.timezone = "Asia/Tokyo"' |sudo tee /etc/php-fpm.d/timezone.ini
   sudo ln -s ../php-fpm.d/timezone.ini /etc/php.d/99-timezone.ini
 
-  # Recommended: Change some PHP settings in /etc/opt/rh/rh-php72/php.ini
+  # Recommended: Change some PHP settings in /etc/opt/remi/php74/php.ini
   # max_execution_time = 300
   # memory_limit = 2048M
   # upload_max_filesize = 50M
@@ -357,12 +374,14 @@ installCake_RHEL ()
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
   sudo systemctl restart php-fpm.service
 
   # To use the scheduler worker for scheduled tasks, do the following:
   sudo cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 }
-# <snippet-begin 1_installCake_RHEL.sh>
+# <snippet-end 1_installCake_RHEL.sh>
 ```
 
 ### 5/ Set file permissions
@@ -371,10 +390,10 @@ installCake_RHEL ()
 # Main function to fix permissions to something sane
 permissions_RHEL () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
-  ## ? chown -R root:apache /var/www/MISP
+  ## ? chown -R root:$WWW_USER $PATH_TO_MISP
   sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
   sudo chmod -R g+r,o= $PATH_TO_MISP
-  ## **Note :** For updates through the web interface to work, apache must own the /var/www/MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
+  ## **Note :** For updates through the web interface to work, apache must own the $PATH_TO_MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
   sudo chmod -R 750 $PATH_TO_MISP
   sudo chmod -R g+xws $PATH_TO_MISP/app/tmp
   sudo chmod -R g+ws $PATH_TO_MISP/app/files
@@ -405,49 +424,26 @@ prepareDB_RHEL () {
   echo bind-address=127.0.0.1 |sudo tee -a /etc/my.cnf.d/bind-address.cnf
   sudo systemctl restart mariadb
 
-  sudo yum install expect -y
+  # Kill the anonymous users
+  sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'localhost'"
+  # Because our hostname varies we'll use some Bash magic here.
+  sudo mysql -h $DBHOST -e "DROP USER IF EXISTS ''@'$(hostname)'"
+  # Kill off the demo database
+  sudo mysql -h $DBHOST -e "DROP DATABASE IF EXISTS test"
+  # No root remote logins
+  sudo mysql -h $DBHOST -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+  # Make sure that NOBODY can access the server without a password
+  sudo mysqladmin -h $DBHOST -u "${DBUSER_ADMIN}" password "${DBPASSWORD_ADMIN}"
+  # Make our changes take effect
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES"
 
-  ## The following needs some thoughts about scl enable foo
-  #if [[ ! -e /var/opt/rh/rh-mariadb102/lib/mysql/misp/users.ibd ]]; then
-
-  # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-  pw="Password1234"
-
-  expect -f - <<-EOF
-    set timeout 10
-
-    spawn sudo mysql_secure_installation
-    expect "*?assword*"
-    send -- "$pw\r"
-    expect "Enter current password for root (enter for none):"
-    send -- "\r"
-    expect "Set root password?"
-    send -- "y\r"
-    expect "New password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Re-enter new password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Remove anonymous users?"
-    send -- "y\r"
-    expect "Disallow root login remotely?"
-    send -- "y\r"
-    expect "Remove test database and access to it?"
-    send -- "y\r"
-    expect "Reload privilege tables now?"
-    send -- "y\r"
-    expect eof
-EOF
-
-  sudo yum remove tcl expect -y
-
-  sudo systemctl restart mariadb
-
-  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
-  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE on *.* to $DBUSER_MISP@localhost IDENTIFIED by '$DBPASSWORD_MISP';"
-  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-  mysql -h $DBHOST -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e 'FLUSH PRIVILEGES;'
-
-  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -h $DBHOST -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE DATABASE ${DBNAME};"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+  sudo mysql -h $DBHOST -u "${DBUSER_ADMIN}" -p"${DBPASSWORD_ADMIN}" -e "FLUSH PRIVILEGES;"
+  # Import the empty MISP database from MYSQL.sql
+  ${SUDO_WWW} cat ${PATH_TO_MISP}/INSTALL/MYSQL.sql | mysql -h $DBHOST -u "${DBUSER_MISP}" -p"${DBPASSWORD_MISP}" ${DBNAME}
 }
 # <snippet-end 1_prepareDB_RHEL.sh>
 ```
@@ -469,7 +465,7 @@ apacheConfig_RHEL () {
   # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
 
   sudo cp $PATH_TO_MISP/INSTALL/apache.misp.centos7.ssl /etc/httpd/conf.d/misp.ssl.conf
-  sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
+  #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
   sudo rm /etc/httpd/conf.d/ssl.conf
   sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
   sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
@@ -486,7 +482,7 @@ apacheConfig_RHEL () {
   sudo openssl req -new -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" -key /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.csr
   sudo openssl x509 -req -days 365 -in /etc/pki/tls/certs/misp.local.csr -signkey /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
   sudo ln -s /etc/pki/tls/certs/misp.local.csr /etc/pki/tls/certs/misp-chain.crt
-  cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt 
+  cat /etc/pki/tls/certs/dhparam.pem |sudo tee -a /etc/pki/tls/certs/misp.local.crt
 
   sudo systemctl restart httpd.service
 
@@ -496,13 +492,14 @@ apacheConfig_RHEL () {
   sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/tmp
   sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Plugin/CakeResque/tmp
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/cake
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/start.sh
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmq.py
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/mispzmq/mispzmqtest.py
+  sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh"
+  sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py"
+  sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py"
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
-  sudo chcon -t httpd_sys_rw_content_t /tmp
-  sudo chcon -R -t usr_t $PATH_TO_MISP/venv
+  sudo sh -c "chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*"
+  sudo find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
+  # Only run these if you want to be able to update MISP from the web interface
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/.git
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Lib
@@ -539,7 +536,7 @@ firewall_RHEL () {
 
 ### 8/ Log Rotation
 ## 8.01/ Enable log rotation
-MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
+MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
 To rotate these logs install the supplied logrotate script:
 
 FIXME: The below does not work
@@ -555,12 +552,12 @@ logRotation_RHEL () {
 
   # Now make logrotate work under SELinux as well
   # Allow logrotate to modify the log files
-  sudo semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/MISP(/.*)?"
+  sudo semanage fcontext -a -t httpd_sys_rw_content_t "$PATH_TO_MISP(/.*)?"
   sudo semanage fcontext -a -t httpd_log_t "$PATH_TO_MISP/app/tmp/logs(/.*)?"
   sudo chcon -R -t httpd_log_t $PATH_TO_MISP/app/tmp/logs
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/tmp/logs
   # Impact of the following: ?!?!?!!?111
-  ##sudo restorecon -R /var/www/MISP/
+  ##sudo restorecon -R $PATH_TO_MISP
 
   # Allow logrotate to read /var/www
   sudo checkmodule -M -m -o /tmp/misplogrotate.mod $PATH_TO_MISP/INSTALL/misplogrotate.te
@@ -625,6 +622,7 @@ configMISP_RHEL () {
 
   # If you want to be able to change configuration parameters from the webinterface:
   sudo chown $WWW_USER:$WWW_USER $PATH_TO_MISP/app/Config/config.php
+  sudo chmod 660 $PATH_TO_MISP/app/Config/config.php
   sudo chcon -t httpd_sys_rw_content_t $PATH_TO_MISP/app/Config/config.php
 
   # Generate a GPG encryption key.
@@ -666,122 +664,39 @@ EOF
     The email address should match the one set in the config.php configuration file
     Make sure that you use the same settings in the MISP Server Settings tool
 
-## 9.06/ Use MISP's background workers
-## 9.06a/ Create a systemd unit for the workers
-```bash
-echo "[Unit]
-Description=MISP background workers
-After=mariadb.service redis.service fpm.service
-
-[Service]
-Type=forking
-User=apache
-Group=apache
-ExecStart=/var/www/MISP/app/Console/worker/start.sh
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-workers.service
-```
-
-Make the workers' script executable and reload the systemd units :
-```bash
-sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
-sudo systemctl daemon-reload
-sudo checkmodule -M -m -o /tmp/workerstartsh.mod $PATH_TO_MISP/INSTALL/workerstartsh.te
-sudo semodule_package -o /tmp/workerstartsh.pp -m /tmp/workerstartsh.mod
-sudo semodule -i /tmp/workerstartsh.pp
-```
-
-## 9.06b/ Start the workers and enable them on boot
-```bash
-sudo systemctl enable --now misp-workers.service
-```
-
-## 9.07/ misp-modules (Broken on RHEL8)
-
-Here are CentOS 8 packages of openjpeg2-devel: https://centos.pkgs.org/8/centos-powertools-x86_64/openjpeg2-devel-2.3.0-8.el8.x86_64.rpm.html
+## 9.06/ Use MISP background workers
 
 ```bash
-# some misp-modules dependencies
-sudo yum install openjpeg2-devel -y
+# <snippet-begin 3_configWorkers_RHEL.sh>
+configWorkersRHEL () {
+  echo "[Unit]
+  Description=MISP background workers
+  After=mariadb.service redis.service php-fpm.service
 
-sudo chmod 2777 /usr/local/src
-sudo chown root:users /usr/local/src
-cd /usr/local/src/
-$SUDO_WWW git clone https://github.com/MISP/misp-modules.git
-cd misp-modules
-sudo yum install rubygem-rouge rubygem-asciidoctor zbar-devel opencv-core poppler-cpp-devel -y
-# pip install
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U -I -r REQUIREMENTS
-$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U .
-## poppler/cpp/poppler-document.h missing, under my current setup I cannot find it in the repos.
+  [Service]
+  Type=forking
+  User=$WWW_USER
+  Group=$WWW_USER
+  ExecStart=$PATH_TO_MISP/app/Console/worker/start.sh
+  Restart=always
+  RestartSec=10
 
-echo "[Unit]
-Description=MISP modules
-After=misp-workers.service
+  [Install]
+  WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-workers.service
 
-[Service]
-Type=simple
-User=apache
-Group=apache
-ExecStart=\"${PATH_TO_MISP}/venv/bin/misp-modules –l 127.0.0.1 –s\"
-Restart=always
-RestartSec=10
+  sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+  sudo systemctl daemon-reload
 
-[Install]
-WantedBy=multi-user.target" |sudo tee /etc/systemd/system/misp-modules.service
-
-sudo systemctl daemon-reload
-# Test misp-modules
-$SUDO_WWW $PATH_TO_MISP/venv/bin/misp-modules -l 127.0.0.1 -s
-sudo systemctl enable --now misp-modules
-
-  # Enable Enrichment, set better timeouts
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
-  # TODO:"Investigate why the next one fails"
-  #$SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_asn_history_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_btc_steroids_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ipasn_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_syntax_validator_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_yara_query_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pdf_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_docx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_xlsx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_pptx_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_ods_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_odt_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
-
-  # Enable Import modules, set better timeout
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_services_port" 6666
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_mispjson_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_openiocimport_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_threatanalyzer_import_enabled" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
-
-  # Enable Export modules, set better timeout
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_enable" true
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_services_port" 6666
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_timeout" 300
-  $SUDO_WWW $RUN_PHP -- $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
+  sudo systemctl enable --now misp-workers.service
+}
+# <snippet-end 3_configWorkers_RHEL.sh>
 ```
 
-{!generic/misp-dashboard-centos.md!}
+{!generic/misp-modules-centos.md!}
 
 {!generic/MISP_CAKE_init.md!}
+
+{!generic/misp-dashboard-centos.md!}
 
 {!generic/INSTALL.done.md!}
 
@@ -790,7 +705,7 @@ sudo systemctl enable --now misp-modules
 ### 11/ LIEF Installation
 *lief* is required for the Advanced Attachment Handler and requires manual compilation
 
-The installation is explained in section **[3.01](https://misp.github.io/MISP/xINSTALL.rhel8/#301-download-misp-code-using-git-in-varwww-directory)**
+The installation is explained in section **[3.01](https://misp.github.io/MISP/INSTALL.rhel8/#301-download-misp-code-using-git-in-varwww-directory)**
 
 ### 12/ Known Issues
 ## 12.01/ Workers cannot be started or restarted from the web page
@@ -799,7 +714,7 @@ Possible also due to package being installed via SCL, attempting to start worker
 systemctl restart misp-workers.service
 ```
 
-!!! note 
+!!! note
     No other functions were tested after the conclusion of this install. There may be issue that aren't addressed<br />
     via this guide and will need additional investigation.
 

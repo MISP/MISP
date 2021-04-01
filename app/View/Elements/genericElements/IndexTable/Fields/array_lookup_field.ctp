@@ -1,4 +1,3 @@
 <?php
-
-    echo h($arrayData[Hash::extract($row, $field['data_path'])[0]]);
+    echo h($field['arrayData'][Hash::extract($row, $field['data_path'])[0]]);
 ?>

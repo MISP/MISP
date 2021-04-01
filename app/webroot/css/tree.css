@@ -1,6 +1,7 @@
 .tree {
 	width: 100%;
 	position: relative;
+	white-space: nowrap;
 }
 
 .tree div:not(:nth-of-type(1))::before {
@@ -8,8 +9,8 @@
 	position: absolute;
 	left: -15px;
 	border-bottom: 1px solid #ccc;
-	border-top: 0px solid #ccc;
-	border-right: 0px solid #ccc;
+	border-top: 0 solid #ccc;
+	border-right: 0 solid #ccc;
 	border-left: 1px solid #ccc;
 	width: 15px;
 }
@@ -49,10 +50,10 @@
  	height: 350px;
  }
 
- .distance8::before {
+.distance8::before {
  	top: -385px;
  	height: 400px;
- }
+}
 
 .distance9::before {
  	top: -435px;
@@ -66,15 +67,15 @@
 
 .tree div:last-of-type::before {
 	border-bottom-left-radius: 7px;
-	-webkit-bottom-left-border-radius: 7px;
-	-moz-border-bottom-left-radius: 7px;
 }
 
 .tree div:first-of-type::before {
 	content: '';
-	position: absolute; top: 15px; left: -34px;
+	position: absolute;
+	top: 15px; left: -34px;
 	border-top: 1px solid #ccc;
-	width: 35px; height: 20px;
+	width: 35px;
+	height: 20px;
 }
 
 .firstPivot::before {
@@ -82,31 +83,27 @@
 }
 
 .firstPivot {
-	left:0px;
-	top:0px;
+	left: 0;
+	top: 0;
 }
 
-.tree div span{
+.tree div span {
 	border: 1px solid #ccc;
-	padding-left:5px;
-	padding-right:5px;
-	padding-top:4px;
-	padding-bottom:2px;
-	width: 105px;
-
+	padding: 4px 5px 2px;
+	width: 130px;
 	display: inline-block;
 	border-radius: 7px;
-	-webkit-border-radius: 7px;
-	-moz-border-radius: 7px;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
-.tree .pivotElement div{
+.tree .pivotElement div {
 	position: absolute;
-	left: 150px;
+	left: 175px;
 }
 
 .pivotDelete {
-	vertical-align: text-top;
+	color: black;
 }
 
 .pivotText {
@@ -126,6 +123,9 @@
 .pivotSpanBlue {
 	background-color: #0088cc;
 	border-radius: 7px;
-	-webkit-border-radius: 7px;
-	-moz-border-radius: 7px;
+	color: white;
+}
+
+.pivotSpanBlue a, .pivotSpanBlue a:hover {
+	color: white;
 }

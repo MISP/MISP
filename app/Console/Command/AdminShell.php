@@ -169,15 +169,37 @@ class AdminShell extends AppShell
         }
     }
 
-    # FIXME: Make Taxonomy->update() return a status string on API if successful
     public function updateTaxonomies()
     {
         $this->ConfigLoad->execute();
         $result = $this->Taxonomy->update();
-        if ($result) {
-            echo 'Taxonomies updated' . PHP_EOL;
-        } else {
-            echo 'Could not update Taxonomies' . PHP_EOL;
+        $successes = count(!empty($result['success']) ? $result['success'] : []);
+        $fails = count(!empty($result['fails']) ? $result['fails'] : []);
+        $message = '';
+        if ($successes == 0 && $fails == 0) {
+            $message = __('All taxonomies are up to date already.');
+        } elseif ($successes == 0 && $fails > 0) {
+            $message = __('Could not update any of the taxonomies.');
+        } elseif ($successes > 0 ) {
+            $message = __('Successfully updated %s taxonomies.', $successes);
+            if ($fails != 0) {
+                $message .= __(' However, could not update %s taxonomies.', $fails);
+            }
+        }
+        echo $message . PHP_EOL;
+    }
+
+    public function enableTaxonomyTags()
+    {
+        if (empty($this->args[0]) || !is_numeric($this->args[0])) {
+            echo 'Usage: ' . APP . '/cake ' . 'Admin enableTaxonomyTags [taxonomy_id]' . PHP_EOL;
+	} else {
+            $result = $this->Taxonomy->addTags(intval($this->args[0]));
+	    if ($result) {
+                echo 'Taxonomy tags enabled' . PHP_EOL;
+	    } else {
+                echo 'Could not enable taxonomy tags' . PHP_EOL;
+            }
         }
     }
 
@@ -214,19 +236,24 @@ class AdminShell extends AppShell
             if (empty($user)) {
                 echo 'User with ID: ' . $userId . ' not found' . PHP_EOL;
                 $result = $this->ObjectTemplate->update();
-                if ($result) {
-                    echo 'Object templates updated' . PHP_EOL;
-                } else {
-                    echo 'Could not update object templates' . PHP_EOL;
-                }
             } else {
                 $result = $this->ObjectTemplate->update($user, false,false);
-                if ($result) {
-                    echo 'Object templates updated' . PHP_EOL;
-                } else {
-                    echo 'Could not update object templates' . PHP_EOL;
+            }
+
+            $successes = count(!empty($result['success']) ? $result['success'] : []);
+            $fails = count(!empty($result['fails']) ? $result['fails'] : []);
+            $message = '';
+            if ($successes == 0 && $fails == 0) {
+                $message = __('All object templates are up to date already.');
+            } elseif ($successes == 0 && $fails > 0) {
+                $message = __('Could not update any of the object templates.');
+            } elseif ($successes > 0 ) {
+                $message = __('Successfully updated %s object templates.', $successes);
+                if ($fails != 0) {
+                    $message .= __(' However, could not update %s object templates.', $fails);
                 }
             }
+            echo $message . PHP_EOL;
         }
     }
 
@@ -665,5 +692,12 @@ class AdminShell extends AppShell
         $this->Job->saveField('progress', 100);
         $this->Job->saveField('message', 'Job done.');
         $this->Job->saveField('status', 4);
+    }
+
+    public function updatesDone()
+    {
+        $blocking = !empty($this->args[0]);
+        $done = $this->AdminSetting->updatesDone($blocking);
+        $this->out($done ? 'True' : 'False');
     }
 }

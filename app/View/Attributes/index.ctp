@@ -29,9 +29,10 @@
     <div class="pagination">
         <ul>
         <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $paginator = $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+            $paginator .= $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+            $paginator .= $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+            echo $paginator;
         ?>
         </ul>
     </div>
@@ -91,6 +92,7 @@
             if (!empty($attribute['Attribute']['RelatedAttribute'])) {
                 $event['RelatedAttribute'] = array($attribute['Attribute']['id'] => $attribute['Attribute']['RelatedAttribute']);
             }
+            $attribute['Attribute']['objectType'] = 'attribute';
             echo $this->element('/Events/View/row_attribute', array(
                 'object' => $attribute['Attribute'],
                 'k' => $k,
@@ -124,24 +126,18 @@
     </p>
     <div class="pagination">
         <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
+        <?=  $paginator ?>
         </ul>
     </div>
 </div>
 <?php
-if ($isSearch == 1){
+if ($isSearch == 1) {
     $class = 'searchAttributes2';
 } else {
     $class = 'listAttributes';
 }
 ?>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $class));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $class)); ?>
 <script type="text/javascript">
 // tooltips
 $(function () {

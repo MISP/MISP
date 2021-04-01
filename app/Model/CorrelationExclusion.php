@@ -34,9 +34,8 @@ class CorrelationExclusion extends AppModel
             return false;
         }
         $redis->del($this->key);
-        $exclusions = $this->find('list', [
-            'recursive' => -1,
-            'fields' => ['id', 'value']
+        $exclusions = $this->find('column', [
+            'fields' => ['value']
         ]);
         $redis->sAddArray($this->key, $exclusions);
     }
@@ -85,6 +84,7 @@ class CorrelationExclusion extends AppModel
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
         }
+        $total = count($exclusions);
         foreach ($exclusions as $exclusion_chunk) {
             $i = 0;
             foreach ($exclusion_chunk as $exclusion) {
