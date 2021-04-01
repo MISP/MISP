@@ -1,10 +1,11 @@
 # INSTALLATION INSTRUCTIONS for RHEL 8.x, CentOS8/Stream
 -------------------------
 
-### -2/ RHEL8/CentOS8 - status
+### -2/ RHEL8/CentOS8/CentOS_Stream/Fedora33 - status
 -------------------------
 !!! notice
-    MISP-core and misp-modules Tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210326
+    Tested fully working without SELinux by [@SteveClement](https://twitter.com/SteveClement) on 20210401
+    TODO: Fix SELinux permissions, *pull-requests welcome*.
 
 !!! notice
     This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
@@ -14,7 +15,7 @@
 ### -1/ Installer and Manual install instructions
 
 !!! warning
-    In the **future**, to install MISP on a fresh RHEL 8 install all you need to do is:
+    In the **future**, to install MISP on a fresh RHEL 8 or CentOS 8 install all you need to do is:
 
     ```bash
     # Please check the installer options first to make the best choice for your install
@@ -43,6 +44,8 @@
 !!! notice
     Maintenance for CentOS 8 will end on: December 31st, 2021 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)
     CentOS 8 [NetInstallURL](http://mirrorlist.centos.org/?release=8&arch=x86_64&repo=BaseOS)
+
+{!generic/manual-install-notes.md!}
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 8.x (RHEL 8.x) and CentOS 8.x.
 At time of this writing it was tested on versions 8.0 for RHEL.
@@ -83,30 +86,35 @@ sudo hostnamectl set-hostname misp.local # Your choice, in a production environm
 Can be skipped if the Machine has been registered during install phase.
 ```bash
 # <snippet-begin 0_RHEL_register.sh>
-sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+registerRHEL () {
+  sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+}
 # <snippet-end 0_RHEL_register.sh>
 ```
 
 ## 1.4/ **[RHEL]** Enable the optional repos (obsolete in v8)
 ```bash
 # <snippet-begin 0_RHEL_SCL.sh>
-sudo subscription-manager refresh 
-# The following is needed for -devel repos and ONLY for misp-modules, ignore if not needed
-sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
-# Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
+enableOptionalRHEL8 () {
+  sudo subscription-manager refresh 
+
+  # The following is needed for -devel repos and ONLY for misp-modules, ignore if not needed
+  sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
+  # Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
+}
 # <snippet-end 0_RHEL_SCL.sh>
 ```
 
 ## 1.5a/ Install the deltarpm package to help reduce download size when installing updates (optional)
 ```bash
-sudo yum install drpm -y
+sudo dnf install drpm -y
 ```
 
 ## 1.5/ Update the system and reboot
 ```bash
 # <snippet-begin 0_yum-update.sh>
 yumUpdate () {
-  sudo yum update -y
+  sudo dnf update -y
 }
 # <snippet-end 0_yum-update.sh>
 ```
@@ -114,13 +122,19 @@ yumUpdate () {
 ## 1.6/ Install the EPEL and remi repo
 ```bash
 # <snippet-begin 0_EPEL_REMI.sh>
-enableEPEL_REMI () {
-  sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
-  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
-  sudo yum install yum-utils -y
+enableEPEL_REMI_8 () {
+  sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
+  sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
+  sudo dnf install dnf-utils -y
   sudo dnf module enable php:remi-7.4 -y
-  [[ ${DISTRI} == "centos8stream" ]] &&sudo dnf config-manager --set-enabled powertools
-  [[ ${DISTRI} == "centos8" ]] &&sudo dnf config-manager --set-enabled powertools
+  [[ ${DISTRI} == "centos8stream" ]] && sudo dnf config-manager --set-enabled powertools
+  [[ ${DISTRI} == "centos8" ]] && sudo dnf config-manager --set-enabled powertools
+}
+
+enableREMI_f33 () {
+  sudo dnf install http://rpms.remirepo.net/fedora/remi-release-33.rpm
+  sudo dnf install dnf-utils -y
+  sudo dnf module enable php:remi-7.4 -y
 }
 # <snippet-end 0_EPEL_REMI.sh>
 ```
@@ -140,8 +154,8 @@ yumInstallCoreDeps () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
-  sudo yum install @httpd -y
-  sudo yum install gcc git zip \
+  sudo dnf install @httpd -y
+  sudo dnf install gcc git zip \
                    httpd \
                    mod_ssl \
                    redis \
@@ -157,7 +171,7 @@ yumInstallCoreDeps () {
   sudo systemctl enable --now redis.service
 
   # Install PHP 7.4 from Remi's repo, see https://rpms.remirepo.net/enterprise/8/php74/x86_64/repoview/
-  sudo yum install php php-fpm php-devel \
+  sudo dnf install php php-fpm php-devel \
                    php-mysqlnd \
                    php-mbstring \
                    php-xml \
@@ -177,10 +191,12 @@ yumInstallCoreDeps () {
 
 ```bash
 # <snippet-begin 0_yumInstallHaveged.sh>
-# GPG needs lots of entropy, haveged provides entropy
-# /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
-sudo yum install haveged -y
-sudo systemctl enable --now haveged.service
+installEntropyRHEL () {
+  # GPG needs lots of entropy, haveged provides entropy
+  # /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
+  sudo dnf install haveged -y
+  sudo systemctl enable --now haveged.service
+}
 # <snippet-end 0_yumInstallHaveged.sh>
 ```
 
@@ -193,88 +209,27 @@ sudo systemctl enable --now haveged.service
 sudo systemctl enable --now php-fpm.service
 ```
 
-TODO: Add a CentOS/RHEL rng thing, à la haveged (not in base anymore) or similar.
-
 ### 3/ MISP code
 ## 3.01/ Download MISP code using git in /var/www/ directory
 
 ```bash
 # <snippet-begin 1_mispCoreInstall_RHEL.sh>
-installCoreRHEL () {
-  # Download MISP using git in the $PATH_TO_MISP directory.
-  sudo mkdir -p $(dirname $PATH_TO_MISP)
-  sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
-  cd $(dirname $PATH_TO_MISP)
-  $SUDO_WWW git clone https://github.com/MISP/MISP.git
-  cd $PATH_TO_MISP
-
-  # Fetch submodules
-  $SUDO_WWW git submodule update --init --recursive
-  # Make git ignore filesystem permission differences for submodules
-  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
-  # Make git ignore filesystem permission differences
-  $SUDO_WWW git config core.filemode false
-
-  # Create a python3 virtualenv
-  $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv
-  sudo mkdir /usr/share/httpd/.cache
-  sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
-
+compileLiefRHEL8 () {
   cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
   $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
-
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW git config core.filemode false
-  # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
-  UMASK=$(umask)
-  umask 0022
-
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  cd $PATH_TO_MISP/app/files/scripts/python-stix
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install mixbox to accommodate the new STIX dependencies:
-  cd $PATH_TO_MISP/app/files/scripts/mixbox
-  $SUDO_WWW git config core.filemode false
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install STIX2.0 library to support STIX 2.0 export:
-  cd $PATH_TO_MISP/cti-python-stix2
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
-
-  # install maec
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U maec
-
-  # install zmq
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U zmq
-
-  # install redis
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U redis
-
-  # lief needs manual compilation
-  sudo yum groupinstall "Development Tools" -y
-  [[ ${DISTRI} == 'rhel8.3' ]] && sudo yum install cmake3 -y && CMAKE_BIN='cmake3'
-  [[ ${DISTRI} == 'centos8stream' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
-  [[ ${DISTRI} == 'centos8' ]] && sudo yum install cmake -y && CMAKE_BIN='cmake'
+  # lief might need manual compilation
+  sudo dnf groupinstall "Development Tools" -y
 
   cd $PATH_TO_MISP/app/files/scripts/lief
   $SUDO_WWW git config core.filemode false
   $SUDO_WWW mkdir build
   cd build
   $SUDO_WWW ${CMAKE_BIN} \
-  -DLIEF_PYTHON_API=on \
-  -DPYTHON_VERSION=3.6 \
-  -DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
-  -DLIEF_DOC=off \
-  -DCMAKE_BUILD_TYPE=Release \
+    -DLIEF_PYTHON_API=on \
+    -DPYTHON_VERSION=3.6 \
+    -DPYTHON_EXECUTABLE=$PATH_TO_MISP/venv/bin/python \
+    -DLIEF_DOC=off \
+    -DCMAKE_BUILD_TYPE=Release \
   ..
   $SUDO_WWW make -j3 pyLIEF
 
@@ -295,10 +250,72 @@ installCoreRHEL () {
 
   # The following adds a PYTHONPATH to where the pyLIEF module has been compiled
   echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.6/site-packages/lief.pth
+  [[ "${DISTRI}" == "fedora33" ]] && (echo /var/www/MISP/app/files/scripts/lief/build/api/python |$SUDO_WWW tee /var/www/MISP/venv/lib/python3.9/site-packages/lief.pth)
+$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic plyara
+}
+
+installCoreRHEL8 () {
+  # Download MISP using git in the $PATH_TO_MISP directory.
+  sudo mkdir -p $(dirname $PATH_TO_MISP)
+  sudo chown $WWW_USER:$WWW_USER $(dirname $PATH_TO_MISP)
+  cd $(dirname $PATH_TO_MISP)
+  $SUDO_WWW git clone https://github.com/MISP/MISP.git
+  cd $PATH_TO_MISP
+
+  # Fetch submodules
+  $SUDO_WWW git submodule update --init --recursive
+  # Make git ignore filesystem permission differences for submodules
+  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
+  # Make git ignore filesystem permission differences
+  $SUDO_WWW git config core.filemode false
+
+  # Create a python3 virtualenv
+  [[ -e $(which virtualenv-3 2>/dev/null) ]] && $SUDO_WWW virtualenv-3 -p python3 $PATH_TO_MISP/venv
+  [[ -e $(which virtualenv 2>/dev/null) ]] && $SUDO_WWW virtualenv -p python3 $PATH_TO_MISP/venv
+  sudo mkdir /usr/share/httpd/.cache
+  sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.cache
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
+
+  cd $PATH_TO_MISP/app/files/scripts
+  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
+  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
+  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW git config core.filemode false
+  # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
+  ([[ ${DISTRI} == 'fedora33' ]] || [[ ${DISTRI} == 'rhel8.3' ]]) && sudo dnf install cmake3 -y && CMAKE_BIN='cmake3'
+  [[ ${DISTRI} == 'centos8stream' ]] && sudo dnf install cmake -y && CMAKE_BIN='cmake'
+  [[ ${DISTRI} == 'centos8' ]] && sudo dnf install cmake -y && CMAKE_BIN='cmake'
+
+  UMASK=$(umask)
+  umask 0022
+
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW git config core.filemode false
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  cd $PATH_TO_MISP/app/files/scripts/python-stix
+  $SUDO_WWW git config core.filemode false
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  # install mixbox to accommodate the new STIX dependencies:
+  cd $PATH_TO_MISP/app/files/scripts/mixbox
+  $SUDO_WWW git config core.filemode false
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  # install STIX2.0 library to support STIX 2.0 export:
+  cd $PATH_TO_MISP/cti-python-stix2
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  # install maec, zmq, redis
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U maec zmq redis
 
   # install magic, pydeep
-##$SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic plyara
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U python-magic git+https://github.com/kbandla/pydeep.git plyara
+
+  # install lief
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -U lief || compileLiefRHEL8
 
   # install PyMISP
   cd $PATH_TO_MISP/PyMISP
@@ -306,7 +323,7 @@ installCoreRHEL () {
 
   # FIXME: Remove libfaup etc once the egg has the library baked-in
   # BROKEN: This needs to be tested on RHEL/CentOS
-  sudo yum install libcaca-devel -y
+  sudo dnf install libcaca-devel -y
   cd /tmp
   [[ ! -d "faup" ]] && $SUDO_CMD git clone https://github.com/stricaud/faup.git faup
   [[ ! -d "gtcaca" ]] && $SUDO_CMD git clone https://github.com/stricaud/gtcaca.git gtcaca
@@ -326,12 +343,12 @@ installCoreRHEL () {
   # Enable dependencies detection in the diagnostics page
   # This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
   echo "env[PATH] = /usr/local/bin:/usr/bin:/bin" |sudo tee -a ${PHP_BASE}/php-fpm.d/www.conf
-  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' ${PHP_BASE}/php-fpm.d/www.conf  # TODO check if below is different on RHEL8 php74-php-fpm.service also dbl check paths
+  sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' ${PHP_BASE}/php-fpm.d/www.conf
   sudo sed -i.org -e 's/^\(listen =\) \/run\/php-fpm\/www\.sock/\1 127.0.0.1:9000/' ${PHP_BASE}/php-fpm.d/www.conf
 
-  sudo systemctl restart php-fpm.service
-
   umask $UMASK
+
+  sudo systemctl restart php-fpm.service
 }
 # <snippet-end 1_mispCoreInstall_RHEL.sh>
 ```
@@ -344,7 +361,7 @@ installCoreRHEL () {
 
 ```bash
 # <snippet-begin 1_installCake_RHEL.sh>
-installCake_RHEL ()
+installCake_RHEL8 ()
 {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
   sudo mkdir /usr/share/httpd/.composer
@@ -357,7 +374,7 @@ installCake_RHEL ()
   #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
-  sudo yum install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
+  sudo dnf install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
 
   sudo systemctl restart php-fpm.service
 
@@ -388,7 +405,7 @@ installCake_RHEL ()
 ```bash
 # <snippet-begin 2_permissions_RHEL.sh>
 # Main function to fix permissions to something sane
-permissions_RHEL () {
+permissions_RHEL8 () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
   ## ? chown -R root:$WWW_USER $PATH_TO_MISP
   sudo find $PATH_TO_MISP -type d -exec chmod g=rx {} \;
@@ -417,7 +434,7 @@ permissions_RHEL () {
 ## 6.01/ Set database to listen on localhost only
 ```bash
 # <snippet-begin 1_prepareDB_RHEL.sh>
-prepareDB_RHEL () {
+prepareDB_RHEL8 () {
   # Enable, start and secure your mysql database server
   sudo systemctl enable --now mariadb.service
   echo [mysqld] |sudo tee /etc/my.cnf.d/bind-address.cnf
@@ -460,7 +477,7 @@ prepareDB_RHEL () {
 
 ```bash
 # <snippet-begin 1_apacheConfig_RHEL.sh>
-apacheConfig_RHEL () {
+apacheConfig_RHEL8 () {
   # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
   # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
 
@@ -495,7 +512,7 @@ apacheConfig_RHEL () {
   sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Console/worker/*.sh"
   sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*.py"
   sudo sh -c "chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/*/*.py"
-  sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
+  [[ -e ${PATH_TO_MISP}/app/files/scripts/lief/build/api/python/lief.so ]] && sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/files/scripts/lief/build/api/python/lief.so
   sudo chcon -t httpd_sys_script_exec_t $PATH_TO_MISP/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry
   sudo sh -c "chcon -R -t bin_t $PATH_TO_MISP/venv/bin/*"
   sudo find $PATH_TO_MISP/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t
@@ -692,11 +709,15 @@ configWorkersRHEL () {
 # <snippet-end 3_configWorkers_RHEL.sh>
 ```
 
-{!generic/misp-modules-centos.md!}
-
 {!generic/MISP_CAKE_init.md!}
 
+{!generic/misp-modules-centos.md!}
+
+{!generic/misp-modules-cake.md!}
+
 {!generic/misp-dashboard-centos.md!}
+
+{!generic/misp-dashboard-cake.md!}
 
 {!generic/INSTALL.done.md!}
 

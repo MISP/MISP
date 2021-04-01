@@ -2803,6 +2803,12 @@ function moduleResultsSubmit(id) {
             if ($(this).has('.TemplateUUID').length) {
                 temp['template_uuid'] = $(this).find('.TemplateUUID').text();
             }
+            if ($(this).has('.ObjectFirstSeen').length) {
+                temp['first_seen'] = $(this).find('.ObjectFirstSeen').text();
+            }
+            if ($(this).has('.ObjectLastSeen').length) {
+                temp['last_seen'] = $(this).find('.ObjectLastSeen').text();
+            }
             if ($(this).has('.ObjectReference').length) {
                 var references = [];
                 $(this).find('.ObjectReference').each(function() {
