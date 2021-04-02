@@ -2187,6 +2187,8 @@ enableOptionalRHEL8 () {
   # Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
 }
 
+## 0_RHEL7_SCL.sh ##
+## 0_RHEL7_EPEL.sh ##
 centosEPEL () {
   # We need some packages from the Extra Packages for Enterprise Linux repository
   sudo yum install epel-release -y
@@ -2198,7 +2200,6 @@ centosEPEL () {
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
   sudo yum-config-manager --enable remi-php74
 }
-
 
 yumInstallCoreDeps () {
   # Install the dependencies:
@@ -2954,6 +2955,10 @@ installSupported () {
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
   progress 4
 
+  # Install misp-modules - functionLocation('generic/misp-modules-cake.md')
+  [[ -n $MODULES ]]   || [[ -n $ALL ]] && modulesCAKE
+  progress 4
+
   # Install Viper - functionLocation('generic/viper-debian.md')
   ## FIXME: The current state of Viper is broken, disabling any use.
   ##[[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
@@ -3218,6 +3223,7 @@ installMISPonKali () {
 
   debug "Installing misp-modules"
   mispmodules
+  modulesCAKE
 
   ## FIXME: The current state of Viper is broken, disabling any use.
   ##debug "Installing Viper"
@@ -3311,6 +3317,7 @@ installMISPRHEL () {
     space
 
     mispmodulesRHEL
+    modulesCAKE
 
     echo "MISP modules installation finished."
   fi
