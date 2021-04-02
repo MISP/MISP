@@ -1519,4 +1519,33 @@
             "hide_tag": false
         }
     }
+    {
+    "Feed": {
+        "name": "Threatfox",
+        "provider": "Abuse.ch",
+        "url": "https:\/\/threatfox.abuse.ch\/downloads\/misp\/",
+        "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"\"}",
+        "enabled": true,
+        "distribution": "0",
+        "sharing_group_id": "0",
+        "tag_id": "0",
+        "default": false,
+        "source_format": "misp",
+        "fixed_event": true,
+        "delta_merge": false,
+        "event_id": "0",
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": true,
+        "headers": "",
+        "caching_enabled": false,
+        "force_to_ids": false,
+        "orgc_id": "0",
+        "cached_elements": 0,
+        "coverage_by_other_feeds": "0%"
+    }
+}
 ]
