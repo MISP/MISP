@@ -96,8 +96,9 @@
 ## 6_viper.sh ##
 
 ## 0_RHEL_SCL.sh ##
+## 0_RHEL7_SCL.sh ##
+## 0_RHEL7_EPEL.sh ##
 ## 0_CentOS_EPEL.sh ##
-## 0_RHEL_EPEL.sh ##
 ## 0_yumInstallCoreDeps.sh ##
 ## 1_mispCoreInstall_RHEL.sh ##
 ## 1_installCake_RHEL.sh ##
@@ -361,6 +362,10 @@ installSupported () {
 
   # Install misp-modules - functionLocation('generic/misp-modules-debian.md')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
+  progress 4
+
+  # Install misp-modules - functionLocation('generic/misp-modules-cake.md')
+  [[ -n $MODULES ]]   || [[ -n $ALL ]] && modulesCAKE
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
@@ -627,6 +632,7 @@ installMISPonKali () {
 
   debug "Installing misp-modules"
   mispmodules
+  modulesCAKE
 
   ## FIXME: The current state of Viper is broken, disabling any use.
   ##debug "Installing Viper"
@@ -720,6 +726,7 @@ installMISPRHEL () {
     space
 
     mispmodulesRHEL
+    modulesCAKE
 
     echo "MISP modules installation finished."
   fi
