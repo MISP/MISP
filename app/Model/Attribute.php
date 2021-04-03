@@ -2013,6 +2013,45 @@ class Attribute extends AppModel
         );
     }
 
+    /**
+     * @param array $user
+     * @param array $resultArray
+     */
+    public function fetchRelated(array $user, array &$resultArray)
+    {
+        if (empty($resultArray)) {
+            return;
+        }
+
+        $composeTypes = $this->getCompositeTypes();
+        foreach ($resultArray as $key => $result) {
+            if (in_array($result['default_type'], $composeTypes, true)) {
+                $pieces = explode('|', $result['value']);
+                if (in_array($result['default_type'], $this->primaryOnlyCorrelatingTypes, true)) {
+                    $or = ['Attribute.value1' => $pieces[0], 'Attribute.value2' => $pieces[0]];
+                } else {
+                    $or = ['Attribute.value1' => $pieces, 'Attribute.value2' => $pieces];
+                }
+            } else {
+                $or = ['Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']];
+            }
+            $options = array(
+                'conditions' => [
+                    'OR' => $or,
+                    'NOT' => [
+                        'Attribute.type' => $this->nonCorrelatingTypes,
+                    ],
+                    'Attribute.disable_correlation' => 0,
+                ],
+                'fields' => ['Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
+                'order' => false,
+                'limit' => 11,
+                'flatten' => 1,
+            );
+            $resultArray[$key]['related'] = $this->fetchAttributes($user, $options);
+        }
+    }
+
     public function checkComposites()
     {
         $compositeTypes = $this->getCompositeTypes();
