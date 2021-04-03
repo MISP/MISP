@@ -56,7 +56,17 @@ if (!defined('APP_DIR')) {
  *
  * Leaving this constant undefined will result in it being defined in Cake/bootstrap.php
  */
-	define('CAKE_CORE_INCLUDE_PATH', ROOT . DS . APP_DIR . DS .'Lib' . DS . 'cakephp' . DS . 'lib');
+//	define('CAKE_CORE_INCLUDE_PATH', ROOT . DS . APP_DIR . DS .'Lib' . DS . 'cakephp' . DS . 'lib');
+
+/**
+ * This auto-detects CakePHP as a composer installed library.
+ * You may remove this if you are not planning to use composer (not recommended, though).
+ */
+$vendorPath = ROOT . DS . APP_DIR . DS . 'Vendor' . DS . 'cakephp' . DS . 'cakephp' . DS . 'lib';
+$dispatcher = 'Cake' . DS . 'Console' . DS . 'ShellDispatcher.php';
+if (!defined('CAKE_CORE_INCLUDE_PATH') && file_exists($vendorPath . DS . $dispatcher)) {
+    define('CAKE_CORE_INCLUDE_PATH', $vendorPath);
+}
 
 /**
  * Editing below this line should NOT be necessary.

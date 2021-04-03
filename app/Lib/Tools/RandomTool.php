@@ -2,16 +2,6 @@
 
 class RandomTool
 {
-    public function __construct()
-    {
-        // import compatibility library for PHP < 7.0
-        if (!function_exists('random_int')) {
-            if (file_exists(APP . 'Lib' . DS . 'random_compat' . DS . 'lib' . DS . 'random.php')) {
-                require_once(APP . 'Lib' . DS . 'random_compat' . DS . 'lib' . DS . 'random.php');
-            }
-        }
-    }
-
     /**
      * Generate a random string
      *

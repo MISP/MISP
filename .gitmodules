@@ -1,7 +1,3 @@
-[submodule "app/Lib/cakephp"]
-	path = app/Lib/cakephp
-	url = https://github.com/cakephp/cakephp.git
-	branch = 2.x
 [submodule "PyMISP"]
 	path = PyMISP
 	url = https://github.com/MISP/PyMISP.git
@@ -11,10 +7,6 @@
 [submodule "app/files/warninglists"]
 	path = app/files/warninglists
 	url = https://github.com/MISP/misp-warninglists.git
-[submodule "app/Lib/random_compat"]
-	path = app/Lib/random_compat
-	url = https://github.com/paragonie/random_compat
-	branch = master
 [submodule "app/files/misp-galaxy"]
 	path = app/files/misp-galaxy
 	url = https://github.com/MISP/misp-galaxy
@@ -30,10 +22,6 @@
 [submodule "app/files/noticelists"]
 	path = app/files/noticelists
 	url = https://github.com/MISP/misp-noticelist
-[submodule "Plugin/DebugKit"]
-	path = Plugin/DebugKit
-	url = https://github.com/cakephp/debug_kit.git
-	branch = 2.2
 [submodule "app/files/misp-decaying-models"]
 	path = app/files/misp-decaying-models
 	url = https://github.com/MISP/misp-decaying-models.git
