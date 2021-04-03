@@ -5469,40 +5469,51 @@ class EventsController extends AppController
         return $this->RestResponse->viewData(['deleted' => $deleted], $this->response->type());
     }
 
-    public function checkLocks($id)
+    public function checkLocks($id, $timestamp)
     {
         $event = $this->Event->find('first', array(
             'recursive' => -1,
-            'conditions' => array('Event.id' => $id),
-            'fields' => array('Event.orgc_id')
+            'conditions' => ['Event.id' => $id],
+            'fields' => ['Event.orgc_id', 'Event.timestamp'],
         ));
-        $locks = array();
-        if (!empty($event) && ($event['Event']['orgc_id'] == $this->Auth->user('org_id') || $this->_isSiteAdmin())) {
-            $this->loadModel('EventLock');
-            $locks = $this->EventLock->checkLock($this->Auth->user(), $id);
-        }
-        if (!empty($locks)) {
-            $temp = $locks;
-            $locks = array();
-            foreach ($temp as $t) {
-                if ($t['type'] === 'user' && $t['User']['id'] !== $this->Auth->user('id')) {
-                    if (!$this->_isSiteAdmin() && $t['User']['org_id'] != $this->Auth->user('org_id')) {
-                        $locks[] = __('another user');
-                    } else {
-                        $locks[] = $t['User']['email'];
-                    }
-                } else if ($t['type'] === 'job') {
-                    $locks[] = __('background job');
-                } else if ($t['type'] === 'api') {
-                    $locks[] = __('external tool');
-                }
-            }
-        }
-        if (empty($locks)) {
-            return $this->RestResponse->viewData('', $this->response->type(), false, true);
+        // Return empty response if event not found or user org is not owner
+        if (empty($event) || ($event['Event']['orgc_id'] != $this->Auth->user('org_id') && !$this->_isSiteAdmin())) {
+            return new CakeResponse(['status' => 204]);
         }
 
-        $message = __('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
+        $user = $this->Auth->user();
+        $this->loadModel('EventLock');
+        $locks = $this->EventLock->checkLock($user, $id);
+
+        $editors = [];
+        foreach ($locks as $t) {
+            if ($t['type'] === 'user' && $t['User']['id'] !== $user['id']) {
+                if (!$this->_isSiteAdmin() && $t['User']['org_id'] != $user['org_id']) {
+                    $editors[] = __('another user');
+                } else {
+                    $editors[] = $t['User']['email'];
+                }
+            } else if ($t['type'] === 'job') {
+                $editors[] = __('background job');
+            } else if ($t['type'] === 'api') {
+                $editors[] = __('external tool');
+            }
+        }
+        $editors = array_unique($editors);
+
+        if ($event['Event']['timestamp'] > $timestamp && empty($editors)) {
+            $message = __('<b>Waning<b>: This event view is outdated. Please reload page to see latest changes.');
+            $this->set('class', 'alert');
+        } else if ($event['Event']['timestamp'] > $timestamp) {
+            $message = __('<b>Waning<b>: This event view is outdated, because is currently being edited by: %s. Please reload page to see latest changes.', h(implode(', ', $editors)));
+            $this->set('class', 'alert');
+        } else if (empty($editors)) {
+            return new CakeResponse(['status' => 204]);
+        } else {
+            $message = __('This event is currently being edited by: %s', h(implode(', ', $editors)));
+            $this->set('class', 'alert alert-info');
+        }
+
         $this->set('message', $message);
         $this->layout = false;
         $this->render('/Events/ajax/event_lock');
