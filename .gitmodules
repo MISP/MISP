@@ -1,7 +1,3 @@
-[submodule "app/Lib/cakephp"]
-	path = app/Lib/cakephp
-	url = https://github.com/cakephp/cakephp.git
-	branch = 2.x
 [submodule "PyMISP"]
 	path = PyMISP
 	url = https://github.com/MISP/PyMISP.git
