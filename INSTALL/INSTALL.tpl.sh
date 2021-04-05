@@ -73,6 +73,7 @@
 ## 0_apt-upgrade.sh ##
 ## 0_sudoKeeper.sh ##
 ## 0_installCoreDeps.sh ##
+## 0_upgradePhp74.sh ##
 ## 0_installDepsPhp74.sh ##
 ## 0_installDepsPhp73.sh ##
 ## 0_installDepsPhp72.sh ##
@@ -168,6 +169,7 @@ generateInstaller () {
   perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_upgradePhp74.sh ##/`cat 0_upgradePhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp74.sh ##/`cat 0_installDepsPhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
@@ -191,9 +193,11 @@ generateInstaller () {
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
 
-  perl -pe 's/^## 0_RHEL_SCL.sh ##/`cat 0_RHEL_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_SCL.sh ##/`cat 0_RHEL7_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL8_SCL.sh ##/`cat 0_RHEL8_SCL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_CentOS_EPEL.sh ##/`cat 0_CentOS_EPEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 0_RHEL_EPEL.sh ##/`cat 0_RHEL_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_EPEL.sh ##/`cat 0_RHEL7_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_EPEL_REMI.sh ##/`cat 0_EPEL_REMI.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_yumInstallCoreDeps.sh ##/`cat 0_yumInstallCoreDeps.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_mispCoreInstall_RHEL.sh ##/`cat 1_mispCoreInstall_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_installCake_RHEL.sh ##/`cat 1_installCake_RHEL.sh`/ge' -i INSTALL.tpl.sh
@@ -830,7 +834,8 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   if [[ "${RELEASE}" == "18.04" ]]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installSupported && exit || exit
+    upgradeToPHP74
+    installSupported PHP="7.4" && exit || exit
   fi
   if [[ "${RELEASE}" == "20.04" ]]; then
     echo "Install on Ubuntu 20.04 LTS fully supported."
