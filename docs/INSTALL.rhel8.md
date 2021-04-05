@@ -94,7 +94,7 @@ registerRHEL () {
 
 ## 1.4/ **[RHEL]** Enable the optional repos (obsolete in v8)
 ```bash
-# <snippet-begin 0_RHEL_SCL.sh>
+# <snippet-begin 0_RHEL8_SCL.sh>
 enableOptionalRHEL8 () {
   sudo subscription-manager refresh 
 
@@ -102,7 +102,7 @@ enableOptionalRHEL8 () {
   sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
   # Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
 }
-# <snippet-end 0_RHEL_SCL.sh>
+# <snippet-end 0_RHEL8_SCL.sh>
 ```
 
 ## 1.5a/ Install the deltarpm package to help reduce download size when installing updates (optional)
