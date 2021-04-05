@@ -1149,7 +1149,6 @@ theEnd () {
     sudo su - ${MISP_USER}
   fi
 }
-## End Function Section Nothing allowed in .md after this line ##
 
 aptUpgrade () {
   debug "Upgrading system"
@@ -1201,6 +1200,13 @@ installCoreDeps () {
   sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
 }
 
+upgradeToPHP74 () {
+  sudo apt install software-properties-common -qy
+  sudo add-apt-repository ppa:ondrej/php -y
+  sudo apt update
+  sudo apt dist-upgrade -y
+}
+
 # Install Php 7.4 dependencies
 installDepsPhp74 () {
   debug "Installing PHP 7.4 dependencies"
@@ -1208,13 +1214,13 @@ installDepsPhp74 () {
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   checkAptLock
   sudo apt install -qy \
-  libapache2-mod-php \
-  php php-cli \
-  php-dev \
-  php-json php-xml php-mysql php7.4-opcache php-readline php-mbstring php-zip \
-  php-redis php-gnupg \
-  php-intl php-bcmath \
-  php-gd
+  libapache2-mod-php7.4 \
+  php7.4 php7.4-cli \
+  php7.4-dev \
+  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
+  php7.4-redis php7.4-gnupg \
+  php7.4-intl php7.4-bcmath \
+  php7.4-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
@@ -1277,6 +1283,7 @@ installDepsPhp72 () {
   sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
   sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 }
+## End Function Section Nothing allowed in .md after this line ##
 
 # Install Php 7.0 dependencies
 installDepsPhp70 () {
@@ -2179,16 +2186,20 @@ viper () {
 }
 
 
-enableOptionalRHEL8 () {
-  sudo subscription-manager refresh 
-
-  # The following is needed for -devel repos and ONLY for misp-modules, ignore if not needed
-  sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
-  # Software Collections is available for Red Hat Enterprise Linux 7 and previous supported releases. Starting with Red Hat Enterprise Linux 8, the content traditionally consumed via Software Collections is now part of Application Streams. Please see the Application Streams Life Cycle documentation for that release. Source: https://access.redhat.com/support/policy/updates/rhscl
+## 0_RHEL_SCL.sh ##
+enableReposRHEL7 () {
+  sudo subscription-manager refresh
+  sudo subscription-manager repos --enable rhel-7-server-optional-rpms
+  sudo subscription-manager repos --enable rhel-7-server-extras-rpms
 }
 
-## 0_RHEL7_SCL.sh ##
-## 0_RHEL7_EPEL.sh ##
+enableEPEL () {
+  sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
+  sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
+  sudo yum install yum-utils -y
+  sudo yum-config-manager --enable remi-php74
+}
+
 centosEPEL () {
   # We need some packages from the Extra Packages for Enterprise Linux repository
   sudo yum install epel-release -y
@@ -2759,6 +2770,7 @@ generateInstaller () {
   perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_upgradePhp74.sh ##/`cat 0_upgradePhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp74.sh ##/`cat 0_installDepsPhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
@@ -2782,9 +2794,11 @@ generateInstaller () {
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
 
-  perl -pe 's/^## 0_RHEL_SCL.sh ##/`cat 0_RHEL_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_SCL.sh ##/`cat 0_RHEL7_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL8_SCL.sh ##/`cat 0_RHEL8_SCL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_CentOS_EPEL.sh ##/`cat 0_CentOS_EPEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 0_RHEL_EPEL.sh ##/`cat 0_RHEL_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_EPEL.sh ##/`cat 0_RHEL7_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_EPEL_REMI.sh ##/`cat 0_EPEL_REMI.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_yumInstallCoreDeps.sh ##/`cat 0_yumInstallCoreDeps.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_mispCoreInstall_RHEL.sh ##/`cat 1_mispCoreInstall_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_installCake_RHEL.sh ##/`cat 1_installCake_RHEL.sh`/ge' -i INSTALL.tpl.sh
@@ -2934,10 +2948,6 @@ installSupported () {
   [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE
   progress 4
 
-  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT
-  progress 4
-
   # Disable spinner
   #(kill $SPIN_PID 2>&1) >/dev/null
 
@@ -2953,6 +2963,10 @@ installSupported () {
 
   # Install misp-modules - functionLocation('generic/misp-modules-debian.md')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
+  progress 4
+
+  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
+  [[ -n $CORE ]]      || [[ -n $ALL ]] && updateGOWNT
   progress 4
 
   # Install misp-modules - functionLocation('generic/misp-modules-cake.md')
@@ -3252,43 +3266,72 @@ installMISPRHEL () {
     space
     echo "Proceeding with MISP core installation on RHEL ${dist_version}"
     space
- 
+
     id -u "${MISP_USER}" > /dev/null
     if [[ $? -eq 1 ]]; then
       debug "Creating MISP user"
       sudo useradd -r "${MISP_USER}"
     fi 
-    
-    debug "Enabling Extras Repos (SCL)"
-    if [[ "${DISTRI}" == "rhel7" ]]; then
-      sudo subscription-manager register --auto-attach
-      enableReposRHEL
-      enableEPEL
-    else # CentOS
-      centosEPEL
+
+    # Register system if RHEL
+    if [[ "${DISTRI}" =~ ^[rhel].* ]]; then
+      registerRHEL
     fi
 
-    debug "Installing System Dependencies"
-    yumInstallCoreDeps
+    debug "Enabling Extras Repos (SCL)"
+    if [[ "${DISTRI}" == "rhel7" ]]; then
+      enableReposRHEL7
+      enableEPEL
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps
+      debug "Installing MISP code"
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Preparing Database"
+      prepareDB_RHEL
+    fi
+
+    if [[ "${DISTRI}" == "fedora33" ]]; then
+      enableREMI_f33
+      installCoreRHEL8
+      installCake_RHEL8
+      permissions_RHEL8
+      prepareDB_RHEL8
+      apacheConfig_RHEL8
+      debug "Configuring Apache"
+      apacheConfig_RHEL
+    fi
+
+    if [[ "${DIST_VER}" =~ ^[8].* ]]; then
+      enableEPEL_REMI_8
+      installCoreRHEL8
+      installCake_RHEL8
+      permissions_RHEL8
+      prepareDB_RHEL8
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DISTRI}" == "centos7" ]]; then
+      centosEPEL
+      debug "Installing MISP code"
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Preparing Database"
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL
+    fi
 
     debug "Enabling Haveged for additional entropy"
     sudo yum install haveged -y
     sudo systemctl enable --now haveged.service
 
-    debug "Installing MISP code"
-    installCoreRHEL
-
-    debug "Install Cake PHP"
-    installCake_RHEL
-
     debug "Setting File permissions"
     permissions_RHEL
-
-    debug "Preparing Database"
-    prepareDB_RHEL
-
-    debug "Configuring Apache"
-    apacheConfig_RHEL
 
     debug "Setting up firewall"
     firewall_RHEL
@@ -3317,6 +3360,8 @@ installMISPRHEL () {
     space
 
     mispmodulesRHEL
+    # Another sleep to avoid RC
+    sleep 3
     modulesCAKE
 
     echo "MISP modules installation finished."
@@ -3421,7 +3466,8 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   if [[ "${RELEASE}" == "18.04" ]]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installSupported && exit || exit
+    upgradeToPHP74
+    installSupported PHP="7.4" && exit || exit
   fi
   if [[ "${RELEASE}" == "20.04" ]]; then
     echo "Install on Ubuntu 20.04 LTS fully supported."
