@@ -20,7 +20,7 @@ bash /tmp/INSTALL.sh -c
 ### 0/ MISP Ubuntu 20.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210331
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210401 (works with **Ubuntu 19.04/20.04/21.04** too)
 
 {!generic/manual-install-notes.md!}
 
@@ -106,13 +106,13 @@ installDepsPhp74 () {
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   checkAptLock
   sudo apt install -qy \
-  libapache2-mod-php \
-  php php-cli \
-  php-dev \
-  php-json php-xml php-mysql php7.4-opcache php-readline php-mbstring php-zip \
-  php-redis php-gnupg \
-  php-intl php-bcmath \
-  php-gd
+  libapache2-mod-php7.4 \
+  php7.4 php7.4-cli \
+  php7.4-dev \
+  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
+  php7.4-redis php7.4-gnupg \
+  php7.4-intl php7.4-bcmath \
+  php7.4-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do

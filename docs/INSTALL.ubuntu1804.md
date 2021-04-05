@@ -20,7 +20,7 @@ bash /tmp/INSTALL.sh -c
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210324 (works with **Ubuntu 19.04/20.04/21.04** too)
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210401 (works with **Ubuntu 19.04/20.04/21.04** too)
 
 {!generic/manual-install-notes.md!}
 
@@ -98,21 +98,31 @@ installCoreDeps () {
 }
 # <snippet-end 0_installCoreDeps.sh>
 
-# <snippet-begin 0_installDepsPhp72.sh>
-# Install Php 7.2 dependencies
-installDepsPhp72 () {
-  debug "Installing PHP 7.2 dependencies"
-  PHP_ETC_BASE=/etc/php/7.2
+
+# <snippet-begin 0_upgradePhp74.sh>
+upgradeToPHP74 () {
+  sudo apt install software-properties-common -qy
+  sudo add-apt-repository ppa:ondrej/php -y
+  sudo apt update
+  sudo apt dist-upgrade -y
+}
+# <snippet-end 0_upgradePhp74.sh>
+
+# <snippet-begin 0_installDepsPhp74.sh>
+# Install Php 7.4 dependencies
+installDepsPhp74 () {
+  debug "Installing PHP 7.4 dependencies"
+  PHP_ETC_BASE=/etc/php/7.4
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   checkAptLock
   sudo apt install -qy \
-  libapache2-mod-php \
-  php php-cli \
-  php-dev \
-  php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring php-zip \
-  php-redis php-gnupg \
-  php-intl php-bcmath \
-  php-gd
+  libapache2-mod-php7.4 \
+  php7.4 php7.4-cli \
+  php7.4-dev \
+  php7.4-json php7.4-xml php7.4-mysql php7.4-opcache php7.4-readline php7.4-mbstring php7.4-zip \
+  php7.4-redis php7.4-gnupg \
+  php7.4-intl php7.4-bcmath \
+  php7.4-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
@@ -121,7 +131,7 @@ installDepsPhp72 () {
   sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
   sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 }
-# <snippet-end 0_installDepsPhp72.sh>
+# <snippet-end 0_installDepsPhp74.sh>
 ```
 
 ### 3/ MISP code
