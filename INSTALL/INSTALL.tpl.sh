@@ -347,10 +347,6 @@ installSupported () {
   [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE
   progress 4
 
-  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT
-  progress 4
-
   # Disable spinner
   #(kill $SPIN_PID 2>&1) >/dev/null
 
@@ -366,6 +362,10 @@ installSupported () {
 
   # Install misp-modules - functionLocation('generic/misp-modules-debian.md')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
+  progress 4
+
+  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
+  [[ -n $CORE ]]      || [[ -n $ALL ]] && updateGOWNT
   progress 4
 
   # Install misp-modules - functionLocation('generic/misp-modules-cake.md')
@@ -665,43 +665,72 @@ installMISPRHEL () {
     space
     echo "Proceeding with MISP core installation on RHEL ${dist_version}"
     space
- 
+
     id -u "${MISP_USER}" > /dev/null
     if [[ $? -eq 1 ]]; then
       debug "Creating MISP user"
       sudo useradd -r "${MISP_USER}"
     fi 
-    
-    debug "Enabling Extras Repos (SCL)"
-    if [[ "${DISTRI}" == "rhel7" ]]; then
-      sudo subscription-manager register --auto-attach
-      enableReposRHEL
-      enableEPEL
-    else # CentOS
-      centosEPEL
+
+    # Register system if RHEL
+    if [[ "${DISTRI}" =~ ^[rhel].* ]]; then
+      registerRHEL
     fi
 
-    debug "Installing System Dependencies"
-    yumInstallCoreDeps
+    debug "Enabling Extras Repos (SCL)"
+    if [[ "${DISTRI}" == "rhel7" ]]; then
+      enableReposRHEL7
+      enableEPEL
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps
+      debug "Installing MISP code"
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Preparing Database"
+      prepareDB_RHEL
+    fi
+
+    if [[ "${DISTRI}" == "fedora33" ]]; then
+      enableREMI_f33
+      installCoreRHEL8
+      installCake_RHEL8
+      permissions_RHEL8
+      prepareDB_RHEL8
+      apacheConfig_RHEL8
+      debug "Configuring Apache"
+      apacheConfig_RHEL
+    fi
+
+    if [[ "${DIST_VER}" =~ ^[8].* ]]; then
+      enableEPEL_REMI_8
+      installCoreRHEL8
+      installCake_RHEL8
+      permissions_RHEL8
+      prepareDB_RHEL8
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DISTRI}" == "centos7" ]]; then
+      centosEPEL
+      debug "Installing MISP code"
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Preparing Database"
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL
+    fi
 
     debug "Enabling Haveged for additional entropy"
     sudo yum install haveged -y
     sudo systemctl enable --now haveged.service
 
-    debug "Installing MISP code"
-    installCoreRHEL
-
-    debug "Install Cake PHP"
-    installCake_RHEL
-
     debug "Setting File permissions"
     permissions_RHEL
-
-    debug "Preparing Database"
-    prepareDB_RHEL
-
-    debug "Configuring Apache"
-    apacheConfig_RHEL
 
     debug "Setting up firewall"
     firewall_RHEL
@@ -730,6 +759,8 @@ installMISPRHEL () {
     space
 
     mispmodulesRHEL
+    # Another sleep to avoid RC
+    sleep 3
     modulesCAKE
 
     echo "MISP modules installation finished."
