@@ -16,10 +16,13 @@
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
-#    20200513: Ubuntu 20.04 tested and working. -- sCl
-#    20200412: Ubuntu 18.04.4 tested and working. -- sCl
-#    20190302: Ubuntu 18.04.2 tested and working. -- sCl
-#    20190208: Kali Linux tested and working. -- sCl
+#  20210406: CentOS 7.9        tested and working. -- sCl
+#  20210406: CentOS 8          tested and working. -- sCl
+#  20210406: CentOS Stream     tested and working. -- sCl
+#  20210406: Ubuntu 21.04      tested and working. -- sCl
+#  20210406: Ubuntu 20.04.2    tested and working. -- sCl
+#  20210406: Ubuntu 18.04.5    tested and working. -- sCl
+#  20210331: Kali Linux 2021.1 tested and working. -- sCl
 #
 #
 #-------------------------------------------------------------------------------------------------|
@@ -96,12 +99,15 @@
 
 ## 0_RHEL_SCL.sh ##
 ## 0_CentOS_EPEL.sh ##
-## 0_RHEL_EPEL.sh ##
-## 0_yumInstallCoreDeps.sh ##
-## 1_mispCoreInstall_RHEL.sh ##
+## 0_yumInstallCoreDeps7.sh ##
+## 0_yumInstallCoreDeps8.sh ##
+## 0_yumInstallHaveged.sh ##
+## 1_mispCoreInstall_RHEL7.sh ##
+## 1_mispCoreInstall_RHEL8.sh ##
 ## 1_installCake_RHEL.sh ##
 ## 1_prepareDB_RHEL.sh ##
-## 1_apacheConfig_RHEL.sh ##
+## 1_apacheConfig_RHEL7.sh ##
+## 1_apacheConfig_RHEL8.sh ##
 ## 1_firewall_RHEL.sh ##
 ## 2_permissions_RHEL.sh ##
 ## 2_logRotation_RHEL.sh ##
@@ -190,13 +196,18 @@ generateInstaller () {
 
   perl -pe 's/^## 0_RHEL_SCL.sh ##/`cat 0_RHEL_SCL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_CentOS_EPEL.sh ##/`cat 0_CentOS_EPEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 0_RHEL_EPEL.sh ##/`cat 0_RHEL_EPEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 0_yumInstallCoreDeps.sh ##/`cat 0_yumInstallCoreDeps.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 1_mispCoreInstall_RHEL.sh ##/`cat 1_mispCoreInstall_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_EPEL.sh ##/`cat 0_RHEL7_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_EPEL_REMI.sh ##/`cat 0_EPEL_REMI.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps7.sh ##/`cat 0_yumInstallCoreDeps7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps8.sh ##/`cat 0_yumInstallCoreDeps8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallHaveged.sh ##/`cat 0_yumInstallHaveged.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL7.sh ##/`cat 1_mispCoreInstall_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL8.sh ##/`cat 1_mispCoreInstall_RHEL8.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_installCake_RHEL.sh ##/`cat 1_installCake_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_permissions_RHEL.sh ##/`cat 2_permissions_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_prepareDB_RHEL.sh ##/`cat 1_prepareDB_RHEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 1_apacheConfig_RHEL.sh ##/`cat 1_apacheConfig_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL7.sh ##/`cat 1_apacheConfig_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL8.sh ##/`cat 1_apacheConfig_RHEL8.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_firewall_RHEL.sh ##/`cat 1_firewall_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_logRotation_RHEL.sh ##/`cat 2_logRotation_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_configMISP_RHEL.sh ##/`cat 2_configMISP_RHEL.sh`/ge' -i INSTALL.tpl.sh
@@ -657,7 +668,7 @@ installMISPRHEL () {
     id -u "${MISP_USER}" > /dev/null
     if [[ $? -eq 1 ]]; then
       debug "Creating MISP user"
-      sudo useradd -r "${MISP_USER}"
+      sudo useradd -G wheel -m "${MISP_USER}"
     fi 
     
     debug "Enabling Extras Repos (SCL)"
@@ -665,8 +676,54 @@ installMISPRHEL () {
       sudo subscription-manager register --auto-attach
       enableReposRHEL
       enableEPEL
-    else # CentOS
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps7
+      installEntropyRHEL
+      debug "Installing MISP code"
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Preparing Database"
+      prepareDB_RHEL
+      apacheConfig_RHEL7
+    fi
+
+    if [[ "${DISTRI}" == "fedora33" ]]; then
+      enableREMI_f33
+      yumInstallCoreDeps8
+      installEntropyRHEL
+      installCoreRHEL8
+      installCake_RHEL
+      permissions_RHEL8
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DIST_VER}" =~ ^[8].* ]]; then
+      enableEPEL_REMI_8
+      yumInstallCoreDeps8
+      installEntropyRHEL
+      installCoreRHEL8
+      installCake_RHEL
+      permissions_RHEL8
+      prepareDB_RHEL
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DISTRI}" == "centos7" ]]; then
       centosEPEL
+      debug "Installing MISP code"
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps7
+      installEntropyRHEL
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Preparing Database"
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL7
     fi
 
     debug "Installing System Dependencies"
