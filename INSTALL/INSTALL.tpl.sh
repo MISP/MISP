@@ -711,9 +711,8 @@ installMISPRHEL () {
       installCake_RHEL8
       permissions_RHEL8
       prepareDB_RHEL8
-      apacheConfig_RHEL8
       debug "Configuring Apache"
-      apacheConfig_RHEL
+      apacheConfig_RHEL8
     fi
 
     if [[ "${DIST_VER}" =~ ^[8].* ]]; then
@@ -737,7 +736,7 @@ installMISPRHEL () {
       debug "Preparing Database"
       prepareDB_RHEL
       debug "Configuring Apache"
-      apacheConfig_RHEL
+      apacheConfig_RHEL7
     fi
 
     debug "Enabling Haveged for additional entropy"
