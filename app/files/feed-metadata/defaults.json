@@ -1546,6 +1546,44 @@
         "orgc_id": "0",
         "cached_elements": 0,
         "coverage_by_other_feeds": "0%"
+    },
+    {
+    "Feed": {
+        "name": "MalwareBazaar",
+        "provider": "Abuse.ch",
+        "url": "https:\/\/bazaar.abuse.ch\/downloads\/misp\/",
+        "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+        "enabled": false,
+        "distribution": "0",
+        "default": false,
+        "source_format": "misp",
+        "fixed_event": false,
+        "delta_merge": false,
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": false
+    },
+    {
+    "Feed": {
+        "name": "URLhaus",
+        "provider": "Abuse.ch",
+        "url": "https:\/\/urlhaus.abuse.ch\/downloads\/misp\/",
+        "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+        "enabled": false,
+        "distribution": "0",
+        "default": false,
+        "source_format": "misp",
+        "fixed_event": false,
+        "delta_merge": false,
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": false
     }
 }
 ]
