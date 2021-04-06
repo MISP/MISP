@@ -4,28 +4,10 @@
 ### -2/ RHEL7/CentOS7 - status
 -------------------------
 !!! notice
-    MISP-core and misp-modules Tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210326
+    Tested fully working without SELinux by [@SteveClement](https://twitter.com/SteveClement) on 20210401
+    TODO: Fix SELinux permissions, *pull-requests welcome*.
 
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
-
-### -1/ Installer and Manual install instructions
-
-!!! warning
-    In the **future**, to install MISP on a fresh RHEL 7 install all you need to do is:
-
-    ```bash
-    # Please check the installer options first to make the best choice for your install
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-    bash /tmp/INSTALL.sh
-
-    # This will install MISP Core
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-    bash /tmp/INSTALL.sh -c
-    ```
-    **The above does NOT fully work yet**
+{!generic/manual-install-notes.md!}
 
 !!! notice
     If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
@@ -84,7 +66,9 @@ sudo hostnamectl set-hostname misp.local # Your choice, in a production environm
 ## 1.3/ **[RHEL]** Register the system for updates with Red Hat Subscription Manager
 ```bash
 # <snippet-begin 0_RHEL_register.sh>
-sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+registerRHEL () {
+  sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+}
 # <snippet-end 0_RHEL_register.sh>
 ```
 
@@ -109,7 +93,7 @@ centosEPEL () {
   # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
   # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
   sudo yum install centos-release-scl -y
-  sudo yum install yum-utils -y
+  sudo yum install yum-utils dnf -y
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
   sudo yum-config-manager --enable remi-php74
 }
@@ -166,12 +150,12 @@ enableEPEL () {
 
 ## 2.01/ Install some base system dependencies
 ```bash
-# <snippet-begin 0_yumInstallCoreDeps.sh>
-yumInstallCoreDeps () {
+# <snippet-begin 0_yumInstallCoreDeps7.sh>
+yumInstallCoreDeps7 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
-  sudo yum install gcc git zip \
+  sudo yum install gcc git zip unzip \
                    mod_ssl \
                    redis \
                    libxslt-devel zlib-devel ssdeep-devel -y
@@ -208,15 +192,17 @@ yumInstallCoreDeps () {
 
   sudo systemctl enable --now php-fpm.service
 }
-# <snippet-end 0_yumInstallCoreDeps.sh>
+# <snippet-end 0_yumInstallCoreDeps7.sh>
 ```
 
 ```bash
 # <snippet-begin 0_yumInstallHaveged.sh>
-# GPG needs lots of entropy, haveged provides entropy
-# /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
-sudo yum install haveged -y
-sudo systemctl enable --now haveged.service
+installEntropyRHEL () {
+  # GPG needs lots of entropy, haveged provides entropy
+  # /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
+  sudo dnf install haveged -y
+  sudo systemctl enable --now haveged.service
+}
 # <snippet-end 0_yumInstallHaveged.sh>
 ```
 
@@ -340,12 +326,6 @@ installCake_RHEL ()
   sudo mkdir /usr/share/httpd/.composer
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
-  # Update composer.phar (optional)
-  #EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
-  #$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  #$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-  #$SUDO_WWW php composer-setup.php
-  #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
   sudo yum install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
@@ -449,8 +429,8 @@ prepareDB_RHEL () {
     If it is disabled, you can ignore the **chcon/setsebool/semanage/checkmodule/semodule*** commands.
 
 ```bash
-# <snippet-begin 1_apacheConfig_RHEL.sh>
-apacheConfig_RHEL () {
+# <snippet-begin 1_apacheConfig_RHEL7.sh>
+apacheConfig_RHEL7 () {
   # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
   # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
 
@@ -497,7 +477,7 @@ apacheConfig_RHEL () {
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/custom
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
 }
-# <snippet-end 1_apacheConfig_RHEL.sh>
+# <snippet-end 1_apacheConfig_RHEL7.sh>
 ```
 
 !!! warning

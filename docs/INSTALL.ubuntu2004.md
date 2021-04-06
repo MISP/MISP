@@ -1,28 +1,16 @@
 # INSTALLATION INSTRUCTIONS
 ## for Ubuntu 20.04.2.0-server
 
+{!generic/manual-install-notes.md!}
+
 ### -1/ Installer and Manual install instructions
 
 Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
-
-To install MISP on a *fresh* Ubuntu 20.04, all you need to do is the following:
-
-```bash
-# Please check the installer options first to make the best choice for your install
-wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-bash /tmp/INSTALL.sh
-
-# This will install MISP Core
-wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-bash /tmp/INSTALL.sh -c
-```
 
 ### 0/ MISP Ubuntu 20.04-server install - status
 -------------------------
 !!! notice
     Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210401 (works with **Ubuntu 19.04/20.04/21.04** too)
-
-{!generic/manual-install-notes.md!}
 
 !!! notice
     If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004/).
