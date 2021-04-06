@@ -107,8 +107,6 @@
 ## 0_yumInstallHaveged.sh ##
 ## 1_mispCoreInstall_RHEL7.sh ##
 ## 1_mispCoreInstall_RHEL8.sh ##
-## 0_yumInstallCoreDeps.sh ##
-## 1_mispCoreInstall_RHEL.sh ##
 ## 1_installCake_RHEL.sh ##
 ## 1_prepareDB_RHEL.sh ##
 ## 1_apacheConfig_RHEL7.sh ##
