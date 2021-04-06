@@ -475,7 +475,7 @@ class GalaxyClusterRelation extends AppModel
 
             $this->Event = ClassRegistry::init('Event');
             if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4) {
-                $relation['GalaxyClusterRelation'] = $this->Event->__captureSGForElement($relation['GalaxyClusterRelation'], $user);
+                $relation['GalaxyClusterRelation'] = $this->Event->captureSGForElement($relation['GalaxyClusterRelation'], $user);
             }
 
             $saveSuccess = $this->save($relation);

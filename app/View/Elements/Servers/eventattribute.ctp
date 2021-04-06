@@ -31,7 +31,6 @@
             </li>
         </ul>
     </div>
-<br />
 <div id="attributeList" class="attributeListContainer">
     <table class="table table-striped table-condensed">
         <tr>

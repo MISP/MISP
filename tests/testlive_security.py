@@ -565,6 +565,29 @@ class TestSecurity(unittest.TestCase):
 
             self.__delete_advanced_authkey(auth_key["id"])
 
+    def test_advanced_authkeys_invalid_ip(self):
+        with self.__setting("Security.advanced_authkeys", True):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id, {
+                "allowed_ips": ["1.2.3.4"],
+            })
+
+            # Try to login
+            with self.assertRaises(PyMISPError):
+                PyMISP(url, auth_key["authkey_raw"])
+
+            self.__delete_advanced_authkey(auth_key["id"])
+
+    def test_advanced_authkeys_allow_all(self):
+        with self.__setting("Security.advanced_authkeys", True):
+            auth_key = self.__create_advanced_authkey(self.test_usr.id, {
+                "allowed_ips": ["0.0.0.0/0"],
+            })
+
+            # Try to login
+            PyMISP(url, auth_key["authkey_raw"])
+
+            self.__delete_advanced_authkey(auth_key["id"])
+
     def test_authkey_keep_session(self):
         with self.__setting( "Security.authkey_keep_session", True):
             logged_in = PyMISP(url, self.test_usr.authkey)

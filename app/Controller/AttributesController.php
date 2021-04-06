@@ -2714,15 +2714,15 @@ class AttributesController extends AppController
                 } else {
                     $attribute = $attributes[0];
                 }
-                if (!$this->__canModifyTag($attribute, $local)) {
-                    $fails++;
-                    continue;
-                }
                 $eventId = $attribute['Attribute']['event_id'];
                 $event = $this->Attribute->Event->find('first', array(
                     'conditions' => array('Event.id' => $eventId),
                     'recursive' => -1
                 ));
+                if (!$this->__canModifyTag($event, $local)) {
+                    $fails++;
+                    continue;
+                }
                 if (!$this->_isRest()) {
                     $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
                 }

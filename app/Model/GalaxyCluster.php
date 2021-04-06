@@ -459,14 +459,14 @@ class GalaxyCluster extends AppModel
             $job = ClassRegistry::init('Job');
             $job->create();
             $data = array(
-                    'worker' => $this->Event->__getPrioWorkerIfPossible(),
-                    'job_type' => 'publish_galaxy_clusters',
-                    'job_input' => 'Cluster ID: ' . $clusterId,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => $user['org_id'],
-                    'org' => $user['Organisation']['name'],
-                    'message' => $message
+                'worker' => 'prio',
+                'job_type' => 'publish_galaxy_clusters',
+                'job_input' => 'Cluster ID: ' . $clusterId,
+                'status' => 0,
+                'retries' => 0,
+                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
+                'message' => $message
             );
             $job->save($data);
             $jobId = $job->id;
@@ -818,7 +818,7 @@ class GalaxyCluster extends AppModel
     {
         $this->Event = ClassRegistry::init('Event');
         if (isset($element[$model]['distribution']) && $element[$model]['distribution'] == 4) {
-            $element[$model] = $this->Event->__captureSGForElement($element[$model], $user);
+            $element[$model] = $this->Event->captureSGForElement($element[$model], $user);
         }
         // first we want to see how the creator organisation is encoded
         // The options here are either by passing an organisation object along or simply passing a string along
@@ -832,11 +832,30 @@ class GalaxyCluster extends AppModel
         return $element;
     }
 
-    public function attachExtendByInfo($user, $cluster)
+    /**
+     * @param array $user
+     * @param array $clusters
+     * @return void
+     */
+    public function attachExtendByInfo(array $user, array &$clusters)
     {
-        $extensions = $this->fetchGalaxyClusters($user, array('conditions' => array('extends_uuid' => $cluster['GalaxyCluster']['uuid'])));
-        $cluster['GalaxyCluster']['extended_by'] = $extensions;
-        return $cluster;
+        if (empty($clusters)) {
+            return;
+        }
+
+        $clusterUuids = array_column(array_column($clusters, 'GalaxyCluster'), 'uuid');
+        $extensions = $this->fetchGalaxyClusters($user, [
+            'conditions' => ['extends_uuid' => $clusterUuids],
+        ]);
+        foreach ($clusters as &$cluster) {
+            $extendedBy = [];
+            foreach ($extensions as $extension) {
+                if ($cluster['GalaxyCluster']['uuid'] === $extension['GalaxyCluster']['extends_uuid']) {
+                    $extendedBy[] = $extension;
+                }
+            }
+            $cluster['GalaxyCluster']['extended_by'] = $extendedBy;
+        }
     }
 
     public function attachExtendFromInfo($user, $cluster)
@@ -896,7 +915,7 @@ class GalaxyCluster extends AppModel
             if (!$isGalaxyTag) {
                 return null;
             }
-            $conditions = array('LOWER(GalaxyCluster.tag_name)' => strtolower($name));
+            $conditions = array('GalaxyCluster.tag_name' => $name);
         }
         $cluster = $this->fetchGalaxyClusters($user, array(
             'conditions' => $conditions,
@@ -924,7 +943,7 @@ class GalaxyCluster extends AppModel
         if (count(array_filter($namesOrIds, 'is_numeric')) === count($namesOrIds)) { // all elements are numeric
             $conditions = array('GalaxyCluster.id' => $namesOrIds);
         } else {
-            $conditions = array('LOWER(GalaxyCluster.tag_name)' => array_map('strtolower', $namesOrIds));
+            $conditions = array('GalaxyCluster.tag_name' => $namesOrIds);
         }
 
         $options = ['conditions' => $conditions];
@@ -1451,7 +1470,7 @@ class GalaxyCluster extends AppModel
         foreach ($events as $event) {
             foreach ($event['EventTag'] as $eventTag) {
                 if ($eventTag['Tag']['is_galaxy']) {
-                    $clusterTagNames[$eventTag['Tag']['id']] = strtolower($eventTag['Tag']['name']);
+                    $clusterTagNames[$eventTag['Tag']['id']] = $eventTag['Tag']['name'];
                 }
             }
         }
@@ -1461,7 +1480,7 @@ class GalaxyCluster extends AppModel
         }
 
         $options = [
-            'conditions' => ['LOWER(GalaxyCluster.tag_name)' => $clusterTagNames],
+            'conditions' => ['GalaxyCluster.tag_name' => $clusterTagNames],
             'contain' => ['Galaxy', 'GalaxyElement'],
         ];
         $clusters = $this->fetchGalaxyClusters($user, $options);

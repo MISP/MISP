@@ -1405,6 +1405,7 @@ class Attribute extends AppModel
         // prepare the conditions
         $conditions = array(
                 'Attribute.event_id !=' => $attribute['event_id'],
+                'Attribute.deleted !=' => 1,
                 );
 
         // prevent issues with empty fields
@@ -4076,10 +4077,6 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
-        if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
-            $this->Sighting = ClassRegistry::init('Sighting');
-            $this->Sighting->captureSightings($attribute['Sighting'], $attribute['id'], $eventId, $user);
-        }
         $fieldList = $this->editableFields;
         if (empty($existingAttribute)) {
             $addableFieldList = array('event_id', 'type', 'uuid');
@@ -4105,6 +4102,10 @@ class Attribute extends AppModel
             ));
             return $this->validationErrors;
         } else {
+            if (isset($attribute['Sighting']) && !empty($attribute['Sighting'])) {
+                $this->Sighting = ClassRegistry::init('Sighting');
+                $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
+            }
             if ($user['Role']['perm_tagger']) {
                 /*
                     We should uncomment the line below in the future once we have tag soft-delete
@@ -4252,7 +4253,7 @@ class Attribute extends AppModel
                     'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
-                    'timestamp' => array('function' => 'set_filter_timestamp'),
+                    'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
                     'first_seen' => array('function' => 'set_filter_seen'),
                     'last_seen' => array('function' => 'set_filter_seen'),
@@ -4865,7 +4866,7 @@ class Attribute extends AppModel
             //'remarks' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
             'travel-details' => array('desc' => __('Travel details'), 'default_category' => 'Person', 'to_ids' => 0),
             'payment-details' => array('desc' => __('Payment details'), 'default_category' => 'Person', 'to_ids' => 0),
-            'place-port-of-original-embarkation' => array('desc' => __('The orignal port of embarkation'), 'default_category' => 'Person', 'to_ids' => 0),
+            'place-port-of-original-embarkation' => array('desc' => __('The original port of embarkation'), 'default_category' => 'Person', 'to_ids' => 0),
             'place-port-of-clearance' => array('desc' => __('The port of clearance'), 'default_category' => 'Person', 'to_ids' => 0),
             'place-port-of-onward-foreign-destination' => array('desc' => __('A Port where the passenger is transiting to'), 'default_category' => 'Person', 'to_ids' => 0),
             'passenger-name-record-locator-number' => array('desc' => __('The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.'), 'default_category' => 'Person', 'to_ids' => 0),

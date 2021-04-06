@@ -912,7 +912,7 @@ class EventReport extends AppModel
             if ($tagId === -1) {
                 $tagId = $this->EventTag->Tag->captureTag(['name' => $tagName], $user);
             }
-            $this->EventTag->attachTagToEvent($eventId, $tagId);
+            $this->EventTag->attachTagToEvent($eventId, ['id' => $tagId]);
         }
     }
 

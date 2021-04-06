@@ -590,13 +590,7 @@ class EventsController extends AppController
                         $searchTermInternal = $searchTerm;
                         if ($searchTerm == 'threatlevel') {
                             $searchTermInternal = 'threat_level_id';
-                            $threatLevels = $this->Event->ThreatLevel->find('all', array(
-                                'recursive' => -1,
-                                'fields' => array('id', 'name'),
-                            ));
-                            foreach ($threatLevels as $tl) {
-                                $terms[$tl['ThreatLevel']['id']] = $tl['ThreatLevel']['name'];
-                            }
+                            $terms = $this->Event->ThreatLevel->listThreatLevels();
                         } elseif ($searchTerm == 'analysis') {
                             $terms = $this->Event->analysisLevels;
                         } else {
@@ -838,27 +832,7 @@ class EventsController extends AppController
             return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
         }
 
-        $user = $this->Auth->user();
-        $user = $this->Event->User->fillKeysToUser($user);
-
-        if (empty($user['gpgkey']) && Configure::read('GnuPG.onlyencrypted')) {
-            // No GnuPG
-            if (Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
-                // No GnuPG and No SMIME
-                $this->Flash->info(__('No X.509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile.'));
-            } elseif (!Configure::read('SMIME.enabled')) {
-                $this->Flash->info(__('No GnuPG key set in your profile. To receive emails, submit your public key in your profile.'));
-            }
-        } elseif ($this->Auth->user('autoalert') && empty($user['gpgkey']) && Configure::read('GnuPG.bodyonlyencrypted')) {
-            // No GnuPG & autoalert
-            if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
-                // No GnuPG and No SMIME & autoalert
-                $this->Flash->info(__('No X.509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile.'));
-            } elseif (!Configure::read('SMIME.enabled')) {
-                $this->Flash->info(__('No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
-            }
-        }
-
+        $this->__noKeyNotification();
         $this->set('events', $events);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
@@ -873,6 +847,34 @@ class EventsController extends AppController
             $this->autoRender = false;
             $this->layout = false;
             $this->render('ajax/index');
+        }
+    }
+
+    private function __noKeyNotification()
+    {
+        $onlyEncrypted = Configure::read('GnuPG.onlyencrypted');
+        $bodyOnlyEncrypted = Configure::read('GnuPG.bodyonlyencrypted');
+        if (!$onlyEncrypted && !$bodyOnlyEncrypted) {
+            return;
+        }
+
+        $user = $this->Event->User->fillKeysToUser($this->Auth->user());
+        if (!empty($user['gpgkey'])) {
+            return; // use has PGP key
+        }
+
+        if ($onlyEncrypted) {
+            if (Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
+                $this->Flash->info(__('No X.509 certificate or PGP key set in your profile. To receive emails, submit your public certificate or PGP key in your profile.'));
+            } elseif (!Configure::read('SMIME.enabled')) {
+                $this->Flash->info(__('No PGP key set in your profile. To receive emails, submit your public key in your profile.'));
+            }
+        } elseif ($bodyOnlyEncrypted && $user['autoalert']) {
+            if (Configure::read('SMIME.enabled') && empty($user['certif_public'])) {
+                $this->Flash->info(__('No X.509 certificate or PGP key set in your profile. To receive attributes in emails, submit your public certificate or PGP key in your profile.'));
+            } elseif (!Configure::read('SMIME.enabled')) {
+                $this->Flash->info(__('No PGP key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
+            }
         }
     }
 
@@ -1224,6 +1226,11 @@ class EventsController extends AppController
         $this->render('/Elements/eventattribute');
     }
 
+    /**
+     * @param array $event
+     * @param bool $continue
+     * @param int $fromEvent
+     */
     private function __viewUI($event, $continue, $fromEvent)
     {
         $this->loadModel('Taxonomy');
@@ -1278,9 +1285,9 @@ class EventsController extends AppController
         // set the pivot data
         $this->helpers[] = 'Pivot';
         if ($continue) {
-            $data = $this->__continuePivoting($event['Event']['id'], $event['Event']['info'], $event['Event']['date'], $fromEvent);
+            $this->__continuePivoting($event['Event']['id'], $event['Event']['info'], $event['Event']['date'], $fromEvent);
         } else {
-            $data = $this->__startPivoting($event['Event']['id'], $event['Event']['info'], $event['Event']['date']);
+            $this->__startPivoting($event['Event']['id'], $event['Event']['info'], $event['Event']['date']);
         }
         $pivot = $this->Session->read('pivot_thread');
         $this->__arrangePivotVertical($pivot);
@@ -1626,24 +1633,61 @@ class EventsController extends AppController
         $this->__viewUI($event, $continue, $fromEvent);
     }
 
+    /**
+     * @param int $id
+     * @param string $info
+     * @param string $date
+     */
     private function __startPivoting($id, $info, $date)
     {
-        $this->Session->write('pivot_thread', null);
-        $initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'height' => 0, 'children' => array(), 'deletable' => true);
-        $this->Session->write('pivot_thread', $initial_pivot);
+        $initialPivot = [
+            'id' => $id,
+            'info' => $info,
+            'date' => $date,
+            'depth' => 0,
+            'height' => 0,
+            'children' => [],
+            'deletable' => true,
+        ];
+        $this->Session->write('pivot_thread', $initialPivot);
     }
 
+    /**
+     * @param int $id
+     * @param string $info
+     * @param string $date
+     * @param int $fromEvent
+     */
     private function __continuePivoting($id, $info, $date, $fromEvent)
     {
         $pivot = $this->Session->read('pivot_thread');
-        $newPivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => null, 'children' => array(), 'deletable' => true);
+        if (!is_array($pivot)) {
+            $this->__startPivoting($id, $info, $date);
+            return;
+        }
+
+        $newPivot = [
+            'id' => $id,
+            'info' => $info,
+            'date' => $date,
+            'depth' => null,
+            'children' => [],
+            'deletable' => true,
+        ];
         if (!$this->__checkForPivot($pivot, $id)) {
             $pivot = $this->__insertPivot($pivot, $fromEvent, $newPivot, 0);
         }
         $this->Session->write('pivot_thread', $pivot);
     }
 
-    private function __insertPivot($pivot, $oldId, $newPivot, $depth)
+    /**
+     * @param array $pivot
+     * @param int $oldId
+     * @param array $newPivot
+     * @param int $depth
+     * @return array
+     */
+    private function __insertPivot(array $pivot, $oldId, array $newPivot, $depth)
     {
         $depth++;
         if ($pivot['id'] == $oldId) {
@@ -1659,7 +1703,12 @@ class EventsController extends AppController
         return $pivot;
     }
 
-    private function __checkForPivot($pivot, $id)
+    /**
+     * @param array $pivot
+     * @param int $id
+     * @return bool
+     */
+    private function __checkForPivot(array $pivot, $id)
     {
         if ($id == $pivot['id']) {
             return true;
@@ -4645,7 +4694,7 @@ class EventsController extends AppController
             $this->render('/Elements/view_galaxy_matrix');
         }
     }
-    
+
     // Displays all the cluster relations for the provided event
     public function viewClusterRelations($eventId)
     {
@@ -4710,8 +4759,7 @@ class EventsController extends AppController
         );
 
         $this->set('events', $this->paginate());
-        $threat_levels = $this->Event->ThreatLevel->find('all');
-        $this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
@@ -4938,6 +4986,7 @@ class EventsController extends AppController
         if (!$event) {
             throw new NotFoundException(__('Invalid event.'));
         }
+        $mayModify = $this->__canModifyEvent($event);
         $eventId = $event['Event']['id'];
 
         $this->loadModel('Module');
@@ -5108,7 +5157,7 @@ class EventsController extends AppController
         $this->set('module', $module);
         $this->set('eventId', $eventId);
         $this->set('event', $event);
-        $this->set('mayModify', $this->__canModifyEvent($event));
+        $this->set('mayModify', $mayModify);
     }
 
     public function exportModule($module, $id, $standard = false)
@@ -5318,7 +5367,7 @@ class EventsController extends AppController
             throw new MethodNotAllowedException('This endpoint requires a POST request.');
         }
 
-        $event = $this->Event->fetchSimpleEvent($this->Auth->User(), $id);
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid Event'));
         }
@@ -5663,14 +5712,14 @@ class EventsController extends AppController
                 $job = ClassRegistry::init('Job');
                 $job->create();
                 $data = array(
-                        'worker' => $this->Event->__getPrioWorkerIfPossible(),
-                        'job_type' => $job_type,
-                        'job_input' => sprintf('Event ID: %s', $id),
-                        'status' => 0,
-                        'retries' => 0,
-                        'org_id' => 0,
-                        'org' => 'ADMIN',
-                        'message' => $message
+                    'worker' => 'prio',
+                    'job_type' => $job_type,
+                    'job_input' => sprintf('Event ID: %s', $id),
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => 0,
+                    'org' => 'ADMIN',
+                    'message' => $message
                 );
                 $job->save($data);
                 $jobId = $job->id;

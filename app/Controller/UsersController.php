@@ -1294,24 +1294,22 @@ class UsersController extends AppController
 
     public function resetauthkey($id = null, $alert = false)
     {
-        if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
-            throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
-        }
         if (!$this->request->is('post') && !$this->request->is('put')) {
             throw new MethodNotAllowedException(__('This functionality is only accessible via POST requests.'));
         }
-        if ($id == 'me') {
+        if ($id === 'me') {
             $id = $this->Auth->user('id');
+            // Reset just current auth key
+            $keyId = isset($this->Auth->user()['authkey_id']) ? $this->Auth->user()['authkey_id'] : null;
+        } else {
+            $keyId = null;
         }
-        if (!$this->userRole['perm_auth']) {
-            throw new MethodNotAllowedException(__('Invalid action.'));
-        }
-        $newkey = $this->User->resetauthkey($this->Auth->user(), $id, $alert);
+        $newkey = $this->User->resetauthkey($this->Auth->user(), $id, $alert, $keyId);
         if ($newkey === false) {
             throw new MethodNotAllowedException(__('Invalid user.'));
         }
         if (!$this->_isRest()) {
-            $this->Flash->success(__('New authkey generated.', true));
+            $this->Flash->success(__('New authkey generated.'));
             $this->redirect($this->referer());
         } else {
             return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'Authkey updated: ' . $newkey);

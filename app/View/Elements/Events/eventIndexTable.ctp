@@ -91,7 +91,7 @@
             </td>
         <?php endif; ?>
         <td style="width:30px;">
-            <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
+            <a href="<?= $baseurl."/events/view/".$event['Event']['id'] ?>" class="threat-level-<?= strtolower($event['ThreatLevel']['name']) ?>"><?= $event['Event']['id'] ?></a>
         </td>
         <td class="short">
             <?php
@@ -106,10 +106,11 @@
                         unset($galaxy_cluster['Galaxy']);
                         $galaxies[$galaxy_id]['GalaxyCluster'][] = $galaxy_cluster;
                     }
-                    echo $this->element('galaxyQuickViewMini', array(
+                    echo $this->element('galaxyQuickViewNew', array(
                       'mayModify' => false,
                       'isAclTagger' => false,
                       'data' => $galaxies,
+                      'event' => $event,
                       'target_id' => $event['Event']['id'],
                       'target_type' => 'event',
                       'static_tags_only' => 1
@@ -127,6 +128,7 @@
                             'event' => $event,
                             'tags' => $event['EventTag'],
                             'tagAccess' => false,
+                            'localTagAccess' => false,
                             'missingTaxonomies' => false,
                             'columnised' => true,
                             'static_tags_only' => 1,
