@@ -129,8 +129,8 @@ enableREMI_f33 () {
 
 ## 2.01/ Install some base system dependencies
 ```bash
-# <snippet-begin 0_yumInstallCoreDeps.sh>
-yumInstallCoreDeps () {
+# <snippet-begin 0_yumInstallCoreDeps8.sh>
+yumInstallCoreDeps8 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
@@ -166,7 +166,7 @@ yumInstallCoreDeps () {
   # cake has php baked in, thus we link to it if necessary.
   [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
 }
-# <snippet-end 0_yumInstallCoreDeps.sh>
+# <snippet-end 0_yumInstallCoreDeps8.sh>
 ```
 
 ```bash

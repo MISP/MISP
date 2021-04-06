@@ -150,7 +150,7 @@ enableEPEL () {
 
 ## 2.01/ Install some base system dependencies
 ```bash
-# <snippet-begin 0_yumInstallCoreDeps.sh>
+# <snippet-begin 0_yumInstallCoreDeps7.sh>
 yumInstallCoreDeps7 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
@@ -192,7 +192,7 @@ yumInstallCoreDeps7 () {
 
   sudo systemctl enable --now php-fpm.service
 }
-# <snippet-end 0_yumInstallCoreDeps.sh>
+# <snippet-end 0_yumInstallCoreDeps7.sh>
 ```
 
 ```bash
