@@ -21,6 +21,10 @@ MISP - Threat Intelligence Sharing Platform
   <td><a href="https://twitter.com/MISPProject"><img src="https://img.shields.io/twitter/follow/MISPProject.svg?style=social&label=Follow" /></a></td>
 </tr>
 <tr>
+  <td>Localization</td>
+  <td><a href="https://crowdin.com/project/misp"><img src="https://badges.crowdin.net/misp/localized.svg" /></a></td>
+</tr>
+<tr>
   <td>Contributors</td>
   <td><img src="https://img.shields.io/github/contributors/MISP/MISP.svg" /></td>
 </tr>

@@ -5,7 +5,8 @@ App::uses('AppModel', 'Model');
 class EventLock extends AppModel
 {
     // In seconds
-    const DEFAULT_TTL = 900;
+    const DEFAULT_TTL = 900,
+        PREFIX = 'misp:event_lock';
 
     /**
      * @param array $user
@@ -14,7 +15,7 @@ class EventLock extends AppModel
      */
     public function insertLock(array $user, $eventId)
     {
-        return $this->insertLockToRedis("misp:event_lock:$eventId:user:{$user['id']}", [
+        return $this->insertLockToRedis($eventId, "user:{$user['id']}", [
             'type' => 'user',
             'timestamp' => time(),
             'User' => [
@@ -32,7 +33,7 @@ class EventLock extends AppModel
      */
     public function insertLockBackgroundJob($eventId, $jobId)
     {
-        return $this->insertLockToRedis("misp:event_lock:$eventId:job:$jobId", [
+        return $this->insertLockToRedis($eventId, "job:$jobId", [
             'type' => 'job',
             'timestamp' => time(),
             'job_id' => $jobId,
@@ -45,21 +46,38 @@ class EventLock extends AppModel
      */
     public function insertLockApi($eventId, array $user)
     {
-        $rand = mt_rand();
-        if ($this->insertLockToRedis("misp:event_lock:$eventId:api:{$user['id']}:$rand", [
+        $apiLockId = mt_rand();
+        if ($this->insertLockToRedis($eventId, "api:{$user['id']}:$apiLockId", [
             'type' => 'api',
             'user_id' => $user['id'],
             'timestamp' => time(),
         ])) {
-            return $rand;
+            return $apiLockId;
         }
         return null;
     }
 
     /**
      * @param int $eventId
+     * @param int $apiLockId
+     * @return bool
+     */
+    public function deleteApiLock($eventId, $apiLockId, array $user)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+
+        $deleted = $redis->hdel(self::PREFIX . $eventId, "api:{$user['id']}:$apiLockId");
+        return $deleted > 0;
+    }
+
+    /**
+     * @param int $eventId
      * @param int $jobId
-     * @return null
+     * @return bool
      */
     public function deleteBackgroundJobLock($eventId, $jobId)
     {
@@ -69,40 +87,7 @@ class EventLock extends AppModel
             return false;
         }
 
-        $deleted = $redis->del("misp:event_lock:$eventId:job:$jobId");
-        return $deleted > 0;
-    }
-
-    /**
-     * @param string $key
-     * @param array $data
-     * @return bool
-     */
-    private function insertLockToRedis($key, array $data)
-    {
-        try {
-            $redis = $this->setupRedisWithException();
-        } catch (Exception $e) {
-            return false;
-        }
-
-        return $redis->setex($key, self::DEFAULT_TTL, json_encode($data));
-    }
-
-    /**
-     * @param int $eventId
-     * @param int $lockId
-     * @return bool
-     */
-    public function deleteApiLock($eventId, $lockId, array $user)
-    {
-        try {
-            $redis = $this->setupRedisWithException();
-        } catch (Exception $e) {
-            return false;
-        }
-
-        $deleted = $redis->del("misp:event_lock:$eventId:api:{$user['id']}:$lockId");
+        $deleted = $redis->hDel(self::PREFIX . $eventId, "job:$jobId");
         return $deleted > 0;
     }
 
@@ -120,13 +105,39 @@ class EventLock extends AppModel
             return [];
         }
 
-        $keys = $redis->keys("misp:event_lock:$eventId:*");
+        $keys = $redis->hGetAll(self::PREFIX . $eventId);
         if (empty($keys)) {
             return [];
         }
 
-        return array_map(function ($value) {
-            return $this->jsonDecode($value);
-        }, $redis->mget($keys));
+        $output = [];
+        $now = time();
+        foreach ($keys as $value) {
+            $value = $this->jsonDecode($value);
+            if ($value['timestamp'] + self::DEFAULT_TTL > $now) {
+                $output[] = $value;
+            }
+        }
+        return $output;
+    }
+
+    /**
+     * @param int $eventId
+     * @param string $lockId
+     * @param array $data
+     * @return bool
+     */
+    private function insertLockToRedis($eventId, $lockId, array $data)
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            return false;
+        }
+
+        $pipeline = $redis->pipeline();
+        $pipeline->hSet(self::PREFIX . $eventId, $lockId, json_encode($data));
+        $pipeline->expire(self::PREFIX . $eventId, self::DEFAULT_TTL); // prolong TTL
+        return $pipeline->exec()[0] !== false;
     }
 }

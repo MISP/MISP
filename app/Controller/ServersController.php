@@ -124,8 +124,7 @@ class ServersController extends AppController
         }
 
         $this->loadModel('Event');
-        $threat_levels = $this->Event->ThreatLevel->find('list', ['fields' => ['id', 'name']]);
-        $this->set('threatLevels', $threat_levels);
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
@@ -182,6 +181,7 @@ class ServersController extends AppController
 
         $this->loadModel('Event');
         $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+        $this->__removeGalaxyClusterTags($event);
         $this->params->params['paging'] = array('Server' => $params);
         $this->set('event', $event);
         $this->set('server', $server);
@@ -202,9 +202,28 @@ class ServersController extends AppController
                 $this->set($alias, $currentModel->{$variable});
             }
         }
-        $threat_levels = $this->Event->ThreatLevel->find('list', ['fields' => ['id', 'name']]);
-        $this->set('threatLevels', $threat_levels);
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         $this->set('title_for_layout', __('Remote event preview'));
+    }
+
+    private function __removeGalaxyClusterTags(array &$event)
+    {
+        $galaxyTagIds = [];
+        foreach ($event['Galaxy'] as $galaxy) {
+            foreach ($galaxy['GalaxyCluster'] as $galaxyCluster) {
+                $galaxyTagIds[$galaxyCluster['tag_id']] = true;
+            }
+        }
+
+        if (empty($galaxyTagIds)) {
+            return;
+        }
+
+        foreach ($event['Tag'] as $k => $eventTag) {
+            if (isset($galaxyTagIds[$eventTag['id']])) {
+                unset($event['Tag'][$k]);
+            }
+        }
     }
 
     public function compareServers()
@@ -2435,9 +2454,9 @@ misp.direct_call(relative_path, body)
         }
 
         $message = 'CSP reported violation';
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: 'REMOTE_ADDR';
-        if (isset($_SERVER[$ipHeader])) {
-            $message .= ' from IP ' . $_SERVER[$ipHeader];
+        $remoteIp = $this->_remoteIp();
+        if ($remoteIp) {
+            $message .= ' from IP ' . $remoteIp;
         }
         $this->log("$message: " . json_encode($report['csp-report'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 

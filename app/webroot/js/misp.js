@@ -1827,6 +1827,8 @@ function popoverPopup(clicked, id, context, target, admin) {
 
 // create a confirm popover on the clicked html node.
 function popoverConfirm(clicked, message, placement) {
+    event.preventDefault();
+
     var $clicked = $(clicked);
     var popoverContent = '<div>';
         popoverContent += message === undefined ? '' : '<p>' + message + '</p>';
@@ -2801,6 +2803,12 @@ function moduleResultsSubmit(id) {
             if ($(this).has('.TemplateUUID').length) {
                 temp['template_uuid'] = $(this).find('.TemplateUUID').text();
             }
+            if ($(this).has('.ObjectFirstSeen').length) {
+                temp['first_seen'] = $(this).find('.ObjectFirstSeen').text();
+            }
+            if ($(this).has('.ObjectLastSeen').length) {
+                temp['last_seen'] = $(this).find('.ObjectLastSeen').text();
+            }
             if ($(this).has('.ObjectReference').length) {
                 var references = [];
                 $(this).find('.ObjectReference').each(function() {
@@ -2841,7 +2849,8 @@ function moduleResultsSubmit(id) {
                         $(this).find('.objectAttributeTag').each(function() {
                             tags.push({
                                 name: $(this).attr('title'),
-                                colour: rgb2hex($(this).css('background-color'))
+                                colour: rgb2hex($(this).css('background-color')),
+                                local: $(this).data('local'),
                             });
                         });
                         attribute['Tag'] = tags;
@@ -2900,7 +2909,8 @@ function moduleResultsSubmit(id) {
                 $(this).find('.attributeTag').each(function() {
                     tags.push({
                         name: $(this).attr('title'),
-                        colour: rgb2hex($(this).css('background-color'))
+                        colour: rgb2hex($(this).css('background-color')),
+                        local: $(this).data('local'),
                     });
                 });
                 temp['Tag'] = tags;
@@ -4708,15 +4718,18 @@ $(document).ready(function() {
         }
     });
 
-    // For galaxyQuickViewMini.ctp
-    $('.expandable[data-clusterid]')
-        .on('click', function() {
-            loadClusterRelations($(this).data('clusterid'));
-        })
-        .popover({
-            html: true,
-            trigger: 'hover'
-        });
+    // For galaxyQuickViewNew.ctp
+    $(document.body).on('click', '*[data-clusterid]', function() {
+        loadClusterRelations($(this).data('clusterid'));
+    });
+    $(document.body).popover({
+        selector: '.galaxyQuickView ul li b',
+        html: true,
+        trigger: 'hover',
+        container: 'body',
+    }).on('shown', function() {
+        $('.tooltip').not(":last").remove();
+    });
 
     if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
         var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
@@ -4808,7 +4821,7 @@ $(document.body).on('click', 'a[data-paginator]', function (e) {
 });
 
 function queryEventLock(event_id) {
-    if (tabIsActive) {
+    if (!document.hidden) {
         $.ajax({
             url: baseurl + "/events/checkLocks/" + event_id,
             type: "get",
@@ -4826,7 +4839,7 @@ function queryEventLock(event_id) {
 }
 
 function checkIfLoggedIn() {
-    if (tabIsActive) {
+    if (!document.hidden) {
         $.get(baseurl + "/users/checkIfLoggedIn.json")
             .fail(function (xhr) {
                 if (xhr.status === 403) {
@@ -5298,7 +5311,8 @@ function submitGenericFormInPlace() {
             $('#genericModal').modal('hide').remove();
             $('body').append(data);
             $('#genericModal').modal();
-        }
+        },
+        error: xhrFailCallback,
     });
 }
 

@@ -155,12 +155,13 @@ checkFlavour () {
       fi
       echo "${FLAVOUR} support is experimental at the moment"
     ;;
-    rhel|ol|sles)
+    rhel|ol|sles|fedora)
       if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+        # FIXME: On fedora the trimming fails
         dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
-	dist_version=${dist_version:0:1}  # Only interested about major version
+        dist_version=${dist_version:0:1}  # Only interested about major version
       fi
-      # Only tested for RHEL 7 so far 
+      # FIXME: Only tested for RHEL 7 so far 
       echo "${FLAVOUR} support is experimental at the moment"
     ;;
     *)
@@ -230,7 +231,7 @@ EOF
 
 checkInstaller () {
   # Workaround: shasum is not available on RHEL, only checking sha512
-  if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]]; then
+  if [[ "${FLAVOUR}" == "rhel" ]] || [[ "${FLAVOUR}" == "centos" ]] || [[ "${FLAVOUR}" == "fedora" ]]; then
   INSTsum=$(sha512sum ${0} | cut -f1 -d\ )
   /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha512 https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha512
         chsum=$(cat /tmp/INSTALL.sh.sha512)
@@ -672,6 +673,8 @@ installDepsPhp70 () {
   do
       sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
 }
 # <snippet-end 0_installDepsPhp70.sh>
 
@@ -976,6 +979,30 @@ theEnd () {
     sudo su - ${MISP_USER}
   fi
 }
-## End Function Section Nothing allowed in .md after this line ##
 # <snippet-end 0_support-functions.sh>
+# <snippet-begin 0_installDepsPhp72.sh>
+# Install Php 7.2 dependencies
+installDepsPhp72 () {
+  debug "Installing PHP 7.2 dependencies"
+  PHP_ETC_BASE=/etc/php/7.2
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  checkAptLock
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php7.2-opcache php-readline php-mbstring php-zip \
+  php-redis php-gnupg \
+  php-intl php-bcmath \
+  php-gd
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+  sudo sed -i "s/^\(session.sid_length\).*/\1 = $(eval echo \${session0sid_length})/" $PHP_INI
+  sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = $(eval echo \${session0use_strict_mode})/" $PHP_INI
+}
+## End Function Section Nothing allowed in .md after this line ##
+# <snippet-end 0_installDepsPhp72.sh>
 ```

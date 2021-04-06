@@ -1,7 +1,7 @@
 <?php
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [
-        'title' => __('Add auth key'),
+        'title' => isset($edit) ? __('Edit auth key') : __('Add auth key'),
         'description' => __('Auth keys are used for API access. A user can have more than one authkey, so if you would like to use separate keys per tool that queries MISP, add additional keys. Use the comment field to make identifying your keys easier.'),
         'fields' => [
             [
@@ -13,7 +13,14 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'comment',
                 'label' => __('Comment'),
-                'class' => 'span6'
+                'class' => 'span6',
+                'rows' => 4,
+            ],
+            [
+                'field' => 'allowed_ips',
+                'label' => __('Allowed IPs'),
+                'class' => 'span6',
+                'rows' => 4,
             ],
             [
                 'field' => 'expiration',

@@ -558,8 +558,8 @@ class GalaxiesController extends AppController
         if (empty($clusters)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }
+        $this->Galaxy->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
         foreach ($clusters as $k => $cluster) {
-            $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters[$k]);
             $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
         }
         $galaxy = $this->Galaxy->find('first', array(

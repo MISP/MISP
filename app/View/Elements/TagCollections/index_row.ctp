@@ -20,7 +20,7 @@
         </td>
         <td class="shortish">
           <?php
-            echo $this->element('galaxyQuickViewMini', array(
+            echo $this->element('galaxyQuickViewNew', array(
               'mayModify' => ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']),
               'isAclTagger' => $me['Role']['perm_tagger'],
               'data' => $item['Galaxy'],

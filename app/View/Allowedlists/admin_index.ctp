@@ -1,6 +1,6 @@
 <div class="allowedlist index">
     <h2><?php echo __('Signature Allowedlist');?></h2>
-    <p><?php echo __('Regex entries (in the standard php regex /{regex}/{modifier} format) entered below will restrict matching attributes from being included in the IDS flag sensitive exports (such as NIDS exports).');?></p>
+    <p><?php echo __('Regex entries (in the standard php regex /{regex}/{modifier} format) entered below will restrict matching attributes from being included and data sets retrieved through restSearch.');?></p>
     <div class="pagination">
         <ul>
         <?php

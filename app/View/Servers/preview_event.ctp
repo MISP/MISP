@@ -57,7 +57,7 @@ $tableData[] = [
         if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
         $serverName = $server['Server']['name'] ? '"' . $server['Server']['name'] . '" (' . $server['Server']['url'] . ')' : '"' . $server['Server']['url'] . '"';
     ?>
-    <h4 class="visibleDL notPublished" ><?php echo __('You are currently viewing an event on the remote instance %s ', h($serverName));?></h4>
+    <h4 class="visibleDL notPublished"><?php echo __('You are currently viewing an event on the remote instance %s ', h($serverName));?></h4>
     <div class="row-fluid">
         <div class="span8">
             <h2><?php echo nl2br(h($title)); ?></h2>
@@ -93,6 +93,16 @@ $tableData[] = [
     <?php endif; ?>
     </div>
     <br />
+    <?php if (!empty($event['Galaxy'])): ?>
+    <div id="galaxies_div">
+        <span class="title-section"><?= __('Galaxies') ?></span>
+        <?= $this->element('galaxyQuickViewNew', [
+            'data' => $event['Galaxy'],
+            'event' => $event,
+            'preview' => true,
+        ]); ?>
+    </div>
+    <?php endif; ?>
     <div id="attributes_div">
         <?php echo $this->element('Servers/eventattribute'); ?>
     </div>

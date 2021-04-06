@@ -526,4 +526,3 @@
     </ul>
   </div>
 </div>
-<input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />

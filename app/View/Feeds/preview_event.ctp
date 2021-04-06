@@ -1,71 +1,56 @@
+<?php
+$tableData = [
+    ['key' => __('UUID'), 'value' => $event['Event']['uuid'], 'class' => 'quickSelect'],
+    ['key' => Configure::read('MISP.showorgalternate') ? __('Source Organisation') : __('Org'), 'value' => $event['Orgc']['name']],
+];
+if (Configure::read('MISP.tagging')) {
+    ob_start();
+    if (!empty($event['Tag'])): foreach ($event['Tag'] as $tag): ?>
+    <span style="padding-right:0;">
+        <span class="tagFirstHalf" style="background-color:<?= h($tag['colour']);?>;color:<?= $this->TextColour->getTextColour($tag['colour']);?>"><?= h($tag['name']); ?></span>
+    </span>
+    <?php endforeach; endif;
+    $tags = ob_get_clean();
+
+    $tableData[] = ['key' => __('Tags'), 'html' => $tags];
+}
+$tableData[] = ['key' => __('Date'), 'html' => $this->Time->time($event['Event']['date'])];
+$tableData[] = [
+    'key' => __('Threat Level'),
+    'key_title' => $eventDescriptions['threat_level_id']['desc'],
+    'value' => $threatLevels[$event['Event']['threat_level_id']],
+    'value_class' => 'threat-level-' . strtolower($threatLevels[$event['Event']['threat_level_id']]),
+];
+$tableData[] = [
+    'key' => __('Analysis'),
+    'key_title' => $eventDescriptions['analysis']['desc'],
+    'value' => $analysisLevels[$event['Event']['analysis']],
+];
+$tableData[] = [
+    'key' => __('Info'),
+    'value' => $event['Event']['info']
+];
+$tableData[] = [
+    'key' => __('Published'),
+    'class' => $event['Event']['published'] == 0 ? 'background-red bold not-published' : 'published',
+    'class_value' => $event['Event']['published'] == 0 ? '' : 'green',
+    'html' => $event['Event']['published'] == 0 ? __('No') : sprintf('<span class="green bold">%s</span>', __('Yes')),
+];
+$tableData[] = [
+    'key' => __('Last change'),
+    'html' => $this->Time->time($event['Event']['timestamp']),
+];
+?>
 <div class="events view">
     <?php
         $title = $event['Event']['info'];
         if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
     ?>
-    <h4 class="visibleDL notPublished" ><?php echo __('You are currently viewing an event from a feed (%s by %s)', h($feed['Feed']['name']), h($feed['Feed']['provider']));?></h4>
+    <h4 class="visibleDL notPublished" ><?= __('You are currently viewing an event from a feed (%s by %s)', h($feed['Feed']['name']), h($feed['Feed']['provider']));?></h4>
     <div class="row-fluid">
         <div class="span8">
             <h2><?php echo nl2br(h($title)); ?></h2>
-            <dl>
-                <dt><?php echo __('UUID');?></dt>
-                <dd><?php echo h($event['Event']['uuid']); ?></dd>
-                <dt><?php echo Configure::read('MISP.showorgalternate') ? __('Source Organisation') : __('Org')?></dt>
-                <dd><?php echo h($event['Orgc']['name']); ?></dd>
-                <?php if (Configure::read('MISP.tagging')): ?>
-                    <dt><?php echo __('Tags');?></dt>
-                    <dd class="eventTagContainer">
-                    <?php if (!empty($event['Tag'])) foreach ($event['Tag'] as $tag): ?>
-                        <span style="padding-right:0px;">
-                            <span class="tagFirstHalf" style="background-color:<?php echo isset($tag['colour']) ? h($tag['colour']) : 'red';?>;color:<?php echo $this->TextColour->getTextColour(isset($tag['colour']) ? h($tag['colour']) : 'red'); ?>"><?php echo h($tag['name']); ?></span>
-                        </span>
-                    <?php endforeach; ?>&nbsp;
-                    </dd>
-                <?php endif; ?>
-                <dt><?php echo __('Date');?></dt>
-                <dd>
-                    <?php echo h($event['Event']['date']); ?>
-                    &nbsp;
-                </dd>
-                <dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo __('Threat Level');?></dt>
-                <dd>
-                    <?php
-                        echo h($threatLevels[$event['Event']['threat_level_id']]);
-                    ?>
-                    &nbsp;
-                </dd>
-                <dt title="<?php echo $eventDescriptions['analysis']['desc'];?>"><?php echo __('Analysis');?></dt>
-                <dd>
-                    <?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
-                    &nbsp;
-                </dd>
-                <dt><?php echo __('Info');?></dt>
-                <dd style="word-wrap: break-word;">
-                    <?php echo nl2br(h($event['Event']['info'])); ?>
-                    &nbsp;
-                </dd>
-                <?php
-                    $published = '';
-                    $notPublished = 'style="display:none;"';
-                    if ($event['Event']['published'] == 0) {
-                        $published = 'style="display:none;"';
-                        $notPublished = '';
-                    }
-                ?>
-                        <dt class="published" <?php echo $published;?>><?php echo __('Published');?></dt>
-                        <dd class="published green" <?php echo $published;?>><?php echo __('Yes');?></dd>
-                <?php
-                    if ($isAclPublish) :
-                ?>
-                        <dt class="visibleDL notPublished" <?php echo $notPublished;?>><?php echo __('Published');?></dt>
-                        <dd class="visibleDL notPublished" <?php echo $notPublished;?>><?php echo __('No');?></dd>
-                <?php
-                    else:
-                ?>
-                        <dt class="notPublished" <?php echo $notPublished;?>><?php echo __('Published');?></dt>
-                        <dd class="notPublished red" <?php echo $notPublished;?>><?php echo __('No');?></dd>
-                <?php endif; ?>
-            </dl>
+            <?= $this->element('genericElements/viewMetaTable', array('table_data' => $tableData)); ?>
         </div>
 
     <?php if (!empty($event['RelatedEvent'])):?>
@@ -96,12 +81,10 @@
         <?php echo $this->element('Feeds/eventattribute'); ?>
     </div>
 </div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewEvent', 'id' => $event['Event']['uuid']));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewEvent', 'id' => $event['Event']['uuid'])); ?>
 <script type="text/javascript">
 // tooltips
-$(document).ready(function () {
+$(function () {
     $("th, td, dt, div, span, li").tooltip({
         'placement': 'top',
         'container' : 'body',

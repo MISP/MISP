@@ -22,6 +22,7 @@
                         'scope' => 'feed',
                         'tags' => array(array('Tag' => $feed['Tag'])),
                         'tagAccess' => false,
+                        'localTagAccess' => false,
                         'static_tags_only' => true
                     )
                 )

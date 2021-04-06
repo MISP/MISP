@@ -33,7 +33,7 @@
         ));
     ?>
 </head>
-<body>
+<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
     <div id="popover_form" class="ajax_popover_form"></div>
     <div id="popover_form_large" class="ajax_popover_form ajax_popover_form_large"></div>
     <div id="popover_form_x_large" class="ajax_popover_form ajax_popover_form_x_large"></div>
@@ -71,7 +71,8 @@
             'bootstrap-datepicker',
             'bootstrap-colorpicker',
             'misp',
-            'keyboard-shortcuts'
+            'keyboard-shortcuts-definition',
+            'keyboard-shortcuts',
         )
     ));
     echo $this->element('footer');
@@ -98,7 +99,6 @@
     <?php
         endif;
     ?>
-        var tabIsActive = true;
         var baseurl = '<?php echo $baseurl; ?>';
         var here = '<?php
                 if (substr($this->params['action'], 0, 6) === 'admin_') {
@@ -107,12 +107,6 @@
                     echo $baseurl . '/' . h($this->params['controller']) . '/' . h($this->params['action']);
                 }
             ?>';
-        $(function(){
-            $(window).blur(function() {
-                tabIsActive = false;
-            }).focus(function() {
-                tabIsActive = true;
-            });
         <?php
             if (!Configure::read('MISP.disable_auto_logout') && isset($me) && $me):
         ?>
@@ -120,7 +114,6 @@
         <?php
             endif;
         ?>
-        });
     </script>
 </body>
 </html>
