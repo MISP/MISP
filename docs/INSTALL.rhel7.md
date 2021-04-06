@@ -4,28 +4,10 @@
 ### -2/ RHEL7/CentOS7 - status
 -------------------------
 !!! notice
-    MISP-core and misp-modules Tested working by [@SteveClement](https://twitter.com/SteveClement) on 20210326
+    Tested fully working without SELinux by [@SteveClement](https://twitter.com/SteveClement) on 20210401
+    TODO: Fix SELinux permissions, *pull-requests welcome*.
 
-!!! notice
-    This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.sh) script.
-    Which explains why you will see the use of shell *functions* in various steps.
-    Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
-
-### -1/ Installer and Manual install instructions
-
-!!! warning
-    In the **future**, to install MISP on a fresh RHEL 7 install all you need to do is:
-
-    ```bash
-    # Please check the installer options first to make the best choice for your install
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-    bash /tmp/INSTALL.sh
-
-    # This will install MISP Core
-    wget -O /tmp/INSTALL.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh
-    bash /tmp/INSTALL.sh -c
-    ```
-    **The above does NOT fully work yet**
+{!generic/manual-install-notes.md!}
 
 !!! notice
     If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel7/).
@@ -84,7 +66,9 @@ sudo hostnamectl set-hostname misp.local # Your choice, in a production environm
 ## 1.3/ **[RHEL]** Register the system for updates with Red Hat Subscription Manager
 ```bash
 # <snippet-begin 0_RHEL_register.sh>
-sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+registerRHEL () {
+  sudo subscription-manager register --auto-attach # register your system to an account and attach to a current subscription
+}
 # <snippet-end 0_RHEL_register.sh>
 ```
 
@@ -109,7 +93,7 @@ centosEPEL () {
   # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
   # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
   sudo yum install centos-release-scl -y
-  sudo yum install yum-utils -y
+  sudo yum install yum-utils dnf -y
   sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
   sudo yum-config-manager --enable remi-php74
 }
@@ -167,7 +151,7 @@ enableEPEL () {
 ## 2.01/ Install some base system dependencies
 ```bash
 # <snippet-begin 0_yumInstallCoreDeps.sh>
-yumInstallCoreDeps () {
+yumInstallCoreDeps7 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
@@ -213,10 +197,12 @@ yumInstallCoreDeps () {
 
 ```bash
 # <snippet-begin 0_yumInstallHaveged.sh>
-# GPG needs lots of entropy, haveged provides entropy
-# /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
-sudo yum install haveged -y
-sudo systemctl enable --now haveged.service
+installEntropyRHEL () {
+  # GPG needs lots of entropy, haveged provides entropy
+  # /!\ Only do this if you're not running rngd to provide randomness and your kernel randomness is not sufficient.
+  sudo dnf install haveged -y
+  sudo systemctl enable --now haveged.service
+}
 # <snippet-end 0_yumInstallHaveged.sh>
 ```
 
