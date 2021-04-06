@@ -155,7 +155,7 @@ yumInstallCoreDeps7 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
-  sudo yum install gcc git zip \
+  sudo yum install gcc git zip unzip \
                    mod_ssl \
                    redis \
                    libxslt-devel zlib-devel ssdeep-devel -y
@@ -326,12 +326,6 @@ installCake_RHEL ()
   sudo mkdir /usr/share/httpd/.composer
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
-  # Update composer.phar (optional)
-  #EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
-  #$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  #$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === '$EXPECTED_SIGNATURE') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-  #$SUDO_WWW php composer-setup.php
-  #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
   sudo yum install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
@@ -435,8 +429,8 @@ prepareDB_RHEL () {
     If it is disabled, you can ignore the **chcon/setsebool/semanage/checkmodule/semodule*** commands.
 
 ```bash
-# <snippet-begin 1_apacheConfig_RHEL.sh>
-apacheConfig_RHEL () {
+# <snippet-begin 1_apacheConfig_RHEL7.sh>
+apacheConfig_RHEL7 () {
   # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
   # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
 
@@ -483,7 +477,7 @@ apacheConfig_RHEL () {
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/custom
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
 }
-# <snippet-end 1_apacheConfig_RHEL.sh>
+# <snippet-end 1_apacheConfig_RHEL7.sh>
 ```
 
 !!! warning

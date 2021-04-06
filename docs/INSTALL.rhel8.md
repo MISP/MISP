@@ -135,7 +135,7 @@ yumInstallCoreDeps8 () {
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
   sudo dnf install @httpd -y
-  sudo dnf install gcc git zip \
+  sudo dnf install gcc git zip unzip \
                    httpd \
                    mod_ssl \
                    redis \
@@ -193,7 +193,7 @@ sudo systemctl enable --now php-fpm.service
 ## 3.01/ Download MISP code using git in /var/www/ directory
 
 ```bash
-# <snippet-begin 1_mispCoreInstall_RHEL.sh>
+# <snippet-begin 1_mispCoreInstall_RHEL8.sh>
 compileLiefRHEL8 () {
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
@@ -330,7 +330,7 @@ installCoreRHEL8 () {
 
   sudo systemctl restart php-fpm.service
 }
-# <snippet-end 1_mispCoreInstall_RHEL.sh>
+# <snippet-end 1_mispCoreInstall_RHEL8.sh>
 ```
 
 ### 4/ CakePHP
@@ -341,17 +341,12 @@ installCoreRHEL8 () {
 
 ```bash
 # <snippet-begin 1_installCake_RHEL.sh>
-installCake_RHEL8 ()
+installCake_RHEL ()
 {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
   sudo mkdir /usr/share/httpd/.composer
   sudo chown $WWW_USER:$WWW_USER /usr/share/httpd/.composer
   cd $PATH_TO_MISP/app
-  # Update composer.phar (optional)
-  #$SUDO_WWW php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  #$SUDO_WWW php -r "if (hash_file('SHA384', 'composer-setup.php') === 'baf1608c33254d00611ac1705c1d9958c817a1a33bce370c0595974b342601bd80b92a3f46067da89e3b06bff421f182') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-  #$SUDO_WWW php composer-setup.php
-  #$SUDO_WWW php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar install
 
   sudo dnf install php-pecl-redis php-pecl-ssdeep php-pecl-gnupg -y
@@ -414,7 +409,7 @@ permissions_RHEL8 () {
 ## 6.01/ Set database to listen on localhost only
 ```bash
 # <snippet-begin 1_prepareDB_RHEL.sh>
-prepareDB_RHEL8 () {
+prepareDB_RHEL () {
   # Enable, start and secure your mysql database server
   sudo systemctl enable --now mariadb.service
   echo [mysqld] |sudo tee /etc/my.cnf.d/bind-address.cnf
@@ -456,7 +451,7 @@ prepareDB_RHEL8 () {
     If it is disabled, you can ignore the **chcon/setsebool/semanage/checkmodule/semodule*** commands.
 
 ```bash
-# <snippet-begin 1_apacheConfig_RHEL.sh>
+# <snippet-begin 1_apacheConfig_RHEL8.sh>
 apacheConfig_RHEL8 () {
   # Now configure your apache server with the DocumentRoot $PATH_TO_MISP/app/webroot/
   # A sample vhost can be found in $PATH_TO_MISP/INSTALL/apache.misp.centos7
@@ -505,7 +500,7 @@ apacheConfig_RHEL8 () {
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/webroot/img/custom
   sudo chcon -R -t httpd_sys_rw_content_t $PATH_TO_MISP/app/files/scripts/mispzmq
 }
-# <snippet-end 1_apacheConfig_RHEL.sh>
+# <snippet-end 1_apacheConfig_RHEL8.sh>
 ```
 
 !!! warning
