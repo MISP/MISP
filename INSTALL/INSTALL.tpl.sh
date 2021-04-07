@@ -99,7 +99,9 @@
 ## 6_ssdeep.sh ##
 ## 6_viper.sh ##
 
+## 0_RHEL_register.sh ##
 ## 0_RHEL7_SCL.sh ##
+## 0_RHEL8_SCL.sh ##
 ## 0_RHEL7_EPEL.sh ##
 ## 0_CentOS_EPEL.sh ##
 ## 0_EPEL_REMI.sh ##
@@ -113,7 +115,8 @@
 ## 1_apacheConfig_RHEL7.sh ##
 ## 1_apacheConfig_RHEL8.sh ##
 ## 1_firewall_RHEL.sh ##
-## 2_permissions_RHEL.sh ##
+## 2_permissions_RHEL7.sh ##
+## 2_permissions_RHEL8.sh ##
 ## 2_logRotation_RHEL.sh ##
 ## 2_configMISP_RHEL.sh ##
 ## 3_configWorkers_RHEL.sh ##
@@ -200,6 +203,7 @@ generateInstaller () {
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
 
+  perl -pe 's/^## 0_RHEL_register.sh ##/`cat 0_RHEL_register.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_RHEL7_SCL.sh ##/`cat 0_RHEL7_SCL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_RHEL8_SCL.sh ##/`cat 0_RHEL8_SCL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_CentOS_EPEL.sh ##/`cat 0_CentOS_EPEL.sh`/ge' -i INSTALL.tpl.sh
@@ -211,7 +215,8 @@ generateInstaller () {
   perl -pe 's/^## 1_mispCoreInstall_RHEL8.sh ##/`cat 1_mispCoreInstall_RHEL8.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_EPEL_REMI.sh ##/`cat 0_EPEL_REMI.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_installCake_RHEL.sh ##/`cat 1_installCake_RHEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 2_permissions_RHEL.sh ##/`cat 2_permissions_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL7.sh ##/`cat 2_permissions_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL8.sh ##/`cat 2_permissions_RHEL8.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_prepareDB_RHEL.sh ##/`cat 1_prepareDB_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_apacheConfig_RHEL7.sh ##/`cat 1_apacheConfig_RHEL7.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_apacheConfig_RHEL8.sh ##/`cat 1_apacheConfig_RHEL8.sh`/ge' -i INSTALL.tpl.sh
@@ -699,6 +704,8 @@ installMISPRHEL () {
       installCoreRHEL7
       debug "Install Cake PHP"
       installCake_RHEL
+      debug "Setting File permissions"
+      permissions_RHEL7
       debug "Preparing Database"
       prepareDB_RHEL
       apacheConfig_RHEL7
@@ -718,6 +725,7 @@ installMISPRHEL () {
 
     if [[ "${DIST_VER}" =~ ^[8].* ]]; then
       enableEPEL_REMI_8
+      enableOptionalRHEL8
       yumInstallCoreDeps8
       installCoreRHEL8
       installCake_RHEL
@@ -735,6 +743,8 @@ installMISPRHEL () {
       installCoreRHEL7
       debug "Install Cake PHP"
       installCake_RHEL
+      debug "Setting File permissions"
+      permissions_RHEL7
       debug "Preparing Database"
       prepareDB_RHEL
       debug "Configuring Apache"
@@ -745,8 +755,6 @@ installMISPRHEL () {
     sudo yum install haveged -y
     sudo systemctl enable --now haveged.service
 
-    debug "Setting File permissions"
-    permissions_RHEL7
 
     debug "Setting up firewall"
     firewall_RHEL
