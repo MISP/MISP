@@ -144,6 +144,7 @@ yumInstallCoreDeps8 () {
                    python3-devel python3-pip python3-virtualenv \
                    python3-policycoreutils \
                    policycoreutils-python-utils \
+                   langpacks-en glibc-all-langpacks \
                    libxslt-devel zlib-devel ssdeep-devel -y
   sudo alternatives --set python /usr/bin/python3
 
