@@ -2214,6 +2214,21 @@ centosEPEL () {
   sudo yum-config-manager --enable remi-php74
 }
 
+enableEPEL_REMI_8 () {
+  sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
+  sudo dnf install http://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
+  sudo dnf install dnf-utils -y
+  sudo dnf module enable php:remi-7.4 -y
+  [[ ${DISTRI} == "centos8stream" ]] && sudo dnf config-manager --set-enabled powertools
+  [[ ${DISTRI} == "centos8" ]] && sudo dnf config-manager --set-enabled powertools
+}
+
+enableREMI_f33 () {
+  sudo dnf install http://rpms.remirepo.net/fedora/remi-release-33.rpm
+  sudo dnf install dnf-utils -y
+  sudo dnf module enable php:remi-7.4 -y
+}
+
 yumInstallCoreDeps7 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
@@ -2270,6 +2285,7 @@ yumInstallCoreDeps8 () {
                    python3-devel python3-pip python3-virtualenv \
                    python3-policycoreutils \
                    policycoreutils-python-utils \
+                   langpacks-en glibc-all-langpacks \
                    libxslt-devel zlib-devel ssdeep-devel -y
   sudo alternatives --set python /usr/bin/python3
 
@@ -3496,20 +3512,20 @@ installMISPRHEL () {
       yumInstallCoreDeps8
       installEntropyRHEL
       installCoreRHEL8
-      installCake_RHEL8
+      installCake_RHEL
       permissions_RHEL8
-      prepareDB_RHEL8
-      apacheConfig_RHEL8
+      prepareDB_RHEL
       debug "Configuring Apache"
-      apacheConfig_RHEL
+      apacheConfig_RHEL8
     fi
 
     if [[ "${DIST_VER}" =~ ^[8].* ]]; then
       enableEPEL_REMI_8
+      yumInstallCoreDeps8
       installCoreRHEL8
-      installCake_RHEL8
+      installCake_RHEL
       permissions_RHEL8
-      prepareDB_RHEL8
+      prepareDB_RHEL
       apacheConfig_RHEL8
     fi
 
@@ -3525,7 +3541,7 @@ installMISPRHEL () {
       debug "Preparing Database"
       prepareDB_RHEL
       debug "Configuring Apache"
-      apacheConfig_RHEL
+      apacheConfig_RHEL7
     fi
 
     debug "Enabling Haveged for additional entropy"
@@ -3533,7 +3549,7 @@ installMISPRHEL () {
     sudo systemctl enable --now haveged.service
 
     debug "Setting File permissions"
-    permissions_RHEL
+    permissions_RHEL7
 
     debug "Setting up firewall"
     firewall_RHEL
