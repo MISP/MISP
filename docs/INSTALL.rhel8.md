@@ -75,7 +75,7 @@ registerRHEL () {
 ```bash
 # <snippet-begin 0_RHEL8_SCL.sh>
 enableOptionalRHEL8 () {
-  sudo subscription-manager refresh 
+  sudo subscription-manager refresh
 
   # The following is needed for -devel repos and ONLY for misp-modules, ignore if not needed
   sudo subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
@@ -722,4 +722,3 @@ systemctl restart misp-workers.service
     via this guide and will need additional investigation.
 
 {!generic/hardening.md!}
-                                                                                                                                                                                                                         
