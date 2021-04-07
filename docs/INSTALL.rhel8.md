@@ -29,7 +29,6 @@
 {!generic/manual-install-notes.md!}
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 8.x (RHEL 8.x) and CentOS 8.x.
-At time of this writing it was tested on versions 8.0 for RHEL.
 This is a joint RHEL/CentOS install guide. The authors tried to make it contextually evident what applies to which flavor.
 
 The following assumptions with regard to this installation have been made.
@@ -88,6 +87,20 @@ enableOptionalRHEL8 () {
 ## 1.5a/ Install the deltarpm package to help reduce download size when installing updates (optional)
 ```bash
 sudo dnf install drpm -y
+```
+
+## 1.5.b/ Install vim (optional)
+```bash
+# Because (neo)vim is just so practical
+sudo dnf install neovim -y
+# For RHEL, it's vim and after enabling epel neovim is available too
+```
+
+## 1.5.c/ Install ntpdate (optional)
+```bash
+# In case you time is wrong, this will fix it.
+sudo dnf install ntpdate -y
+sudo ntpdate pool.ntp.org
 ```
 
 ## 1.5/ Update the system and reboot
@@ -166,6 +179,8 @@ yumInstallCoreDeps8 () {
 
   # cake has php baked in, thus we link to it if necessary.
   [[ ! -e "/usr/bin/php" ]] && sudo ln -s /usr/bin/php74 /usr/bin/php
+
+  sudo systemctl enable --now php-fpm.service
 }
 # <snippet-end 0_yumInstallCoreDeps8.sh>
 ```
@@ -179,15 +194,6 @@ installEntropyRHEL () {
   sudo systemctl enable --now haveged.service
 }
 # <snippet-end 0_yumInstallHaveged.sh>
-```
-
-!!! notice
-    MISP 2.4 requires PHP 5.6 as a minimum, we need a higher version than base RHEL provides.<br />
-    This guide installs PHP 7.4
-
-## 2.05/ Start the PHP FPM service and enable to start on boot
-```bash
-sudo systemctl enable --now php-fpm.service
 ```
 
 ### 3/ MISP code
@@ -379,7 +385,7 @@ installCake_RHEL ()
 
 ### 5/ Set file permissions
 ```bash
-# <snippet-begin 2_permissions_RHEL.sh>
+# <snippet-begin 2_permissions_RHEL8.sh>
 # Main function to fix permissions to something sane
 permissions_RHEL8 () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP
@@ -402,7 +408,7 @@ permissions_RHEL8 () {
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/orgs
   sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/app/webroot/img/custom
 }
-# <snippet-end 2_permissions_RHEL.sh>
+# <snippet-end 2_permissions_RHEL8.sh>
 ```
 
 ### 6/ Create database and user
@@ -716,3 +722,4 @@ systemctl restart misp-workers.service
     via this guide and will need additional investigation.
 
 {!generic/hardening.md!}
+                                                                                                                                                                                                                         
