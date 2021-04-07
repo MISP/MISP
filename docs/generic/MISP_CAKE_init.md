@@ -5,7 +5,7 @@
 # The ${RUN_PHP} is ONLY set on RHEL/CentOS installs and can thus be ignored
 # This file is NOT an excuse to NOT read the settings and familiarize ourselves with them ;)
 
-core{CAKE} () {
+coreCAKE () {
   debug "Running core Cake commands to set sane defaults for ${LBLUE}MISP${NC}"
 
   # IF you have logged in prior to running this, it will fail but the fail is NON-blocking
