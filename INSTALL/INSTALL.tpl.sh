@@ -102,6 +102,7 @@
 ## 0_RHEL7_SCL.sh ##
 ## 0_RHEL7_EPEL.sh ##
 ## 0_CentOS_EPEL.sh ##
+## 0_EPEL_REMI.sh ##
 ## 0_yumInstallCoreDeps7.sh ##
 ## 0_yumInstallCoreDeps8.sh ##
 ## 0_yumInstallHaveged.sh ##
@@ -708,19 +709,20 @@ installMISPRHEL () {
       yumInstallCoreDeps8
       installEntropyRHEL
       installCoreRHEL8
-      installCake_RHEL8
+      installCake_RHEL
       permissions_RHEL8
-      prepareDB_RHEL8
+      prepareDB_RHEL
       debug "Configuring Apache"
       apacheConfig_RHEL8
     fi
 
     if [[ "${DIST_VER}" =~ ^[8].* ]]; then
       enableEPEL_REMI_8
+      yumInstallCoreDeps8
       installCoreRHEL8
-      installCake_RHEL8
+      installCake_RHEL
       permissions_RHEL8
-      prepareDB_RHEL8
+      prepareDB_RHEL
       apacheConfig_RHEL8
     fi
 
@@ -744,7 +746,7 @@ installMISPRHEL () {
     sudo systemctl enable --now haveged.service
 
     debug "Setting File permissions"
-    permissions_RHEL
+    permissions_RHEL7
 
     debug "Setting up firewall"
     firewall_RHEL
