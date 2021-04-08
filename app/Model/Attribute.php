@@ -3557,6 +3557,7 @@ class Attribute extends AppModel
             $attribute['Event']['published'] = 0;
             $attribute['Event']['timestamp'] = $date->getTimestamp();
             $this->Event->save($attribute['Event']);
+            $this->__alterAttributeCount($attribute['Event']['id']);
             return true;
         } else {
             return 'Could not save changes.';

@@ -16,9 +16,12 @@
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
-#  20210401: Ubuntu 21.04      tested and working. -- sCl
-#  20210401: Ubuntu 20.04.2    tested and working. -- sCl
-#  20210401: Ubuntu 18.04.5    tested and working. -- sCl
+#  20210406: CentOS 7.9        tested and working. -- sCl
+#  20210406: CentOS 8          tested and working. -- sCl
+#  20210406: CentOS Stream     tested and working. -- sCl
+#  20210406: Ubuntu 21.04      tested and working. -- sCl
+#  20210406: Ubuntu 20.04.2    tested and working. -- sCl
+#  20210406: Ubuntu 18.04.5    tested and working. -- sCl
 #  20210331: Kali Linux 2021.1 tested and working. -- sCl
 #
 #
@@ -73,6 +76,7 @@
 ## 0_apt-upgrade.sh ##
 ## 0_sudoKeeper.sh ##
 ## 0_installCoreDeps.sh ##
+## 0_upgradePhp74.sh ##
 ## 0_installDepsPhp74.sh ##
 ## 0_installDepsPhp73.sh ##
 ## 0_installDepsPhp72.sh ##
@@ -95,16 +99,24 @@
 ## 6_ssdeep.sh ##
 ## 6_viper.sh ##
 
-## 0_RHEL_SCL.sh ##
+## 0_RHEL_register.sh ##
+## 0_RHEL7_SCL.sh ##
+## 0_RHEL8_SCL.sh ##
+## 0_RHEL7_EPEL.sh ##
 ## 0_CentOS_EPEL.sh ##
-## 0_RHEL_EPEL.sh ##
-## 0_yumInstallCoreDeps.sh ##
-## 1_mispCoreInstall_RHEL.sh ##
+## 0_EPEL_REMI.sh ##
+## 0_yumInstallCoreDeps7.sh ##
+## 0_yumInstallCoreDeps8.sh ##
+## 0_yumInstallHaveged.sh ##
+## 1_mispCoreInstall_RHEL7.sh ##
+## 1_mispCoreInstall_RHEL8.sh ##
 ## 1_installCake_RHEL.sh ##
 ## 1_prepareDB_RHEL.sh ##
-## 1_apacheConfig_RHEL.sh ##
+## 1_apacheConfig_RHEL7.sh ##
+## 1_apacheConfig_RHEL8.sh ##
 ## 1_firewall_RHEL.sh ##
-## 2_permissions_RHEL.sh ##
+## 2_permissions_RHEL7.sh ##
+## 2_permissions_RHEL8.sh ##
 ## 2_logRotation_RHEL.sh ##
 ## 2_configMISP_RHEL.sh ##
 ## 3_configWorkers_RHEL.sh ##
@@ -167,6 +179,7 @@ generateInstaller () {
   perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_upgradePhp74.sh ##/`cat 0_upgradePhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp74.sh ##/`cat 0_installDepsPhp74.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.tpl.sh
@@ -190,15 +203,23 @@ generateInstaller () {
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.tpl.sh
 
-  perl -pe 's/^## 0_RHEL_SCL.sh ##/`cat 0_RHEL_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL_register.sh ##/`cat 0_RHEL_register.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_SCL.sh ##/`cat 0_RHEL7_SCL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL8_SCL.sh ##/`cat 0_RHEL8_SCL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 0_CentOS_EPEL.sh ##/`cat 0_CentOS_EPEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 0_RHEL_EPEL.sh ##/`cat 0_RHEL_EPEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 0_yumInstallCoreDeps.sh ##/`cat 0_yumInstallCoreDeps.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 1_mispCoreInstall_RHEL.sh ##/`cat 1_mispCoreInstall_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_RHEL7_EPEL.sh ##/`cat 0_RHEL7_EPEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps7.sh ##/`cat 0_yumInstallCoreDeps7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallCoreDeps8.sh ##/`cat 0_yumInstallCoreDeps8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_yumInstallHaveged.sh ##/`cat 0_yumInstallHaveged.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL7.sh ##/`cat 1_mispCoreInstall_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall_RHEL8.sh ##/`cat 1_mispCoreInstall_RHEL8.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 0_EPEL_REMI.sh ##/`cat 0_EPEL_REMI.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_installCake_RHEL.sh ##/`cat 1_installCake_RHEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 2_permissions_RHEL.sh ##/`cat 2_permissions_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL7.sh ##/`cat 2_permissions_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 2_permissions_RHEL8.sh ##/`cat 2_permissions_RHEL8.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_prepareDB_RHEL.sh ##/`cat 1_prepareDB_RHEL.sh`/ge' -i INSTALL.tpl.sh
-  perl -pe 's/^## 1_apacheConfig_RHEL.sh ##/`cat 1_apacheConfig_RHEL.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL7.sh ##/`cat 1_apacheConfig_RHEL7.sh`/ge' -i INSTALL.tpl.sh
+  perl -pe 's/^## 1_apacheConfig_RHEL8.sh ##/`cat 1_apacheConfig_RHEL8.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 1_firewall_RHEL.sh ##/`cat 1_firewall_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_logRotation_RHEL.sh ##/`cat 2_logRotation_RHEL.sh`/ge' -i INSTALL.tpl.sh
   perl -pe 's/^## 2_configMISP_RHEL.sh ##/`cat 2_configMISP_RHEL.sh`/ge' -i INSTALL.tpl.sh
@@ -342,10 +363,6 @@ installSupported () {
   [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE
   progress 4
 
-  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT
-  progress 4
-
   # Disable spinner
   #(kill $SPIN_PID 2>&1) >/dev/null
 
@@ -361,6 +378,14 @@ installSupported () {
 
   # Install misp-modules - functionLocation('generic/misp-modules-debian.md')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
+  progress 4
+
+  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
+  [[ -n $CORE ]]      || [[ -n $ALL ]] && updateGOWNT
+  progress 4
+
+  # Install misp-modules - functionLocation('generic/misp-modules-cake.md')
+  [[ -n $MODULES ]]   || [[ -n $ALL ]] && modulesCAKE
   progress 4
 
   # Install Viper - functionLocation('generic/viper-debian.md')
@@ -627,6 +652,7 @@ installMISPonKali () {
 
   debug "Installing misp-modules"
   mispmodules
+  modulesCAKE
 
   ## FIXME: The current state of Viper is broken, disabling any use.
   ##debug "Installing Viper"
@@ -655,43 +681,80 @@ installMISPRHEL () {
     space
     echo "Proceeding with MISP core installation on RHEL ${dist_version}"
     space
- 
+
     id -u "${MISP_USER}" > /dev/null
     if [[ $? -eq 1 ]]; then
       debug "Creating MISP user"
-      sudo useradd -r "${MISP_USER}"
+      sudo useradd -G wheel -m "${MISP_USER}"
     fi 
-    
-    debug "Enabling Extras Repos (SCL)"
-    if [[ "${DISTRI}" == "rhel7" ]]; then
-      sudo subscription-manager register --auto-attach
-      enableReposRHEL
-      enableEPEL
-    else # CentOS
-      centosEPEL
+
+    # Register system if RHEL
+    if [[ "${DISTRI}" =~ ^[rhel].* ]]; then
+      registerRHEL
     fi
 
-    debug "Installing System Dependencies"
-    yumInstallCoreDeps
+    debug "Enabling Extras Repos (SCL)"
+    if [[ "${DISTRI}" == "rhel7" ]]; then
+      enableReposRHEL7
+      enableEPEL
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps7
+      installEntropyRHEL
+      debug "Installing MISP code"
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Setting File permissions"
+      permissions_RHEL7
+      debug "Preparing Database"
+      prepareDB_RHEL
+      apacheConfig_RHEL7
+    fi
+
+    if [[ "${DISTRI}" == "fedora33" ]]; then
+      enableREMI_f33
+      yumInstallCoreDeps8
+      installEntropyRHEL
+      installCoreRHEL8
+      installCake_RHEL
+      permissions_RHEL8
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DIST_VER}" =~ ^[8].* ]]; then
+      enableEPEL_REMI_8
+      enableOptionalRHEL8
+      yumInstallCoreDeps8
+      installCoreRHEL8
+      installCake_RHEL
+      permissions_RHEL8
+      prepareDB_RHEL
+      apacheConfig_RHEL8
+    fi
+
+    if [[ "${DISTRI}" == "centos7" ]]; then
+      centosEPEL
+      debug "Installing MISP code"
+      debug "Installing System Dependencies"
+      yumInstallCoreDeps7
+      installEntropyRHEL
+      installCoreRHEL7
+      debug "Install Cake PHP"
+      installCake_RHEL
+      debug "Setting File permissions"
+      permissions_RHEL7
+      debug "Preparing Database"
+      prepareDB_RHEL
+      debug "Configuring Apache"
+      apacheConfig_RHEL7
+    fi
 
     debug "Enabling Haveged for additional entropy"
     sudo yum install haveged -y
     sudo systemctl enable --now haveged.service
 
-    debug "Installing MISP code"
-    installCoreRHEL
-
-    debug "Install Cake PHP"
-    installCake_RHEL
-
-    debug "Setting File permissions"
-    permissions_RHEL
-
-    debug "Preparing Database"
-    prepareDB_RHEL
-
-    debug "Configuring Apache"
-    apacheConfig_RHEL
 
     debug "Setting up firewall"
     firewall_RHEL
@@ -720,6 +783,9 @@ installMISPRHEL () {
     space
 
     mispmodulesRHEL
+    # Another sleep to avoid RC
+    sleep 3
+    modulesCAKE
 
     echo "MISP modules installation finished."
   fi
@@ -823,7 +889,8 @@ if [[ "${FLAVOUR}" == "ubuntu" ]]; then
   if [[ "${RELEASE}" == "18.04" ]]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installSupported && exit || exit
+    upgradeToPHP74
+    installSupported PHP="7.4" && exit || exit
   fi
   if [[ "${RELEASE}" == "20.04" ]]; then
     echo "Install on Ubuntu 20.04 LTS fully supported."
