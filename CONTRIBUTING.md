@@ -5,7 +5,11 @@ MISP project is a large free software project composed of multiple sub-projects 
 
 The MISP roadmap is mostly based on the user communities (e.g. private communities, CSIRTs communities, security researchers, ISACs - Information Sharing and Analysis Center, security providers, governmental or military organisations) relying on MISP to perform their duties of information sharing and analysis. If you see an existing issue which covers your needs, don't hesitate to comment on it.
 
-Participating in the MISP project is easy and everyone can contribute following their own ability:
+Participating in the MISP project is easy and everyone can contribute following their own ability. 
+The most common way to contribute to the MISP project is
+to report a bug, issues or suggesting features. Each project (MISP core, misp-modules, misp-book, misp-taxonomies, misp-galaxy, misp-object or PyMISP) has their own issue management. 
+Don’t forget that you can cross-reference issues from other sub-projects.
+If you know an answer or could help on a specific issue, we welcome all contributions including useful comments to reach a resolution.
 
 ## Reporting a bug or an issue, suggesting features
 
@@ -17,17 +21,38 @@ Creating a new issue is simply a way for you to submit an item for the MISP team
 
 ### Following up afterward
 
-If the MISP developers make a code change that resolves your issue, then your GitHub issue will typically be closed from the relevant patch message. There is one main branch, `2.4` (current stable version), that we consider as stable with frequent updates as hot-fixes. Features are developed in separated branches and then regularly merged into the 2.4 stable branch. If you so choose, you can test the fix while it’s in the feature branch, or you can wait for it to land in the stable repository. If, after testing the fix, you find that it does not really fix your bug, please leave a comment on your issue explaining the situation. When you do, we will receive a notification and respond on your issue or reopen it (or both). Please do not create a duplicate issue.
+If the MISP developers make a code change that resolves your issue, then your GitHub issue will typically be closed from the relevant patch message. There is one main MISP core branch, `2.4` (current stable version), that we consider as stable with frequent updates as hot-fixes. Features are developed in separated branches and then regularly merged into the 2.4 stable branch. If you so choose, you can test the fix while it’s in the feature branch, or you can wait for it to land in the stable repository. If, after testing the fix, you find that it does not really fix your bug, please leave a comment on your issue explaining the situation. When you do, we will receive a notification and respond on your issue or reopen it (or both). Please do not create a duplicate issue.
 
-In other cases, your issue may be closed with a specific resolution, such as R: invalid, R: duplicate, or R: wontfix. Each of these labels has a description that explains the label. We’ll also leave a comment explaining why we’re closing the issue with one of these specific resolutions. If the issue is closed without one of these specific resolutions or a comment, then it means, by default, that your reported bug was fixed or your requested enhancement was implemented.
+In other cases, your issue may be closed with a specific resolution, such as `R: invalid`, `R: duplicate`, or `R: wontfix`. Each of these labels has a description that explains the label. We’ll also leave a comment explaining why we’re closing the issue with one of these specific resolutions. If the issue is closed without one of these specific resolutions or a comment, then it means, by default, that your reported bug was fixed or your requested enhancement was implemented.
 
 ## Reporting security vulnerabilities
 
 View our [Security Policy](https://github.com/MISP/MISP/security/policy).
+
+## Working on the source code
+
+All the MISP code is kept in Git repositories. We have divided the project into several components, each of which has its own separate repository.  For example:
+- `MISP.git` – The core MISP code.
+- `misp-taxonomies.git` – Taxonomies used in MISP taxonomy system and can be used by other information sharing tools.
+- `misp-galaxy.git` – Clusters and elements to attach to MISP events or attributes (like threat actors).
+- `misp-warninglists.git` – Warning lists to inform users of MISP about potential false-positives or other information in indicators.
+
+All of our repositories are available under the [MISP GitHub account](https://github.com/MISP).
+
+To begin working on a repository, you have to clone it. To clone a repo:
+
+`git clone https://github.com/MISP/<repo_name>.git`
+
+For example: `git clone https://github.com/MISP/misp.git`
+
+## How to Send Patches
+If you want to contribute code to the project, use [GitHub’s fork & pull requests](https://guides.github.com/activities/forking/). When committing changes that will resolve an issue once merged, please follow our [Commit Messages Best Practices]() and include #NNNN in the commit message, NNNN being the issue number. Then, GitHub will automatically reference this commit on the corresponding issue, once the branch is pushed to our Git repository. For example:
+
+```
+chg: [doc] Fix spelling errors (#3120)
+```
  
 ## Contributing to MISP core
-
-### Git workflow
 
 If you want to contribute to the [MISP core](https://github.com/MISP/MISP) project:
 
@@ -49,11 +74,22 @@ Some recommendations to get your PR merged quickly:
 - If the commit message contain all the information regarding the changes, it's easier for the maintainer to do the review.
 - Avoid committing sensitive information, debugging code or unrelated code in the PR.
 
+## Contributing to a JSON library (objects, taxonomies, galaxy or warning-list)
+
+All of MISP's JSON format (galaxy, taxonomies, objects or warning-lists) are described in a JSON Schema, named using the convention `schema_name.json`.
+The TravisCI tests include JSON validation (via `jq`) and are validated with the associated JSON schema.
+When you update a JSON library, validate the associated JSON schema by running `jq_all_the_things.sh`.
+This prompts the JSON validation tests (via jq) using [TravisCI](https://travis-ci.org/MISP). It should be fast and easy. 
+If the checks fails, review your JSON. 
+Once everything works, commit your code and make a pull-request against the specific library.
+
+Documentation (in PDF and HTML format) for the librairies are automatically generated from the JSON via [asciidoctor](https://asciidoctor.org/). Look at [this example](https://github.com/MISP/misp-galaxy/blob/main/tools/adoc_galaxy.py). 
+
 ### Translating MISP
 
 Thank you for your interest in making MISP easier to use in your own language!
 
-We accept translations on Crowdin: https://crowdin.com/project/misp. MISP is currently available in __ languages. You can help us bring more languages. Crowdin is a localization management platform that helps companies to translate their software. Note that CrowdIn is inpendent from MISP and they have their own [privacy policy](https://support.crowdin.com/privacy-policy/). 
+We accept translations on Crowdin: https://crowdin.com/project/misp. MISP is currently available in __ languages. You can help us bring more languages. Crowdin is a localization management platform that helps companies to translate their software. Note that CrowdIn is independent from MISP and they have their own [privacy policy](https://support.crowdin.com/privacy-policy/). 
 
 You can help correct, improve, or complete the translations of MISP programs into your native language. MISP can be translated into more than 140 languages this way. Most of MISP can be translated directly online, through a simple web interface, after logging in with CrowdIn. In order to get started with using CrowdIn, you can [read their introductory article](https://support.crowdin.com/for-volunteer-translators/). Note that only reviewed translations are included in MISP.
 
@@ -85,8 +121,51 @@ We strongly recommend to validate the JSON file using [jq](https://github.com/MI
 
 ### Building software compatible with MISP formats and improving MISP formats
 
-[MISP formats](https://github.com/MISP/misp-rfc) are open and free standards. We invite software developers to use the native MISP format for exchanging threat intelligence and support information sharing/analysis. The MISP formats are simple JSON formats implemented in various software including the MISP core application along with various libraries such as [PyMISP](https://github.com/MISP/PyMISP).
+[MISP formats](https://github.com/MISP/misp-rfc) are open and free standards. 
+If you want to contribute to our IETF Internet-Draft for the MISP standard, misp-rfc is the repository where to contribute. 
+We invite software developers to use the native MISP format for exchanging threat intelligence and support information sharing/analysis.
+Update only the markdown file, the XML and ASCII for the IETF I-D are automatically generated.
+If a major release or updates happen in the format, we will [publish the I-D to the IETF](https://datatracker.ietf.org/doc/search/?name=misp&
+activedrafts=on&rfcs=on).
+The process is always MISP implementation → IETF I-D updates.
+
+The MISP formats are simple JSON formats implemented in various software including the MISP core application along with various libraries such as [PyMISP](https://github.com/MISP/PyMISP).
 
 If you want to contribute to the MISP formats (which are actively based on the MISP core implementation), feel free to open an issue at [misp-rfc](https://github.com/MISP/misp-rfc).
-  
+
+## Automatic integration and testing
+
+The majority of the repositories within the MISP GitHub organisation includes automatic integration with TravisCI. 
+Feedback and patches are welcome. 
+For example, you can propose new tests that we could run on Travis CI, or suggest additional automatic tests including unit testing for the MISP core software Please explain the expected benefit of your work on MISP developers and users -- this will help us prioritize our work. 
+
+## Improve MISP UX
+
+If you're a MISP user, you can contribute to our UX efforts by filling the [MISP User Experience Survey](https://misp-project.org/ux-survey).
+The purpose of this survey is to assess the user experience of MISP and learn more about the needs of its users. 
+
+If you're a UX researcher or designer and want to help with UX issues, look at [issues with the `UX` label](https://github.com/MISP/MISP/labels/UX) on GitHub, corresponding to things that we would like to see improved in the MISP user interface. If you have other ideas to improve MISP, let us know! Even if you don't implement your suggestions yourself, create issues with your ideas so that others can benefit from your insight.
+
+You can also help us refine or enhance our [user personas]() and [user stories](). 
+
+For any questions or comments related to UX, please get in touch with us via ux@misp-project.org
+
+## Testing New Releases and Updates
+
+Testing new MISP releases and updates is one of the ways in which you can contribute to the MISP Project. 
+However, you should only attempt to do this if you know what you’re doing. Never rely on code that is in testing for critical work!
+
+If you would like to test MISP and don’t want to do an installation, you can use automatically-generated VM images. See more on our [download page](https://www.misp-project.org/download/#virtual-images). 
+
+If you’re testing new releases or updates, we would be grateful for your feedback via GitHub issues. 
+
+## Improving the website
+
+You can improve the MISP website.
+We have identified some things that we would like to see improved on our website: see the [website-related issues on GitHub](https://github.com/MISP/misp-website/issues).
+
+Nevertheless, if you are a web or graphics person, you can surely find other ideas to improve the MISP website! Even if you don't plan to implement every suggested enhancement yourself, it may be worth creating issues with your ideas so that others can benefit from your insight.
+
+The website https://misp-project.org/ is built using Jekyll.
+You can [build a local copy of the website](https://github.com/MISP/misp-website/issues) on your computer. Building the website produces a set a HTML pages stored on your system that you can open in your usual web browser even while working offline. Doing so is useful for writers and designers to see how their changes will apply on the website.
 
